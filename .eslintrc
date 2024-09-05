@@ -1,0 +1,24 @@
+{
+  "env": {
+    "browser": true,
+    "es2021": true,
+    "node": true
+  },
+  "extends": ["eslint:recommended", "plugin:react/recommended"],
+  "parserOptions": {
+    "ecmaFeatures": {
+      "jsx": true
+    },
+    "ecmaVersion": 12,
+    "sourceType": "module"
+  },
+  "plugins": ["react"],
+  "rules": {
+    // Aqui você pode adicionar regras específicas do ESLint para o seu projeto
+  },
+  "globals": {
+    // Aqui você pode adicionar variáveis globais que não devem ser sinalizadas como não definidas
+    "$": true,
+    "jQuery": true
+  }
+}

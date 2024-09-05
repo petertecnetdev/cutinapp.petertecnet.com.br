@@ -1,0 +1,50 @@
+{
+  "name": "laravel-rest-api-and-react-app",
+  "version": "1.0.0",
+  "description": "We are using Laravel 9 for jwt authentication based login and \r signup API. We use react.js on the frontend.",
+  "main": "index.js",
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@fortawesome/fontawesome-free": "^6.5.1",
+    "axios": "^1.6.8",
+    "bootstrap": "^5.3.3",
+    "express": "^4.19.2",
+    "jquery": "^3.7.1",
+    "prop-types": "^15.8.1",
+    "react-bootstrap": "^2.10.2",
+    "react-icons": "^5.0.1",
+    "react-image-crop": "^11.0.5",
+    "react-input-mask": "^2.0.4",
+    "react-router-dom": "^6.22.3",
+    "react-scripts": "^5.0.1",
+    "react-webcam": "^7.2.0",
+    "reactstrap": "^9.2.2",
+    "web-vitals": "^3.5.2"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
+    "@babel/plugin-transform-private-property-in-object": "^7.24.7",
+    "sass": "^1.72.0",
+    "source-map-loader": "^5.0.0"
+  }
+}

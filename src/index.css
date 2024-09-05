@@ -1,0 +1,391 @@
+body {
+  background-color:black;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-attachment: fixed;
+  color: white;
+  margin: 0;
+}
+
+.card {
+  background-color: rgba(7, 9, 133, 0.2);
+  color: white;
+  padding: 3vw;
+  border-radius: 3vw;
+  border: 0.2vw solid rgb(10, 42, 223);
+  backdrop-filter: blur(0.5vw);
+  margin: 1.5vw;
+}
+
+
+.navbar {
+  background-image: linear-gradient(to right, #255c6d, #97e5f5);
+  padding: 1vw;
+}
+
+.navbar .nav-link {
+  color: white !important;
+}
+
+.navbar .nav-link:hover {
+  color: #e6e6e6 !important;
+}
+
+.navbar .navbar-brand {
+  color: white !important;
+}
+
+.navbar-toggler-icon {
+  color: white !important;
+}
+
+.user-menu .dropdown-toggle {
+  color: white !important;
+}
+
+.navbar-toggler {
+  border: none;
+  background-color: transparent;
+  outline: none;
+  transition: transform 0.3s ease;
+}
+
+.navbar-toggler-icon {
+  color: white;
+}
+
+.navbar-toggler:hover {
+  transform: scale(1.5);
+}
+
+@keyframes blink {
+  0% {
+    border: 0.1vw solid rgb(255, 0, 0);
+  }
+  50% {
+    border: 0.1vw solid rgb(255, 255, 255);
+  }
+  100% {
+    border: 0.1vw solid rgb(255, 0, 0);
+  }
+}
+
+.alert-top {
+  padding: 3vw;
+  border-radius: 2vw;
+  border: 0.1vw solid rgb(2, 0, 0);
+  backdrop-filter: blur(0.3vw);
+  animation: blink 3s infinite;
+  margin: 1vw;
+  position: fixed;
+  top: 10vw;
+  right: 1vw;
+  z-index: 1050;
+}
+
+.img-logo-production {
+  position: relative;
+  margin-left: 65%;
+  margin-top: -10%;
+  width: 30%;
+  max-width: 15vw;
+  height: auto;
+  padding: 1.5vw;
+  border: 0.2vw solid white;
+  box-shadow: 1vw 0.1vw 1.5vw 0.2vw rgba(255, 255, 255, 0.9);
+}
+.img-logo-production-show {
+  position: relative;
+  margin-left: 65%;
+  margin-top: -10%;
+  width: 30%;
+  max-width: 15vw;
+  height: auto;
+  padding: 7px;
+  border: 0.2vw solid white;
+  box-shadow: 1vw 0.1vw 1.5vw 0.2vw rgba(255, 255, 255, 0.9);
+}
+
+.img-background-production {
+  border: 0.1vw solid white;
+  backdrop-filter: blur(0.5vw);
+}
+
+.card-production {
+  background-color: rgba(5, 33, 92, 0.8);
+  color: rgb(255, 255, 255);
+  padding: 1px;
+  backdrop-filter: blur(0.1vw);
+  font-size: 1.5vw;
+  border-radius: 2vw;
+  margin: 1.5vw;
+  border: 0.2vw solid rgb(255, 255, 255);
+}
+.card-production-show {
+  background-color: rgba(5, 33, 92, 0.8);
+  color: rgb(255, 255, 255);
+  padding: 10px;
+  backdrop-filter: blur(0.1vw);
+  font-size: 1.5vw;
+  border-radius: 2vw;
+  margin: 1.5vw;
+  border: 0.2vw solid rgb(255, 255, 255);
+}
+.card-user {
+  background-image: linear-gradient(to right, #092e35, #010825);
+  color: rgb(199, 232, 241);
+  padding: 1vw;
+  backdrop-filter: blur(0.1vw);
+  font-size: 1.5vw;
+  border-radius: 2vw;
+  margin: 1.5vw;
+  border: 0.1vw solid rgb(255, 255, 255);
+}
+
+
+.auth-dropdown {
+  margin-right: 2.5vw;
+  color: white;
+}
+
+.auth-dropdown .dropdown-menu {
+  left: -50%;
+  border: none;
+  box-shadow: 0 0 1vw rgba(0, 0, 0, 0.1);
+  background-image: linear-gradient(to right, #96e5f3, #f0f0f0);
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.modal {
+  background-color: rgba(7, 9, 133, 0.1);
+  animation: fadeIn 1s ease;
+}
+
+.modal.fade {
+  animation: fadeIn 1s ease;
+}
+
+.modal-content {
+  border-radius: 2vw;
+  border: 1px solid white;
+  color: white;
+  background-color: rgba(7, 9, 133, 0.5);
+}
+
+.labeltitle {
+  background-color: black;
+  padding: 0.3vw;
+  color: white;
+  border-radius: 2vw;
+  margin-top: 1vw;
+  box-shadow: 0.1vw 0.1vw 1vw 0.2vw rgba(255, 255, 255, 0.8);
+  text-align: center;
+}
+
+.seguiments {
+  color: white;
+  border: 1px white;
+  padding: 5px;
+  margin: 0 auto; /* Centraliza horizontalmente */
+  font-size: 13px;
+}
+.seguiment-card{
+  border-radius: 80px;
+  background-color: rgb(10, 36, 53);
+  text-align: center; /* Centraliza o texto dentro dos segmentos */
+  text-align: center; /* Centraliza o texto dentro dos segmentos */
+  padding: 1px; /* Centraliza horizontalmente */
+  font-size: 13px;
+  margin: 0 auto; /* Centraliza horizontalmente */
+}
+.background-image {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: blur(1vw);
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: -1;
+}
+
+.card-production {
+  position: relative;
+  overflow: hidden;
+}
+
+.card-event-view {
+  position: relative;
+  overflow: hidden;
+}
+
+.background-image-event {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: blur(5vw);
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: -1;
+}
+
+.img-event {
+  width: 100%;
+  height: auto;
+  
+  object-fit: cover;
+}
+.event-production-logo{
+  border-radius: 50px;
+  width: 20%;
+  height: 10%;
+  padding: 5px;
+  border: 1px solid white;
+  box-shadow: 0.1vw 0.1vw 1vw 0.2vw rgba(255, 255, 255, 0.8);
+  margin: 2%;
+
+}
+@media (max-width: 767px) {
+  body {
+    background-image: url('images/background.png');
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-attachment: fixed;
+    color: white;
+  }
+
+  .card {
+    background-color: rgba(7, 9, 133, 0.2);
+    color: white;
+    padding: 5vw;
+    border-radius: 5vw;
+    border: 0.5vw solid rgb(10, 42, 223);
+    backdrop-filter: blur(1vw);
+    margin: 2.5vw;
+  }
+
+
+  .alert {
+    padding: 5vw;
+    border-radius: 4vw;
+    border: 0.5vw solid rgb(2, 0, 0);
+    backdrop-filter: blur(1vw);
+    animation: blink 3s infinite;
+    margin: 2vw;
+  }
+
+  .img-logo-production {
+    position: relative;
+    margin-left: 50%;
+    margin-top: -10%;
+    width: 30%;
+    max-width: 12vw;
+    height: auto;
+    padding: 5vw;
+    border: 1vw solid white;
+    box-shadow: 2.5vw 0.5vw 5vw 1vw rgba(255, 255, 255, 0.9);
+  }
+  .card-production {
+    background-color: rgba(5, 33, 92, 0.8);
+    color: rgb(255, 255, 255);
+    padding: 10vw;
+    backdrop-filter: blur(2vw);
+    font-size: 3vw;
+    border-radius: 4vw;
+    margin: 2.5vw;
+    border: 0.5vw solid rgb(255, 255, 255);
+  }
+
+.img-logo-production2 {
+  position: relative;
+  margin-left: 35% !important;
+  margin-top: 2% !important;
+  width: 30%;
+  max-width: 15vw;
+  height: auto;
+  padding: 1.5vw;
+  border: 0.2vw solid white;
+  box-shadow: 1vw 0.1vw 1.5vw 0.2vw rgba(255, 255, 255, 0.9);
+}
+  .card-user {
+    background-image: linear-gradient(to right, #092e35, #010825);
+    color: rgb(199, 232, 241);
+    padding: 3vw;
+    backdrop-filter: blur(1vw);
+    font-size: 3vw;
+    border-radius: 4vw;
+    margin: 2.5vw;
+    border: 0.5vw solid rgb(255, 255, 255);
+  }
+
+  .auth-dropdown {
+    margin-right: 5vw;
+    color: white;
+  }
+
+  .auth-dropdown .dropdown-menu {
+    left: -50%;
+    border: none;
+    box-shadow: 0 0 2vw rgba(0, 0, 0, 0.1);
+    background-image: linear-gradient(to right, #96e5f3, #f0f0f0);
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  body {
+    /* Estilos específicos para telas entre 768px e 1023px */
+  }
+}
+
+.sticky-summary {
+  position: -webkit-sticky; /* Para compatibilidade com Safari */
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: rgba(255, 255, 255, 0.8); /* Fundo semi-transparente para melhor visibilidade do texto */
+  border: #010825 10px solid;
+  border-radius: 8px;
+  overflow: hidden; /* Garante que o conteúdo não ultrapasse os limites da coluna */
+  height: 100%; /* Garante que a coluna ocupe toda a altura disponível */
+  display: flex;
+  
+  flex-direction: column;
+  justify-content: center; /* Alinha o conteúdo verticalmente ao centro */
+  position: -webkit-sticky; /* Para suporte ao Safari */
+  position: sticky;
+  top: 130px; /* Necessário para o efeito de desfoque */
+}
+
+.sticky-summary::before {
+  position: sticky;
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  filter: blur(58px); /* Ajuste o valor para o nível de desfoque desejado */
+  z-index: -1; /* Coloca o efeito de desfoque atrás do conteúdo */
+}
+
+
