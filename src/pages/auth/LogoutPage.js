@@ -1,18 +1,38 @@
 import React, { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import authService from "../../services/AuthService";
-import LoadingComponent from "../../components/LoadingComponent";
+import { apiBaseUrl, appSlug } from "../../config";
 
 export default function LogoutPage() {
-  const navigate = useNavigate();
-
   useEffect(() => {
-    let mounted = true;
-    authService.logout().finally(() => {
-      if (mounted) navigate("/login", { replace: true });
-    });
-    return () => { mounted = false; };
-  }, [navigate]);
+    let active = true;
 
-  return <LoadingComponent />;
+    async function logout() {
+      const token = localStorage.getItem("token");
+
+      try {
+        if (token) {
+          await fetch(`${apiBaseUrl}/auth/logout`, {
+            method: "POST",
+            keepalive: true,
+            headers: {
+              Accept: "application/json",
+              Authorization: `Bearer ${token}`,
+              "X-App-Slug": appSlug,
+            },
+          });
+        }
+      } catch (error) {
+        console.warn("Não foi possível registrar o logout na API:", error);
+      } finally {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        localStorage.removeItem("employer");
+        if (active) window.location.replace("/login");
+      }
+    }
+
+    logout();
+    return () => { active = false };
+  }, []);
+
+  return null;
 }
