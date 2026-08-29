@@ -1,0 +1,81 @@
+/* =========================================================
+   CUTINAPP — SHARED AUTH PAGES
+   Used by register, verification and password management.
+========================================================= */
+
+.cutin-auth-page {
+  width: min(1120px, calc(100% - 32px));
+  min-height: calc(100vh - var(--cutin-nav-h,78px) - var(--cutin-footer-h,92px));
+  margin: 0 auto;
+  padding: clamp(36px,7vw,76px) 0;
+  display: grid;
+  grid-template-columns: minmax(0,1fr) minmax(360px,.82fr);
+  gap: clamp(28px,5vw,64px);
+  align-items: center;
+}
+
+.cutin-auth-page__intro { max-width: 620px; }
+.cutin-auth-page__intro h1 {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(2rem,5vw,3.8rem);
+  line-height: 1.02;
+  font-weight: 950;
+  letter-spacing: -.05em;
+}
+.cutin-auth-page__intro p { margin: 17px 0 0; max-width: 590px; color: var(--cutin-muted); line-height: 1.68; }
+
+.cutin-auth-card {
+  width: 100%;
+  max-width: 520px;
+  justify-self: end;
+  padding: clamp(22px,4vw,32px);
+  border: 1px solid var(--cutin-border);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 50% 0%,rgba(55,230,161,.075),transparent 34%),
+    linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.025));
+  box-shadow: var(--cutin-shadow);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.cutin-auth-card__mark {
+  width: 78px;
+  height: 78px;
+  margin: 0 auto 14px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 21px;
+  background: linear-gradient(135deg,var(--cutin-primary),var(--cutin-primary-2));
+  color: #03130d;
+  box-shadow: 0 18px 46px rgba(55,230,161,.18);
+  font-size: 1.7rem;
+  font-weight: 950;
+}
+
+.cutin-auth-card h2 { margin: 0; color: #fff; text-align: center; font-size: clamp(1.5rem,3vw,1.95rem); font-weight: 920; }
+.cutin-auth-card__subtitle { margin: 8px 0 20px; text-align: center; color: var(--cutin-muted); line-height: 1.55; }
+.cutin-auth-card form { display: grid; gap: 14px; }
+.cutin-auth-card .cutin-field input { min-height: 50px; }
+.cutin-auth-card__actions { display: grid; gap: 10px; margin-top: 4px; }
+.cutin-auth-card__actions .primary,
+.cutin-auth-card__actions .secondary { width: 100%; min-height: 50px; }
+.cutin-auth-card__footer { margin-top: 17px; padding-top: 15px; border-top: 1px solid var(--cutin-border-soft); color: var(--cutin-muted); text-align: center; font-size: .86rem; }
+.cutin-auth-card__footer a { color: var(--cutin-primary); font-weight: 800; }
+
+.cutin-code-input { text-align: center; font-size: 1.12rem; font-weight: 850; letter-spacing: .18em; }
+
+@media (max-width: 900px) {
+  .cutin-auth-page { grid-template-columns: 1fr; min-height: auto; max-width: 680px; gap: 20px; }
+  .cutin-auth-page__intro { margin-inline: auto; text-align: center; }
+  .cutin-auth-card { justify-self: center; }
+}
+
+@media (max-width: 620px) {
+  .cutin-auth-page { width: calc(100% - 24px); padding: 28px 0 40px; }
+  .cutin-auth-page__intro h1 { font-size: clamp(2rem,11vw,3rem); }
+  .cutin-auth-card { padding: 20px 16px; border-radius: 19px; }
+  .cutin-auth-card__mark { width: 70px; height: 70px; border-radius: 18px; }
+}
