@@ -1,38 +1,38 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import authService from '../../services/AuthService';
-import LoadingComponent from '../../components/LoadingComponent'; // Importa o componente de carregamento
+import React, { useEffect } from "react";
+import { apiBaseUrl, appSlug } from "../../config";
 
-const LogoutPage = () => {
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-
+export default function LogoutPage() {
   useEffect(() => {
-    const logout = async () => {
+    let active = true;
+
+    async function logout() {
+      const token = localStorage.getItem("token");
+
       try {
-        await authService.logout(); // 
-          history('/login', { replace: true });
+        if (token) {
+          await fetch(`${apiBaseUrl}/auth/logout`, {
+            method: "POST",
+            keepalive: true,
+            headers: {
+              Accept: "application/json",
+              Authorization: `Bearer ${token}`,
+              "X-App-Slug": appSlug,
+            },
+          });
+        }
       } catch (error) {
-        console.error('Erro durante o logout:', error);
+        console.warn("Não foi possível registrar o logout na API:", error);
       } finally {
-        setTimeout(() => {
-          setLoading(false);
-          navigate('/login');
-        }, 2000); // Tempo de espera de 2 segundos (2000 milissegundos)
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        localStorage.removeItem("employer");
+        if (active) window.location.replace("/login");
       }
-    };
+    }
 
-    localStorage.removeItem("token");
-    window.location.href = "/login";
     logout();
-  }, [navigate]);
+    return () => { active = false };
+  }, []);
 
-  // Se loading for verdadeiro, renderiza o componente de carregamento
-  if (loading) {
-    return <LoadingComponent />; // Renderiza o componente de carregamento
-  }
-
-  return null; // Este componente não renderiza nada visível para o usuário
-};
-
-export default LogoutPage;
+  return null;
+}
