@@ -7,7 +7,7 @@ import EmailVerifyPage from "./pages/auth/EmailVerifyPage";
 import LogoutPage from "./pages/auth/LogoutPage";
 import PasswordEmailPage from "./pages/auth/PasswordEmailPage";
 import PasswordPage from "./pages/auth/PasswordPage";
-import LoadingComponent from "./components/LoadingComponent";
+import ProcessingIndicatorComponent from "./components/ProcessingIndicatorComponent";
 import authService from "./services/AuthService";
 
 import CutinHomePage from "./pages/CutinHomePage";
@@ -36,10 +36,17 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const hasToken = Boolean(authService.getToken());
+    if (!hasToken) {
+      setLoading(false);
+      return;
+    }
     authService.me().then(setUser).catch(() => setUser(null)).finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <LoadingComponent />;
+  if (loading) {
+    return <ProcessingIndicatorComponent messages={["Carregando sua experiência...", "Conectando à Cutinapp..."]} />;
+  }
 
   const protectedRoute = (element) => {
     if (!user) return <Navigate to="/login" replace />;
