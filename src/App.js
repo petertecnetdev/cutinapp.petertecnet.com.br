@@ -16,6 +16,7 @@ import { PublicEventPage, EventManagePage, CheckinPage } from "./pages/CutinOper
 import CutinTicketLotsPage from "./pages/CutinTicketLotsPage";
 import CutinProductsPage from "./pages/CutinProductsPage";
 import CutinPromoterPage from "./pages/CutinPromoterPage";
+import CutinCommissionsPage from "./pages/CutinCommissionsPage";
 
 import ProductionCreatePage from "./pages/production/ProductionCreatePage";
 import ProductionUpdatePage from "./pages/production/ProductionUpdatePage";
@@ -68,6 +69,7 @@ export default function App() {
     <Route path="/checkin" element={protectedRoute(<CheckinPage />)} />
     <Route path="/gerenciar/evento/:id" element={protectedRoute(<EventManagePage />)} />
     <Route path="/gerenciar/evento/:id/ingressos" element={protectedRoute(<CutinTicketLotsPage />)} />
+    <Route path="/gerenciar/evento/:eventId/comissoes" element={protectedRoute(<CutinCommissionsPage />)} />
     <Route path="/minha-conta" element={protectedRoute(<UserEditPage />)} />
 
     <Route path="/production/create" element={protectedRoute(<ProductionCreatePage />)} />
