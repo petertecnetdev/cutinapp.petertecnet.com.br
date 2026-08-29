@@ -1,157 +1,96 @@
-import React, { useState, useEffect } from "react";
-import {
-  Container,
-  Form,
-  Button,
-  Row,
-  Col,
-  Card,
-  Alert,
-} from "react-bootstrap";
-import NavlogComponent from "../../components/NavlogComponent";
-import authService from "../../services/AuthService";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import CutinLayout from "../../components/CutinLayout";
+import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
+import authService from "../../services/AuthService";
+import "../CutinPages.css";
+import "./Auth.css";
 
-const PasswordPage = () => {
-  const [showAlert, setShowAlert] = useState(false);
-  const [alertMessage, setAlertMessage] = useState("");
-  const [alertType, setAlertType] = useState("");
+export default function PasswordPage() {
+  const [feedback, setFeedback] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     current_password: "",
     new_password: "",
     confirm_password: "",
   });
 
-  useEffect(() => {
-    // Define um temporizador para esconder o alerta após 5 segundos
-    const timer = setTimeout(() => {
-      setShowAlert(false);
-    }, 5000);
-
-    // Limpa o temporizador quando o componente é desmontado ou quando o alerta é fechado manualmente
-    return () => clearTimeout(timer);
-  }, [showAlert]); // Executa o efeito sempre que showAlert for alterado
+  const handleInputChange = (event) => {
+    const { name, value } = event.target;
+    setFormData((current) => ({ ...current, [name]: value }));
+  };
 
   const handleFormSubmit = async (event) => {
     event.preventDefault();
+    setFeedback(null);
+
+    if (formData.new_password !== formData.confirm_password) {
+      setFeedback({ type: "error", message: "A confirmação da nova senha não confere." });
+      return;
+    }
+
+    setLoading(true);
     try {
-      // Enviar os dados para a API para alterar a senha
       await authService.changePassword(
         formData.current_password,
         formData.new_password,
         formData.confirm_password
       );
-
-      // Limpar os campos do formulário após a alteração da senha
-      setFormData({
-        current_password: "",
-        new_password: "",
-        confirm_password: "",
-      });
-
-      // Exibir mensagem de sucesso
-      setAlertType("success");
-      setAlertMessage("Senha atualizada com sucesso!");
-      setShowAlert(true);
+      setFormData({ current_password: "", new_password: "", confirm_password: "" });
+      setFeedback({ type: "success", message: "Senha atualizada com sucesso." });
     } catch (error) {
-      console.error(error);
-
-      // Verificar se a API retornou uma mensagem de erro
-      if (error.response && error.response.data && error.response.data.error) {
-        // Exibir mensagem de erro da API
-        setAlertType("danger");
-        setAlertMessage(error.response.data.error);
-        setShowAlert(true);
-      } else {
-        // Exibir mensagem de erro genérica
-        setAlertType("danger");
-        setAlertMessage("Ocorreu um erro ao atualizar a senha.");
-        setShowAlert(true);
-      }
+      const message = error?.response?.data?.error || error?.message || "Não foi possível atualizar a senha.";
+      setFeedback({ type: "error", message });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleAlertClose = () => {
-    setShowAlert(false);
-  };
-
-  const handleInputChange = (event) => {
-    const { name, value } = event.target;
-    setFormData({ ...formData, [name]: value });
-  };
-
   return (
-    <>
-      <NavlogComponent />
-      <Container>
-        <Row className="justify-content-center mt-5">
-          <Col xs={12} md={6} className="mt-5">
-            <Card>
-              <Card.Body>
-                <h2 className="text-center mb-4">Alterar Senha</h2>
-                <Form onSubmit={handleFormSubmit}>
-                  <Form.Group controlId="current_password" className="mt-4">
-                    <Form.Control
-                      type="password"
-                      placeholder="Digite a senha atual"
-                      name="current_password"
-                      value={formData.current_password}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </Form.Group>
-                  <Form.Group controlId="new_password" className="mt-4">
-                    <Form.Control
-                      type="password"
-                      placeholder="Digite a nova senha"
-                      name="new_password"
-                      value={formData.new_password}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </Form.Group>
-                  <Form.Group controlId="confirm_password" className="mt-4">
-                    <Form.Control
-                      type="password"
-                      name="confirm_password"
-                      placeholder="Confirme a senha"
-                      value={formData.confirm_password}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </Form.Group>
-                  <Button
-                    variant="primary"
-                    type="submit"
-                    className="w-100 mt-4"
-                  >
-                    Salvar
-                  </Button>
+    <CutinLayout>
+      {loading && <ProcessingIndicatorComponent messages={["Atualizando senha...", "Protegendo sua conta..."]} />}
+      <section className="cutin-auth-page">
+        <div className="cutin-auth-page__intro">
+          <span className="eyebrow">Minha conta</span>
+          <h1>Atualize sua senha.</h1>
+          <p>Mantenha sua conta Peter Tecnet protegida usando uma senha forte e diferente das utilizadas em outros serviços.</p>
+        </div>
 
-                  <Link
-                    to="/profile"
-                    className="btn bg-info mt-4"
-                    style={{ display: "block" }} 
-                  >
-                    Alterar perfil
-                  </Link>
-                </Form>
-                <Alert
-                  show={showAlert}
-                  variant={alertType}
-                  onClose={handleAlertClose}
-                  dismissible
-                  className="mt-3"
-                >
-                  {alertMessage}
-                </Alert>
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
-      </Container>
-    </>
+        <div className="cutin-auth-card">
+          <div className="cutin-auth-card__mark" aria-hidden="true">C</div>
+          <h2>Alterar senha</h2>
+          <p className="cutin-auth-card__subtitle">Confirme sua senha atual e escolha uma nova.</p>
+
+          <form onSubmit={handleFormSubmit}>
+            <label className="cutin-field">
+              <span>Senha atual</span>
+              <input type="password" name="current_password" value={formData.current_password} onChange={handleInputChange} autoComplete="current-password" required />
+            </label>
+            <label className="cutin-field">
+              <span>Nova senha</span>
+              <input type="password" name="new_password" value={formData.new_password} onChange={handleInputChange} autoComplete="new-password" required />
+            </label>
+            <label className="cutin-field">
+              <span>Confirmar nova senha</span>
+              <input type="password" name="confirm_password" value={formData.confirm_password} onChange={handleInputChange} autoComplete="new-password" required />
+            </label>
+
+            {feedback && (
+              <div className={feedback.type === "success" ? "success-box" : "error-box"} role="alert">
+                {feedback.message}
+              </div>
+            )}
+
+            <div className="cutin-auth-card__actions">
+              <button className="primary" type="submit" disabled={loading}>Salvar nova senha</button>
+            </div>
+          </form>
+
+          <div className="cutin-auth-card__footer">
+            <Link to="/minha-conta">Voltar para minha conta</Link>
+          </div>
+        </div>
+      </section>
+    </CutinLayout>
   );
-};
-
-export default PasswordPage;
+}
