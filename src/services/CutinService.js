@@ -13,8 +13,9 @@ api.interceptors.request.use((config) => {
 const data = (response) => response?.data?.data ?? response?.data ?? [];
 
 const CutinService = {
-  async events(params = {}) { return data(await api.get("/event", { params })); },
-  async event(slug) { return data(await api.get(`/event/${slug}`)); },
+  async events(params = {}) { return data(await api.get("/cutinapp/events", { params })); },
+  async publicEvent(id) { return data(await api.get(`/cutinapp/events/${id}`)); },
+  async legacyEvent(slug) { return data(await api.get(`/event/${slug}`)); },
   async myEvents() { return data(await api.get("/event/myevents/list")); },
   async createEvent(payload) { return data(await api.post("/event", payload)); },
   async updateEvent(id, payload) { return data(await api.put(`/event/${id}`, payload)); },
@@ -26,7 +27,8 @@ const CutinService = {
   async updateProduction(id, payload) { return data(await api.put(`/production/${id}`, payload)); },
 
   async ticketsByEvent(eventId) { return data(await api.get(`/ticket/event/${eventId}`)); },
-  async myTickets() { return data(await api.get("/ticket/user")); },
+  async myTickets() { return data(await api.get("/cutinapp/my/tickets")); },
+  async mySales() { return data(await api.get("/cutinapp/my/sales")); },
   async productionTickets(productionId) { return data(await api.get(`/ticket/production/${productionId}`)); },
   async createTicket(payload) { return data(await api.post("/ticket", payload)); },
   async updateTicket(id, payload) { return data(await api.put(`/ticket/${id}`, payload)); },
@@ -34,6 +36,25 @@ const CutinService = {
   async itemsByEntity(identifier) { return data(await api.get(`/item/list-by-entity/${identifier}`)); },
   async createItem(payload) { return data(await api.post("/item", payload)); },
   async updateItem(id, payload) { return data(await api.put(`/item/${id}`, payload)); },
+
+  async dashboard(eventId) { return data(await api.get(`/cutinapp/events/${eventId}/dashboard`)); },
+  async members(eventId) { return data(await api.get(`/cutinapp/events/${eventId}/members`)); },
+  async createMember(eventId, payload) { return data(await api.post(`/cutinapp/events/${eventId}/members`, payload)); },
+  async updateMember(eventId, memberId, payload) { return data(await api.put(`/cutinapp/events/${eventId}/members/${memberId}`, payload)); },
+  async deleteMember(eventId, memberId) { return data(await api.delete(`/cutinapp/events/${eventId}/members/${memberId}`)); },
+
+  async promoters(eventId) { return data(await api.get(`/cutinapp/events/${eventId}/promoters`)); },
+  async createPromoter(eventId, payload) { return data(await api.post(`/cutinapp/events/${eventId}/promoters`, payload)); },
+  async updatePromoter(eventId, promoterId, payload) { return data(await api.put(`/cutinapp/events/${eventId}/promoters/${promoterId}`, payload)); },
+  async promoterStats(eventId, promoterId) { return data(await api.get(`/cutinapp/events/${eventId}/promoters/${promoterId}/stats`)); },
+
+  async promotions(eventId) { return data(await api.get(`/cutinapp/events/${eventId}/promotions`)); },
+  async createPromotion(eventId, payload) { return data(await api.post(`/cutinapp/events/${eventId}/promotions`, payload)); },
+  async updatePromotion(eventId, promotionId, payload) { return data(await api.put(`/cutinapp/events/${eventId}/promotions/${promotionId}`, payload)); },
+
+  async checkout(eventId, payload) { return data(await api.post(`/cutinapp/events/${eventId}/checkout`, payload)); },
+  async confirmPayment(eventId, saleId, payload = {}) { return data(await api.post(`/cutinapp/events/${eventId}/sales/${saleId}/confirm-payment`, payload)); },
+  async checkin(token) { return data(await api.post("/cutinapp/checkin", { token })); },
 };
 
 export default CutinService;
