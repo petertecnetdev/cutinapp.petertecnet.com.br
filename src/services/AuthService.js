@@ -16,11 +16,12 @@ const authService = {
   getToken: token,
   setToken: (value) => localStorage.setItem("token", value),
 
-  async login(email, password) {
+  async login(username, password) {
     try {
-      const response = await axios.post(`${authUrl}/login`, { email, password });
-      if (!response.data?.access_token) throw new Error("A API não retornou um token de acesso.");
-      authService.setToken(response.data.access_token);
+      const response = await axios.post(`${authUrl}/login`, { username, password });
+      const accessToken = response.data?.token?.access_token ?? response.data?.access_token;
+      if (!accessToken) throw new Error("A API não retornou um token de acesso.");
+      authService.setToken(accessToken);
       return response.data;
     } catch (error) {
       throw new Error(firstError(error, "Não foi possível entrar."));
