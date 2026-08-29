@@ -49,6 +49,8 @@ const CutinService = {
   async createPromoter(eventId, payload) { return data(await api.post(`/cutinapp/events/${eventId}/promoters`, payload)); },
   async updatePromoter(eventId, promoterId, payload) { return data(await api.put(`/cutinapp/events/${eventId}/promoters/${promoterId}`, payload)); },
   async promoterStats(eventId, promoterId) { return data(await api.get(`/cutinapp/events/${eventId}/promoters/${promoterId}/stats`)); },
+  async promoterCommissions(eventId, promoterId) { return data(await api.get(`/cutinapp/events/${eventId}/promoters/${promoterId}/commissions`)); },
+  async payoutPromoter(eventId, promoterId, payload = {}) { return data(await api.post(`/cutinapp/events/${eventId}/promoters/${promoterId}/payout`, payload)); },
   async myPromoterPortal() { return data(await api.get("/cutinapp/my/promoter")); },
 
   async promotions(eventId) { return data(await api.get(`/cutinapp/events/${eventId}/promotions`)); },
