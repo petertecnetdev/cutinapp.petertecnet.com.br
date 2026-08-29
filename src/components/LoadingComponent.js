@@ -1,13 +1,10 @@
-// LoadingIndicator.js
-import React from 'react';
-import loadingImage from '../images/logo.png';
+import React from "react";
+import ProcessingIndicatorComponent from "./ProcessingIndicatorComponent";
 
-const LoadingComponent = () => {
+export default function LoadingComponent() {
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-      <img src={loadingImage} alt="Loading Cutinapp" style={{ borderRadius: '80%', width: '20%', height: 'auto' }} />
-    </div>
+    <ProcessingIndicatorComponent
+      messages={["Carregando...", "Preparando sua experiência..."]}
+    />
   );
 }
-
-export default LoadingComponent;
