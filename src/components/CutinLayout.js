@@ -26,7 +26,10 @@ export default function CutinLayout({ children }) {
       <main>{children}</main>
       <footer className="cutin-footer">
         <div><strong>Cutinapp</strong><span>Eventos, experiências e negócios em um só lugar.</span></div>
-        <a href="https://petertecnet.com.br" target="_blank" rel="noreferrer">Desenvolvido pela Peter Tecnet</a>
+        <a className="peter-signature" href="https://petertecnet.com.br" target="_blank" rel="noreferrer" aria-label="Peter Tecnet — empresa desenvolvedora da Cutinapp">
+          <img src="https://petertecnet.com.br/petertecnetlogo.png" alt="Peter Tecnet" loading="lazy" />
+          <span><small>Desenvolvido por</small><strong>Peter Tecnet</strong></span>
+        </a>
       </footer>
     </div>
   );
