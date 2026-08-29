@@ -1,225 +1,111 @@
 import axios from "axios";
 import { apiBaseUrl } from "../config";
 
-const apiServiceUrl = "auth";
+const authUrl = `${apiBaseUrl}/auth`;
+const token = () => localStorage.getItem("token");
+const headers = () => token() ? { Authorization: `Bearer ${token()}` } : {};
+const firstError = (error, fallback) => {
+  const payload = error?.response?.data;
+  if (payload?.message) return payload.message;
+  if (payload?.error) return payload.error;
+  if (payload?.errors) return Object.values(payload.errors).flat()[0] || fallback;
+  return error?.message || fallback;
+};
 
 const authService = {
-  getToken: () => localStorage.getItem("token"),
-  setToken: (token) => localStorage.setItem("token", token),
+  getToken: token,
+  setToken: (value) => localStorage.setItem("token", value),
 
-  login: async (email, password) => {
+  async login(email, password) {
     try {
-      const response = await axios.post(
-        `${apiBaseUrl}/${apiServiceUrl}/login`,
-        { email, password }
-      );
-
-      if (response.status === 200) {
-        authService.setToken(response.data.access_token);
-        // Redirecionar para a rota dashboard após o login bem-sucedido
-        window.location.href = "/dashboard";
-        return true; // Login bem-sucedido
-      } else {
-        throw new Error("Credenciais inválidas");
-      }
+      const response = await axios.post(`${authUrl}/login`, { email, password });
+      if (!response.data?.access_token) throw new Error("A API não retornou um token de acesso.");
+      authService.setToken(response.data.access_token);
+      return response.data;
     } catch (error) {
-      console.error(error);
-      throw new Error("Erro no login. Por favor, tente novamente mais tarde.");
+      throw new Error(firstError(error, "Não foi possível entrar."));
     }
   },
 
-  register: async (userObject) => {
+  async register(userObject) {
     try {
-      const response = await axios.post(
-        `${apiBaseUrl}/${apiServiceUrl}/register`,
-        userObject
-      );
-
-      if (response.data.message === "Registro bem-sucedido") {
-        await authService.login(userObject.email, userObject.password);
-        return true; // Registro bem-sucedido
-      }
+      const response = await axios.post(`${authUrl}/register`, userObject);
+      await authService.login(userObject.email, userObject.password);
+      return response.data;
     } catch (error) {
-      if (error.response && error.response.data.errors) {
-        throw error.response.data.errors;
-      } else {
-        throw new Error("Erro durante o registro. Por favor, tente novamente.");
-      }
+      if (error?.response?.data?.errors) throw error.response.data.errors;
+      throw new Error(firstError(error, "Não foi possível criar a conta."));
     }
   },
 
-  logout: async () => {
+  async logout() {
     try {
-      const response = await axios.post(
-        `${apiBaseUrl}/${apiServiceUrl}/logout`
-      );
+      if (token()) await axios.post(`${authUrl}/logout`, {}, { headers: headers() });
+    } finally {
+      localStorage.removeItem("token");
+      localStorage.removeItem("access_token");
+    }
+    return true;
+  },
 
-      if (response.status === 200) {
-        // Remover o token do armazenamento local
-        localStorage.removeItem("token");
-
-        // Redirecionar o usuário para a página de login
-        window.location.href = "/login";
-
-        return true; // Logout realizado com sucesso
-      } else if (response.status === 401) {
-        throw new Error(response.data.error);
-      } else {
-        throw new Error("Erro ao fazer logout. Por favor, tente novamente.");
-      }
+  async me() {
+    if (!token()) throw new Error("Usuário não autenticado.");
+    try {
+      const response = await axios.get(`${authUrl}/me`, { headers: headers() });
+      return response.data;
     } catch (error) {
-      console.error(error);
-      throw new Error("Erro ao fazer logout. Por favor, tente novamente.");
+      if (error?.response?.status === 401) localStorage.removeItem("token");
+      throw new Error(firstError(error, "Não foi possível carregar sua conta."));
     }
   },
 
-  emailVerify: async (verificationCode) => {
+  async emailVerify(verificationCode) {
     try {
-      const headers = {
-        Authorization: `Bearer ${authService.getToken()}`,
-      };
-
-      const response = await axios.post(
-        `${apiBaseUrl}/${apiServiceUrl}/email-verify`,
-        { verification_code: verificationCode },
-        { headers }
-      );
-
-      if (response.status === 200) {
-        return true; // Verificação de e-mail bem-sucedida
-      }
+      const response = await axios.post(`${authUrl}/email-verify`, { verification_code: verificationCode }, { headers: headers() });
+      return response.data;
     } catch (error) {
-      console.error(error);
-      throw new Error("Erro durante a verificação do e-mail");
+      throw new Error(firstError(error, "Não foi possível verificar o e-mail."));
     }
   },
-  changePassword: async (current_password, new_password, confirm_password) => {
+
+  async resendCodeEmailVerification() {
     try {
-      const token = authService.getToken();
-      if (!token) {
-        throw new Error("Usuário não autenticado.");
-      }
-
-      const headers = {
-        Authorization: `Bearer ${token}`,
-      };
-
-      const response = await axios.post(
-        `${apiBaseUrl}/${apiServiceUrl}/change-password`,
-        {
-          current_password: current_password,
-          new_password: new_password,
-          confirm_password: confirm_password,
-        },
-        { headers }
-      );
-
-      if (response.status === 200) {
-        return true; // Alteração de senha bem-sucedida
-      } else {
-        throw new Error("Erro ao alterar a senha. Por favor, tente novamente.");
-      }
+      const response = await axios.post(`${authUrl}/resend-code-email-verification`, {}, { headers: headers() });
+      return response.data;
     } catch (error) {
-      console.error(error);
-      throw new Error("Erro ao alterar a senha. Por favor, tente novamente.");
+      throw new Error(firstError(error, "Não foi possível reenviar o código."));
     }
   },
-  me: async () => {
-    const token = authService.getToken();
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    if (!token) {
-      throw new Error("Usuário não autenticado.");
-    }
 
+  async changePassword(current_password, new_password, confirm_password) {
     try {
-      const headers = {
-        Authorization: `Bearer ${token}`,
-      };
+      const response = await axios.post(`${authUrl}/change-password`, { current_password, new_password, confirm_password }, { headers: headers() });
+      return response.data;
+    } catch (error) {
+      throw new Error(firstError(error, "Não foi possível alterar a senha."));
+    }
+  },
 
-      const response = await axios.get(`${apiBaseUrl}/${apiServiceUrl}/me`, {
-        headers,
+  async passwordEmail(email) {
+    try {
+      return await axios.post(`${authUrl}/password-email`, { email });
+    } catch (error) {
+      if (error?.response?.data?.errors) throw error.response.data.errors;
+      throw new Error(firstError(error, "Não foi possível enviar o código de recuperação."));
+    }
+  },
+
+  async passwordReset(email, resetCode, newPassword, confirmPassword) {
+    try {
+      return await axios.post(`${authUrl}/password-reset`, {
+        email,
+        reset_password_code: resetCode,
+        password: newPassword,
+        password_confirmation: confirmPassword,
       });
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      return response.data; // Retorna o objeto do usuário se estiver autenticado
     } catch (error) {
-      console.error(error);
-      throw new Error("Erro ao obter os dados do usuário.");
-    }
-  },
-  passwordEmail: async (email) => {
-    try {
-      const response = await axios.post(
-        `${apiBaseUrl}/${apiServiceUrl}/password-email`,
-        { email }
-      );
-
-      if (response.status === 200) {
-        return response;
-      } else {
-        throw new Error(
-          "Erro ao enviar a senha para o email. Por favor, tente novamente."
-        );
-      }
-    } catch (error) {
-      if (error.response && error.response.data.errors) {
-        throw error.response.data.errors;
-      } else {
-        throw new Error("Erro ao enviar o codigo para recuperação de senha. Por favor, tente novamente.");
-      }
-    }
-  },
-  passwordReset: async (email, resetCode, newPassword, confirmPassword) => {
-    try {
-      const response = await axios.post(
-        `${apiBaseUrl}/${apiServiceUrl}/password-update`,
-        {
-          email: email,
-          reset_password_code: resetCode,
-          password: newPassword,
-          password_confirmation: confirmPassword,
-        }
-      );
-
-      if (response.status === 200) {
-        return response;
-      } else {
-        throw new Error(
-          "Erro ao enviar a senha para o email. Por favor, tente novamente."
-        );
-      }
-    } catch (error) {
-      if (error.response && error.response.data.errors) {
-        throw error.response.data.errors;
-      } else {
-        throw new Error("Erro durante o registro. Por favor, tente novamente.");
-      }
-    }
-  },
-  resendCodeEmailVerification: async () => {
-    try {
-      const token = authService.getToken();
-      if (!token) {
-        throw new Error("Usuário não autenticado.");
-      }
-
-      const headers = {
-        Authorization: `Bearer ${token}`,
-      };
-
-      const response = await axios.post(
-        `${apiBaseUrl}/${apiServiceUrl}/resend-code-email-verification`,
-        {}, // Remova o segundo parâmetro se a rota não esperar dados adicionais
-        { headers }
-      );
-
-      if (response.status === 200) {
-        return true;
-      }
-    } catch (error) {
-      console.error(error);
-      throw new Error(
-        "Erro ao reenviar o código de verificação. Por favor, tente novamente."
-      );
+      if (error?.response?.data?.errors) throw error.response.data.errors;
+      throw new Error(firstError(error, "Não foi possível redefinir a senha."));
     }
   },
 };
