@@ -10,7 +10,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-const data = (response) => response?.data?.data ?? response?.data ?? [];
+const data = (response) => response?.data?.data ?? response?.data?.item ?? response?.data ?? [];
 
 const CutinService = {
   async events(params = {}) { return data(await api.get("/cutinapp/events", { params })); },
@@ -34,9 +34,10 @@ const CutinService = {
   async updateTicket(id, payload) { return data(await api.put(`/ticket/${id}`, payload)); },
   async deleteTicket(id) { return data(await api.delete(`/ticket/${id}`)); },
 
-  async itemsByEntity(identifier) { return data(await api.get(`/item/list-by-entity/${identifier}`)); },
-  async createItem(payload) { return data(await api.post("/item", payload)); },
-  async updateItem(id, payload) { return data(await api.put(`/item/${id}`, payload)); },
+  async eventProducts(eventId) { return data(await api.get(`/cutinapp/events/${eventId}/products`)); },
+  async createEventProduct(eventId, payload) { return data(await api.post(`/cutinapp/events/${eventId}/products`, payload)); },
+  async updateEventProduct(eventId, itemId, payload) { return data(await api.put(`/cutinapp/events/${eventId}/products/${itemId}`, payload)); },
+  async deleteEventProduct(eventId, itemId) { return data(await api.delete(`/cutinapp/events/${eventId}/products/${itemId}`)); },
 
   async dashboard(eventId) { return data(await api.get(`/cutinapp/events/${eventId}/dashboard`)); },
   async members(eventId) { return data(await api.get(`/cutinapp/events/${eventId}/members`)); },
