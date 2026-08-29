@@ -6,30 +6,47 @@ import "./CutinLayout.css";
 
 export default function CutinLayout({ children }) {
   const authenticated = Boolean(localStorage.getItem("token") || localStorage.getItem("access_token"));
+
   return (
     <div className="cutin-shell">
       <header className="cutin-nav">
-        <Link to="/" className="cutin-brand" aria-label="Cutinapp início">
-          <span className="cutin-mark">C</span>
-          <span>Cutinapp</span>
-        </Link>
-        <nav>
-          <NavLink to="/eventos"><FaCalendarDays /> Eventos</NavLink>
-          <NavLink to="/meus-ingressos"><FaTicket /> Ingressos</NavLink>
-          <NavLink to="/marketplace"><FaStore /> Produtos</NavLink>
-          <NavLink to="/promoter"><FaBullhorn /> Promoter</NavLink>
-          <NavLink to="/equipe"><FaPeopleGroup /> Equipe</NavLink>
-          <NavLink to="/produtor"><FaChartLine /> Produzir</NavLink>
-        </nav>
-        <Link className="cutin-login" to={authenticated ? "/minha-conta" : "/login"}>{authenticated ? "Minha conta" : "Entrar"}</Link>
+        <div className="cutin-nav__inner">
+          <Link to="/" className="cutin-brand" aria-label="Cutinapp início">
+            <span className="cutin-mark" aria-hidden="true">C</span>
+            <span className="cutin-brand__copy">
+              <strong>Cutinapp</strong>
+              <small>by Peter Tecnet</small>
+            </span>
+          </Link>
+
+          <nav className="cutin-nav__links" aria-label="Navegação principal">
+            <NavLink to="/eventos"><FaCalendarDays /> <span>Eventos</span></NavLink>
+            <NavLink to="/meus-ingressos"><FaTicket /> <span>Ingressos</span></NavLink>
+            <NavLink to="/marketplace"><FaStore /> <span>Produtos</span></NavLink>
+            <NavLink to="/promoter"><FaBullhorn /> <span>Promoter</span></NavLink>
+            <NavLink to="/equipe"><FaPeopleGroup /> <span>Equipe</span></NavLink>
+            <NavLink to="/produtor"><FaChartLine /> <span>Produzir</span></NavLink>
+          </nav>
+
+          <Link className="cutin-login" to={authenticated ? "/minha-conta" : "/login"}>
+            {authenticated ? "Minha conta" : "Entrar"}
+          </Link>
+        </div>
       </header>
-      <main>{children}</main>
+
+      <main className="cutin-main">{children}</main>
+
       <footer className="cutin-footer">
-        <div><strong>Cutinapp</strong><span>Eventos, experiências e negócios em um só lugar.</span></div>
-        <a className="peter-signature" href="https://petertecnet.com.br" target="_blank" rel="noreferrer" aria-label="Peter Tecnet — empresa desenvolvedora da Cutinapp">
-          <img src="https://petertecnet.com.br/petertecnetlogo.png" alt="Peter Tecnet" loading="lazy" />
-          <span><small>Desenvolvido por</small><strong>Peter Tecnet</strong></span>
-        </a>
+        <div className="cutin-footer__inner">
+          <div className="cutin-footer__brand">
+            <strong>Cutinapp</strong>
+            <span>Eventos, experiências e negócios em um só lugar.</span>
+          </div>
+          <a className="peter-signature" href="https://petertecnet.com.br" target="_blank" rel="noreferrer" aria-label="Peter Tecnet — empresa desenvolvedora da Cutinapp">
+            <img src="https://petertecnet.com.br/petertecnetlogo.png" alt="Peter Tecnet" loading="lazy" />
+            <span><small>Desenvolvido por</small><strong>Peter Tecnet</strong></span>
+          </a>
+        </div>
       </footer>
     </div>
   );
