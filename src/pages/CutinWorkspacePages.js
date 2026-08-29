@@ -1,4 +1,5 @@
 import React,{useEffect,useState}from"react";
+import PropTypes from"prop-types";
 import{Link}from"react-router-dom";
 import{QRCodeSVG}from"qrcode.react";
 import CutinLayout from"../components/CutinLayout";
@@ -6,6 +7,7 @@ import CutinService from"../services/CutinService";
 import"./CutinPages.css";
 
 const Page=({title,subtitle,children})=><CutinLayout><section className="cutin-section"><span className="eyebrow">Cutinapp</span><h1 className="page-title">{title}</h1><p className="page-subtitle">{subtitle}</p>{children}</section></CutinLayout>;
+Page.propTypes={title:PropTypes.string.isRequired,subtitle:PropTypes.string.isRequired,children:PropTypes.node.isRequired};
 const date=v=>v?new Intl.DateTimeFormat("pt-BR",{dateStyle:"medium",timeStyle:"short"}).format(new Date(v)):"—";
 
 export function EventsHubPage(){const[events,setEvents]=useState([]);const[city,setCity]=useState("");const[q,setQ]=useState("");useEffect(()=>{const t=setTimeout(()=>CutinService.events({...(city?{city}:{}),...(q?{q}:{})}).then(v=>setEvents(Array.isArray(v)?v:[])).catch(()=>setEvents([])),250);return()=>clearTimeout(t)},[city,q]);return <Page title="Eventos" subtitle="Descubra o que está acontecendo e encontre a próxima experiência para viver."><div className="panel form-grid two"><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Buscar evento, lugar ou experiência"/><input value={city} onChange={e=>setCity(e.target.value)} placeholder="Cidade"/></div><div className="event-grid" style={{marginTop:18}}>{events.map((e,i)=><article className="event-card" key={e.id||i}><div className="event-cover" style={e.image?{backgroundImage:`url(${e.image})`}:undefined}><span>{e.city||"Evento"}</span></div><div className="event-body"><small>{date(e.start_date)}</small><h3>{e.title}</h3><p>{e.venue||e.description||"Confira detalhes, ingressos e produtos."}</p><Link to={`/evento/${e.id}`}>Ver evento</Link></div></article>)}</div>{!events.length&&<div className="empty-card">Nenhum evento encontrado com esses filtros.</div>}</Page>}
