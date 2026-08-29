@@ -14,6 +14,7 @@ import CutinHomePage from "./pages/CutinHomePage";
 import { EventsHubPage, ProducerDashboardPage, TicketsPage, MarketplacePage, TeamPage } from "./pages/CutinWorkspacePages";
 import { PublicEventPage, EventManagePage, CheckinPage } from "./pages/CutinOperationsPages";
 import CutinTicketLotsPage from "./pages/CutinTicketLotsPage";
+import CutinProductsPage from "./pages/CutinProductsPage";
 
 import ProductionCreatePage from "./pages/production/ProductionCreatePage";
 import ProductionUpdatePage from "./pages/production/ProductionUpdatePage";
@@ -75,7 +76,7 @@ export default function App() {
     <Route path="/event" element={protectedRoute(<EventPage />)} />
     <Route path="/event/create" element={protectedRoute(<EventCreatePage />)} />
     <Route path="/event/update/:id" element={protectedRoute(<EventUpdatePage />)} />
-    <Route path="/event/:eventId/items" element={protectedRoute(<ItemListPage />)} />
+    <Route path="/event/:eventId/items" element={protectedRoute(<CutinProductsPage />)} />
 
     <Route path="/item" element={protectedRoute(<ItemListPage />)} />
     <Route path="/item/create" element={protectedRoute(<ItemCreatePage />)} />
