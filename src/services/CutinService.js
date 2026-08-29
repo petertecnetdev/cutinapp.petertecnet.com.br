@@ -32,6 +32,7 @@ const CutinService = {
   async productionTickets(productionId) { return data(await api.get(`/ticket/production/${productionId}`)); },
   async createTicket(payload) { return data(await api.post("/ticket", payload)); },
   async updateTicket(id, payload) { return data(await api.put(`/ticket/${id}`, payload)); },
+  async deleteTicket(id) { return data(await api.delete(`/ticket/${id}`)); },
 
   async itemsByEntity(identifier) { return data(await api.get(`/item/list-by-entity/${identifier}`)); },
   async createItem(payload) { return data(await api.post("/item", payload)); },
