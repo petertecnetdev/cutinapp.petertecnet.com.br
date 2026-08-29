@@ -1,145 +1,30 @@
-import React, { Component } from "react";
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import authService from "../../services/AuthService";
-import Alert from "react-bootstrap/Alert";
-import Container from "react-bootstrap/Container";
-import Row from "react-bootstrap/Row";
-import Col from "react-bootstrap/Col";
-import Card from "react-bootstrap/Card";
-import Form from "react-bootstrap/Form";
+import CutinLayout from "../../components/CutinLayout";
+import "../CutinPages.css";
 
-class LoginPage extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      email: "",
-      senha: "",
-      showAlert: false,
-      alertType: "success",
-      alertMessage: "",
-    };
-    this.alertTimer = null;
-  }
+export default function LoginPage() {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  onChangeEmailUsuario = (e) => {
-    this.setState({ email: e.target.value });
-  };
-
-  onChangeSenha = (e) => {
-    this.setState({ senha: e.target.value });
-  };
-
-  onSubmit = async (e) => {
-    e.preventDefault();
-
+  const submit = async (event) => {
+    event.preventDefault();
+    setError("");
+    setLoading(true);
     try {
-      await authService.login(this.state.email, this.state.senha);
-    } catch (error) {
-      console.error(error);
-      this.showAlert("danger", "Erro no login");
+      await authService.login(email, password);
+      const user = await authService.me();
+      navigate(user?.email_verified_at ? "/produtor" : "/email-verify", { replace: true });
+    } catch (err) {
+      setError(err?.message || "Não foi possível entrar.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  showAlert = (type, message) => {
-    this.setState({
-      showAlert: true,
-      alertType: type,
-      alertMessage: message,
-    });
-
-    // Define um temporizador para ocultar o alerta após 5 segundos
-    this.alertTimer = setTimeout(() => {
-      this.setState({ showAlert: false });
-    }, 5000);
-  };
-
-  // Limpa o temporizador quando o componente é desmontado
-  componentWillUnmount() {
-    clearTimeout(this.alertTimer);
-  }
-
-  render() {
-    return (
-      <Container>
-        <Row className="justify-content-md-center mt-5">
-          <Col md={6}>
-            <Card>
-              <Card.Body>
-                <div className="text-center">
-                  {/* Div para centralizar o conteúdo */}
-                  <img
-                    src="/images/logo.png"
-                    alt="Logo"
-                    className="logo rounded-circle img-thumbnail"
-                    style={{ width: "170px", height: "170px" }}
-                  />
-                </div>
-                <Card.Title className="text-center m-4">LOGIN</Card.Title>
-                <Card.Text>
-                  <Form onSubmit={this.onSubmit}>
-                    <Form.Group className="mb-3">
-                      <Form.Control
-                        type="email"
-                        placeholder="Insira o email"
-                        onChange={this.onChangeEmailUsuario}
-                        value={this.state.email}
-                        required
-                      />
-                    </Form.Group>
-                    <Form.Group className="mb-3">
-                      <Form.Control
-                        type="password"
-                        placeholder="Insira a senha"
-                        onChange={this.onChangeSenha}
-                        value={this.state.senha}
-                        required
-                      />
-                    </Form.Group>
-                    <Form.Group className="mb-3" controlId="formBasicCheckbox">
-                      <Form.Check
-                        type="checkbox"
-                        label="Lembrar-me"
-                        id="customCheck1"
-                      />
-                    </Form.Group>
-                    <button type="submit" className="btn btn-primary">
-                      Entrar
-                    </button>
-                    <p className="forgot-password text-right">
-                      Não tem registro? <a href="/register">Registrar</a>
-                    </p>
-                    <p className="forgot-password text-right">
-                      Esqueceu a senha?{" "}
-                      <a href="/password-email">Recuperar senha</a>
-                    </p>
-                  </Form>
-                </Card.Text>
-              </Card.Body>
-            </Card>
-            {/* Alert */}
-            <Alert
-              show={this.state.showAlert}
-              variant={this.state.alertType}
-              onClose={() => {
-                clearTimeout(this.alertTimer);
-                this.setState({ showAlert: false });
-              }}
-              dismissible
-              style={{
-                position: "fixed",
-                top: "150px",
-                right: "100px",
-                width: "300px",
-                zIndex: "1050",
-              }}
-            >
-              {this.state.alertType === "success" ? "Sucesso" : "Erro"}
-              <p>{this.state.alertMessage}</p>
-            </Alert>
-          </Col>
-        </Row>
-      </Container>
-    );
-  }
+  return <CutinLayout><section className="cutin-auth-wrap"><div className="auth-copy"><span className="eyebrow">Sua experiência começa aqui</span><h1>Entre na Cutinapp.</h1><p>Descubra eventos, acesse seus ingressos ou gerencie toda a operação como produtor, promoter ou colaborador.</p></div><div className="panel auth-card"><div className="cutin-auth-logo">C</div><h2>Entrar</h2><p className="muted">Use sua conta Peter Tecnet.</p><form onSubmit={submit}><label className="cutin-field"><span>E-mail</span><input type="email" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email" required /></label><label className="cutin-field"><span>Senha</span><input type="password" value={password} onChange={e=>setPassword(e.target.value)} autoComplete="current-password" required /></label>{error&&<div className="error-box">{error}</div>}<button className="primary auth-submit" disabled={loading}>{loading?"Entrando...":"Entrar"}</button></form><div className="auth-links"><Link to="/password-email">Esqueci minha senha</Link><span>Não tem conta? <Link to="/register">Criar conta</Link></span></div></div></section></CutinLayout>;
 }
-
-export default LoginPage;
