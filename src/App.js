@@ -13,6 +13,7 @@ import authService from "./services/AuthService";
 import CutinHomePage from "./pages/CutinHomePage";
 import { EventsHubPage, ProducerDashboardPage, TicketsPage, MarketplacePage, TeamPage } from "./pages/CutinWorkspacePages";
 import { PublicEventPage, EventManagePage, CheckinPage } from "./pages/CutinOperationsPages";
+import CutinTicketLotsPage from "./pages/CutinTicketLotsPage";
 
 import ProductionCreatePage from "./pages/production/ProductionCreatePage";
 import ProductionUpdatePage from "./pages/production/ProductionUpdatePage";
@@ -63,6 +64,7 @@ export default function App() {
     <Route path="/equipe" element={protectedRoute(<TeamPage />)} />
     <Route path="/checkin" element={protectedRoute(<CheckinPage />)} />
     <Route path="/gerenciar/evento/:id" element={protectedRoute(<EventManagePage />)} />
+    <Route path="/gerenciar/evento/:id/ingressos" element={protectedRoute(<CutinTicketLotsPage />)} />
     <Route path="/minha-conta" element={protectedRoute(<UserEditPage />)} />
 
     <Route path="/production/create" element={protectedRoute(<ProductionCreatePage />)} />
