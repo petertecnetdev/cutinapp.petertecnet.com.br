@@ -1,0 +1,29 @@
+/* Cutinapp application-level compatibility layer.
+   Mirrors the Peter Tecnet/Rasoio shell conventions while preserving Cutinapp branding. */
+
+#root {
+  min-height: 100vh;
+}
+
+.App,
+.app,
+.app-root {
+  min-height: 100vh;
+  color: var(--cutin-text);
+  background: transparent;
+}
+
+.page,
+.page-wrapper,
+.page-content {
+  width: min(1180px, calc(100% - 32px));
+  margin-inline: auto;
+}
+
+@media (max-width: 680px) {
+  .page,
+  .page-wrapper,
+  .page-content {
+    width: min(100% - 24px, 1180px);
+  }
+}
