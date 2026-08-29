@@ -1,162 +1,101 @@
 import React, { useState } from "react";
 import { Navigate } from "react-router-dom";
 import authService from "../../services/AuthService";
-import Navlog from "../../components/NavlogComponent";
-import Form from "react-bootstrap/Form";
-import Button from "react-bootstrap/Button";
-import Alert from "react-bootstrap/Alert";
-import Container from "react-bootstrap/Container";
-import Row from "react-bootstrap/Row";
-import Col from "react-bootstrap/Col";
-import Card from "react-bootstrap/Card";
-import LoadingComponent from "../../components/LoadingComponent";
+import CutinLayout from "../../components/CutinLayout";
+import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
+import "../CutinPages.css";
+import "./Auth.css";
 
-const EmailVerifyPage = () => {
+export default function EmailVerifyPage() {
   const [verificationCode, setVerificationCode] = useState("");
-  const [showAlertState, setShowAlertState] = useState(false);
-  const [alertType, setAlertType] = useState("success");
-  const [alertMessage, setAlertMessage] = useState("");
+  const [feedback, setFeedback] = useState(null);
   const [loading, setLoading] = useState(false);
   const [redirect, setRedirect] = useState(false);
 
-  const handleVerifyEmail = async (e) => {
-    e.preventDefault();
+  const handleVerifyEmail = async (event) => {
+    event.preventDefault();
+    setFeedback(null);
     setLoading(true);
+
     try {
-      const emailVerified = await authService.emailVerify(verificationCode);
+      const emailVerified = await authService.emailVerify(verificationCode.trim());
       if (emailVerified) {
-        window.location.href = "/dashboard";
+        setFeedback({ type: "success", message: "E-mail verificado com sucesso." });
         setRedirect(true);
       } else {
-        showAlert(
-          "danger",
-          "Erro na verificação de email. Certifique-se de inserir o código corretamente."
-        );
+        setFeedback({ type: "error", message: "Código inválido. Confira o código e tente novamente." });
       }
     } catch (error) {
       console.error(error);
-      showAlert(
-        "danger",
-        "Erro na verificação de email. Por favor, tente novamente mais tarde."
-      );
+      setFeedback({ type: "error", message: "Não foi possível verificar o e-mail. Tente novamente." });
     } finally {
       setLoading(false);
     }
   };
 
   const handleResendVerificationCode = async () => {
+    setFeedback(null);
     setLoading(true);
     try {
-  
       const codeResent = await authService.resendCodeEmailVerification();
-  
-      if (codeResent) {
-        showAlert("success", "Código de verificação reenviado com sucesso.");
-      } else {
-        showAlert("danger", "Erro ao reenviar o código de verificação.");
-      }
+      setFeedback(
+        codeResent
+          ? { type: "success", message: "Novo código enviado para seu e-mail." }
+          : { type: "error", message: "Não foi possível reenviar o código." }
+      );
     } catch (error) {
       console.error(error);
-      showAlert(
-        "danger",
-        "Erro ao reenviar o código de verificação. Por favor, tente novamente mais tarde."
-      );
+      setFeedback({ type: "error", message: "Não foi possível reenviar o código. Tente novamente." });
     } finally {
       setLoading(false);
     }
   };
-  
 
-  const showAlert = (type, message) => {
-    setAlertType(type);
-    setAlertMessage(message);
-    setShowAlertState(true);
-  };
-
-  if (redirect) {
-    return <Navigate to="/dashboard" />; // Redireciona o usuário para o dashboard após a verificação do e-mail
-  }
+  if (redirect) return <Navigate to="/produtor" replace />;
 
   return (
-    <div className="App">
-      <Navlog />
-      <Container>
-        <Row className="justify-content-center mt-5">
-          <Col md={6} className="mt-5">
-            <Card>
-              <Card.Body>
-                <div className="text-center">
-                  {" "}
-                  {/* Div para centralizar o conteúdo */}
-                  <img
-                    src="/images/loadingimage.gif"
-                    alt="Logo"
-                    className="logo rounded-circle img-thumbnail"
-                    style={{ width: "150px", height: "150px" }}
-                  />
-                </div>
+    <CutinLayout>
+      {loading && <ProcessingIndicatorComponent messages={["Validando código...", "Confirmando seu e-mail..."]} />}
+      <section className="cutin-auth-page">
+        <div className="cutin-auth-page__intro">
+          <span className="eyebrow">Segurança da sua conta</span>
+          <h1>Confirme seu e-mail.</h1>
+          <p>Digite o código enviado para seu endereço de e-mail. Essa validação protege sua conta e libera o acesso completo à Cutinapp.</p>
+        </div>
 
-                <Card.Title className="text-center">Verificar Email</Card.Title>
-                <Form onSubmit={handleVerifyEmail}>
-                  <Form.Group className="mb-3">
-                    <p>
-                      Por favor, digite o código de verificação para confirmar
-                      seu email.
-                    </p>
-                    <Form.Label>Código de Verificação</Form.Label>
-                    <Form.Control
-                      type="text"
-                      placeholder="Insira o código"
-                      value={verificationCode}
-                      onChange={(e) => setVerificationCode(e.target.value)}
-                      required
-                    />
-                  </Form.Group>
-                  <div className="d-grid">
-                    <Button type="submit" variant="primary">
-                    {loading ? "Verificando..." : "Verificar email"}
-                    </Button>
-                  </div>
-                </Form>
-                <div className="text-center mt-3">
-                  <Button
-                    variant="secondary"
-                    onClick={handleResendVerificationCode}
-                    disabled={loading}
-                  >
-                    
-                    {loading ? "Enviando..." : "Reenviar Código de Verificação"}
-                  </Button>
-                </div>
-                
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
-        {showAlertState && (
-                  <Alert
-                    show={showAlertState}
-                    variant={alertType}
-                    onClose={() => setShowAlertState(false)}
-                    dismissible
-                    style={{
-                      position: "fixed",
-                      bottom: "550px",
-                      right: "30px",
-                      zIndex: "1000",
-                    }}
-                  >
-                    <Alert.Heading>
-                      {alertType === "success" ? "Sucesso" : "Erro"}
-                    </Alert.Heading>
-                    <p>{alertMessage}</p>
-                  </Alert>
-                )}
-      </Container>
-      {loading && <LoadingComponent />}{" "}
-      {/* Renderiza o componente de carregamento enquanto verifica o e-mail */}
-    </div>
+        <div className="cutin-auth-card">
+          <div className="cutin-auth-card__mark" aria-hidden="true">C</div>
+          <h2>Verificar e-mail</h2>
+          <p className="cutin-auth-card__subtitle">Informe o código de verificação recebido.</p>
+
+          <form onSubmit={handleVerifyEmail}>
+            <label className="cutin-field">
+              <span>Código de verificação</span>
+              <input
+                className="cutin-code-input"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                placeholder="000000"
+                value={verificationCode}
+                onChange={(event) => setVerificationCode(event.target.value)}
+                required
+              />
+            </label>
+
+            {feedback && (
+              <div className={feedback.type === "success" ? "success-box" : "error-box"} role="alert">
+                {feedback.message}
+              </div>
+            )}
+
+            <div className="cutin-auth-card__actions">
+              <button className="primary" type="submit" disabled={loading || !verificationCode.trim()}>Verificar e-mail</button>
+              <button className="secondary" type="button" onClick={handleResendVerificationCode} disabled={loading}>Reenviar código</button>
+            </div>
+          </form>
+        </div>
+      </section>
+    </CutinLayout>
   );
-};
-
-export default EmailVerifyPage;
+}
