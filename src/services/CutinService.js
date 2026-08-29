@@ -53,6 +53,8 @@ const CutinService = {
   async updatePromotion(eventId, promotionId, payload) { return data(await api.put(`/cutinapp/events/${eventId}/promotions/${promotionId}`, payload)); },
 
   async checkout(eventId, payload) { return data(await api.post(`/cutinapp/events/${eventId}/checkout`, payload)); },
+  async createPix(salePublicId) { return data(await api.post(`/cutinapp/sales/${salePublicId}/pix`)); },
+  async paymentStatus(salePublicId) { return data(await api.get(`/cutinapp/sales/${salePublicId}/payment-status`)); },
   async confirmPayment(eventId, saleId, payload = {}) { return data(await api.post(`/cutinapp/events/${eventId}/sales/${saleId}/confirm-payment`, payload)); },
   async checkin(token) { return data(await api.post("/cutinapp/checkin", { token })); },
 };
