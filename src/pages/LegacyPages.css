@@ -1,0 +1,418 @@
+/* =========================================================
+   CUTINAPP — LEGACY ROUTES COMPATIBILITY
+   Rasoio/Peter Tecnet page geometry for Bootstrap-era screens.
+   This file is intentionally global while old pages are migrated.
+========================================================= */
+
+:root {
+  --cutin-page-width: 1180px;
+  --cutin-page-gutter: 32px;
+  --cutin-page-top: 32px;
+}
+
+/* ---------- old Bootstrap navigation ---------- */
+body > #root > .navbar,
+#root .navbar:not(.cutin-nav) {
+  min-height: 76px;
+  padding: 9px max(16px, calc((100vw - var(--cutin-page-width)) / 2));
+  border: 0;
+  border-bottom: 1px solid var(--cutin-border-soft);
+  background: rgba(5, 8, 13, .86) !important;
+  box-shadow: 0 12px 38px rgba(0,0,0,.22);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+#root .navbar > .container {
+  width: 100%;
+  max-width: var(--cutin-page-width);
+  padding-inline: 0;
+}
+
+#root .navbar-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+}
+
+#root .navbar-brand img {
+  width: 46px !important;
+  height: 46px !important;
+  border: 1px solid rgba(55,230,161,.22);
+  border-radius: 15px !important;
+  object-fit: cover;
+  background: rgba(255,255,255,.04);
+  box-shadow: 0 12px 30px rgba(0,0,0,.32), 0 0 28px rgba(55,230,161,.08);
+}
+
+#root .navbar-nav {
+  gap: 3px;
+  align-items: center;
+}
+
+#root .navbar .nav-link,
+#root .navbar .dropdown-toggle {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 12px !important;
+  border-radius: 12px;
+  color: rgba(255,255,255,.68) !important;
+  font-size: .9rem;
+  font-weight: 760;
+  text-decoration: none;
+}
+
+#root .navbar .nav-link:hover,
+#root .navbar .nav-link:focus,
+#root .navbar .dropdown-toggle:hover,
+#root .navbar .dropdown-toggle:focus,
+#root .navbar .show > .nav-link {
+  color: #fff !important;
+  background: rgba(255,255,255,.055);
+}
+
+#root .navbar .avatar {
+  width: 38px !important;
+  height: 38px !important;
+  margin: 0 0 0 8px !important;
+  border: 1px solid rgba(55,230,161,.24);
+  border-radius: 12px !important;
+  object-fit: cover;
+}
+
+#root .navbar-toggler {
+  width: 44px;
+  min-height: 44px;
+  padding: 8px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.045);
+  box-shadow: none !important;
+}
+
+#root .navbar-toggler-icon { filter: invert(1); }
+
+/* ---------- every old routed page ---------- */
+#root > :where(.App, .app, .app-root),
+#root > :has(> .navbar) {
+  min-height: 100vh;
+  color: var(--cutin-text);
+}
+
+#root > :where(.container, .container-fluid),
+#root > :where(.App, .app, .app-root) > :where(.container, .container-fluid),
+#root > :has(> .navbar) > :where(.container, .container-fluid) {
+  width: min(var(--cutin-page-width), calc(100% - var(--cutin-page-gutter)));
+  max-width: var(--cutin-page-width);
+  margin-inline: auto;
+  padding-top: var(--cutin-page-top);
+  padding-bottom: 56px;
+}
+
+/* Old pages that place headings/media before their Container. */
+#root .labeltitle {
+  width: min(var(--cutin-page-width), calc(100% - var(--cutin-page-gutter)));
+  margin: 34px auto 20px !important;
+  color: #fff !important;
+  font-size: clamp(1.7rem, 3vw, 2.35rem) !important;
+  line-height: 1.1;
+  font-weight: 950 !important;
+  letter-spacing: -.035em !important;
+  text-align: left !important;
+  text-transform: none !important;
+}
+
+/* ---------- page hero/media ---------- */
+#root label[for="BackgroundInput"],
+#root .background-image,
+#root .background-image-event,
+#root .img-background-production {
+  width: min(var(--cutin-page-width), calc(100% - var(--cutin-page-gutter)));
+  margin: 0 auto 18px;
+}
+
+#root label[for="BackgroundInput"] > img,
+#root .background-image img,
+#root .background-image-event img,
+#root .img-background-production {
+  width: 100%;
+  max-height: 360px;
+  aspect-ratio: 16 / 5;
+  object-fit: cover;
+  border: 1px solid var(--cutin-border-soft);
+  border-radius: 24px;
+  background: var(--cutin-surface-strong);
+  box-shadow: var(--cutin-shadow-soft);
+}
+
+#root label[for="logoInput"] {
+  width: min(var(--cutin-page-width), calc(100% - var(--cutin-page-gutter)));
+  margin: -68px auto 10px;
+  padding-left: 28px;
+  position: relative;
+  z-index: 2;
+}
+
+#root .img-logo-production,
+#root .img-logo-production-show,
+#root .img-logo-production2,
+#root .event-production-logo {
+  width: 112px !important;
+  height: 112px !important;
+  object-fit: cover;
+  border: 4px solid #07101b !important;
+  border-radius: 28px !important;
+  background: rgba(8,18,23,.96);
+  box-shadow: 0 18px 48px rgba(0,0,0,.5), 0 0 36px rgba(55,230,161,.08) !important;
+}
+
+/* ---------- cards and content surfaces ---------- */
+#root :where(.card, .card-production, .card-production-show, .card-user, .card-event-view, .sticky-summary) {
+  border: 1px solid var(--cutin-border-soft) !important;
+  border-radius: 22px !important;
+  background: linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.025)) !important;
+  color: var(--cutin-text) !important;
+  box-shadow: 0 22px 64px rgba(0,0,0,.32) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+#root .card-body { padding: clamp(18px, 3vw, 28px); }
+#root .card-header,
+#root .card-footer {
+  padding: 15px 20px;
+  border-color: var(--cutin-border-soft) !important;
+  background: rgba(255,255,255,.025) !important;
+}
+
+#root .card-title,
+#root .card h1,
+#root .card h2,
+#root .card h3,
+#root .card h4 {
+  color: #fff !important;
+  font-weight: 900;
+  letter-spacing: -.025em;
+}
+
+#root .card p,
+#root .card small,
+#root .card .text-muted { color: var(--cutin-muted) !important; }
+
+/* ---------- forms ---------- */
+#root form { color: var(--cutin-text); }
+#root .form-group,
+#root .mb-3,
+#root .mt-3,
+#root .mt-4 { scroll-margin-top: 100px; }
+
+#root form label,
+#root .form-label {
+  margin-bottom: 7px;
+  color: rgba(255,255,255,.76) !important;
+  font-size: .88rem;
+  font-weight: 780;
+}
+
+#root .form-text,
+#root form small { color: var(--cutin-soft) !important; }
+
+#root input[type="file"].form-control {
+  min-height: 48px;
+  padding: 7px;
+}
+
+#root input[type="file"]::file-selector-button {
+  min-height: 32px;
+  margin-right: 10px;
+  border: 0;
+  border-radius: 9px;
+  padding: 0 12px;
+  background: rgba(55,230,161,.12);
+  color: #eafff6;
+  font-weight: 760;
+}
+
+#root .seguiments {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px !important;
+  margin: 10px 0 18px;
+}
+
+#root .seguiment-card {
+  min-height: 48px;
+  display: flex !important;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 12px !important;
+  border: 1px solid var(--cutin-border-soft) !important;
+  border-radius: 13px !important;
+  background: rgba(255,255,255,.03) !important;
+}
+
+/* ---------- tables/lists ---------- */
+#root .table-responsive {
+  margin-top: 14px;
+  border: 1px solid var(--cutin-border-soft);
+  border-radius: 18px;
+  background: rgba(255,255,255,.02);
+  box-shadow: 0 18px 48px rgba(0,0,0,.22);
+}
+
+#root table { margin-bottom: 0 !important; }
+#root table thead th {
+  padding: 13px 14px;
+  border-bottom-width: 1px;
+  background: rgba(255,255,255,.035) !important;
+  color: rgba(255,255,255,.68) !important;
+  font-size: .76rem;
+  font-weight: 850;
+  letter-spacing: .055em;
+  text-transform: uppercase;
+}
+
+#root table tbody td {
+  padding: 13px 14px;
+  border-color: rgba(255,255,255,.065) !important;
+}
+
+#root table tbody tr:hover > * { background: rgba(55,230,161,.035) !important; }
+
+/* ---------- actions ---------- */
+#root .d-flex:has(> .btn),
+#root .d-grid,
+#root .button-group,
+#root .actions {
+  gap: 10px;
+}
+
+#root .btn {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px 15px;
+  border-radius: 12px !important;
+  font-weight: 780;
+}
+
+#root .bg-info,
+#root .btn-info {
+  border: 1px solid rgba(55,230,161,.22) !important;
+  background: rgba(55,230,161,.08) !important;
+  color: #eafff6 !important;
+}
+
+/* ---------- view/detail pages ---------- */
+#root .card-production-show,
+#root .card-event-view {
+  overflow: hidden;
+}
+
+#root .sticky-summary {
+  position: sticky;
+  top: 98px;
+  padding: 18px;
+}
+
+#root .list-group { gap: 8px; }
+#root .list-group-item {
+  border: 1px solid var(--cutin-border-soft) !important;
+  border-radius: 12px !important;
+  background: rgba(255,255,255,.03) !important;
+}
+
+/* ---------- alerts ---------- */
+#root .alert {
+  position: relative !important;
+  inset: auto !important;
+  width: auto;
+  max-width: 100%;
+  margin-top: 16px;
+  z-index: auto !important;
+  border-radius: 14px;
+}
+
+/* ---------- auth Bootstrap legacy pages ---------- */
+#root .App > .navbar + .container,
+#root > .navbar + .container {
+  min-height: calc(100vh - 76px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-top: 32px;
+  padding-bottom: 48px;
+}
+
+#root .App > .container > .row.justify-content-center,
+#root .App > .container > .row.justify-content-md-center {
+  width: 100%;
+  margin: 0;
+}
+
+#root .App .row.justify-content-center > [class*="col-"],
+#root .App .row.justify-content-md-center > [class*="col-"] {
+  width: min(100%, 560px);
+  max-width: 560px;
+  margin: 0 auto !important;
+  padding: 0;
+}
+
+#root .App .card .logo,
+#root .App .card .img-thumbnail {
+  width: 86px !important;
+  height: 86px !important;
+  margin: 0 auto 16px;
+  padding: 0 !important;
+  border: 1px solid rgba(55,230,161,.18) !important;
+  border-radius: 22px !important;
+  background: rgba(55,230,161,.08) !important;
+  object-fit: contain;
+  box-shadow: 0 16px 42px rgba(0,0,0,.35);
+}
+
+/* ---------- responsive ---------- */
+@media (max-width: 991px) {
+  #root .navbar { padding-inline: 14px; }
+  #root .navbar-collapse {
+    margin-top: 10px;
+    padding: 12px;
+    border: 1px solid var(--cutin-border-soft);
+    border-radius: 16px;
+    background: rgba(5,10,15,.97);
+    box-shadow: var(--cutin-shadow-soft);
+  }
+  #root .navbar-nav { align-items: stretch; }
+  #root .navbar .nav-link,
+  #root .navbar .dropdown-toggle { width: 100%; }
+  #root .sticky-summary { position: static; }
+}
+
+@media (max-width: 767px) {
+  :root { --cutin-page-gutter: 24px; --cutin-page-top: 22px; }
+  #root .labeltitle { margin-top: 24px !important; }
+  #root label[for="BackgroundInput"] > img,
+  #root .background-image img,
+  #root .background-image-event img,
+  #root .img-background-production { min-height: 170px; border-radius: 18px; }
+  #root label[for="logoInput"] { margin-top: -52px; padding-left: 18px; }
+  #root .img-logo-production,
+  #root .img-logo-production-show,
+  #root .img-logo-production2,
+  #root .event-production-logo { width: 88px !important; height: 88px !important; border-radius: 22px !important; }
+  #root .card-body { padding: 18px; }
+  #root .table-responsive { border-radius: 14px; }
+}
+
+@media (max-width: 520px) {
+  :root { --cutin-page-gutter: 20px; }
+  #root .navbar-brand img { width: 42px !important; height: 42px !important; }
+  #root .labeltitle { font-size: 1.65rem !important; }
+  #root .btn { width: 100%; }
+  #root .d-flex:has(> .btn) { flex-direction: column; align-items: stretch !important; }
+  #root .seguiments { grid-template-columns: 1fr; }
+}
