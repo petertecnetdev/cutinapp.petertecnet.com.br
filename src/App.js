@@ -13,6 +13,7 @@ const EmailVerifyPage = lazy(() => import("./pages/auth/EmailVerifyPage"));
 const LogoutPage = lazy(() => import("./pages/auth/LogoutPage"));
 const PasswordEmailPage = lazy(() => import("./pages/auth/PasswordEmailPage"));
 const PasswordPage = lazy(() => import("./pages/auth/PasswordPage"));
+const InviteCompletePage = lazy(() => import("./pages/auth/InviteCompletePage"));
 
 const CutinHomePage = lazy(() => import("./pages/CutinHomePage"));
 const EventsHubPage = loadNamed(() => import("./pages/CutinWorkspacePages"), "EventsHubPage");
@@ -109,6 +110,7 @@ export default function App() {
           <Route path="/password-email" element={guestRoute(<PasswordEmailPage />)} />
           <Route path="/email-verify" element={verifyRoute(<EmailVerifyPage />)} />
           <Route path="/password" element={protectedRoute(<PasswordPage />)} />
+          <Route path="/invite-complete" element={guestRoute(<InviteCompletePage />)} />
           <Route path="/logout" element={<LogoutPage />} />
 
           <Route path="/meus-ingressos" element={protectedRoute(<TicketsPage />)} />
