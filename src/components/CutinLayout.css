@@ -1,10 +1,10 @@
 /* =========================================================
    CUTINAPP — APP SHELL
-   Rasoio geometry, Cutinapp identity.
+   Rasoio navigation architecture, Cutinapp identity.
 ========================================================= */
 
 :root {
-  --cutin-nav-h: 78px;
+  --cutin-nav-h: 76px;
   --cutin-footer-h: 92px;
 }
 
@@ -22,11 +22,11 @@
 .cutin-nav {
   position: sticky;
   top: 0;
-  z-index: 1020;
+  z-index: 1200;
   width: 100%;
   min-height: var(--cutin-nav-h);
   border-bottom: 1px solid rgba(255,255,255,.075);
-  background: rgba(5,8,13,.82);
+  background: rgba(5,8,13,.88);
   box-shadow: 0 12px 38px rgba(0,0,0,.18);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
@@ -52,17 +52,17 @@
 }
 
 .cutin-mark {
-  width: 46px;
-  height: 46px;
-  flex: 0 0 46px;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
   display: grid;
   place-items: center;
   border: 1px solid rgba(255,255,255,.14);
-  border-radius: 15px;
+  border-radius: 14px;
   background: linear-gradient(135deg, var(--cutin-primary), var(--cutin-primary-2));
   color: #03130d;
   box-shadow: 0 13px 34px rgba(55,230,161,.18), inset 0 1px 0 rgba(255,255,255,.32);
-  font-size: 1.15rem;
+  font-size: 1.08rem;
   font-weight: 950;
   letter-spacing: -.05em;
 }
@@ -74,7 +74,7 @@
 
 .cutin-brand__copy strong {
   color: #fff;
-  font-size: .98rem;
+  font-size: .96rem;
   font-weight: 900;
   letter-spacing: -.025em;
 }
@@ -82,7 +82,7 @@
 .cutin-brand__copy small {
   margin-top: 4px;
   color: rgba(255,255,255,.43);
-  font-size: .64rem;
+  font-size: .62rem;
   font-weight: 720;
   letter-spacing: .08em;
   text-transform: uppercase;
@@ -98,30 +98,32 @@
 
 .cutin-nav__links a {
   position: relative;
-  min-height: 42px;
+  min-width: 44px;
+  min-height: 44px;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 7px;
   padding: 0 12px;
-  border-radius: 12px;
-  color: rgba(255,255,255,.66);
+  border-radius: 13px;
+  color: rgba(255,255,255,.62);
   text-decoration: none;
-  font-size: .88rem;
+  font-size: .86rem;
   font-weight: 760;
   white-space: nowrap;
   transition: color .16s ease, background .16s ease, transform .16s ease;
 }
 
 .cutin-nav__links a svg {
-  width: 14px;
-  height: 14px;
+  width: 15px;
+  height: 15px;
   color: rgba(55,230,161,.78);
 }
 
 .cutin-nav__links a:hover,
 .cutin-nav__links a.active {
   color: #fff;
-  background: rgba(255,255,255,.055);
+  background: rgba(255,255,255,.06);
   transform: translateY(-1px);
 }
 
@@ -159,6 +161,216 @@
   background: rgba(55,230,161,.12);
 }
 
+.cutin-user {
+  position: relative;
+  justify-self: end;
+}
+
+.cutin-user__button {
+  min-height: 48px;
+  max-width: 240px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 10px 5px 5px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 15px;
+  background: rgba(255,255,255,.035);
+  color: var(--cutin-text);
+  text-align: left;
+}
+
+.cutin-user__button:hover {
+  border-color: rgba(55,230,161,.22);
+  background: rgba(255,255,255,.055);
+}
+
+.cutin-user__button:disabled {
+  opacity: .72;
+  cursor: wait;
+}
+
+.cutin-user__avatar {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  object-fit: cover;
+  border: 1px solid rgba(55,230,161,.22);
+  border-radius: 11px;
+  background: rgba(255,255,255,.05);
+}
+
+.cutin-user__copy {
+  min-width: 0;
+  display: grid;
+  line-height: 1.1;
+}
+
+.cutin-user__copy strong,
+.cutin-user__copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cutin-user__copy strong {
+  color: rgba(255,255,255,.9);
+  font-size: .82rem;
+  font-weight: 850;
+}
+
+.cutin-user__copy small {
+  margin-top: 4px;
+  color: var(--cutin-primary);
+  font-size: .67rem;
+  font-weight: 800;
+}
+
+.cutin-userMenu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: min(390px, calc(100vw - 24px));
+  max-height: min(680px, calc(100vh - 100px));
+  overflow-y: auto;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(10,18,22,.985), rgba(3,9,13,.985));
+  box-shadow: 0 26px 80px rgba(0,0,0,.55);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.cutin-userMenu__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 17px;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+  background: linear-gradient(135deg, rgba(55,230,161,.07), transparent 65%);
+}
+
+.cutin-userMenu__header img {
+  width: 46px;
+  height: 46px;
+  flex: 0 0 46px;
+  object-fit: cover;
+  border-radius: 14px;
+  border: 1px solid rgba(55,230,161,.22);
+}
+
+.cutin-userMenu__header > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.cutin-userMenu__header strong,
+.cutin-userMenu__header span,
+.cutin-userMenu__header small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cutin-userMenu__header strong {
+  color: #fff;
+  font-size: .93rem;
+  font-weight: 900;
+}
+
+.cutin-userMenu__header span {
+  color: var(--cutin-muted);
+  font-size: .76rem;
+}
+
+.cutin-userMenu__header small {
+  width: max-content;
+  margin-top: 3px;
+  padding: 3px 8px;
+  border: 1px solid rgba(55,230,161,.18);
+  border-radius: 999px;
+  background: rgba(55,230,161,.075);
+  color: var(--cutin-primary);
+  font-size: .63rem;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.cutin-userMenu__group {
+  display: grid;
+  gap: 4px;
+  padding: 11px;
+}
+
+.cutin-userMenu__group--border {
+  border-top: 1px solid rgba(255,255,255,.07);
+}
+
+.cutin-userMenu__title {
+  padding: 3px 8px 6px;
+  color: rgba(255,255,255,.4);
+  font-size: .68rem;
+  font-weight: 900;
+  letter-spacing: .085em;
+  text-transform: uppercase;
+}
+
+.cutin-userMenu__item {
+  width: 100%;
+  min-height: 46px;
+  display: grid;
+  grid-template-columns: 34px minmax(0,1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 9px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: rgba(255,255,255,.82);
+  text-align: left;
+  font-size: .82rem;
+  font-weight: 760;
+}
+
+.cutin-userMenu__item:hover {
+  transform: none;
+  background: rgba(255,255,255,.055);
+  color: #fff;
+}
+
+.cutin-userMenu__itemIcon {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(55,230,161,.13);
+  border-radius: 10px;
+  background: rgba(55,230,161,.065);
+  color: var(--cutin-primary);
+}
+
+.cutin-userMenu__itemIcon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.cutin-userMenu__arrow {
+  width: 11px;
+  color: rgba(255,255,255,.28);
+}
+
+.cutin-userMenu__logout {
+  color: #ffd9df;
+}
+
+.cutin-userMenu__logout .cutin-userMenu__itemIcon {
+  border-color: rgba(255,77,109,.16);
+  background: rgba(255,77,109,.075);
+  color: #ff7890;
+}
+
 .cutin-main {
   min-width: 0;
   min-height: calc(100vh - var(--cutin-nav-h));
@@ -188,15 +400,8 @@
   gap: 4px;
 }
 
-.cutin-footer__brand strong {
-  color: rgba(255,255,255,.86);
-  font-size: .9rem;
-}
-
-.cutin-footer__brand span {
-  color: rgba(255,255,255,.46);
-  font-size: .78rem;
-}
+.cutin-footer__brand strong { color: rgba(255,255,255,.86); font-size: .9rem; }
+.cutin-footer__brand span { color: rgba(255,255,255,.46); font-size: .78rem; }
 
 .peter-signature {
   display: inline-flex;
@@ -236,19 +441,23 @@
   }
 
   .cutin-nav__links::-webkit-scrollbar { display: none; }
+  .cutin-user,
   .cutin-login { justify-self: end; }
 }
 
-@media (max-width: 640px) {
-  :root { --cutin-nav-h: 68px; --cutin-footer-h: 112px; }
+@media (max-width: 720px) {
+  :root { --cutin-nav-h: 66px; --cutin-footer-h: 112px; }
 
   .cutin-nav__inner,
   .cutin-footer__inner { width: calc(100% - 24px); }
 
-  .cutin-mark { width: 42px; height: 42px; flex-basis: 42px; border-radius: 13px; }
+  .cutin-mark { width: 40px; height: 40px; flex-basis: 40px; border-radius: 12px; }
   .cutin-brand__copy small { display: none; }
   .cutin-login { min-height: 40px; padding-inline: 13px; }
-  .cutin-nav__links a { min-height: 40px; padding-inline: 10px; font-size: .84rem; }
+  .cutin-user__copy { display: none; }
+  .cutin-user__button { width: 44px; height: 44px; min-height: 44px; padding: 4px; justify-content: center; }
+  .cutin-user__avatar { width: 34px; height: 34px; flex-basis: 34px; }
+  .cutin-nav__links a { min-height: 40px; padding-inline: 10px; font-size: .82rem; }
 
   .cutin-footer__inner {
     padding-block: 20px;
@@ -260,10 +469,11 @@
   .cutin-footer__brand { justify-items: center; }
 }
 
-@media (max-width: 420px) {
+@media (max-width: 520px) {
   .cutin-brand__copy strong { font-size: .9rem; }
   .cutin-nav__links a span { display: none; }
   .cutin-nav__links a { min-width: 42px; justify-content: center; }
+  .cutin-userMenu { position: fixed; top: 72px; right: 12px; left: 12px; width: auto; max-height: calc(100dvh - 84px); }
 }
 
 @supports (-webkit-touch-callout: none) {
@@ -271,5 +481,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cutin-nav__links a { transition: none; }
+  .cutin-nav__links a,
+  .cutin-user__button,
+  .cutin-userMenu__item { transition: none; }
 }
