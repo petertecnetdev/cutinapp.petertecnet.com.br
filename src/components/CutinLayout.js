@@ -15,71 +15,8 @@ import {
 } from "react-icons/fa6";
 import authService from "../services/AuthService";
 import { storageUrl } from "../config";
+import { getAccessProfile, getPrimaryRoleLabel } from "../utils/accessControl";
 import "./CutinLayout.css";
-
-const normalizeText = (value) => String(value || "")
-  .normalize("NFD")
-  .replace(/[\u0300-\u036f]/g, "")
-  .trim()
-  .toLowerCase();
-
-const collectNames = (value) => {
-  if (!value) return [];
-  if (Array.isArray(value)) return value.flatMap(collectNames);
-  if (typeof value === "string") return [normalizeText(value)];
-  if (typeof value === "object") {
-    return [value.name, value.slug, value.role, value.profile, value.permission, value.code]
-      .filter(Boolean)
-      .map(normalizeText);
-  }
-  return [];
-};
-
-const getRoleNames = (user) => {
-  const raw = [
-    user?.profile,
-    user?.profiles,
-    user?.role,
-    user?.roles,
-    user?.type,
-    user?.user_type,
-    user?._auth?.role,
-    user?._auth?.roles,
-  ];
-  return [...new Set(raw.flatMap(collectNames))];
-};
-
-const getPermissions = (user) => {
-  const raw = [
-    user?.permissions,
-    user?.profile?.permissions,
-    user?.profiles?.flatMap?.((profile) => profile?.permissions || []) || [],
-    user?.role?.permissions,
-    user?.roles?.flatMap?.((role) => role?.permissions || []) || [],
-  ];
-  return new Set(raw.flatMap(collectNames));
-};
-
-const includesAny = (values, candidates) => candidates.some((candidate) => values.some((value) => value.includes(candidate)));
-
-const buildAccess = (user) => {
-  const roles = getRoleNames(user);
-  const permissions = getPermissions(user);
-  const hasPermission = (...names) => names.some((name) => permissions.has(normalizeText(name)));
-
-  const isAdmin = includesAny(roles, ["administrador", "admin", "superadmin"])
-    || hasPermission("user_management", "role_management", "permission_management");
-  const isProducer = isAdmin || includesAny(roles, ["produtor", "producer", "organizador", "organizer"])
-    || hasPermission("production_create", "production_configure", "production_update", "event_create", "event_config", "event_edit");
-  const isPromoter = isAdmin || includesAny(roles, ["promoter", "divulgador", "afiliado"])
-    || hasPermission("ticket_sale_manage_own");
-  const isArtist = isAdmin || includesAny(roles, ["artista", "artist", "banda", "dj", "musico"]);
-  const isSupplier = isAdmin || includesAny(roles, ["fornecedor", "supplier", "prestador"]);
-  const canCheckin = isAdmin || hasPermission("item_scan", "item_check", "ticket_view", "production_scan", "production_validate");
-  const canManageTeam = isAdmin || isProducer || hasPermission("user_list", "user_create", "user_management");
-
-  return { isAdmin, isProducer, isPromoter, isArtist, isSupplier, canCheckin, canManageTeam };
-};
 
 const avatarUrl = (user) => {
   const raw = user?.images?.avatar || user?.images?.profile || user?.avatar || user?.photo || "";
@@ -132,7 +69,7 @@ export default function CutinLayout({ children }) {
 
   useEffect(() => setUserMenuOpen(false), [location.pathname]);
 
-  const access = useMemo(() => buildAccess(user), [user]);
+  const access = useMemo(() => getAccessProfile(user), [user]);
   const fullName = useMemo(() => {
     if (!user) return "Minha conta";
     return `${user.first_name || ""} ${user.last_name || ""}`.trim()
@@ -142,15 +79,7 @@ export default function CutinLayout({ children }) {
       || user.email
       || "Minha conta";
   }, [user]);
-
-  const primaryRole = useMemo(() => {
-    if (access.isAdmin) return "Administrador";
-    if (access.isProducer) return "Produtor";
-    if (access.isPromoter) return "Promoter";
-    if (access.isArtist) return "Artista";
-    if (access.isSupplier) return "Fornecedor";
-    return "Participante";
-  }, [access]);
+  const primaryRole = useMemo(() => getPrimaryRoleLabel(access), [access]);
 
   const mainLinks = useMemo(() => {
     const links = [
