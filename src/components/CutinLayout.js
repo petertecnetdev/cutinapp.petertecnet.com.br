@@ -7,7 +7,7 @@ import { storageUrl } from "../config";
 import { getAccessProfile, getPrimaryRoleLabel } from "../utils/accessControl";
 import "./CutinLayout.css";
 
-const LOGO = "/images/logo.png";
+const LOGO = "/images/logo.png?v=20260830-1631";
 const avatarUrl = (user) => { const raw=user?.images?.avatar||user?.images?.profile||user?.avatar||user?.photo||""; if(!raw)return LOGO;if(/^https?:\/\//i.test(raw))return raw;return `${storageUrl}${String(raw).replace(/^\/+/,"")}`; };
 
 export default function CutinLayout({ children }) {
