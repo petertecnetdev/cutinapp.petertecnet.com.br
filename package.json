@@ -21,6 +21,8 @@
     "jquery": "^3.7.1",
     "prop-types": "^15.8.1",
     "qrcode.react": "^4.2.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "react-bootstrap": "^2.10.2",
     "react-icons": "^5.0.1",
     "react-image-crop": "^11.0.5",
