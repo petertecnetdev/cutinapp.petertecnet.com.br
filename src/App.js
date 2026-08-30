@@ -1,7 +1,8 @@
-import React, { Suspense, lazy, useEffect, useState } from "react";
+import React, { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import ProcessingIndicatorComponent from "./components/ProcessingIndicatorComponent";
 import authService from "./services/AuthService";
+import { getAccessProfile } from "./utils/accessControl";
 
 const loadNamed = (factory, name) => lazy(() => factory().then((module) => ({ default: module[name] })));
 
@@ -65,6 +66,9 @@ export default function App() {
     return () => { active = false; };
   }, []);
 
+  const access = useMemo(() => getAccessProfile(user), [user]);
+  const homeAfterLogin = access.isProducer ? "/produtor" : access.isPromoter ? "/promoter" : "/meus-ingressos";
+
   if (loading) {
     return <ProcessingIndicatorComponent messages={["Carregando sua experiência...", "Conectando à Cutinapp..."]} />;
   }
@@ -75,8 +79,14 @@ export default function App() {
     return element;
   };
 
-  const guestRoute = (element) => user ? <Navigate to="/produtor" replace /> : element;
-  const verifyRoute = (element) => !user ? <Navigate to="/login" replace /> : user.email_verified_at ? <Navigate to="/produtor" replace /> : element;
+  const privilegedRoute = (element, allowed) => {
+    const authResult = protectedRoute(element);
+    if (!user || !user.email_verified_at) return authResult;
+    return allowed ? element : <Navigate to={homeAfterLogin} replace />;
+  };
+
+  const guestRoute = (element) => user ? <Navigate to={homeAfterLogin} replace /> : element;
+  const verifyRoute = (element) => !user ? <Navigate to="/login" replace /> : user.email_verified_at ? <Navigate to={homeAfterLogin} replace /> : element;
 
   return (
     <Router>
@@ -94,30 +104,32 @@ export default function App() {
           <Route path="/password" element={protectedRoute(<PasswordPage />)} />
           <Route path="/logout" element={<LogoutPage />} />
 
-          <Route path="/produtor" element={protectedRoute(<ProducerDashboardPage />)} />
-          <Route path="/promoter" element={protectedRoute(<CutinPromoterPage />)} />
           <Route path="/meus-ingressos" element={protectedRoute(<TicketsPage />)} />
-          <Route path="/equipe" element={protectedRoute(<TeamPage />)} />
-          <Route path="/checkin" element={protectedRoute(<CheckinPage />)} />
-          <Route path="/gerenciar/evento/:id" element={protectedRoute(<EventManagePage />)} />
-          <Route path="/gerenciar/evento/:id/ingressos" element={protectedRoute(<CutinTicketLotsPage />)} />
-          <Route path="/gerenciar/evento/:eventId/comissoes" element={protectedRoute(<CutinCommissionsPage />)} />
           <Route path="/minha-conta" element={protectedRoute(<UserEditPage />)} />
 
-          <Route path="/production/create" element={protectedRoute(<ProductionCreatePage />)} />
-          <Route path="/productions" element={protectedRoute(<ProductionPage />)} />
-          <Route path="/production/update/:id" element={protectedRoute(<ProductionUpdatePage />)} />
-          <Route path="/production/:slug" element={protectedRoute(<ProductionViewPage />)} />
+          <Route path="/produtor" element={privilegedRoute(<ProducerDashboardPage />, access.isProducer)} />
+          <Route path="/promoter" element={privilegedRoute(<CutinPromoterPage />, access.isPromoter)} />
+          <Route path="/equipe" element={privilegedRoute(<TeamPage />, access.canManageTeam)} />
+          <Route path="/checkin" element={privilegedRoute(<CheckinPage />, access.canCheckin)} />
 
-          <Route path="/event" element={protectedRoute(<EventPage />)} />
-          <Route path="/event/create" element={protectedRoute(<EventCreatePage />)} />
-          <Route path="/event/update/:id" element={protectedRoute(<EventUpdatePage />)} />
-          <Route path="/event/:eventId/items" element={protectedRoute(<CutinProductsPage />)} />
+          <Route path="/gerenciar/evento/:id" element={privilegedRoute(<EventManagePage />, access.canManageEvents)} />
+          <Route path="/gerenciar/evento/:id/ingressos" element={privilegedRoute(<CutinTicketLotsPage />, access.canManageTickets)} />
+          <Route path="/gerenciar/evento/:eventId/comissoes" element={privilegedRoute(<CutinCommissionsPage />, access.isProducer || access.isAdmin)} />
 
-          <Route path="/item" element={protectedRoute(<ItemListPage />)} />
-          <Route path="/item/create" element={protectedRoute(<ItemCreatePage />)} />
-          <Route path="/item/update/:id" element={protectedRoute(<ItemUpdatePage />)} />
-          <Route path="/item/:id" element={protectedRoute(<ItemViewPage />)} />
+          <Route path="/production/create" element={privilegedRoute(<ProductionCreatePage />, access.canManageProductions)} />
+          <Route path="/productions" element={privilegedRoute(<ProductionPage />, access.canManageProductions)} />
+          <Route path="/production/update/:id" element={privilegedRoute(<ProductionUpdatePage />, access.canManageProductions)} />
+          <Route path="/production/:slug" element={privilegedRoute(<ProductionViewPage />, access.canManageProductions)} />
+
+          <Route path="/event" element={privilegedRoute(<EventPage />, access.canManageEvents)} />
+          <Route path="/event/create" element={privilegedRoute(<EventCreatePage />, access.canManageEvents)} />
+          <Route path="/event/update/:id" element={privilegedRoute(<EventUpdatePage />, access.canManageEvents)} />
+          <Route path="/event/:eventId/items" element={privilegedRoute(<CutinProductsPage />, access.canManageItems)} />
+
+          <Route path="/item" element={privilegedRoute(<ItemListPage />, access.canManageItems)} />
+          <Route path="/item/create" element={privilegedRoute(<ItemCreatePage />, access.canManageItems)} />
+          <Route path="/item/update/:id" element={privilegedRoute(<ItemUpdatePage />, access.canManageItems)} />
+          <Route path="/item/:id" element={privilegedRoute(<ItemViewPage />, access.canManageItems)} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
