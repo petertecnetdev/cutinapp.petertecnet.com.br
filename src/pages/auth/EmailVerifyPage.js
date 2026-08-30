@@ -6,6 +6,8 @@ import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorCo
 import "../CutinPages.css";
 import "./Auth.css";
 
+const BRAND_LOGO = "/images/logo.png?v=20260830-1631";
+
 export default function EmailVerifyPage() {
   const [verificationCode, setVerificationCode] = useState("");
   const [feedback, setFeedback] = useState(null);
@@ -40,7 +42,7 @@ export default function EmailVerifyPage() {
       <section className="cutin-auth-page">
         <div className="cutin-auth-page__intro"><span className="eyebrow">Segurança da sua conta</span><h1>Confirme seu e-mail.</h1><p>Digite o código enviado para seu endereço de e-mail. Essa validação protege sua conta e libera o acesso completo à Cutinapp.</p></div>
         <div className="cutin-auth-card">
-          <div className="cutin-auth-card__mark"><img src="/images/logo.png" alt="Cutinapp" /></div>
+          <div className="cutin-auth-card__mark"><img src={BRAND_LOGO} alt="Cutinapp" /></div>
           <h2>Verificar e-mail</h2><p className="cutin-auth-card__subtitle">Informe o código de verificação recebido.</p>
           <form onSubmit={handleVerifyEmail}>
             <label className="cutin-field"><span>Código de verificação</span><input className="cutin-code-input" type="text" inputMode="numeric" autoComplete="one-time-code" placeholder="000000" value={verificationCode} onChange={(event) => setVerificationCode(event.target.value)} required /></label>
