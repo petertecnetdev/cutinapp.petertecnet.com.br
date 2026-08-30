@@ -23,9 +23,7 @@ export default function LoginPage() {
   const nextPath = useMemo(() => safeNextPath(location.search), [location.search]);
   const canSubmit = username.trim().length > 0 && password.length > 0;
 
-  const finishLogin = () => {
-    window.location.replace(nextPath);
-  };
+  const finishLogin = () => window.location.replace(nextPath);
 
   const submit = async (event) => {
     event.preventDefault();
@@ -66,37 +64,24 @@ export default function LoginPage() {
         </div>
 
         <div className="panel auth-card cutin-login-card">
-          <div className="cutin-auth-logo" aria-hidden="true">C</div>
+          <div className="cutin-auth-logo"><img src="/images/logo.png" alt="Cutinapp" /></div>
           <span className="auth-kicker">CUTINAPP</span>
           <h2>Bem-vindo</h2>
           <p className="muted">Entre com sua conta Peter Tecnet.</p>
 
           <form onSubmit={submit} noValidate>
-            <label className="cutin-field">
-              <span>Usuário ou e-mail</span>
-              <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" placeholder="seu@email.com" disabled={loading} required />
-            </label>
-            <label className="cutin-field">
-              <span>Senha</span>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" placeholder="Sua senha" disabled={loading} required />
-            </label>
+            <label className="cutin-field"><span>Usuário ou e-mail</span><input type="text" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" placeholder="seu@email.com" disabled={loading} required /></label>
+            <label className="cutin-field"><span>Senha</span><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" placeholder="Sua senha" disabled={loading} required /></label>
             {error && <div className="error-box" role="alert">{error}</div>}
             <button type="submit" className="primary auth-submit" disabled={!canSubmit || loading}>Entrar</button>
           </form>
 
           <div className="auth-divider"><span>ou continue com</span></div>
           <div className="google-login-slot">
-            {googleClientId ? (
-              <GoogleLogin onSuccess={googleSuccess} onError={() => setError("O Google não conseguiu concluir o login. Tente novamente.")} width="320" theme="outline" size="large" text="continue_with" shape="rectangular" locale="pt-BR" />
-            ) : (
-              <div className="google-unavailable">Login Google aguardando configuração do Client ID.</div>
-            )}
+            {googleClientId ? <GoogleLogin onSuccess={googleSuccess} onError={() => setError("O Google não conseguiu concluir o login. Tente novamente.")} width="320" theme="outline" size="large" text="continue_with" shape="rectangular" locale="pt-BR" /> : <div className="google-unavailable">Login Google aguardando configuração do Client ID.</div>}
           </div>
 
-          <div className="auth-links">
-            <Link to="/password-email">Esqueci minha senha</Link>
-            <span>Não tem conta? <Link to="/register">Criar conta</Link></span>
-          </div>
+          <div className="auth-links"><Link to="/password-email">Esqueci minha senha</Link><span>Não tem conta? <Link to="/register">Criar conta</Link></span></div>
         </div>
       </section>
     </CutinLayout>
