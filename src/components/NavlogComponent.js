@@ -1,5 +1,3 @@
-import React from "react";
-
 /**
  * Legacy compatibility component.
  * Old pages still import NavlogComponent, but navigation is now provided
