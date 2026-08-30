@@ -1,0 +1,366 @@
+/* =========================================================
+   CUTINAPP — FINAL LEGACY LAYOUT NORMALIZATION
+   Applied after LegacyPages.css. It removes Bootstrap-era geometry,
+   fixed actions and overflow patterns from every routed legacy screen.
+========================================================= */
+
+.cutin-legacy-page {
+  --legacy-content: 1180px;
+  width: 100%;
+  min-width: 0;
+  padding: clamp(24px, 4vw, 42px) 0 64px;
+  color: var(--cutin-text);
+}
+
+.cutin-legacy-page > *:not(.cutin-processing):not(input[type="file"]) {
+  max-width: 100%;
+}
+
+.cutin-legacy-page > .labeltitle,
+.cutin-legacy-page > label[for="BackgroundInput"],
+.cutin-legacy-page > label[for="logoInput"],
+.cutin-legacy-page > .container,
+.cutin-legacy-page > .container-fluid,
+.cutin-legacy-page > .row,
+.cutin-legacy-page > .card,
+.cutin-legacy-page > form,
+.cutin-legacy-page > .alert {
+  width: min(var(--legacy-content), calc(100% - 32px));
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+.cutin-legacy-page > .labeltitle {
+  margin-top: 0 !important;
+  margin-bottom: 22px !important;
+  padding: 0 !important;
+  color: #fff !important;
+  font-size: clamp(1.8rem, 3.4vw, 2.65rem) !important;
+  line-height: 1.08 !important;
+  font-weight: 900 !important;
+  letter-spacing: -.045em !important;
+  text-align: left !important;
+  text-transform: none !important;
+}
+
+/* Media header used by production/event editor pages */
+.cutin-legacy-page > label[for="BackgroundInput"] {
+  display: block !important;
+  margin-bottom: 0 !important;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 24px;
+  background: rgba(255,255,255,.025);
+  box-shadow: 0 22px 64px rgba(0,0,0,.28);
+}
+
+.cutin-legacy-page > label[for="BackgroundInput"] img {
+  display: block;
+  width: 100% !important;
+  height: clamp(210px, 30vw, 360px) !important;
+  max-height: 360px !important;
+  object-fit: cover !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.cutin-legacy-page > label[for="logoInput"] {
+  position: relative;
+  z-index: 3;
+  display: block !important;
+  margin-top: -54px !important;
+  margin-bottom: 30px !important;
+  padding-left: 28px !important;
+}
+
+.cutin-legacy-page > label[for="logoInput"] img,
+.cutin-legacy-page .img-logo-production,
+.cutin-legacy-page .img-logo-production-show,
+.cutin-legacy-page .img-logo-production2 {
+  width: 104px !important;
+  height: 104px !important;
+  min-width: 104px;
+  object-fit: cover !important;
+  border: 4px solid #071017 !important;
+  border-radius: 26px !important;
+  background: #071017 !important;
+  box-shadow: 0 18px 46px rgba(0,0,0,.48), 0 0 30px rgba(55,230,161,.08) !important;
+}
+
+/* Bootstrap containers were adding their own top spacing and causing staggered columns. */
+.cutin-legacy-page > .container,
+.cutin-legacy-page > .container-fluid {
+  max-width: var(--legacy-content) !important;
+  padding: 0 !important;
+}
+
+.cutin-legacy-page .container,
+.cutin-legacy-page .container-fluid {
+  min-width: 0;
+}
+
+.cutin-legacy-page .row {
+  min-width: 0;
+  margin-left: calc(var(--bs-gutter-x, 1.5rem) * -.5);
+  margin-right: calc(var(--bs-gutter-x, 1.5rem) * -.5);
+  row-gap: 0;
+}
+
+.cutin-legacy-page [class*="col-"] {
+  min-width: 0;
+}
+
+/* Surface rhythm */
+.cutin-legacy-page .card {
+  margin-bottom: 18px;
+  padding: clamp(18px, 2.4vw, 28px);
+  overflow: visible !important;
+  border: 1px solid rgba(255,255,255,.085) !important;
+  border-radius: 22px !important;
+  background: linear-gradient(180deg, rgba(255,255,255,.052), rgba(255,255,255,.024)) !important;
+  box-shadow: 0 20px 58px rgba(0,0,0,.28) !important;
+}
+
+.cutin-legacy-page .card > .labeltitle,
+.cutin-legacy-page .card .labeltitle {
+  width: auto !important;
+  margin: 0 0 18px !important;
+  padding: 0 !important;
+  color: #fff !important;
+  font-size: clamp(1.25rem, 2.1vw, 1.72rem) !important;
+  line-height: 1.18 !important;
+  font-weight: 850 !important;
+  letter-spacing: -.03em !important;
+  text-align: left !important;
+  text-transform: none !important;
+}
+
+.cutin-legacy-page .card-body {
+  padding: 0 !important;
+}
+
+.cutin-legacy-page .card-header,
+.cutin-legacy-page .card-footer {
+  margin: -28px -28px 24px;
+  padding: 18px 28px;
+}
+
+/* Form system */
+.cutin-legacy-page form,
+.cutin-legacy-page .card form {
+  min-width: 0;
+}
+
+.cutin-legacy-page .form-control,
+.cutin-legacy-page .form-select,
+.cutin-legacy-page input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+.cutin-legacy-page textarea,
+.cutin-legacy-page select {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  min-height: 48px !important;
+  margin-top: 0 !important;
+  border: 1px solid rgba(255,255,255,.11) !important;
+  border-radius: 13px !important;
+  background: rgba(2,8,17,.76) !important;
+  color: rgba(255,255,255,.92) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.025) !important;
+}
+
+.cutin-legacy-page textarea.form-control,
+.cutin-legacy-page textarea {
+  min-height: 118px !important;
+  resize: vertical;
+}
+
+.cutin-legacy-page .form-control:focus,
+.cutin-legacy-page .form-select:focus,
+.cutin-legacy-page input:focus,
+.cutin-legacy-page textarea:focus,
+.cutin-legacy-page select:focus {
+  border-color: rgba(55,230,161,.58) !important;
+  box-shadow: 0 0 0 4px rgba(55,230,161,.10) !important;
+}
+
+.cutin-legacy-page .form-label,
+.cutin-legacy-page form label:not([for="BackgroundInput"]):not([for="logoInput"]) {
+  color: rgba(255,255,255,.72) !important;
+}
+
+.cutin-legacy-page .mt-2 { margin-top: 10px !important; }
+.cutin-legacy-page .mt-3 { margin-top: 12px !important; }
+.cutin-legacy-page .mt-4 { margin-top: 16px !important; }
+.cutin-legacy-page .mb-3 { margin-bottom: 14px !important; }
+.cutin-legacy-page .mb-4 { margin-bottom: 18px !important; }
+
+.cutin-legacy-page .form-check {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 11px 9px 36px;
+  border: 1px solid rgba(255,255,255,.075);
+  border-radius: 12px;
+  background: rgba(255,255,255,.025);
+}
+
+.cutin-legacy-page .form-check-input {
+  margin-top: 0;
+}
+
+/* Tables */
+.cutin-legacy-page .table-responsive {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  border-radius: 18px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.cutin-legacy-page table {
+  min-width: 720px;
+}
+
+/* Actions: no floating/fixed buttons from old screens. */
+.cutin-legacy-page .btn {
+  min-height: 44px;
+  border-radius: 12px !important;
+  white-space: normal;
+}
+
+.cutin-legacy-page > a:has(> .btn) {
+  width: min(var(--legacy-content), calc(100% - 32px));
+  margin: 4px auto 0;
+  display: flex;
+  justify-content: flex-end;
+  text-decoration: none;
+}
+
+.cutin-legacy-page > a:has(> .btn) > .btn {
+  position: static !important;
+  inset: auto !important;
+  margin: 0 !important;
+  z-index: auto !important;
+}
+
+.cutin-legacy-page .alert[style] {
+  position: relative !important;
+  inset: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  top: auto !important;
+  width: min(var(--legacy-content), calc(100% - 32px));
+  margin: 16px auto !important;
+  z-index: auto !important;
+}
+
+/* Images and previews must never escape the page. */
+.cutin-legacy-page img,
+.cutin-legacy-page video,
+.cutin-legacy-page canvas,
+.cutin-legacy-page svg {
+  max-width: 100%;
+}
+
+.cutin-legacy-page .img-fluid {
+  width: 100%;
+}
+
+/* Nested content/layout */
+.cutin-legacy-page .sticky-summary {
+  top: calc(var(--cutin-nav-h, 78px) + 18px) !important;
+}
+
+.cutin-legacy-page .list-group-item {
+  min-width: 0;
+}
+
+@media (max-width: 991px) {
+  .cutin-legacy-page {
+    padding-top: 26px;
+  }
+
+  .cutin-legacy-page .row > [class*="col-md-"] {
+    margin-bottom: 0;
+  }
+
+  .cutin-legacy-page .sticky-summary {
+    position: static !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .cutin-legacy-page > .labeltitle,
+  .cutin-legacy-page > label[for="BackgroundInput"],
+  .cutin-legacy-page > label[for="logoInput"],
+  .cutin-legacy-page > .container,
+  .cutin-legacy-page > .container-fluid,
+  .cutin-legacy-page > .row,
+  .cutin-legacy-page > .card,
+  .cutin-legacy-page > form,
+  .cutin-legacy-page > .alert,
+  .cutin-legacy-page > a:has(> .btn) {
+    width: calc(100% - 24px);
+  }
+
+  .cutin-legacy-page > label[for="BackgroundInput"] {
+    border-radius: 18px;
+  }
+
+  .cutin-legacy-page > label[for="BackgroundInput"] img {
+    height: clamp(180px, 48vw, 260px) !important;
+  }
+
+  .cutin-legacy-page > label[for="logoInput"] {
+    margin-top: -42px !important;
+    padding-left: 18px !important;
+  }
+
+  .cutin-legacy-page > label[for="logoInput"] img,
+  .cutin-legacy-page .img-logo-production,
+  .cutin-legacy-page .img-logo-production-show,
+  .cutin-legacy-page .img-logo-production2 {
+    width: 84px !important;
+    height: 84px !important;
+    min-width: 84px;
+    border-radius: 21px !important;
+  }
+
+  .cutin-legacy-page .card {
+    padding: 18px;
+    border-radius: 17px !important;
+  }
+
+  .cutin-legacy-page .card-header,
+  .cutin-legacy-page .card-footer {
+    margin: -18px -18px 18px;
+    padding: 15px 18px;
+  }
+
+  .cutin-legacy-page .btn-lg {
+    width: 100%;
+  }
+}
+
+@media (max-width: 520px) {
+  .cutin-legacy-page {
+    padding-top: 20px;
+    padding-bottom: 42px;
+  }
+
+  .cutin-legacy-page > .labeltitle {
+    font-size: 1.65rem !important;
+  }
+
+  .cutin-legacy-page > a:has(> .btn) > .btn,
+  .cutin-legacy-page .d-grid > .btn,
+  .cutin-legacy-page .btn-lg {
+    width: 100%;
+  }
+
+  .cutin-legacy-page table {
+    min-width: 640px;
+  }
+}
