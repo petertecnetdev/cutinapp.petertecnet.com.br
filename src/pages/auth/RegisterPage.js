@@ -6,6 +6,8 @@ import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorCo
 import "../CutinPages.css";
 import "./Auth.css";
 
+const BRAND_LOGO = "/images/logo.png?v=20260830-1631";
+
 export default function RegisterPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState({ first_name: "", email: "", password: "", confirm: "" });
@@ -34,7 +36,7 @@ export default function RegisterPage() {
       <section className="cutin-auth-page">
         <div className="cutin-auth-page__intro"><span className="eyebrow">Uma conta para todo o ecossistema</span><h1>Crie sua conta.</h1><p>Com a mesma identidade Peter Tecnet, você pode comprar ingressos, produzir eventos, trabalhar em equipes e acompanhar suas operações na Cutinapp.</p></div>
         <div className="cutin-auth-card">
-          <div className="cutin-auth-card__mark"><img src="/images/logo.png" alt="Cutinapp" /></div>
+          <div className="cutin-auth-card__mark"><img src={BRAND_LOGO} alt="Cutinapp" /></div>
           <h2>Criar conta</h2><p className="cutin-auth-card__subtitle">Seu e-mail será validado por código após o cadastro.</p>
           <form onSubmit={submit} noValidate>
             <label className="cutin-field"><span>Nome</span><input name="first_name" value={form.first_name} onChange={change} autoComplete="name" placeholder="Seu nome" required /></label>
