@@ -15,7 +15,7 @@ export function startTelemetry({ apiBaseUrl, appSlug, getToken = () => localStor
   let flushing = false
 
   function createId() {
-    return globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`
+    return window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`
   }
 
   function clean(value, limit = 200) {
@@ -112,10 +112,10 @@ export function startTelemetry({ apiBaseUrl, appSlug, getToken = () => localStor
     enqueue("frontend_error", { label: event.reason?.message || "Promise rejeitada", metadata: { kind: "unhandledrejection" } })
   }
 
-  const originalPush = history.pushState
-  const originalReplace = history.replaceState
-  history.pushState = function (...args) { const result = originalPush.apply(this, args); queueMicrotask(() => recordNavigation("pushState")); return result }
-  history.replaceState = function (...args) { const result = originalReplace.apply(this, args); queueMicrotask(() => recordNavigation("replaceState")); return result }
+  const originalPush = window.history.pushState
+  const originalReplace = window.history.replaceState
+  window.history.pushState = function (...args) { const result = originalPush.apply(this, args); queueMicrotask(() => recordNavigation("pushState")); return result }
+  window.history.replaceState = function (...args) { const result = originalReplace.apply(this, args); queueMicrotask(() => recordNavigation("replaceState")); return result }
 
   document.addEventListener("click", onClick, true)
   document.addEventListener("submit", onSubmit, true)
@@ -138,8 +138,8 @@ export function startTelemetry({ apiBaseUrl, appSlug, getToken = () => localStor
     window.removeEventListener("error", onError)
     window.removeEventListener("unhandledrejection", onRejection)
     window.removeEventListener("scroll", onScroll)
-    history.pushState = originalPush
-    history.replaceState = originalReplace
+    window.history.pushState = originalPush
+    window.history.replaceState = originalReplace
     window.__peterTelemetryStarted = false
   }
 }
