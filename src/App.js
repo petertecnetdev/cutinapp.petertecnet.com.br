@@ -1,5 +1,6 @@
 import React, { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import CutinLayout from "./components/CutinLayout";
 import ProcessingIndicatorComponent from "./components/ProcessingIndicatorComponent";
 import authService from "./services/AuthService";
 import { getAccessProfile } from "./utils/accessControl";
@@ -47,6 +48,12 @@ const RouteFallback = () => (
   />
 );
 
+const LegacyShell = ({ children }) => (
+  <CutinLayout>
+    <div className="cutin-legacy-page">{children}</div>
+  </CutinLayout>
+);
+
 export default function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -85,6 +92,7 @@ export default function App() {
     return allowed ? element : <Navigate to={homeAfterLogin} replace />;
   };
 
+  const legacy = (element) => <LegacyShell>{element}</LegacyShell>;
   const guestRoute = (element) => user ? <Navigate to={homeAfterLogin} replace /> : element;
   const verifyRoute = (element) => !user ? <Navigate to="/login" replace /> : user.email_verified_at ? <Navigate to={homeAfterLogin} replace /> : element;
 
@@ -105,7 +113,7 @@ export default function App() {
           <Route path="/logout" element={<LogoutPage />} />
 
           <Route path="/meus-ingressos" element={protectedRoute(<TicketsPage />)} />
-          <Route path="/minha-conta" element={protectedRoute(<UserEditPage />)} />
+          <Route path="/minha-conta" element={protectedRoute(legacy(<UserEditPage />))} />
 
           <Route path="/produtor" element={privilegedRoute(<ProducerDashboardPage />, access.isProducer)} />
           <Route path="/promoter" element={privilegedRoute(<CutinPromoterPage />, access.isPromoter)} />
@@ -116,20 +124,20 @@ export default function App() {
           <Route path="/gerenciar/evento/:id/ingressos" element={privilegedRoute(<CutinTicketLotsPage />, access.canManageTickets)} />
           <Route path="/gerenciar/evento/:eventId/comissoes" element={privilegedRoute(<CutinCommissionsPage />, access.isProducer || access.isAdmin)} />
 
-          <Route path="/production/create" element={privilegedRoute(<ProductionCreatePage />, access.canManageProductions)} />
-          <Route path="/productions" element={privilegedRoute(<ProductionPage />, access.canManageProductions)} />
-          <Route path="/production/update/:id" element={privilegedRoute(<ProductionUpdatePage />, access.canManageProductions)} />
-          <Route path="/production/:slug" element={privilegedRoute(<ProductionViewPage />, access.canManageProductions)} />
+          <Route path="/production/create" element={privilegedRoute(legacy(<ProductionCreatePage />), access.canManageProductions)} />
+          <Route path="/productions" element={privilegedRoute(legacy(<ProductionPage />), access.canManageProductions)} />
+          <Route path="/production/update/:id" element={privilegedRoute(legacy(<ProductionUpdatePage />), access.canManageProductions)} />
+          <Route path="/production/:slug" element={privilegedRoute(legacy(<ProductionViewPage />), access.canManageProductions)} />
 
-          <Route path="/event" element={privilegedRoute(<EventPage />, access.canManageEvents)} />
-          <Route path="/event/create" element={privilegedRoute(<EventCreatePage />, access.canManageEvents)} />
-          <Route path="/event/update/:id" element={privilegedRoute(<EventUpdatePage />, access.canManageEvents)} />
+          <Route path="/event" element={privilegedRoute(legacy(<EventPage />), access.canManageEvents)} />
+          <Route path="/event/create" element={privilegedRoute(legacy(<EventCreatePage />), access.canManageEvents)} />
+          <Route path="/event/update/:id" element={privilegedRoute(legacy(<EventUpdatePage />), access.canManageEvents)} />
           <Route path="/event/:eventId/items" element={privilegedRoute(<CutinProductsPage />, access.canManageItems)} />
 
-          <Route path="/item" element={privilegedRoute(<ItemListPage />, access.canManageItems)} />
-          <Route path="/item/create" element={privilegedRoute(<ItemCreatePage />, access.canManageItems)} />
-          <Route path="/item/update/:id" element={privilegedRoute(<ItemUpdatePage />, access.canManageItems)} />
-          <Route path="/item/:id" element={privilegedRoute(<ItemViewPage />, access.canManageItems)} />
+          <Route path="/item" element={privilegedRoute(legacy(<ItemListPage />), access.canManageItems)} />
+          <Route path="/item/create" element={privilegedRoute(legacy(<ItemCreatePage />), access.canManageItems)} />
+          <Route path="/item/update/:id" element={privilegedRoute(legacy(<ItemUpdatePage />), access.canManageItems)} />
+          <Route path="/item/:id" element={privilegedRoute(legacy(<ItemViewPage />), access.canManageItems)} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
