@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import PropTypes from "prop-types";
 import "./ProcessingIndicatorComponent.css";
 
+const BRAND_LOGO = "/images/logo.png?v=20260830-1631";
+
 export default function ProcessingIndicatorComponent({
   messages = ["Carregando..."],
   interval = 1200,
@@ -26,7 +28,7 @@ export default function ProcessingIndicatorComponent({
     <div className={`cutin-processing${blocking ? "" : " cutin-processing--passive"}`} role="status" aria-live="polite" aria-busy="true">
       <div className="cutin-processing__inner">
         <div className="cutin-processing__mark" aria-hidden="true">
-          <img src="/images/logo.png" alt="" />
+          <img src={BRAND_LOGO} alt="" />
           <i />
         </div>
         {message && <p>{message}</p>}
