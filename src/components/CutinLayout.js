@@ -75,24 +75,10 @@ const buildAccess = (user) => {
     || hasPermission("ticket_sale_manage_own");
   const isArtist = isAdmin || includesAny(roles, ["artista", "artist", "banda", "dj", "musico"]);
   const isSupplier = isAdmin || includesAny(roles, ["fornecedor", "supplier", "prestador"]);
-  const isParticipant = includesAny(roles, ["participante", "participant", "cliente", "customer", "usuario", "user"])
-    || (!isProducer && !isPromoter && !isArtist && !isSupplier && !isAdmin);
   const canCheckin = isAdmin || hasPermission("item_scan", "item_check", "ticket_view", "production_scan", "production_validate");
   const canManageTeam = isAdmin || isProducer || hasPermission("user_list", "user_create", "user_management");
-  const canManageSales = isAdmin || isProducer || hasPermission("ticket_sale_view", "ticket_sale_report", "ticket_sale_export");
 
-  return {
-    roles,
-    isAdmin,
-    isProducer,
-    isPromoter,
-    isArtist,
-    isSupplier,
-    isParticipant,
-    canCheckin,
-    canManageTeam,
-    canManageSales,
-  };
+  return { isAdmin, isProducer, isPromoter, isArtist, isSupplier, canCheckin, canManageTeam };
 };
 
 const avatarUrl = (user) => {
@@ -183,6 +169,14 @@ export default function CutinLayout({ children }) {
     navigate(path);
   };
 
+  const renderMenuItem = (Icon, label, path) => (
+    <button type="button" className="cutin-userMenu__item" onClick={() => go(path)}>
+      <span className="cutin-userMenu__itemIcon"><Icon /></span>
+      <span>{label}</span>
+      <FaChevronRight className="cutin-userMenu__arrow" />
+    </button>
+  );
+
   const logout = async () => {
     if (loggingOut) return;
     setLoggingOut(true);
@@ -194,14 +188,6 @@ export default function CutinLayout({ children }) {
       navigate("/login", { replace: true });
     }
   };
-
-  const MenuItem = ({ icon: Icon, label, path }) => (
-    <button type="button" className="cutin-userMenu__item" onClick={() => go(path)}>
-      <span className="cutin-userMenu__itemIcon"><Icon /></span>
-      <span>{label}</span>
-      <FaChevronRight className="cutin-userMenu__arrow" />
-    </button>
-  );
 
   return (
     <div className="cutin-shell">
@@ -255,38 +241,38 @@ export default function CutinLayout({ children }) {
 
                   <div className="cutin-userMenu__group">
                     <span className="cutin-userMenu__title">Minha conta</span>
-                    <MenuItem icon={FaTicket} label="Meus ingressos" path="/meus-ingressos" />
-                    <MenuItem icon={FaUser} label="Dados da conta" path="/minha-conta" />
+                    {renderMenuItem(FaTicket, "Meus ingressos", "/meus-ingressos")}
+                    {renderMenuItem(FaUser, "Dados da conta", "/minha-conta")}
                   </div>
 
                   {access.isProducer && (
                     <div className="cutin-userMenu__group cutin-userMenu__group--border">
                       <span className="cutin-userMenu__title">Área do produtor</span>
-                      <MenuItem icon={FaChartLine} label="Painel do produtor" path="/produtor" />
-                      {access.canManageTeam && <MenuItem icon={FaPeopleGroup} label="Equipe" path="/equipe" />}
-                      {access.canCheckin && <MenuItem icon={FaClipboardCheck} label="Operação e check-in" path="/checkin" />}
+                      {renderMenuItem(FaChartLine, "Painel do produtor", "/produtor")}
+                      {access.canManageTeam && renderMenuItem(FaPeopleGroup, "Equipe", "/equipe")}
+                      {access.canCheckin && renderMenuItem(FaClipboardCheck, "Operação e check-in", "/checkin")}
                     </div>
                   )}
 
                   {access.isPromoter && (
                     <div className="cutin-userMenu__group cutin-userMenu__group--border">
                       <span className="cutin-userMenu__title">Área do promoter</span>
-                      <MenuItem icon={FaBullhorn} label="Minhas campanhas" path="/promoter" />
+                      {renderMenuItem(FaBullhorn, "Minhas campanhas", "/promoter")}
                     </div>
                   )}
 
                   {(access.isArtist || access.isSupplier) && (
                     <div className="cutin-userMenu__group cutin-userMenu__group--border">
                       <span className="cutin-userMenu__title">Minha atuação</span>
-                      <MenuItem icon={FaCalendarDays} label="Eventos" path="/eventos" />
-                      <MenuItem icon={FaStore} label="Produtos e oportunidades" path="/marketplace" />
+                      {renderMenuItem(FaCalendarDays, "Eventos", "/eventos")}
+                      {renderMenuItem(FaStore, "Produtos e oportunidades", "/marketplace")}
                     </div>
                   )}
 
                   {access.isAdmin && (
                     <div className="cutin-userMenu__group cutin-userMenu__group--border">
                       <span className="cutin-userMenu__title">Administração</span>
-                      <MenuItem icon={FaUsersGear} label="Gestão administrativa" path="/produtor" />
+                      {renderMenuItem(FaUsersGear, "Gestão administrativa", "/produtor")}
                     </div>
                   )}
 
