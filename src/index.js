@@ -4,6 +4,7 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import "./index.css";
 import "./App.css";
 import "./pages/LegacyPages.css";
+import "./pages/LegacyRasoioOverrides.css";
 import App from "./App";
 import reportWebVitals from "./reportWebVitals";
 
