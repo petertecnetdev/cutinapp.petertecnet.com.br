@@ -126,7 +126,6 @@ export default function CutinLayout({ children }) {
             <span className="cutin-mark" aria-hidden="true">C</span>
             <span className="cutin-brand__copy">
               <strong>Cutinapp</strong>
-              <small>by Peter Tecnet</small>
             </span>
           </Link>
 
