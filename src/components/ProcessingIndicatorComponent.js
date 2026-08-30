@@ -26,7 +26,7 @@ export default function ProcessingIndicatorComponent({
     <div className={`cutin-processing${blocking ? "" : " cutin-processing--passive"}`} role="status" aria-live="polite" aria-busy="true">
       <div className="cutin-processing__inner">
         <div className="cutin-processing__mark" aria-hidden="true">
-          <span>C</span>
+          <img src="/images/logo.png" alt="" />
           <i />
         </div>
         {message && <p>{message}</p>}
