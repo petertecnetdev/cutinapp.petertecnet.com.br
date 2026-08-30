@@ -48,12 +48,6 @@ const RouteFallback = () => (
   />
 );
 
-const LegacyShell = ({ children }) => (
-  <CutinLayout>
-    <div className="cutin-legacy-page">{children}</div>
-  </CutinLayout>
-);
-
 export default function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -92,7 +86,12 @@ export default function App() {
     return allowed ? element : <Navigate to={homeAfterLogin} replace />;
   };
 
-  const legacy = (element) => <LegacyShell>{element}</LegacyShell>;
+  const legacy = (element) => (
+    <CutinLayout>
+      <div className="cutin-legacy-page">{element}</div>
+    </CutinLayout>
+  );
+
   const guestRoute = (element) => user ? <Navigate to={homeAfterLogin} replace /> : element;
   const verifyRoute = (element) => !user ? <Navigate to="/login" replace /> : user.email_verified_at ? <Navigate to={homeAfterLogin} replace /> : element;
 
