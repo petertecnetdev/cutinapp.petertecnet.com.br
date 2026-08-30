@@ -7,6 +7,8 @@ import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorCo
 import "../CutinPages.css";
 import "./LoginPage.css";
 
+const BRAND_LOGO = "/images/logo.png?v=20260830-1631";
+
 const safeNextPath = (search) => {
   const candidate = new URLSearchParams(search).get("next");
   if (!candidate || !candidate.startsWith("/") || candidate.startsWith("//")) return "/produtor";
@@ -64,7 +66,7 @@ export default function LoginPage() {
         </div>
 
         <div className="panel auth-card cutin-login-card">
-          <div className="cutin-auth-logo"><img src="/images/logo.png" alt="Cutinapp" /></div>
+          <div className="cutin-auth-logo"><img src={BRAND_LOGO} alt="Cutinapp" /></div>
           <span className="auth-kicker">CUTINAPP</span>
           <h2>Bem-vindo</h2>
           <p className="muted">Entre com sua conta Peter Tecnet.</p>
