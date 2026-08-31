@@ -54,10 +54,10 @@ const authService = {
   },
 
   emailVerify: async (verificationCode) => {
-    await apiClient.post(`/${apiServiceUrl}/email-verify`, {
-      verification_code: verificationCode,
+    const response = await apiClient.post(`/${apiServiceUrl}/email-verify`, {
+      verification_code: String(verificationCode || "").trim(),
     });
-    return true;
+    return response.data;
   },
 
   changePassword: async (current_password, new_password, confirm_password) => {
@@ -72,7 +72,7 @@ const authService = {
   me: async () => {
     if (!authService.getToken()) throw new Error("Usuário não autenticado.");
     const response = await apiClient.get(`/${apiServiceUrl}/me`);
-    return response.data;
+    return response.data?.user ?? response.data;
   },
 
   passwordEmail: async (email) => apiClient.post(`/${apiServiceUrl}/password-email`, { email }),
@@ -86,8 +86,8 @@ const authService = {
     }),
 
   resendCodeEmailVerification: async () => {
-    await apiClient.post(`/${apiServiceUrl}/resend-code-email-verification`, {});
-    return true;
+    const response = await apiClient.post(`/${apiServiceUrl}/resend-code-email-verification`, {});
+    return response.data;
   },
 };
 
