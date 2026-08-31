@@ -1,6 +1,11 @@
 import apiClient from "./ApiClient";
 
 const cutinappService = {
+  publicConfig: async () => {
+    const response = await apiClient.get("/cutinapp/config");
+    return response.data || {};
+  },
+
   myProductions: async () => {
     const response = await apiClient.get("/cutinapp/productions/mine");
     return response.data.productions || [];
