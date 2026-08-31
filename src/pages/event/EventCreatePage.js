@@ -21,6 +21,12 @@ const initialForm = {
   image: null,
 };
 
+const firstError = (errors, field) => {
+  const value = errors?.[field];
+  if (Array.isArray(value)) return value[0] || "";
+  return typeof value === "string" ? value : "";
+};
+
 export default function EventCreatePage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -30,13 +36,14 @@ export default function EventCreatePage() {
   const [loading, setLoading] = useState(false);
   const [loadingProductions, setLoadingProductions] = useState(true);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
     let active = true;
     const selectedProduction = new URLSearchParams(location.search).get("productionId") || "";
 
-    cutinappService
-      .myProductions()
+    cutinappService.myProductions()
       .then((items) => {
         if (!active) return;
         setProductions(items);
@@ -47,30 +54,37 @@ export default function EventCreatePage() {
       .catch((err) => active && setError(err?.message || "Não foi possível carregar suas produções."))
       .finally(() => active && setLoadingProductions(false));
 
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, [location.search]);
 
   useEffect(() => () => {
     if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
   }, [preview]);
 
-  const canSubmit = useMemo(
-    () => Boolean(
-      form.production_id &&
-      form.title.trim() &&
-      form.description.trim() &&
-      form.address.trim() &&
-      form.start_date &&
-      form.end_date
-    ) && !loading,
-    [form, loading]
-  );
+  const requiredInvalid = submitted && {
+    production_id: !form.production_id,
+    title: form.title.trim().length < 2,
+    description: !form.description.trim(),
+    address: !form.address.trim(),
+    start_date: !form.start_date,
+    end_date: !form.end_date,
+  };
+  const dateInvalid = submitted && form.start_date && form.end_date && new Date(form.end_date) < new Date(form.start_date);
+  const ufInvalid = submitted && form.uf && form.uf.length !== 2;
+
+  const canSubmit = useMemo(() => Boolean(
+    form.production_id && form.title.trim() && form.description.trim() && form.address.trim() && form.start_date && form.end_date
+  ) && !loading, [form, loading]);
 
   const change = (event) => {
     const { name, value } = event.target;
-    setForm((current) => ({ ...current, [name]: name === "uf" ? value.toUpperCase() : value }));
+    setForm((current) => ({ ...current, [name]: name === "uf" ? value.toUpperCase().slice(0, 2) : value }));
+    setFieldErrors((current) => {
+      if (!current[name]) return current;
+      const next = { ...current };
+      delete next[name];
+      return next;
+    });
   };
 
   const chooseImage = (event) => {
@@ -82,99 +96,69 @@ export default function EventCreatePage() {
 
   const submit = async (event) => {
     event.preventDefault();
-    if (!canSubmit) return;
+    setSubmitted(true);
+    setError("");
+    setFieldErrors({});
 
-    if (new Date(form.end_date) < new Date(form.start_date)) {
-      setError("A data de término não pode ser anterior ao início do evento.");
+    if (!canSubmit || dateInvalid || ufInvalid) {
+      setError(dateInvalid ? "A data de término não pode ser anterior ao início do evento." : "Revise os campos destacados antes de continuar.");
       return;
     }
 
     setLoading(true);
-    setError("");
-
     try {
       const payload = new FormData();
       Object.entries(form).forEach(([key, value]) => {
-        if (value !== null && value !== "") payload.append(key, value);
+        if (value !== null && String(value).trim() !== "") payload.append(key, value);
       });
 
       const response = await eventService.store(payload);
-      const eventId = response.event?.id;
-      if (!eventId) throw new Error("O evento foi criado, mas a API não retornou sua identificação.");
+      const eventId = Number(response?.event?.id || 0);
+      if (!eventId) throw new Error("A API informou sucesso, mas não retornou o evento criado.");
+      if (response?.event?.is_published !== false) throw new Error("O evento deveria ter sido criado como rascunho, mas a API retornou outro estado.");
       navigate(`/ticket/create?eventId=${eventId}`, { replace: true });
     } catch (err) {
+      setFieldErrors(err?.errors || {});
       setError(err?.message || "Não foi possível criar o evento.");
     } finally {
       setLoading(false);
     }
   };
 
+  const invalid = (field, local = false) => Boolean(local || firstError(fieldErrors, field));
+
   return (
     <div className="cut-app-page">
       <NavlogComponent />
-      {(loading || loadingProductions) && (
-        <ProcessingIndicatorComponent label={loading ? "Criando evento" : "Carregando produções"} />
-      )}
+      {(loading || loadingProductions) && <ProcessingIndicatorComponent label={loading ? "Criando evento" : "Carregando produções"} />}
 
       <Container className="cut-page-container py-4 py-lg-5">
-        <div className="cut-page-heading">
-          <div>
-            <span className="cut-eyebrow">Área do produtor</span>
-            <h1>Novo evento</h1>
-            <p>O evento nasce como rascunho. Na próxima etapa você cria a cortesia e só depois publica a página para participantes.</p>
-          </div>
-        </div>
-
+        <div className="cut-page-heading"><div><span className="cut-eyebrow">Área do produtor</span><h1>Novo evento</h1><p>O evento nasce como rascunho. Na próxima etapa você cria a cortesia e só depois publica a página para participantes.</p></div></div>
         {error && <Alert variant="danger">{error}</Alert>}
 
         {!loadingProductions && productions.length === 0 ? (
-          <Card className="cut-empty-state">
-            <Card.Body>
-              <h2>Primeiro crie uma produção</h2>
-              <p>Todo evento precisa pertencer a uma produção Cutinapp sob sua responsabilidade.</p>
-              <Button onClick={() => navigate("/production/create")}>Criar produção</Button>
-            </Card.Body>
-          </Card>
+          <Card className="cut-empty-state"><Card.Body><h2>Primeiro crie uma produção</h2><p>Todo evento precisa pertencer a uma produção Cutinapp sob sua responsabilidade.</p><Button onClick={() => navigate("/production/create")}>Criar produção</Button></Card.Body></Card>
         ) : (
-          <Form onSubmit={submit}>
+          <Form onSubmit={submit} noValidate>
             <Row className="g-4">
-              <Col lg={8}>
-                <Card className="cut-panel h-100">
-                  <Card.Body className="p-4 p-lg-5">
-                    <h2 className="cut-section-title">Informações do evento</h2>
-                    <Row className="g-3">
-                      <Col xs={12}><Form.Group><Form.Label>Produção *</Form.Label><Form.Select name="production_id" value={form.production_id} onChange={change} required><option value="">Selecione</option>{productions.map((production) => <option key={production.id} value={production.id}>{production.name}</option>)}</Form.Select></Form.Group></Col>
-                      <Col xs={12}><Form.Group><Form.Label>Nome do evento *</Form.Label><Form.Control name="title" value={form.title} onChange={change} required placeholder="Ex.: Noite de Lançamento" /></Form.Group></Col>
-                      <Col xs={12}><Form.Group><Form.Label>Descrição *</Form.Label><Form.Control as="textarea" rows={5} name="description" value={form.description} onChange={change} required /></Form.Group></Col>
-                      <Col md={6}><Form.Group><Form.Label>Início *</Form.Label><Form.Control type="datetime-local" name="start_date" value={form.start_date} onChange={change} required /></Form.Group></Col>
-                      <Col md={6}><Form.Group><Form.Label>Término *</Form.Label><Form.Control type="datetime-local" name="end_date" value={form.end_date} onChange={change} required /></Form.Group></Col>
-                      <Col md={5}><Form.Group><Form.Label>Local</Form.Label><Form.Control name="venue" value={form.venue} onChange={change} placeholder="Nome do espaço" /></Form.Group></Col>
-                      <Col md={7}><Form.Group><Form.Label>Endereço *</Form.Label><Form.Control name="address" value={form.address} onChange={change} required /></Form.Group></Col>
-                      <Col md={8}><Form.Group><Form.Label>Cidade</Form.Label><Form.Control name="city" value={form.city} onChange={change} /></Form.Group></Col>
-                      <Col md={4}><Form.Group><Form.Label>UF</Form.Label><Form.Control maxLength={2} name="uf" value={form.uf} onChange={change} /></Form.Group></Col>
-                      <Col md={6}><Form.Group><Form.Label>E-mail de contato</Form.Label><Form.Control type="email" name="contact_email" value={form.contact_email} onChange={change} /></Form.Group></Col>
-                      <Col md={6}><Form.Group><Form.Label>Telefone de contato</Form.Label><Form.Control name="contact_phone" value={form.contact_phone} onChange={change} /></Form.Group></Col>
-                    </Row>
-                  </Card.Body>
-                </Card>
-              </Col>
+              <Col lg={8}><Card className="cut-panel h-100"><Card.Body className="p-4 p-lg-5"><h2 className="cut-section-title">Informações do evento</h2><Row className="g-3">
+                <Col xs={12}><Form.Group><Form.Label>Produção *</Form.Label><Form.Select name="production_id" value={form.production_id} onChange={change} isInvalid={invalid("production_id", requiredInvalid.production_id)}><option value="">Selecione</option>{productions.map((production) => <option key={production.id} value={production.id}>{production.name}</option>)}</Form.Select><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "production_id") || "Selecione a produção responsável."}</Form.Control.Feedback></Form.Group></Col>
+                <Col xs={12}><Form.Group><Form.Label>Nome do evento *</Form.Label><Form.Control name="title" value={form.title} onChange={change} placeholder="Ex.: Noite de Lançamento" isInvalid={invalid("title", requiredInvalid.title)} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "title") || "Informe o nome do evento."}</Form.Control.Feedback></Form.Group></Col>
+                <Col xs={12}><Form.Group><Form.Label>Descrição *</Form.Label><Form.Control as="textarea" rows={5} name="description" value={form.description} onChange={change} isInvalid={invalid("description", requiredInvalid.description)} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "description") || "Descreva o evento."}</Form.Control.Feedback></Form.Group></Col>
+                <Col md={6}><Form.Group><Form.Label>Início *</Form.Label><Form.Control type="datetime-local" name="start_date" value={form.start_date} onChange={change} isInvalid={invalid("start_date", requiredInvalid.start_date)} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "start_date") || "Informe quando o evento começa."}</Form.Control.Feedback></Form.Group></Col>
+                <Col md={6}><Form.Group><Form.Label>Término *</Form.Label><Form.Control type="datetime-local" name="end_date" value={form.end_date} onChange={change} isInvalid={invalid("end_date", requiredInvalid.end_date || dateInvalid)} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "end_date") || (dateInvalid ? "O término precisa ser posterior ao início." : "Informe quando o evento termina.")}</Form.Control.Feedback></Form.Group></Col>
+                <Col md={5}><Form.Group><Form.Label>Local</Form.Label><Form.Control name="venue" value={form.venue} onChange={change} placeholder="Nome do espaço" isInvalid={invalid("venue")} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "venue")}</Form.Control.Feedback></Form.Group></Col>
+                <Col md={7}><Form.Group><Form.Label>Endereço *</Form.Label><Form.Control name="address" value={form.address} onChange={change} isInvalid={invalid("address", requiredInvalid.address)} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "address") || "Informe o endereço do evento."}</Form.Control.Feedback></Form.Group></Col>
+                <Col md={8}><Form.Group><Form.Label>Cidade</Form.Label><Form.Control name="city" value={form.city} onChange={change} isInvalid={invalid("city")} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "city")}</Form.Control.Feedback></Form.Group></Col>
+                <Col md={4}><Form.Group><Form.Label>UF</Form.Label><Form.Control maxLength={2} name="uf" value={form.uf} onChange={change} isInvalid={invalid("uf", ufInvalid)} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "uf") || "Use 2 letras."}</Form.Control.Feedback></Form.Group></Col>
+                <Col md={6}><Form.Group><Form.Label>E-mail de contato</Form.Label><Form.Control type="email" name="contact_email" value={form.contact_email} onChange={change} isInvalid={invalid("contact_email")} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "contact_email")}</Form.Control.Feedback></Form.Group></Col>
+                <Col md={6}><Form.Group><Form.Label>Telefone de contato</Form.Label><Form.Control name="contact_phone" value={form.contact_phone} onChange={change} isInvalid={invalid("contact_phone")} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "contact_phone")}</Form.Control.Feedback></Form.Group></Col>
+              </Row></Card.Body></Card></Col>
 
-              <Col lg={4}>
-                <Card className="cut-panel h-100">
-                  <Card.Body className="p-4">
-                    <h2 className="cut-section-title">Imagem do evento</h2>
-                    {preview ? <img src={preview} alt="Prévia do evento" className="cut-upload-preview cut-upload-preview--event" /> : <div className="cut-upload-placeholder"><i className="fa-regular fa-image" /><span>Adicione uma capa 16:9</span></div>}
-                    <Form.Control className="mt-3" type="file" accept="image/png,image/jpeg,image/webp" onChange={chooseImage} />
-                    <div className="cut-info-box mt-4"><strong>Próxima etapa</strong><span>Depois de salvar, você configura a quantidade de cortesias. A publicação será uma ação separada.</span></div>
-                  </Card.Body>
-                </Card>
-              </Col>
+              <Col lg={4}><Card className="cut-panel h-100"><Card.Body className="p-4"><h2 className="cut-section-title">Imagem do evento</h2>{preview ? <img src={preview} alt="Prévia do evento" className="cut-upload-preview cut-upload-preview--event" /> : <div className="cut-upload-placeholder"><i className="fa-regular fa-image" /><span>Adicione uma capa 16:9</span></div>}<Form.Control className="mt-3" type="file" accept="image/png,image/jpeg,image/webp" onChange={chooseImage} isInvalid={invalid("image")} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "image")}</Form.Control.Feedback><div className="cut-info-box mt-4"><strong>Próxima etapa</strong><span>Depois de salvar, você configura a quantidade de cortesias. A publicação será uma ação separada.</span></div></Card.Body></Card></Col>
             </Row>
 
-            <div className="cut-form-actions mt-4">
-              <Button type="button" variant="outline-light" onClick={() => navigate("/event/manage")}>Cancelar</Button>
-              <Button type="submit" disabled={!canSubmit}>Criar rascunho e configurar cortesia</Button>
-            </div>
+            <div className="cut-form-actions mt-4"><Button type="button" variant="outline-light" disabled={loading} onClick={() => navigate("/event/manage")}>Cancelar</Button><Button type="submit" disabled={loading}>{loading ? "Criando..." : "Criar rascunho e configurar cortesia"}</Button></div>
           </Form>
         )}
       </Container>
