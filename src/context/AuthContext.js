@@ -6,6 +6,7 @@ export const AuthContext = createContext({
   loading: true,
   refreshUser: async () => null,
   login: async () => null,
+  loginGoogle: async () => null,
   logout: async () => null,
 });
 
@@ -49,6 +50,11 @@ export function AuthProvider({ children }) {
     return refreshUser();
   }, [refreshUser]);
 
+  const loginGoogle = useCallback(async (credential) => {
+    await authService.loginGoogle(credential);
+    return refreshUser();
+  }, [refreshUser]);
+
   const logout = useCallback(async () => {
     try {
       await authService.logout();
@@ -58,8 +64,8 @@ export function AuthProvider({ children }) {
   }, []);
 
   const value = useMemo(
-    () => ({ user, loading, refreshUser, login, logout }),
-    [user, loading, refreshUser, login, logout]
+    () => ({ user, loading, refreshUser, login, loginGoogle, logout }),
+    [user, loading, refreshUser, login, loginGoogle, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
