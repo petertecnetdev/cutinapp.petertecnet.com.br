@@ -4,11 +4,29 @@ const unwrap = (value) => Array.isArray(value) ? value : Array.isArray(value?.da
 
 const cutinappService = {
   publicConfig: async () => (await apiClient.get("/cutinapp/config")).data,
+  discoveryFacets: async () => (await apiClient.get("/cutinapp/discovery/facets")).data,
 
   myProductions: async () => unwrap((await apiClient.get("/cutinapp/productions/mine")).data.productions),
   getProduction: async (id) => (await apiClient.get(`/cutinapp/productions/${id}`)).data.production,
+  publicProduction: async (slug) => (await apiClient.get(`/cutinapp/productions/public/${slug}`)).data,
   createProduction: async (formData) => (await apiClient.post("/cutinapp/productions", formData)).data,
   updateProduction: async (id, formData) => (await apiClient.post(`/cutinapp/productions/${id}`, formData)).data,
+
+  artists: async (params = {}) => (await apiClient.get("/cutinapp/artists", { params })).data,
+  publicArtist: async (slug) => (await apiClient.get(`/cutinapp/artists/${slug}`)).data,
+  myArtists: async () => unwrap((await apiClient.get("/cutinapp/artists/mine/list", { params: { per_page: 100 } })).data.artists),
+  createArtist: async (payload) => (await apiClient.post("/cutinapp/artists", payload)).data,
+  updateArtist: async (id, payload) => (await apiClient.put(`/cutinapp/artists/${id}`, payload)).data,
+  eventArtists: async (eventId) => (await apiClient.get(`/cutinapp/events/${eventId}/artists`)).data,
+  attachArtist: async (eventId, payload) => (await apiClient.post(`/cutinapp/events/${eventId}/artists`, payload)).data,
+  detachArtist: async (eventId, artistId) => (await apiClient.delete(`/cutinapp/events/${eventId}/artists/${artistId}`)).data,
+  follow: async (targetType, targetId) => (await apiClient.post("/cutinapp/follow", { target_type: targetType, target_id: targetId })).data,
+  unfollow: async (targetType, targetId) => (await apiClient.delete("/cutinapp/follow", { data: { target_type: targetType, target_id: targetId } })).data,
+  preferences: async () => (await apiClient.get("/cutinapp/preferences")).data.preferences,
+  savePreferences: async (payload) => (await apiClient.put("/cutinapp/preferences", payload)).data,
+  engagement: async (eventId, payload) => (await apiClient.put(`/cutinapp/events/${eventId}/engagement`, payload)).data,
+  feed: async (params = {}) => (await apiClient.get("/cutinapp/feed", { params })).data,
+  notifications: async (params = {}) => (await apiClient.get("/cutinapp/notifications", { params })).data,
 
   publishEvent: async (eventId) => (await apiClient.post(`/cutinapp/events/${eventId}/publish`)).data,
   unpublishEvent: async (eventId) => (await apiClient.post(`/cutinapp/events/${eventId}/unpublish`)).data,
@@ -21,10 +39,7 @@ const cutinappService = {
   getPass: async (passId) => (await apiClient.get(`/cutinapp/passes/${passId}`)).data.pass,
   eventParticipants: async (eventId) => (await apiClient.get(`/cutinapp/events/${eventId}/participants`)).data,
 
-  checkIn: async (token, eventId) => (await apiClient.post("/cutinapp/checkin", {
-    token,
-    event_id: Number(eventId),
-  })).data,
+  checkIn: async (token, eventId) => (await apiClient.post("/cutinapp/checkin", { token, event_id: Number(eventId) })).data,
   checkInStats: async (eventId) => (await apiClient.get(`/cutinapp/checkin/event/${eventId}/stats`)).data,
 };
 
