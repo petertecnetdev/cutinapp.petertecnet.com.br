@@ -3,6 +3,22 @@ import { Alert, Button, Card, Col, Container, Form, Row } from "react-bootstrap"
 import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
+import cutinappService from "../../services/CutinappService";
+
+const waitForGoogle = () =>
+  new Promise((resolve, reject) => {
+    let attempts = 0;
+    const timer = window.setInterval(() => {
+      attempts += 1;
+      if (window.google?.accounts?.id) {
+        window.clearInterval(timer);
+        resolve(window.google.accounts.id);
+      } else if (attempts >= 50) {
+        window.clearInterval(timer);
+        reject(new Error("O serviço de login do Google não carregou."));
+      }
+    }, 100);
+  });
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -12,36 +28,69 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [googleStatus, setGoogleStatus] = useState("loading");
 
   useEffect(() => {
-    const clientId = String(process.env.REACT_APP_GOOGLE_CLIENT_ID || "").trim();
-    if (!clientId || !window.google?.accounts?.id || !googleContainerRef.current) return;
+    let active = true;
 
-    window.google.accounts.id.initialize({
-      client_id: clientId,
-      callback: async ({ credential }) => {
-        setLoading(true);
-        setError("");
-        try {
-          await loginGoogle(credential);
-          navigate("/dashboard", { replace: true });
-        } catch (err) {
-          setError(err?.message || "Não foi possível entrar com o Google.");
-        } finally {
-          setLoading(false);
+    const configureGoogle = async () => {
+      try {
+        const localClientId = String(process.env.REACT_APP_GOOGLE_CLIENT_ID || "").trim();
+        const runtimeConfig = localClientId ? {} : await cutinappService.publicConfig();
+        const clientId = localClientId || String(runtimeConfig.google_client_id || "").trim();
+
+        if (!clientId) {
+          if (active) setGoogleStatus("unavailable");
+          return;
         }
-      },
-    });
 
-    googleContainerRef.current.innerHTML = "";
-    window.google.accounts.id.renderButton(googleContainerRef.current, {
-      theme: "outline",
-      size: "large",
-      text: "continue_with",
-      shape: "rectangular",
-      width: Math.min(340, window.innerWidth - 64),
-      locale: "pt-BR",
-    });
+        const googleIdentity = await waitForGoogle();
+        if (!active || !googleContainerRef.current) return;
+
+        googleIdentity.initialize({
+          client_id: clientId,
+          callback: async ({ credential }) => {
+            if (!credential) {
+              setError("O Google não retornou uma credencial válida.");
+              return;
+            }
+
+            setLoading(true);
+            setError("");
+            try {
+              await loginGoogle(credential);
+              navigate("/dashboard", { replace: true });
+            } catch (err) {
+              setError(err?.message || "Não foi possível entrar com o Google.");
+            } finally {
+              setLoading(false);
+            }
+          },
+        });
+
+        googleContainerRef.current.innerHTML = "";
+        googleIdentity.renderButton(googleContainerRef.current, {
+          theme: "outline",
+          size: "large",
+          text: "continue_with",
+          shape: "rectangular",
+          width: Math.min(360, Math.max(240, window.innerWidth - 72)),
+          locale: "pt-BR",
+        });
+
+        if (active) setGoogleStatus("ready");
+      } catch (err) {
+        if (active) {
+          setGoogleStatus("unavailable");
+          setError(err?.message || "Não foi possível carregar o login com Google.");
+        }
+      }
+    };
+
+    configureGoogle();
+    return () => {
+      active = false;
+    };
   }, [loginGoogle, navigate]);
 
   const handleSubmit = async (event) => {
@@ -54,11 +103,10 @@ export default function LoginPage() {
       await login(email.trim(), password);
       navigate("/dashboard", { replace: true });
     } catch (err) {
-      setLoading(false);
       setError(err?.message || "Não foi possível entrar.");
-      return;
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -74,7 +122,7 @@ export default function LoginPage() {
                   <div>
                     <span className="cut-auth-kicker">Peter Tecnet</span>
                     <h1>Cutinapp</h1>
-                    <p>Acesse sua conta para continuar.</p>
+                    <p>Eventos, cortesias e acesso em um só lugar.</p>
                   </div>
                 </div>
 
@@ -82,9 +130,9 @@ export default function LoginPage() {
 
                 <Form onSubmit={handleSubmit} noValidate>
                   <Form.Group className="mb-3" controlId="login-email">
-                    <Form.Label>E-mail</Form.Label>
+                    <Form.Label>E-mail ou usuário</Form.Label>
                     <Form.Control
-                      type="email"
+                      type="text"
                       autoComplete="username"
                       placeholder="seu@email.com"
                       value={email}
@@ -114,8 +162,11 @@ export default function LoginPage() {
 
                 <div className="cut-auth-divider"><span>ou</span></div>
                 <div ref={googleContainerRef} className="cut-google-slot" />
-                {!String(process.env.REACT_APP_GOOGLE_CLIENT_ID || "").trim() && (
-                  <p className="cut-auth-hint">Login Google disponível quando o Client ID estiver configurado no build.</p>
+                {googleStatus === "loading" && (
+                  <p className="cut-auth-hint">Carregando acesso com Google...</p>
+                )}
+                {googleStatus === "unavailable" && (
+                  <p className="cut-auth-hint">O acesso com Google está indisponível neste momento.</p>
                 )}
 
                 <div className="cut-auth-links">
