@@ -14,6 +14,7 @@ const cutinappService = {
 
   artists: async (params = {}) => (await apiClient.get("/cutinapp/artists", { params })).data,
   publicArtist: async (slug) => (await apiClient.get(`/cutinapp/artists/${slug}`)).data,
+  publicEventArtists: async (slug) => (await apiClient.get(`/cutinapp/events/public/${slug}/artists`)).data.artists || [],
   myArtists: async () => unwrap((await apiClient.get("/cutinapp/artists/mine/list", { params: { per_page: 100 } })).data.artists),
   createArtist: async (payload) => (await apiClient.post("/cutinapp/artists", payload)).data,
   updateArtist: async (id, payload) => (await apiClient.put(`/cutinapp/artists/${id}`, payload)).data,
