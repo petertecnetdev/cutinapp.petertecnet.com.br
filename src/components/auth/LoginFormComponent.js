@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Button, Form } from "react-bootstrap";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import cutinappService from "../../services/CutinappService";
 import "./LoginFormComponent.css";
@@ -20,8 +20,14 @@ const waitForGoogle = () =>
     }, 100);
   });
 
+const safeDestination = (value) => {
+  const destination = String(value || "");
+  return destination.startsWith("/") && !destination.startsWith("//") ? destination : "/dashboard";
+};
+
 export default function LoginFormComponent() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login, loginGoogle } = useContext(AuthContext);
   const googleRef = useRef(null);
   const busyRef = useRef(false);
@@ -31,6 +37,7 @@ export default function LoginFormComponent() {
   const [error, setError] = useState("");
   const [googleReady, setGoogleReady] = useState(false);
 
+  const destination = safeDestination(location.state?.from);
   const canSubmit = useMemo(
     () => username.trim().length > 0 && password.length > 0 && !loading,
     [username, password, loading]
@@ -46,7 +53,7 @@ export default function LoginFormComponent() {
       setError("");
       try {
         await loginGoogle(credential);
-        navigate("/dashboard", { replace: true });
+        navigate(destination, { replace: true });
       } catch (err) {
         if (active) setError(err?.message || "Não foi possível entrar com o Google.");
       } finally {
@@ -72,6 +79,7 @@ export default function LoginFormComponent() {
         googleIdentity.initialize({
           client_id: clientId,
           callback: ({ credential }) => authenticateWithGoogle(credential),
+          cancel_on_tap_outside: false,
         });
 
         googleRef.current.innerHTML = "";
@@ -94,7 +102,7 @@ export default function LoginFormComponent() {
     return () => {
       active = false;
     };
-  }, [loginGoogle, navigate]);
+  }, [destination, loginGoogle, navigate]);
 
   const submit = async (event) => {
     event.preventDefault();
@@ -105,7 +113,7 @@ export default function LoginFormComponent() {
     setError("");
     try {
       await login(username.trim(), password);
-      navigate("/dashboard", { replace: true });
+      navigate(destination, { replace: true });
     } catch (err) {
       setError(err?.message || "Não foi possível entrar.");
     } finally {
