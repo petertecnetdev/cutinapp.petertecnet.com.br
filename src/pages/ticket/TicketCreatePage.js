@@ -6,6 +6,36 @@ import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorCo
 import ticketService from "../../services/TicketService";
 import eventService from "../../services/EventService";
 
+const pad = (value) => String(value).padStart(2, "0");
+const toLocalInput = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+const formatDateTime = (value) => {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "full",
+    timeStyle: "short",
+  }).format(date);
+};
+
+const minimumWithdrawalDate = () => {
+  const date = new Date();
+  date.setHours(date.getHours() + 1);
+  date.setSeconds(0, 0);
+  return date;
+};
+
+const suggestedLimitDate = (event) => {
+  if (!event?.start_date) return "";
+  const start = new Date(event.start_date);
+  if (Number.isNaN(start.getTime())) return "";
+  const minimum = minimumWithdrawalDate();
+  const suggestion = new Date(start.getTime() - 60 * 60 * 1000);
+  const chosen = suggestion >= minimum ? suggestion : start;
+  if (chosen < minimum || chosen > start) return "";
+  return toLocalInput(chosen);
+};
+
 const firstError = (errors, field) => {
   const value = errors?.[field];
   if (Array.isArray(value)) return value[0] || "";
@@ -38,21 +68,54 @@ export default function TicketCreatePage() {
         if (!exists && requestedEventId) {
           setEventId("");
           setError("O evento informado não pertence às suas produções Cutinapp. Selecione um evento válido.");
+          return;
         }
+        const selected = items.find((item) => String(item.id) === String(requestedEventId));
+        if (selected) setLimitDate(suggestedLimitDate(selected));
       })
       .catch((err) => active && setError(err?.message || "Não foi possível carregar seus eventos."))
       .finally(() => active && setInitialLoading(false));
     return () => { active = false; };
   }, [requestedEventId]);
 
+  const selectedEvent = useMemo(
+    () => events.find((item) => String(item.id) === String(eventId)) || null,
+    [events, eventId]
+  );
+
+  const minimumLimit = useMemo(() => toLocalInput(minimumWithdrawalDate()), [eventId]);
+  const maximumLimit = useMemo(() => {
+    if (!selectedEvent?.start_date) return "";
+    const date = new Date(selectedEvent.start_date);
+    return Number.isNaN(date.getTime()) ? "" : toLocalInput(date);
+  }, [selectedEvent]);
+
+  const limitDateInvalid = useMemo(() => {
+    if (!limitDate) return false;
+    const limit = new Date(limitDate);
+    const minimum = new Date(minimumLimit);
+    const maximum = maximumLimit ? new Date(maximumLimit) : null;
+    if (Number.isNaN(limit.getTime())) return true;
+    if (limit < minimum) return true;
+    return Boolean(maximum && limit > maximum);
+  }, [limitDate, minimumLimit, maximumLimit]);
+
   const canSubmit = useMemo(
-    () => Boolean(eventId && name.trim() && Number(quantity) > 0 && Number(quantity) <= 100000 && !loading),
-    [eventId, name, quantity, loading]
+    () => Boolean(eventId && name.trim() && Number(quantity) > 0 && Number(quantity) <= 100000 && !loading && !limitDateInvalid),
+    [eventId, name, quantity, loading, limitDateInvalid]
   );
 
   const invalidEvent = submitted && !eventId;
   const invalidName = submitted && !name.trim();
   const invalidQuantity = submitted && (Number(quantity) < 1 || Number(quantity) > 100000);
+
+  const changeEvent = (event) => {
+    const value = event.target.value;
+    setEventId(value);
+    const selected = events.find((item) => String(item.id) === String(value));
+    setLimitDate(selected ? suggestedLimitDate(selected) : "");
+    setFieldErrors((current) => ({ ...current, event_id: undefined, limit_date: undefined }));
+  };
 
   const submit = async (event) => {
     event.preventDefault();
@@ -60,7 +123,11 @@ export default function TicketCreatePage() {
     setError("");
     setFieldErrors({});
     if (!canSubmit) {
-      setError("Revise os campos destacados antes de criar a cortesia.");
+      if (limitDateInvalid) {
+        setError("O prazo de retirada precisa ficar entre 1 hora após o horário atual e o início do evento.");
+      } else {
+        setError("Revise os campos destacados antes de criar a cortesia.");
+      }
       return;
     }
 
@@ -104,10 +171,20 @@ export default function TicketCreatePage() {
             <div className="cut-feature-badge mb-4"><i className="fa-solid fa-ticket" /> Cortesia com QR Code individual</div>
             <Form onSubmit={submit} noValidate>
               <Row className="g-3">
-                <Col xs={12}><Form.Group><Form.Label>Evento *</Form.Label><Form.Select value={eventId} onChange={(event) => { setEventId(event.target.value); setFieldErrors((current) => ({ ...current, event_id: undefined })); }} isInvalid={invalid("event_id", invalidEvent)}><option value="">Selecione o evento</option>{events.filter((item) => !item.is_cancelled).map((item) => <option key={item.id} value={item.id}>{item.title} {item.is_published ? "· publicado" : "· rascunho"}</option>)}</Form.Select><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "event_id") || "Selecione um evento válido."}</Form.Control.Feedback></Form.Group></Col>
+                <Col xs={12}><Form.Group><Form.Label>Evento *</Form.Label><Form.Select value={eventId} onChange={changeEvent} isInvalid={invalid("event_id", invalidEvent)}><option value="">Selecione o evento</option>{events.filter((item) => !item.is_cancelled).map((item) => <option key={item.id} value={item.id}>{item.title} {item.is_published ? "· publicado" : "· rascunho"}</option>)}</Form.Select><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "event_id") || "Selecione um evento válido."}</Form.Control.Feedback></Form.Group></Col>
+
+                {selectedEvent && (
+                  <Col xs={12}>
+                    <div className="cut-info-box">
+                      <strong>Início do evento</strong>
+                      <span>{formatDateTime(selectedEvent.start_date)} · Horário de Brasília</span>
+                    </div>
+                  </Col>
+                )}
+
                 <Col md={7}><Form.Group><Form.Label>Nome do lote *</Form.Label><Form.Control value={name} onChange={(event) => setName(event.target.value)} isInvalid={invalid("name", invalidName)} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "name") || "Informe o nome da cortesia."}</Form.Control.Feedback></Form.Group></Col>
                 <Col md={5}><Form.Group><Form.Label>Quantidade *</Form.Label><Form.Control type="number" min={1} max={100000} value={quantity} onChange={(event) => setQuantity(event.target.value)} isInvalid={invalid("quantity", invalidQuantity)} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "quantity") || "Informe de 1 a 100.000 ingressos."}</Form.Control.Feedback></Form.Group></Col>
-                <Col xs={12}><Form.Group><Form.Label>Retirada disponível até</Form.Label><Form.Control type="datetime-local" value={limitDate} onChange={(event) => setLimitDate(event.target.value)} isInvalid={invalid("limit_date")} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "limit_date")}</Form.Control.Feedback></Form.Group></Col>
+                <Col xs={12}><Form.Group><Form.Label>Retirada disponível até</Form.Label><Form.Control type="datetime-local" min={minimumLimit} max={maximumLimit || undefined} value={limitDate} onChange={(event) => { setLimitDate(event.target.value); setFieldErrors((current) => ({ ...current, limit_date: undefined })); }} isInvalid={invalid("limit_date", submitted && limitDateInvalid)} /><Form.Text>Escolha um horário entre 1 hora após agora e o início do evento{selectedEvent ? ` (${formatDateTime(selectedEvent.start_date)})` : ""}.</Form.Text><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "limit_date") || "O prazo precisa ser pelo menos 1 hora após agora e não pode ultrapassar o início do evento."}</Form.Control.Feedback></Form.Group></Col>
                 <Col xs={12}><Form.Group><Form.Label>Orientações</Form.Label><Form.Control as="textarea" rows={4} value={description} onChange={(event) => setDescription(event.target.value)} isInvalid={invalid("description")} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "description")}</Form.Control.Feedback></Form.Group></Col>
               </Row>
               <div className="cut-info-box mt-4"><strong>Preço: R$ 0,00</strong><span>Cada participante recebe um ingresso individual com token e QR Code únicos. A criação do lote não publica o evento automaticamente.</span></div>
