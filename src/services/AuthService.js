@@ -2,21 +2,40 @@ import apiClient from "./ApiClient";
 
 const apiServiceUrl = "auth";
 
+const extractToken = (payload = {}) =>
+  payload.token?.access_token ??
+  payload.token?.original?.access_token ??
+  payload.access_token ??
+  (typeof payload.token === "string" ? payload.token : null);
+
 const authService = {
   getToken: () => localStorage.getItem("token"),
   setToken: (token) => localStorage.setItem("token", token),
   clearToken: () => localStorage.removeItem("token"),
 
+  finishAuthentication: (payload) => {
+    const token = extractToken(payload);
+    if (!token) throw new Error("A API não retornou um token de acesso.");
+    authService.setToken(token);
+    return token;
+  },
+
   login: async (email, password) => {
     const response = await apiClient.post(`/${apiServiceUrl}/login`, {
       email,
+      username: email,
       password,
     });
+    authService.finishAuthentication(response.data);
+    return response.data;
+  },
 
-    const token = response.data?.access_token;
-    if (!token) throw new Error("A API não retornou um token de acesso.");
-
-    authService.setToken(token);
+  loginGoogle: async (credential) => {
+    if (!credential) throw new Error("Credencial do Google não recebida.");
+    const response = await apiClient.post(`/${apiServiceUrl}/google`, {
+      token_id: credential,
+    });
+    authService.finishAuthentication(response.data);
     return response.data;
   },
 
@@ -56,8 +75,7 @@ const authService = {
     return response.data;
   },
 
-  passwordEmail: async (email) =>
-    apiClient.post(`/${apiServiceUrl}/password-email`, { email }),
+  passwordEmail: async (email) => apiClient.post(`/${apiServiceUrl}/password-email`, { email }),
 
   passwordReset: async (email, resetCode, newPassword, confirmPassword) =>
     apiClient.post(`/${apiServiceUrl}/password-update`, {
