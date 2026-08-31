@@ -25,9 +25,7 @@ export default function ProductionMinePage() {
       .then((productions) => active && setItems(productions))
       .catch((err) => active && setError(err?.message || "Não foi possível carregar suas produções."))
       .finally(() => active && setLoading(false));
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, []);
 
   return (
@@ -39,7 +37,7 @@ export default function ProductionMinePage() {
           <div>
             <span className="cut-eyebrow">Área do produtor</span>
             <h1>Minhas produções</h1>
-            <p>Gerencie as organizações responsáveis pelos seus eventos.</p>
+            <p>Somente produções vinculadas à Cutinapp e ao seu usuário aparecem aqui.</p>
           </div>
           <Button onClick={() => navigate("/production/create")}>
             <i className="fa-solid fa-plus me-2" />Nova produção
@@ -48,11 +46,11 @@ export default function ProductionMinePage() {
 
         {error && <Alert variant="danger">{error}</Alert>}
 
-        {!loading && items.length === 0 ? (
+        {!loading && !error && items.length === 0 ? (
           <Card className="cut-empty-state">
             <Card.Body>
-              <h2>Crie sua primeira produção</h2>
-              <p>Cadastre a organização que será responsável pelos seus eventos.</p>
+              <h2>Você ainda não possui produção na Cutinapp</h2>
+              <p>Cadastre a organização responsável pelo seu primeiro evento.</p>
               <Button onClick={() => navigate("/production/create")}>Criar produção</Button>
             </Card.Body>
           </Card>
@@ -62,19 +60,14 @@ export default function ProductionMinePage() {
               <Col md={6} xl={4} key={production.id}>
                 <Card className="cut-production-card h-100">
                   {production.background && (
-                    <div
-                      className="cut-production-card__cover"
-                      style={{ backgroundImage: `url(${imageUrl(production.background)})` }}
-                    />
+                    <div className="cut-production-card__cover" style={{ backgroundImage: `url(${imageUrl(production.background)})` }} />
                   )}
                   <Card.Body className="p-4">
                     <div className="d-flex align-items-center gap-3 mb-3">
                       {production.logo ? (
                         <img src={imageUrl(production.logo)} alt="" className="cut-production-card__logo" />
                       ) : (
-                        <div className="cut-production-card__logo cut-production-card__logo--placeholder">
-                          {String(production.name || "P").slice(0, 2).toUpperCase()}
-                        </div>
+                        <div className="cut-production-card__logo cut-production-card__logo--placeholder">{String(production.name || "P").slice(0, 2).toUpperCase()}</div>
                       )}
                       <div>
                         <h2 className="mb-1">{production.name}</h2>
@@ -83,8 +76,9 @@ export default function ProductionMinePage() {
                     </div>
                     <p>{production.description || "Produção pronta para receber eventos."}</p>
                     <div className="cut-card-actions">
-                      <Button onClick={() => navigate(`/event/create?productionId=${production.id}`)}>Criar evento</Button>
+                      <Button onClick={() => navigate(`/production/${production.id}`)}>Abrir</Button>
                       <Button variant="outline-light" onClick={() => navigate(`/production/edit/${production.id}`)}>Editar</Button>
+                      <Button variant="outline-light" onClick={() => navigate(`/event/create?productionId=${production.id}`)}>Criar evento</Button>
                     </div>
                   </Card.Body>
                 </Card>
