@@ -5,8 +5,6 @@ import { AuthContext } from "../../context/AuthContext";
 import cutinappService from "../../services/CutinappService";
 import "./LoginFormComponent.css";
 
-const FALLBACK_GOOGLE_CLIENT_ID = "404224718244-9lshk1r3mn8tflesj52u8odrah1j8elr.apps.googleusercontent.com";
-
 const waitForGoogle = () =>
   new Promise((resolve, reject) => {
     let attempts = 0;
@@ -61,10 +59,12 @@ export default function LoginFormComponent() {
       try {
         const runtime = await cutinappService.publicConfig().catch(() => ({}));
         const clientId = String(
-          process.env.REACT_APP_GOOGLE_CLIENT_ID ||
-            runtime?.google_client_id ||
-            FALLBACK_GOOGLE_CLIENT_ID
+          process.env.REACT_APP_GOOGLE_CLIENT_ID || runtime?.google_client_id || ""
         ).trim();
+
+        if (!clientId) {
+          throw new Error("Login com Google ainda não foi configurado para a Cutinapp.");
+        }
 
         const googleIdentity = await waitForGoogle();
         if (!active || !googleRef.current) return;
@@ -116,26 +116,13 @@ export default function LoginFormComponent() {
 
   return (
     <Form onSubmit={submit} className="cut-login-form" noValidate>
-      {error && (
-        <div className="cut-login-form__error" role="alert">
-          {error}
-        </div>
-      )}
+      {error && <div className="cut-login-form__error" role="alert">{error}</div>}
 
       <div className="cut-login-form__field">
         <label htmlFor="cut-login-user">Usuário ou e-mail</label>
         <div className="cut-login-form__inputWrap">
           <i className="fa-regular fa-envelope" aria-hidden="true" />
-          <Form.Control
-            id="cut-login-user"
-            type="text"
-            autoComplete="username"
-            placeholder="Digite seu usuário ou e-mail"
-            value={username}
-            onChange={(event) => setUsername(event.target.value)}
-            disabled={loading}
-            required
-          />
+          <Form.Control id="cut-login-user" type="text" autoComplete="username" placeholder="Digite seu usuário ou e-mail" value={username} onChange={(event) => setUsername(event.target.value)} disabled={loading} required />
         </div>
       </div>
 
@@ -143,42 +130,22 @@ export default function LoginFormComponent() {
         <label htmlFor="cut-login-password">Senha</label>
         <div className="cut-login-form__inputWrap">
           <i className="fa-solid fa-lock" aria-hidden="true" />
-          <Form.Control
-            id="cut-login-password"
-            type="password"
-            autoComplete="current-password"
-            placeholder="Digite sua senha"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            disabled={loading}
-            required
-          />
+          <Form.Control id="cut-login-password" type="password" autoComplete="current-password" placeholder="Digite sua senha" value={password} onChange={(event) => setPassword(event.target.value)} disabled={loading} required />
         </div>
       </div>
 
       <Button type="submit" className="cut-login-form__submit" disabled={!canSubmit}>
-        {loading ? (
-          <>
-            <span className="cut-login-form__spinner" /> Entrando...
-          </>
-        ) : (
-          "Entrar"
-        )}
+        {loading ? <><span className="cut-login-form__spinner" /> Entrando...</> : "Entrar"}
       </Button>
 
-      <div className="cut-login-form__divider">
-        <span>ou continue com</span>
-      </div>
-
+      <div className="cut-login-form__divider"><span>ou continue com</span></div>
       <div className="cut-login-form__google">
         <div ref={googleRef} className="cut-google-render" />
         {!googleReady && <div className="cut-google-skeleton">Carregando Google...</div>}
       </div>
 
       <div className="cut-login-form__links">
-        <Link to="/register">Criar conta</Link>
-        <span>•</span>
-        <Link to="/password-email">Esqueci minha senha</Link>
+        <Link to="/register">Criar conta</Link><span>•</span><Link to="/password-email">Esqueci minha senha</Link>
       </div>
     </Form>
   );
