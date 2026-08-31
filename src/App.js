@@ -11,6 +11,7 @@ import PeterTecnetSignature from "./components/PeterTecnetSignature";
 import ProcessingIndicatorComponent from "./components/ProcessingIndicatorComponent";
 
 const HomePage = lazy(() => import("./pages/HomePage"));
+const FeedPage = lazy(() => import("./pages/FeedPage"));
 const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
 const RegisterPage = lazy(() => import("./pages/auth/RegisterPage"));
 const EmailVerifyPage = lazy(() => import("./pages/auth/EmailVerifyPage"));
@@ -22,11 +23,16 @@ const UserEditPage = lazy(() => import("./pages/user/UserEditPage"));
 const ProductionCreatePage = lazy(() => import("./pages/production/ProductionCreatePage"));
 const ProductionMinePage = lazy(() => import("./pages/production/ProductionMinePage"));
 const ProductionViewPage = lazy(() => import("./pages/production/ProductionViewPage"));
+const ProductionPublicPage = lazy(() => import("./pages/production/ProductionPublicPage"));
 const ProductionUpdatePage = lazy(() => import("./pages/production/ProductionUpdatePage"));
+const ArtistListPage = lazy(() => import("./pages/artist/ArtistListPage"));
+const ArtistViewPage = lazy(() => import("./pages/artist/ArtistViewPage"));
+const ArtistManagePage = lazy(() => import("./pages/artist/ArtistManagePage"));
 const EventPage = lazy(() => import("./pages/event/EventPage"));
 const EventCreatePage = lazy(() => import("./pages/event/EventCreatePage"));
 const EventManagePage = lazy(() => import("./pages/event/EventManagePage"));
 const EventUpdatePage = lazy(() => import("./pages/event/EventUpdatePage"));
+const EventLineupPage = lazy(() => import("./pages/event/EventLineupPage"));
 const EventViewPage = lazy(() => import("./pages/event/EventViewPage"));
 const TicketCreatePage = lazy(() => import("./pages/ticket/TicketCreatePage"));
 const CourtesyManagePage = lazy(() => import("./pages/ticket/CourtesyManagePage"));
@@ -56,15 +62,12 @@ function AppRoutes() {
   };
 
   const guestRoute = (element) => user ? <Navigate to="/dashboard" replace /> : element;
-
-  const shellOwnsSignature =
-    location.pathname === "/" ||
-    ["/login", "/register", "/password-email", "/email-verify"].includes(location.pathname);
+  const shellOwnsSignature = location.pathname === "/" || ["/login", "/register", "/password-email", "/email-verify"].includes(location.pathname);
 
   return (
     <Suspense fallback={<ProcessingIndicatorComponent label="Carregando página" />}>
       <Routes>
-        <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <HomePage />} />
+        <Route path="/" element={user ? <Navigate to="/feed" replace /> : <HomePage />} />
         <Route path="/login" element={guestRoute(<LoginPage />)} />
         <Route path="/register" element={guestRoute(<RegisterPage />)} />
         <Route path="/password-email" element={guestRoute(<PasswordEmailPage />)} />
@@ -73,10 +76,16 @@ function AppRoutes() {
         <Route path="/logout" element={<LogoutPage />} />
 
         <Route path="/dashboard" element={protectedRoute(<DashboardPage />)} />
+        <Route path="/feed" element={protectedRoute(<FeedPage />)} />
         <Route path="/user/edit" element={protectedRoute(<UserEditPage />)} />
+
+        <Route path="/artists" element={<ArtistListPage />} />
+        <Route path="/artist/:slug" element={<ArtistViewPage />} />
+        <Route path="/artist/manage" element={protectedRoute(<ArtistManagePage />)} />
 
         <Route path="/production/create" element={protectedRoute(<ProductionCreatePage />)} />
         <Route path="/production/mine" element={protectedRoute(<ProductionMinePage />)} />
+        <Route path="/production/:slug/public" element={<ProductionPublicPage />} />
         <Route path="/production/:id" element={protectedRoute(<ProductionViewPage />)} />
         <Route path="/production/edit/:id" element={protectedRoute(<ProductionUpdatePage />)} />
 
@@ -84,6 +93,7 @@ function AppRoutes() {
         <Route path="/event/create" element={protectedRoute(<EventCreatePage />)} />
         <Route path="/event/manage" element={protectedRoute(<EventManagePage />)} />
         <Route path="/event/edit/:id" element={protectedRoute(<EventUpdatePage />)} />
+        <Route path="/event/:eventId/lineup" element={protectedRoute(<EventLineupPage />)} />
         <Route path="/event/:eventId/courtesies" element={protectedRoute(<CourtesyManagePage />)} />
         <Route path="/event/:eventId/participants" element={protectedRoute(<ParticipantsPage />)} />
         <Route path="/event/:slug" element={<EventViewPage />} />
@@ -92,7 +102,7 @@ function AppRoutes() {
         <Route path="/passes" element={protectedRoute(<MyPassesPage />)} />
         <Route path="/passes/:id" element={protectedRoute(<PassDetailPage />)} />
         <Route path="/checkin" element={protectedRoute(<CheckinPage />)} />
-        <Route path="*" element={<Navigate to={user ? "/dashboard" : "/"} replace />} />
+        <Route path="*" element={<Navigate to={user ? "/feed" : "/"} replace />} />
       </Routes>
       {!shellOwnsSignature && <PeterTecnetSignature />}
     </Suspense>
@@ -100,9 +110,5 @@ function AppRoutes() {
 }
 
 export default function App() {
-  return (
-    <Router>
-      <AppRoutes />
-    </Router>
-  );
+  return <Router><AppRoutes /></Router>;
 }
