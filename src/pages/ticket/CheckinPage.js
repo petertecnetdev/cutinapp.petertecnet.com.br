@@ -52,7 +52,7 @@ export default function CheckinPage() {
     let detector;
     try {
       detector = new window.BarcodeDetector({ formats: ["qr_code"] });
-    } catch (err) {
+    } catch {
       setCameraSupported(false);
       return undefined;
     }
@@ -66,7 +66,7 @@ export default function CheckinPage() {
         const codes = await detector.detect(video);
         const found = codes.find((code) => String(code.rawValue || "").startsWith("CUT-"));
         if (found?.rawValue) await validate(found.rawValue);
-      } catch (err) {
+      } catch {
         // Alguns navegadores falham em frames isolados; o próximo frame tenta novamente.
       }
     };
