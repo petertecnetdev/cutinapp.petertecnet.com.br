@@ -17,8 +17,7 @@ export default function Navigation() {
     navigate("/login", { replace: true });
   };
 
-  const isAdmin = user?.profile?.name === "Administrador";
-  const isProducer = isAdmin || user?.profile?.name === "Produtor";
+  const avatarUrl = user?.avatar ? `${storageUrl}${String(user.avatar).replace(/^\//, "")}` : "";
 
   return (
     <Navbar expand="lg" sticky="top" collapseOnSelect className="cut-navbar">
@@ -38,23 +37,22 @@ export default function Navigation() {
           <Nav className="me-auto" onClick={closeMenu}>
             <Nav.Link as={Link} to="/dashboard">Início</Nav.Link>
             <Nav.Link as={Link} to="/event">Eventos</Nav.Link>
-            <Nav.Link as={Link} to="/productions">Produções</Nav.Link>
-            <Nav.Link as={Link} to="/item">Itens</Nav.Link>
+            <Nav.Link as={Link} to="/passes">Minhas cortesias</Nav.Link>
 
-            {isAdmin && (
-              <NavDropdown title={<span><i className="fa-solid fa-gear me-1" />Administrativo</span>} id="admin-dropdown">
-                <NavDropdown.Item as={Link} to="/user/list">Usuários</NavDropdown.Item>
-                <NavDropdown.Item as={Link} to="/profile/list">Perfis</NavDropdown.Item>
-                <NavDropdown.Item as={Link} to="/production/admin/list">Produções</NavDropdown.Item>
-              </NavDropdown>
-            )}
-
-            {isProducer && (
-              <NavDropdown title={<span><i className="fa-solid fa-briefcase me-1" />Corporativo</span>} id="corporate-dropdown">
-                <NavDropdown.Item as={Link} to="/production/corp/list">Minhas produções</NavDropdown.Item>
-                <NavDropdown.Item as={Link} to="/event/corp/list">Meus eventos</NavDropdown.Item>
-              </NavDropdown>
-            )}
+            <NavDropdown
+              title={<span><i className="fa-solid fa-bolt me-1" />Área do produtor</span>}
+              id="producer-dropdown"
+            >
+              <NavDropdown.Item as={Link} to="/production/mine">Minhas produções</NavDropdown.Item>
+              <NavDropdown.Item as={Link} to="/production/create">Criar produção</NavDropdown.Item>
+              <NavDropdown.Item as={Link} to="/event/manage">Meus eventos</NavDropdown.Item>
+              <NavDropdown.Item as={Link} to="/event/create">Criar evento</NavDropdown.Item>
+              <NavDropdown.Divider />
+              <NavDropdown.Item as={Link} to="/ticket/create">Criar cortesia</NavDropdown.Item>
+              <NavDropdown.Item as={Link} to="/checkin">
+                <i className="fa-solid fa-qrcode me-2" />Abrir portaria
+              </NavDropdown.Item>
+            </NavDropdown>
           </Nav>
 
           <Nav className="align-items-lg-center">
@@ -63,14 +61,14 @@ export default function Navigation() {
               id="profile-dropdown"
               align="end"
             >
-              <NavDropdown.Item as={Link} to="/user/edit">Gerenciar conta</NavDropdown.Item>
+              <NavDropdown.Item as={Link} to="/user/edit">Minha conta</NavDropdown.Item>
               <NavDropdown.Divider />
               <NavDropdown.Item as="button" onClick={handleLogout}>Sair</NavDropdown.Item>
             </NavDropdown>
 
             <div className="cut-avatar" aria-hidden="true">
-              {user?.avatar ? (
-                <img src={`${storageUrl}/${user.avatar}`} alt="" />
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="" />
               ) : (
                 <span>{String(user?.first_name || "C").slice(0, 2).toUpperCase()}</span>
               )}
