@@ -1,438 +1,188 @@
-import React, { useState, useEffect } from "react";
-import {
-  Form,
-  Button,
-  Container,
-  Row,
-  Col,
-  Card,
-  Alert,
-} from "react-bootstrap";
-import productionService from "../../services/ProductionService";
+import React, { useMemo, useState } from "react";
+import { Alert, Button, Card, Col, Container, Form, Row } from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
-import { Link } from "react-router-dom";
-import LoadingComponent from "../../components/LoadingComponent";
-import seguiments from "../../utils/seguiments";
+import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
+import cutinappService from "../../services/CutinappService";
 
-const ProductionCreatePage = () => {
-  const [formData, setFormData] = useState({
-    name: "",
-    cnpj: "",
-    selectedPermissions: [],
-    fantasy: "",
-    type: "",
-    phone: "",
-    description: "",
-    segments: [],
-    city: "",
-    location: "",
-    cep: "",
-    address: "",
-    user_id: "",
-    is_featured: false,
-    is_published: false,
-    is_approved: false,
-    is_cancelled: false,
-    additional_info: "",
-    website_url: "",
-    twitter_url: "",
-    instagram_url: "",
-    youtube_url: "",
-    other_information: "",
-    ticket_price_min: 0,
-    ticket_price_max: 0,
-    total_tickets_sold: 0,
-    total_tickets_available: 0,
-    logo: null,
-    background: null,
-  });
+const initialForm = {
+  name: "",
+  fantasy: "",
+  cnpj: "",
+  phone: "",
+  description: "",
+  city: "",
+  uf: "",
+  address: "",
+  website_url: "",
+  instagram_url: "",
+  logo: null,
+  background: null,
+};
+
+export default function ProductionCreatePage() {
+  const navigate = useNavigate();
+  const [form, setForm] = useState(initialForm);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [successMessage, setSuccessMessage] = useState(null);
-  const [logoPreview, setLogoPreview] = useState(null);
-  const [backgroundPreview, setBackgroundPreview] = useState(null);
+  const [error, setError] = useState("");
+  const [logoPreview, setLogoPreview] = useState("");
+  const [backgroundPreview, setBackgroundPreview] = useState("");
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
+  const canSubmit = useMemo(
+    () => form.name.trim().length >= 2 && !loading,
+    [form.name, loading]
+  );
+
+  const change = (event) => {
+    const { name, value } = event.target;
+    setForm((current) => ({ ...current, [name]: value }));
   };
 
-  const handleLogoChange = (e) => {
-    const file = e.target.files[0];
-    setFormData({
-      ...formData,
-      logo: file,
-    });
-    // Preview da imagem
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      // Redimensionar a imagem para 150x150
-      const img = new Image();
-      img.src = reader.result;
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
-        canvas.width = 150;
-        canvas.height = 150;
-        ctx.drawImage(img, 0, 0, 150, 150);
-        const resizedDataURL = canvas.toDataURL("image/png");
-        setLogoPreview(resizedDataURL);
-      };
-    };
-    reader.readAsDataURL(file);
+  const chooseImage = (field, event) => {
+    const file = event.target.files?.[0] || null;
+    setForm((current) => ({ ...current, [field]: file }));
+    const setter = field === "logo" ? setLogoPreview : setBackgroundPreview;
+    setter(file ? URL.createObjectURL(file) : "");
   };
 
-  const handleBackgroundChange = (e) => {
-    const file = e.target.files[0];
-    setFormData({
-      ...formData,
-      background: file,
-    });
-    // Preview da imagem
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      // Redimensionar a imagem para 1920x600
-      const img = new Image();
-      img.src = reader.result;
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
-        canvas.width = 1920;
-        canvas.height = 600;
-        ctx.drawImage(img, 0, 0, 1920, 600);
-        const resizedDataURL = canvas.toDataURL("image/png");
-        setBackgroundPreview(resizedDataURL);
-      };
-    };
-    reader.readAsDataURL(file);
-  };
+  const submit = async (event) => {
+    event.preventDefault();
+    if (!canSubmit) return;
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
     setLoading(true);
-    setError(null);
-    setSuccessMessage(null);
+    setError("");
 
     try {
-      const response = await productionService.store(formData);
-      setSuccessMessage(response);
-      setTimeout(5000);
-    } catch (error) {
-      setError("Erro ao criar a produção. Por favor, tente novamente.");
+      const payload = new FormData();
+      Object.entries(form).forEach(([key, value]) => {
+        if (value !== null && value !== "") payload.append(key, value);
+      });
+
+      const response = await cutinappService.createProduction(payload);
+      const productionId = response.production?.id;
+      navigate(productionId ? `/event/create?productionId=${productionId}` : "/dashboard", {
+        replace: true,
+      });
+    } catch (err) {
+      setError(err?.message || "Não foi possível criar a produção.");
     } finally {
       setLoading(false);
     }
   };
 
-
-
-  const handleCnpjChange = async (e) => {
-    const cnpj = e.target.value;
-    setFormData({ ...formData, cnpj: cnpj });
-    try {
-      const companyInfo = await productionService.companyInfo(cnpj);
-      if (companyInfo && !companyInfo.error) {
-        setFormData((prevData) => ({
-          ...prevData,
-          fantasy: companyInfo.fantasy,
-          cep: companyInfo.cep,
-          address: `${companyInfo.logradouro} - ${companyInfo.bairro}`,
-          uf: companyInfo.uf,
-          city: companyInfo.municipio,
-        }));
-      } else {
-        console.error("Erro ao buscar informações do CNPJ:", companyInfo);
-      }
-    } catch (error) {
-      console.error("Erro ao buscar informações do CNPJ:", error);
-    }
-  };
-
-  const handleSeguimentsChange = (seguimentId) => {
-    // Lógica para adicionar/remover o seguimento selecionado da matriz de seguimentos no estado
-    const updatedSegments = formData.segments.includes(seguimentId)
-      ? formData.segments.filter((id) => id !== seguimentId)
-      : [...formData.segments, seguimentId];
-    setFormData({ ...formData, segments: updatedSegments });
-  };
-
-  // Divide os seguimentos em 6 colunas
-  const segmentsPerColumn = 6; // Sempre 6 colunas
-  const segmentChunks = Array.from(
-    { length: Math.ceil(Object.keys(seguiments).length / segmentsPerColumn) },
-    (_, index) =>
-      Object.entries(seguiments).slice(
-        index * segmentsPerColumn,
-        index * segmentsPerColumn + segmentsPerColumn
-      )
-  );
-
-  useEffect(() => {
-    let timer;
-    if (error || successMessage) {
-      timer = setTimeout(() => {
-        setError(null);
-        setSuccessMessage(null);
-      }, 5000);
-    }
-
-    return () => clearTimeout(timer);
-  }, [error, successMessage]);
-  if (loading) {
-    return <LoadingComponent />;
-  }
   return (
-    <>
+    <div className="cut-app-page">
       <NavlogComponent />
-      
-      <p className="labeltitle h2 text-center text-uppercase">Adicionar nova produção</p>
-      <label
-        htmlFor="BackgroundInput"
-        style={{ cursor: "pointer", display: "block" }}
-      >
-        {backgroundPreview ? (
-          <img
-            src={backgroundPreview}
-            alt="Preview da Background"
-            className="img-fluid "
-          />
-        ) : (
-          <img
-            src="/images/productionbackground.png"
-            alt="Preview da Background"
-            className="img-fluid"
-          />
-        )}
-      </label>
-      
-      <Form.Control
-        id="BackgroundInput"
-        type="file"
-        accept="image/*"
-        onChange={handleBackgroundChange}
-        style={{ display: "none" }}
-        required
-      />
-      <Form.Control
-        id="BackgroundInput"
-        type="file"
-        accept="image/*"
-        onChange={handleBackgroundChange}
-        style={{ display: "none" }}
-        required
-      />
-      <label
-        htmlFor="logoInput"
-        style={{ cursor: "pointer", display: "block" }}
-      >
-        {logoPreview ? (
-          <img
-            src={logoPreview}
-            alt="Preview da Logo"
-            className="img-fluid rounded-circle img-logo-production"
-            // Ajusta a largura da imagem para preencher o container
-          />
-        ) : (
-          <img
-            src="/images/productionlogo.png"
-            alt="Preview da Logo"
-            className="img-fluid rounded-circle img-logo-production"
-            // Ajusta a largura da imagem para preencher o container
-          />
-        )}
-      </label>
-      <Form.Control
-        id="logoInput"
-        type="file"
-        accept="image/*"
-        onChange={handleLogoChange}
-        style={{
-          display: "none",
-        }}
-        required
-        className="img-fluid rounded-circle img-logo-production"
-      />
+      {loading && <ProcessingIndicatorComponent label="Criando produção" />}
 
-      <Container>
-        <Row className="justify-content-md-center">
-          
-          <Col md={12}>
-            <Card>
-            <p className="labeltitle h4 text-center text-uppercase">Informações básicas</p>
-              <Row>
-            <Col md={6} className="mt-2">
-              <Form.Group controlId="formName">
-                <Form.Control
-                  type="text"
-                  name="name"
-                  placeholder="Digite o nome da produção"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  required
-                  className="mt-3"
-                />
-              </Form.Group>            
-              </Col>
+      <Container className="cut-page-container py-4 py-lg-5">
+        <div className="cut-page-heading">
+          <div>
+            <span className="cut-eyebrow">Área do produtor</span>
+            <h1>Crie sua produção</h1>
+            <p>Cadastre a marca responsável pelos seus eventos. Depois você já poderá criar o primeiro evento e liberar cortesias.</p>
+          </div>
+        </div>
 
-              
-            <Col md={3} className="mt-2">
-              <Form.Group controlId="formcnpj">
-                <Form.Control
-                  type="text"
-                  name="cnpj"
-                  placeholder="CNPJ"
-                  value={formData.cnpj}
-                  onChange={handleCnpjChange}
-                  required
-                  className="mt-3"
-                />
-              </Form.Group>
-              </Col>
+        {error && <Alert variant="danger">{error}</Alert>}
 
-              
-              
-            <Col md={3} className="mt-2">
-              <Form.Group controlId="formPhone">
-                <Form.Control
-                  type="text"
-                  name="phone"
-                  placeholder="Telefone"
-                  value={formData.phone}
-                  onChange={handleInputChange}
-                  required
-                  className="mt-3"
-                />
-              </Form.Group>
-              </Col>
-              </Row>
-              <Row>
-                <Col md={12} className="mt-2">
-                  <Form.Group controlId="formDescription">
-                    <Form.Control
-                      as="textarea"
-                      rows={3}
-                      name="description"
-                      placeholder="Digite a descrição da produção"
-                      value={formData.description}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </Form.Group>
-                </Col>
-              </Row>
-              <Row>
-                <Col md={6} className="mt-2">
-                  <Form.Control
-                    type="text"
-                    name="website_url"
-                    placeholder="URL do website"
-                    value={formData.website_url}
-                    onChange={handleInputChange}
-                  />
-                </Col>
-                <Col md={6} className="mt-2">
-                  <Form.Control
-                    type="text"
-                    name="twitter_url"
-                    placeholder="URL do Twitter"
-                    value={formData.twitter_url}
-                    onChange={handleInputChange}
-                  />
-                </Col>
-                <Col md={6} className="mt-2">
-                  <Form.Control
-                    type="text"
-                    name="instagram_url"
-                    placeholder="URL do Instagram"
-                    value={formData.instagram_url}
-                    onChange={handleInputChange}
-                  />
-                </Col>
-                <Col md={6} className="mt-2">
-                  <Form.Control
-                    type="text"
-                    name="youtube_url"
-                    placeholder="URL do YouTube"
-                    value={formData.youtube_url}
-                    onChange={handleInputChange}
-                  />
-                </Col>
-              </Row>
-
-            </Card>
-          </Col>
-          <Row className="justify-content-md-center">
-            <Col md={12}>
-              <Card>
-              <p className="labeltitle h4 text-center text-uppercase">Seguimentos</p>
-                <Row>
-                  {/* Renderiza as 6 colunas */}
-                  {segmentChunks.map((chunk, index) => (
-                    <React.Fragment key={index}>
-                      {chunk.map(([key, value]) => (
-                        <Col md={2} key={key}>
-                          <Form.Check
-                            type="checkbox"
-                            label={value.name}
-                            checked={formData.segments.includes(key)}
-                            onChange={() => handleSeguimentsChange(key)}
-                            className="mt-2"
-                          />
-                        </Col>
-                      ))}
-                    </React.Fragment>
-                  ))}
-                </Row>
-                
-              <Button
-                variant="primary"
-                type="submit"
-                disabled={loading}
-                className="mt-4 btn-lg"
-                onClick={handleSubmit}
-              >
-                {loading ? "Carregando..." : "Salvar"}
-              </Button>
+        <Form onSubmit={submit}>
+          <Row className="g-4">
+            <Col lg={8}>
+              <Card className="cut-panel h-100">
+                <Card.Body className="p-4">
+                  <h2 className="cut-section-title">Informações principais</h2>
+                  <Row className="g-3">
+                    <Col md={8}>
+                      <Form.Group>
+                        <Form.Label>Nome da produção *</Form.Label>
+                        <Form.Control name="name" value={form.name} onChange={change} placeholder="Ex.: Peter Eventos" required />
+                      </Form.Group>
+                    </Col>
+                    <Col md={4}>
+                      <Form.Group>
+                        <Form.Label>CNPJ</Form.Label>
+                        <Form.Control name="cnpj" value={form.cnpj} onChange={change} placeholder="Opcional" />
+                      </Form.Group>
+                    </Col>
+                    <Col md={6}>
+                      <Form.Group>
+                        <Form.Label>Nome fantasia</Form.Label>
+                        <Form.Control name="fantasy" value={form.fantasy} onChange={change} />
+                      </Form.Group>
+                    </Col>
+                    <Col md={6}>
+                      <Form.Group>
+                        <Form.Label>Telefone</Form.Label>
+                        <Form.Control name="phone" value={form.phone} onChange={change} />
+                      </Form.Group>
+                    </Col>
+                    <Col xs={12}>
+                      <Form.Group>
+                        <Form.Label>Descrição</Form.Label>
+                        <Form.Control as="textarea" rows={4} name="description" value={form.description} onChange={change} placeholder="Conte rapidamente quem organiza os eventos." />
+                      </Form.Group>
+                    </Col>
+                    <Col md={7}>
+                      <Form.Group>
+                        <Form.Label>Endereço</Form.Label>
+                        <Form.Control name="address" value={form.address} onChange={change} />
+                      </Form.Group>
+                    </Col>
+                    <Col md={3}>
+                      <Form.Group>
+                        <Form.Label>Cidade</Form.Label>
+                        <Form.Control name="city" value={form.city} onChange={change} />
+                      </Form.Group>
+                    </Col>
+                    <Col md={2}>
+                      <Form.Group>
+                        <Form.Label>UF</Form.Label>
+                        <Form.Control maxLength={2} name="uf" value={form.uf} onChange={change} />
+                      </Form.Group>
+                    </Col>
+                    <Col md={6}>
+                      <Form.Group>
+                        <Form.Label>Site</Form.Label>
+                        <Form.Control type="url" name="website_url" value={form.website_url} onChange={change} placeholder="https://" />
+                      </Form.Group>
+                    </Col>
+                    <Col md={6}>
+                      <Form.Group>
+                        <Form.Label>Instagram</Form.Label>
+                        <Form.Control type="url" name="instagram_url" value={form.instagram_url} onChange={change} placeholder="https://instagram.com/..." />
+                      </Form.Group>
+                    </Col>
+                  </Row>
+                </Card.Body>
               </Card>
             </Col>
-            
-          </Row>
-          
-        </Row>
-      </Container>
-      {successMessage && (
-        <Alert
-          variant="success"
-          onClose={() => setSuccessMessage(null)}
-          dismissible
-          style={{
-            position: "fixed",
-            top: "150px",
-            right: "10px",
-            zIndex: "1050",
-          }}
-        >
-          {successMessage}
-        </Alert>
-      )}
-      <Link to="/productions">
-        <Button
-          variant="secondary"
-          style={{
-            position: "fixed",
-            bottom: "50px",
-            right: "100px",
-            zIndex: "1000",
-          }}
-        >
-          Listar
-        </Button>
-      </Link>
-    </>
-  );
-};
 
-export default ProductionCreatePage;
+            <Col lg={4}>
+              <Card className="cut-panel h-100">
+                <Card.Body className="p-4">
+                  <h2 className="cut-section-title">Identidade visual</h2>
+                  <Form.Group className="mb-4">
+                    <Form.Label>Logo</Form.Label>
+                    {logoPreview && <img className="cut-upload-preview cut-upload-preview--logo" src={logoPreview} alt="Prévia da logo" />}
+                    <Form.Control type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => chooseImage("logo", event)} />
+                  </Form.Group>
+                  <Form.Group>
+                    <Form.Label>Capa</Form.Label>
+                    {backgroundPreview && <img className="cut-upload-preview" src={backgroundPreview} alt="Prévia da capa" />}
+                    <Form.Control type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => chooseImage("background", event)} />
+                  </Form.Group>
+                </Card.Body>
+              </Card>
+            </Col>
+          </Row>
+
+          <div className="cut-form-actions mt-4">
+            <Button variant="outline-light" type="button" onClick={() => navigate("/dashboard")}>Cancelar</Button>
+            <Button type="submit" disabled={!canSubmit}>Criar produção e continuar</Button>
+          </div>
+        </Form>
+      </Container>
+    </div>
+  );
+}
