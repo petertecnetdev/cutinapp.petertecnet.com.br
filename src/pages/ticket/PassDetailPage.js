@@ -32,7 +32,11 @@ export default function PassDetailPage() {
       const url = window.location.href;
       if (navigator.share) await navigator.share({ title: `Ingresso · ${pass.event?.title || "Cutinapp"}`, url });
       else await navigator.clipboard.writeText(url);
-    } catch (_) {}
+    } catch (err) {
+      if (err?.name !== "AbortError") {
+        setError("Não foi possível compartilhar este ingresso neste navegador.");
+      }
+    }
   };
 
   const used = Boolean(pass?.checked_in_at);
