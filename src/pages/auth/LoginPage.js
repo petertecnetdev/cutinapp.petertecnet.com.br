@@ -1,145 +1,132 @@
-import React, { Component } from "react";
-import authService from "../../services/AuthService";
-import Alert from "react-bootstrap/Alert";
-import Container from "react-bootstrap/Container";
-import Row from "react-bootstrap/Row";
-import Col from "react-bootstrap/Col";
-import Card from "react-bootstrap/Card";
-import Form from "react-bootstrap/Form";
+import React, { useContext, useEffect, useRef, useState } from "react";
+import { Alert, Button, Card, Col, Container, Form, Row } from "react-bootstrap";
+import { Link, useNavigate } from "react-router-dom";
+import { AuthContext } from "../../context/AuthContext";
+import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 
-class LoginPage extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      email: "",
-      senha: "",
-      showAlert: false,
-      alertType: "success",
-      alertMessage: "",
-    };
-    this.alertTimer = null;
-  }
+export default function LoginPage() {
+  const navigate = useNavigate();
+  const { login, loginGoogle } = useContext(AuthContext);
+  const googleContainerRef = useRef(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  onChangeEmailUsuario = (e) => {
-    this.setState({ email: e.target.value });
-  };
+  useEffect(() => {
+    const clientId = String(process.env.REACT_APP_GOOGLE_CLIENT_ID || "").trim();
+    if (!clientId || !window.google?.accounts?.id || !googleContainerRef.current) return;
 
-  onChangeSenha = (e) => {
-    this.setState({ senha: e.target.value });
-  };
-
-  onSubmit = async (e) => {
-    e.preventDefault();
-
-    try {
-      await authService.login(this.state.email, this.state.senha);
-    } catch (error) {
-      console.error(error);
-      this.showAlert("danger", "Erro no login");
-    }
-  };
-
-  showAlert = (type, message) => {
-    this.setState({
-      showAlert: true,
-      alertType: type,
-      alertMessage: message,
+    window.google.accounts.id.initialize({
+      client_id: clientId,
+      callback: async ({ credential }) => {
+        setLoading(true);
+        setError("");
+        try {
+          await loginGoogle(credential);
+          navigate("/dashboard", { replace: true });
+        } catch (err) {
+          setError(err?.message || "Não foi possível entrar com o Google.");
+        } finally {
+          setLoading(false);
+        }
+      },
     });
 
-    // Define um temporizador para ocultar o alerta após 5 segundos
-    this.alertTimer = setTimeout(() => {
-      this.setState({ showAlert: false });
-    }, 5000);
+    googleContainerRef.current.innerHTML = "";
+    window.google.accounts.id.renderButton(googleContainerRef.current, {
+      theme: "outline",
+      size: "large",
+      text: "continue_with",
+      shape: "rectangular",
+      width: Math.min(340, window.innerWidth - 64),
+      locale: "pt-BR",
+    });
+  }, [loginGoogle, navigate]);
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    if (loading) return;
+
+    setLoading(true);
+    setError("");
+    try {
+      await login(email.trim(), password);
+      navigate("/dashboard", { replace: true });
+    } catch (err) {
+      setLoading(false);
+      setError(err?.message || "Não foi possível entrar.");
+      return;
+    }
+    setLoading(false);
   };
 
-  // Limpa o temporizador quando o componente é desmontado
-  componentWillUnmount() {
-    clearTimeout(this.alertTimer);
-  }
-
-  render() {
-    return (
-      <Container>
-        <Row className="justify-content-md-center mt-5">
-          <Col md={6}>
-            <Card>
+  return (
+    <main className="cut-auth-page">
+      {loading && <ProcessingIndicatorComponent label="Entrando" />}
+      <Container className="cut-auth-container">
+        <Row className="justify-content-center w-100">
+          <Col xs={12} sm={10} md={8} lg={5} xl={4}>
+            <Card className="cut-auth-card">
               <Card.Body>
-                <div className="text-center">
-                  {/* Div para centralizar o conteúdo */}
-                  <img
-                    src="/images/logo.png"
-                    alt="Logo"
-                    className="logo rounded-circle img-thumbnail"
-                    style={{ width: "170px", height: "170px" }}
-                  />
+                <div className="cut-auth-brand">
+                  <img src="/images/logo.png" alt="Cutinapp" className="cut-auth-logo" />
+                  <div>
+                    <span className="cut-auth-kicker">Peter Tecnet</span>
+                    <h1>Cutinapp</h1>
+                    <p>Acesse sua conta para continuar.</p>
+                  </div>
                 </div>
-                <Card.Title className="text-center m-4">LOGIN</Card.Title>
-                <Card.Text>
-                  <Form onSubmit={this.onSubmit}>
-                    <Form.Group className="mb-3">
-                      <Form.Control
-                        type="email"
-                        placeholder="Insira o email"
-                        onChange={this.onChangeEmailUsuario}
-                        value={this.state.email}
-                        required
-                      />
-                    </Form.Group>
-                    <Form.Group className="mb-3">
-                      <Form.Control
-                        type="password"
-                        placeholder="Insira a senha"
-                        onChange={this.onChangeSenha}
-                        value={this.state.senha}
-                        required
-                      />
-                    </Form.Group>
-                    <Form.Group className="mb-3" controlId="formBasicCheckbox">
-                      <Form.Check
-                        type="checkbox"
-                        label="Lembrar-me"
-                        id="customCheck1"
-                      />
-                    </Form.Group>
-                    <button type="submit" className="btn btn-primary">
-                      Entrar
-                    </button>
-                    <p className="forgot-password text-right">
-                      Não tem registro? <a href="/register">Registrar</a>
-                    </p>
-                    <p className="forgot-password text-right">
-                      Esqueceu a senha?{" "}
-                      <a href="/password-email">Recuperar senha</a>
-                    </p>
-                  </Form>
-                </Card.Text>
+
+                {error && <Alert variant="danger">{error}</Alert>}
+
+                <Form onSubmit={handleSubmit} noValidate>
+                  <Form.Group className="mb-3" controlId="login-email">
+                    <Form.Label>E-mail</Form.Label>
+                    <Form.Control
+                      type="email"
+                      autoComplete="username"
+                      placeholder="seu@email.com"
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      disabled={loading}
+                      required
+                    />
+                  </Form.Group>
+
+                  <Form.Group className="mb-3" controlId="login-password">
+                    <Form.Label>Senha</Form.Label>
+                    <Form.Control
+                      type="password"
+                      autoComplete="current-password"
+                      placeholder="Digite sua senha"
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                      disabled={loading}
+                      required
+                    />
+                  </Form.Group>
+
+                  <Button type="submit" className="w-100" disabled={loading || !email.trim() || !password}>
+                    Entrar
+                  </Button>
+                </Form>
+
+                <div className="cut-auth-divider"><span>ou</span></div>
+                <div ref={googleContainerRef} className="cut-google-slot" />
+                {!String(process.env.REACT_APP_GOOGLE_CLIENT_ID || "").trim() && (
+                  <p className="cut-auth-hint">Login Google disponível quando o Client ID estiver configurado no build.</p>
+                )}
+
+                <div className="cut-auth-links">
+                  <Link to="/register">Criar conta</Link>
+                  <Link to="/password-email">Esqueci minha senha</Link>
+                </div>
               </Card.Body>
             </Card>
-            {/* Alert */}
-            <Alert
-              show={this.state.showAlert}
-              variant={this.state.alertType}
-              onClose={() => {
-                clearTimeout(this.alertTimer);
-                this.setState({ showAlert: false });
-              }}
-              dismissible
-              style={{
-                position: "fixed",
-                top: "150px",
-                right: "100px",
-                width: "300px",
-                zIndex: "1050",
-              }}
-            >
-              {this.state.alertType === "success" ? "Sucesso" : "Erro"}
-              <p>{this.state.alertMessage}</p>
-            </Alert>
           </Col>
         </Row>
       </Container>
-    );
-  }
+    </main>
+  );
 }
-
-export default LoginPage;
