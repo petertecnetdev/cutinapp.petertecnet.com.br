@@ -28,7 +28,9 @@ const EventManagePage = lazy(() => import("./pages/event/EventManagePage"));
 const EventUpdatePage = lazy(() => import("./pages/event/EventUpdatePage"));
 const EventViewPage = lazy(() => import("./pages/event/EventViewPage"));
 const TicketCreatePage = lazy(() => import("./pages/ticket/TicketCreatePage"));
+const CourtesyManagePage = lazy(() => import("./pages/ticket/CourtesyManagePage"));
 const MyPassesPage = lazy(() => import("./pages/ticket/MyPassesPage"));
+const PassDetailPage = lazy(() => import("./pages/ticket/PassDetailPage"));
 const ParticipantsPage = lazy(() => import("./pages/ticket/ParticipantsPage"));
 const CheckinPage = lazy(() => import("./pages/ticket/CheckinPage"));
 
@@ -39,7 +41,10 @@ function AppRoutes() {
   if (loading) return <ProcessingIndicatorComponent label="Preparando Cutinapp" />;
 
   const protectedRoute = (element) => {
-    if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
+    if (!user) {
+      const from = `${location.pathname}${location.search}${location.hash}`;
+      return <Navigate to="/login" state={{ from }} replace />;
+    }
     if (!user.email_verified_at) return <Navigate to="/email-verify" replace />;
     return element;
   };
@@ -49,8 +54,7 @@ function AppRoutes() {
     return !user.email_verified_at ? element : <Navigate to="/dashboard" replace />;
   };
 
-  const guestRoute = (element) =>
-    user ? <Navigate to="/dashboard" replace /> : element;
+  const guestRoute = (element) => user ? <Navigate to="/dashboard" replace /> : element;
 
   const shellOwnsSignature =
     location.pathname === "/" ||
@@ -78,11 +82,13 @@ function AppRoutes() {
         <Route path="/event/create" element={protectedRoute(<EventCreatePage />)} />
         <Route path="/event/manage" element={protectedRoute(<EventManagePage />)} />
         <Route path="/event/edit/:id" element={protectedRoute(<EventUpdatePage />)} />
+        <Route path="/event/:eventId/courtesies" element={protectedRoute(<CourtesyManagePage />)} />
         <Route path="/event/:eventId/participants" element={protectedRoute(<ParticipantsPage />)} />
         <Route path="/event/:slug" element={<EventViewPage />} />
 
         <Route path="/ticket/create" element={protectedRoute(<TicketCreatePage />)} />
         <Route path="/passes" element={protectedRoute(<MyPassesPage />)} />
+        <Route path="/passes/:id" element={protectedRoute(<PassDetailPage />)} />
         <Route path="/checkin" element={protectedRoute(<CheckinPage />)} />
         <Route path="*" element={<Navigate to={user ? "/dashboard" : "/"} replace />} />
       </Routes>
