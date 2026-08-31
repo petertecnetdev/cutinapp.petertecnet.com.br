@@ -1,197 +1,97 @@
-import React, { Component } from "react";
+import React, { useContext, useMemo, useState } from "react";
+import { Alert, Button, Card, Col, Container, Form, Row } from "react-bootstrap";
+import { Link, useNavigate } from "react-router-dom";
+import { AuthContext } from "../../context/AuthContext";
 import authService from "../../services/AuthService";
-import {
-  Button,
-  Card,
-  Col,
-  Container,
-  Row,
-  Form,
-  Alert,
-} from "react-bootstrap"; // Adicionando o componente Alert
+import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 
-class RegisterPage extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      first_name: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
-      showAlert: false,
-      alertType: "success",
-      alertMessage: "",
-      loading: false,
-      timerId: null, // Adicione o ID do temporizador ao estado
-    };
-  }
+export default function RegisterPage() {
+  const navigate = useNavigate();
+  const { login } = useContext(AuthContext);
+  const [firstName, setFirstName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  onChangefirst_name = (e) => {
-    this.setState({ first_name: e.target.value });
-  };
+  const passwordValid = useMemo(
+    () => /[a-z]/.test(password) && /[A-Z]/.test(password) && /\d/.test(password) && /[^A-Za-z0-9]/.test(password) && password.length >= 8,
+    [password]
+  );
+  const canSubmit = firstName.trim().length >= 2 && email.trim() && passwordValid && password === confirmPassword && !loading;
 
-  onChangeemail = (e) => {
-    this.setState({ email: e.target.value });
-  };
+  const submit = async (event) => {
+    event.preventDefault();
+    if (!canSubmit) return;
 
-  onChangePassword = (e) => {
-    this.setState({ password: e.target.value });
-  };
-
-  onChangeConfirmPassword = (e) => {
-    this.setState({ confirmPassword: e.target.value });
-  };
-
-  onSubmit = async (e) => {
-    e.preventDefault();
-
-    const { first_name, email, password } = this.state;
-
-    this.setState({ loading: true });
-
+    setLoading(true);
+    setError("");
     try {
-      const userObject = {
-        first_name: first_name,
-        email: email,
-        password: password,
-      };
-
-      const registrationResponse = await authService.register(userObject);
-
-      const modalMessage =
-        registrationResponse?.data?.message || "Registro bem-sucedido";
-
-      this.setState({
-        showAlert: true,
-        alertMessage: modalMessage,
-        alertType: "success",
-        loading: false,
+      await authService.register({
+        first_name: firstName.trim(),
+        email: email.trim().toLowerCase(),
+        password,
       });
-
-      // Iniciar temporizador para ocultar o alerta após 5 segundos
-      const timerId = setTimeout(() => {
-        this.setState({ showAlert: false });
-      }, 5000); // 5000 milissegundos = 5 segundos
-
-      // Salvar o ID do temporizador no estado
-      this.setState({ timerId: timerId });
-    } catch (error) {
-      console.log(error);
-      let errorMessages = "";
-
-      if (error.email || error.first_name || error.password) {
-        if (error.email) {
-          errorMessages += error.email[0];
-        }
-        if (error.first_name) {
-          errorMessages += error.first_name[0];
-        }
-        if (error.password) {
-          errorMessages += error.password[0];
-        }
-      } else {
-        errorMessages = "Erro desconhecido ao tentar se registrar.";
-      }
-
-      this.setState({
-        showAlert: true,
-        alertMessage: errorMessages,
-        alertType: "danger",
-        loading: false,
-      });
+      await login(email.trim().toLowerCase(), password);
+      navigate("/email-verify", { replace: true });
+    } catch (err) {
+      setError(err?.message || "Não foi possível criar sua conta.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  render() {
-    const { loading } = this.state;
-    return (
-      <Container>
-        <Row className="justify-content-md-center mt-5">
-          <Col md={6}>
-            <Card>
+  return (
+    <main className="cut-auth-page">
+      {loading && <ProcessingIndicatorComponent label="Criando sua conta" />}
+      <Container className="cut-auth-container">
+        <Row className="justify-content-center w-100">
+          <Col xs={12} sm={10} md={8} lg={5} xl={4}>
+            <Card className="cut-auth-card">
               <Card.Body>
-                <div className="text-center">
-                  {" "}
-                  {/* Div para centralizar o conteúdo */}
-                  <img
-                    src="/images/logo.png"
-                    alt="Logo"
-                    className="logo rounded-circle img-thumnail"
-                    style={{ width: "150px", height: "150px" }}
-                  />
+                <div className="cut-auth-brand">
+                  <img src="/images/logo.png" alt="Cutinapp" className="cut-auth-logo" />
+                  <div>
+                    <span className="cut-auth-kicker">Peter Tecnet</span>
+                    <h1>Criar conta</h1>
+                    <p>Entre na Cutinapp para retirar cortesias ou produzir eventos.</p>
+                  </div>
                 </div>
 
-                <Card.Title className="text-center m-2 h2">
-                  REGISTRE-SE
-                </Card.Title>
-                <Form onSubmit={this.onSubmit}>
-                  <Form.Group className="m-3">
-                    <Form.Control
-                      type="text"
-                      placeholder="Nome"
-                      onChange={this.onChangefirst_name}
-                      value={this.state.first_name}
-                    />
+                {error && <Alert variant="danger">{error}</Alert>}
+
+                <Form onSubmit={submit}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Seu nome</Form.Label>
+                    <Form.Control value={firstName} onChange={(event) => setFirstName(event.target.value)} autoComplete="given-name" required />
                   </Form.Group>
-                  <Form.Group className="m-3">
-                    <Form.Control
-                      type="email"
-                      placeholder="Insira o Email"
-                      onChange={this.onChangeemail}
-                      value={this.state.email}
-                    />
+                  <Form.Group className="mb-3">
+                    <Form.Label>E-mail</Form.Label>
+                    <Form.Control type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required />
                   </Form.Group>
-                  <Form.Group className="m-3">
-                    <Form.Control
-                      type="password"
-                      placeholder="Insira a Senha"
-                      onChange={this.onChangePassword}
-                      value={this.state.password}
-                    />
+                  <Form.Group className="mb-3">
+                    <Form.Label>Senha</Form.Label>
+                    <Form.Control type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" required />
+                    <Form.Text>Use 8+ caracteres, maiúscula, minúscula, número e símbolo.</Form.Text>
                   </Form.Group>
-                  <Form.Group className="m-3">
-                    <Form.Control
-                      type="password"
-                      placeholder="Confirme a Senha"
-                      onChange={this.onChangeConfirmPassword}
-                      value={this.state.confirmPassword}
-                    />
+                  <Form.Group className="mb-3">
+                    <Form.Label>Confirmar senha</Form.Label>
+                    <Form.Control type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} autoComplete="new-password" required />
                   </Form.Group>
-                  <Button variant="primary" type="submit" disabled={loading}>
-                    {loading ? "Registrando..." : "Registrar"}
-                  </Button>
-                  <p className="forgot-password text-right">
-                    Já está registrado? <a href="/login">Entrar</a>
-                  </p>
-                  <p className="forgot-password text-right">
-                    Esqueceu a senha?{" "}
-                    <a href="/password-email">Recuperar senha</a>
-                  </p>
+                  {confirmPassword && password !== confirmPassword && <Alert variant="warning">As senhas não coincidem.</Alert>}
+                  <Button type="submit" className="w-100" disabled={!canSubmit}>Criar conta</Button>
                 </Form>
-                <Alert
-                  show={this.state.showAlert}
-                  variant={this.state.alertType}
-                  onClose={() => {
-                    clearTimeout(this.state.timerId); // Limpar temporizador ao fechar manualmente
-                    this.setState({ showAlert: false });
-                  }}
-                  dismissible
-                  style={{
-                    position: "fixed",
-                    top: "10px",
-                    right: "10px",
-                    zIndex: "1050",
-                  }}
-                >
-                  {this.state.alertMessage}
-                </Alert>
+
+                <div className="cut-auth-links mt-4">
+                  <span>Já possui conta?</span>
+                  <Link to="/login">Entrar</Link>
+                </div>
               </Card.Body>
             </Card>
           </Col>
         </Row>
       </Container>
-    );
-  }
+    </main>
+  );
 }
-
-export default RegisterPage;
