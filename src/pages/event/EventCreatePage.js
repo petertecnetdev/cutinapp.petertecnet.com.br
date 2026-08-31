@@ -6,21 +6,48 @@ import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorCo
 import eventService from "../../services/EventService";
 import cutinappService from "../../services/CutinappService";
 
-const initialForm = {
-  production_id: "",
-  title: "",
-  description: "",
-  address: "",
-  google_maps_url: "",
-  city: "",
-  uf: "",
-  venue: "",
-  start_date: "",
-  end_date: "",
-  max_attendees: "",
-  contact_email: "",
-  contact_phone: "",
-  image: null,
+const pad = (value) => String(value).padStart(2, "0");
+const toLocalInput = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+
+const tomorrowStart = () => {
+  const date = new Date();
+  date.setDate(date.getDate() + 1);
+  date.setHours(0, 0, 0, 0);
+  return date;
+};
+
+const defaultStart = () => {
+  const now = new Date();
+  const date = tomorrowStart();
+  date.setHours(now.getHours(), 0, 0, 0);
+  return toLocalInput(date);
+};
+
+const addHours = (value, hours = 2) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  date.setHours(date.getHours() + hours);
+  return toLocalInput(date);
+};
+
+const createInitialForm = () => {
+  const start = defaultStart();
+  return {
+    production_id: "",
+    title: "",
+    description: "",
+    address: "",
+    google_maps_url: "",
+    city: "",
+    uf: "",
+    venue: "",
+    start_date: start,
+    end_date: addHours(start, 2),
+    max_attendees: "",
+    contact_email: "",
+    contact_phone: "",
+    image: null,
+  };
 };
 
 const firstError = (errors, field) => {
@@ -29,25 +56,10 @@ const firstError = (errors, field) => {
   return typeof value === "string" ? value : "";
 };
 
-const pad = (value) => String(value).padStart(2, "0");
-const toLocalInput = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-const minStartValue = () => {
-  const date = new Date();
-  date.setMinutes(date.getMinutes() + 5);
-  date.setSeconds(0, 0);
-  return toLocalInput(date);
-};
-const addHours = (value, hours = 2) => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  date.setHours(date.getHours() + hours);
-  return toLocalInput(date);
-};
-
 export default function EventCreatePage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [form, setForm] = useState(initialForm);
+  const [form, setForm] = useState(createInitialForm);
   const [productions, setProductions] = useState([]);
   const [preview, setPreview] = useState("");
   const [loading, setLoading] = useState(false);
@@ -55,7 +67,7 @@ export default function EventCreatePage() {
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
-  const minStart = useMemo(() => minStartValue(), []);
+  const minStart = useMemo(() => toLocalInput(tomorrowStart()), []);
 
   useEffect(() => {
     let active = true;
@@ -81,8 +93,8 @@ export default function EventCreatePage() {
 
   const startDate = form.start_date ? new Date(form.start_date) : null;
   const endDate = form.end_date ? new Date(form.end_date) : null;
-  const now = new Date();
-  const startPastInvalid = submitted && startDate && startDate.getTime() < now.getTime();
+  const minimumStartDate = new Date(minStart);
+  const startTooSoonInvalid = submitted && startDate && startDate.getTime() < minimumStartDate.getTime();
   const dateInvalid = submitted && startDate && endDate && endDate.getTime() <= startDate.getTime();
   const ufInvalid = submitted && form.uf.trim().length !== 2;
   const capacityInvalid = submitted && form.max_attendees !== "" && Number(form.max_attendees) < 1;
@@ -94,7 +106,7 @@ export default function EventCreatePage() {
     address: !form.address.trim(),
     city: !form.city.trim(),
     uf: !form.uf.trim(),
-    start_date: !form.start_date || startPastInvalid,
+    start_date: !form.start_date || startTooSoonInvalid,
     end_date: !form.end_date || dateInvalid,
   };
 
@@ -149,8 +161,8 @@ export default function EventCreatePage() {
     setError("");
     setFieldErrors({});
 
-    if (!canSubmit || dateInvalid || startPastInvalid || ufInvalid || capacityInvalid) {
-      if (startPastInvalid) setError("O início do evento não pode ficar no passado.");
+    if (!canSubmit || dateInvalid || startTooSoonInvalid || ufInvalid || capacityInvalid) {
+      if (startTooSoonInvalid) setError("O evento precisa ser criado com pelo menos um dia de antecedência. Escolha uma data a partir de amanhã.");
       else if (dateInvalid) setError("O término do evento precisa ser posterior ao início.");
       else setError("Revise os campos destacados antes de continuar.");
       return;
@@ -184,7 +196,7 @@ export default function EventCreatePage() {
       {(loading || loadingProductions) && <ProcessingIndicatorComponent label={loading ? "Criando evento" : "Carregando produções"} />}
 
       <Container className="cut-page-container py-4 py-lg-5">
-        <div className="cut-page-heading"><div><span className="cut-eyebrow">Área do produtor</span><h1>Novo evento</h1><p>O evento nasce como rascunho. Configure os dados, depois as cortesias e só então publique.</p></div></div>
+        <div className="cut-page-heading"><div><span className="cut-eyebrow">Área do produtor</span><h1>Novo evento</h1><p>O evento nasce como rascunho. A data inicial já vem preparada para amanhã, porque eventos não podem ser cadastrados para o mesmo dia.</p></div></div>
         {error && <Alert variant="danger">{error}</Alert>}
 
         {!loadingProductions && productions.length === 0 ? (
@@ -196,11 +208,11 @@ export default function EventCreatePage() {
                 <Col xs={12}><Form.Group><Form.Label>Produção *</Form.Label><Form.Select name="production_id" value={form.production_id} onChange={change} isInvalid={invalid("production_id", requiredInvalid.production_id)}><option value="">Selecione</option>{productions.map((production) => <option key={production.id} value={production.id}>{production.name}</option>)}</Form.Select><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "production_id") || "Selecione a produção responsável."}</Form.Control.Feedback></Form.Group></Col>
                 <Col xs={12}><Form.Group><Form.Label>Nome do evento *</Form.Label><Form.Control name="title" value={form.title} onChange={change} placeholder="Ex.: Noite de Lançamento" isInvalid={invalid("title", requiredInvalid.title)} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "title") || "Informe o nome do evento."}</Form.Control.Feedback></Form.Group></Col>
                 <Col xs={12}><Form.Group><Form.Label>Descrição *</Form.Label><Form.Control as="textarea" rows={5} name="description" value={form.description} onChange={change} isInvalid={invalid("description", requiredInvalid.description)} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "description") || "Descreva o evento."}</Form.Control.Feedback></Form.Group></Col>
-                <Col md={6}><Form.Group><Form.Label>Início *</Form.Label><Form.Control type="datetime-local" min={minStart} name="start_date" value={form.start_date} onChange={change} isInvalid={invalid("start_date", requiredInvalid.start_date)} /><Form.Text>Horário de Brasília.</Form.Text><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "start_date") || (startPastInvalid ? "O início não pode ficar no passado." : "Informe quando o evento começa.")}</Form.Control.Feedback></Form.Group></Col>
-                <Col md={6}><Form.Group><Form.Label>Término *</Form.Label><Form.Control type="datetime-local" min={form.start_date || minStart} name="end_date" value={form.end_date} onChange={change} isInvalid={invalid("end_date", requiredInvalid.end_date)} /><Form.Text>Precisa ser posterior ao início.</Form.Text><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "end_date") || (dateInvalid ? "O término precisa ser posterior ao início." : "Informe quando o evento termina.")}</Form.Control.Feedback></Form.Group></Col>
+                <Col md={6}><Form.Group><Form.Label>Início *</Form.Label><Form.Control type="datetime-local" min={minStart} name="start_date" value={form.start_date} onChange={change} isInvalid={invalid("start_date", requiredInvalid.start_date)} /><Form.Text>Horário de Brasília · mínimo: amanhã.</Form.Text><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "start_date") || (startTooSoonInvalid ? "Escolha uma data a partir de amanhã." : "Informe quando o evento começa.")}</Form.Control.Feedback></Form.Group></Col>
+                <Col md={6}><Form.Group><Form.Label>Término *</Form.Label><Form.Control type="datetime-local" min={form.start_date || minStart} name="end_date" value={form.end_date} onChange={change} isInvalid={invalid("end_date", requiredInvalid.end_date)} /><Form.Text>É sugerido automaticamente 2 horas após o início.</Form.Text><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "end_date") || (dateInvalid ? "O término precisa ser posterior ao início." : "Informe quando o evento termina.")}</Form.Control.Feedback></Form.Group></Col>
                 <Col md={5}><Form.Group><Form.Label>Local</Form.Label><Form.Control name="venue" value={form.venue} onChange={change} placeholder="Nome do espaço" isInvalid={invalid("venue")} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "venue")}</Form.Control.Feedback></Form.Group></Col>
                 <Col md={7}><Form.Group><Form.Label>Endereço *</Form.Label><Form.Control name="address" value={form.address} onChange={change} placeholder="Rua, número e complemento" isInvalid={invalid("address", requiredInvalid.address)} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "address") || "Informe o endereço do evento."}</Form.Control.Feedback></Form.Group></Col>
-                <Col xs={12}><Form.Group><Form.Label>Link do Google Maps</Form.Label><Form.Control type="url" name="google_maps_url" value={form.google_maps_url} onChange={change} placeholder="https://maps.app.goo.gl/... ou https://www.google.com/maps/..." isInvalid={invalid("google_maps_url")} /><Form.Text>Cole o link do local no Google Maps. Ele será usado na página pública para ajudar o participante a chegar ao evento.</Form.Text><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "google_maps_url")}</Form.Control.Feedback></Form.Group></Col>
+                <Col xs={12}><Form.Group><Form.Label>Link do Google Maps</Form.Label><Form.Control type="url" name="google_maps_url" value={form.google_maps_url} onChange={change} placeholder="https://maps.app.goo.gl/... ou https://www.google.com/maps/..." isInvalid={invalid("google_maps_url")} /><Form.Text>Cole o link do local no Google Maps para facilitar a chegada do participante.</Form.Text><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "google_maps_url")}</Form.Control.Feedback></Form.Group></Col>
                 <Col md={8}><Form.Group><Form.Label>Cidade *</Form.Label><Form.Control name="city" value={form.city} onChange={change} isInvalid={invalid("city", requiredInvalid.city)} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "city") || "Informe a cidade do evento."}</Form.Control.Feedback></Form.Group></Col>
                 <Col md={4}><Form.Group><Form.Label>UF *</Form.Label><Form.Control maxLength={2} name="uf" value={form.uf} onChange={change} isInvalid={invalid("uf", requiredInvalid.uf || ufInvalid)} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "uf") || "Use 2 letras."}</Form.Control.Feedback></Form.Group></Col>
                 <Col md={6}><Form.Group><Form.Label>Capacidade</Form.Label><Form.Control type="number" min="1" max="1000000" name="max_attendees" value={form.max_attendees} onChange={change} isInvalid={invalid("max_attendees", capacityInvalid)} /><Form.Text>Deixe vazio se não quiser controlar capacidade geral.</Form.Text><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "max_attendees") || "A capacidade deve ser maior que zero."}</Form.Control.Feedback></Form.Group></Col>
