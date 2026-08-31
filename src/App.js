@@ -21,6 +21,7 @@ const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const UserEditPage = lazy(() => import("./pages/user/UserEditPage"));
 const ProductionCreatePage = lazy(() => import("./pages/production/ProductionCreatePage"));
 const ProductionMinePage = lazy(() => import("./pages/production/ProductionMinePage"));
+const ProductionViewPage = lazy(() => import("./pages/production/ProductionViewPage"));
 const ProductionUpdatePage = lazy(() => import("./pages/production/ProductionUpdatePage"));
 const EventPage = lazy(() => import("./pages/event/EventPage"));
 const EventCreatePage = lazy(() => import("./pages/event/EventCreatePage"));
@@ -76,6 +77,7 @@ function AppRoutes() {
 
         <Route path="/production/create" element={protectedRoute(<ProductionCreatePage />)} />
         <Route path="/production/mine" element={protectedRoute(<ProductionMinePage />)} />
+        <Route path="/production/:id" element={protectedRoute(<ProductionViewPage />)} />
         <Route path="/production/edit/:id" element={protectedRoute(<ProductionUpdatePage />)} />
 
         <Route path="/event" element={<EventPage />} />
