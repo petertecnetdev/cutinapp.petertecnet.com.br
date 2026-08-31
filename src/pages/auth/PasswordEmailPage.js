@@ -1,237 +1,128 @@
-import React, { Component } from "react";
+import React, { useMemo, useState } from "react";
+import { Alert, Button, Card, Col, Container, Form, Row } from "react-bootstrap";
+import { Link, useNavigate } from "react-router-dom";
 import authService from "../../services/AuthService";
-import Alert from "react-bootstrap/Alert";
-import { Link } from "react-router-dom";
-import { Container, Row, Col, Card, Form, Button } from "react-bootstrap";
-import gifSpinner from "../../images/loadingImage2.gif";
+import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 
-// Defina o componente CustomSpinner fora da classe PasswordEmailPage
-const CustomSpinner = () => {
-  return (
-    <img
-      src={gifSpinner}
-      alt="Spinner"
-      className="rounded-circle"
-      style={{ width: "20px", height: "20px" }}
-    />
+export default function PasswordEmailPage() {
+  const navigate = useNavigate();
+  const [step, setStep] = useState("email");
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+
+  const passwordValid = useMemo(
+    () => /[a-z]/.test(password) && /[A-Z]/.test(password) && /\d/.test(password) && /[^A-Za-z0-9]/.test(password) && password.length >= 8,
+    [password]
   );
-};
 
-class PasswordEmailPage extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      email: "",
-      showAlert: false,
-      alertType: "success",
-      alertMessage: "",
-      loading: false,
-      showPasswordResetForm: false,
-      code: "",
-      newPassword: "",
-      confirmPassword: "",
-    };
-  }
-
-  onChangeEmail = (e) => {
-    this.setState({ email: e.target.value });
-  };
-
-  onSubmitEmail = async (e) => {
-    e.preventDefault();
-    this.setState({ loading: true });
-
+  const requestCode = async (event) => {
+    event.preventDefault();
+    setLoading(true);
+    setError("");
+    setMessage("");
     try {
-      const response = await authService.passwordEmail(this.state.email);
-      this.setState({
-        showAlert: true,
-        alertType: "success",
-        alertMessage: response.data.message,
-        showPasswordResetForm: true,
-        loading: false,
-      });
-      // Configura o temporizador para ocultar o alerta após 5 segundos
-      setTimeout(() => {
-        this.setState({ showAlert: false });
-      }, 5000);
-    } catch (error) {
-      console.log(error.data);
-      this.setState({
-        showAlert: true,
-        alertType: "danger",
-        alertMessage: error.data,
-        loading: false,
-      });
-      setTimeout(() => {
-        this.setState({ showAlert: false });
-      }, 5000);
+      const response = await authService.passwordEmail(email.trim().toLowerCase());
+      setMessage(response?.message || "Se o e-mail estiver cadastrado, um código foi enviado.");
+      setStep("reset");
+    } catch (err) {
+      setError(err?.message || "Não foi possível solicitar a recuperação de senha.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  onChangeCode = (e) => {
-    this.setState({ code: e.target.value });
-  };
+  const resetPassword = async (event) => {
+    event.preventDefault();
+    if (!passwordValid || password !== confirmPassword) return;
 
-  onChangeNewPassword = (e) => {
-    this.setState({ newPassword: e.target.value });
-  };
-
-  onChangeConfirmPassword = (e) => {
-    this.setState({ confirmPassword: e.target.value });
-  };
-
-  onSubmitResetPassword = async (e) => {
-    e.preventDefault();
-    const { code, newPassword, confirmPassword } = this.state;
-
+    setLoading(true);
+    setError("");
+    setMessage("");
     try {
-      const email = this.state.email;
       const response = await authService.passwordReset(
-        email,
+        email.trim().toLowerCase(),
         code,
-        newPassword,
+        password,
         confirmPassword
       );
-      this.setState({
-        showAlert: true,
-        alertType: "success",
-        alertMessage: response.data.message,
-        showPasswordResetForm: false,
-        code: "",
-        newPassword: "",
-        confirmPassword: "",
-      });
-    } catch (error) {
-      console.error(error.data);
-      this.setState({
-        showAlert: true,
-        alertType: "danger",
-        alertMessage: error,
-      });
+      setMessage(response?.message || "Senha redefinida com sucesso.");
+      window.setTimeout(() => navigate("/login", { replace: true }), 900);
+    } catch (err) {
+      setError(err?.message || "Não foi possível redefinir sua senha.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  render() {
-    return (
-      <Container>
-        <Row className="justify-content-md-center mt-1">
-          <Col md={6}>
-            <Card>
+  return (
+    <main className="cut-auth-page">
+      {loading && <ProcessingIndicatorComponent label={step === "email" ? "Enviando código" : "Redefinindo senha"} />}
+      <Container className="cut-auth-container">
+        <Row className="justify-content-center w-100">
+          <Col xs={12} sm={10} md={8} lg={5} xl={4}>
+            <Card className="cut-auth-card">
               <Card.Body>
-                <div className="text-center">
-                  <img
-                    src="/images/logo.png"
-                    alt="Logo"
-                    className="logo rounded-circle img-thumbnail m-2"
-                    style={{ width: "150px", height: "150px" }}
-                  />
+                <div className="cut-auth-brand">
+                  <img src="/images/logo.png" alt="Cutinapp" className="cut-auth-logo" />
+                  <div>
+                    <span className="cut-auth-kicker">Acesso</span>
+                    <h1>Recuperar senha</h1>
+                    <p>{step === "email" ? "Receba um código por e-mail." : "Digite o código recebido e escolha uma nova senha."}</p>
+                  </div>
                 </div>
 
-                {!this.state.showPasswordResetForm ? (
-                  <Form onSubmit={this.onSubmitEmail}>
-                    <Card.Title className="text-center">
-                      Recuperar senha
-                    </Card.Title>
-                    <Form.Group className="m-3">
+                {error && <Alert variant="danger">{error}</Alert>}
+                {message && <Alert variant="success">{message}</Alert>}
+
+                {step === "email" ? (
+                  <Form onSubmit={requestCode}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>E-mail</Form.Label>
                       <Form.Control
                         type="email"
-                        placeholder="Insira o email"
-                        onChange={this.onChangeEmail}
-                        value={this.state.email}
+                        autoComplete="email"
+                        value={email}
+                        onChange={(event) => setEmail(event.target.value)}
                         required
                       />
                     </Form.Group>
-                    <Button
-                      className="m-3"
-                      variant="primary"
-                      type="submit"
-                      disabled={this.state.loading}
-                    >
-                      {this.state.loading ? <CustomSpinner /> : "Enviar Código"}
-                      {this.state.loading && <>&nbsp;......</>}
-                    </Button>
-                    <p className="forgot-password text-right">
-                      Já está registrado? <Link to="/login">Entrar</Link>
-                    </p>
-                    <p className="forgot-password text-right">
-                      Não tem uma conta?{" "}
-                      <Link to="/register">Novo cadastro</Link>
-                    </p>
+                    <Button type="submit" className="w-100" disabled={!email.trim() || loading}>Enviar código</Button>
                   </Form>
                 ) : (
-                  <Form onSubmit={this.onSubmitResetPassword}>
-                    <h3>Redefinir Senha</h3>
+                  <Form onSubmit={resetPassword}>
                     <Form.Group className="mb-3">
-                      <Form.Label>Código de Verificação</Form.Label>
-                      <Form.Control
-                        type="text"
-                        placeholder="Insira o código"
-                        onChange={this.onChangeCode}
-                        required
-                      />
+                      <Form.Label>Código recebido</Form.Label>
+                      <Form.Control value={code} onChange={(event) => setCode(event.target.value)} autoComplete="one-time-code" required />
                     </Form.Group>
                     <Form.Group className="mb-3">
-                      <Form.Label>Nova Senha</Form.Label>
-                      <Form.Control
-                        type="password"
-                        placeholder="Digite a nova senha"
-                        onChange={this.onChangeNewPassword}
-                        value={this.state.newPassword}
-                        required
-                      />
+                      <Form.Label>Nova senha</Form.Label>
+                      <Form.Control type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" required />
+                      <Form.Text>8+ caracteres, maiúscula, minúscula, número e símbolo.</Form.Text>
                     </Form.Group>
                     <Form.Group className="mb-3">
-                      <Form.Label>Confirme a Nova Senha</Form.Label>
-                      <Form.Control
-                        type="password"
-                        placeholder="Confirme a nova senha"
-                        onChange={this.onChangeConfirmPassword}
-                        value={this.state.confirmPassword}
-                        required
-                      />
+                      <Form.Label>Confirmar nova senha</Form.Label>
+                      <Form.Control type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} autoComplete="new-password" required />
                     </Form.Group>
-                    <Button
-                      variant="primary"
-                      type="submit"
-                      disabled={this.state.loading}
-                      style={{ position: "relative" }}
-                    >
-                      {this.state.loading ? (
-                        <CustomSpinner />
-                      ) : (
-                        "Redefinir Senha"
-                      )}
-                      {this.state.loading && <>&nbsp;......</>}
-                    </Button>
-                    <p className="forgot-password text-right">
-                      Não tenho cadastro: <Link to="/register">Cadastro</Link>
-                    </p>
+                    {confirmPassword && password !== confirmPassword && <Alert variant="warning">As senhas não coincidem.</Alert>}
+                    <Button type="submit" className="w-100" disabled={!code.trim() || !passwordValid || password !== confirmPassword || loading}>Salvar nova senha</Button>
+                    <Button type="button" variant="link" className="w-100 mt-2" onClick={() => setStep("email")}>Solicitar outro código</Button>
                   </Form>
                 )}
-                <Alert
-                  show={this.state.showAlert}
-                  variant={this.state.alertType}
-                  onClose={() => this.setState({ showAlert: false })}
-                  dismissible
-                >
-                  <Alert.Heading>
-                    {this.state.alertType === "success" ? "Sucesso" : "Erro"}
-                  </Alert.Heading>
-                  <p>{this.state.alertMessage}</p>
-                  {!this.state.showPasswordResetForm ? (
-                    <p className="forgot-password text-right">
-                      Se recuperou sua senha. Faça login:{" "}
-                      <Link to="/login">Fazer login</Link>
-                    </p>
-                  ) : null}
-                </Alert>
+
+                <div className="cut-auth-links mt-4">
+                  <Link to="/login">Voltar ao login</Link>
+                  <Link to="/register">Criar conta</Link>
+                </div>
               </Card.Body>
             </Card>
           </Col>
         </Row>
       </Container>
-    );
-  }
+    </main>
+  );
 }
-
-export default PasswordEmailPage;
