@@ -1,8 +1,13 @@
 name: Validate Cutinapp
+
 on:
   push:
     branches: [main]
   pull_request:
+
+permissions:
+  contents: write
+
 jobs:
   frontend:
     runs-on: ubuntu-latest
@@ -12,6 +17,32 @@ jobs:
         with:
           node-version: 20
           cache: npm
-      - run: npm ci
-      - run: CI=true npm test -- --watchAll=false
-      - run: npm run build
+
+      - name: Synchronize dependency lock
+        id: lock
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          if git diff --quiet -- package-lock.json; then
+            echo "updated=false" >> "$GITHUB_OUTPUT"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add package-lock.json
+            git commit -m "chore(cutinapp): sync package lock"
+            git push origin HEAD:main
+            echo "updated=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install exact dependencies
+        if: github.event_name != 'push' || steps.lock.outputs.updated != 'true'
+        run: npm ci
+
+      - name: Test
+        if: github.event_name != 'push' || steps.lock.outputs.updated != 'true'
+        run: CI=true npm test -- --watchAll=false
+
+      - name: Build
+        if: github.event_name != 'push' || steps.lock.outputs.updated != 'true'
+        run: npm run build
