@@ -1,31 +1,6 @@
 import React, { useEffect, useState } from "react";
 import PropTypes from "prop-types";
-
-let scriptPromise;
-
-const loadQrLibrary = () => {
-  if (window.QRCode?.toDataURL) return Promise.resolve(window.QRCode);
-  if (scriptPromise) return scriptPromise;
-
-  scriptPromise = new Promise((resolve, reject) => {
-    const existing = document.querySelector('script[data-cutinapp-qrcode="true"]');
-    if (existing) {
-      existing.addEventListener("load", () => resolve(window.QRCode), { once: true });
-      existing.addEventListener("error", reject, { once: true });
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = "https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js";
-    script.async = true;
-    script.dataset.cutinappQrcode = "true";
-    script.onload = () => resolve(window.QRCode);
-    script.onerror = () => reject(new Error("Não foi possível carregar o gerador de QR Code."));
-    document.head.appendChild(script);
-  });
-
-  return scriptPromise;
-};
+import QRCode from "qrcode";
 
 export default function QrCodeComponent({ value, size = 260 }) {
   const [dataUrl, setDataUrl] = useState("");
@@ -33,19 +8,32 @@ export default function QrCodeComponent({ value, size = 260 }) {
 
   useEffect(() => {
     let active = true;
-    if (!value) return undefined;
 
-    loadQrLibrary()
-      .then((QRCode) => {
-        if (!QRCode?.toDataURL) throw new Error("Gerador de QR Code indisponível.");
-        return QRCode.toDataURL(value, {
-          width: size,
-          margin: 2,
-          errorCorrectionLevel: "M",
-        });
+    setDataUrl("");
+    setError("");
+
+    if (!value) {
+      setError("Código do ingresso indisponível.");
+      return () => {
+        active = false;
+      };
+    }
+
+    QRCode.toDataURL(String(value), {
+      width: size,
+      margin: 2,
+      errorCorrectionLevel: "M",
+      color: {
+        dark: "#000000",
+        light: "#ffffff",
+      },
+    })
+      .then((url) => {
+        if (active) setDataUrl(url);
       })
-      .then((url) => active && setDataUrl(url))
-      .catch((err) => active && setError(err?.message || "Não foi possível gerar o QR Code."));
+      .catch(() => {
+        if (active) setError("Não foi possível gerar o QR Code deste ingresso.");
+      });
 
     return () => {
       active = false;
@@ -53,14 +41,26 @@ export default function QrCodeComponent({ value, size = 260 }) {
   }, [value, size]);
 
   if (error) {
-    return <div className="cut-qr-fallback">{value}</div>;
+    return (
+      <div className="cut-qr-error" role="alert">
+        {error}
+      </div>
+    );
   }
 
   if (!dataUrl) {
     return <div className="cut-qr-loading">Gerando QR Code...</div>;
   }
 
-  return <img src={dataUrl} width={size} height={size} alt="QR Code da cortesia" className="cut-qr-image" />;
+  return (
+    <img
+      src={dataUrl}
+      width={size}
+      height={size}
+      alt="QR Code individual do ingresso"
+      className="cut-qr-image"
+    />
+  );
 }
 
 QrCodeComponent.propTypes = {
