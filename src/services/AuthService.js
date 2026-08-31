@@ -60,13 +60,13 @@ const authService = {
     return response.data;
   },
 
-  changePassword: async (current_password, new_password, confirm_password) => {
-    await apiClient.post(`/${apiServiceUrl}/change-password`, {
-      current_password,
-      new_password,
-      confirm_password,
+  changePassword: async (currentPassword, newPassword, confirmPassword) => {
+    const response = await apiClient.post(`/${apiServiceUrl}/change-password`, {
+      current_password: currentPassword,
+      new_password: newPassword,
+      password_confirmation: confirmPassword,
     });
-    return true;
+    return response.data;
   },
 
   me: async () => {
@@ -75,15 +75,20 @@ const authService = {
     return response.data?.user ?? response.data;
   },
 
-  passwordEmail: async (email) => apiClient.post(`/${apiServiceUrl}/password-email`, { email }),
+  passwordEmail: async (email) => {
+    const response = await apiClient.post(`/${apiServiceUrl}/password-email`, { email });
+    return response.data;
+  },
 
-  passwordReset: async (email, resetCode, newPassword, confirmPassword) =>
-    apiClient.post(`/${apiServiceUrl}/password-update`, {
+  passwordReset: async (email, resetCode, newPassword, confirmPassword) => {
+    const response = await apiClient.post(`/${apiServiceUrl}/password-reset`, {
       email,
-      reset_password_code: resetCode,
+      reset_password_code: String(resetCode || "").trim(),
       password: newPassword,
       password_confirmation: confirmPassword,
-    }),
+    });
+    return response.data;
+  },
 
   resendCodeEmailVerification: async () => {
     const response = await apiClient.post(`/${apiServiceUrl}/resend-code-email-verification`, {});
