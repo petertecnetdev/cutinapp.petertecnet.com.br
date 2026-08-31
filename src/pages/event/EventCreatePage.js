@@ -1,519 +1,245 @@
-import React, { useState, useEffect } from "react";
-import {
-  Form,
-  Button,
-  Container,
-  Row,
-  Col,
-  Card,
-  Alert,
-} from "react-bootstrap";
+import React, { useEffect, useMemo, useState } from "react";
+import { Alert, Button, Card, Col, Container, Form, Row } from "react-bootstrap";
+import { useLocation, useNavigate } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
+import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import eventService from "../../services/EventService";
-import { Link, useLocation } from "react-router-dom";
-import LoadingComponent from "../../components/LoadingComponent";
-import cepUtil from "../../utils/cep";
-import seguiments from "../../utils/seguiments";
+import cutinappService from "../../services/CutinappService";
 
-const EventCreatePage = () => {
-  const [formData, setFormData] = useState({
-    location: "",
-    production_id: "",
-    title: "",
-    description: "",
-    image: null,
-    address: "",
-    start_date: "",
-    end_date: "",
-    uf: "",
-    cep: "",
-    establishment_name:"",
-    segments: [],
-  });
-
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [successMessage, setSuccessMessage] = useState(null);
-  const [ImagePreview, setImagePreview] = useState(null);
-  const [startDateError, setStartDateError] = useState(null);
-  const [validated, setValidated] = useState(false);
-  const location = useLocation();
-  const searchParams = new URLSearchParams(location.search);
-  const productionId = searchParams.get("productionId");
-
-  useEffect(() => {
-    if (productionId) {
-      setFormData({
-        ...formData,
-        production_id: productionId,
-      });
-    }
-  }, [productionId]);
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
-
-    if (name === "start_date") {
-      const currentDate = new Date();
-      const selectedDate = new Date(value);
-
-      if (selectedDate < currentDate) {
-        setStartDateError(
-          "A data selecionada deve ser posterior à data atual."
-        );
-      } else {
-        setStartDateError(null);
-      }
-    }
-
-    const form = e.currentTarget;
-    if (form.checkValidity() === false) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-
-    setValidated(true);
-  };
-
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    setFormData({
-      ...formData,
-      image: file,
-    });
-    // Preview da imagem
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      // Redimensionar a imagem para 1920x600
-      const img = new Image();
-      img.src = reader.result;
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
-        canvas.width = 850;
-        canvas.height = 480;
-        ctx.drawImage(img, 0, 0, 850, 480);
-        const resizedDataURL = canvas.toDataURL("image/png");
-        setImagePreview(resizedDataURL);
-      };
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    setSuccessMessage(null);
-
-    const form = e.currentTarget;
-    if (form.checkValidity() === false) {
-      e.stopPropagation();
-    } else {
-      try {
-        const response = await eventService.store(formData);
-        setSuccessMessage(response);
-        setTimeout(() => {
-          setSuccessMessage(null);
-        }, 5000);
-      } catch (error) {
-        setError("Erro ao criar o evento. Por favor, tente novamente.");
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    setValidated(true);
-  };
-
-  const handleCepChange = async (e) => {
-    const cep = e.target.value;
-    setFormData({ ...formData, cep: cep });
-    try {
-      const addressInfo = await cepUtil.getAddressInfo(cep);
-      if (addressInfo) {
-        setFormData({
-          ...formData,
-          uf: addressInfo.uf,
-          city: addressInfo.cidade,
-          address: `${addressInfo.logradouro} - ${addressInfo.bairro}`,
-        });
-      }
-    } catch (error) {
-      console.error("Erro ao buscar informações do CEP:", error);
-    }
-  };
-
-  useEffect(() => {
-    let timer;
-    if (error || successMessage) {
-      timer = setTimeout(() => {
-        setError(null);
-        setSuccessMessage(null);
-      }, 5000);
-    }
-
-    return () => clearTimeout(timer);
-  }, [error, successMessage]);
-
-  const handleSeguimentsChange = (seguimentId) => {
-    // Lógica para adicionar/remover o seguimento selecionado da matriz de seguimentos no estado
-    const updatedSegments = formData.segments.includes(seguimentId)
-      ? formData.segments.filter((id) => id !== seguimentId)
-      : [...formData.segments, seguimentId];
-    setFormData({ ...formData, segments: updatedSegments });
-  };
-
-  // Divide os seguimentos em 6 colunas
-  const segmentsPerColumn = 6; // Sempre 6 colunas
-  const segmentChunks = Array.from(
-    { length: Math.ceil(Object.keys(seguiments).length / segmentsPerColumn) },
-    (_, index) =>
-      Object.entries(seguiments).slice(
-        index * segmentsPerColumn,
-        index * segmentsPerColumn + segmentsPerColumn
-      )
-  );
-
-  if (loading) {
-    return <LoadingComponent />;
-  }
-
-  return (
-    <>
-      <NavlogComponent />
-      {error && <Alert variant="danger alert-top">{error}</Alert>}
-            {successMessage && (
-              <Alert variant="success">{successMessage}</Alert>
-            )}
-      <div
-        className="background-image-event"
-        style={{
-          backgroundImage: `url(${
-            ImagePreview ? ImagePreview : "/images/eventflyer.png"
-          })`,
-        }}
-      />
-      <Container>
-        <Row>
-          <Col md={8} className="mx-auto">
-            <Card className="card-event-view ">
-              <label
-                htmlFor="ImageInput"
-                style={{ cursor: "pointer", display: "block" }}
-              >
-                {ImagePreview ? (
-                  <img
-                    src={ImagePreview}
-                    alt="Preview da Image"
-                    className=" img-event"
-                  />
-                ) : (
-                  <img
-                    src="/images/eventflyer.png"
-                    alt="Preview da Image"
-                    className="img-event"
-                  />
-                )}
-              </label>
-              <Form.Control
-                id="ImageInput"
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                style={{ display: "none" }}
-                required
-              />
-            </Card>
-            <Col md={12}>
-              <Card>
-                <Card.Body>
-                <Col md={12}>
-                  <Form.Group controlId="formDescription">
-                    <Form.Control
-                      as="textarea"
-                      rows={3}
-                      name="description"
-                      placeholder="Digite a descrição do evento"
-                      className="m-2"
-                      value={formData.description}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </Form.Group>
-                </Col>
-                </Card.Body>
-              </Card>
-            </Col> 
-          </Col>
-          <Col md={4}>
-            
-        <Card>
-          <Card.Body>
-            <Form
-              onSubmit={handleSubmit}
-              className={validated ? "was-validated" : ""}
-            >
-              <Row>
-                <Col md={12}>
-                  <Form.Group controlId="formTitle">
-                    <Form.Control
-                      type="text"
-                      name="title"
-                      placeholder="Nome do evento"
-                      value={formData.title}
-                      onChange={handleInputChange}
-                      className="m-2"
-                      required
-                    />
-                  </Form.Group>
-                </Col>
-             
-                <Col md={12}>
-                  <Form.Group controlId="formStartDate">
-                    <Form.Label 
-                      className="m-2">Data de Início</Form.Label>
-                    <Form.Control
-                      type="datetime-local"
-                      name="start_date"
-                      value={formData.start_date}
-                      onChange={handleInputChange}
-                      className="m-2"
-                      required
-                      min={new Date().toISOString().split("T")[0]}
-                    />
-                    <div className="valid-feedback">Válido!</div>
-                    {startDateError && (
-                      <div className="invalid-feedback">{startDateError}</div>
-                    )}
-                  </Form.Group>
-                </Col>
-                <Col md={12}>
-                  <Form.Group controlId="formEndDate">
-                    <Form.Label 
-                      className="m-2">Data de Término</Form.Label>
-                    <Form.Control
-                      type="datetime-local"
-                      name="end_date"
-                      value={formData.end_date}
-                      onChange={handleInputChange}
-                      className="m-2"
-                      required
-                      min={
-                        formData.start_date ||
-                        new Date().toISOString().split("T")[0]
-                      }
-                    />
-                  </Form.Group>
-                </Col>
-                <Col md={12} >
-                  <Form.Group controlId="formEstablishmentType">
-                    <Form.Label 
-                      className=""></Form.Label>
-                    <Form.Control
-                      as="select"
-                      name="establishment_type"
-                      value={formData.establishment_type}
-                      onChange={handleInputChange}
-                      className="m-2"
-                      required
-                    >
-                      <option value="">Tipo de Estabelecimento</option>
-                      <option value="Boate">Boate</option>
-                      <option value="Restaurante">Restaurante</option>
-                      <option value="Bar">Bar</option>
-                      <option value="Clube">Clube</option>
-                      <option value="Café">Café</option>
-                      <option value="Pub">Pub</option>
-                      <option value="Lounge">Lounge</option>
-                      <option value="Hotel">Hotel</option>
-                      <option value="Teatro">Teatro</option>
-                      <option value="Cinema">Cinema</option>
-                      <option value="Sala de Concertos">
-                        Sala de Concertos
-                      </option>
-                      <option value="Boate">Boate</option>
-                      <option value="Academia">Academia</option>
-                      <option value="Spa">Spa</option>
-                      <option value="Padaria">Padaria</option>
-                      <option value="Museu">Museu</option>
-                      <option value="Galeria de Arte">Galeria de Arte</option>
-                      <option value="Parque">Parque</option>
-                      <option value="Praia">Praia</option>
-                      <option value="Piscina">Piscina</option>
-                      <option value="Cassino">Cassino</option>
-                      <option value="Boliche">Boliche</option>
-                      <option value="Sinuca">Sinuca</option>
-                      <option value="Karaoke">Karaoke</option>
-                      <option value="Chácara">Chácara</option>
-                      <option value="Secreto">Secreto</option>
-                      <option value="Outro">Outro</option>
-                    </Form.Control>
-                  </Form.Group>
-                </Col>
-                <Col md={12}>
-                  <Form.Group controlId="formEstablishment_name">
-                    <Form.Control
-                      type="text"
-                      name="establishment_name"
-                      placeholder="Nome do estabelecimento"
-                      value={formData.establishment_name}
-                      onChange={handleInputChange}
-                      className="m-2"
-                      required
-                    />
-                  </Form.Group>
-                </Col>
-                <Col md={12}>
-                  <Form.Group controlId="formCEP">
-                    <Form.Control
-                      type="text"
-                      name="cep"
-                      placeholder="CEP"
-                      value={formData.cep}
-                      onChange={handleCepChange}
-                      className="m-2"
-                      required
-                    />
-                  </Form.Group>
-                </Col>
-                <Col md={12}>
-                  <Form.Group controlId="formLocation">
-                    <Form.Control
-                      type="text"
-                      name="location"
-                      placeholder="Url Google Maps"
-                      value={formData.location}
-                      onChange={handleInputChange}
-                      className="m-2"
-                      required
-                    />
-                  </Form.Group>
-                </Col>
-              
-                <Col md={12}>
-                  <Form.Group controlId="formAddress">
-                    <Form.Control
-                      type="text"
-                      name="address"
-                      placeholder="Endereço"
-                      value={formData.address}
-                      onChange={handleInputChange}
-                      className="m-2"
-                      required
-                    />
-                  </Form.Group>
-                </Col>
-                <Col md={12}>
-                  <Form.Group controlId="formCity">
-                    <Form.Control
-                      type="text"
-                      name="city"
-                      placeholder="Cidade"
-                      value={formData.city}
-                      onChange={handleInputChange}
-                      className="m-2"
-                      required
-                    />
-                  </Form.Group>
-                </Col>
-                <Col md={12}>
-                  <Form.Group controlId="formUf">
-                    <Form.Control
-                      as="select"
-                      name="uf"
-                      value={formData.uf}
-                      onChange={handleInputChange}
-                      className="m-2"
-                      required
-                    >
-                      <option value="">UF</option>
-                      <option value="">UF</option>
-                      <option value="AC">AC</option>
-                      <option value="AL">AL</option>
-                      <option value="AP">AP</option>
-                      <option value="AM">AM</option>
-                      <option value="BA">BA</option>
-                      <option value="CE">CE</option>
-                      <option value="DF">DF</option>
-                      <option value="ES">ES</option>
-                      <option value="GO">GO</option>
-                      <option value="MA">MA</option>
-                      <option value="MT">MT</option>
-                      <option value="MS">MS</option>
-                      <option value="MG">MG</option>
-                      <option value="PA">PA</option>
-                      <option value="PB">PB</option>
-                      <option value="PR">PR</option>
-                      <option value="PE">PE</option>
-                      <option value="PI">PI</option>
-                      <option value="RJ">RJ</option>
-                      <option value="RN">RN</option>
-                      <option value="RS">RS</option>
-                      <option value="RO">RO</option>
-                      <option value="RR">RR</option>
-                      <option value="SC">SC</option>
-                      <option value="SP">SP</option>
-                      <option value="SE">SE</option>
-                      <option value="TO">TO</option>
-                    </Form.Control>
-                  </Form.Group>
-                </Col>
-                
-       
-              </Row>
-          
-            </Form>
-          
-          </Card.Body>
-        </Card>
-          </Col>
-                <Col md={12}>
-              <Card>
-                <Card.Title>Seguimentos</Card.Title>
-                <Row>
-                  {/* Renderiza as 6 colunas */}
-                  {segmentChunks.map((chunk, index) => (
-                    <React.Fragment key={index}>
-                      {chunk.map(([key, value]) => (
-                        <Col md={2} key={key}>
-                          <Form.Check
-                            type="checkbox"
-                            label={value.name}
-                            checked={formData.segments.includes(key)}
-                            onChange={() => handleSeguimentsChange(key)}
-                            className="mt-2"
-                          />
-                        </Col>
-                      ))}
-                    </React.Fragment>
-                  ))}
-                </Row>
-                
-              <Button
-                variant="primary"
-                type="submit"
-                disabled={loading}
-                className="mt-4 btn-lg"
-                onClick={handleSubmit}
-              >
-                {loading ? "Carregando..." : "Salvar"}
-              </Button>
-              </Card>
-            </Col>
-            <Link to={`/productions/${productionId}`}>
-        <Button variant="secondary">Voltar para Produção</Button>
-      </Link>
-        </Row>
-      
-      </Container>
-     
-    </>
-  );
+const initialForm = {
+  production_id: "",
+  title: "",
+  description: "",
+  address: "",
+  city: "",
+  uf: "",
+  venue: "",
+  start_date: "",
+  end_date: "",
+  contact_email: "",
+  contact_phone: "",
+  image: null,
 };
 
-export default EventCreatePage;
+export default function EventCreatePage() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [form, setForm] = useState(initialForm);
+  const [productions, setProductions] = useState([]);
+  const [preview, setPreview] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [loadingProductions, setLoadingProductions] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    const selectedProduction = new URLSearchParams(location.search).get("productionId") || "";
+
+    cutinappService
+      .myProductions()
+      .then((items) => {
+        if (!active) return;
+        setProductions(items);
+        const fallback = selectedProduction || (items.length === 1 ? String(items[0].id) : "");
+        setForm((current) => ({ ...current, production_id: fallback }));
+      })
+      .catch((err) => active && setError(err?.message || "Não foi possível carregar suas produções."))
+      .finally(() => active && setLoadingProductions(false));
+
+    return () => {
+      active = false;
+    };
+  }, [location.search]);
+
+  const canSubmit = useMemo(
+    () =>
+      Boolean(
+        form.production_id &&
+          form.title.trim() &&
+          form.description.trim() &&
+          form.address.trim() &&
+          form.start_date &&
+          form.end_date
+      ) && !loading,
+    [form, loading]
+  );
+
+  const change = (event) => {
+    const { name, value } = event.target;
+    setForm((current) => ({ ...current, [name]: value }));
+  };
+
+  const chooseImage = (event) => {
+    const file = event.target.files?.[0] || null;
+    setForm((current) => ({ ...current, image: file }));
+    setPreview(file ? URL.createObjectURL(file) : "");
+  };
+
+  const submit = async (event) => {
+    event.preventDefault();
+    if (!canSubmit) return;
+
+    if (new Date(form.end_date) < new Date(form.start_date)) {
+      setError("A data de término não pode ser anterior ao início do evento.");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const payload = new FormData();
+      Object.entries(form).forEach(([key, value]) => {
+        if (value !== null && value !== "") payload.append(key, value);
+      });
+      payload.append("is_published", "1");
+      payload.append("is_cancelled", "0");
+
+      const response = await eventService.store(payload);
+      const eventId = response.event?.id;
+      navigate(eventId ? `/ticket/create?eventId=${eventId}` : "/dashboard", { replace: true });
+    } catch (err) {
+      setError(err?.message || "Não foi possível criar o evento.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="cut-app-page">
+      <NavlogComponent />
+      {(loading || loadingProductions) && (
+        <ProcessingIndicatorComponent label={loading ? "Criando evento" : "Carregando produções"} />
+      )}
+
+      <Container className="cut-page-container py-4 py-lg-5">
+        <div className="cut-page-heading">
+          <div>
+            <span className="cut-eyebrow">Área do produtor</span>
+            <h1>Novo evento</h1>
+            <p>Cadastre as informações essenciais. Na próxima etapa você cria a cortesia gratuita e já pode começar a distribuir.</p>
+          </div>
+        </div>
+
+        {error && <Alert variant="danger">{error}</Alert>}
+
+        {!loadingProductions && productions.length === 0 ? (
+          <Card className="cut-empty-state">
+            <Card.Body>
+              <h2>Primeiro crie uma produção</h2>
+              <p>Todo evento precisa pertencer a uma produção responsável.</p>
+              <Button onClick={() => navigate("/production/create")}>Criar produção</Button>
+            </Card.Body>
+          </Card>
+        ) : (
+          <Form onSubmit={submit}>
+            <Row className="g-4">
+              <Col lg={8}>
+                <Card className="cut-panel h-100">
+                  <Card.Body className="p-4">
+                    <h2 className="cut-section-title">Evento</h2>
+                    <Row className="g-3">
+                      <Col xs={12}>
+                        <Form.Group>
+                          <Form.Label>Produção *</Form.Label>
+                          <Form.Select name="production_id" value={form.production_id} onChange={change} required>
+                            <option value="">Selecione</option>
+                            {productions.map((production) => (
+                              <option key={production.id} value={production.id}>{production.name}</option>
+                            ))}
+                          </Form.Select>
+                        </Form.Group>
+                      </Col>
+                      <Col xs={12}>
+                        <Form.Group>
+                          <Form.Label>Nome do evento *</Form.Label>
+                          <Form.Control name="title" value={form.title} onChange={change} required placeholder="Ex.: Noite de Lançamento" />
+                        </Form.Group>
+                      </Col>
+                      <Col xs={12}>
+                        <Form.Group>
+                          <Form.Label>Descrição *</Form.Label>
+                          <Form.Control as="textarea" rows={5} name="description" value={form.description} onChange={change} required />
+                        </Form.Group>
+                      </Col>
+                      <Col md={6}>
+                        <Form.Group>
+                          <Form.Label>Início *</Form.Label>
+                          <Form.Control type="datetime-local" name="start_date" value={form.start_date} onChange={change} required />
+                        </Form.Group>
+                      </Col>
+                      <Col md={6}>
+                        <Form.Group>
+                          <Form.Label>Término *</Form.Label>
+                          <Form.Control type="datetime-local" name="end_date" value={form.end_date} onChange={change} required />
+                        </Form.Group>
+                      </Col>
+                      <Col md={5}>
+                        <Form.Group>
+                          <Form.Label>Local</Form.Label>
+                          <Form.Control name="venue" value={form.venue} onChange={change} placeholder="Nome do espaço" />
+                        </Form.Group>
+                      </Col>
+                      <Col md={7}>
+                        <Form.Group>
+                          <Form.Label>Endereço *</Form.Label>
+                          <Form.Control name="address" value={form.address} onChange={change} required />
+                        </Form.Group>
+                      </Col>
+                      <Col md={8}>
+                        <Form.Group>
+                          <Form.Label>Cidade</Form.Label>
+                          <Form.Control name="city" value={form.city} onChange={change} />
+                        </Form.Group>
+                      </Col>
+                      <Col md={4}>
+                        <Form.Group>
+                          <Form.Label>UF</Form.Label>
+                          <Form.Control maxLength={2} name="uf" value={form.uf} onChange={change} />
+                        </Form.Group>
+                      </Col>
+                      <Col md={6}>
+                        <Form.Group>
+                          <Form.Label>E-mail de contato</Form.Label>
+                          <Form.Control type="email" name="contact_email" value={form.contact_email} onChange={change} />
+                        </Form.Group>
+                      </Col>
+                      <Col md={6}>
+                        <Form.Group>
+                          <Form.Label>Telefone de contato</Form.Label>
+                          <Form.Control name="contact_phone" value={form.contact_phone} onChange={change} />
+                        </Form.Group>
+                      </Col>
+                    </Row>
+                  </Card.Body>
+                </Card>
+              </Col>
+
+              <Col lg={4}>
+                <Card className="cut-panel h-100">
+                  <Card.Body className="p-4">
+                    <h2 className="cut-section-title">Imagem do evento</h2>
+                    {preview ? (
+                      <img src={preview} alt="Prévia do evento" className="cut-upload-preview cut-upload-preview--event" />
+                    ) : (
+                      <div className="cut-upload-placeholder">
+                        <i className="fa-regular fa-image" />
+                        <span>Adicione uma capa 16:9</span>
+                      </div>
+                    )}
+                    <Form.Control className="mt-3" type="file" accept="image/png,image/jpeg,image/webp" onChange={chooseImage} />
+                  </Card.Body>
+                </Card>
+              </Col>
+            </Row>
+
+            <div className="cut-form-actions mt-4">
+              <Button type="button" variant="outline-light" onClick={() => navigate("/dashboard")}>Cancelar</Button>
+              <Button type="submit" disabled={!canSubmit}>Criar evento e configurar cortesia</Button>
+            </div>
+          </Form>
+        )}
+      </Container>
+    </div>
+  );
+}
