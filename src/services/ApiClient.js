@@ -6,7 +6,6 @@ const apiClient = axios.create({
   timeout: 20000,
   headers: {
     Accept: "application/json",
-    "Content-Type": "application/json",
     "X-Peter-App": appSlug,
   },
 });
@@ -43,8 +42,17 @@ apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   if (token) config.headers.Authorization = `Bearer ${token}`;
 
-  if (typeof FormData !== "undefined" && config.data instanceof FormData) {
-    delete config.headers["Content-Type"];
+  const isFormData = typeof FormData !== "undefined" && config.data instanceof FormData;
+  if (isFormData) {
+    // Never force multipart/form-data here. The browser must add the boundary.
+    if (typeof config.headers?.delete === "function") {
+      config.headers.delete("Content-Type");
+    } else if (config.headers) {
+      delete config.headers["Content-Type"];
+      delete config.headers["content-type"];
+    }
+  } else if (config.data != null && config.headers) {
+    config.headers["Content-Type"] = "application/json";
   }
 
   return config;
