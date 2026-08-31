@@ -7,6 +7,7 @@ import {
 } from "react-router-dom";
 import { AuthContext } from "./context/AuthContext";
 import ProcessingIndicatorComponent from "./components/ProcessingIndicatorComponent";
+import PeterTecnetSignature from "./components/PeterTecnetSignature";
 
 const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
 const RegisterPage = lazy(() => import("./pages/auth/RegisterPage"));
@@ -41,9 +42,7 @@ const UserEditPage = lazy(() => import("./pages/user/UserEditPage"));
 function App() {
   const { user, loading } = useContext(AuthContext);
 
-  if (loading) {
-    return <ProcessingIndicatorComponent label="Preparando Cutinapp" />;
-  }
+  if (loading) return <ProcessingIndicatorComponent label="Preparando Cutinapp" />;
 
   const protectedRoute = (element) => {
     if (!user) return <Navigate to="/login" replace />;
@@ -96,6 +95,7 @@ function App() {
           <Route path="/" element={<Navigate to={user ? "/dashboard" : "/login"} replace />} />
           <Route path="*" element={<Navigate to={user ? "/dashboard" : "/login"} replace />} />
         </Routes>
+        <PeterTecnetSignature />
       </Suspense>
     </Router>
   );
