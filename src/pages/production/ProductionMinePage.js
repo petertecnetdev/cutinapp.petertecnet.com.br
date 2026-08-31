@@ -81,7 +81,7 @@ export default function ProductionMinePage() {
                     <p>{production.description || "Produção pronta para receber eventos."}</p>
                     <div className="cut-card-actions">
                       <Button onClick={() => navigate(`/event/create?productionId=${production.id}`)}>Criar evento</Button>
-                      {production.slug && <Button variant="outline-light" onClick={() => navigate(`/production/${production.slug}`)}>Ver produção</Button>}
+                      <Button variant="outline-light" onClick={() => navigate("/event/manage")}>Gerenciar eventos</Button>
                     </div>
                   </Card.Body>
                 </Card>
