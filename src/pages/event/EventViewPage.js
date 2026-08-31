@@ -9,8 +9,28 @@ import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
 
 const formatDate = (value) => value
-  ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "long", timeStyle: "short" }).format(new Date(value))
+  ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "long", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(new Date(value))
   : "Data não informada";
+
+const buildMapEmbedUrl = (event) => {
+  if (!event) return "";
+  let query = "";
+  if (event.google_maps_url) {
+    try {
+      const url = new URL(event.google_maps_url);
+      query = url.searchParams.get("q") || url.searchParams.get("query") || "";
+      if (!query && url.pathname.includes("/place/")) {
+        query = decodeURIComponent(url.pathname.split("/place/")[1]?.split("/")[0] || "").replace(/\+/g, " ");
+      }
+    } catch (_) {
+      query = "";
+    }
+  }
+  if (!query) {
+    query = [event.venue, event.address, event.city, event.uf].filter(Boolean).join(", ");
+  }
+  return query ? `https://www.google.com/maps?q=${encodeURIComponent(query)}&output=embed` : "";
+};
 
 export default function EventViewPage() {
   const { slug } = useParams();
@@ -35,6 +55,7 @@ export default function EventViewPage() {
   const event = data?.event || null;
   const tickets = useMemo(() => (data?.tickets || []).filter((ticket) => Number(ticket.price) === 0), [data]);
   const isOwner = Boolean(event?.production?.user_id && Number(event.production.user_id) === Number(user?.id));
+  const mapEmbedUrl = useMemo(() => buildMapEmbedUrl(event), [event]);
 
   const claim = async (ticket) => {
     if (!user) {
@@ -77,14 +98,17 @@ export default function EventViewPage() {
 
       {!loading && event && <>
         <section className="cut-event-hero" style={event.image ? { backgroundImage: `linear-gradient(180deg,rgba(3,10,16,.18),rgba(3,10,16,.96)),url(${storageUrl}${String(event.image).replace(/^\//, "")})` } : undefined}>
-          <Container className="cut-page-container"><div className="cut-event-hero__content"><Badge bg="success" className="mb-3">Evento publicado</Badge><h1>{event.title}</h1><p>{formatDate(event.start_date)}</p><span>{event.venue || event.address}</span><span>{event.production?.name ? `Por ${event.production.name}` : ""}</span><div className="cut-card-actions mt-4"><Button onClick={share}><i className="fa-solid fa-share-nodes me-2" />Compartilhar</Button>{user && <Button variant="outline-light" onClick={() => navigate("/passes")}>Meus ingressos</Button>}</div></div></Container>
+          <Container className="cut-page-container"><div className="cut-event-hero__content"><Badge bg="success" className="mb-3">Evento publicado</Badge><h1>{event.title}</h1><p>{formatDate(event.start_date)}</p><span>{event.venue || event.address}</span><span>{event.production?.name ? `Por ${event.production.name}` : ""}</span><div className="cut-card-actions mt-4"><Button onClick={share}><i className="fa-solid fa-share-nodes me-2" />Compartilhar</Button>{event.google_maps_url && <Button variant="outline-light" as="a" href={event.google_maps_url} target="_blank" rel="noreferrer"><i className="fa-solid fa-location-arrow me-2" />Abrir no Maps</Button>}{user && <Button variant="outline-light" onClick={() => navigate("/passes")}>Meus ingressos</Button>}</div></div></Container>
         </section>
 
         <Container className="cut-page-container py-4 py-lg-5">
           {error && <Alert variant="danger">{error}</Alert>}
           {success && <Alert variant="success">{success}</Alert>}
           <Row className="g-4">
-            <Col lg={8}><Card className="cut-panel mb-4"><Card.Body className="p-4 p-lg-5"><span className="cut-eyebrow">Sobre o evento</span><h2 className="cut-section-title mt-2">Informações</h2><p className="cut-body-copy">{event.description}</p><div className="cut-event-details"><div><i className="fa-regular fa-calendar" /><span><strong>Início</strong>{formatDate(event.start_date)}</span></div><div><i className="fa-solid fa-location-dot" /><span><strong>Local</strong>{event.venue || event.address}</span></div>{event.city && <div><i className="fa-solid fa-map" /><span><strong>Cidade</strong>{event.city}{event.uf ? ` - ${event.uf}` : ""}</span></div>}{event.production?.name && <div><i className="fa-solid fa-bullhorn" /><span><strong>Produção</strong>{event.production.name}</span></div>}</div></Card.Body></Card></Col>
+            <Col lg={8}>
+              <Card className="cut-panel mb-4"><Card.Body className="p-4 p-lg-5"><span className="cut-eyebrow">Sobre o evento</span><h2 className="cut-section-title mt-2">Informações</h2><p className="cut-body-copy">{event.description}</p><div className="cut-event-details"><div><i className="fa-regular fa-calendar" /><span><strong>Início</strong>{formatDate(event.start_date)}</span></div><div><i className="fa-regular fa-clock" /><span><strong>Término</strong>{formatDate(event.end_date)}</span></div><div><i className="fa-solid fa-location-dot" /><span><strong>Local</strong>{event.venue || event.address}</span></div>{event.city && <div><i className="fa-solid fa-map" /><span><strong>Cidade</strong>{event.city}{event.uf ? ` - ${event.uf}` : ""}</span></div>}{event.production?.name && <div><i className="fa-solid fa-bullhorn" /><span><strong>Produção</strong>{event.production.name}</span></div>}</div></Card.Body></Card>
+              {mapEmbedUrl && <Card className="cut-panel"><Card.Body className="p-0 overflow-hidden"><iframe title={`Mapa de ${event.title}`} src={mapEmbedUrl} width="100%" height="360" style={{ border: 0, display: "block" }} loading="lazy" referrerPolicy="no-referrer-when-downgrade" allowFullScreen /></Card.Body></Card>}
+            </Col>
 
             <Col lg={4}><Card className="cut-panel"><Card.Body className="p-4"><span className="cut-eyebrow">Entrada</span><h2 className="cut-section-title mt-2">Ingressos gratuitos</h2>
               {tickets.length === 0 ? <div className="cut-empty-state-inline"><p>Nenhuma cortesia gratuita está configurada neste momento.</p>{isOwner && <Button onClick={() => navigate(`/ticket/create?eventId=${event.id}`)}>Criar cortesia</Button>}</div> : <div className="cut-ticket-list">{tickets.map((ticket) => {
