@@ -1,16 +1,18 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import axios from "axios";
+import "bootstrap/dist/css/bootstrap.min.css";
+import "@fortawesome/fontawesome-free/css/all.min.css";
 import "./index.css";
 import App from "./App";
+import { AuthProvider } from "./context/AuthContext";
 import reportWebVitals from "./reportWebVitals";
-
-axios.defaults.headers.common["X-Peter-App"] = "cutinapp";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <React.StrictMode>
-    <App />
+    <AuthProvider>
+      <App />
+    </AuthProvider>
   </React.StrictMode>
 );
 
