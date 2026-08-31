@@ -1,195 +1,38 @@
-import axios from "axios";
-import { apiBaseUrl } from "../config";
+import apiClient from "./ApiClient";
 
 const apiServiceUrl = "user";
+const multipart = { headers: { "Content-Type": "multipart/form-data" } };
 
 const userService = {
-  getToken: () => localStorage.getItem("token"),
-
   list: async () => {
-    try {
-      const token = userService.getToken();
-
-      if (!token) {
-        throw new Error("Usuário não autenticado.");
-      }
-
-      const headers = {
-        Authorization: `Bearer ${token}`,
-      };
-
-      const response = await axios.get(`${apiBaseUrl}/${apiServiceUrl}`, {
-        headers,
-      });
-
-      if (response.status === 200) {
-        return response.data;
-      } else {
-        throw new Error(
-          "Erro ao obter a lista de usuários. Por favor, tente novamente."
-        );
-      }
-    } catch (error) {
-      console.error(error);
-      throw new Error(
-        "Erro ao obter a lista de usuários. Por favor, tente novamente."
-      );
-    }
+    const response = await apiClient.get(`/${apiServiceUrl}`);
+    return response.data;
   },
 
   update: async (userId, userData) => {
-    try {
-      const token = userService.getToken();
-      
-      if (!token) {
-        throw new Error("Usuário não autenticado.");
-      }
-
-      const headers = {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "multipart/form-data",
-      };
-
-      const response = await axios.post(
-        `${apiBaseUrl}/${apiServiceUrl}/${userId}`,
-        userData,
-        { headers }
-      );
-
-      if (response.status === 200) {
-        return response.data;
-      } else {
-        throw new Error(
-          "Erro ao atualizar o usuário. Por favor, tente novamente."
-        );
-      }
-    } catch (error) {
-      console.error(error);
-      throw new Error(
-        "Erro ao atualizar o usuário. Por favor, tente novamente."
-      );
-    }
+    const response = await apiClient.post(`/${apiServiceUrl}/${userId}`, userData, multipart);
+    return response.data;
   },
 
   store: async (userData) => {
-    try {
-      const token = userService.getToken();
-
-      if (!token) {
-        throw new Error("Usuário não autenticado.");
-      }
-
-      const headers = {
-        Authorization: `Bearer ${token}`,
-      };
-
-      const response = await axios.post(
-        `${apiBaseUrl}/${apiServiceUrl}/new`,
-        userData,
-        { headers }
-      );
-
-      if (response.status === 201) {
-        return response.data;
-      } else {
-        throw new Error(
-          "Erro ao criar o usuário. Por favor, tente novamente."
-        );
-      }
-    } catch (error) {
-      console.error(error);
-      throw new Error(
-        "Erro ao criar o usuário. Por favor, tente novamente."
-      );
-    }
+    const response = await apiClient.post(`/${apiServiceUrl}/new`, userData);
+    return response.data;
   },
 
   show: async (userId) => {
-    try {
-      const token = userService.getToken();
-
-      if (!token) {
-        throw new Error("Usuário não autenticado.");
-      }
-
-      const headers = {
-        Authorization: `Bearer ${token}`,
-      };
-
-      const response = await axios.get(`${apiBaseUrl}/${apiServiceUrl}/${userId}`, {
-        headers,
-      });
-
-      if (response.status === 200) {
-        return response.data;
-      } else {
-        throw new Error(
-          "Erro ao obter o perfil do usuário. Por favor, tente novamente."
-        );
-      }
-    } catch (error) {
-      console.error(error);
-      throw new Error(
-        "Erro ao obter o perfil do usuário. Por favor, tente novamente."
-      );
-    }
+    const response = await apiClient.get(`/${apiServiceUrl}/${userId}`);
+    return response.data;
   },
-  
+
   view: async (userName) => {
-    try {
-      const token = userService.getToken();
-  
-      if (!token) {
-        throw new Error("Usuário não autenticado. Token não encontrado.");
-      }
-  
-      const headers = {
-        Authorization: `Bearer ${token}`,
-      };
-  
-      const response = await axios.get(`${apiBaseUrl}/${apiServiceUrl}/${userName}`, {
-        headers,
-      });
-  
-      return response.data; 
-  
-    } catch (error) {
-      console.error("Erro ao obter as informações do usuário:", error);
-      throw new Error("Erro ao obter as informações do usuário. Por favor, tente novamente.");
-    }
+    const response = await apiClient.get(`/${apiServiceUrl}/${userName}`);
+    return response.data;
   },
 
   destroy: async (userId) => {
-    try {
-      const token = userService.getToken();
-
-      if (!token) {
-        throw new Error("Usuário não autenticado.");
-      }
-
-      const headers = {
-        Authorization: `Bearer ${token}`,
-      };
-
-      const response = await axios.delete(`${apiBaseUrl}/${apiServiceUrl}/${userId}`, {
-        headers,
-      });
-
-      if (response.status === 200) {
-        return response.data;
-      } else {
-        throw new Error(
-          "Erro ao deletar o usuário. Por favor, tente novamente."
-        );
-      }
-    } catch (error) {
-      console.error("Erro ao deletar o usuário:", error);
-      throw new Error(
-        "Erro ao deletar o usuário. Por favor, tente novamente."
-      );
-    }
+    const response = await apiClient.delete(`/${apiServiceUrl}/${userId}`);
+    return response.data;
   },
-  
 };
 
 export default userService;
