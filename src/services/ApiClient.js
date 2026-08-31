@@ -11,29 +11,66 @@ const apiClient = axios.create({
   },
 });
 
+const firstValidationMessage = (errors) => {
+  if (!errors || typeof errors !== "object") return "";
+  return Object.values(errors).flat().find((value) => typeof value === "string" && value.trim()) || "";
+};
+
+const humanizeMessage = (value, status) => {
+  const raw = String(value || "").trim();
+  if (!raw) {
+    if (status === 403) return "Você não possui permissão para realizar esta ação.";
+    if (status === 404) return "O registro solicitado não foi encontrado.";
+    if (status === 422) return "Revise os campos informados e tente novamente.";
+    if (status >= 500) return "O servidor não conseguiu concluir a solicitação. Tente novamente.";
+    return "Não foi possível concluir a solicitação.";
+  }
+
+  const keyMap = {
+    "validation.required": "Preencha os campos obrigatórios.",
+    "validation.unique": "Já existe um registro com esta informação.",
+    "validation.exists": "Uma das informações selecionadas não existe mais.",
+  };
+
+  if (keyMap[raw]) return keyMap[raw];
+  if (/^(the given data was invalid|dados enviados são inválidos|os dados fornecidos são inválidos)\.?$/i.test(raw)) {
+    return "Revise os campos informados e tente novamente.";
+  }
+  return raw;
+};
+
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   if (token) config.headers.Authorization = `Bearer ${token}`;
+
+  if (typeof FormData !== "undefined" && config.data instanceof FormData) {
+    delete config.headers["Content-Type"];
+  }
+
   return config;
 });
 
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const status = error.response?.status;
+    const requestUrl = String(error.config?.url || "");
+    const keepSessionOn401 =
+      requestUrl.includes("/auth/login") ||
+      requestUrl.includes("/auth/google") ||
+      requestUrl.includes("/auth/change-password");
+
+    if (status === 401 && !keepSessionOn401) {
       localStorage.removeItem("token");
     }
 
     const data = error.response?.data;
-    const message =
-      data?.message ||
-      data?.error ||
-      (data?.errors && Object.values(data.errors).flat().filter(Boolean)[0]) ||
-      error.message ||
-      "Não foi possível concluir a solicitação.";
+    const validationMessage = firstValidationMessage(data?.errors);
+    const candidate = validationMessage || data?.message || data?.error || error.message;
+    const message = humanizeMessage(candidate, status);
 
     const normalizedError = new Error(message);
-    normalizedError.status = error.response?.status;
+    normalizedError.status = status;
     normalizedError.errors = data?.errors || null;
     normalizedError.original = error;
     return Promise.reject(normalizedError);
