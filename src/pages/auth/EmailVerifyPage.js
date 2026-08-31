@@ -1,171 +1,40 @@
 import React, { useContext, useMemo, useState } from "react";
+import { Button, Form } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
-import {
-  Alert,
-  Button,
-  Card,
-  Col,
-  Container,
-  Form,
-  Row,
-} from "react-bootstrap";
-import authService from "../../services/AuthService";
-import { AuthContext } from "../../context/AuthContext";
-import Navlog from "../../components/NavlogComponent";
+import AuthPageShell from "../../components/auth/AuthPageShell";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
+import { AuthContext } from "../../context/AuthContext";
+import authService from "../../services/AuthService";
 
-const EmailVerifyPage = () => {
+export default function EmailVerifyPage() {
   const navigate = useNavigate();
   const { refreshUser } = useContext(AuthContext);
-  const [verificationCode, setVerificationCode] = useState("");
-  const [alert, setAlert] = useState(null);
+  const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState(null);
+  const normalized = useMemo(() => code.trim(), [code]);
 
-  const normalizedCode = useMemo(
-    () => String(verificationCode || "").trim(),
-    [verificationCode]
-  );
-
-  const handleVerifyEmail = async (event) => {
+  const verify = async (event) => {
     event.preventDefault();
-    if (!normalizedCode || loading) return;
-
-    setLoading(true);
-    setAlert(null);
-
+    if (!normalized || loading) return;
+    setLoading(true); setMessage(null);
     try {
-      const response = await authService.emailVerify(normalizedCode);
-      const currentUser = await refreshUser();
-
-      if (!currentUser?.email_verified_at) {
-        throw new Error(
-          "O código foi processado, mas a sessão ainda não recebeu a confirmação do e-mail. Atualize a página e tente novamente."
-        );
-      }
-
-      setAlert({
-        type: "success",
-        message: response?.message || "E-mail verificado com sucesso.",
-      });
-      navigate("/dashboard", { replace: true });
-    } catch (error) {
-      setAlert({
-        type: "danger",
-        message:
-          error?.message ||
-          "Não foi possível validar o código. Confira o código mais recente enviado ao seu e-mail.",
-      });
-    } finally {
-      setLoading(false);
-    }
+      const response = await authService.emailVerify(normalized);
+      const user = await refreshUser();
+      if (!user?.email_verified_at) throw new Error("A confirmação ainda não apareceu na sessão. Tente novamente.");
+      setMessage({ type:"success", text:response?.message || "E-mail verificado com sucesso." });
+      navigate("/dashboard", { replace:true });
+    } catch (err) { setMessage({ type:"error", text:err?.message || "Código inválido ou expirado." }); }
+    finally { setLoading(false); }
   };
 
-  const handleResendVerificationCode = async () => {
+  const resend = async () => {
     if (loading) return;
-
-    setLoading(true);
-    setAlert(null);
-
-    try {
-      const response = await authService.resendCodeEmailVerification();
-      setVerificationCode("");
-      setAlert({
-        type: "success",
-        message:
-          response?.message ||
-          "Novo código de verificação enviado. Use somente o código mais recente recebido.",
-      });
-    } catch (error) {
-      setAlert({
-        type: "danger",
-        message:
-          error?.message ||
-          "Não foi possível reenviar o código de verificação.",
-      });
-    } finally {
-      setLoading(false);
-    }
+    setLoading(true); setMessage(null);
+    try { const response = await authService.resendCodeEmailVerification(); setCode(""); setMessage({ type:"success", text:response?.message || "Novo código enviado. Use somente o mais recente." }); }
+    catch (err) { setMessage({ type:"error", text:err?.message || "Não foi possível reenviar o código." }); }
+    finally { setLoading(false); }
   };
 
-  return (
-    <div className="App">
-      <Navlog />
-      <Container className="py-5">
-        <Row className="justify-content-center">
-          <Col xs={12} md={8} lg={6} xl={5}>
-            <Card>
-              <Card.Body>
-                <div className="text-center mb-4">
-                  <img
-                    src="/images/logo.png"
-                    alt="Cutinapp"
-                    className="logo rounded-circle"
-                    style={{ width: "112px", height: "112px", margin: "0 auto", objectFit: "cover" }}
-                  />
-                </div>
-
-                <Card.Title className="text-center mb-3">
-                  Verificar e-mail
-                </Card.Title>
-                <p className="text-center mb-4">
-                  Digite o código mais recente enviado ao seu e-mail para ativar sua conta.
-                </p>
-
-                {alert && (
-                  <Alert
-                    variant={alert.type}
-                    dismissible
-                    onClose={() => setAlert(null)}
-                  >
-                    {alert.message}
-                  </Alert>
-                )}
-
-                <Form onSubmit={handleVerifyEmail} noValidate>
-                  <Form.Group className="mb-3" controlId="verification-code">
-                    <Form.Label>Código de verificação</Form.Label>
-                    <Form.Control
-                      type="text"
-                      inputMode="numeric"
-                      autoComplete="one-time-code"
-                      placeholder="Digite o código recebido"
-                      value={verificationCode}
-                      onChange={(event) => setVerificationCode(event.target.value)}
-                      disabled={loading}
-                      required
-                    />
-                  </Form.Group>
-
-                  <div className="d-grid gap-2">
-                    <Button
-                      type="submit"
-                      variant="primary"
-                      disabled={loading || !normalizedCode}
-                    >
-                      {loading ? "Verificando..." : "Verificar e-mail"}
-                    </Button>
-
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={handleResendVerificationCode}
-                      disabled={loading}
-                    >
-                      Reenviar código
-                    </Button>
-                  </div>
-                </Form>
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
-      </Container>
-
-      {loading && (
-        <ProcessingIndicatorComponent label="Validando código" />
-      )}
-    </div>
-  );
-};
-
-export default EmailVerifyPage;
+  return <AuthPageShell title="Confirme seu e-mail" subtitle="Digite o código mais recente que enviamos para ativar sua conta." compact>{loading && <ProcessingIndicatorComponent label="Validando código" />}<Form onSubmit={verify} className="cut-auth-form">{message && <div className={`cut-form-message cut-form-message--${message.type === "error" ? "error" : "success"}`}>{message.text}</div>}<Form.Group><Form.Label>Código de verificação</Form.Label><Form.Control value={code} onChange={(e)=>setCode(e.target.value)} inputMode="numeric" autoComplete="one-time-code" placeholder="Digite o código recebido" /></Form.Group><Button type="submit" className="cut-primary-action" disabled={!normalized || loading}>Verificar e-mail</Button><Button type="button" variant="outline-light" onClick={resend} disabled={loading}>Reenviar código</Button></Form></AuthPageShell>;
+}

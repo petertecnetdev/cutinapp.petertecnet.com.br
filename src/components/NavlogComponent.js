@@ -1,78 +1,48 @@
 import React, { useContext, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
 import { Container, Nav, Navbar, NavDropdown } from "react-bootstrap";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
-import { storageUrl } from "../config";
 
-export default function Navigation() {
+export default function NavlogComponent() {
   const { user, logout } = useContext(AuthContext);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const [open, setOpen] = useState(false);
 
-  const closeMenu = () => setIsMenuOpen(false);
+  if (!user) {
+    return <Navbar sticky="top" className="cut-navbar"><Container><Navbar.Brand as={Link} to="/" className="cut-navbar__brand"><img src="/images/logo.png" alt="Cutinapp" /><span>Cutinapp</span></Navbar.Brand><Nav className="ms-auto"><Nav.Link as={Link} to="/login">Entrar</Nav.Link></Nav></Container></Navbar>;
+  }
 
-  const handleLogout = async () => {
-    closeMenu();
-    await logout();
-    navigate("/login", { replace: true });
-  };
-
-  const avatarUrl = user?.avatar ? `${storageUrl}${String(user.avatar).replace(/^\//, "")}` : "";
+  const active = (prefix) => location.pathname.startsWith(prefix);
+  const signOut = async () => { setOpen(false); await logout(); navigate("/", { replace: true }); };
 
   return (
-    <Navbar expand="lg" sticky="top" collapseOnSelect className="cut-navbar">
-      <Container>
-        <Navbar.Brand as={Link} to="/dashboard" onClick={closeMenu} className="cut-navbar__brand">
-          <img src="/images/logo.png" alt="Cutinapp" className="cut-navbar__logo" />
-          <span>Cutinapp</span>
-        </Navbar.Brand>
-
-        <Navbar.Toggle
-          aria-controls="cutinapp-navbar"
-          aria-expanded={isMenuOpen}
-          onClick={() => setIsMenuOpen((open) => !open)}
-        />
-
-        <Navbar.Collapse id="cutinapp-navbar" className={isMenuOpen ? "show" : ""}>
-          <Nav className="me-auto" onClick={closeMenu}>
-            <Nav.Link as={Link} to="/dashboard">Início</Nav.Link>
-            <Nav.Link as={Link} to="/event">Eventos</Nav.Link>
-            <Nav.Link as={Link} to="/passes">Minhas cortesias</Nav.Link>
-
-            <NavDropdown
-              title={<span><i className="fa-solid fa-bolt me-1" />Área do produtor</span>}
-              id="producer-dropdown"
-            >
+    <Navbar expand="lg" sticky="top" className="cut-navbar" expanded={open} onToggle={setOpen}>
+      <Container className="cut-navbar__inner">
+        <Navbar.Brand as={Link} to="/dashboard" className="cut-navbar__brand"><img src="/images/logo.png" alt="Cutinapp" /><div><strong>Cutinapp</strong><small>Eventos Peter Tecnet</small></div></Navbar.Brand>
+        <Navbar.Toggle aria-controls="cut-navbar" />
+        <Navbar.Collapse id="cut-navbar">
+          <Nav className="cut-navbar__links mx-auto">
+            <Nav.Link as={Link} to="/dashboard" className={active("/dashboard") ? "active" : ""}><i className="fa-solid fa-house"/> Início</Nav.Link>
+            <Nav.Link as={Link} to="/event" className={active("/event") && !active("/event/manage") ? "active" : ""}><i className="fa-regular fa-calendar-days"/> Eventos</Nav.Link>
+            <Nav.Link as={Link} to="/passes" className={active("/passes") ? "active" : ""}><i className="fa-solid fa-ticket"/> Meus ingressos</Nav.Link>
+            <NavDropdown title={<span><i className="fa-solid fa-bullhorn"/> Produzir</span>} id="cut-producer-menu">
               <NavDropdown.Item as={Link} to="/production/mine">Minhas produções</NavDropdown.Item>
-              <NavDropdown.Item as={Link} to="/production/create">Criar produção</NavDropdown.Item>
               <NavDropdown.Item as={Link} to="/event/manage">Meus eventos</NavDropdown.Item>
-              <NavDropdown.Item as={Link} to="/event/create">Criar evento</NavDropdown.Item>
               <NavDropdown.Divider />
-              <NavDropdown.Item as={Link} to="/ticket/create">Criar cortesia</NavDropdown.Item>
-              <NavDropdown.Item as={Link} to="/checkin">
-                <i className="fa-solid fa-qrcode me-2" />Abrir portaria
-              </NavDropdown.Item>
+              <NavDropdown.Item as={Link} to="/production/create">Nova produção</NavDropdown.Item>
+              <NavDropdown.Item as={Link} to="/event/create">Novo evento</NavDropdown.Item>
+              <NavDropdown.Item as={Link} to="/ticket/create">Nova cortesia</NavDropdown.Item>
+              <NavDropdown.Item as={Link} to="/checkin">Abrir portaria</NavDropdown.Item>
             </NavDropdown>
           </Nav>
-
-          <Nav className="align-items-lg-center">
-            <NavDropdown
-              title={<span className="cut-user-label">{user?.first_name || "Minha conta"}</span>}
-              id="profile-dropdown"
-              align="end"
-            >
+          <Nav className="cut-navbar__account">
+            <NavDropdown align="end" title={<span className="cut-navbar__user"><span className="cut-navbar__avatar">{String(user.first_name || "C").slice(0,2).toUpperCase()}</span><span><strong>{user.first_name || "Minha conta"}</strong><small>{user.email}</small></span></span>} id="cut-account-menu">
               <NavDropdown.Item as={Link} to="/user/edit">Minha conta</NavDropdown.Item>
+              <NavDropdown.Item as={Link} to="/password">Alterar senha</NavDropdown.Item>
               <NavDropdown.Divider />
-              <NavDropdown.Item as="button" onClick={handleLogout}>Sair</NavDropdown.Item>
+              <NavDropdown.Item as="button" onClick={signOut}>Sair</NavDropdown.Item>
             </NavDropdown>
-
-            <div className="cut-avatar" aria-hidden="true">
-              {avatarUrl ? (
-                <img src={avatarUrl} alt="" />
-              ) : (
-                <span>{String(user?.first_name || "C").slice(0, 2).toUpperCase()}</span>
-              )}
-            </div>
           </Nav>
         </Navbar.Collapse>
       </Container>

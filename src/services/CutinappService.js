@@ -1,42 +1,18 @@
 import apiClient from "./ApiClient";
 
+const unwrap = (value) => Array.isArray(value) ? value : Array.isArray(value?.data) ? value.data : [];
+
 const cutinappService = {
-  publicConfig: async () => {
-    const response = await apiClient.get("/cutinapp/config");
-    return response.data || {};
-  },
-
-  myProductions: async () => {
-    const response = await apiClient.get("/cutinapp/productions/mine");
-    return response.data.productions || [];
-  },
-
-  createProduction: async (formData) => {
-    const response = await apiClient.post("/cutinapp/productions", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-    return response.data;
-  },
-
-  claimCourtesy: async (ticketId) => {
-    const response = await apiClient.post(`/cutinapp/passes/claim/${ticketId}`);
-    return response.data;
-  },
-
-  myPasses: async () => {
-    const response = await apiClient.get("/cutinapp/passes/mine");
-    return response.data.passes || [];
-  },
-
-  checkIn: async (token) => {
-    const response = await apiClient.post("/cutinapp/checkin", { token });
-    return response.data;
-  },
-
-  checkInStats: async (eventId) => {
-    const response = await apiClient.get(`/cutinapp/checkin/event/${eventId}/stats`);
-    return response.data;
-  },
+  publicConfig: async () => (await apiClient.get("/cutinapp/config")).data,
+  myProductions: async () => unwrap((await apiClient.get("/cutinapp/productions/mine")).data.productions),
+  getProduction: async (id) => (await apiClient.get(`/cutinapp/productions/${id}`)).data.production,
+  createProduction: async (formData) => (await apiClient.post("/cutinapp/productions", formData, { headers: { "Content-Type": "multipart/form-data" } })).data,
+  updateProduction: async (id, formData) => (await apiClient.post(`/cutinapp/productions/${id}`, formData, { headers: { "Content-Type": "multipart/form-data" } })).data,
+  claimCourtesy: async (ticketId) => (await apiClient.post(`/cutinapp/passes/claim/${ticketId}`)).data,
+  myPasses: async () => unwrap((await apiClient.get("/cutinapp/passes/mine")).data.passes),
+  eventParticipants: async (eventId) => (await apiClient.get(`/cutinapp/events/${eventId}/participants`)).data,
+  checkIn: async (token) => (await apiClient.post("/cutinapp/checkin", { token })).data,
+  checkInStats: async (eventId) => (await apiClient.get(`/cutinapp/checkin/event/${eventId}/stats`)).data,
 };
 
 export default cutinappService;
