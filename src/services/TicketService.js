@@ -2,6 +2,12 @@ import apiClient from "./ApiClient";
 
 const apiServiceUrl = "ticket";
 
+const unwrapCollection = (value) => {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  return [];
+};
+
 const ticketService = {
   store: async (formData) => {
     const response = await apiClient.post(`/${apiServiceUrl}`, formData);
@@ -10,7 +16,7 @@ const ticketService = {
 
   listByEvent: async (eventId) => {
     const response = await apiClient.get(`/${apiServiceUrl}/event/${eventId}`);
-    return response.data;
+    return unwrapCollection(response.data);
   },
 
   delete: async (id) => {
@@ -25,7 +31,7 @@ const ticketService = {
 
   show: async (id) => {
     const response = await apiClient.get(`/${apiServiceUrl}/show/${id}`);
-    return response.data;
+    return response.data.ticket || response.data;
   },
 };
 
