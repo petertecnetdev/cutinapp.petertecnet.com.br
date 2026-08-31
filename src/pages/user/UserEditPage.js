@@ -5,6 +5,7 @@ import { AuthContext } from "../../context/AuthContext";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import userService from "../../services/UserService";
+import "./UserEditPage.css";
 
 const emptyForm = {
   first_name: "",
