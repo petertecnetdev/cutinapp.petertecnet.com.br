@@ -1,157 +1,87 @@
-import React, { useState, useEffect } from "react";
-import {
-  Container,
-  Form,
-  Button,
-  Row,
-  Col,
-  Card,
-  Alert,
-} from "react-bootstrap";
+import React, { useMemo, useState } from "react";
+import { Alert, Button, Card, Col, Container, Form, Row } from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
+import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import authService from "../../services/AuthService";
-import { Link } from "react-router-dom";
 
-const PasswordPage = () => {
-  const [showAlert, setShowAlert] = useState(false);
-  const [alertMessage, setAlertMessage] = useState("");
-  const [alertType, setAlertType] = useState("");
-  const [formData, setFormData] = useState({
-    current_password: "",
-    new_password: "",
-    confirm_password: "",
-  });
+export default function PasswordPage() {
+  const navigate = useNavigate();
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  useEffect(() => {
-    // Define um temporizador para esconder o alerta após 5 segundos
-    const timer = setTimeout(() => {
-      setShowAlert(false);
-    }, 5000);
+  const passwordValid = useMemo(
+    () => /[a-z]/.test(newPassword) && /[A-Z]/.test(newPassword) && /\d/.test(newPassword) && /[^A-Za-z0-9]/.test(newPassword) && newPassword.length >= 8,
+    [newPassword]
+  );
+  const canSubmit = currentPassword && passwordValid && newPassword === confirmPassword && !loading;
 
-    // Limpa o temporizador quando o componente é desmontado ou quando o alerta é fechado manualmente
-    return () => clearTimeout(timer);
-  }, [showAlert]); // Executa o efeito sempre que showAlert for alterado
-
-  const handleFormSubmit = async (event) => {
+  const submit = async (event) => {
     event.preventDefault();
+    if (!canSubmit) return;
+    setLoading(true);
+    setError("");
+    setSuccess("");
     try {
-      // Enviar os dados para a API para alterar a senha
-      await authService.changePassword(
-        formData.current_password,
-        formData.new_password,
-        formData.confirm_password
-      );
-
-      // Limpar os campos do formulário após a alteração da senha
-      setFormData({
-        current_password: "",
-        new_password: "",
-        confirm_password: "",
-      });
-
-      // Exibir mensagem de sucesso
-      setAlertType("success");
-      setAlertMessage("Senha atualizada com sucesso!");
-      setShowAlert(true);
-    } catch (error) {
-      console.error(error);
-
-      // Verificar se a API retornou uma mensagem de erro
-      if (error.response && error.response.data && error.response.data.error) {
-        // Exibir mensagem de erro da API
-        setAlertType("danger");
-        setAlertMessage(error.response.data.error);
-        setShowAlert(true);
-      } else {
-        // Exibir mensagem de erro genérica
-        setAlertType("danger");
-        setAlertMessage("Ocorreu um erro ao atualizar a senha.");
-        setShowAlert(true);
-      }
+      const response = await authService.changePassword(currentPassword, newPassword, confirmPassword);
+      setSuccess(response?.message || "Senha alterada com sucesso.");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err) {
+      setError(err?.message || "Não foi possível alterar sua senha.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleAlertClose = () => {
-    setShowAlert(false);
-  };
-
-  const handleInputChange = (event) => {
-    const { name, value } = event.target;
-    setFormData({ ...formData, [name]: value });
-  };
-
   return (
-    <>
+    <div className="cut-app-page">
       <NavlogComponent />
-      <Container>
-        <Row className="justify-content-center mt-5">
-          <Col xs={12} md={6} className="mt-5">
-            <Card>
-              <Card.Body>
-                <h2 className="text-center mb-4">Alterar Senha</h2>
-                <Form onSubmit={handleFormSubmit}>
-                  <Form.Group controlId="current_password" className="mt-4">
-                    <Form.Control
-                      type="password"
-                      placeholder="Digite a senha atual"
-                      name="current_password"
-                      value={formData.current_password}
-                      onChange={handleInputChange}
-                      required
-                    />
+      {loading && <ProcessingIndicatorComponent label="Alterando senha" />}
+      <Container className="cut-page-container py-4 py-lg-5">
+        <Row className="justify-content-center">
+          <Col lg={7} xl={6}>
+            <div className="cut-page-heading">
+              <div>
+                <span className="cut-eyebrow">Segurança</span>
+                <h1>Alterar senha</h1>
+                <p>Use uma senha forte e diferente da atual.</p>
+              </div>
+            </div>
+            {error && <Alert variant="danger">{error}</Alert>}
+            {success && <Alert variant="success">{success}</Alert>}
+            <Card className="cut-panel">
+              <Card.Body className="p-4 p-lg-5">
+                <Form onSubmit={submit}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Senha atual</Form.Label>
+                    <Form.Control type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} autoComplete="current-password" required />
                   </Form.Group>
-                  <Form.Group controlId="new_password" className="mt-4">
-                    <Form.Control
-                      type="password"
-                      placeholder="Digite a nova senha"
-                      name="new_password"
-                      value={formData.new_password}
-                      onChange={handleInputChange}
-                      required
-                    />
+                  <Form.Group className="mb-3">
+                    <Form.Label>Nova senha</Form.Label>
+                    <Form.Control type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} autoComplete="new-password" required />
+                    <Form.Text>8+ caracteres, maiúscula, minúscula, número e símbolo.</Form.Text>
                   </Form.Group>
-                  <Form.Group controlId="confirm_password" className="mt-4">
-                    <Form.Control
-                      type="password"
-                      name="confirm_password"
-                      placeholder="Confirme a senha"
-                      value={formData.confirm_password}
-                      onChange={handleInputChange}
-                      required
-                    />
+                  <Form.Group className="mb-3">
+                    <Form.Label>Confirmar nova senha</Form.Label>
+                    <Form.Control type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} autoComplete="new-password" required />
                   </Form.Group>
-                  <Button
-                    variant="primary"
-                    type="submit"
-                    className="w-100 mt-4"
-                  >
-                    Salvar
-                  </Button>
-
-                  <Link
-                    to="/profile"
-                    className="btn bg-info mt-4"
-                    style={{ display: "block" }} 
-                  >
-                    Alterar perfil
-                  </Link>
+                  {confirmPassword && newPassword !== confirmPassword && <Alert variant="warning">As senhas não coincidem.</Alert>}
+                  <div className="cut-form-actions">
+                    <Button type="button" variant="outline-light" onClick={() => navigate("/user/edit")}>Voltar</Button>
+                    <Button type="submit" disabled={!canSubmit}>Salvar nova senha</Button>
+                  </div>
                 </Form>
-                <Alert
-                  show={showAlert}
-                  variant={alertType}
-                  onClose={handleAlertClose}
-                  dismissible
-                  className="mt-3"
-                >
-                  {alertMessage}
-                </Alert>
               </Card.Body>
             </Card>
           </Col>
         </Row>
       </Container>
-    </>
+    </div>
   );
-};
-
-export default PasswordPage;
+}
