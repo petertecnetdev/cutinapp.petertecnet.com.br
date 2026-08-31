@@ -54,7 +54,7 @@ export default function TicketCreatePage() {
         limit_date: limitDate || null,
         description: description.trim() || null,
       });
-      navigate(`/event/show/${eventId}/courtesies`, { replace: true });
+      navigate("/event/manage", { replace: true });
     } catch (err) {
       setError(err?.message || "Não foi possível criar a cortesia.");
     } finally {
