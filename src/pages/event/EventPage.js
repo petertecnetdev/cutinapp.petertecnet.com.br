@@ -27,7 +27,7 @@ export default function EventPage() {
   useEffect(() => {
     let active = true;
     eventService
-      .list({ per_page: 100 })
+      .list({ per_page: 50 })
       .then((items) => active && setEvents(items))
       .catch((err) => active && setError(err?.message || "Não foi possível carregar os eventos."))
       .finally(() => active && setLoading(false));
@@ -74,7 +74,7 @@ export default function EventPage() {
           <Card className="cut-empty-state">
             <Card.Body>
               <h2>Nenhum evento encontrado</h2>
-              <p>{search ? "Tente outro termo de busca." : "Ainda não existem eventos publicados."}</p>
+              <p>{search ? "Tente outro termo de busca." : "Ainda não existem eventos publicados na Cutinapp."}</p>
             </Card.Body>
           </Card>
         ) : (
