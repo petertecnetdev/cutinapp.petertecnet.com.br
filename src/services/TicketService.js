@@ -1,114 +1,31 @@
-import axios from "axios";
-import { apiBaseUrl } from "../config";
+import apiClient from "./ApiClient";
 
 const apiServiceUrl = "ticket";
 
 const ticketService = {
-  getToken: () => localStorage.getItem("token"),
-
   store: async (formData) => {
-    try {
-      const response = await axios.post(
-        `${apiBaseUrl}/${apiServiceUrl}`,
-        formData,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${ticketService.getToken()}`,
-          },
-        }
-      );
-      return response.data;
-    } catch (error) {
-      if (error.response) {
-        return error.response.data;
-      } else {
-        return { message: "Erro ao se conectar ao servidor." };
-      }
-    }
+    const response = await apiClient.post(`/${apiServiceUrl}`, formData);
+    return response.data;
   },
 
   listByEvent: async (eventId) => {
-    try {
-      const response = await axios.get(
-        `${apiBaseUrl}/${apiServiceUrl}/event/${eventId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${ticketService.getToken()}`,
-          },
-        }
-      );
-      console.log('Resposta da API:', response.data); // Adicionei este log para depuração
-      return response.data;
-    } catch (error) {
-      if (error.response) {
-        return error.response.data;
-      } else {
-        return { message: "Erro ao se conectar ao servidor." };
-      }
-    }
+    const response = await apiClient.get(`/${apiServiceUrl}/event/${eventId}`);
+    return response.data;
   },
 
   delete: async (id) => {
-    try {
-      const response = await axios.delete(
-        `${apiBaseUrl}/${apiServiceUrl}/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${ticketService.getToken()}`,
-          },
-        }
-      );
-      return response.data;
-    } catch (error) {
-      if (error.response) {
-        return error.response.data;
-      } else {
-        return { message: "Erro ao se conectar ao servidor." };
-      }
-    }
+    const response = await apiClient.delete(`/${apiServiceUrl}/${id}`);
+    return response.data;
   },
 
   update: async (id, updateData) => {
-    try {
-      const response = await axios.put(
-        `${apiBaseUrl}/${apiServiceUrl}/${id}`,
-        updateData,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${ticketService.getToken()}`,
-          },
-        }
-      );
-      return response.data;
-    } catch (error) {
-      if (error.response) {
-        return error.response.data;
-      } else {
-        return { message: "Erro ao se conectar ao servidor." };
-      }
-    }
+    const response = await apiClient.put(`/${apiServiceUrl}/${id}`, updateData);
+    return response.data;
   },
 
   show: async (id) => {
-    try {
-      const response = await axios.get(
-        `${apiBaseUrl}/${apiServiceUrl}/show/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${ticketService.getToken()}`,
-          },
-        }
-      );
-      return response.data;
-    } catch (error) {
-      if (error.response) {
-        return error.response.data;
-      } else {
-        return { message: "Erro ao se conectar ao servidor." };
-      }
-    }
+    const response = await apiClient.get(`/${apiServiceUrl}/show/${id}`);
+    return response.data;
   },
 };
 
