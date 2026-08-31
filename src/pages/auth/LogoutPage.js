@@ -1,40 +1,44 @@
-import { useEffect } from "react";
-import { apiBaseUrl, appSlug } from "../../config";
+import React, { useContext, useEffect, useRef, useState } from "react";
+import { Alert, Button, Container } from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
+import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
+import { AuthContext } from "../../context/AuthContext";
 
 export default function LogoutPage() {
+  const navigate = useNavigate();
+  const { logout } = useContext(AuthContext);
+  const startedRef = useRef(false);
+  const [error, setError] = useState("");
+
   useEffect(() => {
+    if (startedRef.current) return undefined;
+    startedRef.current = true;
     let active = true;
 
-    async function logout() {
-      const token = localStorage.getItem("token");
-
+    (async () => {
       try {
-        if (token) {
-          await fetch(`${apiBaseUrl}/auth/logout`, {
-            method: "POST",
-            keepalive: true,
-            headers: {
-              Accept: "application/json",
-              Authorization: `Bearer ${token}`,
-              "X-App-Slug": appSlug,
-            },
-          });
-        }
-      } catch (error) {
-        console.warn("Não foi possível registrar o logout na API:", error);
-      } finally {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        localStorage.removeItem("employer");
-        if (active) window.location.replace("/login");
+        await logout();
+        if (active) navigate("/login", { replace: true });
+      } catch (err) {
+        if (active) setError(err?.message || "Não foi possível concluir a saída.");
       }
-    }
+    })();
 
-    logout();
     return () => {
       active = false;
     };
-  }, []);
+  }, [logout, navigate]);
 
-  return null;
+  if (!error) {
+    return <ProcessingIndicatorComponent label="Encerrando sua sessão" />;
+  }
+
+  return (
+    <div className="cut-app-page">
+      <Container className="cut-page-container py-5">
+        <Alert variant="danger">{error}</Alert>
+        <Button onClick={() => navigate("/login", { replace: true })}>Voltar ao login</Button>
+      </Container>
+    </div>
+  );
 }
