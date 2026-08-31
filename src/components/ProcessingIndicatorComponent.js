@@ -1,4 +1,5 @@
 import React from "react";
+import PropTypes from "prop-types";
 import "./ProcessingIndicatorComponent.css";
 
 export default function ProcessingIndicatorComponent({ fullscreen = true, label = "Carregando" }) {
@@ -16,3 +17,8 @@ export default function ProcessingIndicatorComponent({ fullscreen = true, label 
     </div>
   );
 }
+
+ProcessingIndicatorComponent.propTypes = {
+  fullscreen: PropTypes.bool,
+  label: PropTypes.string,
+};
