@@ -80,6 +80,18 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
     setQuantities((current) => ({ ...current, [`${kind}:${id}`]: parsed }));
   };
 
+  const selectPaymentMethod = (nextMethod) => {
+    setMethod(nextMethod);
+    setError("");
+  };
+
+  const changePaymentMethod = (nextMethod) => {
+    if (result?.order?.status === "paid") return;
+    setResult(null);
+    setMethod(nextMethod);
+    setError("");
+  };
+
   const basePayload = (paymentMethod) => ({
     event_id: eventId,
     payment_method: paymentMethod,
@@ -146,9 +158,9 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
       <div className="d-flex align-items-center justify-content-between mt-3"><strong>Total</strong><strong>{money(total)}</strong></div>
       <Form.Group className="mt-3">
         <Form.Label>Forma de pagamento</Form.Label>
-        <div className="d-flex gap-2">
-          <Button type="button" variant={method === "pix" ? "primary" : "outline-primary"} onClick={() => setMethod("pix")}>PIX</Button>
-          <Button type="button" variant={method === "card" ? "primary" : "outline-primary"} onClick={() => setMethod("card")}>Cartão</Button>
+        <div className="d-flex gap-2 flex-wrap">
+          <Button type="button" variant={method === "pix" ? "primary" : "outline-primary"} onClick={() => selectPaymentMethod("pix")}>PIX</Button>
+          <Button type="button" variant={method === "card" ? "primary" : "outline-primary"} onClick={() => selectPaymentMethod("card")}>Cartão</Button>
         </div>
       </Form.Group>
 
@@ -173,6 +185,15 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
       {result.payment?.qr_code_image && <img src={result.payment.qr_code_image} alt="QR Code PIX" className="img-fluid bg-white rounded p-2 my-3" />}
       {result.payment?.qr_code && <><Form.Control as="textarea" rows={3} readOnly value={result.payment.qr_code} /><Button variant="outline-success" className="w-100 mt-2" onClick={copyPix}>Copiar PIX</Button></>}
       {result.payment?.ticket_url && <Button as="a" href={result.payment.ticket_url} target="_blank" rel="noreferrer" variant="outline-primary" className="w-100 mt-2">Abrir pagamento no Mercado Pago</Button>}
+
+      {!approved && <div className="mt-3 pt-2 border-top border-secondary-subtle">
+        <small className="d-block mb-2">Quer usar outra forma de pagamento?</small>
+        <div className="d-flex gap-2 flex-wrap">
+          {method !== "pix" && <Button type="button" variant="outline-primary" onClick={() => changePaymentMethod("pix")}>Trocar para PIX</Button>}
+          {method !== "card" && <Button type="button" variant="outline-primary" onClick={() => changePaymentMethod("card")}>Trocar para cartão</Button>}
+        </div>
+      </div>}
+
       {(failed || reversed) && <Button variant="outline-light" className="w-100 mt-3" onClick={() => setResult(null)}>Tentar novamente</Button>}
     </Alert>}
   </div>;
