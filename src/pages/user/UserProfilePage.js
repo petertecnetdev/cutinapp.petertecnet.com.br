@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import PropTypes from "prop-types";
 import { Alert, Badge, Button, Card, Col, Container, Row } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
@@ -16,6 +17,21 @@ function EventTile({ event, badge }) {
     <div className="cut-profile-event-card__body"><small>{event.production?.name || "Cutinapp"}</small><strong>{event.title}</strong><span><i className="fa-regular fa-calendar me-2" />{fmt(event.start_date)}</span><span><i className="fa-solid fa-location-dot me-2" />{event.city ? `${event.city}${event.uf ? ` - ${event.uf}` : ""}` : "Local a confirmar"}</span></div>
   </button>;
 }
+
+EventTile.propTypes = {
+  event: PropTypes.shape({
+    slug: PropTypes.string.isRequired,
+    image: PropTypes.string,
+    title: PropTypes.string.isRequired,
+    start_date: PropTypes.string,
+    city: PropTypes.string,
+    uf: PropTypes.string,
+    production: PropTypes.shape({ name: PropTypes.string }),
+  }).isRequired,
+  badge: PropTypes.string,
+};
+
+EventTile.defaultProps = { badge: "" };
 
 export default function UserProfilePage() {
   const navigate = useNavigate();
@@ -78,5 +94,3 @@ export default function UserProfilePage() {
     </Container>
   </div>;
 }
-
-EventTile.propTypes = {};
