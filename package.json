@@ -1,7 +1,7 @@
 {
   "name": "laravel-rest-api-and-react-app",
   "version": "1.0.0",
-  "description": "We are using Laravel 9 for jwt authentication based login and \r signup API. We use react.js on the frontend.",
+  "description": "Cutinapp web application powered by the Peter Tecnet API.",
   "main": "index.js",
   "scripts": {
     "start": "react-scripts start",
@@ -10,7 +10,7 @@
     "eject": "react-scripts eject"
   },
   "keywords": [],
-  "author": "",
+  "author": "Peter Tecnet",
   "license": "ISC",
   "dependencies": {
     "@fortawesome/fontawesome-free": "^6.5.1",
@@ -18,8 +18,6 @@
     "bootstrap": "^5.3.3",
     "express": "^4.19.2",
     "jquery": "^3.7.1",
-    "laravel-echo": "^1.16.1",
-    "pusher-js": "^8.4.0-rc2",
     "prop-types": "^15.8.1",
     "qrcode": "^1.5.4",
     "react-bootstrap": "^2.10.2",
