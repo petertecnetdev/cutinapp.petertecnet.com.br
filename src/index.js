@@ -5,17 +5,11 @@ import "@fortawesome/fontawesome-free/css/all.min.css";
 import "./index.css";
 import "./modern.css";
 import "./social.css";
+import "./components/location/LocationFields.css";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import reportWebVitals from "./reportWebVitals";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
-root.render(
-  <React.StrictMode>
-    <AuthProvider>
-      <App />
-    </AuthProvider>
-  </React.StrictMode>
-);
-
+root.render(<React.StrictMode><AuthProvider><App /></AuthProvider></React.StrictMode>);
 reportWebVitals();
