@@ -3,6 +3,7 @@ import { Container, Nav, Navbar, NavDropdown } from "react-bootstrap";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import cutinappService from "../services/CutinappService";
+import { subscribeToUserNotifications } from "../services/RealtimeNotificationService";
 
 export default function NavlogComponent() {
   const { user, logout } = useContext(AuthContext);
@@ -28,17 +29,26 @@ export default function NavlogComponent() {
         const response = await cutinappService.notifications({ unread: true, per_page: 10 });
         if (mounted) setUnreadNotifications(Number(response?.unread_count || 0));
       } catch (_) {
-        // A navegação não deve falhar quando a central de notificações estiver indisponível.
+        // O menu continua utilizável mesmo se a central estiver temporariamente indisponível.
       }
     };
 
     refreshUnread();
+
+    const disconnectRealtime = subscribeToUserNotifications(userId, (notification) => {
+      if (!mounted) return;
+      setUnreadNotifications((current) => current + (notification?.read_at ? 0 : 1));
+      window.dispatchEvent(new CustomEvent("cutinapp:notification-received", { detail: notification }));
+    });
+
+    // Fallback e reconciliação: o WebSocket é imediato; a consulta periódica corrige qualquer perda de conexão.
     const timer = window.setInterval(refreshUnread, 30000);
     window.addEventListener("focus", refreshUnread);
     window.addEventListener("cutinapp:notifications-updated", refreshUnread);
 
     return () => {
       mounted = false;
+      if (typeof disconnectRealtime === "function") disconnectRealtime();
       window.clearInterval(timer);
       window.removeEventListener("focus", refreshUnread);
       window.removeEventListener("cutinapp:notifications-updated", refreshUnread);
@@ -105,11 +115,7 @@ export default function NavlogComponent() {
             </NavDropdown>
           </Nav>
           <Nav className="cut-navbar__account">
-            <NavDropdown
-              align="end"
-              title={<span className="cut-navbar__user"><span className="cut-navbar__avatar">{String(user.first_name || "C").slice(0, 2).toUpperCase()}</span><span><strong>{user.first_name || "Minha conta"}</strong><small>{user.email}</small></span></span>}
-              id="cut-account-menu"
-            >
+            <NavDropdown align="end" title={<span className="cut-navbar__user"><span className="cut-navbar__avatar">{String(user.first_name || "C").slice(0, 2).toUpperCase()}</span><span><strong>{user.first_name || "Minha conta"}</strong><small>{user.email}</small></span></span>} id="cut-account-menu">
               <NavDropdown.Item as={Link} to="/profile"><i className="fa-regular fa-user me-2" />Meu perfil</NavDropdown.Item>
               <NavDropdown.Item as={Link} to="/dashboard">Painel</NavDropdown.Item>
               <NavDropdown.Item as={Link} to="/user/edit">Editar conta</NavDropdown.Item>
