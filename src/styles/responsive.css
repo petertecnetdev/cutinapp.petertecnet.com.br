@@ -1,0 +1,128 @@
+@media (max-width: 1199px) {
+  .cut-page-container { width: min(var(--cut-container-lg),100%); }
+  .cut-content-grid { grid-template-columns: minmax(0,1fr) 320px; }
+}
+
+@media (max-width: 991px) {
+  .cut-navbar__links { padding: 14px 0 8px; }
+  .cut-navbar__links .nav-link,
+  .cut-navbar__links .dropdown-toggle { min-height: 46px; padding-inline: 12px !important; }
+  .cut-navbar__account { padding: 8px 0 14px; align-items: stretch; }
+  .cut-navbar__account .dropdown-toggle { width: 100%; justify-content: space-between; padding: 8px !important; }
+  .cut-page-heading, .cut-section-heading { align-items: flex-start; flex-direction: column; }
+  .cut-content-grid { grid-template-columns: 1fr; }
+  .cut-sticky-aside, .cut-ticket-purchase-panel { position: static; }
+  .cut-grid--4 { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .cut-discovery-primary, .cut-discovery-secondary { grid-template-columns: 1fr 1fr; }
+  .cut-discovery-primary .btn { grid-column: 1/-1; }
+  .cut-event-details { grid-template-columns: 1fr; }
+  .cut-profile-hero__content { align-items: flex-start; flex-direction: column; }
+  .cut-ticket-detail__body { grid-template-columns: 1fr; }
+  .cut-production-inline { align-items: flex-start; flex-direction: column; }
+  .cut-form-actions { justify-content: stretch; }
+  .cut-form-actions .btn { flex: 1; }
+}
+
+@media (max-width: 767px) {
+  .container, .container-fluid { --bs-gutter-x: 24px; }
+  .cut-section { padding-block: 48px; }
+  .cut-page-heading { margin-bottom: 24px; }
+  .cut-page-heading h1 { font-size: clamp(2.05rem,10vw,3rem); }
+  .cut-grid--2, .cut-grid--3, .cut-grid--4, .cut-two-cols { grid-template-columns: 1fr; }
+  .cut-auto-grid { grid-template-columns: 1fr; }
+  .cut-discovery-primary, .cut-discovery-secondary { grid-template-columns: 1fr; }
+  .cut-discovery-primary .btn { grid-column: auto; }
+  .cut-filter-shortcuts { flex-wrap: nowrap; overflow-x: auto; padding: 2px 2px 6px; scrollbar-width: none; scroll-snap-type: x proximity; }
+  .cut-filter-shortcuts::-webkit-scrollbar { display: none; }
+  .cut-filter-shortcuts button { scroll-snap-align: start; }
+  .cut-search-bar { flex-wrap: wrap; }
+  .cut-search-bar .btn { width: 100%; }
+  .cut-ticket-wallet-card__main { grid-template-columns: 1fr; }
+  .cut-ticket-wallet-card__qr { width: min(200px,100%); justify-self: start; }
+  .cut-ticket-wallet-card__footer { align-items: flex-start; flex-direction: column; }
+  .cut-ticket-detail__top { flex-direction: column; padding: 28px 24px; }
+  .cut-ticket-detail__body { padding: 30px 24px; }
+  .cut-ticket-detail__facts { grid-template-columns: 1fr; }
+  .cut-ticket-detail__footer { align-items: stretch; flex-direction: column; padding: 20px 24px; }
+  .cut-profile-avatar { width: 116px; height: 116px; flex-basis: 116px; }
+  .cut-profile-hero { min-height: 400px; padding: 68px 0 36px; }
+  .cut-event-hero { min-height: 390px; padding: 60px 0 36px; }
+  .cut-event-hero--premium { min-height: 440px; }
+  .cut-event-hero__content h1 { font-size: clamp(2.45rem,12vw,4rem); }
+  .cut-card-actions .btn, .cut-owner-actions .btn { flex: 1 1 auto; }
+  .cut-list-row { align-items: flex-start; flex-direction: column; }
+  .cut-list-row > :last-child { width: 100%; }
+  .cut-scanner-card { min-height: auto; }
+  .table-responsive { border: 1px solid var(--cut-border-soft); border-radius: var(--cut-radius-lg); }
+}
+
+@media (max-width: 575px) {
+  .container, .container-fluid { --bs-gutter-x: 20px; }
+  .cut-page-container { padding-left: 10px !important; padding-right: 10px !important; }
+  .cut-page-heading h1 { letter-spacing: -.045em; }
+  .cut-page-heading p { font-size: .9rem; line-height: 1.65; }
+  .cut-panel, .cut-empty-state, .cut-discovery-shell, .cut-wallet-toolbar, .cut-event-card, .cut-production-card, .cut-artist-card, .cut-feed-card, .cut-pass-card { border-radius: 20px !important; }
+  .cut-panel .card-body { padding: 20px !important; }
+  .cut-form-actions { flex-direction: column-reverse; }
+  .cut-form-actions .btn { width: 100%; flex: none; }
+  .cut-card-actions, .cut-owner-actions { align-items: stretch; flex-direction: column; }
+  .cut-card-actions .btn, .cut-owner-actions .btn { width: 100%; }
+  .cut-autocomplete-menu {
+    position: fixed;
+    left: 10px;
+    right: 10px;
+    top: auto;
+    bottom: 10px;
+    max-height: min(54vh,430px);
+    padding: 8px;
+    border-radius: 22px;
+    box-shadow: 0 -24px 80px rgba(0,0,0,.55);
+  }
+  .cut-autocomplete-menu::before { content: ""; display: block; width: 38px; height: 4px; margin: 2px auto 8px; border-radius: 999px; background: rgba(255,255,255,.18); }
+  .cut-autocomplete-menu button { min-height: 50px; padding: 13px 12px; }
+  .cut-event-card .card-body { padding: 16px; }
+  .cut-event-card h2 { font-size: 1.12rem; }
+  .cut-ticket-wallet-card, .cut-ticket-detail { border-radius: 22px !important; }
+  .cut-ticket-wallet-card__main { padding: 20px; }
+  .cut-ticket-wallet-card__info h2 { font-size: 1.48rem; }
+  .cut-ticket-wallet-card__footer { padding: 14px 20px; }
+  .cut-ticket-detail__top { padding: 24px 20px; }
+  .cut-ticket-detail__body { padding: 26px 20px; gap: 26px; }
+  .cut-ticket-detail__footer { padding: 18px 20px; }
+  .cut-ticket-detail__perforation span { width: 30px; height: 30px; top: -15px; }
+  .cut-ticket-detail__perforation span:first-child { left: -15px; }
+  .cut-ticket-detail__perforation span:last-child { right: -15px; }
+  .cut-pass-card__header { flex-direction: column; }
+  .cut-scanner { aspect-ratio: 3/4; border-radius: 20px; }
+  .cut-checkin-result { min-height: 340px; padding: 22px 10px; }
+  .cut-profile-hero__content h1 { font-size: clamp(2.35rem,12vw,3.3rem); }
+  .cut-lineup-grid { grid-template-columns: 1fr; }
+  .modal-dialog { margin: 10px; }
+  .modal-content { border-radius: 22px !important; }
+}
+
+@media (max-width: 430px) {
+  .cut-navbar__brand > img { width: 38px; height: 38px; }
+  .cut-navbar__brand small { display: none; }
+  .cut-page-heading h1 { font-size: 2.15rem; }
+  .cut-section-title { font-size: 1.18rem; }
+  .cut-discovery-shell .card-body, .cut-wallet-toolbar .card-body { padding: 14px; }
+  .cut-ticket-wallet-card__qr { width: 100%; }
+  .cut-ticket-detail__mark { align-items: flex-start; }
+}
+
+@media (max-width: 360px) {
+  .container, .container-fluid { --bs-gutter-x: 16px; }
+  .cut-page-container { padding-left: 8px !important; padding-right: 8px !important; }
+  .btn { padding-inline: .82rem; }
+  .cut-panel .card-body { padding: 18px 16px !important; }
+  .cut-page-heading h1 { font-size: 2rem; }
+  .cut-event-hero__content h1 { font-size: 2.3rem; }
+  .cut-ticket-wallet-card__main { padding: 18px 16px; }
+  .cut-ticket-detail__top, .cut-ticket-detail__body, .cut-ticket-detail__footer { padding-left: 16px; padding-right: 16px; }
+}
+
+@media (min-width: 1440px) {
+  .cut-page-container { width: min(var(--cut-container-xl),100%); }
+  .cut-event-hero__content { max-width: 930px; }
+}
