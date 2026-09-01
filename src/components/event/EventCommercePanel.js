@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import PropTypes from "prop-types";
 import { Alert, Button, Form } from "react-bootstrap";
 import MercadoPagoCardForm from "../payment/MercadoPagoCardForm";
@@ -15,6 +15,8 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
   const [method, setMethod] = useState("pix");
+  const resultRef = useRef(result);
+  resultRef.current = result;
 
   useEffect(() => {
     let active = true;
@@ -26,28 +28,38 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
     return () => { active = false; };
   }, [slug]);
 
+  const pollingPublicId = result?.order?.public_id || "";
   useEffect(() => {
-    const publicId = result?.order?.public_id;
-    const currentStatus = result?.order?.status || result?.payment?.status;
-    if (!publicId || finalStatuses.includes(currentStatus)) return undefined;
+    if (!pollingPublicId) return undefined;
 
     let active = true;
     let attempts = 0;
-    const timer = window.setInterval(async () => {
+    const maxAttempts = 30;
+
+    const sync = async () => {
       attempts += 1;
       try {
-        const order = await commerceService.syncPayment(publicId);
-        if (!active) return;
-        const payment = Array.isArray(order?.payments) ? order.payments.at(-1) : result?.payment;
-        setResult((current) => ({ ...current, order, payment: payment || current?.payment }));
-        if (finalStatuses.includes(order?.status) || attempts >= 30) window.clearInterval(timer);
+        const order = await commerceService.syncPayment(pollingPublicId);
+        if (!active) return true;
+        const payments = Array.isArray(order?.payments) ? order.payments : [];
+        const latestPayment = payments.length ? payments[payments.length - 1] : resultRef.current?.payment;
+        setResult((current) => ({ ...current, order, payment: latestPayment || current?.payment }));
+        return finalStatuses.includes(order?.status);
       } catch (_) {
-        if (attempts >= 30) window.clearInterval(timer);
+        return false;
       }
+    };
+
+    const initialStatus = resultRef.current?.order?.status || resultRef.current?.payment?.status;
+    if (finalStatuses.includes(initialStatus)) return undefined;
+
+    const timer = window.setInterval(async () => {
+      const finished = await sync();
+      if (finished || attempts >= maxAttempts) window.clearInterval(timer);
     }, 4000);
 
     return () => { active = false; window.clearInterval(timer); };
-  }, [result?.order?.public_id, result?.order?.status, result?.payment?.status]);
+  }, [pollingPublicId]);
 
   const selected = useMemo(() => {
     const tickets = (catalog.tickets || []).filter((item) => Number(quantities[`ticket:${item.id}`] || 0) > 0);
