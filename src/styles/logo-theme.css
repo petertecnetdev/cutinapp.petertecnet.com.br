@@ -1,0 +1,212 @@
+/* Cutinapp visual identity — final theme layer.
+   Palette follows the official logo: magenta/violet -> electric blue -> cyan. */
+
+.cut-navbar,
+.cut-home__nav {
+  background: rgba(5,5,19,.84) !important;
+  border-color: rgba(184,71,250,.14) !important;
+  box-shadow: 0 10px 34px rgba(0,0,0,.26), 0 1px 0 rgba(6,175,250,.04) !important;
+}
+
+.cut-navbar__brand > img,
+.cut-home__brand img,
+.cut-dashboard__heroMark img,
+.cut-auth-shell__logo img,
+.cut-auth-shell__brandMark img {
+  filter: drop-shadow(0 10px 24px rgba(184,71,250,.22)) drop-shadow(0 0 18px rgba(6,175,250,.10)) !important;
+}
+
+.cut-navbar__links .nav-link.active,
+.cut-navbar__avatar,
+.cut-dashboard__heroMark,
+.cut-home__visualLogo,
+.cut-empty-icon,
+.cut-dashboard__card > i,
+.cut-home__featureGrid i {
+  border-color: rgba(184,71,250,.24) !important;
+  background: linear-gradient(145deg, rgba(184,71,250,.14), rgba(43,98,244,.10) 58%, rgba(6,175,250,.08)) !important;
+}
+
+.cut-panel::before,
+.cut-dashboard__hero::after,
+.cut-auth-shell__card::before,
+.cut-home__hero::after {
+  background: linear-gradient(90deg, transparent, rgba(229,108,255,.40), rgba(113,65,247,.46), rgba(6,175,250,.36), transparent) !important;
+}
+
+.cut-info-box,
+.cut-upload-placeholder {
+  border-color: rgba(184,71,250,.18) !important;
+  background: linear-gradient(135deg, rgba(184,71,250,.075), rgba(113,65,247,.055) 55%, rgba(6,175,250,.035)) !important;
+}
+
+.cut-search-bar,
+.cut-dashboard__stats article,
+.cut-auth-shell__card,
+.cut-autocomplete-menu {
+  background-color: rgba(13,13,36,.90) !important;
+}
+
+.cut-auth-shell__bg {
+  background:
+    radial-gradient(circle at 14% 18%, rgba(184,71,250,.22), transparent 38%),
+    radial-gradient(circle at 84% 14%, rgba(43,98,244,.19), transparent 37%),
+    radial-gradient(circle at 74% 88%, rgba(6,175,250,.08), transparent 36%),
+    linear-gradient(155deg,#03030d 0%,#0b0922 50%,#03030d 100%) !important;
+}
+
+.cut-auth-shell__heroCard {
+  background: linear-gradient(160deg, rgba(25,20,60,.82), rgba(8,8,28,.72)) !important;
+}
+.cut-auth-shell__heroCard::before {
+  background: radial-gradient(circle at 25% 12%, rgba(229,108,255,.16), transparent 42%) !important;
+}
+.cut-auth-shell__card {
+  border-color: rgba(184,71,250,.24) !important;
+  background: linear-gradient(180deg, rgba(16,14,46,.90), rgba(6,6,21,.97)) !important;
+}
+.cut-auth-shell__pill span {
+  background: var(--cut-gradient-brand) !important;
+  box-shadow: 0 0 18px rgba(184,71,250,.65), 0 0 30px rgba(6,175,250,.20) !important;
+}
+
+.cut-home__hero::before {
+  background:
+    radial-gradient(circle at 15% 18%, rgba(184,71,250,.22), transparent 32%),
+    radial-gradient(circle at 76% 18%, rgba(43,98,244,.17), transparent 34%),
+    radial-gradient(circle at 66% 74%, rgba(6,175,250,.07), transparent 30%) !important;
+}
+.cut-home__glow {
+  background: linear-gradient(135deg,#e56cff,#7141f7 58%,#06affa) !important;
+  opacity: .18 !important;
+}
+.cut-home__copy h1 em {
+  background: var(--cut-gradient-brand-horizontal) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
+}
+.cut-home__visualCard {
+  background: linear-gradient(150deg, rgba(28,23,68,.92), rgba(8,8,28,.88)) !important;
+  border-color: rgba(184,71,250,.18) !important;
+}
+.cut-home__visualCard::before {
+  background: radial-gradient(circle at 78% 12%,rgba(184,71,250,.21),transparent 28%), radial-gradient(circle at 14% 86%,rgba(6,175,250,.13),transparent 30%) !important;
+}
+
+.cut-dashboard__hero::before {
+  background: linear-gradient(135deg,#b847fa,#7141f7 55%,#2b62f4) !important;
+  opacity: .16 !important;
+}
+.cut-dashboard__heroMark {
+  background: linear-gradient(145deg, rgba(184,71,250,.13), rgba(43,98,244,.08), rgba(6,175,250,.05)) !important;
+}
+.cut-dashboard__stats article {
+  border-color: rgba(209,188,255,.12) !important;
+  background: linear-gradient(150deg, rgba(20,18,48,.94), rgba(9,9,29,.94)) !important;
+}
+
+.cut-panel,
+.cut-empty-state,
+.cut-discovery-shell,
+.cut-wallet-toolbar,
+.cut-artist-card,
+.cut-feed-card,
+.cut-event-mini,
+.cut-production-card,
+.cut-event-card,
+.cut-pass-card,
+.cut-dashboard__card,
+.cut-home__eventCard,
+.cut-home__featureGrid article {
+  border-color: rgba(209,188,255,.13) !important;
+  background: var(--cut-gradient-surface) !important;
+}
+
+.cut-panel:hover,
+.cut-artist-card:hover,
+.cut-feed-card:hover,
+.cut-event-mini:hover,
+.cut-production-card:hover,
+.cut-event-card:hover,
+.cut-pass-card:hover,
+.cut-dashboard__card:hover,
+.cut-home__eventCard:hover {
+  border-color: rgba(184,71,250,.36) !important;
+  box-shadow: 0 22px 58px rgba(0,0,0,.34), 0 0 32px rgba(113,65,247,.08) !important;
+}
+
+.cut-eyebrow,
+.cut-home__eyebrow,
+.cut-dashboard__stats a,
+.cut-dashboard__card > b,
+.cut-upload-placeholder i,
+.cut-search-bar > i,
+.cut-location-spinner,
+.cut-auth-inline-links a,
+.cut-navbar__links i,
+.cut-home__proof i,
+.cut-home__eventCard span {
+  color: var(--cut-brand-300) !important;
+}
+
+.cut-status-badge--free {
+  border-color: rgba(184,71,250,.30) !important;
+  background: rgba(184,71,250,.13) !important;
+  color: #edc8ff !important;
+}
+.cut-status-badge--used {
+  border-color: rgba(6,175,250,.28) !important;
+  background: rgba(6,175,250,.11) !important;
+  color: #ccefff !important;
+}
+
+.cut-filter-shortcuts button:hover,
+.cut-filter-shortcuts button.active,
+.cut-active-filters button:hover,
+.cut-recent-cities button:hover,
+.cut-icon-button:hover,
+.cut-navbar__links .nav-link:hover,
+.cut-navbar__links .nav-link.active,
+.cut-navbar__links .dropdown-toggle:hover,
+.cut-navbar__links .show > .dropdown-toggle {
+  border-color: rgba(184,71,250,.30) !important;
+  background: linear-gradient(135deg, rgba(184,71,250,.13), rgba(43,98,244,.08)) !important;
+}
+
+.cut-primary-action,
+.cut-dashboard__primary,
+.cut-home__primary,
+.cut-home__cta,
+.btn-primary {
+  background: var(--cut-gradient-brand) !important;
+  color: #fff !important;
+  border-color: transparent !important;
+  box-shadow: var(--cut-shadow-brand) !important;
+}
+.cut-primary-action:hover,
+.cut-dashboard__primary:hover,
+.cut-home__primary:hover,
+.cut-home__cta:hover,
+.btn-primary:hover {
+  box-shadow: var(--cut-shadow-brand-strong) !important;
+  filter: brightness(1.08) saturate(1.08);
+}
+
+/* Bootstrap color utilities used by legacy pages */
+.bg-primary,
+.badge.bg-primary { background: var(--cut-gradient-brand) !important; color: #fff !important; }
+.bg-info,
+.badge.bg-info { background: linear-gradient(135deg,#2b62f4,#06affa) !important; color: #fff !important; }
+.text-primary { color: #d58aff !important; }
+.text-info { color: #62dfff !important; }
+.border-primary { border-color: rgba(184,71,250,.46) !important; }
+.border-info { border-color: rgba(6,175,250,.42) !important; }
+
+/* Keep status semantics readable while avoiding unrelated brand colors. */
+.badge.bg-secondary { background: rgba(113,65,247,.18) !important; color: #ded3ff !important; border: 1px solid rgba(113,65,247,.28); }
+
+@media (max-width: 640px) {
+  .cut-navbar,
+  .cut-home__nav { backdrop-filter: blur(18px) saturate(140%); }
+}
