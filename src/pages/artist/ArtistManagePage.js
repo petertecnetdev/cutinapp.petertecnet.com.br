@@ -13,7 +13,7 @@ const ARTIST_TYPES = [
   ["orchestra", "Orquestra"],
 ];
 const GROUP_TYPES = new Set(["band", "duo", "group", "collective", "orchestra"]);
-const empty = { artist_type: "solo", stage_name: "", bio: "", city: "", uf: "", genres: "", instagram_url: "", youtube_url: "", spotify_url: "", website_url: "", photo: "", cover: "", is_published: true };
+const empty = { artist_type: "solo", stage_name: "", bio: "", city: "", uf: "", genres: "", instagram_url: "", youtube_url: "", spotify_url: "", website_url: "", photo: "", cover: "", is_published: true, claim_myself: false };
 const emptyMember = { member_artist_id: "", display_name: "", role: "", photo: "", bio: "", sort_order: 0, is_current: true, joined_at: "" };
 const typeLabel = (type) => ARTIST_TYPES.find(([value]) => value === type)?.[1] || "Artista solo";
 
@@ -36,7 +36,7 @@ export default function ArtistManagePage() {
 
   const edit = async (artist) => {
     setEditing(artist.id);
-    setForm({ ...empty, ...artist, artist_type: artist.artist_type || "solo", genres: Array.isArray(artist.genres) ? artist.genres.join(", ") : "" });
+    setForm({ ...empty, ...artist, claim_myself: false, artist_type: artist.artist_type || "solo", genres: Array.isArray(artist.genres) ? artist.genres.join(", ") : "" });
     setMembers([]);
     setMemberForm(emptyMember);
     if (GROUP_TYPES.has(artist.artist_type)) {
@@ -50,18 +50,22 @@ export default function ArtistManagePage() {
 
   const submit = async (e) => {
     e.preventDefault(); setBusy(true); setError(""); setSuccess("");
-    const { artist_type, ...base } = form;
-    const payload = { ...base, uf: form.uf?.toUpperCase(), genres: form.genres.split(",").map((x) => x.trim()).filter(Boolean) };
+    const payload = {
+      ...form,
+      uf: form.uf?.toUpperCase(),
+      genres: form.genres.split(",").map((x) => x.trim()).filter(Boolean),
+    };
+    if (editing) delete payload.claim_myself;
+
     try {
       const response = editing ? await cutinappService.updateArtist(editing, payload) : await cutinappService.createArtist(payload);
       const artistId = editing || response.artist?.id;
-      if (artistId) await cutinappService.updateArtistType(artistId, artist_type || "solo");
       await load();
-      if (!editing && GROUP_TYPES.has(artist_type) && artistId) {
+      if (!editing && GROUP_TYPES.has(form.artist_type) && artistId) {
         setEditing(artistId);
-        setForm({ ...form, artist_type });
+        setForm({ ...form, claim_myself: false });
         setMembers([]);
-        setSuccess("Perfil criado. Agora adicione os integrantes da formação.");
+        setSuccess(form.claim_myself ? "Seu perfil foi criado. Agora adicione os integrantes da formação." : "Perfil provisório criado. O artista poderá reivindicá-lo quando criar a conta; agora você pode adicionar os integrantes.");
       } else {
         setSuccess(response.message || "Artista salvo.");
         cancel();
@@ -111,12 +115,13 @@ export default function ArtistManagePage() {
 
   return <div className="cut-app-page"><NavlogComponent />{(loading || busy) && <ProcessingIndicatorComponent label={loading ? "Carregando artistas" : "Atualizando perfil artístico"} />}
     <Container className="cut-page-container py-4 py-lg-5">
-      <div className="cut-page-heading"><div><span className="cut-eyebrow">Área do produtor</span><h1>Artistas e formações</h1><p>Cadastre artistas solo, bandas, duos, grupos, coletivos e orquestras. Formações podem ter integrantes com ou sem perfil próprio na Cutinapp.</p></div></div>
+      <div className="cut-page-heading"><div><span className="cut-eyebrow">Área do produtor</span><h1>Artistas e formações</h1><p>Você pode cadastrar o artista antes de ele ter conta. O perfil fica provisório e o próprio artista poderá reivindicar sua identidade e participação depois.</p></div></div>
       {error && <Alert variant="danger">{error}</Alert>}{success && <Alert variant="success">{success}</Alert>}
       <Row className="g-4"><Col lg={5}><Card className="cut-panel"><Card.Body className="p-4"><h2 className="cut-section-title">{editing ? "Editar perfil artístico" : "Novo perfil artístico"}</h2>
         <Form onSubmit={submit} className="cut-form-grid">
           <Form.Group><Form.Label>Tipo *</Form.Label><Form.Select value={form.artist_type || "solo"} onChange={(e) => setForm({ ...form, artist_type: e.target.value })}>{ARTIST_TYPES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Form.Select><Form.Text>Bandas e grupos aparecem como uma única atração no line-up; os integrantes aparecem dentro do perfil.</Form.Text></Form.Group>
           <Form.Group><Form.Label>Nome artístico *</Form.Label><Form.Control value={form.stage_name} onChange={(e) => setForm({ ...form, stage_name: e.target.value })} required /></Form.Group>
+          {!editing && <Card className="cut-info-box"><Card.Body><Form.Check type="switch" id="artist-is-me" label="Este perfil artístico é meu" checked={Boolean(form.claim_myself)} onChange={(e) => setForm({ ...form, claim_myself: e.target.checked })} /><small className="text-secondary">Deixe desmarcado quando estiver cadastrando um artista do seu evento que ainda não possui conta. Ele poderá reivindicar o perfil depois.</small></Card.Body></Card>}
           <Form.Group><Form.Label>Biografia</Form.Label><Form.Control as="textarea" rows={5} value={form.bio || ""} onChange={(e) => setForm({ ...form, bio: e.target.value })} /></Form.Group>
           <div className="cut-two-cols"><Form.Group><Form.Label>Cidade</Form.Label><Form.Control value={form.city || ""} onChange={(e) => setForm({ ...form, city: e.target.value })} /></Form.Group><Form.Group><Form.Label>UF</Form.Label><Form.Control maxLength={2} value={form.uf || ""} onChange={(e) => setForm({ ...form, uf: e.target.value })} /></Form.Group></div>
           <Form.Group><Form.Label>Gêneros / categorias</Form.Label><Form.Control value={form.genres || ""} onChange={(e) => setForm({ ...form, genres: e.target.value })} placeholder="Rock, MPB, Eletrônico" /><Form.Text>Separe por vírgulas.</Form.Text></Form.Group>
@@ -135,8 +140,8 @@ export default function ArtistManagePage() {
         <Button type="submit">Adicionar integrante</Button>
       </Form></Card.Body></Card>}
       </Col>
-      <Col lg={7}><div className="cut-section-heading"><div><span className="cut-eyebrow">Perfis vinculados a você</span><h2>Meus artistas</h2></div></div>
-        {!loading && artists.length === 0 ? <Card className="cut-empty-state"><Card.Body><p>Você ainda não cadastrou artistas.</p></Card.Body></Card> : <div className="cut-admin-list">{artists.map((artist) => <Card className="cut-panel" key={artist.id}><Card.Body className="p-3 d-flex align-items-center justify-content-between gap-3"><div><div className="d-flex gap-2 align-items-center"><strong>{artist.stage_name}</strong><Badge bg="secondary">{typeLabel(artist.artist_type)}</Badge></div><div className="text-secondary small">{artist.city || "Sem cidade"} · {artist.genres?.join(" · ") || "Sem gênero"}</div></div><Button variant="outline-light" onClick={() => edit(artist)}>Editar</Button></Card.Body></Card>)}</div>}
+      <Col lg={7}><div className="cut-section-heading"><div><span className="cut-eyebrow">Perfis administrados por você</span><h2>Artistas</h2></div></div>
+        {!loading && artists.length === 0 ? <Card className="cut-empty-state"><Card.Body><p>Você ainda não cadastrou artistas.</p></Card.Body></Card> : <div className="cut-admin-list">{artists.map((artist) => <Card className="cut-panel" key={artist.id}><Card.Body className="p-3 d-flex align-items-center justify-content-between gap-3"><div><div className="d-flex gap-2 align-items-center flex-wrap"><strong>{artist.stage_name}</strong><Badge bg="secondary">{typeLabel(artist.artist_type)}</Badge>{artist.claimed_at ? <Badge bg="success">Perfil reivindicado</Badge> : <Badge bg="warning" text="dark">Aguardando artista</Badge>}</div><div className="text-secondary small">{artist.city || "Sem cidade"} · {artist.genres?.join(" · ") || "Sem gênero"}</div></div><Button variant="outline-light" onClick={() => edit(artist)}>Editar</Button></Card.Body></Card>)}</div>}
         {editing && isGroup && <div className="mt-4"><div className="cut-section-heading"><div><span className="cut-eyebrow">Integrantes</span><h2>{members.filter((member) => member.is_current).length} na formação atual</h2></div></div>{members.length === 0 ? <Card className="cut-empty-state"><Card.Body><p>Nenhum integrante cadastrado para esta formação.</p></Card.Body></Card> : <div className="cut-admin-list">{members.map((member) => <Card className="cut-panel" key={member.id}><Card.Body className="p-3"><div className="d-flex justify-content-between gap-3"><div className="d-flex gap-3"><div className="cut-artist-card__photo" style={{ width: 54, height: 54 }}>{member.photo || member.linked_artist?.photo ? <img src={member.photo || member.linked_artist?.photo} alt={member.display_name} /> : <span>{member.display_name?.slice(0, 2).toUpperCase()}</span>}</div><div><div className="d-flex gap-2 align-items-center"><strong>{member.display_name}</strong><Badge bg={member.is_current ? "success" : "secondary"}>{member.is_current ? "Atual" : "Histórico"}</Badge></div><div className="text-secondary small">{member.role || "Integrante"}{member.linked_artist ? ` · perfil: ${member.linked_artist.stage_name}` : ""}</div></div></div><div className="d-flex gap-2 flex-wrap justify-content-end">{member.is_current && <Button size="sm" variant="outline-warning" onClick={() => finishMember(member)}>Encerrar participação</Button>}<Button size="sm" variant="outline-danger" onClick={() => removeMember(member.id)}>Remover</Button></div></div></Card.Body></Card>)}</div>}</div>}
       </Col></Row>
     </Container>
