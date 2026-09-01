@@ -11,6 +11,7 @@ const cutinappService = {
 
   profileOverview: async () => (await apiClient.get("/cutinapp/profile/overview")).data,
   myProductions: async () => unwrap((await apiClient.get("/cutinapp/productions/mine")).data.productions),
+  publicProductions: async (params = {}) => (await apiClient.get("/cutinapp/productions/public", { params })).data,
   getProduction: async (id) => (await apiClient.get(`/cutinapp/productions/${id}`)).data.production,
   publicProduction: async (slug) => (await apiClient.get(`/cutinapp/productions/public/${slug}`)).data,
   createProduction: async (formData) => (await apiClient.post("/cutinapp/productions", formData)).data,
