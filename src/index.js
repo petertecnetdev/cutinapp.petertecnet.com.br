@@ -8,6 +8,7 @@ import "./styles/layout.css";
 import "./styles/components.css";
 import "./styles/domains.css";
 import "./styles/community.css";
+import "./styles/social-network.css";
 import "./styles/responsive.css";
 import "./styles/logo-theme.css";
 import App from "./App";
