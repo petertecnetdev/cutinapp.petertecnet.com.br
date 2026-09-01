@@ -1,22 +1,18 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import PropTypes from "prop-types";
 import { Alert, Button, Form } from "react-bootstrap";
-import MercadoPagoCardForm from "../payment/MercadoPagoCardForm";
+import { useLocation, useNavigate } from "react-router-dom";
 import commerceService from "../../services/CommerceService";
 
 const money = (value) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
-const finalStatuses = ["paid", "refunded", "charged_back", "rejected", "cancelled"];
 
 export default function EventCommercePanel({ slug, eventId, user, onLoginRequired }) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [catalog, setCatalog] = useState({ tickets: [], items: [] });
   const [quantities, setQuantities] = useState({});
   const [loading, setLoading] = useState(true);
-  const [paying, setPaying] = useState(false);
   const [error, setError] = useState("");
-  const [result, setResult] = useState(null);
-  const [method, setMethod] = useState("pix");
-  const resultRef = useRef(result);
-  resultRef.current = result;
 
   useEffect(() => {
     let active = true;
@@ -27,58 +23,6 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
       .finally(() => active && setLoading(false));
     return () => { active = false; };
   }, [slug]);
-
-  const pollingPublicId = result?.order?.public_id || "";
-  useEffect(() => {
-    if (!pollingPublicId) return undefined;
-
-    let active = true;
-    let timer = null;
-    let syncing = false;
-
-    const applyOrder = (order) => {
-      const payments = Array.isArray(order?.payments) ? order.payments : [];
-      const latestPayment = payments.length ? payments[payments.length - 1] : resultRef.current?.payment;
-      setResult((current) => ({ ...current, order, payment: latestPayment || current?.payment }));
-      return finalStatuses.includes(order?.status);
-    };
-
-    const sync = async () => {
-      if (!active || syncing) return false;
-      syncing = true;
-      try {
-        const order = await commerceService.syncPayment(pollingPublicId);
-        if (!active) return true;
-        const finished = applyOrder(order);
-        if (finished && timer) {
-          window.clearInterval(timer);
-          timer = null;
-        }
-        return finished;
-      } catch (_) {
-        return false;
-      } finally {
-        syncing = false;
-      }
-    };
-
-    const initialStatus = resultRef.current?.order?.status || resultRef.current?.payment?.status;
-    if (finalStatuses.includes(initialStatus)) return undefined;
-
-    sync();
-    timer = window.setInterval(sync, 1000);
-
-    const syncOnFocus = () => sync();
-    window.addEventListener("focus", syncOnFocus);
-    document.addEventListener("visibilitychange", syncOnFocus);
-
-    return () => {
-      active = false;
-      if (timer) window.clearInterval(timer);
-      window.removeEventListener("focus", syncOnFocus);
-      document.removeEventListener("visibilitychange", syncOnFocus);
-    };
-  }, [pollingPublicId]);
 
   const selected = useMemo(() => {
     const tickets = (catalog.tickets || []).filter((item) => Number(quantities[`ticket:${item.id}`] || 0) > 0);
@@ -95,147 +39,66 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
   const checkoutAvailable = catalog?.payment_config?.available ?? catalog?.payment_config?.connected ?? false;
 
   const setQuantity = (kind, id, value) => {
-    const parsed = Math.max(0, Math.min(50, Number(value || 0)));
+    const max = kind === "ticket" ? 20 : 50;
+    const parsed = Math.max(0, Math.min(max, Number(value || 0)));
     setQuantities((current) => ({ ...current, [`${kind}:${id}`]: parsed }));
   };
 
-  const selectPaymentMethod = (nextMethod) => {
-    setMethod(nextMethod);
-    setError("");
-  };
+  const continueToCheckout = () => {
+    if (!user) {
+      onLoginRequired?.();
+      return;
+    }
+    if (!selected.tickets.length && !selected.items.length) {
+      setError("Selecione ao menos um ingresso ou item.");
+      return;
+    }
+    if (!checkoutAvailable) {
+      setError("Os pagamentos deste evento estão temporariamente indisponíveis.");
+      return;
+    }
 
-  const changePaymentMethod = (nextMethod) => {
-    if (result?.order?.status === "paid") return;
-    setResult(null);
-    setMethod(nextMethod);
-    setError("");
-  };
-
-  const basePayload = (paymentMethod) => ({
-    event_id: eventId,
-    payment_method: paymentMethod,
-    tickets: selected.tickets.map((item) => ({ id: item.id, quantity: Number(quantities[`ticket:${item.id}`]) })),
-    items: selected.items.map((item) => ({ id: item.id, quantity: Number(quantities[`item:${item.id}`]) })),
-  });
-
-  const validatePurchase = () => {
-    if (!user) { onLoginRequired?.(); return false; }
-    if (!selected.tickets.length && !selected.items.length) { setError("Selecione ao menos um ingresso ou item."); return false; }
-    if (!checkoutAvailable) { setError("Os pagamentos deste evento estão temporariamente indisponíveis."); return false; }
-    return true;
-  };
-
-  const checkoutPix = async () => {
-    if (!validatePurchase()) return;
-    setPaying(true); setError(""); setResult(null);
-    try {
-      setResult(await commerceService.checkout(basePayload("pix")));
-    } catch (err) {
-      setError(err?.message || "Não foi possível iniciar o pagamento PIX.");
-    } finally { setPaying(false); }
-  };
-
-  const checkoutCard = async (cardData) => {
-    if (!validatePurchase()) return;
-    setPaying(true); setError(""); setResult(null);
-    try {
-      setResult(await commerceService.checkout({ ...basePayload("card"), ...cardData }));
-    } catch (err) {
-      setError(err?.message || "Não foi possível processar o cartão.");
-    } finally { setPaying(false); }
-  };
-
-  const copyPix = async () => {
-    const code = result?.payment?.qr_code;
-    if (code) await navigator.clipboard.writeText(code);
+    const checkout = {
+      eventId,
+      tickets: selected.tickets.map((item) => ({ id: item.id, quantity: Number(quantities[`ticket:${item.id}`]) })),
+      items: selected.items.map((item) => ({ id: item.id, quantity: Number(quantities[`item:${item.id}`]) })),
+    };
+    sessionStorage.setItem(`cutinapp_checkout_${slug}`, JSON.stringify(checkout));
+    navigate(`/checkout/${slug}`, { state: { checkout, from: `${location.pathname}${location.search}` } });
   };
 
   if (loading) return <p className="text-secondary mb-0">Carregando opções de compra...</p>;
   if (!(catalog.tickets || []).length && !(catalog.items || []).length) return null;
 
-  const paymentStatus = result?.order?.status || result?.payment?.status;
-  const approved = paymentStatus === "paid";
-  const reversed = ["refunded", "charged_back"].includes(paymentStatus);
-  const failed = ["rejected", "cancelled"].includes(paymentStatus);
-  const purchasedItems = Array.isArray(result?.order?.items) ? result.order.items : [];
-
   return <div className="cut-commerce-panel mt-4">
     <span className="cut-eyebrow">Comprar</span>
     <h3 className="cut-section-title mt-2">Ingressos e itens</h3>
+    <p className="text-secondary small">Escolha o que deseja comprar. O pagamento será concluído em nosso checkout seguro.</p>
     {error && <Alert variant="danger">{error}</Alert>}
     {!checkoutAvailable && <Alert variant="warning">Pagamentos temporariamente indisponíveis para este evento.</Alert>}
 
-    {!result && <>
-      {(catalog.tickets || []).map((ticket) => <div className="cut-ticket-option" key={`paid-ticket-${ticket.id}`}>
-        <div><span className="cut-ticket-kicker">Ingresso</span><strong>{ticket.name}</strong><span>{money(ticket.price)}</span></div>
-        <Form.Control type="number" min="0" max="20" value={quantities[`ticket:${ticket.id}`] || 0} onChange={(event) => setQuantity("ticket", ticket.id, event.target.value)} style={{ width: 82 }} />
-      </div>)}
-      {(catalog.items || []).map((item) => <div className="cut-ticket-option" key={`event-item-${item.id}`}>
-        <div><span className="cut-ticket-kicker">Item do evento</span><strong>{item.name}</strong><span>{money(item.price)}</span>{item.description && <small>{item.description}</small>}</div>
-        <Form.Control type="number" min="0" max="50" value={quantities[`item:${item.id}`] || 0} onChange={(event) => setQuantity("item", item.id, event.target.value)} style={{ width: 82 }} />
-      </div>)}
+    {(catalog.tickets || []).map((ticket) => <div className="cut-ticket-option" key={`paid-ticket-${ticket.id}`}>
+      <div><span className="cut-ticket-kicker">Ingresso</span><strong>{ticket.name}</strong><span>{money(ticket.price)}</span></div>
+      <Form.Control type="number" min="0" max="20" value={quantities[`ticket:${ticket.id}`] || 0} onChange={(event) => setQuantity("ticket", ticket.id, event.target.value)} style={{ width: 82 }} />
+    </div>)}
 
-      <div className="d-flex align-items-center justify-content-between mt-3"><strong>Total</strong><strong>{money(total)}</strong></div>
-      <Form.Group className="mt-3">
-        <Form.Label>Forma de pagamento</Form.Label>
-        <div className="d-flex gap-2 flex-wrap">
-          <Button type="button" variant={method === "pix" ? "primary" : "outline-primary"} onClick={() => selectPaymentMethod("pix")}>PIX</Button>
-          <Button type="button" variant={method === "card" ? "primary" : "outline-primary"} onClick={() => selectPaymentMethod("card")}>Cartão</Button>
-        </div>
-      </Form.Group>
+    {(catalog.items || []).map((item) => <div className="cut-ticket-option" key={`event-item-${item.id}`}>
+      <div><span className="cut-ticket-kicker">Item do evento</span><strong>{item.name}</strong><span>{money(item.price)}</span>{item.description && <small>{item.description}</small>}</div>
+      <Form.Control type="number" min="0" max="50" value={quantities[`item:${item.id}`] || 0} onChange={(event) => setQuantity("item", item.id, event.target.value)} style={{ width: 82 }} />
+    </div>)}
 
-      {method === "pix" && <Button className="w-100 mt-3" onClick={checkoutPix} disabled={paying || total <= 0 || !checkoutAvailable}>
-        {paying ? "Gerando PIX..." : user ? "Pagar com PIX" : "Entrar para comprar"}
-      </Button>}
-
-      {method === "card" && total > 0 && checkoutAvailable && user && <MercadoPagoCardForm
-        publicKey={catalog?.payment_config?.public_key || ""}
-        amount={total}
-        email={user?.email || ""}
-        disabled={paying}
-        onSubmit={checkoutCard}
-      />}
-      {method === "card" && !user && <Button className="w-100 mt-3" onClick={() => onLoginRequired?.()}>Entrar para comprar</Button>}
-    </>}
-
-    {result && <Alert variant={approved ? "success" : failed || reversed ? "danger" : "info"} className="mt-3 mb-0">
-      <strong>{approved ? "Pagamento aprovado! Sua compra foi confirmada." : reversed ? "Pagamento revertido." : failed ? "Pagamento não concluído." : "Aguardando confirmação do pagamento..."}</strong>
-      {method === "pix" && !approved && !failed && !reversed && <div className="mt-2">Assim que o Mercado Pago confirmar o PIX, esta tela será atualizada automaticamente.</div>}
-      {method === "card" && !approved && !failed && !reversed && <div className="mt-2">O Mercado Pago está processando o cartão. A confirmação aparecerá automaticamente aqui.</div>}
-
-      {!approved && result.payment?.qr_code_image && <img src={result.payment.qr_code_image} alt="QR Code PIX" className="img-fluid bg-white rounded p-2 my-3" />}
-      {!approved && result.payment?.qr_code && <><Form.Control as="textarea" rows={3} readOnly value={result.payment.qr_code} /><Button variant="outline-success" className="w-100 mt-2" onClick={copyPix}>Copiar PIX</Button></>}
-      {!approved && result.payment?.ticket_url && <Button as="a" href={result.payment.ticket_url} target="_blank" rel="noreferrer" variant="outline-primary" className="w-100 mt-2">Abrir pagamento no Mercado Pago</Button>}
-
-      {approved && <div className="mt-3">
-        <div className="d-flex justify-content-between mb-2"><span>Pedido</span><strong>#{result.order?.id}</strong></div>
-        <div className="d-flex justify-content-between mb-3"><span>Total pago</span><strong>{money(result.order?.total)}</strong></div>
-        {purchasedItems.map((item) => <div className="cut-ticket-option" key={`purchase-${item.id}`}>
-          <div><span className="cut-ticket-kicker">{item.type === "ticket" ? "Ingresso" : "Item"}</span><strong>{item.name}</strong><span>{item.quantity} × {money(item.unit_price)}</span></div>
-        </div>)}
-        <Button as="a" href="/passes" className="w-100 mt-3">Ver meus ingressos</Button>
-      </div>}
-
-      {!approved && <div className="mt-3 pt-2 border-top border-secondary-subtle">
-        <small className="d-block mb-2">Quer usar outra forma de pagamento?</small>
-        <div className="d-flex gap-2 flex-wrap">
-          {method !== "pix" && <Button type="button" variant="outline-primary" onClick={() => changePaymentMethod("pix")}>Trocar para PIX</Button>}
-          {method !== "card" && <Button type="button" variant="outline-primary" onClick={() => changePaymentMethod("card")}>Trocar para cartão</Button>}
-        </div>
-      </div>}
-
-      {(failed || reversed) && <Button variant="outline-light" className="w-100 mt-3" onClick={() => setResult(null)}>Tentar novamente</Button>}
-    </Alert>}
+    <div className="d-flex align-items-center justify-content-between mt-3"><strong>Total</strong><strong>{money(total)}</strong></div>
+    <Button className="w-100 mt-3" onClick={continueToCheckout} disabled={total <= 0 || !checkoutAvailable}>
+      <i className="fa-solid fa-lock me-2" />{user ? "Continuar para pagamento" : "Entrar para comprar"}
+    </Button>
+    <small className="d-block text-secondary mt-2 text-center"><i className="fa-solid fa-shield-halved me-1" />Checkout protegido pelo Mercado Pago</small>
   </div>;
 }
 
 EventCommercePanel.propTypes = {
   slug: PropTypes.string.isRequired,
   eventId: PropTypes.number.isRequired,
-  user: PropTypes.shape({
-    id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-    email: PropTypes.string,
-  }),
+  user: PropTypes.shape({ id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]), email: PropTypes.string }),
   onLoginRequired: PropTypes.func,
 };
 
