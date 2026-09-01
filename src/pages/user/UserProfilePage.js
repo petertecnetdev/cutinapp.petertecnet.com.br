@@ -21,8 +21,8 @@ function EventTile({ event, badge }) {
 EventTile.propTypes = {
   event: PropTypes.shape({
     slug: PropTypes.string.isRequired,
-    image: PropTypes.string,
     title: PropTypes.string.isRequired,
+    image: PropTypes.string,
     start_date: PropTypes.string,
     city: PropTypes.string,
     uf: PropTypes.string,
@@ -30,8 +30,6 @@ EventTile.propTypes = {
   }).isRequired,
   badge: PropTypes.string,
 };
-
-EventTile.defaultProps = { badge: "" };
 
 export default function UserProfilePage() {
   const navigate = useNavigate();
