@@ -2,14 +2,23 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "@fortawesome/fontawesome-free/css/all.min.css";
-import "./index.css";
-import "./modern.css";
-import "./social.css";
-import "./components/location/LocationFields.css";
+import "./styles/tokens.css";
+import "./styles/global.css";
+import "./styles/layout.css";
+import "./styles/components.css";
+import "./styles/domains.css";
+import "./styles/responsive.css";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import reportWebVitals from "./reportWebVitals";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
-root.render(<React.StrictMode><AuthProvider><App /></AuthProvider></React.StrictMode>);
+root.render(
+  <React.StrictMode>
+    <AuthProvider>
+      <App />
+    </AuthProvider>
+  </React.StrictMode>
+);
+
 reportWebVitals();
