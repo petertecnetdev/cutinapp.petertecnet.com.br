@@ -7,6 +7,7 @@ import "./styles/global.css";
 import "./styles/layout.css";
 import "./styles/components.css";
 import "./styles/domains.css";
+import "./styles/community.css";
 import "./styles/responsive.css";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
