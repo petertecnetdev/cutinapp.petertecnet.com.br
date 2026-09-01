@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import "./PeterAccountGateway.css";
 
