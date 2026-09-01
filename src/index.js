@@ -11,6 +11,7 @@ import "./styles/community.css";
 import "./styles/social-network.css";
 import "./styles/responsive.css";
 import "./styles/logo-theme.css";
+import "./styles/interactive-effects.css";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import reportWebVitals from "./reportWebVitals";
