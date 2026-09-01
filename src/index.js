@@ -14,14 +14,18 @@ import "./styles/logo-theme.css";
 import "./styles/interactive-effects.css";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
+import PeterAccountGateway from "./components/PeterAccountGateway";
+import { apiBaseUrl, appSlug } from "./config";
 import reportWebVitals from "./reportWebVitals";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <React.StrictMode>
-    <AuthProvider>
-      <App />
-    </AuthProvider>
+    <PeterAccountGateway apiBaseUrl={apiBaseUrl} appSlug={appSlug}>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </PeterAccountGateway>
   </React.StrictMode>
 );
 
