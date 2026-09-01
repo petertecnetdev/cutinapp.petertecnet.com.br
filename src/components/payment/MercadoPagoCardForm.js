@@ -29,11 +29,15 @@ const secureFieldStyle = {
 
 export default function MercadoPagoCardForm({ publicKey, amount, email, disabled, onSubmit }) {
   const submitRef = useRef(onSubmit);
+  const disabledRef = useRef(disabled);
+  const emailRef = useRef(email);
   const cardFormRef = useRef(null);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState("");
 
   submitRef.current = onSubmit;
+  disabledRef.current = disabled;
+  emailRef.current = email;
 
   useEffect(() => {
     let active = true;
@@ -73,7 +77,7 @@ export default function MercadoPagoCardForm({ publicKey, amount, email, disabled
             },
             onSubmit: async (event) => {
               event.preventDefault();
-              if (!localCardForm || disabled) return;
+              if (!localCardForm || disabledRef.current) return;
               const data = localCardForm.getCardFormData();
               if (!data?.token || !data?.paymentMethodId || !data?.installments) {
                 setError("Confira os dados do cartão antes de continuar.");
@@ -87,12 +91,12 @@ export default function MercadoPagoCardForm({ publicKey, amount, email, disabled
                 installments: Number(data.installments),
                 payer_identification_type: data.identificationType || "CPF",
                 payer_identification_number: data.identificationNumber || "",
-                payer_email: data.cardholderEmail || email || "",
+                payer_email: data.cardholderEmail || emailRef.current || "",
               });
             },
             onFetching: () => {
               setReady(false);
-              return () => setReady(true);
+              return () => active && setReady(true);
             },
           },
         });
@@ -102,11 +106,10 @@ export default function MercadoPagoCardForm({ publicKey, amount, email, disabled
 
     return () => {
       active = false;
-      setReady(false);
       if (cardFormRef.current === localCardForm) cardFormRef.current = null;
       if (typeof localCardForm?.unmount === "function") localCardForm.unmount();
     };
-  }, [publicKey, amount, email, disabled]);
+  }, [publicKey, amount]);
 
   return <form id="cut-mp-card-form" className="mt-3">
     {error && <Alert variant="danger">{error}</Alert>}
