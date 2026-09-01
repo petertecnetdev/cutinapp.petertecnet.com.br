@@ -1,1 +1,36 @@
-.pt-signature{width:100%;padding:18px 16px 24px;display:flex;justify-content:center;background:transparent;color:#718896}.pt-signature__link{display:inline-flex;align-items:center;gap:10px;color:inherit;text-decoration:none;opacity:.78;transition:opacity 180ms ease,transform 180ms ease}.pt-signature__link:hover,.pt-signature__link:focus-visible{opacity:1;transform:translateY(-1px)}.pt-signature__copy{display:flex;flex-direction:column;align-items:flex-end;line-height:1.05}.pt-signature__eyebrow{font-size:.62rem;text-transform:uppercase;letter-spacing:.16em;opacity:.58}.pt-signature__name{margin-top:3px;font-size:.88rem;font-weight:700;letter-spacing:.01em}.pt-signature__logo{width:34px;height:34px;object-fit:contain;display:block;border-radius:50%}@media(max-width:480px){.pt-signature{padding-bottom:18px}.pt-signature__eyebrow{font-size:.58rem}.pt-signature__name{font-size:.82rem}.pt-signature__logo{width:30px;height:30px}}
+.pt-signature {
+  width: 100%;
+  padding: 20px 16px 26px;
+  display: flex;
+  justify-content: center;
+  background: transparent;
+  color: var(--cut-text-faint);
+}
+.pt-signature__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: var(--cut-radius-md);
+  color: inherit;
+  text-decoration: none;
+  opacity: .78;
+  transition: opacity var(--cut-duration-normal) ease, transform var(--cut-duration-normal) ease, background var(--cut-duration-normal) ease;
+}
+.pt-signature__link:hover,
+.pt-signature__link:focus-visible {
+  opacity: 1;
+  transform: translateY(-1px);
+  background: rgba(255,255,255,.025);
+  color: var(--cut-text-muted);
+}
+.pt-signature__copy { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.05; }
+.pt-signature__eyebrow { font-size: .6rem; text-transform: uppercase; letter-spacing: .17em; opacity: .64; }
+.pt-signature__name { margin-top: 3px; font-size: .85rem; font-weight: 760; letter-spacing: .005em; }
+.pt-signature__logo { width: 34px; height: 34px; object-fit: contain; display: block; border-radius: 50%; filter: drop-shadow(0 6px 12px rgba(0,0,0,.2)); }
+@media (max-width: 480px) {
+  .pt-signature { padding-bottom: 18px; }
+  .pt-signature__eyebrow { font-size: .56rem; }
+  .pt-signature__name { font-size: .8rem; }
+  .pt-signature__logo { width: 30px; height: 30px; }
+}
