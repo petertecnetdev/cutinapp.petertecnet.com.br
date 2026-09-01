@@ -5,6 +5,7 @@ const commerceService = {
   checkout: async (payload) => (await apiClient.post("/cutinapp/checkout", payload)).data,
   myOrders: async (params = {}) => (await apiClient.get("/cutinapp/orders/mine", { params })).data,
   order: async (publicId) => (await apiClient.get(`/cutinapp/orders/${publicId}`)).data.order,
+  syncPayment: async (publicId) => (await apiClient.post(`/cutinapp/orders/${publicId}/sync-payment`)).data.order,
   saveEventItem: async (eventId, payload, itemId = null) => (
     await apiClient.post(itemId ? `/cutinapp/events/${eventId}/items/${itemId}` : `/cutinapp/events/${eventId}/items`, payload)
   ).data,
