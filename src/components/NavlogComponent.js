@@ -11,6 +11,7 @@ export default function NavlogComponent() {
 
   const active = (prefix) => location.pathname.startsWith(prefix);
   const closeMenu = () => setOpen(false);
+  const isAdmin = user?.profile?.name === "Administrador" || user?.profile_name === "Administrador";
 
   if (!user) {
     return (
@@ -18,7 +19,7 @@ export default function NavlogComponent() {
         <Container className="cut-navbar__inner">
           <Navbar.Brand as={Link} to="/" className="cut-navbar__brand" onClick={closeMenu}>
             <img src="/images/logo.png" alt="Cutinapp" />
-            <div><strong>Cutinapp</strong><small>Eventos Peter Tecnet</small></div>
+            <div><strong>Cutinapp</strong><small>Rede social de eventos</small></div>
           </Navbar.Brand>
           <Navbar.Toggle aria-controls="cut-navbar-public" aria-label="Abrir menu" />
           <Navbar.Collapse id="cut-navbar-public">
@@ -44,7 +45,7 @@ export default function NavlogComponent() {
       <Container className="cut-navbar__inner">
         <Navbar.Brand as={Link} to="/feed" className="cut-navbar__brand" onClick={closeMenu}>
           <img src="/images/logo.png" alt="Cutinapp" />
-          <div><strong>Cutinapp</strong><small>Eventos Peter Tecnet</small></div>
+          <div><strong>Cutinapp</strong><small>Rede social de eventos</small></div>
         </Navbar.Brand>
         <Navbar.Toggle aria-controls="cut-navbar" aria-label="Abrir menu" />
         <Navbar.Collapse id="cut-navbar">
@@ -53,6 +54,7 @@ export default function NavlogComponent() {
             <Nav.Link as={Link} to="/event" className={active("/event") && !active("/event/manage") ? "active" : ""}><i className="fa-regular fa-calendar-days" /> Eventos</Nav.Link>
             <Nav.Link as={Link} to="/artists" className={active("/artist") ? "active" : ""}><i className="fa-solid fa-music" /> Artistas</Nav.Link>
             <Nav.Link as={Link} to="/passes" className={active("/passes") ? "active" : ""}><i className="fa-solid fa-ticket" /> Ingressos</Nav.Link>
+            <Nav.Link as={Link} to="/notifications" className={active("/notifications") ? "active" : ""} aria-label="Notificações"><i className="fa-regular fa-bell" /> <span className="cut-nav-notification-label">Notificações</span></Nav.Link>
             <NavDropdown title={<span><i className="fa-solid fa-bullhorn" /> Produzir</span>} id="cut-producer-menu">
               <NavDropdown.Item as={Link} to="/production/mine">Minhas produções</NavDropdown.Item>
               <NavDropdown.Item as={Link} to="/event/manage">Meus eventos</NavDropdown.Item>
@@ -73,6 +75,7 @@ export default function NavlogComponent() {
               <NavDropdown.Item as={Link} to="/profile"><i className="fa-regular fa-user me-2" />Meu perfil</NavDropdown.Item>
               <NavDropdown.Item as={Link} to="/dashboard">Painel</NavDropdown.Item>
               <NavDropdown.Item as={Link} to="/user/edit">Editar conta</NavDropdown.Item>
+              {isAdmin && <><NavDropdown.Divider /><NavDropdown.Item as={Link} to="/moderation/reports"><i className="fa-solid fa-shield-halved me-2" />Moderação</NavDropdown.Item></>}
               <NavDropdown.Item as={Link} to="/password">Alterar senha</NavDropdown.Item>
               <NavDropdown.Divider />
               <NavDropdown.Item as="button" onClick={signOut}>Sair</NavDropdown.Item>
