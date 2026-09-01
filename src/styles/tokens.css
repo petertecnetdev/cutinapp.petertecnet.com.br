@@ -156,8 +156,6 @@
   /* Legacy aliases kept while pages migrate */
   --cut-bg-2: var(--cut-bg-soft);
   --cut-surface: var(--cut-surface-1);
-  --cut-surface-2: var(--cut-surface-2);
-  --cut-surface-3: var(--cut-surface-3);
   --cut-muted: var(--cut-text-muted);
   --cut-soft: var(--cut-text-soft);
   --cut-shadow: var(--cut-shadow-lg);
