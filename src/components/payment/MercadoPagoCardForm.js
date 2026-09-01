@@ -20,11 +20,13 @@ const loadMercadoPago = () => new Promise((resolve, reject) => {
 });
 
 const secureFieldStyle = {
-  minHeight: 44,
-  border: "1px solid rgba(255,255,255,.2)",
-  borderRadius: 10,
-  padding: "10px 12px",
-  background: "rgba(255,255,255,.04)",
+  height: 54,
+  minHeight: 54,
+  border: "1px solid rgba(255,255,255,.12)",
+  borderRadius: 14,
+  padding: "15px 16px",
+  background: "rgba(255,255,255,.035)",
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,.025)",
 };
 
 export default function MercadoPagoCardForm({ publicKey, amount, email, disabled, onSubmit }) {
@@ -56,15 +58,15 @@ export default function MercadoPagoCardForm({ publicKey, amount, email, disabled
           iframe: true,
           form: {
             id: "cut-mp-card-form",
-            cardNumber: { id: "cut-mp-card-number", placeholder: "Número do cartão" },
+            cardNumber: { id: "cut-mp-card-number", placeholder: "0000 0000 0000 0000" },
             expirationDate: { id: "cut-mp-card-expiration", placeholder: "MM/AA" },
             securityCode: { id: "cut-mp-card-security", placeholder: "CVV" },
-            cardholderName: { id: "cut-mp-card-holder", placeholder: "Nome no cartão" },
+            cardholderName: { id: "cut-mp-card-holder", placeholder: "Como está escrito no cartão" },
             issuer: { id: "cut-mp-card-issuer", placeholder: "Banco emissor" },
-            installments: { id: "cut-mp-card-installments", placeholder: "Parcelas" },
+            installments: { id: "cut-mp-card-installments", placeholder: "Parcelamento" },
             identificationType: { id: "cut-mp-card-document-type", placeholder: "Documento" },
-            identificationNumber: { id: "cut-mp-card-document", placeholder: "Número do documento" },
-            cardholderEmail: { id: "cut-mp-card-email", placeholder: "E-mail" },
+            identificationNumber: { id: "cut-mp-card-document", placeholder: "CPF do titular" },
+            cardholderEmail: { id: "cut-mp-card-email", placeholder: "E-mail para confirmação" },
           },
           callbacks: {
             onFormMounted: (formError) => {
@@ -111,28 +113,74 @@ export default function MercadoPagoCardForm({ publicKey, amount, email, disabled
     };
   }, [publicKey, amount]);
 
-  return <form id="cut-mp-card-form" className="mt-3">
-    {error && <Alert variant="danger">{error}</Alert>}
-    <div className="mb-2" id="cut-mp-card-number" style={secureFieldStyle} />
-    <div className="d-grid gap-2 mb-2" style={{ gridTemplateColumns: "1fr 1fr" }}>
-      <div id="cut-mp-card-expiration" style={secureFieldStyle} />
-      <div id="cut-mp-card-security" style={secureFieldStyle} />
+  return <div className="cut-payment-card-shell mt-3">
+    <div className="cut-payment-card-head">
+      <div className="cut-payment-card-lock"><i className="fa-solid fa-lock" /></div>
+      <div>
+        <strong>Pagamento seguro com cartão</strong>
+        <span>Seus dados são criptografados e processados pelo Mercado Pago.</span>
+      </div>
+      <div className="cut-payment-card-badges" aria-label="Cartões aceitos">
+        <span>VISA</span><span>MC</span>
+      </div>
     </div>
-    <input className="form-control mb-2" id="cut-mp-card-holder" type="text" autoComplete="cc-name" placeholder="Nome no cartão" />
-    <div className="d-grid gap-2 mb-2" style={{ gridTemplateColumns: "1fr 1fr" }}>
-      <select className="form-select" id="cut-mp-card-issuer" defaultValue=""><option value="" disabled>Banco emissor</option></select>
-      <select className="form-select" id="cut-mp-card-installments" defaultValue=""><option value="" disabled>Parcelas</option></select>
+
+    <form id="cut-mp-card-form" className="cut-payment-card-form">
+      {error && <Alert variant="danger">{error}</Alert>}
+
+      <label className="cut-payment-label" htmlFor="cut-mp-card-number">Número do cartão</label>
+      <div className="cut-payment-secure-field" id="cut-mp-card-number" style={secureFieldStyle} />
+
+      <div className="cut-payment-grid cut-payment-grid--2">
+        <div>
+          <label className="cut-payment-label" htmlFor="cut-mp-card-expiration">Validade</label>
+          <div className="cut-payment-secure-field" id="cut-mp-card-expiration" style={secureFieldStyle} />
+        </div>
+        <div>
+          <label className="cut-payment-label" htmlFor="cut-mp-card-security">Código de segurança</label>
+          <div className="cut-payment-secure-field" id="cut-mp-card-security" style={secureFieldStyle} />
+        </div>
+      </div>
+
+      <label className="cut-payment-label" htmlFor="cut-mp-card-holder">Nome do titular</label>
+      <input className="form-control cut-payment-input" id="cut-mp-card-holder" type="text" autoComplete="cc-name" placeholder="Como está escrito no cartão" />
+
+      <div className="cut-payment-grid cut-payment-grid--2">
+        <div>
+          <label className="cut-payment-label" htmlFor="cut-mp-card-issuer">Banco emissor</label>
+          <select className="form-select cut-payment-input" id="cut-mp-card-issuer" defaultValue=""><option value="" disabled>Selecione</option></select>
+        </div>
+        <div>
+          <label className="cut-payment-label" htmlFor="cut-mp-card-installments">Parcelamento</label>
+          <select className="form-select cut-payment-input" id="cut-mp-card-installments" defaultValue=""><option value="" disabled>Selecione</option></select>
+        </div>
+      </div>
+
+      <label className="cut-payment-label">Documento do titular</label>
+      <div className="cut-payment-grid cut-payment-grid--document">
+        <select className="form-select cut-payment-input" id="cut-mp-card-document-type" defaultValue=""><option value="" disabled>Tipo</option></select>
+        <input className="form-control cut-payment-input" id="cut-mp-card-document" type="text" inputMode="numeric" placeholder="Número do documento" />
+      </div>
+
+      <label className="cut-payment-label" htmlFor="cut-mp-card-email">E-mail para confirmação</label>
+      <input className="form-control cut-payment-input" id="cut-mp-card-email" type="email" defaultValue={email || ""} placeholder="seu@email.com" />
+
+      <div className="cut-payment-summary">
+        <span>Total da compra</span>
+        <strong>{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(amount || 0))}</strong>
+      </div>
+
+      <Button id="cut-mp-card-submit" type="submit" className="w-100 cut-payment-submit" disabled={disabled || !ready}>
+        <i className="fa-solid fa-lock me-2" />
+        {disabled ? "Processando pagamento..." : ready ? "Pagar com cartão" : "Preparando ambiente seguro..."}
+      </Button>
+    </form>
+
+    <div className="cut-payment-trust">
+      <i className="fa-solid fa-shield-halved" />
+      <div><strong>Compra protegida</strong><span>Os dados completos do seu cartão não ficam armazenados na Cutinapp. O processamento seguro é realizado pelo Mercado Pago.</span></div>
     </div>
-    <div className="d-grid gap-2 mb-2" style={{ gridTemplateColumns: "120px 1fr" }}>
-      <select className="form-select" id="cut-mp-card-document-type" defaultValue=""><option value="" disabled>Documento</option></select>
-      <input className="form-control" id="cut-mp-card-document" type="text" inputMode="numeric" placeholder="CPF" />
-    </div>
-    <input className="form-control mb-3" id="cut-mp-card-email" type="email" defaultValue={email || ""} placeholder="E-mail" />
-    <Button id="cut-mp-card-submit" type="submit" className="w-100" disabled={disabled || !ready}>
-      {disabled ? "Processando..." : ready ? "Pagar com cartão" : "Preparando cartão..."}
-    </Button>
-    <small className="d-block mt-2 text-secondary">Os campos sensíveis são protegidos pelo Mercado Pago. A Peter Tecnet recebe somente o token do cartão.</small>
-  </form>;
+  </div>;
 }
 
 MercadoPagoCardForm.propTypes = {
