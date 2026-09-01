@@ -38,12 +38,12 @@ export default function HomePage() {
       <header className="cut-home__nav">
         <Container className="cut-home__navInner">
           <Link to="/" className="cut-home__brand">
-            <img src="/images/logo.png" alt="Cutinapp" />
-            <span>Cutinapp</span>
+            <span className="cut-home__brandOrb"><img src="/images/logo.png" alt="Cutinapp" /></span>
+            <span className="cut-home__brandText"><strong>Cutinapp</strong><small>LIVE EVENT SYSTEM</small></span>
           </Link>
           <nav aria-label="Navegação pública">
             <a href="#eventos">Eventos</a>
-            <a href="#como-funciona">Como funciona</a>
+            <a href="#como-funciona">Plataforma</a>
             <Link to="/login">Entrar</Link>
             <Button as={Link} to="/register" className="cut-home__cta">Criar conta</Button>
           </nav>
@@ -53,54 +53,86 @@ export default function HomePage() {
       <main>
         <section className="cut-home__hero">
           <div className="cut-home__glow" />
+          <div className="cut-home__beam cut-home__beam--a" />
+          <div className="cut-home__beam cut-home__beam--b" />
           <Container className="cut-home__heroInner">
             <div className="cut-home__copy">
-              <span className="cut-home__eyebrow">Eventos Peter Tecnet</span>
-              <h1>Do anúncio à entrada.<br /><em>Um evento conectado.</em></h1>
-              <p>Crie eventos, disponibilize cortesias, entregue QR Codes individuais e valide a entrada pelo celular.</p>
+              <div className="cut-home__statusline">
+                <span className="cut-home__liveDot" />
+                <span>ECOSSISTEMA DE EVENTOS EM TEMPO REAL</span>
+                <b>ONLINE</b>
+              </div>
+              <span className="cut-home__eyebrow">Experiência conectada</span>
+              <h1>O evento começa <br /><em>antes da entrada.</em></h1>
+              <p>Uma experiência digital para descoberta, produção, ingressos, artistas, comunidade e acesso. Tudo conectado em uma única plataforma.</p>
               <div className="cut-home__actions">
-                <Button as={Link} to="/event" className="cut-home__primary">Explorar eventos</Button>
+                <Button as={Link} to="/event" className="cut-home__primary"><span>Explorar eventos</span><i className="fa-solid fa-arrow-right" /></Button>
                 <Button as={Link} to="/register" variant="outline-light">Quero produzir um evento</Button>
               </div>
               <div className="cut-home__proof">
-                <span><i className="fa-solid fa-ticket" /> Cortesias digitais</span>
+                <span><i className="fa-solid fa-ticket" /> Ingressos digitais</span>
                 <span><i className="fa-solid fa-qrcode" /> QR individual</span>
-                <span><i className="fa-solid fa-mobile-screen" /> Check-in mobile</span>
+                <span><i className="fa-solid fa-bolt" /> Check-in instantâneo</span>
               </div>
             </div>
+
             <div className="cut-home__visual" aria-hidden="true">
-              <div className="cut-home__visualCard">
-                <div className="cut-home__visualLogo"><img src="/images/logo.png" alt="" /></div>
-                <span>Operação de evento</span>
-                <h2>Crie. Compartilhe. Valide.</h2>
-                <div className="cut-home__steps">
-                  <b>01 <small>Produção</small></b>
-                  <b>02 <small>Evento</small></b>
-                  <b>03 <small>Ingresso</small></b>
-                  <b>04 <small>Check-in</small></b>
+              <div className="cut-home__techFrame">
+                <span className="cut-home__corner cut-home__corner--tl" />
+                <span className="cut-home__corner cut-home__corner--tr" />
+                <span className="cut-home__corner cut-home__corner--bl" />
+                <span className="cut-home__corner cut-home__corner--br" />
+
+                <div className="cut-home__visualHeader">
+                  <span><i className="fa-solid fa-wave-square" /> CUTINAPP CONTROL</span>
+                  <b>LIVE</b>
+                </div>
+
+                <div className="cut-home__orbital">
+                  <div className="cut-home__orbit cut-home__orbit--outer"><span /></div>
+                  <div className="cut-home__orbit cut-home__orbit--middle"><span /></div>
+                  <div className="cut-home__orbit cut-home__orbit--inner" />
+                  <div className="cut-home__core"><img src="/images/logo.png" alt="" /></div>
+                </div>
+
+                <div className="cut-home__telemetry">
+                  <article><small>OPERAÇÃO</small><strong>100%</strong><span><i /></span></article>
+                  <article><small>ACESSO</small><strong>QR</strong><span><i /></span></article>
+                  <article><small>STATUS</small><strong>LIVE</strong><span><i /></span></article>
+                </div>
+
+                <div className="cut-home__signal">
+                  {Array.from({ length: 26 }).map((_, index) => <i key={index} style={{ "--i": index }} />)}
                 </div>
               </div>
             </div>
           </Container>
+          <div className="cut-home__ticker" aria-hidden="true">
+            <div>
+              <span>EVENTOS</span><i /> <span>INGRESSOS</span><i /> <span>ARTISTAS</span><i /> <span>PRODUÇÕES</span><i /> <span>QR CODE</span><i /> <span>CHECK-IN</span><i />
+              <span>EVENTOS</span><i /> <span>INGRESSOS</span><i /> <span>ARTISTAS</span><i /> <span>PRODUÇÕES</span><i /> <span>QR CODE</span><i /> <span>CHECK-IN</span><i />
+            </div>
+          </div>
         </section>
 
         <section id="eventos" className="cut-home__section">
           <Container>
             <div className="cut-home__sectionHead">
               <div>
-                <span className="cut-home__eyebrow">Descubra</span>
+                <span className="cut-home__eyebrow">Radar de experiências</span>
                 <h2>Eventos na Cutinapp</h2>
-                <p>Veja o que já está disponível e retire sua entrada quando houver cortesias.</p>
+                <p>Descubra experiências, acompanhe produções e mantenha seus acessos em um só lugar.</p>
               </div>
-              <Button as={Link} to="/event" variant="outline-light">Ver todos</Button>
+              <Button as={Link} to="/event" variant="outline-light">Abrir radar</Button>
             </div>
 
             <div className="cut-home__eventGrid" aria-busy={loadingEvents}>
               {loadingEvents ? (
                 Array.from({ length: 3 }).map((_, index) => <SkeletonCard key={index} />)
               ) : events.length ? (
-                events.map((event) => (
+                events.map((event, index) => (
                   <Link key={event.id} to={`/event/${event.slug}`} className="cut-home__eventCard">
+                    <div className="cut-home__eventIndex">0{index + 1}</div>
                     <div className="cut-home__eventMedia">
                       {event.image
                         ? <img src={`https://api.petertecnet.com.br/storage/${event.image}`} alt={`Capa de ${event.title}`} loading="lazy" />
@@ -110,6 +142,7 @@ export default function HomePage() {
                       <span>{event.production?.name || "Cutinapp"}</span>
                       <h3>{event.title}</h3>
                       <p>{dateLabel(event.start_date)} · {event.city || event.venue || "Local a confirmar"}</p>
+                      <b className="cut-home__eventLink">ABRIR EVENTO <i className="fa-solid fa-arrow-up-right-from-square" /></b>
                     </div>
                   </Link>
                 ))
@@ -129,14 +162,15 @@ export default function HomePage() {
           <Container>
             <div className="cut-home__sectionHead">
               <div>
-                <span className="cut-home__eyebrow">Fluxo simples</span>
-                <h2>Uma plataforma para os dois lados do evento</h2>
+                <span className="cut-home__eyebrow">Infraestrutura da experiência</span>
+                <h2>Um único fluxo. Muitos pontos conectados.</h2>
+                <p>Participantes, produtores, artistas e operação trabalham sobre a mesma experiência digital.</p>
               </div>
             </div>
             <div className="cut-home__featureGrid">
-              <article><i className="fa-solid fa-user" /><h3>Participante</h3><p>Descobre eventos, acompanha artistas e produções e mantém seus ingressos sempre à mão.</p></article>
-              <article><i className="fa-solid fa-bullhorn" /><h3>Produtor</h3><p>Organiza sua produção, publica eventos, line-up e acompanha a operação em um só lugar.</p></article>
-              <article><i className="fa-solid fa-qrcode" /><h3>Portaria</h3><p>Lê o QR pela câmera, valida no backend e informa imediatamente se o ingresso já foi utilizado.</p></article>
+              <article><span className="cut-home__featureCode">01 / DISCOVER</span><i className="fa-solid fa-user-astronaut" /><h3>Participante</h3><p>Descobre eventos, segue artistas e produções e mantém seus ingressos sempre acessíveis.</p><b>EXPERIÊNCIA PESSOAL</b></article>
+              <article><span className="cut-home__featureCode">02 / OPERATE</span><i className="fa-solid fa-satellite-dish" /><h3>Produtor</h3><p>Organiza produção, publica eventos, line-up, ingressos e acompanha a operação em um só lugar.</p><b>CONTROLE CENTRAL</b></article>
+              <article><span className="cut-home__featureCode">03 / ACCESS</span><i className="fa-solid fa-fingerprint" /><h3>Portaria</h3><p>Lê o QR pela câmera, valida no backend e responde imediatamente ao operador.</p><b>VALIDAÇÃO DIGITAL</b></article>
             </div>
           </Container>
         </section>
