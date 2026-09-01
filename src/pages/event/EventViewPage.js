@@ -4,6 +4,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import EventCommunitySection from "../../components/event/EventCommunitySection";
+import EventCommercePanel from "../../components/event/EventCommercePanel";
 import { AuthContext } from "../../context/AuthContext";
 import eventService from "../../services/EventService";
 import cutinappService from "../../services/CutinappService";
@@ -126,6 +127,7 @@ export default function EventViewPage() {
         </Col>
         <Col lg={4}><Card className="cut-panel cut-ticket-purchase-panel"><Card.Body className="p-4"><span className="cut-eyebrow">Entrada</span><h2 className="cut-section-title mt-2">Ingressos</h2>
           {tickets.length === 0 ? <div className="cut-empty-state-inline"><p>Nenhum ingresso gratuito disponível neste momento.</p>{isOwner && <Button onClick={() => navigate(`/ticket/create?eventId=${event.id}`)}>Criar cortesia</Button>}</div> : <div className="cut-ticket-list">{tickets.map((ticket) => { const remaining = Number(ticket.remaining ?? 0); const available = Boolean(ticket.available); return <div className="cut-ticket-option" key={ticket.id}><div><span className="cut-ticket-kicker">{ticket.type || ticket.ticket_type || "Ingresso"}</span><strong>{ticket.name}</strong><span>Grátis · {ticket.expired ? "prazo encerrado" : available ? `${remaining} restante${remaining === 1 ? "" : "s"}` : "esgotado"}</span>{ticket.limit_date && !ticket.expired && <small>Retirada até {formatDate(ticket.limit_date)}</small>}</div><Button onClick={() => claim(ticket)} disabled={!available || claimingId === ticket.id}>{available ? (user ? "Obter ingresso" : "Entrar para obter") : ticket.expired ? "Prazo encerrado" : "Esgotado"}</Button></div>; })}</div>}
+          <EventCommercePanel slug={slug} eventId={event.id} user={user} onLoginRequired={() => navigate("/login", { state: { from: `${location.pathname}${location.search}` } })} />
           {isOwner && <div className="cut-owner-actions mt-4"><Button variant="outline-light" onClick={() => navigate(`/event/edit/${event.id}`)}>Gerenciar</Button><Button variant="outline-light" onClick={() => navigate(`/event/${event.id}/lineup`)}>Line-up</Button><Button variant="outline-light" onClick={() => navigate(`/event/${event.id}/artist-claims`)}>Reivindicações</Button><Button variant="outline-light" onClick={() => navigate(`/checkin?eventId=${event.id}`)}>Portaria</Button></div>}
         </Card.Body></Card></Col></Row>
 
