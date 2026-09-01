@@ -33,32 +33,51 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
     if (!pollingPublicId) return undefined;
 
     let active = true;
-    let attempts = 0;
-    const maxAttempts = 30;
+    let timer = null;
+    let syncing = false;
+
+    const applyOrder = (order) => {
+      const payments = Array.isArray(order?.payments) ? order.payments : [];
+      const latestPayment = payments.length ? payments[payments.length - 1] : resultRef.current?.payment;
+      setResult((current) => ({ ...current, order, payment: latestPayment || current?.payment }));
+      return finalStatuses.includes(order?.status);
+    };
 
     const sync = async () => {
-      attempts += 1;
+      if (!active || syncing) return false;
+      syncing = true;
       try {
         const order = await commerceService.syncPayment(pollingPublicId);
         if (!active) return true;
-        const payments = Array.isArray(order?.payments) ? order.payments : [];
-        const latestPayment = payments.length ? payments[payments.length - 1] : resultRef.current?.payment;
-        setResult((current) => ({ ...current, order, payment: latestPayment || current?.payment }));
-        return finalStatuses.includes(order?.status);
+        const finished = applyOrder(order);
+        if (finished && timer) {
+          window.clearInterval(timer);
+          timer = null;
+        }
+        return finished;
       } catch (_) {
         return false;
+      } finally {
+        syncing = false;
       }
     };
 
     const initialStatus = resultRef.current?.order?.status || resultRef.current?.payment?.status;
     if (finalStatuses.includes(initialStatus)) return undefined;
 
-    const timer = window.setInterval(async () => {
-      const finished = await sync();
-      if (finished || attempts >= maxAttempts) window.clearInterval(timer);
-    }, 4000);
+    sync();
+    timer = window.setInterval(sync, 1000);
 
-    return () => { active = false; window.clearInterval(timer); };
+    const syncOnFocus = () => sync();
+    window.addEventListener("focus", syncOnFocus);
+    document.addEventListener("visibilitychange", syncOnFocus);
+
+    return () => {
+      active = false;
+      if (timer) window.clearInterval(timer);
+      window.removeEventListener("focus", syncOnFocus);
+      document.removeEventListener("visibilitychange", syncOnFocus);
+    };
   }, [pollingPublicId]);
 
   const selected = useMemo(() => {
@@ -138,6 +157,7 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
   const approved = paymentStatus === "paid";
   const reversed = ["refunded", "charged_back"].includes(paymentStatus);
   const failed = ["rejected", "cancelled"].includes(paymentStatus);
+  const purchasedItems = Array.isArray(result?.order?.items) ? result.order.items : [];
 
   return <div className="cut-commerce-panel mt-4">
     <span className="cut-eyebrow">Comprar</span>
@@ -179,12 +199,22 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
     </>}
 
     {result && <Alert variant={approved ? "success" : failed || reversed ? "danger" : "info"} className="mt-3 mb-0">
-      <strong>{approved ? "Pagamento aprovado e ingressos liberados." : reversed ? "Pagamento revertido." : failed ? "Pagamento não concluído." : "Pagamento em processamento."}</strong>
-      {method === "pix" && !approved && !failed && !reversed && <div className="mt-2">Pague o PIX. A confirmação é atualizada automaticamente nesta tela.</div>}
-      {method === "card" && !approved && !failed && !reversed && <div className="mt-2">O Mercado Pago está processando o cartão. A liberação acontece somente após a confirmação.</div>}
-      {result.payment?.qr_code_image && <img src={result.payment.qr_code_image} alt="QR Code PIX" className="img-fluid bg-white rounded p-2 my-3" />}
-      {result.payment?.qr_code && <><Form.Control as="textarea" rows={3} readOnly value={result.payment.qr_code} /><Button variant="outline-success" className="w-100 mt-2" onClick={copyPix}>Copiar PIX</Button></>}
-      {result.payment?.ticket_url && <Button as="a" href={result.payment.ticket_url} target="_blank" rel="noreferrer" variant="outline-primary" className="w-100 mt-2">Abrir pagamento no Mercado Pago</Button>}
+      <strong>{approved ? "Pagamento aprovado! Sua compra foi confirmada." : reversed ? "Pagamento revertido." : failed ? "Pagamento não concluído." : "Aguardando confirmação do pagamento..."}</strong>
+      {method === "pix" && !approved && !failed && !reversed && <div className="mt-2">Assim que o Mercado Pago confirmar o PIX, esta tela será atualizada automaticamente.</div>}
+      {method === "card" && !approved && !failed && !reversed && <div className="mt-2">O Mercado Pago está processando o cartão. A confirmação aparecerá automaticamente aqui.</div>}
+
+      {!approved && result.payment?.qr_code_image && <img src={result.payment.qr_code_image} alt="QR Code PIX" className="img-fluid bg-white rounded p-2 my-3" />}
+      {!approved && result.payment?.qr_code && <><Form.Control as="textarea" rows={3} readOnly value={result.payment.qr_code} /><Button variant="outline-success" className="w-100 mt-2" onClick={copyPix}>Copiar PIX</Button></>}
+      {!approved && result.payment?.ticket_url && <Button as="a" href={result.payment.ticket_url} target="_blank" rel="noreferrer" variant="outline-primary" className="w-100 mt-2">Abrir pagamento no Mercado Pago</Button>}
+
+      {approved && <div className="mt-3">
+        <div className="d-flex justify-content-between mb-2"><span>Pedido</span><strong>#{result.order?.id}</strong></div>
+        <div className="d-flex justify-content-between mb-3"><span>Total pago</span><strong>{money(result.order?.total)}</strong></div>
+        {purchasedItems.map((item) => <div className="cut-ticket-option" key={`purchase-${item.id}`}>
+          <div><span className="cut-ticket-kicker">{item.type === "ticket" ? "Ingresso" : "Item"}</span><strong>{item.name}</strong><span>{item.quantity} × {money(item.unit_price)}</span></div>
+        </div>)}
+        <Button as="a" href="/passes" className="w-100 mt-3">Ver meus ingressos</Button>
+      </div>}
 
       {!approved && <div className="mt-3 pt-2 border-top border-secondary-subtle">
         <small className="d-block mb-2">Quer usar outra forma de pagamento?</small>
