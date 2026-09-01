@@ -9,6 +9,7 @@ import "./CheckoutPage.css";
 
 const money = (value) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
 const finalStatuses = ["paid", "refunded", "charged_back", "rejected", "cancelled"];
+const PAYMENT_SYNC_INTERVAL_MS = 5000;
 
 export default function CheckoutPage() {
   const { slug } = useParams();
@@ -55,6 +56,7 @@ export default function CheckoutPage() {
   }, [catalog, selection]);
 
   const total = useMemo(() => lines.reduce((sum, line) => sum + Number(line.price) * line.quantity, 0), [lines]);
+  const paymentAvailable = Boolean(catalog?.payment_config?.available);
 
   useEffect(() => {
     const publicId = result?.order?.public_id;
@@ -63,7 +65,7 @@ export default function CheckoutPage() {
     let syncing = false;
 
     const sync = async () => {
-      if (!active || syncing) return;
+      if (!active || syncing || document.visibilityState === "hidden") return;
       syncing = true;
       try {
         const order = await commerceService.syncPayment(publicId);
@@ -71,22 +73,28 @@ export default function CheckoutPage() {
         const payments = Array.isArray(order?.payments) ? order.payments : [];
         const latestPayment = payments.length ? payments[payments.length - 1] : resultRef.current?.payment;
         setResult((current) => ({ ...current, order, payment: latestPayment || current?.payment }));
-      } catch (_) {
-        // mantém a tela aguardando; nova tentativa ocorre automaticamente
+      } catch (err) {
+        if (err?.status && err.status !== 429) {
+          setError(err?.message || "Não foi possível atualizar o status do pagamento.");
+        }
       } finally {
         syncing = false;
       }
     };
 
     sync();
-    const timer = window.setInterval(sync, 1000);
-    window.addEventListener("focus", sync);
-    document.addEventListener("visibilitychange", sync);
+    const timer = window.setInterval(sync, PAYMENT_SYNC_INTERVAL_MS);
+    const handleFocus = () => sync();
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") sync();
+    };
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibility);
     return () => {
       active = false;
       window.clearInterval(timer);
-      window.removeEventListener("focus", sync);
-      document.removeEventListener("visibilitychange", sync);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, [result?.order?.public_id, result?.order?.status]);
 
@@ -97,7 +105,14 @@ export default function CheckoutPage() {
     items: (selection?.items || []).map((item) => ({ id: Number(item.id), quantity: Number(item.quantity) })),
   });
 
+  const ensurePaymentAvailable = () => {
+    if (paymentAvailable) return true;
+    setError(catalog?.payment_config?.message || "As vendas deste evento ainda não estão habilitadas.");
+    return false;
+  };
+
   const checkoutPix = async () => {
+    if (!ensurePaymentAvailable()) return;
     setPaying(true); setError("");
     try { setResult(await commerceService.checkout(payload("pix"))); }
     catch (err) { setError(err?.message || "Não foi possível gerar o PIX."); }
@@ -105,6 +120,7 @@ export default function CheckoutPage() {
   };
 
   const checkoutCard = async (cardData) => {
+    if (!ensurePaymentAvailable()) return;
     setPaying(true); setError("");
     try { setResult(await commerceService.checkout({ ...payload("card"), ...cardData })); }
     catch (err) { setError(err?.message || "Não foi possível processar o cartão."); }
@@ -137,6 +153,7 @@ export default function CheckoutPage() {
       <div className="cut-checkout-layout">
         <main className="cut-checkout-main">
           {error && <Alert variant="danger">{error}</Alert>}
+          {!paymentAvailable && !result && <Alert variant="warning">{catalog?.payment_config?.message || "As vendas deste evento ainda não estão habilitadas. Tente novamente mais tarde."}</Alert>}
 
           {approved ? <section className="cut-checkout-success">
             <div className="cut-checkout-success__icon"><i className="fa-solid fa-check" /></div>
@@ -153,8 +170,8 @@ export default function CheckoutPage() {
             <section className="cut-checkout-section">
               <div className="cut-checkout-section__head"><div className="cut-checkout-step">1</div><div><h2>Forma de pagamento</h2><p>Escolha como deseja pagar.</p></div></div>
               <div className="cut-payment-methods">
-                <button type="button" className={method === "pix" ? "is-active" : ""} onClick={() => { setMethod("pix"); setResult(null); }}><i className="fa-brands fa-pix" /><div><strong>PIX</strong><span>Aprovação rápida</span></div><i className="fa-solid fa-circle-check" /></button>
-                <button type="button" className={method === "card" ? "is-active" : ""} onClick={() => { setMethod("card"); setResult(null); }}><i className="fa-regular fa-credit-card" /><div><strong>Cartão de crédito</strong><span>Pagamento protegido</span></div><i className="fa-solid fa-circle-check" /></button>
+                <button type="button" disabled={!paymentAvailable} className={method === "pix" ? "is-active" : ""} onClick={() => { setMethod("pix"); setResult(null); }}><i className="fa-brands fa-pix" /><div><strong>PIX</strong><span>Aprovação rápida</span></div><i className="fa-solid fa-circle-check" /></button>
+                <button type="button" disabled={!paymentAvailable} className={method === "card" ? "is-active" : ""} onClick={() => { setMethod("card"); setResult(null); }}><i className="fa-regular fa-credit-card" /><div><strong>Cartão de crédito</strong><span>Pagamento protegido</span></div><i className="fa-solid fa-circle-check" /></button>
               </div>
             </section>
 
@@ -165,10 +182,10 @@ export default function CheckoutPage() {
                 <div className="cut-pix-start__icon"><i className="fa-brands fa-pix" /></div>
                 <h3>Pagamento via PIX</h3><p>Geraremos um QR Code exclusivo para esta compra. A confirmação aparecerá automaticamente nesta tela.</p>
                 <div className="cut-payment-total"><span>Total a pagar</span><strong>{money(total)}</strong></div>
-                <Button className="cut-checkout-primary" onClick={checkoutPix} disabled={paying}>{paying ? "Gerando PIX seguro..." : "Gerar QR Code PIX"}</Button>
+                <Button className="cut-checkout-primary" onClick={checkoutPix} disabled={paying || !paymentAvailable}>{paying ? "Gerando PIX seguro..." : "Gerar QR Code PIX"}</Button>
               </div>}
 
-              {!result && method === "card" && <MercadoPagoCardForm publicKey={catalog?.payment_config?.public_key || ""} amount={total} email={user?.email || ""} disabled={paying} onSubmit={checkoutCard} />}
+              {!result && method === "card" && paymentAvailable && <MercadoPagoCardForm publicKey={catalog?.payment_config?.public_key || ""} amount={total} email={user?.email || ""} disabled={paying} onSubmit={checkoutCard} />}
 
               {result && !failed && !approved && <div className="cut-payment-waiting">
                 <div className="cut-payment-waiting__pulse"><i className="fa-solid fa-shield-halved" /></div>
