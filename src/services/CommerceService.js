@@ -13,6 +13,9 @@ const commerceService = {
   paymentAccount: async (productionId) => (await apiClient.get(`/cutinapp/productions/${productionId}/payment-account`)).data.account,
   connectMercadoPago: async (productionId) => (await apiClient.get(`/cutinapp/productions/${productionId}/mercadopago/connect`)).data,
   financialSummary: async (productionId) => (await apiClient.get(`/cutinapp/productions/${productionId}/financial-summary`)).data,
+  payoutSummary: async (productionId) => (await apiClient.get(`/cutinapp/productions/${productionId}/payouts`)).data,
+  requestPayout: async (productionId, amount) => (await apiClient.post(`/cutinapp/productions/${productionId}/payouts`, { amount })).data,
+  cancelPayout: async (productionId, payoutId) => (await apiClient.post(`/cutinapp/productions/${productionId}/payouts/${payoutId}/cancel`)).data,
 };
 
 export default commerceService;
