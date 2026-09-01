@@ -202,11 +202,456 @@
 .text-info { color: #62dfff !important; }
 .border-primary { border-color: rgba(184,71,250,.46) !important; }
 .border-info { border-color: rgba(6,175,250,.42) !important; }
-
-/* Keep status semantics readable while avoiding unrelated brand colors. */
 .badge.bg-secondary { background: rgba(113,65,247,.18) !important; color: #ded3ff !important; border: 1px solid rgba(113,65,247,.28); }
+
+/* =========================================================
+   CUTINAPP FUTURE INTERFACE
+   Dynamic, cinematic and technology-driven visual layer.
+   ========================================================= */
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -3;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 18% 8%, rgba(229,108,255,.10), transparent 26%),
+    radial-gradient(circle at 82% 14%, rgba(43,98,244,.12), transparent 28%),
+    radial-gradient(circle at 52% 92%, rgba(6,175,250,.07), transparent 34%),
+    #03030d;
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  pointer-events: none;
+  opacity: .18;
+  mix-blend-mode: soft-light;
+  background-image:
+    linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px);
+  background-size: 54px 54px;
+  -webkit-mask-image: radial-gradient(circle at 50% 35%, black 0%, transparent 78%);
+  mask-image: radial-gradient(circle at 50% 35%, black 0%, transparent 78%);
+}
+
+.cut-app-page,
+.cut-dashboard,
+.cut-home,
+.cut-auth-shell {
+  position: relative;
+  isolation: isolate;
+}
+
+.cut-app-page::after,
+.cut-dashboard::after,
+.cut-home::after,
+.cut-auth-shell::after {
+  content: "";
+  position: fixed;
+  inset: -30%;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 25% 30%, rgba(184,71,250,.07), transparent 22%),
+    radial-gradient(circle at 72% 42%, rgba(43,98,244,.06), transparent 24%),
+    radial-gradient(circle at 52% 78%, rgba(6,175,250,.045), transparent 22%);
+  filter: blur(30px);
+  animation: cutAmbientDrift 18s ease-in-out infinite alternate;
+}
+
+.cut-navbar,
+.cut-home__nav {
+  background: linear-gradient(180deg, rgba(8,7,27,.90), rgba(5,5,19,.72)) !important;
+  box-shadow:
+    0 12px 42px rgba(0,0,0,.32),
+    inset 0 -1px rgba(229,108,255,.04),
+    0 0 34px rgba(43,98,244,.035) !important;
+}
+
+.cut-navbar::after,
+.cut-home__nav::after {
+  content: "";
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  bottom: -1px;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, #e56cff 18%, #7141f7 48%, #2b62f4 72%, #06affa 88%, transparent);
+  opacity: .45;
+  filter: blur(.2px);
+  animation: cutNavPulse 5s ease-in-out infinite;
+}
+
+.cut-navbar__brand > img,
+.cut-home__brand img,
+.cut-auth-shell__logo img,
+.cut-auth-shell__brandMark img,
+.cut-dashboard__heroMark img {
+  animation: cutLogoFloat 5.5s ease-in-out infinite;
+  will-change: transform, filter;
+}
+
+.cut-navbar__links .nav-link,
+.cut-navbar__links .dropdown-toggle,
+.cut-filter-shortcuts button,
+.cut-recent-cities button,
+.cut-icon-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.cut-navbar__links .nav-link::after,
+.cut-navbar__links .dropdown-toggle::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 5px;
+  height: 1px;
+  transform: scaleX(0);
+  transform-origin: center;
+  background: linear-gradient(90deg, #e56cff, #7141f7, #06affa);
+  box-shadow: 0 0 12px rgba(184,71,250,.65);
+  transition: transform 220ms ease;
+}
+.cut-navbar__links .nav-link:hover::after,
+.cut-navbar__links .nav-link.active::after,
+.cut-navbar__links .dropdown-toggle:hover::after {
+  transform: scaleX(1);
+}
+
+.cut-home__hero,
+.cut-dashboard__hero,
+.cut-auth-shell__heroCard,
+.cut-auth-shell__card {
+  isolation: isolate;
+}
+
+.cut-home__hero::before {
+  animation: cutHeroAura 12s ease-in-out infinite alternate;
+}
+
+.cut-home__visualCard,
+.cut-dashboard__hero,
+.cut-auth-shell__heroCard,
+.cut-auth-shell__card,
+.cut-panel,
+.cut-dashboard__card,
+.cut-home__eventCard,
+.cut-home__featureGrid article,
+.cut-event-card,
+.cut-production-card,
+.cut-pass-card,
+.cut-artist-card,
+.cut-feed-card {
+  position: relative;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+}
+
+.cut-home__visualCard::after,
+.cut-dashboard__hero::before,
+.cut-panel::after,
+.cut-dashboard__card::after,
+.cut-home__eventCard::after,
+.cut-home__featureGrid article::before,
+.cut-event-card::after,
+.cut-production-card::after,
+.cut-pass-card::after,
+.cut-artist-card::after,
+.cut-feed-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(115deg, transparent 22%, rgba(255,255,255,.045) 38%, rgba(229,108,255,.075) 48%, rgba(6,175,250,.055) 55%, transparent 68%);
+  transform: translateX(-125%);
+  opacity: 0;
+}
+
+.cut-panel:hover::after,
+.cut-dashboard__card:hover::after,
+.cut-home__eventCard:hover::after,
+.cut-home__featureGrid article:hover::before,
+.cut-event-card:hover::after,
+.cut-production-card:hover::after,
+.cut-pass-card:hover::after,
+.cut-artist-card:hover::after,
+.cut-feed-card:hover::after {
+  opacity: 1;
+  animation: cutCardScan 900ms cubic-bezier(.2,.8,.2,1) both;
+}
+
+.cut-dashboard__card,
+.cut-home__eventCard,
+.cut-home__featureGrid article,
+.cut-event-card,
+.cut-production-card,
+.cut-pass-card,
+.cut-artist-card,
+.cut-feed-card,
+.cut-panel {
+  transition:
+    transform 280ms cubic-bezier(.16,1,.3,1),
+    border-color 220ms ease,
+    box-shadow 280ms ease,
+    background-color 220ms ease !important;
+}
+
+.cut-dashboard__card:hover,
+.cut-home__eventCard:hover,
+.cut-home__featureGrid article:hover,
+.cut-event-card:hover,
+.cut-production-card:hover,
+.cut-pass-card:hover,
+.cut-artist-card:hover,
+.cut-feed-card:hover,
+.cut-panel:hover {
+  transform: translateY(-6px) scale(1.008);
+  box-shadow:
+    0 26px 70px rgba(0,0,0,.40),
+    0 0 0 1px rgba(184,71,250,.08),
+    0 0 42px rgba(113,65,247,.09),
+    0 0 72px rgba(6,175,250,.025) !important;
+}
+
+.cut-home__eventMedia,
+.cut-upload-placeholder,
+.cut-dashboard__heroMark,
+.cut-home__visualLogo,
+.cut-empty-icon {
+  position: relative;
+  overflow: hidden;
+}
+
+.cut-dashboard__heroMark::after,
+.cut-home__visualLogo::after,
+.cut-empty-icon::after {
+  content: "";
+  position: absolute;
+  inset: -45%;
+  background: conic-gradient(from 0deg, transparent 0 30%, rgba(229,108,255,.20), rgba(43,98,244,.16), rgba(6,175,250,.18), transparent 68% 100%);
+  animation: cutOrbitalSpin 10s linear infinite;
+  pointer-events: none;
+}
+
+.cut-dashboard__heroMark img,
+.cut-home__visualLogo img,
+.cut-empty-icon > * {
+  position: relative;
+  z-index: 1;
+}
+
+.cut-home__copy h1,
+.cut-dashboard__hero h1,
+.cut-page-heading h1 {
+  text-shadow: 0 12px 34px rgba(0,0,0,.28);
+}
+
+.cut-home__copy h1 em {
+  background-size: 220% 100% !important;
+  animation: cutGradientFlow 7s ease-in-out infinite;
+  filter: drop-shadow(0 0 20px rgba(184,71,250,.12));
+}
+
+.cut-eyebrow,
+.cut-home__eyebrow {
+  text-shadow: 0 0 18px rgba(184,71,250,.30);
+}
+
+.cut-primary-action,
+.cut-dashboard__primary,
+.cut-home__primary,
+.cut-home__cta,
+.btn-primary {
+  position: relative;
+  overflow: hidden;
+  background-size: 180% 180% !important;
+  animation: cutButtonGradient 7s ease infinite;
+  transform: translateZ(0);
+}
+
+.cut-primary-action::after,
+.cut-dashboard__primary::after,
+.cut-home__primary::after,
+.cut-home__cta::after,
+.btn-primary::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(110deg, transparent 24%, rgba(255,255,255,.26) 48%, transparent 72%);
+  transform: translateX(-140%);
+  transition: transform 550ms ease;
+}
+.cut-primary-action:hover::after,
+.cut-dashboard__primary:hover::after,
+.cut-home__primary:hover::after,
+.cut-home__cta:hover::after,
+.btn-primary:hover::after {
+  transform: translateX(140%);
+}
+
+.form-control,
+.form-select,
+.cut-search-bar,
+.dropdown-menu,
+.modal-content {
+  backdrop-filter: blur(18px) saturate(135%);
+}
+
+.form-control:focus,
+.form-select:focus,
+.cut-search-bar:focus-within {
+  border-color: rgba(184,71,250,.50) !important;
+  box-shadow:
+    0 0 0 3px rgba(184,71,250,.10),
+    0 0 24px rgba(43,98,244,.08) !important;
+}
+
+.cut-dashboard__stats article strong,
+.cut-status-badge,
+.badge {
+  font-variant-numeric: tabular-nums;
+}
+
+.cut-dashboard__stats article:hover strong {
+  background: linear-gradient(90deg,#fff,#e8c4ff,#9ee9ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.cut-home__proof span,
+.cut-status-badge,
+.badge,
+.cut-filter-shortcuts button,
+.cut-active-filters > span,
+.cut-recent-cities button {
+  backdrop-filter: blur(12px);
+}
+
+.cut-live-badge::before,
+.cut-feature-badge::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 0 currentColor;
+  animation: cutLivePulse 2s infinite;
+}
+
+.cut-home__steps b,
+.cut-info-box,
+.cut-list-row,
+.cut-skeleton-card {
+  backdrop-filter: blur(14px);
+}
+
+.cut-home__steps b:hover,
+.cut-info-box:hover,
+.cut-list-row:hover {
+  border-color: rgba(184,71,250,.24);
+  background: linear-gradient(145deg, rgba(184,71,250,.055), rgba(43,98,244,.035));
+}
+
+.cut-skeleton::after {
+  background: linear-gradient(90deg, transparent, rgba(229,108,255,.08), rgba(6,175,250,.09), transparent) !important;
+}
+
+@keyframes cutAmbientDrift {
+  0% { transform: translate3d(-1.5%,-1%,0) scale(1); }
+  50% { transform: translate3d(1.5%,1%,0) scale(1.03); }
+  100% { transform: translate3d(-.5%,2%,0) scale(1.01); }
+}
+
+@keyframes cutHeroAura {
+  0% { transform: scale(1) translate3d(0,0,0); opacity: .86; }
+  100% { transform: scale(1.08) translate3d(1.5%,-1%,0); opacity: 1; }
+}
+
+@keyframes cutGradientFlow {
+  0%,100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes cutButtonGradient {
+  0%,100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes cutLogoFloat {
+  0%,100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-3px) scale(1.018); }
+}
+
+@keyframes cutNavPulse {
+  0%,100% { opacity: .28; transform: scaleX(.82); }
+  50% { opacity: .72; transform: scaleX(1); }
+}
+
+@keyframes cutCardScan {
+  0% { transform: translateX(-125%); }
+  100% { transform: translateX(125%); }
+}
+
+@keyframes cutOrbitalSpin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes cutLivePulse {
+  0% { box-shadow: 0 0 0 0 currentColor; opacity: 1; }
+  70% { box-shadow: 0 0 0 7px transparent; opacity: .72; }
+  100% { box-shadow: 0 0 0 0 transparent; opacity: 1; }
+}
 
 @media (max-width: 640px) {
   .cut-navbar,
   .cut-home__nav { backdrop-filter: blur(18px) saturate(140%); }
+
+  .cut-dashboard__card:hover,
+  .cut-home__eventCard:hover,
+  .cut-home__featureGrid article:hover,
+  .cut-event-card:hover,
+  .cut-production-card:hover,
+  .cut-pass-card:hover,
+  .cut-artist-card:hover,
+  .cut-feed-card:hover,
+  .cut-panel:hover {
+    transform: translateY(-3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cut-app-page::after,
+  .cut-dashboard::after,
+  .cut-home::after,
+  .cut-auth-shell::after,
+  .cut-navbar::after,
+  .cut-home__nav::after,
+  .cut-navbar__brand > img,
+  .cut-home__brand img,
+  .cut-auth-shell__logo img,
+  .cut-auth-shell__brandMark img,
+  .cut-dashboard__heroMark img,
+  .cut-dashboard__heroMark::after,
+  .cut-home__visualLogo::after,
+  .cut-empty-icon::after,
+  .cut-home__copy h1 em,
+  .cut-primary-action,
+  .cut-dashboard__primary,
+  .cut-home__primary,
+  .cut-home__cta,
+  .btn-primary,
+  .cut-live-badge::before,
+  .cut-feature-badge::before {
+    animation: none !important;
+  }
 }
