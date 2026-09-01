@@ -9,6 +9,7 @@ const cutinappService = {
   locationCities: async (uf, q = "") => (await apiClient.get("/cutinapp/locations/cities", { params: { uf, q } })).data.cities || [],
   lookupCep: async (cep) => (await apiClient.get(`/cutinapp/locations/cep/${String(cep).replace(/\D/g, "")}`)).data.address,
 
+  profileOverview: async () => (await apiClient.get("/cutinapp/profile/overview")).data,
   myProductions: async () => unwrap((await apiClient.get("/cutinapp/productions/mine")).data.productions),
   getProduction: async (id) => (await apiClient.get(`/cutinapp/productions/${id}`)).data.production,
   publicProduction: async (slug) => (await apiClient.get(`/cutinapp/productions/public/${slug}`)).data,
