@@ -1,0 +1,164 @@
+:root {
+  color-scheme: dark;
+
+  /* Brand */
+  --cut-brand-50: #effdff;
+  --cut-brand-100: #d9faff;
+  --cut-brand-200: #b8f5fb;
+  --cut-brand-300: #85ebf4;
+  --cut-brand-400: #56dce9;
+  --cut-brand-500: #2fc6d8;
+  --cut-brand-600: #21a9bf;
+  --cut-brand-700: #20879b;
+  --cut-brand-800: #216d7e;
+  --cut-brand-900: #205b69;
+
+  /* Accent: nightlife / event energy */
+  --cut-accent-400: #8d7dff;
+  --cut-accent-500: #7363f4;
+  --cut-accent-600: #5f4dde;
+  --cut-pink-400: #f076c7;
+  --cut-amber-400: #ffc966;
+
+  /* Semantic aliases */
+  --cut-primary: var(--cut-brand-400);
+  --cut-primary-hover: var(--cut-brand-300);
+  --cut-primary-strong: var(--cut-brand-600);
+  --cut-secondary: var(--cut-accent-400);
+  --cut-danger: #ff6b7d;
+  --cut-danger-strong: #ed5268;
+  --cut-success: #54df8b;
+  --cut-warning: #ffc45d;
+  --cut-info: #6cbcf7;
+
+  /* Backgrounds and surfaces */
+  --cut-bg: #030810;
+  --cut-bg-deep: #02060b;
+  --cut-bg-soft: #06111a;
+  --cut-surface-1: #08141d;
+  --cut-surface-2: #0b1924;
+  --cut-surface-3: #0f2230;
+  --cut-surface-4: #132938;
+  --cut-surface-glass: rgba(9, 22, 32, 0.78);
+  --cut-surface-glass-strong: rgba(7, 18, 27, 0.92);
+  --cut-surface-hover: rgba(255, 255, 255, 0.055);
+  --cut-surface-active: rgba(86, 220, 233, 0.1);
+
+  /* Text */
+  --cut-text: #f5fbff;
+  --cut-text-strong: #ffffff;
+  --cut-text-muted: #9bb0bd;
+  --cut-text-soft: #718895;
+  --cut-text-faint: #536b78;
+  --cut-text-on-primary: #021216;
+
+  /* Borders */
+  --cut-border: rgba(255, 255, 255, 0.095);
+  --cut-border-soft: rgba(255, 255, 255, 0.07);
+  --cut-border-strong: rgba(86, 220, 233, 0.28);
+  --cut-border-focus: rgba(86, 220, 233, 0.58);
+  --cut-divider: rgba(255, 255, 255, 0.065);
+
+  /* Semantic surfaces */
+  --cut-primary-soft: rgba(86, 220, 233, 0.1);
+  --cut-secondary-soft: rgba(141, 125, 255, 0.1);
+  --cut-danger-soft: rgba(255, 107, 125, 0.1);
+  --cut-success-soft: rgba(84, 223, 139, 0.1);
+  --cut-warning-soft: rgba(255, 196, 93, 0.1);
+  --cut-info-soft: rgba(108, 188, 247, 0.1);
+
+  /* Gradients */
+  --cut-gradient-brand: linear-gradient(135deg, var(--cut-brand-300) 0%, var(--cut-brand-500) 48%, var(--cut-brand-700) 100%);
+  --cut-gradient-brand-soft: linear-gradient(135deg, rgba(86, 220, 233, 0.14), rgba(115, 99, 244, 0.06));
+  --cut-gradient-surface: linear-gradient(150deg, rgba(16, 35, 48, 0.98), rgba(6, 16, 24, 0.98));
+  --cut-gradient-surface-hover: linear-gradient(150deg, rgba(18, 40, 54, 0.99), rgba(7, 18, 27, 0.99));
+  --cut-gradient-night: radial-gradient(circle at 12% 10%, rgba(86, 220, 233, 0.11), transparent 32%), radial-gradient(circle at 88% 7%, rgba(115, 99, 244, 0.1), transparent 34%), linear-gradient(160deg, var(--cut-bg) 0%, #05121c 48%, var(--cut-bg-deep) 100%);
+  --cut-gradient-hero: linear-gradient(180deg, rgba(2, 7, 12, 0.08), rgba(2, 7, 12, 0.92));
+
+  /* Shadows */
+  --cut-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --cut-shadow-sm: 0 10px 28px rgba(0, 0, 0, 0.18);
+  --cut-shadow-md: 0 18px 50px rgba(0, 0, 0, 0.26);
+  --cut-shadow-lg: 0 30px 90px rgba(0, 0, 0, 0.34);
+  --cut-shadow-xl: 0 44px 120px rgba(0, 0, 0, 0.42);
+  --cut-shadow-brand: 0 16px 44px rgba(47, 198, 216, 0.22);
+  --cut-shadow-focus: 0 0 0 4px rgba(86, 220, 233, 0.11);
+
+  /* Radii */
+  --cut-radius-xs: 8px;
+  --cut-radius-sm: 11px;
+  --cut-radius-md: 14px;
+  --cut-radius-lg: 18px;
+  --cut-radius-xl: 24px;
+  --cut-radius-2xl: 30px;
+  --cut-radius-pill: 999px;
+
+  /* Spacing */
+  --cut-space-1: 4px;
+  --cut-space-2: 8px;
+  --cut-space-3: 12px;
+  --cut-space-4: 16px;
+  --cut-space-5: 20px;
+  --cut-space-6: 24px;
+  --cut-space-7: 28px;
+  --cut-space-8: 32px;
+  --cut-space-10: 40px;
+  --cut-space-12: 48px;
+  --cut-space-16: 64px;
+  --cut-space-20: 80px;
+  --cut-space-24: 96px;
+
+  /* Typography */
+  --cut-font-sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --cut-font-display: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --cut-font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --cut-text-xs: 0.72rem;
+  --cut-text-sm: 0.82rem;
+  --cut-text-base: 0.94rem;
+  --cut-text-md: 1rem;
+  --cut-text-lg: 1.125rem;
+  --cut-text-xl: 1.35rem;
+  --cut-text-2xl: 1.7rem;
+  --cut-text-3xl: clamp(2rem, 4vw, 3rem);
+  --cut-text-hero: clamp(2.75rem, 7vw, 5.7rem);
+  --cut-leading-tight: 1.05;
+  --cut-leading-normal: 1.55;
+  --cut-leading-relaxed: 1.75;
+  --cut-weight-medium: 600;
+  --cut-weight-semibold: 700;
+  --cut-weight-bold: 800;
+  --cut-weight-black: 900;
+
+  /* Layout */
+  --cut-container-sm: 760px;
+  --cut-container-md: 980px;
+  --cut-container-lg: 1180px;
+  --cut-container-xl: 1320px;
+  --cut-navbar-height: 74px;
+  --cut-touch-target: 44px;
+
+  /* Motion */
+  --cut-duration-fast: 120ms;
+  --cut-duration-normal: 180ms;
+  --cut-duration-slow: 280ms;
+  --cut-ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --cut-ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Layers */
+  --cut-z-base: 1;
+  --cut-z-sticky: 900;
+  --cut-z-dropdown: 1000;
+  --cut-z-loader: 1035;
+  --cut-z-backdrop: 1040;
+  --cut-z-modal: 1055;
+  --cut-z-toast: 1080;
+
+  /* Legacy aliases kept while pages migrate */
+  --cut-bg-2: var(--cut-bg-soft);
+  --cut-surface: var(--cut-surface-1);
+  --cut-surface-2: var(--cut-surface-2);
+  --cut-surface-3: var(--cut-surface-3);
+  --cut-muted: var(--cut-text-muted);
+  --cut-soft: var(--cut-text-soft);
+  --cut-shadow: var(--cut-shadow-lg);
+}
