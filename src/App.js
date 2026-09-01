@@ -20,6 +20,7 @@ const PasswordEmailPage = lazy(() => import("./pages/auth/PasswordEmailPage"));
 const PasswordPage = lazy(() => import("./pages/auth/PasswordPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const UserEditPage = lazy(() => import("./pages/user/UserEditPage"));
+const UserProfilePage = lazy(() => import("./pages/user/UserProfilePage"));
 const ProductionCreatePage = lazy(() => import("./pages/production/ProductionCreatePage"));
 const ProductionMinePage = lazy(() => import("./pages/production/ProductionMinePage"));
 const ProductionViewPage = lazy(() => import("./pages/production/ProductionViewPage"));
@@ -77,6 +78,7 @@ function AppRoutes() {
 
         <Route path="/dashboard" element={protectedRoute(<DashboardPage />)} />
         <Route path="/feed" element={protectedRoute(<FeedPage />)} />
+        <Route path="/profile" element={protectedRoute(<UserProfilePage />)} />
         <Route path="/user/edit" element={protectedRoute(<UserEditPage />)} />
 
         <Route path="/artists" element={<ArtistListPage />} />
