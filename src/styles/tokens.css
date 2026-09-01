@@ -1,88 +1,100 @@
 :root {
   color-scheme: dark;
 
-  /* Brand */
-  --cut-brand-50: #effdff;
-  --cut-brand-100: #d9faff;
-  --cut-brand-200: #b8f5fb;
-  --cut-brand-300: #85ebf4;
-  --cut-brand-400: #56dce9;
-  --cut-brand-500: #2fc6d8;
-  --cut-brand-600: #21a9bf;
-  --cut-brand-700: #20879b;
-  --cut-brand-800: #216d7e;
-  --cut-brand-900: #205b69;
+  /* Cutinapp brand — extracted from the neon logo */
+  --cut-brand-50: #f7f1ff;
+  --cut-brand-100: #eee2ff;
+  --cut-brand-200: #ddc2ff;
+  --cut-brand-300: #e692f7;
+  --cut-brand-400: #c85cff;
+  --cut-brand-500: #b847fa;
+  --cut-brand-600: #8f42fa;
+  --cut-brand-700: #7141f7;
+  --cut-brand-800: #5138dc;
+  --cut-brand-900: #312e88;
 
-  /* Accent: nightlife / event energy */
-  --cut-accent-400: #8d7dff;
-  --cut-accent-500: #7363f4;
-  --cut-accent-600: #5f4dde;
-  --cut-pink-400: #f076c7;
-  --cut-amber-400: #ffc966;
+  --cut-blue-300: #68b8ff;
+  --cut-blue-400: #2f8dff;
+  --cut-blue-500: #2b62f4;
+  --cut-blue-600: #244be0;
+  --cut-cyan-300: #62dfff;
+  --cut-cyan-400: #06c8ff;
+  --cut-cyan-500: #06affa;
+  --cut-pink-300: #f0a4ff;
+  --cut-pink-400: #e56cff;
+  --cut-pink-500: #d83cff;
 
   /* Semantic aliases */
-  --cut-primary: var(--cut-brand-400);
-  --cut-primary-hover: var(--cut-brand-300);
-  --cut-primary-strong: var(--cut-brand-600);
-  --cut-secondary: var(--cut-accent-400);
-  --cut-danger: #ff6b7d;
-  --cut-danger-strong: #ed5268;
-  --cut-success: #54df8b;
-  --cut-warning: #ffc45d;
-  --cut-info: #6cbcf7;
+  --cut-primary: var(--cut-brand-500);
+  --cut-primary-hover: var(--cut-pink-300);
+  --cut-primary-strong: var(--cut-brand-700);
+  --cut-secondary: var(--cut-blue-500);
+  --cut-accent: var(--cut-cyan-500);
+  --cut-danger: #ff6687;
+  --cut-danger-strong: #f04772;
+  --cut-success: #4ee7b2;
+  --cut-warning: #ffca6a;
+  --cut-info: var(--cut-cyan-300);
 
   /* Backgrounds and surfaces */
-  --cut-bg: #030810;
-  --cut-bg-deep: #02060b;
-  --cut-bg-soft: #06111a;
-  --cut-surface-1: #08141d;
-  --cut-surface-2: #0b1924;
-  --cut-surface-3: #0f2230;
-  --cut-surface-4: #132938;
-  --cut-surface-glass: rgba(9, 22, 32, 0.78);
-  --cut-surface-glass-strong: rgba(7, 18, 27, 0.92);
-  --cut-surface-hover: rgba(255, 255, 255, 0.055);
-  --cut-surface-active: rgba(86, 220, 233, 0.1);
+  --cut-bg: #050513;
+  --cut-bg-deep: #02020b;
+  --cut-bg-soft: #09091d;
+  --cut-surface-1: #0d0d24;
+  --cut-surface-2: #12122d;
+  --cut-surface-3: #18183a;
+  --cut-surface-4: #20204a;
+  --cut-surface-glass: rgba(13, 13, 36, .76);
+  --cut-surface-glass-strong: rgba(7, 7, 24, .93);
+  --cut-surface-hover: rgba(184, 71, 250, .08);
+  --cut-surface-active: rgba(113, 65, 247, .15);
 
   /* Text */
-  --cut-text: #f5fbff;
+  --cut-text: #f4f2ff;
   --cut-text-strong: #ffffff;
-  --cut-text-muted: #9bb0bd;
-  --cut-text-soft: #718895;
-  --cut-text-faint: #536b78;
-  --cut-text-on-primary: #021216;
+  --cut-text-muted: #b8b4d2;
+  --cut-text-soft: #8d89aa;
+  --cut-text-faint: #696582;
+  --cut-text-on-primary: #ffffff;
 
   /* Borders */
-  --cut-border: rgba(255, 255, 255, 0.095);
-  --cut-border-soft: rgba(255, 255, 255, 0.07);
-  --cut-border-strong: rgba(86, 220, 233, 0.28);
-  --cut-border-focus: rgba(86, 220, 233, 0.58);
-  --cut-divider: rgba(255, 255, 255, 0.065);
+  --cut-border: rgba(209, 188, 255, .13);
+  --cut-border-soft: rgba(209, 188, 255, .08);
+  --cut-border-strong: rgba(184, 71, 250, .42);
+  --cut-border-focus: rgba(184, 71, 250, .72);
+  --cut-divider: rgba(209, 188, 255, .075);
 
   /* Semantic surfaces */
-  --cut-primary-soft: rgba(86, 220, 233, 0.1);
-  --cut-secondary-soft: rgba(141, 125, 255, 0.1);
-  --cut-danger-soft: rgba(255, 107, 125, 0.1);
-  --cut-success-soft: rgba(84, 223, 139, 0.1);
-  --cut-warning-soft: rgba(255, 196, 93, 0.1);
-  --cut-info-soft: rgba(108, 188, 247, 0.1);
+  --cut-primary-soft: rgba(184, 71, 250, .13);
+  --cut-secondary-soft: rgba(43, 98, 244, .13);
+  --cut-accent-soft: rgba(6, 175, 250, .12);
+  --cut-danger-soft: rgba(255, 102, 135, .11);
+  --cut-success-soft: rgba(78, 231, 178, .11);
+  --cut-warning-soft: rgba(255, 202, 106, .11);
+  --cut-info-soft: rgba(98, 223, 255, .11);
 
-  /* Gradients */
-  --cut-gradient-brand: linear-gradient(135deg, var(--cut-brand-300) 0%, var(--cut-brand-500) 48%, var(--cut-brand-700) 100%);
-  --cut-gradient-brand-soft: linear-gradient(135deg, rgba(86, 220, 233, 0.14), rgba(115, 99, 244, 0.06));
-  --cut-gradient-surface: linear-gradient(150deg, rgba(16, 35, 48, 0.98), rgba(6, 16, 24, 0.98));
-  --cut-gradient-surface-hover: linear-gradient(150deg, rgba(18, 40, 54, 0.99), rgba(7, 18, 27, 0.99));
-  --cut-gradient-night: radial-gradient(circle at 12% 10%, rgba(86, 220, 233, 0.11), transparent 32%), radial-gradient(circle at 88% 7%, rgba(115, 99, 244, 0.1), transparent 34%), linear-gradient(160deg, var(--cut-bg) 0%, #05121c 48%, var(--cut-bg-deep) 100%);
-  --cut-gradient-hero: linear-gradient(180deg, rgba(2, 7, 12, 0.08), rgba(2, 7, 12, 0.92));
+  /* Signature gradients from the logo: pink → violet → blue → cyan */
+  --cut-gradient-brand: linear-gradient(135deg, #e56cff 0%, #b847fa 28%, #7141f7 55%, #2b62f4 78%, #06affa 100%);
+  --cut-gradient-brand-horizontal: linear-gradient(90deg, #e56cff 0%, #b847fa 25%, #7141f7 50%, #2b62f4 75%, #06affa 100%);
+  --cut-gradient-brand-soft: linear-gradient(135deg, rgba(229,108,255,.16), rgba(113,65,247,.12) 52%, rgba(6,175,250,.10));
+  --cut-gradient-surface: linear-gradient(150deg, rgba(24,24,58,.97), rgba(9,9,29,.98));
+  --cut-gradient-surface-hover: linear-gradient(150deg, rgba(31,27,74,.99), rgba(11,10,34,.99));
+  --cut-gradient-night:
+    radial-gradient(circle at 16% 7%, rgba(184,71,250,.17), transparent 30%),
+    radial-gradient(circle at 88% 10%, rgba(43,98,244,.15), transparent 34%),
+    radial-gradient(circle at 76% 82%, rgba(6,175,250,.08), transparent 34%),
+    linear-gradient(160deg, #070616 0%, #0a0820 45%, #04040f 100%);
+  --cut-gradient-hero: linear-gradient(180deg, rgba(4,4,15,.08), rgba(4,4,15,.94));
 
-  /* Shadows */
-  --cut-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
-  --cut-shadow-sm: 0 10px 28px rgba(0, 0, 0, 0.18);
-  --cut-shadow-md: 0 18px 50px rgba(0, 0, 0, 0.26);
-  --cut-shadow-lg: 0 30px 90px rgba(0, 0, 0, 0.34);
-  --cut-shadow-xl: 0 44px 120px rgba(0, 0, 0, 0.42);
-  --cut-shadow-brand: 0 16px 44px rgba(47, 198, 216, 0.22);
-  --cut-shadow-focus: 0 0 0 4px rgba(86, 220, 233, 0.11);
+  /* Shadows / neon glows */
+  --cut-shadow-xs: 0 1px 2px rgba(0,0,0,.22);
+  --cut-shadow-sm: 0 10px 30px rgba(0,0,0,.24);
+  --cut-shadow-md: 0 18px 54px rgba(0,0,0,.32);
+  --cut-shadow-lg: 0 30px 92px rgba(0,0,0,.42);
+  --cut-shadow-xl: 0 44px 130px rgba(0,0,0,.52);
+  --cut-shadow-brand: 0 16px 44px rgba(113,65,247,.28), 0 0 28px rgba(6,175,250,.08);
+  --cut-shadow-brand-strong: 0 20px 60px rgba(184,71,250,.30), 0 0 42px rgba(43,98,244,.16);
+  --cut-shadow-focus: 0 0 0 4px rgba(184,71,250,.15);
 
   /* Radii */
   --cut-radius-xs: 8px;
@@ -112,15 +124,15 @@
   --cut-font-sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --cut-font-display: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --cut-font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  --cut-text-xs: 0.72rem;
-  --cut-text-sm: 0.82rem;
-  --cut-text-base: 0.94rem;
+  --cut-text-xs: .72rem;
+  --cut-text-sm: .82rem;
+  --cut-text-base: .94rem;
   --cut-text-md: 1rem;
   --cut-text-lg: 1.125rem;
   --cut-text-xl: 1.35rem;
   --cut-text-2xl: 1.7rem;
-  --cut-text-3xl: clamp(2rem, 4vw, 3rem);
-  --cut-text-hero: clamp(2.75rem, 7vw, 5.7rem);
+  --cut-text-3xl: clamp(2rem,4vw,3rem);
+  --cut-text-hero: clamp(2.75rem,7vw,5.7rem);
   --cut-leading-tight: 1.05;
   --cut-leading-normal: 1.55;
   --cut-leading-relaxed: 1.75;
@@ -141,8 +153,8 @@
   --cut-duration-fast: 120ms;
   --cut-duration-normal: 180ms;
   --cut-duration-slow: 280ms;
-  --cut-ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --cut-ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
+  --cut-ease-standard: cubic-bezier(.2,.8,.2,1);
+  --cut-ease-enter: cubic-bezier(.16,1,.3,1);
 
   /* Layers */
   --cut-z-base: 1;
@@ -153,7 +165,20 @@
   --cut-z-modal: 1055;
   --cut-z-toast: 1080;
 
-  /* Legacy aliases kept while pages migrate */
+  /* Bootstrap theme bridge */
+  --bs-primary: #b847fa;
+  --bs-primary-rgb: 184,71,250;
+  --bs-secondary: #7141f7;
+  --bs-secondary-rgb: 113,65,247;
+  --bs-info: #06affa;
+  --bs-info-rgb: 6,175,250;
+  --bs-body-bg: var(--cut-bg);
+  --bs-body-color: var(--cut-text);
+  --bs-border-color: var(--cut-border);
+  --bs-link-color: var(--cut-brand-300);
+  --bs-link-hover-color: var(--cut-cyan-300);
+
+  /* Legacy aliases */
   --cut-bg-2: var(--cut-bg-soft);
   --cut-surface: var(--cut-surface-1);
   --cut-muted: var(--cut-text-muted);
