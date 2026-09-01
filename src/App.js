@@ -13,6 +13,8 @@ import SeoManager from "./components/SeoManager";
 
 const HomePage = lazy(() => import("./pages/HomePage"));
 const FeedPage = lazy(() => import("./pages/FeedPage"));
+const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
+const ReportModerationPage = lazy(() => import("./pages/moderation/ReportModerationPage"));
 const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
 const RegisterPage = lazy(() => import("./pages/auth/RegisterPage"));
 const EmailVerifyPage = lazy(() => import("./pages/auth/EmailVerifyPage"));
@@ -80,6 +82,8 @@ function AppRoutes() {
 
         <Route path="/dashboard" element={protectedRoute(<DashboardPage />)} />
         <Route path="/feed" element={protectedRoute(<FeedPage />)} />
+        <Route path="/notifications" element={protectedRoute(<NotificationsPage />)} />
+        <Route path="/moderation/reports" element={protectedRoute(<ReportModerationPage />)} />
         <Route path="/profile" element={protectedRoute(<UserProfilePage />)} />
         <Route path="/user/edit" element={protectedRoute(<UserEditPage />)} />
 
