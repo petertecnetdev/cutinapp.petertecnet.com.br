@@ -39,9 +39,14 @@ export default function ProductionMinePage() {
             <h1>Minhas produções</h1>
             <p>Somente produções vinculadas à Cutinapp e ao seu usuário aparecem aqui.</p>
           </div>
-          <Button onClick={() => navigate("/production/create")}>
-            <i className="fa-solid fa-plus me-2" />Nova produção
-          </Button>
+          <div className="d-flex flex-wrap gap-2">
+            <Button variant="outline-light" onClick={() => navigate("/producer/finance")}>
+              <i className="fa-solid fa-wallet me-2" />Recebimentos
+            </Button>
+            <Button onClick={() => navigate("/production/create")}>
+              <i className="fa-solid fa-plus me-2" />Nova produção
+            </Button>
+          </div>
         </div>
 
         {error && <Alert variant="danger">{error}</Alert>}
@@ -79,6 +84,7 @@ export default function ProductionMinePage() {
                       <Button onClick={() => navigate(`/production/${production.id}`)}>Abrir</Button>
                       <Button variant="outline-light" onClick={() => navigate(`/production/edit/${production.id}`)}>Editar</Button>
                       <Button variant="outline-light" onClick={() => navigate(`/event/create?productionId=${production.id}`)}>Criar evento</Button>
+                      <Button variant="outline-light" onClick={() => navigate(`/producer/finance?production=${production.id}`)}>Financeiro</Button>
                     </div>
                   </Card.Body>
                 </Card>
