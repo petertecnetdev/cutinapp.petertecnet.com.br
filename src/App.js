@@ -9,6 +9,7 @@ import {
 import { AuthContext } from "./context/AuthContext";
 import PeterTecnetSignature from "./components/PeterTecnetSignature";
 import ProcessingIndicatorComponent from "./components/ProcessingIndicatorComponent";
+import SeoManager from "./components/SeoManager";
 
 const HomePage = lazy(() => import("./pages/HomePage"));
 const FeedPage = lazy(() => import("./pages/FeedPage"));
@@ -67,6 +68,7 @@ function AppRoutes() {
 
   return (
     <Suspense fallback={<ProcessingIndicatorComponent label="Carregando página" />}>
+      <SeoManager />
       <Routes>
         <Route path="/" element={user ? <Navigate to="/feed" replace /> : <HomePage />} />
         <Route path="/login" element={guestRoute(<LoginPage />)} />
