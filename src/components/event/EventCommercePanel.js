@@ -1,28 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
 import PropTypes from "prop-types";
 import { Alert, Button, Form } from "react-bootstrap";
+import MercadoPagoCardForm from "../payment/MercadoPagoCardForm";
 import commerceService from "../../services/CommerceService";
 
 const money = (value) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
-
-const loadMercadoPago = () => new Promise((resolve, reject) => {
-  if (window.MercadoPago) return resolve(window.MercadoPago);
-  const existing = document.querySelector('script[data-mercadopago-sdk="true"]');
-  if (existing) {
-    existing.addEventListener("load", () => resolve(window.MercadoPago), { once: true });
-    existing.addEventListener("error", reject, { once: true });
-    return;
-  }
-  const script = document.createElement("script");
-  script.src = "https://sdk.mercadopago.com/js/v2";
-  script.async = true;
-  script.dataset.mercadopagoSdk = "true";
-  script.onload = () => resolve(window.MercadoPago);
-  script.onerror = () => reject(new Error("Não foi possível carregar o Mercado Pago."));
-  document.head.appendChild(script);
-});
-
-const onlyDigits = (value) => String(value || "").replace(/\D/g, "");
+const finalStatuses = ["paid", "refunded", "charged_back", "rejected", "cancelled"];
 
 export default function EventCommercePanel({ slug, eventId, user, onLoginRequired }) {
   const [catalog, setCatalog] = useState({ tickets: [], items: [] });
@@ -32,7 +15,6 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
   const [method, setMethod] = useState("pix");
-  const [card, setCard] = useState({ number: "", holder: "", month: "", year: "", cvv: "", cpf: "", installments: "1" });
 
   useEffect(() => {
     let active = true;
@@ -43,6 +25,29 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
       .finally(() => active && setLoading(false));
     return () => { active = false; };
   }, [slug]);
+
+  useEffect(() => {
+    const publicId = result?.order?.public_id;
+    const currentStatus = result?.order?.status || result?.payment?.status;
+    if (!publicId || finalStatuses.includes(currentStatus)) return undefined;
+
+    let active = true;
+    let attempts = 0;
+    const timer = window.setInterval(async () => {
+      attempts += 1;
+      try {
+        const order = await commerceService.syncPayment(publicId);
+        if (!active) return;
+        const payment = Array.isArray(order?.payments) ? order.payments.at(-1) : result?.payment;
+        setResult((current) => ({ ...current, order, payment: payment || current?.payment }));
+        if (finalStatuses.includes(order?.status) || attempts >= 30) window.clearInterval(timer);
+      } catch (_) {
+        if (attempts >= 30) window.clearInterval(timer);
+      }
+    }, 4000);
+
+    return () => { active = false; window.clearInterval(timer); };
+  }, [result?.order?.public_id, result?.order?.status, result?.payment?.status]);
 
   const selected = useMemo(() => {
     const tickets = (catalog.tickets || []).filter((item) => Number(quantities[`ticket:${item.id}`] || 0) > 0);
@@ -61,55 +66,37 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
     setQuantities((current) => ({ ...current, [`${kind}:${id}`]: parsed }));
   };
 
-  const basePayload = () => ({
+  const basePayload = (paymentMethod) => ({
     event_id: eventId,
-    payment_method: method,
+    payment_method: paymentMethod,
     tickets: selected.tickets.map((item) => ({ id: item.id, quantity: Number(quantities[`ticket:${item.id}`]) })),
     items: selected.items.map((item) => ({ id: item.id, quantity: Number(quantities[`item:${item.id}`]) })),
   });
 
-  const tokenizeCard = async () => {
-    const publicKey = catalog?.payment_config?.public_key;
-    if (!publicKey) throw new Error("A chave pública do Mercado Pago não está disponível para este evento.");
-    const number = onlyDigits(card.number);
-    if (number.length < 13 || onlyDigits(card.cvv).length < 3 || onlyDigits(card.cpf).length !== 11) {
-      throw new Error("Confira os dados do cartão e o CPF do titular.");
-    }
-
-    const MercadoPago = await loadMercadoPago();
-    const mp = new MercadoPago(publicKey, { locale: "pt-BR" });
-    const bin = number.slice(0, 6);
-    const methods = await mp.getPaymentMethods({ bin });
-    const paymentMethodId = methods?.results?.[0]?.id;
-    if (!paymentMethodId) throw new Error("Não foi possível identificar a bandeira do cartão.");
-
-    const token = await mp.createCardToken({
-      cardNumber: number,
-      cardholderName: card.holder,
-      cardExpirationMonth: String(card.month).padStart(2, "0"),
-      cardExpirationYear: String(card.year).length === 2 ? `20${card.year}` : String(card.year),
-      securityCode: onlyDigits(card.cvv),
-      identificationType: "CPF",
-      identificationNumber: onlyDigits(card.cpf),
-    });
-
-    if (!token?.id) throw new Error("O Mercado Pago não conseguiu tokenizar o cartão.");
-    return { card_token: token.id, payment_method_id: paymentMethodId, installments: Number(card.installments || 1) };
+  const validatePurchase = () => {
+    if (!user) { onLoginRequired?.(); return false; }
+    if (!selected.tickets.length && !selected.items.length) { setError("Selecione ao menos um ingresso ou item."); return false; }
+    if (!catalog?.payment_config?.connected) { setError("Este produtor ainda não conectou o Mercado Pago e a venda paga está temporariamente indisponível."); return false; }
+    return true;
   };
 
-  const checkout = async () => {
-    if (!user) return onLoginRequired?.();
-    if (!selected.tickets.length && !selected.items.length) return setError("Selecione ao menos um ingresso ou item.");
-    if (!catalog?.payment_config?.connected) return setError("Este produtor ainda não conectou o Mercado Pago e a venda paga está temporariamente indisponível.");
-
+  const checkoutPix = async () => {
+    if (!validatePurchase()) return;
     setPaying(true); setError(""); setResult(null);
     try {
-      const payload = basePayload();
-      if (method === "card") Object.assign(payload, await tokenizeCard());
-      const response = await commerceService.checkout(payload);
-      setResult(response);
+      setResult(await commerceService.checkout(basePayload("pix")));
     } catch (err) {
-      setError(err?.message || "Não foi possível iniciar o pagamento.");
+      setError(err?.message || "Não foi possível iniciar o pagamento PIX.");
+    } finally { setPaying(false); }
+  };
+
+  const checkoutCard = async (cardData) => {
+    if (!validatePurchase()) return;
+    setPaying(true); setError(""); setResult(null);
+    try {
+      setResult(await commerceService.checkout({ ...basePayload("card"), ...cardData }));
+    } catch (err) {
+      setError(err?.message || "Não foi possível processar o cartão.");
     } finally { setPaying(false); }
   };
 
@@ -121,8 +108,10 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
   if (loading) return <p className="text-secondary mb-0">Carregando opções de compra...</p>;
   if (!(catalog.tickets || []).length && !(catalog.items || []).length) return null;
 
-  const paymentStatus = result?.payment?.status;
-  const approved = ["approved", "paid"].includes(paymentStatus);
+  const paymentStatus = result?.order?.status || result?.payment?.status;
+  const approved = paymentStatus === "paid";
+  const reversed = ["refunded", "charged_back"].includes(paymentStatus);
+  const failed = ["rejected", "cancelled"].includes(paymentStatus);
 
   return <div className="cut-commerce-panel mt-4">
     <span className="cut-eyebrow">Comprar</span>
@@ -149,33 +138,28 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
         </div>
       </Form.Group>
 
-      {method === "card" && <div className="mt-3">
-        <Form.Control className="mb-2" placeholder="Número do cartão" inputMode="numeric" autoComplete="cc-number" value={card.number} onChange={(e) => setCard({ ...card, number: e.target.value })} />
-        <Form.Control className="mb-2" placeholder="Nome impresso no cartão" autoComplete="cc-name" value={card.holder} onChange={(e) => setCard({ ...card, holder: e.target.value })} />
-        <div className="d-flex gap-2 mb-2">
-          <Form.Control placeholder="Mês" inputMode="numeric" autoComplete="cc-exp-month" value={card.month} onChange={(e) => setCard({ ...card, month: e.target.value })} />
-          <Form.Control placeholder="Ano" inputMode="numeric" autoComplete="cc-exp-year" value={card.year} onChange={(e) => setCard({ ...card, year: e.target.value })} />
-          <Form.Control placeholder="CVV" inputMode="numeric" autoComplete="cc-csc" value={card.cvv} onChange={(e) => setCard({ ...card, cvv: e.target.value })} />
-        </div>
-        <Form.Control className="mb-2" placeholder="CPF do titular" inputMode="numeric" value={card.cpf} onChange={(e) => setCard({ ...card, cpf: e.target.value })} />
-        <Form.Select value={card.installments} onChange={(e) => setCard({ ...card, installments: e.target.value })}>
-          {[1,2,3,4,5,6,7,8,9,10,11,12].map((value) => <option key={value} value={value}>{value}x</option>)}
-        </Form.Select>
-        <small className="d-block mt-2 text-secondary">Os dados do cartão são tokenizados no navegador pelo Mercado Pago e não são enviados em formato bruto à Peter Tecnet.</small>
-      </div>}
+      {method === "pix" && <Button className="w-100 mt-3" onClick={checkoutPix} disabled={paying || total <= 0 || !catalog?.payment_config?.connected}>
+        {paying ? "Gerando PIX..." : user ? "Pagar com PIX" : "Entrar para comprar"}
+      </Button>}
 
-      <Button className="w-100 mt-3" onClick={checkout} disabled={paying || total <= 0 || !catalog?.payment_config?.connected}>
-        {paying ? "Processando..." : user ? (method === "pix" ? "Pagar com PIX" : "Pagar com cartão") : "Entrar para comprar"}
-      </Button>
+      {method === "card" && total > 0 && catalog?.payment_config?.connected && user && <MercadoPagoCardForm
+        publicKey={catalog?.payment_config?.public_key || ""}
+        amount={total}
+        email={user?.email || ""}
+        disabled={paying}
+        onSubmit={checkoutCard}
+      />}
+      {method === "card" && !user && <Button className="w-100 mt-3" onClick={() => onLoginRequired?.()}>Entrar para comprar</Button>}
     </>}
 
-    {result && <Alert variant={approved ? "success" : "info"} className="mt-3 mb-0">
-      <strong>{approved ? "Pagamento aprovado." : "Pedido criado."}</strong>
-      {method === "pix" && <div className="mt-2">Pague o PIX para liberar automaticamente seus ingressos.</div>}
-      {method === "card" && !approved && <div className="mt-2">O Mercado Pago está processando o pagamento. A liberação acontece após a confirmação.</div>}
+    {result && <Alert variant={approved ? "success" : failed || reversed ? "danger" : "info"} className="mt-3 mb-0">
+      <strong>{approved ? "Pagamento aprovado e ingressos liberados." : reversed ? "Pagamento revertido." : failed ? "Pagamento não concluído." : "Pagamento em processamento."}</strong>
+      {method === "pix" && !approved && !failed && !reversed && <div className="mt-2">Pague o PIX. A confirmação é atualizada automaticamente nesta tela.</div>}
+      {method === "card" && !approved && !failed && !reversed && <div className="mt-2">O Mercado Pago está processando o cartão. A liberação acontece somente após a confirmação.</div>}
       {result.payment?.qr_code_image && <img src={result.payment.qr_code_image} alt="QR Code PIX" className="img-fluid bg-white rounded p-2 my-3" />}
       {result.payment?.qr_code && <><Form.Control as="textarea" rows={3} readOnly value={result.payment.qr_code} /><Button variant="outline-success" className="w-100 mt-2" onClick={copyPix}>Copiar PIX</Button></>}
       {result.payment?.ticket_url && <Button as="a" href={result.payment.ticket_url} target="_blank" rel="noreferrer" variant="outline-primary" className="w-100 mt-2">Abrir pagamento no Mercado Pago</Button>}
+      {(failed || reversed) && <Button variant="outline-light" className="w-100 mt-3" onClick={() => setResult(null)}>Tentar novamente</Button>}
     </Alert>}
   </div>;
 }
@@ -183,7 +167,10 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
 EventCommercePanel.propTypes = {
   slug: PropTypes.string.isRequired,
   eventId: PropTypes.number.isRequired,
-  user: PropTypes.shape({ id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]) }),
+  user: PropTypes.shape({
+    id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    email: PropTypes.string,
+  }),
   onLoginRequired: PropTypes.func,
 };
 
