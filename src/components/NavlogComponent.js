@@ -70,8 +70,9 @@ export default function NavlogComponent() {
               title={<span className="cut-navbar__user"><span className="cut-navbar__avatar">{String(user.first_name || "C").slice(0, 2).toUpperCase()}</span><span><strong>{user.first_name || "Minha conta"}</strong><small>{user.email}</small></span></span>}
               id="cut-account-menu"
             >
+              <NavDropdown.Item as={Link} to="/profile"><i className="fa-regular fa-user me-2" />Meu perfil</NavDropdown.Item>
               <NavDropdown.Item as={Link} to="/dashboard">Painel</NavDropdown.Item>
-              <NavDropdown.Item as={Link} to="/user/edit">Minha conta</NavDropdown.Item>
+              <NavDropdown.Item as={Link} to="/user/edit">Editar conta</NavDropdown.Item>
               <NavDropdown.Item as={Link} to="/password">Alterar senha</NavDropdown.Item>
               <NavDropdown.Divider />
               <NavDropdown.Item as="button" onClick={signOut}>Sair</NavDropdown.Item>
