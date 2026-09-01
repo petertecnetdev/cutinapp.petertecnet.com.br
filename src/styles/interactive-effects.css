@@ -1,0 +1,371 @@
+:root {
+  --cut-pointer-x: 50vw;
+  --cut-pointer-y: 30vh;
+  --cut-pointer-xp: 50%;
+  --cut-pointer-yp: 30%;
+  --cut-scroll-progress: 0;
+  --cut-scroll-y: 0px;
+}
+
+.cut-fx-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  isolation: isolate;
+}
+
+#root > *:not(.cut-fx-stage) {
+  position: relative;
+  z-index: 1;
+}
+
+.cut-fx-aurora {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(110px);
+  mix-blend-mode: screen;
+  opacity: .16;
+  will-change: transform;
+}
+
+.cut-fx-aurora--one {
+  width: 38vw;
+  height: 38vw;
+  min-width: 360px;
+  min-height: 360px;
+  left: -12vw;
+  top: 6vh;
+  background: radial-gradient(circle, rgba(229,108,255,.78), rgba(184,71,250,.22) 48%, transparent 72%);
+  animation: cutFxAuroraOne 18s ease-in-out infinite alternate;
+}
+
+.cut-fx-aurora--two {
+  width: 42vw;
+  height: 42vw;
+  min-width: 390px;
+  min-height: 390px;
+  right: -14vw;
+  top: 13vh;
+  background: radial-gradient(circle, rgba(43,98,244,.76), rgba(113,65,247,.24) 50%, transparent 72%);
+  animation: cutFxAuroraTwo 22s ease-in-out infinite alternate;
+}
+
+.cut-fx-aurora--three {
+  width: 34vw;
+  height: 34vw;
+  min-width: 320px;
+  min-height: 320px;
+  left: 35vw;
+  bottom: -18vw;
+  background: radial-gradient(circle, rgba(6,175,250,.50), rgba(43,98,244,.16) 48%, transparent 72%);
+  animation: cutFxAuroraThree 20s ease-in-out infinite alternate;
+}
+
+.cut-fx-grid {
+  position: absolute;
+  inset: -20%;
+  opacity: .14;
+  background-image:
+    linear-gradient(rgba(184,71,250,.13) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(6,175,250,.09) 1px, transparent 1px);
+  background-size: 64px 64px;
+  transform: perspective(800px) rotateX(63deg) translateY(26%);
+  transform-origin: center top;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 1%, rgba(0,0,0,.65) 24%, transparent 88%);
+  mask-image: linear-gradient(to bottom, transparent 1%, rgba(0,0,0,.65) 24%, transparent 88%);
+}
+
+.cut-fx-pointer-light {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    420px circle at var(--cut-pointer-x) var(--cut-pointer-y),
+    rgba(229,108,255,.10),
+    rgba(113,65,247,.07) 30%,
+    rgba(6,175,250,.035) 48%,
+    transparent 72%
+  );
+  mix-blend-mode: screen;
+  opacity: .92;
+}
+
+.cut-fx-vignette {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at center, transparent 34%, rgba(2,2,11,.18) 72%, rgba(2,2,11,.62) 100%),
+    linear-gradient(180deg, rgba(255,255,255,.01), rgba(0,0,0,.08));
+}
+
+.cut-fx-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  z-index: 11000;
+  transform: scaleX(var(--cut-scroll-progress));
+  transform-origin: left center;
+  background: linear-gradient(90deg,#e56cff 0%,#b847fa 28%,#7141f7 52%,#2b62f4 76%,#06affa 100%);
+  box-shadow: 0 0 12px rgba(184,71,250,.9), 0 0 22px rgba(6,175,250,.4);
+}
+
+.cut-fx-reveal {
+  opacity: 0;
+  transform: translate3d(0,18px,0) scale(.992);
+  filter: blur(4px);
+  transition:
+    opacity 640ms cubic-bezier(.16,1,.3,1) var(--cut-reveal-delay,0ms),
+    transform 720ms cubic-bezier(.16,1,.3,1) var(--cut-reveal-delay,0ms),
+    filter 520ms ease var(--cut-reveal-delay,0ms);
+}
+
+.cut-fx-reveal.cut-fx-visible {
+  opacity: 1;
+  transform: translate3d(0,0,0) scale(1);
+  filter: blur(0);
+}
+
+.cut-fx-surface {
+  --cut-tilt-x: 0deg;
+  --cut-tilt-y: 0deg;
+  --cut-surface-x: 50%;
+  --cut-surface-y: 50%;
+  transform: perspective(1100px) rotateX(var(--cut-tilt-x)) rotateY(var(--cut-tilt-y)) translateZ(0);
+  transition:
+    transform 180ms cubic-bezier(.2,.8,.2,1),
+    box-shadow 260ms ease,
+    border-color 220ms ease !important;
+  will-change: transform;
+}
+
+.cut-fx-surface.cut-fx-surface-active {
+  box-shadow:
+    0 28px 72px rgba(0,0,0,.38),
+    0 0 0 1px rgba(229,108,255,.06),
+    0 0 38px rgba(113,65,247,.10),
+    0 0 70px rgba(6,175,250,.035) !important;
+}
+
+.cut-fx-surface.cut-fx-surface-active::selection {
+  background: rgba(229,108,255,.3);
+}
+
+.cut-fx-magnetic {
+  --cut-magnet-x: 0px;
+  --cut-magnet-y: 0px;
+  transform: translate3d(var(--cut-magnet-x),var(--cut-magnet-y),0);
+  transition:
+    transform 140ms ease-out,
+    filter 180ms ease,
+    box-shadow 180ms ease !important;
+  will-change: transform;
+}
+
+.cut-fx-magnetic:hover {
+  filter: brightness(1.09) saturate(1.12);
+}
+
+.cut-panel,
+.cut-home__visualCard,
+.cut-home__eventCard,
+.cut-home__featureGrid article,
+.cut-dashboard__hero,
+.cut-dashboard__stats article,
+.cut-dashboard__card,
+.cut-event-card,
+.cut-production-card,
+.cut-pass-card,
+.cut-artist-card,
+.cut-feed-card,
+.modal-content,
+.dropdown-menu {
+  backdrop-filter: blur(22px) saturate(135%);
+  -webkit-backdrop-filter: blur(22px) saturate(135%);
+}
+
+.cut-panel,
+.cut-dashboard__card,
+.cut-home__eventCard,
+.cut-home__featureGrid article,
+.cut-event-card,
+.cut-production-card,
+.cut-pass-card,
+.cut-artist-card,
+.cut-feed-card {
+  box-shadow:
+    0 18px 48px rgba(0,0,0,.28),
+    inset 0 1px 0 rgba(255,255,255,.035),
+    inset 0 -1px 0 rgba(113,65,247,.025);
+}
+
+.cut-page-heading h1,
+.cut-section-heading h2,
+.cut-home__copy h1,
+.cut-dashboard__hero h1,
+.cut-auth-shell__cardHeader h2 {
+  text-shadow: 0 8px 30px rgba(0,0,0,.24);
+}
+
+.cut-eyebrow,
+.cut-home__eyebrow {
+  position: relative;
+  width: fit-content;
+  text-shadow: 0 0 18px rgba(184,71,250,.28);
+}
+
+.cut-eyebrow::after,
+.cut-home__eyebrow::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  margin-left: 2px;
+  border-radius: 50%;
+  background: #06affa;
+  box-shadow: 0 0 10px rgba(6,175,250,.85), 0 0 20px rgba(184,71,250,.45);
+  animation: cutFxSignal 2.2s ease-in-out infinite;
+}
+
+.cut-home__visualLogo,
+.cut-dashboard__heroMark,
+.cut-auth-shell__logo,
+.cut-auth-shell__brandMark {
+  box-shadow:
+    inset 0 1px rgba(255,255,255,.08),
+    inset 0 -1px rgba(113,65,247,.05),
+    0 18px 52px rgba(0,0,0,.34),
+    0 0 42px rgba(184,71,250,.09) !important;
+}
+
+.cut-navbar,
+.cut-home__nav {
+  border-bottom-color: rgba(229,108,255,.10) !important;
+}
+
+.cut-navbar::before,
+.cut-home__nav::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(500px circle at var(--cut-pointer-xp) 0%, rgba(184,71,250,.055), transparent 68%);
+}
+
+.form-control,
+.form-select,
+.cut-search-bar,
+.cut-autocomplete-menu {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.025) !important;
+}
+
+.form-control:focus,
+.form-select:focus,
+.cut-search-bar:focus-within {
+  box-shadow:
+    0 0 0 1px rgba(229,108,255,.16),
+    0 0 0 4px rgba(113,65,247,.09),
+    0 0 28px rgba(43,98,244,.075) !important;
+}
+
+.btn-primary,
+.cut-primary-action,
+.cut-dashboard__primary,
+.cut-home__primary,
+.cut-home__cta {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.btn-primary::before,
+.cut-primary-action::before,
+.cut-dashboard__primary::before,
+.cut-home__primary::before,
+.cut-home__cta::before {
+  content: "";
+  position: absolute;
+  top: -70%;
+  bottom: -70%;
+  width: 36%;
+  left: -60%;
+  z-index: -1;
+  transform: skewX(-20deg);
+  background: linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent);
+  transition: left 600ms cubic-bezier(.2,.8,.2,1);
+}
+
+.btn-primary:hover::before,
+.cut-primary-action:hover::before,
+.cut-dashboard__primary:hover::before,
+.cut-home__primary:hover::before,
+.cut-home__cta:hover::before {
+  left: 130%;
+}
+
+.dropdown-menu {
+  border-color: rgba(184,71,250,.20) !important;
+  box-shadow:
+    0 26px 68px rgba(0,0,0,.46),
+    0 0 44px rgba(113,65,247,.08) !important;
+}
+
+.modal-content {
+  border-color: rgba(184,71,250,.22) !important;
+  box-shadow:
+    0 42px 110px rgba(0,0,0,.58),
+    0 0 70px rgba(113,65,247,.09) !important;
+}
+
+.cut-skeleton::after {
+  background: linear-gradient(90deg,transparent,rgba(229,108,255,.06),rgba(6,175,250,.08),transparent) !important;
+}
+
+@keyframes cutFxAuroraOne {
+  0% { transform: translate3d(0,0,0) scale(1); }
+  100% { transform: translate3d(18vw,10vh,0) scale(1.12); }
+}
+
+@keyframes cutFxAuroraTwo {
+  0% { transform: translate3d(0,0,0) scale(1); }
+  100% { transform: translate3d(-16vw,17vh,0) scale(1.16); }
+}
+
+@keyframes cutFxAuroraThree {
+  0% { transform: translate3d(0,0,0) scale(.95); }
+  100% { transform: translate3d(-10vw,-15vh,0) scale(1.16); }
+}
+
+@keyframes cutFxSignal {
+  0%,100% { opacity: .45; transform: scale(.8); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+@media (max-width: 900px), (pointer: coarse) {
+  .cut-fx-pointer-light { display: none; }
+  .cut-fx-grid { opacity: .08; background-size: 52px 52px; }
+  .cut-fx-aurora { opacity: .11; filter: blur(90px); }
+  .cut-fx-surface { transform: none !important; }
+  .cut-fx-magnetic { transform: none !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cut-fx-aurora,
+  .cut-eyebrow::after,
+  .cut-home__eyebrow::after {
+    animation: none !important;
+  }
+  .cut-fx-reveal,
+  .cut-fx-reveal.cut-fx-visible {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+    transition: none !important;
+  }
+  .cut-fx-surface,
+  .cut-fx-magnetic {
+    transform: none !important;
+    transition: none !important;
+  }
+}
