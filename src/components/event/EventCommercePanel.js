@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import PropTypes from "prop-types";
 import { Alert, Button, Form } from "react-bootstrap";
 import commerceService from "../../services/CommerceService";
 
@@ -88,3 +89,15 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
     </Alert>}
   </div>;
 }
+
+EventCommercePanel.propTypes = {
+  slug: PropTypes.string.isRequired,
+  eventId: PropTypes.number.isRequired,
+  user: PropTypes.shape({ id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]) }),
+  onLoginRequired: PropTypes.func,
+};
+
+EventCommercePanel.defaultProps = {
+  user: null,
+  onLoginRequired: null,
+};
