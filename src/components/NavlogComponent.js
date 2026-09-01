@@ -1,17 +1,49 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { Container, Nav, Navbar, NavDropdown } from "react-bootstrap";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
+import cutinappService from "../services/CutinappService";
 
 export default function NavlogComponent() {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
   const [open, setOpen] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const userId = user?.id;
 
   const active = (prefix) => location.pathname.startsWith(prefix);
   const closeMenu = () => setOpen(false);
   const isAdmin = user?.profile?.name === "Administrador" || user?.profile_name === "Administrador";
+
+  useEffect(() => {
+    if (!userId) {
+      setUnreadNotifications(0);
+      return undefined;
+    }
+
+    let mounted = true;
+    const refreshUnread = async () => {
+      try {
+        const response = await cutinappService.notifications({ unread: true, per_page: 10 });
+        if (mounted) setUnreadNotifications(Number(response?.unread_count || 0));
+      } catch (_) {
+        // A navegação não deve falhar quando a central de notificações estiver indisponível.
+      }
+    };
+
+    refreshUnread();
+    const timer = window.setInterval(refreshUnread, 30000);
+    window.addEventListener("focus", refreshUnread);
+    window.addEventListener("cutinapp:notifications-updated", refreshUnread);
+
+    return () => {
+      mounted = false;
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refreshUnread);
+      window.removeEventListener("cutinapp:notifications-updated", refreshUnread);
+    };
+  }, [userId]);
 
   if (!user) {
     return (
@@ -54,7 +86,13 @@ export default function NavlogComponent() {
             <Nav.Link as={Link} to="/event" className={active("/event") && !active("/event/manage") ? "active" : ""}><i className="fa-regular fa-calendar-days" /> Eventos</Nav.Link>
             <Nav.Link as={Link} to="/artists" className={active("/artist") ? "active" : ""}><i className="fa-solid fa-music" /> Artistas</Nav.Link>
             <Nav.Link as={Link} to="/passes" className={active("/passes") ? "active" : ""}><i className="fa-solid fa-ticket" /> Ingressos</Nav.Link>
-            <Nav.Link as={Link} to="/notifications" className={active("/notifications") ? "active" : ""} aria-label="Notificações"><i className="fa-regular fa-bell" /> <span className="cut-nav-notification-label">Notificações</span></Nav.Link>
+            <Nav.Link as={Link} to="/notifications" className={`${active("/notifications") ? "active " : ""}cut-nav-notification`} aria-label={`${unreadNotifications ? `${unreadNotifications} notificações não lidas` : "Notificações"}`} title="Notificações">
+              <span className="cut-nav-notification__globe">
+                <i className="fa-solid fa-earth-americas" />
+                {unreadNotifications > 0 && <span className="cut-nav-notification__badge">{unreadNotifications > 99 ? "99+" : unreadNotifications}</span>}
+              </span>
+              <span className="cut-nav-notification-label">Notificações</span>
+            </Nav.Link>
             <NavDropdown title={<span><i className="fa-solid fa-bullhorn" /> Produzir</span>} id="cut-producer-menu">
               <NavDropdown.Item as={Link} to="/production/mine">Minhas produções</NavDropdown.Item>
               <NavDropdown.Item as={Link} to="/event/manage">Meus eventos</NavDropdown.Item>
