@@ -9,6 +9,7 @@ import "./styles/components.css";
 import "./styles/domains.css";
 import "./styles/community.css";
 import "./styles/responsive.css";
+import "./styles/logo-theme.css";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import reportWebVitals from "./reportWebVitals";
