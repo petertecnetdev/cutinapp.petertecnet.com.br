@@ -1,3 +1,23 @@
-# https://www.robotstxt.org/robotstxt.html
 User-agent: *
-Disallow:
+Allow: /
+Disallow: /dashboard
+Disallow: /feed
+Disallow: /profile
+Disallow: /user/
+Disallow: /production/create
+Disallow: /production/mine
+Disallow: /production/edit/
+Disallow: /artist/manage
+Disallow: /event/create
+Disallow: /event/manage
+Disallow: /event/edit/
+Disallow: /ticket/
+Disallow: /passes
+Disallow: /checkin
+Disallow: /login
+Disallow: /register
+Disallow: /password
+Disallow: /email-verify
+Disallow: /logout
+
+Sitemap: https://cutinapp.petertecnet.com.br/sitemap.xml
