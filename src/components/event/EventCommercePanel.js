@@ -73,6 +73,8 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
     return ticketTotal + itemTotal;
   }, [selected, quantities]);
 
+  const checkoutAvailable = catalog?.payment_config?.available ?? catalog?.payment_config?.connected ?? false;
+
   const setQuantity = (kind, id, value) => {
     const parsed = Math.max(0, Math.min(50, Number(value || 0)));
     setQuantities((current) => ({ ...current, [`${kind}:${id}`]: parsed }));
@@ -88,7 +90,7 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
   const validatePurchase = () => {
     if (!user) { onLoginRequired?.(); return false; }
     if (!selected.tickets.length && !selected.items.length) { setError("Selecione ao menos um ingresso ou item."); return false; }
-    if (!catalog?.payment_config?.connected) { setError("Este produtor ainda não conectou o Mercado Pago e a venda paga está temporariamente indisponível."); return false; }
+    if (!checkoutAvailable) { setError("Os pagamentos deste evento estão temporariamente indisponíveis."); return false; }
     return true;
   };
 
@@ -129,7 +131,7 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
     <span className="cut-eyebrow">Comprar</span>
     <h3 className="cut-section-title mt-2">Ingressos e itens</h3>
     {error && <Alert variant="danger">{error}</Alert>}
-    {!catalog?.payment_config?.connected && <Alert variant="warning">Pagamento aguardando conexão do produtor com o Mercado Pago.</Alert>}
+    {!checkoutAvailable && <Alert variant="warning">Pagamentos temporariamente indisponíveis para este evento.</Alert>}
 
     {!result && <>
       {(catalog.tickets || []).map((ticket) => <div className="cut-ticket-option" key={`paid-ticket-${ticket.id}`}>
@@ -150,11 +152,11 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
         </div>
       </Form.Group>
 
-      {method === "pix" && <Button className="w-100 mt-3" onClick={checkoutPix} disabled={paying || total <= 0 || !catalog?.payment_config?.connected}>
+      {method === "pix" && <Button className="w-100 mt-3" onClick={checkoutPix} disabled={paying || total <= 0 || !checkoutAvailable}>
         {paying ? "Gerando PIX..." : user ? "Pagar com PIX" : "Entrar para comprar"}
       </Button>}
 
-      {method === "card" && total > 0 && catalog?.payment_config?.connected && user && <MercadoPagoCardForm
+      {method === "card" && total > 0 && checkoutAvailable && user && <MercadoPagoCardForm
         publicKey={catalog?.payment_config?.public_key || ""}
         amount={total}
         email={user?.email || ""}
