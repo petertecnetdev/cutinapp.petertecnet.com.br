@@ -7,16 +7,17 @@ import cutinappService from "../../services/CutinappService";
 
 const REPORT_REASONS = [
   ["fraud", "Fraude ou golpe"],
-  ["misleading", "Informações enganosas"],
-  ["inappropriate", "Conteúdo impróprio"],
+  ["misleading", "Informações enganosas ou evento inexistente"],
   ["safety", "Risco à segurança"],
-  ["cancelled", "Evento cancelado ou inexistente"],
+  ["illegal", "Atividade ou conteúdo ilegal"],
+  ["hate", "Ódio ou discriminação"],
+  ["harassment", "Assédio"],
   ["spam", "Spam"],
-  ["copyright", "Violação de direitos"],
+  ["copyright", "Violação de direitos autorais"],
   ["other", "Outro motivo"],
 ];
 
-const fmt = (value) => value ? new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(value)) : "";
+const fmt = (value) => value ? new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" }).format(new Date(value)) : "";
 const initials = (item) => `${item?.first_name?.[0] || "U"}${item?.last_name?.[0] || ""}`.toUpperCase();
 
 export default function EventCommunitySection({ event, isOwner = false }) {
@@ -25,6 +26,7 @@ export default function EventCommunitySection({ event, isOwner = false }) {
   const location = useLocation();
   const [community, setCommunity] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [moreLoading, setMoreLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [body, setBody] = useState("");
   const [replyTo, setReplyTo] = useState(null);
@@ -33,21 +35,38 @@ export default function EventCommunitySection({ event, isOwner = false }) {
   const [reportOpen, setReportOpen] = useState(false);
   const [report, setReport] = useState({ reason: "", details: "" });
 
-  const login = () => navigate("/login", { state: { from: `${location.pathname}${location.search}` } });
-  const load = useCallback(async () => {
-    setLoading(true);
+  const login = () => navigate("/login", { state: { from: `${location.pathname}${location.search}#comunidade` } });
+  const load = useCallback(async (page = 1, append = false) => {
+    append ? setMoreLoading(true) : setLoading(true);
     try {
-      setCommunity(await cutinappService.eventCommunity(event.slug));
+      const response = await cutinappService.eventCommunity(event.slug, { page, per_page: 10 });
+      setCommunity((current) => {
+        if (!append || !current) return response;
+        const oldPosts = current.posts?.data || [];
+        const newPosts = response.posts?.data || [];
+        return {
+          ...response,
+          posts: {
+            ...response.posts,
+            data: [...oldPosts, ...newPosts.filter((item) => !oldPosts.some((old) => old.id === item.id))],
+          },
+        };
+      });
     } catch (err) {
       setMessage({ type: "danger", text: err?.message || "Não foi possível carregar a conversa deste evento." });
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+      setMoreLoading(false);
+    }
   }, [event.slug]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(1, false); }, [load]);
 
   const posts = community?.posts?.data || [];
   const rating = community?.rating || { average: 0, total: 0, mine: null };
   const stars = useMemo(() => [1, 2, 3, 4, 5], []);
+
+  const refresh = () => load(1, false);
 
   const publish = async (parentId = null) => {
     if (!user) return login();
@@ -58,7 +77,7 @@ export default function EventCommunitySection({ event, isOwner = false }) {
       await cutinappService.createEventPost(event.id, { body: text, parent_id: parentId || undefined });
       if (parentId) { setReplyBody(""); setReplyTo(null); } else setBody("");
       setMessage({ type: "success", text: parentId ? "Comentário publicado." : "Sua publicação entrou na conversa." });
-      await load();
+      await refresh();
     } catch (err) { setMessage({ type: "danger", text: err?.message || "Não foi possível publicar agora." }); }
     finally { setBusy(false); }
   };
@@ -70,7 +89,7 @@ export default function EventCommunitySection({ event, isOwner = false }) {
       await cutinappService.rateEvent(event.id, value);
       setCommunity((current) => ({ ...current, rating: { ...(current?.rating || {}), mine: value } }));
       setMessage({ type: "success", text: "Sua avaliação foi registrada." });
-      await load();
+      await refresh();
     } catch (err) { setMessage({ type: "danger", text: err?.message || "Não foi possível avaliar este evento." }); }
     finally { setBusy(false); }
   };
@@ -79,14 +98,14 @@ export default function EventCommunitySection({ event, isOwner = false }) {
     if (!user) return login();
     try {
       if (post.is_liked) await cutinappService.unlikeEventPost(post.id); else await cutinappService.likeEventPost(post.id);
-      await load();
+      await refresh();
     } catch (err) { setMessage({ type: "danger", text: err?.message || "Não foi possível atualizar a curtida." }); }
   };
 
   const remove = async (postId) => {
     if (!window.confirm("Remover esta publicação e suas respostas?")) return;
     setBusy(true);
-    try { await cutinappService.deleteEventPost(postId); await load(); }
+    try { await cutinappService.deleteEventPost(postId); await refresh(); }
     catch (err) { setMessage({ type: "danger", text: err?.message || "Não foi possível remover a publicação." }); }
     finally { setBusy(false); }
   };
@@ -99,6 +118,7 @@ export default function EventCommunitySection({ event, isOwner = false }) {
       const response = await cutinappService.reportEvent(event.id, report);
       setReportOpen(false); setReport({ reason: "", details: "" });
       setMessage({ type: "success", text: response?.message || "Denúncia enviada para análise." });
+      await refresh();
     } catch (err) { setMessage({ type: "danger", text: err?.message || "Não foi possível enviar a denúncia." }); }
     finally { setBusy(false); }
   };
@@ -120,8 +140,8 @@ export default function EventCommunitySection({ event, isOwner = false }) {
     <div className="cut-community__composer">
       <div className="cut-community-avatar">{user ? initials(user) : <i className="fa-regular fa-user" />}</div>
       <div className="cut-community__composer-body">
-        <Form.Control as="textarea" rows={3} value={body} maxLength={2000} onChange={(e) => setBody(e.target.value)} placeholder={user ? "Publique algo sobre este evento..." : "Entre para participar da conversa"} onFocus={() => { if (!user) login(); }} />
-        <div><small>{body.length}/2000</small><Button disabled={busy || body.trim().length < 2} onClick={() => publish()}>{busy ? "Publicando..." : "Publicar"}</Button></div>
+        <Form.Control as="textarea" rows={3} value={body} maxLength={3000} onChange={(e) => setBody(e.target.value)} placeholder={user ? "Publique algo sobre este evento..." : "Entre para participar da conversa"} onFocus={() => { if (!user) login(); }} />
+        <div><small>{body.length}/3000</small><Button disabled={busy || body.trim().length < 2} onClick={() => publish()}>{busy ? "Publicando..." : "Publicar"}</Button></div>
       </div>
     </div>
 
@@ -131,12 +151,12 @@ export default function EventCommunitySection({ event, isOwner = false }) {
         <header><div><strong>{[post.first_name, post.last_name].filter(Boolean).join(" ") || "Participante"}</strong>{post.is_pinned ? <span className="cut-community-pin"><i className="fa-solid fa-thumbtack" /> Destaque</span> : null}</div><time>{fmt(post.created_at)}{post.edited_at ? " · editado" : ""}</time></header>
         <p>{post.body}</p>
         <div className="cut-community-post__actions"><button type="button" className={post.is_liked ? "active" : ""} onClick={() => toggleLike(post)}><i className={`${post.is_liked ? "fa-solid" : "fa-regular"} fa-heart`} /> {post.likes_count || 0}</button><button type="button" onClick={() => user ? setReplyTo(replyTo === post.id ? null : post.id) : login()}><i className="fa-regular fa-comment" /> {post.comments_count || 0} Responder</button>{user && (Number(post.user_id) === Number(user.id) || isOwner) && <button type="button" className="danger" onClick={() => remove(post.id)}><i className="fa-regular fa-trash-can" /> Remover</button>}</div>
-        {replyTo === post.id && <div className="cut-community-replybox"><Form.Control as="textarea" rows={2} value={replyBody} maxLength={2000} onChange={(e) => setReplyBody(e.target.value)} placeholder="Escreva sua resposta..." /><div><Button variant="outline-light" size="sm" onClick={() => { setReplyTo(null); setReplyBody(""); }}>Cancelar</Button><Button size="sm" disabled={busy || replyBody.trim().length < 2} onClick={() => publish(post.id)}>Responder</Button></div></div>}
+        {replyTo === post.id && <div className="cut-community-replybox"><Form.Control as="textarea" rows={2} value={replyBody} maxLength={3000} onChange={(e) => setReplyBody(e.target.value)} placeholder="Escreva sua resposta..." /><div><Button variant="outline-light" size="sm" onClick={() => { setReplyTo(null); setReplyBody(""); }}>Cancelar</Button><Button size="sm" disabled={busy || replyBody.trim().length < 2} onClick={() => publish(post.id)}>Responder</Button></div></div>}
         {post.replies?.length > 0 && <div className="cut-community-replies">{post.replies.map((reply) => <div className="cut-community-reply" key={reply.id}><div className="cut-community-avatar cut-community-avatar--sm">{reply.avatar ? <img src={reply.avatar} alt="" /> : initials(reply)}</div><div><header><strong>{[reply.first_name, reply.last_name].filter(Boolean).join(" ") || "Participante"}</strong><time>{fmt(reply.created_at)}</time></header><p>{reply.body}</p><div className="cut-community-post__actions"><button type="button" className={reply.is_liked ? "active" : ""} onClick={() => toggleLike(reply)}><i className={`${reply.is_liked ? "fa-solid" : "fa-regular"} fa-heart`} /> {reply.likes_count || 0}</button>{user && (Number(reply.user_id) === Number(user.id) || isOwner) && <button type="button" className="danger" onClick={() => remove(reply.id)}>Remover</button>}</div></div></div>)}</div>}
       </div>
     </article>)}</div>}
 
-    {community?.posts?.last_page > 1 && <div className="cut-community-pagination">Página {community.posts.current_page} de {community.posts.last_page}</div>}
+    {community?.posts?.current_page < community?.posts?.last_page && <div className="cut-community-pagination"><Button variant="outline-light" disabled={moreLoading} onClick={() => load((community.posts.current_page || 1) + 1, true)}>{moreLoading ? "Carregando..." : "Carregar mais publicações"}</Button></div>}
 
     <Modal show={reportOpen} onHide={() => setReportOpen(false)} centered className="cut-modal">
       <Modal.Header closeButton><Modal.Title>Denunciar evento</Modal.Title></Modal.Header>
