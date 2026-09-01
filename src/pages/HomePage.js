@@ -83,7 +83,8 @@ export default function HomePage() {
   };
 
   const clearLocation = () => {
-    try { window.localStorage.removeItem("cutinapp.homeLocation"); } catch (_) {}
+    try { window.localStorage.removeItem("cutinapp.homeLocation"); }
+    catch (_) { /* a home continua funcionando mesmo sem acesso ao storage */ }
     setLocation(null);
     saveDiscoveryPreference({ city: "", uf: "" });
   };
