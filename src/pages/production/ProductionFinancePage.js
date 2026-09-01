@@ -44,8 +44,6 @@ export default function ProductionFinancePage() {
       .catch((err) => active && setError(err?.message || "Não foi possível carregar suas produções."))
       .finally(() => active && setLoading(false));
     return () => { active = false; };
-    // productionId intentionally initializes only from the first load/query string.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadFinance = async (id, isActive = () => true) => {
