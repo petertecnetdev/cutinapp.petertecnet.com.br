@@ -36,6 +36,7 @@ export default function EventViewPage() {
   const [artists, setArtists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [claimingId, setClaimingId] = useState(null);
+  const [artistClaimingId, setArtistClaimingId] = useState(null);
   const [socialBusy, setSocialBusy] = useState(false);
   const [favorite, setFavorite] = useState(false);
   const [interested, setInterested] = useState(false);
@@ -54,6 +55,7 @@ export default function EventViewPage() {
 
   const event = data?.event || null;
   const tickets = useMemo(() => (data?.tickets || []).filter((ticket) => Number(ticket.price) === 0), [data]);
+  const claimableArtists = useMemo(() => artists.filter((artist) => !artist.claimed_at), [artists]);
   const isOwner = Boolean(event?.production?.user_id && Number(event.production.user_id) === Number(user?.id));
   const mapEmbedUrl = useMemo(() => buildMapEmbedUrl(event), [event]);
 
@@ -67,6 +69,22 @@ export default function EventViewPage() {
       window.setTimeout(() => navigate(`/passes/${response.pass?.id || ""}`.replace(/\/$/, "")), 450);
     } catch (err) { setError(err?.message || "Não foi possível retirar este ingresso."); }
     finally { setClaimingId(null); }
+  };
+
+  const claimArtist = async (artist) => {
+    const from = `${location.pathname}${location.search}`;
+    if (!user) {
+      return navigate("/register", {
+        state: { from, artistClaim: { eventId: event.id, artistId: artist.id, artistName: artist.stage_name } },
+      });
+    }
+
+    setArtistClaimingId(artist.id); setError(""); setSuccess("");
+    try {
+      const response = await cutinappService.claimArtistEvent(event.id, artist.id);
+      setSuccess(response.message || "Solicitação de vínculo enviada ao produtor.");
+    } catch (err) { setError(err?.message || "Não foi possível enviar a reivindicação deste vínculo artístico."); }
+    finally { setArtistClaimingId(null); }
   };
 
   const share = async () => {
@@ -89,14 +107,17 @@ export default function EventViewPage() {
     finally { setSocialBusy(false); }
   };
 
-  return <div className="cut-app-page"><NavlogComponent />{(loading || claimingId) && <ProcessingIndicatorComponent label={claimingId ? "Emitindo ingresso" : "Carregando evento"} />}
+  return <div className="cut-app-page"><NavlogComponent />{(loading || claimingId || artistClaimingId) && <ProcessingIndicatorComponent label={claimingId ? "Emitindo ingresso" : artistClaimingId ? "Enviando reivindicação" : "Carregando evento"} />}
     {!loading && event && <>
       <section className="cut-event-hero cut-event-hero--premium" style={event.image ? { backgroundImage: `linear-gradient(180deg,rgba(3,10,16,.08),rgba(3,10,16,.98)),url(${storageUrl}${String(event.image).replace(/^\//, "")})` } : undefined}>
         <Container className="cut-page-container"><div className="cut-event-hero__content"><div className="d-flex flex-wrap gap-2 mb-3">{event.category && <Badge bg="dark">{event.category}</Badge>}<Badge bg="success">Publicado</Badge>{tickets.some((t) => t.available) && <Badge bg="info" text="dark">Ingressos disponíveis</Badge>}</div><h1>{event.title}</h1><p className="cut-event-hero__date">{formatDate(event.start_date)}</p><span>{event.venue || event.address}{event.city ? ` · ${event.city}${event.uf ? ` - ${event.uf}` : ""}` : ""}</span>{event.production?.name && <button className="cut-inline-profile-link" onClick={() => navigate(`/production/${event.production.slug}/public`)}>Por {event.production.name} <i className="fa-solid fa-arrow-up-right-from-square" /></button>}<div className="cut-card-actions mt-4"><Button onClick={share}><i className="fa-solid fa-share-nodes me-2" />Compartilhar</Button><Button variant={interested ? "info" : "outline-light"} onClick={() => setEngagement("interested")} disabled={socialBusy}><i className="fa-regular fa-star me-2" />Tenho interesse</Button><Button variant={favorite ? "danger" : "outline-light"} onClick={() => setEngagement("favorite")} disabled={socialBusy}><i className={`${favorite ? "fa-solid" : "fa-regular"} fa-heart me-2`} />{favorite ? "Salvo" : "Salvar"}</Button><Button variant="outline-light" href="#comunidade"><i className="fa-regular fa-comments me-2" />Conversa</Button>{event.google_maps_url && <Button variant="outline-light" as="a" href={event.google_maps_url} target="_blank" rel="noreferrer"><i className="fa-solid fa-location-arrow me-2" />Maps</Button>}</div></div></Container>
       </section>
 
       <Container className="cut-page-container py-4 py-lg-5">{error && <Alert variant="danger">{error}</Alert>}{success && <Alert variant="success">{success}</Alert>}
-        {artists.length > 0 && <section className="mb-5"><div className="cut-section-heading"><div><span className="cut-eyebrow">Line-up</span><h2>Quem faz este evento acontecer</h2></div></div><div className="cut-lineup-grid">{artists.map((artist) => <button key={artist.id} className={`cut-lineup-card ${artist.pivot?.is_headliner ? "cut-lineup-card--headliner" : ""}`} onClick={() => navigate(`/artist/${artist.slug}`)}><div className="cut-lineup-card__avatar">{artist.photo ? <img src={/^https?:/.test(artist.photo) ? artist.photo : `${storageUrl}${String(artist.photo).replace(/^\//, "")}`} alt={artist.stage_name} /> : <span>{artist.stage_name?.slice(0,2).toUpperCase()}</span>}</div><div><span>{artist.pivot?.is_headliner ? "Atração principal" : artist.pivot?.participation_type || "Artista"}</span><strong>{artist.stage_name}</strong>{artist.pivot?.scheduled_at && <small>{formatDate(artist.pivot.scheduled_at)}</small>}{artist.pivot?.stage && <small>{artist.pivot.stage}</small>}</div><i className="fa-solid fa-chevron-right" /></button>)}</div></section>}
+        {location.state?.artistClaim && <Alert variant="info">Sua conta foi criada. Agora selecione abaixo o artista que representa você e envie a reivindicação ao produtor deste evento.</Alert>}
+        {artists.length > 0 && <section className="mb-5"><div className="cut-section-heading"><div><span className="cut-eyebrow">Line-up</span><h2>Quem faz este evento acontecer</h2></div></div><div className="cut-lineup-grid">{artists.map((artist) => <button key={artist.id} className={`cut-lineup-card ${artist.pivot?.is_headliner ? "cut-lineup-card--headliner" : ""}`} onClick={() => navigate(`/artist/${artist.slug}`)}><div className="cut-lineup-card__avatar">{artist.photo ? <img src={/^https?:/.test(artist.photo) ? artist.photo : `${storageUrl}${String(artist.photo).replace(/^\//, "")}`} alt={artist.stage_name} /> : <span>{artist.stage_name?.slice(0,2).toUpperCase()}</span>}</div><div><span>{artist.pivot?.is_headliner ? "Atração principal" : artist.pivot?.participation_type || "Artista"}</span><strong>{artist.stage_name}</strong>{artist.pivot?.scheduled_at && <small>{formatDate(artist.pivot.scheduled_at)}</small>}{artist.pivot?.stage && <small>{artist.pivot.stage}</small>}</div><i className="fa-solid fa-chevron-right" /></button>)}</div>
+          {claimableArtists.length > 0 && <Card className="cut-panel mt-4"><Card.Body className="p-4"><span className="cut-eyebrow">Artista do evento?</span><h3 className="cut-section-title">Reivindique seu vínculo</h3><p className="text-secondary">Se o produtor cadastrou você antes da criação da sua conta, escolha seu perfil abaixo. O produtor receberá a solicitação e confirmará que você realmente faz parte deste line-up.</p><div className="d-flex flex-wrap gap-2">{claimableArtists.map((artist) => <Button key={artist.id} variant="outline-light" onClick={() => claimArtist(artist)} disabled={artistClaimingId === artist.id}><i className="fa-solid fa-user-check me-2" />Sou {artist.stage_name}</Button>)}</div>{!user && <small className="d-block text-secondary mt-3">Você será direcionado ao cadastro e voltará para este evento após confirmar o e-mail.</small>}</Card.Body></Card>}
+        </section>}
 
         <Row className="g-4"><Col lg={8}>
           <Card className="cut-panel mb-4"><Card.Body className="p-4 p-lg-5"><span className="cut-eyebrow">Sobre o evento</span><h2 className="cut-section-title mt-2">Informações</h2><p className="cut-body-copy">{event.description}</p><div className="cut-event-details"><div><i className="fa-regular fa-calendar" /><span><strong>Início</strong>{formatDate(event.start_date)}</span></div><div><i className="fa-regular fa-clock" /><span><strong>Término</strong>{formatDate(event.end_date)}</span></div><div><i className="fa-solid fa-location-dot" /><span><strong>Local</strong>{event.venue || event.address}</span></div>{event.city && <div><i className="fa-solid fa-map" /><span><strong>Cidade</strong>{event.city}{event.uf ? ` - ${event.uf}` : ""}</span></div>}</div></Card.Body></Card>
@@ -105,7 +126,7 @@ export default function EventViewPage() {
         </Col>
         <Col lg={4}><Card className="cut-panel cut-ticket-purchase-panel"><Card.Body className="p-4"><span className="cut-eyebrow">Entrada</span><h2 className="cut-section-title mt-2">Ingressos</h2>
           {tickets.length === 0 ? <div className="cut-empty-state-inline"><p>Nenhum ingresso gratuito disponível neste momento.</p>{isOwner && <Button onClick={() => navigate(`/ticket/create?eventId=${event.id}`)}>Criar cortesia</Button>}</div> : <div className="cut-ticket-list">{tickets.map((ticket) => { const remaining = Number(ticket.remaining ?? 0); const available = Boolean(ticket.available); return <div className="cut-ticket-option" key={ticket.id}><div><span className="cut-ticket-kicker">{ticket.type || ticket.ticket_type || "Ingresso"}</span><strong>{ticket.name}</strong><span>Grátis · {ticket.expired ? "prazo encerrado" : available ? `${remaining} restante${remaining === 1 ? "" : "s"}` : "esgotado"}</span>{ticket.limit_date && !ticket.expired && <small>Retirada até {formatDate(ticket.limit_date)}</small>}</div><Button onClick={() => claim(ticket)} disabled={!available || claimingId === ticket.id}>{available ? (user ? "Obter ingresso" : "Entrar para obter") : ticket.expired ? "Prazo encerrado" : "Esgotado"}</Button></div>; })}</div>}
-          {isOwner && <div className="cut-owner-actions mt-4"><Button variant="outline-light" onClick={() => navigate(`/event/edit/${event.id}`)}>Gerenciar</Button><Button variant="outline-light" onClick={() => navigate(`/event/${event.id}/lineup`)}>Line-up</Button><Button variant="outline-light" onClick={() => navigate(`/checkin?eventId=${event.id}`)}>Portaria</Button></div>}
+          {isOwner && <div className="cut-owner-actions mt-4"><Button variant="outline-light" onClick={() => navigate(`/event/edit/${event.id}`)}>Gerenciar</Button><Button variant="outline-light" onClick={() => navigate(`/event/${event.id}/lineup`)}>Line-up</Button><Button variant="outline-light" onClick={() => navigate(`/event/${event.id}/artist-claims`)}>Reivindicações</Button><Button variant="outline-light" onClick={() => navigate(`/checkin?eventId=${event.id}`)}>Portaria</Button></div>}
         </Card.Body></Card></Col></Row>
 
         <EventCommunitySection event={event} isOwner={isOwner} />
