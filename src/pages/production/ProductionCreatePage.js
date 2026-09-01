@@ -7,7 +7,6 @@ import LocationFields from"../../components/location/LocationFields";
 import cutinappService from"../../services/CutinappService";
 
 const initialForm={name:"",fantasy:"",cnpj:"",phone:"",description:"",city_id:"",city:"",uf:"",cep:"",address:"",address_number:"",neighborhood:"",address_complement:"",address_reference:"",location_public:0,website_url:"",instagram_url:"",logo:null,background:null};
-const firstError=(errors,field)=>{const value=errors?.[field];return Array.isArray(value)?value[0]||"":typeof value==="string"?value:"";};
 const normalizeCnpj=(value)=>String(value||"").replace(/\D/g,"");
 export default function ProductionCreatePage(){
  const navigate=useNavigate();const[form,setForm]=useState(initialForm);const[loading,setLoading]=useState(false);const[error,setError]=useState("");const[fieldErrors,setFieldErrors]=useState({});const[submitted,setSubmitted]=useState(false);const[logoPreview,setLogoPreview]=useState("");const[backgroundPreview,setBackgroundPreview]=useState("");
