@@ -220,8 +220,18 @@
 }
 .cut-skeleton--line { height: 12px; }
 .cut-skeleton--title { width: 62%; height: 24px; }
+.cut-skeleton--short { width: 42%; }
 .cut-skeleton--media { aspect-ratio: 16/9; }
-.cut-skeleton-card { display: grid; gap: 14px; padding: 16px; border: 1px solid var(--cut-border-soft); border-radius: var(--cut-radius-xl); background: var(--cut-surface-1); }
+.cut-skeleton-card {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--cut-border-soft);
+  border-radius: var(--cut-radius-xl);
+  background: var(--cut-surface-1);
+  box-shadow: var(--cut-shadow-xs);
+}
+.cut-skeleton-card--compact { min-height: 118px; align-content: center; }
 @keyframes cutSkeletonSweep { 100% { transform: translateX(100%); } }
 
 .cut-icon-button {
