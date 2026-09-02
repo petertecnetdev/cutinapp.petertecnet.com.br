@@ -3,36 +3,8 @@ on:
   push:
     branches: [main]
   pull_request:
-permissions:
-  contents: write
-  pull-requests: read
 jobs:
-  lockfile:
-    if: github.event_name == 'pull_request' && github.head_ref == 'feat/pix-beneficiary-finance'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref }}
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-      - name: Regenerate npm lockfile
-        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
-      - name: Commit lockfile when changed
-        shell: bash
-        run: |
-          if git diff --quiet -- package-lock.json; then
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package-lock.json
-          git commit -m "chore: sync package-lock for finance liveness"
-          git push origin HEAD:${{ github.head_ref }}
   frontend:
-    needs: lockfile
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
