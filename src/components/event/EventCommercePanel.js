@@ -64,6 +64,12 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
       tickets: selected.tickets.map((item) => ({ id: item.id, quantity: Number(quantities[`ticket:${item.id}`]) })),
       items: selected.items.map((item) => ({ id: item.id, quantity: Number(quantities[`item:${item.id}`]) })),
     };
+
+    // Uma nova intenção de compra nunca pode herdar o pagamento de um checkout
+    // anterior do mesmo evento. O CheckoutPage mantém o último pagamento por slug
+    // para sobreviver a F5 durante um PIX pendente; sem limpar aqui, uma compra já
+    // concluída podia ser restaurada e exibida como se a NOVA seleção estivesse paga.
+    sessionStorage.removeItem(`cutinapp_payment_${slug}`);
     sessionStorage.setItem(`cutinapp_checkout_${slug}`, JSON.stringify(checkout));
     navigate(`/checkout/${slug}`, { state: { checkout, from: `${location.pathname}${location.search}` } });
   };
