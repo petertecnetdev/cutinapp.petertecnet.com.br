@@ -25,7 +25,7 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
   }, [slug]);
 
   const selected = useMemo(() => {
-    const tickets = (catalog.tickets || []).filter((item) => Number(quantities[`ticket:${item.id}`] || 0) > 0);
+    const tickets = (catalog.tickets || []).filter((item) => item.available !== false && Number(quantities[`ticket:${item.id}`] || 0) > 0);
     const items = (catalog.items || []).filter((item) => Number(quantities[`item:${item.id}`] || 0) > 0);
     return { tickets, items };
   }, [catalog, quantities]);
@@ -38,8 +38,9 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
 
   const checkoutAvailable = catalog?.payment_config?.available ?? catalog?.payment_config?.connected ?? false;
 
-  const setQuantity = (kind, id, value) => {
-    const max = kind === "ticket" ? 20 : 50;
+  const setQuantity = (kind, id, value, availableMax = null) => {
+    const configuredMax = kind === "ticket" ? 20 : 50;
+    const max = availableMax === null ? configuredMax : Math.max(0, Math.min(configuredMax, Number(availableMax || 0)));
     const parsed = Math.max(0, Math.min(max, Number(value || 0)));
     setQuantities((current) => ({ ...current, [`${kind}:${id}`]: parsed }));
   };
@@ -77,10 +78,33 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
     {error && <Alert variant="danger">{error}</Alert>}
     {!checkoutAvailable && <Alert variant="warning">Pagamentos temporariamente indisponíveis para este evento.</Alert>}
 
-    {(catalog.tickets || []).map((ticket) => <div className="cut-ticket-option" key={`paid-ticket-${ticket.id}`}>
-      <div><span className="cut-ticket-kicker">Ingresso</span><strong>{ticket.name}</strong><span>{money(ticket.price)}</span></div>
-      <Form.Control type="number" min="0" max="20" value={quantities[`ticket:${ticket.id}`] || 0} onChange={(event) => setQuantity("ticket", ticket.id, event.target.value)} style={{ width: 82 }} />
-    </div>)}
+    {(catalog.tickets || []).map((ticket) => {
+      const remaining = Math.max(0, Number(ticket.remaining ?? ticket.quantity ?? 0));
+      const expired = Boolean(ticket.expired);
+      const soldOut = ticket.available === false || remaining <= 0 || expired;
+      const maxQuantity = Math.min(20, remaining);
+
+      return <div className={`cut-ticket-option ${soldOut ? "opacity-50" : ""}`} key={`paid-ticket-${ticket.id}`} aria-disabled={soldOut}>
+        <div>
+          <span className="cut-ticket-kicker">Ingresso</span>
+          <strong>{ticket.name}</strong>
+          <span>{money(ticket.price)}</span>
+          <small className={soldOut ? "text-secondary" : "text-success"}>
+            {expired ? "Venda encerrada" : soldOut ? "Esgotado" : `${remaining} disponível${remaining === 1 ? "" : "is"}`}
+          </small>
+        </div>
+        {soldOut
+          ? <Button variant="secondary" disabled>Esgotado</Button>
+          : <Form.Control
+              type="number"
+              min="0"
+              max={maxQuantity}
+              value={quantities[`ticket:${ticket.id}`] || 0}
+              onChange={(event) => setQuantity("ticket", ticket.id, event.target.value, remaining)}
+              style={{ width: 82 }}
+            />}
+      </div>;
+    })}
 
     {(catalog.items || []).map((item) => <div className="cut-ticket-option" key={`event-item-${item.id}`}>
       <div><span className="cut-ticket-kicker">Item do evento</span><strong>{item.name}</strong><span>{money(item.price)}</span>{item.description && <small>{item.description}</small>}</div>
