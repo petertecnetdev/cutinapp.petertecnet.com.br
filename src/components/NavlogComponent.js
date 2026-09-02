@@ -105,6 +105,7 @@ export default function NavlogComponent() {
             </Nav.Link>
             <NavDropdown title={<span><i className="fa-solid fa-bullhorn" /> Produzir</span>} id="cut-producer-menu">
               <NavDropdown.Item as={Link} to="/production/mine">Minhas produções</NavDropdown.Item>
+              <NavDropdown.Item as={Link} to="/producer/contracts"><i className="fa-solid fa-file-signature me-2" />Contratos</NavDropdown.Item>
               <NavDropdown.Item as={Link} to="/event/manage">Meus eventos</NavDropdown.Item>
               <NavDropdown.Item as={Link} to="/producer/sales"><i className="fa-solid fa-chart-line me-2" />Vendas</NavDropdown.Item>
               <NavDropdown.Item as={Link} to="/producer/finance"><i className="fa-solid fa-wallet me-2" />Financeiro</NavDropdown.Item>
