@@ -42,6 +42,10 @@ const EventLineupPage = lazy(() => import("./pages/event/EventLineupPage"));
 const EventArtistClaimsPage = lazy(() => import("./pages/event/EventArtistClaimsPage"));
 const EventViewPage = lazy(() => import("./pages/event/EventViewPage"));
 const CheckoutPage = lazy(() => import("./pages/checkout/CheckoutPage"));
+const PurchasesPage = lazy(() => import("./pages/commerce/PurchasesPage"));
+const PurchaseDetailPage = lazy(() => import("./pages/commerce/PurchaseDetailPage"));
+const ProducerSalesPage = lazy(() => import("./pages/commerce/ProducerSalesPage"));
+const ProducerSaleDetailPage = lazy(() => import("./pages/commerce/ProducerSaleDetailPage"));
 const TicketCreatePage = lazy(() => import("./pages/ticket/TicketCreatePage"));
 const CourtesyManagePage = lazy(() => import("./pages/ticket/CourtesyManagePage"));
 const MyPassesPage = lazy(() => import("./pages/ticket/MyPassesPage"));
@@ -92,6 +96,8 @@ function AppRoutes() {
           <Route path="/moderation/reports" element={protectedRoute(<ReportModerationPage />)} />
           <Route path="/profile" element={protectedRoute(<UserProfilePage />)} />
           <Route path="/user/edit" element={protectedRoute(<UserEditPage />)} />
+          <Route path="/purchases" element={protectedRoute(<PurchasesPage />)} />
+          <Route path="/purchases/:publicId" element={protectedRoute(<PurchaseDetailPage />)} />
 
           <Route path="/artists" element={<ArtistListPage />} />
           <Route path="/artist/:slug" element={<ArtistViewPage />} />
@@ -100,6 +106,8 @@ function AppRoutes() {
           <Route path="/production/create" element={protectedRoute(<ProductionCreatePage />)} />
           <Route path="/production/mine" element={protectedRoute(<ProductionMinePage />)} />
           <Route path="/producer/finance" element={protectedRoute(<ProductionFinancePage />)} />
+          <Route path="/producer/sales" element={protectedRoute(<ProducerSalesPage />)} />
+          <Route path="/producer/sales/:productionId/:publicId" element={protectedRoute(<ProducerSaleDetailPage />)} />
           <Route path="/production/:slug/public" element={<ProductionPublicPage />} />
           <Route path="/production/:id" element={protectedRoute(<ProductionViewPage />)} />
           <Route path="/production/edit/:id" element={protectedRoute(<ProductionUpdatePage />)} />
