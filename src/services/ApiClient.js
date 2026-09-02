@@ -1,8 +1,8 @@
 import axios from "axios";
-import { apiBaseUrl, appSlug } from "../config";
+import { apiV1BaseUrl, appSlug } from "../config";
 
 const apiClient = axios.create({
-  baseURL: apiBaseUrl,
+  baseURL: apiV1BaseUrl,
   timeout: 20000,
   headers: {
     Accept: "application/json",
@@ -44,7 +44,6 @@ apiClient.interceptors.request.use((config) => {
 
   const isFormData = typeof FormData !== "undefined" && config.data instanceof FormData;
   if (isFormData) {
-    // Never force multipart/form-data here. The browser must add the boundary.
     if (typeof config.headers?.delete === "function") {
       config.headers.delete("Content-Type");
     } else if (config.headers) {
