@@ -41,7 +41,6 @@ export default function NavlogComponent() {
       window.dispatchEvent(new CustomEvent("cutinapp:notification-received", { detail: notification }));
     });
 
-    // Fallback e reconciliação: o WebSocket é imediato; a consulta periódica corrige qualquer perda de conexão.
     const timer = window.setInterval(refreshUnread, 30000);
     window.addEventListener("focus", refreshUnread);
     window.addEventListener("cutinapp:notifications-updated", refreshUnread);
@@ -96,6 +95,7 @@ export default function NavlogComponent() {
             <Nav.Link as={Link} to="/event" className={active("/event") && !active("/event/manage") ? "active" : ""}><i className="fa-regular fa-calendar-days" /> Eventos</Nav.Link>
             <Nav.Link as={Link} to="/artists" className={active("/artist") ? "active" : ""}><i className="fa-solid fa-music" /> Artistas</Nav.Link>
             <Nav.Link as={Link} to="/passes" className={active("/passes") ? "active" : ""}><i className="fa-solid fa-ticket" /> Ingressos</Nav.Link>
+            <Nav.Link as={Link} to="/purchases" className={active("/purchases") ? "active" : ""}><i className="fa-solid fa-receipt" /> Compras</Nav.Link>
             <Nav.Link as={Link} to="/notifications" className={`${active("/notifications") ? "active " : ""}cut-nav-notification`} aria-label={`${unreadNotifications ? `${unreadNotifications} notificações não lidas` : "Notificações"}`} title="Notificações">
               <span className="cut-nav-notification__globe">
                 <i className="fa-solid fa-earth-americas" />
@@ -106,6 +106,8 @@ export default function NavlogComponent() {
             <NavDropdown title={<span><i className="fa-solid fa-bullhorn" /> Produzir</span>} id="cut-producer-menu">
               <NavDropdown.Item as={Link} to="/production/mine">Minhas produções</NavDropdown.Item>
               <NavDropdown.Item as={Link} to="/event/manage">Meus eventos</NavDropdown.Item>
+              <NavDropdown.Item as={Link} to="/producer/sales"><i className="fa-solid fa-chart-line me-2" />Vendas</NavDropdown.Item>
+              <NavDropdown.Item as={Link} to="/producer/finance"><i className="fa-solid fa-wallet me-2" />Financeiro</NavDropdown.Item>
               <NavDropdown.Item as={Link} to="/artist/manage">Artistas</NavDropdown.Item>
               <NavDropdown.Divider />
               <NavDropdown.Item as={Link} to="/production/create">Nova produção</NavDropdown.Item>
@@ -118,6 +120,7 @@ export default function NavlogComponent() {
             <NavDropdown align="end" title={<span className="cut-navbar__user"><span className="cut-navbar__avatar">{String(user.first_name || "C").slice(0, 2).toUpperCase()}</span><span><strong>{user.first_name || "Minha conta"}</strong><small>{user.email}</small></span></span>} id="cut-account-menu">
               <NavDropdown.Item as={Link} to="/profile"><i className="fa-regular fa-user me-2" />Meu perfil</NavDropdown.Item>
               <NavDropdown.Item as={Link} to="/dashboard">Painel</NavDropdown.Item>
+              <NavDropdown.Item as={Link} to="/purchases"><i className="fa-solid fa-receipt me-2" />Minhas compras</NavDropdown.Item>
               <NavDropdown.Item as={Link} to="/user/edit">Editar conta</NavDropdown.Item>
               {isAdmin && <><NavDropdown.Divider /><NavDropdown.Item as={Link} to="/moderation/reports"><i className="fa-solid fa-shield-halved me-2" />Moderação</NavDropdown.Item></>}
               <NavDropdown.Item as={Link} to="/password">Alterar senha</NavDropdown.Item>
