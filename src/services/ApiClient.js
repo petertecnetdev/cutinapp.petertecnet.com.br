@@ -1,8 +1,10 @@
 import axios from "axios";
-import { apiBaseUrl, appSlug } from "../config";
+import { apiV1BaseUrl, appSlug } from "../config";
+
+const legacyProductPrefix = `/${appSlug}`;
 
 const apiClient = axios.create({
-  baseURL: apiBaseUrl,
+  baseURL: apiV1BaseUrl,
   timeout: 20000,
   headers: {
     Accept: "application/json",
@@ -39,12 +41,21 @@ const humanizeMessage = (value, status) => {
 };
 
 apiClient.interceptors.request.use((config) => {
+  // During the V1 migration service modules may still pass historical paths such
+  // as /cutinapp/events. Product identity now lives exclusively in the V1 base
+  // URL, so the old prefix is removed before the request leaves the browser.
+  if (typeof config.url === "string") {
+    if (config.url === legacyProductPrefix) config.url = "/";
+    else if (config.url.startsWith(`${legacyProductPrefix}/`)) {
+      config.url = config.url.slice(legacyProductPrefix.length);
+    }
+  }
+
   const token = localStorage.getItem("token");
   if (token) config.headers.Authorization = `Bearer ${token}`;
 
   const isFormData = typeof FormData !== "undefined" && config.data instanceof FormData;
   if (isFormData) {
-    // Never force multipart/form-data here. The browser must add the boundary.
     if (typeof config.headers?.delete === "function") {
       config.headers.delete("Content-Type");
     } else if (config.headers) {
