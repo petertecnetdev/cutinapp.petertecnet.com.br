@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Badge, Button, Card, Col, Container, Form, Row, Table } from "react-bootstrap";
 import { ThemeProvider } from "@aws-amplify/ui-react";
