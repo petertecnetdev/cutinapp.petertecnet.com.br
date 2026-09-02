@@ -21,7 +21,6 @@ export default function FeedPage() {
   const navigate = useNavigate();
   const [events, setEvents] = useState([]);
   const [activity, setActivity] = useState([]);
-  const [notifications, setNotifications] = useState([]);
   const [context, setContext] = useState({});
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
@@ -38,7 +37,6 @@ export default function FeedPage() {
       setEvents((current) => nextPage === 1 ? batch : [...current, ...batch.filter((item) => !current.some((old) => old.id === item.id))]);
       if (nextPage === 1) {
         setActivity(response.community_activity || []);
-        setNotifications(response.notifications || []);
         setContext(response.context || {});
       }
       setPage(response.feed?.current_page || nextPage);
@@ -53,30 +51,16 @@ export default function FeedPage() {
 
   useEffect(() => { load(1); }, [load]);
 
-  const openNotification = async (notification) => {
-    if (!notification.read_at) cutinappService.markNotificationRead(notification.id).catch(() => null);
-    if (notification.reference_url) {
-      try {
-        const url = new URL(notification.reference_url, window.location.origin);
-        if (url.origin === window.location.origin) return navigate(`${url.pathname}${url.search}`);
-        window.location.href = notification.reference_url;
-        return;
-      } catch (_) { /* usa fallback abaixo */ }
-    }
-    if (notification.reference_type === "event" && notification.reference_id) navigate("/event");
-  };
-
   return <div className="cut-app-page"><NavlogComponent />
     <Container className="cut-page-container py-4 py-lg-5">
-      <div className="cut-page-heading"><div><span className="cut-eyebrow">Sua rede de eventos</span><h1>Feed Cutinapp</h1><p>Novidades, conversas e eventos conectados ao que você segue, salva, demonstra interesse e participa.</p>{context.preferred_city && <span className="cut-feed-context"><i className="fa-solid fa-location-dot" /> Prioridade para {context.preferred_city}{context.preferred_uf ? ` - ${context.preferred_uf}` : ""}</span>}</div><div className="cut-card-actions"><Button variant="outline-light" onClick={() => navigate("/notifications")}><i className="fa-regular fa-bell me-2" />Notificações</Button><Button onClick={() => navigate("/event")}>Explorar eventos</Button></div></div>
+      <div className="cut-page-heading"><div><span className="cut-eyebrow">Sua rede de eventos</span><h1>Feed Cutinapp</h1><p>Eventos, artistas e conversas conectados ao que você segue, salva, demonstra interesse e participa.</p>{context.preferred_city && <span className="cut-feed-context"><i className="fa-solid fa-location-dot" /> Prioridade para {context.preferred_city}{context.preferred_uf ? ` - ${context.preferred_uf}` : ""}</span>}</div><div className="cut-card-actions"><Button onClick={() => navigate("/event")}>Explorar eventos</Button></div></div>
       {error && <Alert variant="danger">{error}</Alert>}
 
       {loading ? <Row className="g-4" aria-busy="true">{Array.from({ length: 6 }).map((_, index) => <Col md={6} xl={4} key={index}><SkeletonCard /></Col>)}</Row> : <>
-        {(notifications.length > 0 || activity.length > 0) && <section className="cut-feed-timeline mb-5">
-          <div className="cut-section-heading"><div><span className="cut-eyebrow">Agora na sua rede</span><h2>Atividade</h2></div></div>
+        {activity.length > 0 && <section className="cut-feed-timeline mb-5">
+          <div className="cut-section-heading"><div><span className="cut-eyebrow">Comunidade</span><h2>Conversas recentes</h2></div></div>
           <div className="cut-feed-activity-list">
-            {notifications.slice(0, 6).map((item) => <button type="button" key={`n-${item.id}`} className={`cut-feed-activity ${item.read_at ? "" : "is-unread"}`} onClick={() => openNotification(item)}><span className="cut-feed-activity__icon"><i className="fa-regular fa-bell" /></span><span><strong>{item.title}</strong><small>{item.message || "Novidade na sua rede"}</small><time>{fmt(item.created_at)}</time></span><i className="fa-solid fa-chevron-right" /></button>)}
-            {activity.map((item) => <button type="button" key={`p-${item.id}`} className="cut-feed-activity" onClick={() => navigate(`/event/${item.event_slug}#comunidade`)}><span className="cut-feed-activity__icon"><i className="fa-regular fa-comments" /></span><span><strong>{[item.first_name, item.last_name].filter(Boolean).join(" ") || "Participante"} publicou em {item.event_title}</strong><small>{item.body.length > 150 ? `${item.body.slice(0, 150)}…` : item.body}</small><time>{fmt(item.created_at)}</time></span><i className="fa-solid fa-chevron-right" /></button>)}
+            {activity.slice(0, 4).map((item) => <button type="button" key={`p-${item.id}`} className="cut-feed-activity" onClick={() => navigate(`/event/${item.event_slug}#comunidade`)}><span className="cut-feed-activity__icon"><i className="fa-regular fa-comments" /></span><span><strong>{[item.first_name, item.last_name].filter(Boolean).join(" ") || "Participante"} publicou em {item.event_title}</strong><small>{item.body.length > 150 ? `${item.body.slice(0, 150)}…` : item.body}</small><time>{fmt(item.created_at)}</time></span><i className="fa-solid fa-chevron-right" /></button>)}
           </div>
         </section>}
 
