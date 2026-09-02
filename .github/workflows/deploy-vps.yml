@@ -1,0 +1,24 @@
+name: Deploy VPS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    uses: petertecnetdev/petertecnet.com.br/.github/workflows/reusable-vps-deploy.yml@main
+    with:
+      deploy_path: /var/www/cutinapp.petertecnet.com.br
+      deploy_type: frontend
+      deploy_branch: main
+      health_url: https://cutinapp.petertecnet.com.br/
+    secrets:
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_PORT: ${{ secrets.VPS_PORT }}
+      VPS_USER: ${{ secrets.VPS_USER }}
+      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
