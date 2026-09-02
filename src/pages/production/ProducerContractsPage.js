@@ -1,0 +1,76 @@
+import React, { useEffect, useState } from "react";
+import { Alert, Badge, Button, Card, Col, Container, Form, Row, Spinner } from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
+import NavlogComponent from "../../components/NavlogComponent";
+import cutinappService from "../../services/CutinappService";
+
+export default function ProducerContractsPage() {
+  const navigate = useNavigate();
+  const [productions, setProductions] = useState([]);
+  const [productionId, setProductionId] = useState("");
+  const [contract, setContract] = useState(null);
+  const [form, setForm] = useState({ signer_name: "", signer_document: "", signer_role: "Representante da produção", accepted: false });
+  const [loading, setLoading] = useState(true);
+  const [signing, setSigning] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    cutinappService.myProductions()
+      .then((items) => {
+        if (!active) return;
+        setProductions(items || []);
+        if (items?.[0]?.id) setProductionId(String(items[0].id));
+      })
+      .catch((err) => active && setError(err?.message || "Não foi possível carregar suas produções."))
+      .finally(() => active && setLoading(false));
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!productionId) { setContract(null); return; }
+    let active = true;
+    setLoading(true); setError(""); setSuccess("");
+    cutinappService.producerContract(productionId)
+      .then((data) => {
+        if (!active) return;
+        setContract(data);
+        if (data?.signer_name) setForm((current) => ({ ...current, signer_name: data.signer_name }));
+      })
+      .catch((err) => active && setError(err?.message || "Não foi possível carregar o contrato."))
+      .finally(() => active && setLoading(false));
+    return () => { active = false; };
+  }, [productionId]);
+
+  const sign = async (event) => {
+    event.preventDefault();
+    if (!form.accepted) { setError("Marque a declaração de concordância para assinar."); return; }
+    setSigning(true); setError(""); setSuccess("");
+    try {
+      const response = await cutinappService.signProducerContract(productionId, form);
+      setSuccess(response?.message || "Contrato assinado com sucesso.");
+      const refreshed = await cutinappService.producerContract(productionId);
+      setContract(refreshed);
+    } catch (err) {
+      setError(err?.message || "Não foi possível assinar o contrato.");
+    } finally {
+      setSigning(false);
+    }
+  };
+
+  return <div className="cut-app-page">
+    <NavlogComponent />
+    <Container className="cut-page-container py-4 py-lg-5">
+      <div className="cut-page-heading"><div><span className="cut-eyebrow">Área do produtor</span><h1>Contrato do produtor</h1><p>Leia e assine o termo vigente antes de cadastrar eventos para a produção.</p></div></div>
+      {error && <Alert variant="danger">{error}</Alert>}
+      {success && <Alert variant="success">{success}</Alert>}
+      {loading && <div className="text-center py-5"><Spinner animation="border" /></div>}
+      {!loading && productions.length === 0 && <Card className="cut-empty-state"><Card.Body><h2>Nenhuma produção cadastrada</h2><p>Cadastre sua produção antes de assinar o contrato.</p><Button onClick={() => navigate("/production/create")}>Criar produção</Button></Card.Body></Card>}
+      {!!productions.length && <>
+        <Card className="cut-panel mb-4"><Card.Body><Form.Label>Produção</Form.Label><Form.Select value={productionId} onChange={(e) => setProductionId(e.target.value)}>{productions.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</Form.Select></Card.Body></Card>
+        {contract && <Row className="g-4"><Col lg={8}><Card className="cut-panel"><Card.Body className="p-4 p-lg-5"><div className="d-flex justify-content-between gap-3 align-items-start mb-3"><div><h2 className="cut-section-title mb-1">Termo de Adesão</h2><small>Versão {contract.version}</small></div><Badge bg={contract.accepted ? "success" : "warning"}>{contract.accepted ? "Assinado" : "Assinatura pendente"}</Badge></div><div style={{ whiteSpace: "pre-line", maxHeight: "65vh", overflowY: "auto", paddingRight: 12 }}>{contract.text}</div></Card.Body></Card></Col><Col lg={4}><Card className="cut-panel"><Card.Body className="p-4">{contract.accepted ? <><h2 className="cut-section-title">Contrato vigente</h2><p><strong>Signatário:</strong><br />{contract.signer_name}</p><p><strong>Assinado em:</strong><br />{contract.accepted_at ? new Date(contract.accepted_at).toLocaleString("pt-BR") : "Registrado"}</p><p className="text-break"><strong>Hash:</strong><br /><small>{contract.hash}</small></p><Alert variant="success">Esta produção está habilitada para criar eventos.</Alert><Button className="w-100" onClick={() => navigate(`/event/create?productionId=${productionId}`)}>Criar evento</Button></> : <Form onSubmit={sign}><h2 className="cut-section-title">Assinar eletronicamente</h2><Form.Group className="mb-3"><Form.Label>Nome completo *</Form.Label><Form.Control value={form.signer_name} onChange={(e) => setForm((current) => ({ ...current, signer_name: e.target.value }))} required minLength={3} /></Form.Group><Form.Group className="mb-3"><Form.Label>CPF ou CNPJ do signatário *</Form.Label><Form.Control value={form.signer_document} onChange={(e) => setForm((current) => ({ ...current, signer_document: e.target.value }))} required /></Form.Group><Form.Group className="mb-3"><Form.Label>Qualificação</Form.Label><Form.Control value={form.signer_role} onChange={(e) => setForm((current) => ({ ...current, signer_role: e.target.value }))} /></Form.Group><Form.Check className="mb-3" type="checkbox" checked={form.accepted} onChange={(e) => setForm((current) => ({ ...current, accepted: e.target.checked }))} label="Li integralmente o contrato, possuo poderes para representar esta produção e concordo com seus termos." /><Button type="submit" className="w-100" disabled={signing || !form.accepted}>{signing ? "Assinando..." : "Assinar contrato"}</Button><small className="d-block mt-3">Ao confirmar, registraremos a versão do documento, data/hora, usuário autenticado, IP e hash de integridade. Uma cópia será enviada por e-mail.</small></Form>}</Card.Body></Card></Col></Row>}
+      </>}
+    </Container>
+  </div>;
+}
