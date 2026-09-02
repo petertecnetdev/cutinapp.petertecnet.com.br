@@ -8,7 +8,7 @@ import commerceService from "../../services/CommerceService";
 import "./CheckoutPage.css";
 
 const money = (value) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
-const finalStatuses = ["paid", "refunded", "charged_back", "rejected", "cancelled"];
+const failedStatuses = ["refunded", "charged_back", "rejected", "cancelled"];
 const PAYMENT_SYNC_INTERVAL_MS = 5000;
 
 export default function CheckoutPage() {
@@ -22,19 +22,29 @@ export default function CheckoutPage() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
+  const [syncingNow, setSyncingNow] = useState(false);
   const [error, setError] = useState("");
   const resultRef = useRef(result);
   resultRef.current = result;
 
+  const checkoutStorageKey = `cutinapp_checkout_${slug}`;
+  const paymentStorageKey = `cutinapp_payment_${slug}`;
+
   useEffect(() => {
-    const storageKey = `cutinapp_checkout_${slug}`;
     const fromState = location.state?.checkout || null;
-    if (fromState) sessionStorage.setItem(storageKey, JSON.stringify(fromState));
+    if (fromState) sessionStorage.setItem(checkoutStorageKey, JSON.stringify(fromState));
     let stored = fromState;
     if (!stored) {
-      try { stored = JSON.parse(sessionStorage.getItem(storageKey) || "null"); } catch (_) { stored = null; }
+      try { stored = JSON.parse(sessionStorage.getItem(checkoutStorageKey) || "null"); } catch (_) { stored = null; }
     }
     setSelection(stored);
+
+    try {
+      const storedPayment = JSON.parse(sessionStorage.getItem(paymentStorageKey) || "null");
+      if (storedPayment?.order?.public_id) setResult(storedPayment);
+    } catch (_) {
+      sessionStorage.removeItem(paymentStorageKey);
+    }
 
     commerceService.catalog(slug)
       .then((response) => {
@@ -44,7 +54,13 @@ export default function CheckoutPage() {
       })
       .catch((err) => setError(err?.message || "Não foi possível preparar o checkout."))
       .finally(() => setLoading(false));
-  }, [slug, location.state]);
+  }, [slug, location.state, checkoutStorageKey, paymentStorageKey]);
+
+  useEffect(() => {
+    if (result?.order?.public_id) {
+      sessionStorage.setItem(paymentStorageKey, JSON.stringify(result));
+    }
+  }, [result, paymentStorageKey]);
 
   const lines = useMemo(() => {
     if (!catalog || !selection) return [];
@@ -65,9 +81,36 @@ export default function CheckoutPage() {
   const pixAvailable = paymentAvailable && methods.includes("pix");
   const cardAvailable = paymentAvailable && methods.includes("card") && Boolean(catalog?.payment_config?.public_key);
 
+  const orderStatus = result?.order?.status || result?.payment?.status;
+  const fulfillmentStatus = result?.order?.metadata?.fulfillment_status;
+  const approved = orderStatus === "paid";
+  const fulfilled = approved && fulfillmentStatus === "completed";
+  const failed = failedStatuses.includes(orderStatus);
+
+  const syncCurrentPayment = async ({ manual = false } = {}) => {
+    const publicId = resultRef.current?.order?.public_id;
+    if (!publicId || syncingNow) return;
+    if (manual) setSyncingNow(true);
+    try {
+      const order = await commerceService.syncPayment(publicId);
+      const payments = Array.isArray(order?.payments) ? order.payments : [];
+      const latestPayment = payments.length ? payments[payments.length - 1] : resultRef.current?.payment;
+      setResult((current) => ({ ...current, order, payment: latestPayment || current?.payment }));
+      setError("");
+    } catch (err) {
+      if (err?.status === 403 || err?.status === 404) sessionStorage.removeItem(paymentStorageKey);
+      if (err?.status && err.status !== 429) setError(err?.message || "Não foi possível atualizar o status do pagamento.");
+    } finally {
+      if (manual) setSyncingNow(false);
+    }
+  };
+
   useEffect(() => {
     const publicId = result?.order?.public_id;
-    if (!publicId || finalStatuses.includes(result?.order?.status)) return undefined;
+    const status = result?.order?.status || result?.payment?.status;
+    const fulfillment = result?.order?.metadata?.fulfillment_status;
+    const terminal = failedStatuses.includes(status) || (status === "paid" && fulfillment === "completed");
+    if (!publicId || terminal) return undefined;
     let active = true;
     let syncing = false;
 
@@ -80,7 +123,9 @@ export default function CheckoutPage() {
         const payments = Array.isArray(order?.payments) ? order.payments : [];
         const latestPayment = payments.length ? payments[payments.length - 1] : resultRef.current?.payment;
         setResult((current) => ({ ...current, order, payment: latestPayment || current?.payment }));
+        setError("");
       } catch (err) {
+        if (err?.status === 403 || err?.status === 404) sessionStorage.removeItem(paymentStorageKey);
         if (err?.status && err.status !== 429) setError(err?.message || "Não foi possível atualizar o status do pagamento.");
       } finally {
         syncing = false;
@@ -99,7 +144,7 @@ export default function CheckoutPage() {
       window.removeEventListener("focus", handleFocus);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [result?.order?.public_id, result?.order?.status]);
+  }, [result?.order?.public_id, result?.order?.status, result?.order?.metadata?.fulfillment_status, paymentStorageKey]);
 
   const payload = (paymentMethod) => ({
     event_id: catalog?.event?.id,
@@ -117,16 +162,22 @@ export default function CheckoutPage() {
   const checkoutPix = async () => {
     if (!ensurePaymentAvailable("pix")) return;
     setPaying(true); setError("");
-    try { setResult(await commerceService.checkout(payload("pix"))); }
-    catch (err) { setError(err?.message || "Não foi possível gerar o PIX."); }
+    try {
+      const checkoutResult = await commerceService.checkout(payload("pix"));
+      setResult(checkoutResult);
+      sessionStorage.setItem(paymentStorageKey, JSON.stringify(checkoutResult));
+    } catch (err) { setError(err?.message || "Não foi possível gerar o PIX."); }
     finally { setPaying(false); }
   };
 
   const checkoutCard = async (cardData) => {
     if (!ensurePaymentAvailable("card")) return;
     setPaying(true); setError("");
-    try { setResult(await commerceService.checkout({ ...payload("card"), ...cardData })); }
-    catch (err) { setError(err?.message || "Não foi possível processar o cartão."); }
+    try {
+      const checkoutResult = await commerceService.checkout({ ...payload("card"), ...cardData });
+      setResult(checkoutResult);
+      sessionStorage.setItem(paymentStorageKey, JSON.stringify(checkoutResult));
+    } catch (err) { setError(err?.message || "Não foi possível processar o cartão."); }
     finally { setPaying(false); }
   };
 
@@ -136,10 +187,6 @@ export default function CheckoutPage() {
 
   if (loading) return <ProcessingIndicatorComponent label="Preparando checkout seguro" />;
   if (!selection || !lines.length) return <div className="cut-checkout-page"><Container className="cut-checkout-container"><Alert variant="warning">Sua seleção de compra não foi encontrada.</Alert><Button onClick={() => navigate(`/event/${slug}`)}>Voltar ao evento</Button></Container></div>;
-
-  const status = result?.order?.status || result?.payment?.status;
-  const approved = status === "paid";
-  const failed = ["rejected", "cancelled", "refunded", "charged_back"].includes(status);
 
   return <div className="cut-checkout-page">
     <header className="cut-checkout-topbar">
@@ -157,7 +204,7 @@ export default function CheckoutPage() {
           {error && <Alert variant="danger">{error}</Alert>}
           {!paymentAvailable && !result && <Alert variant="warning">{catalog?.payment_config?.message || "As vendas deste evento ainda não estão habilitadas. Tente novamente mais tarde."}</Alert>}
 
-          {approved ? <section className="cut-checkout-success">
+          {fulfilled ? <section className="cut-checkout-success">
             <div className="cut-checkout-success__icon"><i className="fa-solid fa-check" /></div>
             <span>Pagamento aprovado</span><h2>Compra confirmada!</h2>
             <p>Seu pagamento foi reconhecido e seus ingressos já estão liberados.</p>
@@ -168,8 +215,8 @@ export default function CheckoutPage() {
             <section className="cut-checkout-section">
               <div className="cut-checkout-section__head"><div className="cut-checkout-step">1</div><div><h2>Forma de pagamento</h2><p>Escolha como deseja pagar.</p></div></div>
               <div className="cut-payment-methods">
-                {pixAvailable && <button type="button" className={method === "pix" ? "is-active" : ""} onClick={() => { setMethod("pix"); setResult(null); }}><i className="fa-brands fa-pix" /><div><strong>PIX</strong><span>Aprovação rápida</span></div><i className="fa-solid fa-circle-check" /></button>}
-                {cardAvailable && <button type="button" className={method === "card" ? "is-active" : ""} onClick={() => { setMethod("card"); setResult(null); }}><i className="fa-regular fa-credit-card" /><div><strong>Cartão de crédito</strong><span>Pagamento protegido</span></div><i className="fa-solid fa-circle-check" /></button>}
+                {pixAvailable && <button type="button" className={method === "pix" ? "is-active" : ""} onClick={() => { setMethod("pix"); if (!approved) { setResult(null); sessionStorage.removeItem(paymentStorageKey); } }}><i className="fa-brands fa-pix" /><div><strong>PIX</strong><span>Aprovação rápida</span></div><i className="fa-solid fa-circle-check" /></button>}
+                {cardAvailable && <button type="button" className={method === "card" ? "is-active" : ""} onClick={() => { setMethod("card"); if (!approved) { setResult(null); sessionStorage.removeItem(paymentStorageKey); } }}><i className="fa-regular fa-credit-card" /><div><strong>Cartão de crédito</strong><span>Pagamento protegido</span></div><i className="fa-solid fa-circle-check" /></button>}
               </div>
             </section>
 
@@ -177,8 +224,9 @@ export default function CheckoutPage() {
               <div className="cut-checkout-section__head"><div className="cut-checkout-step">2</div><div><h2>Pagamento</h2><p>Seus dados são processados em ambiente seguro.</p></div></div>
               {!result && method === "pix" && pixAvailable && <div className="cut-pix-start"><div className="cut-pix-start__icon"><i className="fa-brands fa-pix" /></div><h3>Pagamento via PIX</h3><p>Geraremos um QR Code exclusivo para esta compra. A confirmação aparecerá automaticamente nesta tela.</p><div className="cut-payment-total"><span>Total a pagar</span><strong>{money(total)}</strong></div><Button className="cut-checkout-primary" onClick={checkoutPix} disabled={paying}>{paying ? "Gerando PIX seguro..." : "Gerar QR Code PIX"}</Button></div>}
               {!result && method === "card" && cardAvailable && <MercadoPagoCardForm publicKey={catalog?.payment_config?.public_key || ""} amount={total} email={user?.email || ""} disabled={paying} onSubmit={checkoutCard} />}
-              {result && !failed && !approved && <div className="cut-payment-waiting"><div className="cut-payment-waiting__pulse"><i className="fa-solid fa-shield-halved" /></div><h3>Aguardando confirmação</h3><p>Assim que o Mercado Pago confirmar o pagamento, esta página será atualizada automaticamente.</p>{method === "pix" && result.payment?.qr_code_image && <div className="cut-pix-qr"><img src={result.payment.qr_code_image} alt="QR Code PIX" /></div>}{method === "pix" && result.payment?.qr_code && <><div className="cut-pix-code">{result.payment.qr_code}</div><Button variant="outline-light" className="w-100" onClick={copyPix}><i className="fa-regular fa-copy me-2" />Copiar código PIX</Button></>}<div className="cut-checkout-live"><span /><strong>Confirmação automática ativa</strong></div></div>}
-              {failed && <Alert variant="danger" className="mb-0"><strong>Pagamento não concluído.</strong><div>Escolha outra forma de pagamento ou tente novamente.</div><Button variant="outline-light" className="mt-3" onClick={() => setResult(null)}>Tentar novamente</Button></Alert>}
+              {approved && !fulfilled && <div className="cut-payment-waiting"><div className="cut-payment-waiting__pulse"><i className="fa-solid fa-ticket" /></div><h3>Pagamento confirmado</h3><p>O dinheiro já foi reconhecido. Estamos finalizando a emissão do seu ingresso. Você não precisa pagar novamente.</p><Button className="cut-checkout-primary w-100" onClick={() => syncCurrentPayment({ manual: true })} disabled={syncingNow}>{syncingNow ? "Verificando..." : "Verificar emissão agora"}</Button><div className="cut-checkout-live"><span /><strong>Recuperação automática ativa</strong></div></div>}
+              {result && !failed && !approved && <div className="cut-payment-waiting"><div className="cut-payment-waiting__pulse"><i className="fa-solid fa-shield-halved" /></div><h3>Aguardando confirmação</h3><p>Assim que o Mercado Pago confirmar o pagamento, esta página será atualizada automaticamente. Se você já pagou, não gere outro PIX.</p>{method === "pix" && result.payment?.qr_code_image && <div className="cut-pix-qr"><img src={result.payment.qr_code_image} alt="QR Code PIX" /></div>}{method === "pix" && result.payment?.qr_code && <><div className="cut-pix-code">{result.payment.qr_code}</div><Button variant="outline-light" className="w-100" onClick={copyPix}><i className="fa-regular fa-copy me-2" />Copiar código PIX</Button></>}<Button className="cut-checkout-primary w-100 mt-3" onClick={() => syncCurrentPayment({ manual: true })} disabled={syncingNow}>{syncingNow ? "Verificando pagamento..." : "Já paguei — verificar agora"}</Button><div className="cut-checkout-live"><span /><strong>Confirmação automática ativa</strong></div></div>}
+              {failed && <Alert variant="danger" className="mb-0"><strong>Pagamento não concluído.</strong><div>Escolha outra forma de pagamento ou tente novamente.</div><Button variant="outline-light" className="mt-3" onClick={() => { setResult(null); sessionStorage.removeItem(paymentStorageKey); }}>Tentar novamente</Button></Alert>}
             </section>
           </>}
 
