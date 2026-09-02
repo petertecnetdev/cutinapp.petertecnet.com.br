@@ -5,12 +5,25 @@ import { AuthContext } from "../context/AuthContext";
 import cutinappService from "../services/CutinappService";
 import { subscribeToUserNotifications } from "../services/RealtimeNotificationService";
 
+const notificationIcon = (type = "") => {
+  if (type === "artist_lineup") return "fa-solid fa-music";
+  if (type.includes("ticket")) return "fa-solid fa-ticket";
+  if (type === "comment_like") return "fa-solid fa-heart";
+  if (type === "event_comment" || type === "event_reply") return "fa-solid fa-comments";
+  return "fa-regular fa-bell";
+};
+
+const notificationTime = (value) => value
+  ? new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" }).format(new Date(value))
+  : "";
+
 export default function NavlogComponent() {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
   const [open, setOpen] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [notificationPreview, setNotificationPreview] = useState([]);
   const userId = user?.id;
 
   const active = (prefix) => location.pathname.startsWith(prefix);
@@ -20,37 +33,41 @@ export default function NavlogComponent() {
   useEffect(() => {
     if (!userId) {
       setUnreadNotifications(0);
+      setNotificationPreview([]);
       return undefined;
     }
 
     let mounted = true;
-    const refreshUnread = async () => {
+    const refreshNotifications = async () => {
       try {
-        const response = await cutinappService.notifications({ unread: true, per_page: 10 });
-        if (mounted) setUnreadNotifications(Number(response?.unread_count || 0));
+        const response = await cutinappService.notifications({ per_page: 6 });
+        if (!mounted) return;
+        setUnreadNotifications(Number(response?.unread_count || 0));
+        setNotificationPreview(response?.notifications?.data || []);
       } catch (_) {
         // O menu continua utilizável mesmo se a central estiver temporariamente indisponível.
       }
     };
 
-    refreshUnread();
+    refreshNotifications();
 
     const disconnectRealtime = subscribeToUserNotifications(userId, (notification) => {
       if (!mounted) return;
-      setUnreadNotifications((current) => current + (notification?.read_at ? 0 : 1));
+      if (!notification?.read_at) setUnreadNotifications((current) => current + 1);
+      setNotificationPreview((current) => [notification, ...current.filter((item) => item?.id !== notification?.id)].slice(0, 6));
       window.dispatchEvent(new CustomEvent("cutinapp:notification-received", { detail: notification }));
     });
 
-    const timer = window.setInterval(refreshUnread, 30000);
-    window.addEventListener("focus", refreshUnread);
-    window.addEventListener("cutinapp:notifications-updated", refreshUnread);
+    const timer = window.setInterval(refreshNotifications, 30000);
+    window.addEventListener("focus", refreshNotifications);
+    window.addEventListener("cutinapp:notifications-updated", refreshNotifications);
 
     return () => {
       mounted = false;
       if (typeof disconnectRealtime === "function") disconnectRealtime();
       window.clearInterval(timer);
-      window.removeEventListener("focus", refreshUnread);
-      window.removeEventListener("cutinapp:notifications-updated", refreshUnread);
+      window.removeEventListener("focus", refreshNotifications);
+      window.removeEventListener("cutinapp:notifications-updated", refreshNotifications);
     };
   }, [userId]);
 
@@ -81,6 +98,34 @@ export default function NavlogComponent() {
     navigate("/", { replace: true });
   };
 
+  const openNotification = async (item) => {
+    if (!item) return;
+    if (!item.read_at) {
+      try {
+        await cutinappService.markNotificationRead(item.id);
+        setUnreadNotifications((current) => Math.max(0, current - 1));
+        setNotificationPreview((current) => current.map((entry) => entry.id === item.id ? { ...entry, read_at: new Date().toISOString() } : entry));
+        window.dispatchEvent(new CustomEvent("cutinapp:notifications-updated"));
+      } catch (_) { /* a navegação continua */ }
+    }
+    if (item.reference_url) {
+      try {
+        const url = new URL(item.reference_url, window.location.origin);
+        if (url.origin === window.location.origin) return navigate(`${url.pathname}${url.search}${url.hash}`);
+        window.location.href = item.reference_url;
+        return;
+      } catch (_) { /* fallback abaixo */ }
+    }
+    navigate("/notifications");
+  };
+
+  const notificationToggle = (
+    <span className="cut-nav-notification-toggle" aria-label={unreadNotifications ? `${unreadNotifications} notificações não lidas` : "Notificações"}>
+      <i className={unreadNotifications > 0 ? "fa-solid fa-bell" : "fa-regular fa-bell"} />
+      {unreadNotifications > 0 && <span className="cut-nav-notification__badge">{unreadNotifications > 99 ? "99+" : unreadNotifications}</span>}
+    </span>
+  );
+
   return (
     <Navbar expand="lg" sticky="top" className="cut-navbar" expanded={open} onToggle={setOpen} onSelect={closeMenu}>
       <Container className="cut-navbar__inner">
@@ -96,13 +141,15 @@ export default function NavlogComponent() {
             <Nav.Link as={Link} to="/artists" className={active("/artist") ? "active" : ""}><i className="fa-solid fa-music" /> Artistas</Nav.Link>
             <Nav.Link as={Link} to="/passes" className={active("/passes") ? "active" : ""}><i className="fa-solid fa-ticket" /> Ingressos</Nav.Link>
             <Nav.Link as={Link} to="/purchases" className={active("/purchases") ? "active" : ""}><i className="fa-solid fa-receipt" /> Compras</Nav.Link>
-            <Nav.Link as={Link} to="/notifications" className={`${active("/notifications") ? "active " : ""}cut-nav-notification`} aria-label={`${unreadNotifications ? `${unreadNotifications} notificações não lidas` : "Notificações"}`} title="Notificações">
-              <span className="cut-nav-notification__globe">
-                <i className="fa-solid fa-earth-americas" />
-                {unreadNotifications > 0 && <span className="cut-nav-notification__badge">{unreadNotifications > 99 ? "99+" : unreadNotifications}</span>}
-              </span>
-              <span className="cut-nav-notification-label">Notificações</span>
-            </Nav.Link>
+            <NavDropdown align="end" title={notificationToggle} id="cut-notifications-menu" className={`cut-nav-notification-menu ${active("/notifications") ? "active" : ""}`}>
+              <div className="cut-notification-popover">
+                <div className="cut-notification-popover__head"><strong>Notificações</strong>{unreadNotifications > 0 && <span>{unreadNotifications} nova{unreadNotifications === 1 ? "" : "s"}</span>}</div>
+                <div className="cut-notification-popover__list">
+                  {notificationPreview.length === 0 ? <div className="cut-notification-popover__empty"><i className="fa-regular fa-bell" /><span>Nenhuma novidade por aqui.</span></div> : notificationPreview.map((item) => <button type="button" key={item.id} className={`cut-notification-popover__item ${item.read_at ? "" : "is-unread"}`} onClick={() => openNotification(item)}><span className="cut-notification-popover__icon"><i className={notificationIcon(item.type)} /></span><span className="cut-notification-popover__copy"><strong>{item.title || "Nova atividade"}</strong><small>{item.message || "Há uma novidade para você na Cutinapp."}</small><time>{notificationTime(item.created_at)}</time></span>{!item.read_at && <span className="cut-notification-popover__dot" />}</button>)}
+                </div>
+                <button type="button" className="cut-notification-popover__footer" onClick={() => navigate("/notifications")}>Ver todas as notificações</button>
+              </div>
+            </NavDropdown>
             <NavDropdown title={<span><i className="fa-solid fa-bullhorn" /> Produzir</span>} id="cut-producer-menu">
               <NavDropdown.Item as={Link} to="/production/mine">Minhas produções</NavDropdown.Item>
               <NavDropdown.Item as={Link} to="/producer/contracts"><i className="fa-solid fa-file-signature me-2" />Contratos</NavDropdown.Item>
