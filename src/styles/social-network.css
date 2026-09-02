@@ -122,6 +122,187 @@
   animation: cut-social-shimmer 1.35s ease-in-out infinite;
 }
 
+.cut-nav-notification-menu > .dropdown-toggle {
+  display: grid !important;
+  place-items: center;
+  min-width: 42px;
+  min-height: 42px;
+  padding: 0 !important;
+  border-radius: 50% !important;
+}
+
+.cut-nav-notification-menu > .dropdown-toggle::after {
+  display: none;
+}
+
+.cut-nav-notification-toggle {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255,255,255,.045);
+  color: var(--cut-text-strong);
+  font-size: 1rem;
+}
+
+.cut-nav-notification__badge {
+  position: absolute;
+  top: -3px;
+  right: -7px;
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border: 2px solid var(--cut-surface-0, #071217);
+  border-radius: 999px;
+  background: #ff3b5f;
+  color: #fff;
+  font-size: .62rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.cut-nav-notification-menu .dropdown-menu {
+  width: min(390px, calc(100vw - 24px));
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--cut-border-strong);
+  border-radius: 20px;
+  background: rgba(8, 18, 23, .985);
+  box-shadow: 0 24px 70px rgba(0,0,0,.48);
+}
+
+.cut-notification-popover {
+  width: 100%;
+}
+
+.cut-notification-popover__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 18px 12px;
+}
+
+.cut-notification-popover__head strong {
+  color: var(--cut-text-strong);
+  font-size: 1.05rem;
+}
+
+.cut-notification-popover__head span {
+  color: var(--cut-primary);
+  font-size: .72rem;
+  font-weight: 760;
+}
+
+.cut-notification-popover__list {
+  max-height: 430px;
+  overflow-y: auto;
+}
+
+.cut-notification-popover__item {
+  position: relative;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 42px minmax(0,1fr) 9px;
+  align-items: center;
+  gap: 11px;
+  padding: 12px 16px;
+  border: 0;
+  background: transparent;
+  color: var(--cut-text);
+  text-align: left;
+}
+
+.cut-notification-popover__item:hover {
+  background: rgba(255,255,255,.045);
+}
+
+.cut-notification-popover__item.is-unread {
+  background: rgba(86,220,233,.065);
+}
+
+.cut-notification-popover__icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(86,220,233,.1);
+  color: var(--cut-primary);
+}
+
+.cut-notification-popover__copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cut-notification-popover__copy strong,
+.cut-notification-popover__copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cut-notification-popover__copy strong {
+  color: var(--cut-text-strong);
+  font-size: .82rem;
+}
+
+.cut-notification-popover__copy small {
+  color: var(--cut-text-muted);
+  font-size: .74rem;
+}
+
+.cut-notification-popover__copy time {
+  color: var(--cut-primary);
+  font-size: .66rem;
+}
+
+.cut-notification-popover__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cut-primary);
+}
+
+.cut-notification-popover__empty {
+  min-height: 140px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 10px;
+  padding: 24px;
+  color: var(--cut-text-muted);
+  text-align: center;
+}
+
+.cut-notification-popover__empty i {
+  font-size: 1.35rem;
+  color: var(--cut-primary);
+}
+
+.cut-notification-popover__footer {
+  width: 100%;
+  padding: 13px 16px;
+  border: 0;
+  border-top: 1px solid var(--cut-border);
+  background: rgba(255,255,255,.025);
+  color: var(--cut-primary);
+  font-size: .78rem;
+  font-weight: 760;
+  text-align: center;
+}
+
+.cut-notification-popover__footer:hover {
+  background: rgba(86,220,233,.07);
+}
+
 .cut-load-more {
   display: flex;
   justify-content: center;
@@ -208,6 +389,14 @@
 @keyframes cut-social-shimmer {
   0% { background-position: 100% 0; }
   100% { background-position: -100% 0; }
+}
+
+@media (max-width: 991px) {
+  .cut-nav-notification-menu .dropdown-menu {
+    width: 100%;
+    max-width: none;
+    margin-top: 8px;
+  }
 }
 
 @media (max-width: 767px) {
