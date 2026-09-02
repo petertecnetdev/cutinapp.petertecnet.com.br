@@ -6,6 +6,20 @@ const commerceService = {
   myOrders: async (params = {}) => (await apiClient.get("/cutinapp/orders/mine", { params })).data,
   order: async (publicId) => (await apiClient.get(`/cutinapp/orders/${publicId}`)).data.order,
   syncPayment: async (publicId) => (await apiClient.post(`/cutinapp/orders/${publicId}/sync-payment`)).data.order,
+
+  purchases: async (params = {}) => (await apiClient.get("/cutinapp/purchases", { params })).data,
+  purchase: async (publicId) => (await apiClient.get(`/cutinapp/purchases/${publicId}`)).data.order,
+  receipt: async (publicId) => (await apiClient.get(`/cutinapp/purchases/${publicId}/receipt`)).data.receipt,
+  receiptPdf: async (publicId) => (
+    await apiClient.get(`/cutinapp/purchases/${publicId}/receipt.pdf`, { responseType: "blob" })
+  ).data,
+  producerSales: async (productionId, params = {}) => (
+    await apiClient.get(`/cutinapp/productions/${productionId}/sales`, { params })
+  ).data,
+  producerSale: async (productionId, publicId) => (
+    await apiClient.get(`/cutinapp/productions/${productionId}/sales/${publicId}`)
+  ).data.order,
+
   saveEventItem: async (eventId, payload, itemId = null) => (
     await apiClient.post(itemId ? `/cutinapp/events/${eventId}/items/${itemId}` : `/cutinapp/events/${eventId}/items`, payload)
   ).data,
