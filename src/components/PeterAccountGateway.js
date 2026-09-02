@@ -20,7 +20,7 @@ const messageOf = (payload, fallback) => payload?.message || payload?.error || f
 const isPeterUrl = (value) => { try { const url = new URL(value); const host = url.hostname.toLowerCase(); return url.protocol === "https:" && (host === "petertecnet.com.br" || host.endsWith(".petertecnet.com.br")); } catch { return false; } };
 const appInitial = (application) => String(application?.name || application?.slug || "P").slice(0, 1).toUpperCase();
 const appLogo = (application) => application?.logo_url || application?.logo || application?.icon_url || application?.icon || APP_LOGOS[String(application?.slug || "").toLowerCase()] || "";
-const appOrigin = (application) => { try { if (isPeterUrl(application?.url)) return new URL(application.url).origin; } catch {} const known = APP_LOGOS[String(application?.slug || "").toLowerCase()]; try { return known ? new URL(known).origin : ""; } catch { return ""; } };
+const appOrigin = (application) => { try { if (isPeterUrl(application?.url)) return new URL(application.url).origin; } catch { return ""; } const known = APP_LOGOS[String(application?.slug || "").toLowerCase()]; try { return known ? new URL(known).origin : ""; } catch { return ""; } };
 const handleLogoError = (event) => { const image = event.currentTarget; const origin = image.dataset.origin; if (!image.dataset.faviconTried && origin) { image.dataset.faviconTried = "1"; image.src = `${origin}/favicon.ico`; return; } image.style.display = "none"; const fallback = image.nextElementSibling; if (fallback) fallback.style.display = "grid"; };
 
 export default function PeterAccountGateway({ apiBaseUrl, appSlug, children }) {
