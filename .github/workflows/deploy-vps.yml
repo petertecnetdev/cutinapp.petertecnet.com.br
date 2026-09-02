@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   deploy:
-    # Central deploy with SSH transport retries and serialized VPS builds.
+    # Central deploy: SSH retries, serialized VPS builds and superseded-run cancellation.
     uses: petertecnetdev/petertecnet.com.br/.github/workflows/reusable-vps-deploy.yml@main
     with:
       deploy_path: /var/www/cutinapp.petertecnet.com.br
