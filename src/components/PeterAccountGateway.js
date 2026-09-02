@@ -2,10 +2,26 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import "./PeterAccountGateway.css";
 
-const TOKEN_KEYS = ["token", "access_token", "auth_token"];
+const TOKEN_KEYS = ["petertecnet_admin_token", "petertecnet_token", "token", "access_token", "auth_token"];
+const APP_LOGOS = {
+  cutinapp: "https://cutinapp.petertecnet.com.br/images/logo.png",
+  inkap: "https://inkap.petertecnet.com.br/images/logo.png",
+  laora: "https://laora.petertecnet.com.br/logo.png",
+  nexus: "https://nexus.petertecnet.com.br/images/logo.png",
+  payflow: "https://payflow.petertecnet.com.br/logo.png",
+  "peter-payflow": "https://payflow.petertecnet.com.br/logo.png",
+  "peter-tecnet": "https://petertecnet.com.br/logo.png",
+  plat: "https://plat.petertecnet.com.br/images/plat-logo.svg",
+  rasoio: "https://rasoio.petertecnet.com.br/images/logo.png",
+};
+
 const getToken = () => TOKEN_KEYS.map((key) => localStorage.getItem(key)).find(Boolean) || null;
 const messageOf = (payload, fallback) => payload?.message || payload?.error || fallback;
 const isPeterUrl = (value) => { try { const url = new URL(value); const host = url.hostname.toLowerCase(); return url.protocol === "https:" && (host === "petertecnet.com.br" || host.endsWith(".petertecnet.com.br")); } catch { return false; } };
+const appInitial = (application) => String(application?.name || application?.slug || "P").slice(0, 1).toUpperCase();
+const appLogo = (application) => application?.logo_url || application?.logo || application?.icon_url || application?.icon || APP_LOGOS[String(application?.slug || "").toLowerCase()] || "";
+const appOrigin = (application) => { try { if (isPeterUrl(application?.url)) return new URL(application.url).origin; } catch {} const known = APP_LOGOS[String(application?.slug || "").toLowerCase()]; try { return known ? new URL(known).origin : ""; } catch { return ""; } };
+const handleLogoError = (event) => { const image = event.currentTarget; const origin = image.dataset.origin; if (!image.dataset.faviconTried && origin) { image.dataset.faviconTried = "1"; image.src = `${origin}/favicon.ico`; return; } image.style.display = "none"; const fallback = image.nextElementSibling; if (fallback) fallback.style.display = "grid"; };
 
 export default function PeterAccountGateway({ apiBaseUrl, appSlug, children }) {
   const api = String(apiBaseUrl || "").replace(/\/+$/, "");
@@ -25,7 +41,7 @@ export default function PeterAccountGateway({ apiBaseUrl, appSlug, children }) {
     setTransfer("loading");
     fetch(`${api}/account/sso/exchange`, { method: "POST", headers: { Accept: "application/json", "Content-Type": "application/json", "X-Peter-App": slug }, body: JSON.stringify({ handoff_code: handoff, application: slug }) })
       .then(async (response) => { const payload = await response.json().catch(() => ({})); if (!response.ok || !payload?.data?.access_token) throw new Error(messageOf(payload, "Não foi possível concluir o acesso entre aplicativos.")); return payload.data; })
-      .then((data) => { if (!alive) return; localStorage.setItem("token", data.access_token); if (data.user) localStorage.setItem("user", JSON.stringify(data.user)); const url = new URL(window.location.href); url.searchParams.delete("peter_sso"); url.searchParams.delete("peter_from"); window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`); window.dispatchEvent(new Event("authChanged")); setTransfer("success"); })
+      .then((data) => { if (!alive) return; localStorage.setItem("token", data.access_token); if (slug === "payflow") localStorage.setItem("petertecnet_token", data.access_token); if (slug === "peter-tecnet") localStorage.setItem("petertecnet_admin_token", data.access_token); if (data.user) localStorage.setItem("user", JSON.stringify(data.user)); const url = new URL(window.location.href); url.searchParams.delete("peter_sso"); url.searchParams.delete("peter_from"); window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`); window.dispatchEvent(new Event("authChanged")); setTransfer("success"); })
       .catch((error) => { if (alive) { setTransferError(error?.message || "Código de acesso inválido ou expirado."); setTransfer("error"); } });
     return () => { alive = false; };
   }, [api, handoff, slug]);
@@ -67,5 +83,5 @@ export default function PeterAccountGateway({ apiBaseUrl, appSlug, children }) {
   const applications = Array.isArray(ecosystem?.applications) ? ecosystem.applications : [];
   const account = ecosystem?.account;
   const initials = `${account?.first_name?.[0] || ""}${account?.last_name?.[0] || ""}`.toUpperCase() || "PT";
-  return <>{children}{account && applications.length > 0 && <div className="peter-account-launcher" ref={panelRef}><button className="peter-account-launcher__button" type="button" aria-label="Abrir aplicativos Peter Tecnet" aria-expanded={open} onClick={() => setOpen((v) => !v)}><span className="peter-account-launcher__dots">{Array.from({ length: 9 }, (_, i) => <i key={i} />)}</span></button>{open && <div className="peter-account-launcher__panel"><div className="peter-account-launcher__account"><div className="peter-account-launcher__avatar">{account.avatar ? <img src={account.avatar} alt="" /> : initials}</div><div><strong>{[account.first_name, account.last_name].filter(Boolean).join(" ") || account.user_name}</strong><small>{account.email}</small></div></div><div className="peter-account-launcher__grid">{applications.map((application) => { const current = application.slug === slug; const enabled = application.has_access && !current; return <button key={application.id || application.slug} type="button" disabled={!enabled || Boolean(switching)} className={`peter-account-launcher__app${current ? " is-current" : ""}${!application.has_access ? " is-locked" : ""}`} onClick={() => openApp(application)}><span className="peter-account-launcher__appmark">{String(application.name || application.slug || "P").slice(0, 1).toUpperCase()}</span><strong>{application.name}</strong><small>{current ? "Atual" : application.has_access ? (switching === application.slug ? "Abrindo…" : "Abrir") : "Sem acesso"}</small></button>; })}</div>{switchError && <p className="peter-account-launcher__error" role="alert">{switchError}</p>}<a className="peter-account-launcher__home" href="https://petertecnet.com.br">Ecossistema Peter Tecnet</a></div>}</div>}</>;
+  return <>{children}{account && applications.length > 0 && <div className="peter-account-launcher" ref={panelRef}><button className="peter-account-launcher__button" type="button" aria-label="Abrir aplicativos Peter Tecnet" aria-expanded={open} onClick={() => setOpen((v) => !v)}><span className="peter-account-launcher__dots" aria-hidden="true">{Array.from({ length: 9 }, (_, i) => <i key={i} />)}</span></button>{open && <div className="peter-account-launcher__panel"><div className="peter-account-launcher__account"><div className="peter-account-launcher__avatar">{account.avatar ? <img src={account.avatar} alt="" /> : initials}</div><div><strong>{[account.first_name, account.last_name].filter(Boolean).join(" ") || account.user_name}</strong><small>{account.email}</small></div></div><div className="peter-account-launcher__grid">{applications.map((application) => { const current = application.slug === slug; const enabled = application.has_access && !current; const logo = appLogo(application); return <button key={application.id || application.slug} type="button" disabled={!enabled || Boolean(switching)} className={`peter-account-launcher__app${current ? " is-current" : ""}${!application.has_access ? " is-locked" : ""}`} onClick={() => openApp(application)}><span className="peter-account-launcher__appmark">{logo && <img src={logo} data-origin={appOrigin(application)} onError={handleLogoError} alt="" />}<span className="peter-account-launcher__appmark-fallback" style={{ display: logo ? "none" : "grid" }}>{appInitial(application)}</span></span><strong>{application.name}</strong><small>{current ? "Atual" : application.has_access ? (switching === application.slug ? "Abrindo…" : "Abrir") : "Sem acesso"}</small></button>; })}</div>{switchError && <p className="peter-account-launcher__error" role="alert">{switchError}</p>}<a className="peter-account-launcher__home" href="https://petertecnet.com.br">Ecossistema Peter Tecnet</a></div>}</div>}</>;
 }
