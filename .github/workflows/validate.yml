@@ -20,7 +20,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if grep -RInE '(["'"'`])/cutinapp/' src/services; then
+          if grep -RIn '/cutinapp/' src/services; then
             echo 'Runtime services must consume /api/v1/apps/{application} through AppApiClient.' >&2
             exit 1
           fi
