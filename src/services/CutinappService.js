@@ -2,24 +2,42 @@ import apiClient from "./ApiClient";
 
 const unwrap = (value) => Array.isArray(value) ? value : Array.isArray(value?.data) ? value.data : [];
 
+const adaptOrganizationPayload = (data = {}) => ({
+  ...data,
+  production: data.production || data.organization || null,
+});
+
+const adaptOrganizationsPayload = (data = {}) => ({
+  ...data,
+  productions: data.productions || data.organizations || null,
+});
+
 const platformService = {
-  publicConfig: async () => (await apiClient.get("/config")).data,
-  discoveryFacets: async () => (await apiClient.get("/discovery/facets")).data,
+  publicConfig: async () => {
+    const data = (await apiClient.get("/config")).data;
+    return {
+      ...data,
+      app: data.app || data.application?.slug || null,
+      app_id: data.app_id || data.application?.id || null,
+    };
+  },
+  discoveryFacets: async () => (await apiClient.get("/events/facets")).data,
   locationStates: async () => (await apiClient.get("/locations/states")).data.states || [],
   locationCities: async (uf, q = "") => (await apiClient.get("/locations/cities", { params: { uf, q } })).data.cities || [],
   lookupCep: async (cep) => (await apiClient.get(`/locations/cep/${String(cep).replace(/\D/g, "")}`)).data.address,
 
   profileOverview: async () => (await apiClient.get("/profile/overview")).data,
-  myProductions: async () => unwrap((await apiClient.get("/productions/mine")).data.productions),
-  publicProductions: async (params = {}) => (await apiClient.get("/productions/public", { params })).data,
-  getProduction: async (id) => (await apiClient.get(`/productions/${id}`)).data.production,
-  publicProduction: async (slug) => (await apiClient.get(`/productions/public/${slug}`)).data,
-  createProduction: async (formData) => (await apiClient.post("/productions", formData)).data,
-  updateProduction: async (id, formData) => (await apiClient.post(`/productions/${id}`, formData)).data,
-  producerContract: async (productionId) => (await apiClient.get(`/productions/${productionId}/contract`)).data.contract,
-  signProducerContract: async (productionId, payload) => (await apiClient.post(`/productions/${productionId}/contract/sign`, payload)).data,
-  resendProducerContract: async (productionId) => (await apiClient.post(`/productions/${productionId}/contract/resend`)).data,
-  downloadProducerContract: async (productionId) => (await apiClient.get(`/productions/${productionId}/contract/pdf`, { responseType: "blob" })).data,
+  myProductions: async () => unwrap((await apiClient.get("/organizations/mine")).data.organizations),
+  publicProductions: async (params = {}) => adaptOrganizationsPayload((await apiClient.get("/organizations/public", { params })).data),
+  getProduction: async (id) => (await apiClient.get(`/organizations/${id}`)).data.organization,
+  publicProduction: async (slug) => adaptOrganizationPayload((await apiClient.get(`/organizations/public/${slug}`)).data),
+  createProduction: async (formData) => adaptOrganizationPayload((await apiClient.post("/organizations", formData)).data),
+  updateProduction: async (id, formData) => adaptOrganizationPayload((await apiClient.put(`/organizations/${id}`, formData)).data),
+  producerContract: async (organizationId) => (await apiClient.get(`/organizations/${organizationId}/agreement`)).data.contract,
+  signProducerContract: async (organizationId, payload) => (await apiClient.post(`/organizations/${organizationId}/agreement/sign`, payload)).data,
+  resendProducerContract: async (organizationId) => (await apiClient.post(`/organizations/${organizationId}/agreement/resend`)).data,
+  downloadProducerContract: async (organizationId) => (await apiClient.get(`/organizations/${organizationId}/agreement/pdf`, { responseType: "blob" })).data,
+
   artists: async (params = {}) => (await apiClient.get("/artists", { params })).data,
   publicArtist: async (slug) => (await apiClient.get(`/artists/${slug}`)).data,
   publicArtistMembers: async (slug) => (await apiClient.get(`/artists/${slug}/members`)).data,
@@ -33,6 +51,7 @@ const platformService = {
   reportEvent: async (eventId, payload) => (await apiClient.post(`/events/${eventId}/report`, payload)).data,
   moderationReports: async (params = {}) => (await apiClient.get("/moderation/reports", { params })).data,
   updateModerationReport: async (reportId, payload) => (await apiClient.put(`/moderation/reports/${reportId}`, payload)).data,
+
   myArtists: async () => unwrap((await apiClient.get("/artists/manageable", { params: { per_page: 100 } })).data.artists),
   createArtist: async (payload) => (await apiClient.post("/artists/provisional", payload)).data,
   updateArtist: async (id, payload) => (await apiClient.put(`/artists/${id}/managed`, payload)).data,
@@ -49,26 +68,29 @@ const platformService = {
   eventArtists: async (eventId) => (await apiClient.get(`/events/${eventId}/artists`)).data,
   attachArtist: async (eventId, payload) => (await apiClient.post(`/events/${eventId}/artists`, payload)).data,
   detachArtist: async (eventId, artistId) => (await apiClient.delete(`/events/${eventId}/artists/${artistId}`)).data,
-  follow: async (targetType, targetId) => (await apiClient.post("/follow", { target_type: targetType, target_id: targetId })).data,
-  unfollow: async (targetType, targetId) => (await apiClient.delete("/follow", { data: { target_type: targetType, target_id: targetId } })).data,
-  preferences: async () => (await apiClient.get("/preferences")).data.preferences,
-  savePreferences: async (payload) => (await apiClient.put("/preferences", payload)).data,
+
+  follow: async (targetType, targetId) => (await apiClient.post("/social/follow", { target_type: targetType, target_id: targetId })).data,
+  unfollow: async (targetType, targetId) => (await apiClient.delete("/social/follow", { data: { target_type: targetType, target_id: targetId } })).data,
+  preferences: async () => (await apiClient.get("/social/preferences")).data.preferences,
+  savePreferences: async (payload) => (await apiClient.put("/social/preferences", payload)).data,
   engagement: async (eventId, payload) => (await apiClient.put(`/events/${eventId}/engagement`, payload)).data,
   feed: async (params = {}) => (await apiClient.get("/feed", { params })).data,
+
   notifications: async (params = {}) => (await apiClient.get("/notifications", { params })).data,
-  markNotificationRead: async (notificationId) => (await apiClient.post(`/notifications/${notificationId}/read`)).data,
-  markAllNotificationsRead: async () => (await apiClient.post("/notifications/read-all")).data,
+  markNotificationRead: async (notificationId) => (await apiClient.patch(`/notifications/${notificationId}/read`)).data,
+  markAllNotificationsRead: async () => (await apiClient.patch("/notifications/read-all")).data,
+
   publishEvent: async (eventId) => (await apiClient.post(`/events/${eventId}/publish`)).data,
   unpublishEvent: async (eventId) => (await apiClient.post(`/events/${eventId}/unpublish`)).data,
-  eventCourtesies: async (eventId) => (await apiClient.get(`/events/${eventId}/courtesies`)).data,
-  updateCourtesy: async (ticketId, payload) => (await apiClient.post(`/courtesies/${ticketId}`, payload)).data,
-  deleteCourtesy: async (ticketId) => (await apiClient.delete(`/courtesies/${ticketId}`)).data,
+  eventCourtesies: async (eventId) => (await apiClient.get(`/events/${eventId}/tickets`)).data,
+  updateCourtesy: async (ticketId, payload) => (await apiClient.patch(`/tickets/${ticketId}`, payload)).data,
+  deleteCourtesy: async (ticketId) => (await apiClient.delete(`/tickets/${ticketId}`)).data,
   claimCourtesy: async (ticketId) => (await apiClient.post(`/passes/claim/${ticketId}`)).data,
   myPasses: async () => unwrap((await apiClient.get("/passes/mine")).data.passes),
   getPass: async (passId) => (await apiClient.get(`/passes/${passId}`)).data.pass,
   eventParticipants: async (eventId) => (await apiClient.get(`/events/${eventId}/participants`)).data,
   checkIn: async (token, eventId) => (await apiClient.post("/checkin", { token, event_id: Number(eventId) })).data,
-  checkInStats: async (eventId) => (await apiClient.get(`/checkin/event/${eventId}/stats`)).data,
+  checkInStats: async (eventId) => (await apiClient.get(`/checkin/events/${eventId}/stats`)).data,
 };
 
 export default platformService;
