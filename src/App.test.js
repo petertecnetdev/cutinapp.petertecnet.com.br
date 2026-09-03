@@ -1,6 +1,7 @@
-import { appSlug, apiBaseUrl } from "./config";
+import { appSlug, apiBaseUrl, apiV1BaseUrl } from "./config";
 
-test("Cutinapp uses the shared Peter Tecnet API with its own app scope", () => {
+test("Cutinapp keeps Peter account/realtime root and uses an app-scoped v1 business API", () => {
   expect(appSlug).toBe("cutinapp");
-  expect(apiBaseUrl).toContain("api.petertecnet.com.br/api");
+  expect(apiBaseUrl).toBe("https://api.petertecnet.com.br/api");
+  expect(apiV1BaseUrl).toBe("https://api.petertecnet.com.br/api/v1/apps/cutinapp");
 });
