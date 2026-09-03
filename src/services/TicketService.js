@@ -1,8 +1,8 @@
-import apiClient from "./ApiClient";
+import appApiClient from "./AppApiClient";
 
 const ticketService = {
   store: async (payload) => {
-    const response = await apiClient.post("/cutinapp/tickets", {
+    const response = await appApiClient.post("/tickets", {
       event_id: payload.event_id,
       name: payload.name,
       quantity: payload.quantity,
