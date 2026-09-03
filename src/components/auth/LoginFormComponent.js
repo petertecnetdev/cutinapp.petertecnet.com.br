@@ -33,6 +33,7 @@ export default function LoginFormComponent() {
   const busyRef = useRef(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [googleReady, setGoogleReady] = useState(false);
@@ -136,9 +137,19 @@ export default function LoginFormComponent() {
 
       <div className="cut-login-form__field">
         <label htmlFor="cut-login-password">Senha</label>
-        <div className="cut-login-form__inputWrap">
+        <div className="cut-login-form__inputWrap cut-login-form__inputWrap--password">
           <i className="fa-solid fa-lock" aria-hidden="true" />
-          <Form.Control id="cut-login-password" type="password" autoComplete="current-password" placeholder="Digite sua senha" value={password} onChange={(event) => setPassword(event.target.value)} disabled={loading} required />
+          <Form.Control id="cut-login-password" type={showPassword ? "text" : "password"} autoComplete="current-password" placeholder="Digite sua senha" value={password} onChange={(event) => setPassword(event.target.value)} disabled={loading} required />
+          <button
+            type="button"
+            className="cut-login-form__passwordToggle"
+            onClick={() => setShowPassword((visible) => !visible)}
+            aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+            aria-pressed={showPassword}
+            disabled={loading}
+          >
+            {showPassword ? "Ocultar" : "Mostrar"}
+          </button>
         </div>
       </div>
 
