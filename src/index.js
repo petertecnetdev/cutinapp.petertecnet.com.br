@@ -18,6 +18,9 @@ import { AuthProvider } from "./context/AuthContext";
 import PeterAccountGateway from "./components/PeterAccountGateway";
 import { apiBaseUrl, appSlug } from "./config";
 import reportWebVitals from "./reportWebVitals";
+import { installGlobalImageFallbacks } from "./utils/imageFallback";
+
+installGlobalImageFallbacks();
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
