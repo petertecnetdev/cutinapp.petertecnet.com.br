@@ -33,6 +33,7 @@ export const createApiClient = (baseURL) => {
   const client = axios.create({
     baseURL,
     timeout: 20000,
+    withCredentials: true,
     headers: {
       Accept: "application/json",
       "X-Peter-App": appSlug,
@@ -40,8 +41,16 @@ export const createApiClient = (baseURL) => {
   });
 
   client.interceptors.request.use((config) => {
+    config.headers = config.headers || {};
+    config.withCredentials = true;
     const token = localStorage.getItem("token");
     if (token) config.headers.Authorization = `Bearer ${token}`;
+    config.headers["X-Peter-App"] = appSlug;
+    if (window.PeterIdentity) {
+      config.headers["X-Peter-Identity-SDK"] = window.PeterIdentity.version;
+      config.headers["X-Peter-Device"] = window.PeterIdentity.getDeviceId();
+      config.headers["X-Peter-Device-Name"] = window.PeterIdentity.getDeviceName();
+    }
 
     const isFormData = typeof FormData !== "undefined" && config.data instanceof FormData;
     if (isFormData) {
@@ -60,7 +69,7 @@ export const createApiClient = (baseURL) => {
 
   client.interceptors.response.use(
     (response) => response,
-    (error) => {
+    async (error) => {
       const status = error.response?.status;
       const requestUrl = String(error.config?.url || "");
       const keepSessionOn401 =
@@ -68,8 +77,19 @@ export const createApiClient = (baseURL) => {
         requestUrl.includes("/auth/google") ||
         requestUrl.includes("/auth/change-password");
 
+      if (status === 401 && !keepSessionOn401 && error.config && !error.config.__peterIdentityRetry && window.PeterIdentity) {
+        error.config.__peterIdentityRetry = true;
+        const token = await window.PeterIdentity.recover({ force: true });
+        if (token) {
+          error.config.headers = error.config.headers || {};
+          error.config.headers.Authorization = `Bearer ${token}`;
+          return client.request(error.config);
+        }
+      }
+
       if (status === 401 && !keepSessionOn401) {
-        localStorage.removeItem("token");
+        window.PeterIdentity?.clearAccessToken?.();
+        if (!window.PeterIdentity) localStorage.removeItem("token");
       }
 
       const data = error.response?.data;
