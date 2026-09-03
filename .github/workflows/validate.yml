@@ -1,8 +1,11 @@
 name: Validate Cutinapp
+
 on:
   push:
-    branches: [main]
+    branches: [main, 'refactor/**']
   pull_request:
+    branches: [main]
+
 jobs:
   frontend:
     runs-on: ubuntu-latest
@@ -13,5 +16,13 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      - name: Reject legacy product API paths in runtime services
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -RIn '/cutinapp/' src/services; then
+            echo 'Runtime services must consume /api/v1/apps/{application} through AppApiClient.' >&2
+            exit 1
+          fi
       - run: CI=true npm test -- --watchAll=false
       - run: npm run build
