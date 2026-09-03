@@ -1,14 +1,5 @@
 import axios from "axios";
-import { apiBaseUrl, appSlug } from "../config";
-
-const apiClient = axios.create({
-  baseURL: apiBaseUrl,
-  timeout: 20000,
-  headers: {
-    Accept: "application/json",
-    "X-Peter-App": appSlug,
-  },
-});
+import { apiBaseUrl, apiV1BaseUrl, appSlug } from "../config";
 
 const firstValidationMessage = (errors) => {
   if (!errors || typeof errors !== "object") return "";
@@ -38,51 +29,68 @@ const humanizeMessage = (value, status) => {
   return raw;
 };
 
-apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+const createApiClient = (baseURL) => {
+  const client = axios.create({
+    baseURL,
+    timeout: 20000,
+    headers: {
+      Accept: "application/json",
+      "X-Peter-App": appSlug,
+    },
+  });
 
-  const isFormData = typeof FormData !== "undefined" && config.data instanceof FormData;
-  if (isFormData) {
-    // Never force multipart/form-data here. The browser must add the boundary.
-    if (typeof config.headers?.delete === "function") {
-      config.headers.delete("Content-Type");
-    } else if (config.headers) {
-      delete config.headers["Content-Type"];
-      delete config.headers["content-type"];
-    }
-  } else if (config.data != null && config.headers) {
-    config.headers["Content-Type"] = "application/json";
-  }
+  client.interceptors.request.use((config) => {
+    const token = localStorage.getItem("token");
+    if (token) config.headers.Authorization = `Bearer ${token}`;
 
-  return config;
-});
-
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    const status = error.response?.status;
-    const requestUrl = String(error.config?.url || "");
-    const keepSessionOn401 =
-      requestUrl.includes("/auth/login") ||
-      requestUrl.includes("/auth/google") ||
-      requestUrl.includes("/auth/change-password");
-
-    if (status === 401 && !keepSessionOn401) {
-      localStorage.removeItem("token");
+    const isFormData = typeof FormData !== "undefined" && config.data instanceof FormData;
+    if (isFormData) {
+      // Never force multipart/form-data here. The browser must add the boundary.
+      if (typeof config.headers?.delete === "function") {
+        config.headers.delete("Content-Type");
+      } else if (config.headers) {
+        delete config.headers["Content-Type"];
+        delete config.headers["content-type"];
+      }
+    } else if (config.data != null && config.headers) {
+      config.headers["Content-Type"] = "application/json";
     }
 
-    const data = error.response?.data;
-    const validationMessage = firstValidationMessage(data?.errors);
-    const candidate = validationMessage || data?.message || data?.error || error.message;
-    const message = humanizeMessage(candidate, status);
+    return config;
+  });
 
-    const normalizedError = new Error(message);
-    normalizedError.status = status;
-    normalizedError.errors = data?.errors || null;
-    normalizedError.original = error;
-    return Promise.reject(normalizedError);
-  }
-);
+  client.interceptors.response.use(
+    (response) => response,
+    (error) => {
+      const status = error.response?.status;
+      const requestUrl = String(error.config?.url || "");
+      const keepSessionOn401 =
+        requestUrl.includes("/auth/login") ||
+        requestUrl.includes("/auth/google") ||
+        requestUrl.includes("/auth/change-password");
 
+      if (status === 401 && !keepSessionOn401) {
+        localStorage.removeItem("token");
+      }
+
+      const data = error.response?.data;
+      const validationMessage = firstValidationMessage(data?.errors);
+      const candidate = validationMessage || data?.message || data?.error || error.message;
+      const message = humanizeMessage(candidate, status);
+
+      const normalizedError = new Error(message);
+      normalizedError.status = status;
+      normalizedError.errors = data?.errors || null;
+      normalizedError.original = error;
+      return Promise.reject(normalizedError);
+    }
+  );
+
+  return client;
+};
+
+const apiClient = createApiClient(apiBaseUrl);
+const applicationApiClient = createApiClient(apiV1BaseUrl);
+
+export { applicationApiClient };
 export default apiClient;
