@@ -5,7 +5,12 @@
 .cut-login-form__inputWrap { position: relative; }
 .cut-login-form__inputWrap > i { position: absolute; left: 13px; top: 50%; z-index: 2; width: 29px; height: 29px; display: grid; place-items: center; transform: translateY(-50%); border: 1px solid var(--cut-border-soft); border-radius: 9px; background: rgba(255,255,255,.035); color: var(--cut-primary); font-size: .8rem; pointer-events: none; }
 .cut-login-form__inputWrap .form-control { min-height: 51px; padding: .88rem 1rem .88rem 3.35rem !important; border-radius: var(--cut-radius-md) !important; background: rgba(255,255,255,.038) !important; }
+.cut-login-form__inputWrap--password .form-control { padding-right: 5.85rem !important; }
 .cut-login-form__inputWrap .form-control:focus { background: rgba(8,23,32,.92) !important; }
+.cut-login-form__passwordToggle { position: absolute; z-index: 3; top: 50%; right: 9px; min-width: 68px; min-height: 36px; padding: 0 10px; transform: translateY(-50%); border: 1px solid rgba(47,198,216,.24); border-radius: 10px; background: rgba(7,23,31,.92); color: #ccebf0; font-size: .74rem; font-weight: 820; line-height: 1; cursor: pointer; transition: border-color var(--cut-duration-normal) ease, background var(--cut-duration-normal) ease, color var(--cut-duration-normal) ease; }
+.cut-login-form__passwordToggle:hover:not(:disabled) { border-color: rgba(47,198,216,.58); background: rgba(47,198,216,.12); color: #fff; }
+.cut-login-form__passwordToggle:focus-visible { outline: 2px solid rgba(47,198,216,.78); outline-offset: 2px; }
+.cut-login-form__passwordToggle:disabled { opacity: .5; cursor: not-allowed; }
 .cut-login-form__submit { min-height: 51px; border: 0 !important; border-radius: var(--cut-radius-md) !important; background: var(--cut-gradient-brand) !important; color: var(--cut-text-on-primary) !important; font-weight: 900 !important; letter-spacing: .01em; box-shadow: var(--cut-shadow-brand); transition: transform var(--cut-duration-normal) ease, filter var(--cut-duration-normal) ease, box-shadow var(--cut-duration-normal) ease; }
 .cut-login-form__submit:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.06); box-shadow: 0 20px 50px rgba(47,198,216,.28); }
 .cut-login-form__submit:active:not(:disabled) { transform: scale(.988); }
@@ -22,4 +27,5 @@
 .cut-login-form__links a:hover { color: var(--cut-primary-hover); }
 .cut-login-form__links span { color: var(--cut-text-faint); }
 @keyframes cutLoginSpin { to { transform: rotate(360deg); } }
+@media (max-width: 480px) { .cut-login-form__inputWrap--password .form-control { padding-right: 5.4rem !important; } .cut-login-form__passwordToggle { right: 7px; min-width: 64px; min-height: 34px; padding-inline: 8px; font-size: .71rem; } }
 @media (prefers-reduced-motion: reduce) { .cut-login-form__spinner { animation: none; } }
