@@ -7,8 +7,8 @@ const eventService = {
   list: async (params = {}) => unwrap((await apiClient.get("/events", { params })).data.events),
   view: async (slug) => (await apiClient.get(`/events/public/${slug}`)).data,
   store: async (formData) => (await apiClient.post("/events", formData)).data,
-  update: async (eventId, formData) => (await apiClient.post(`/events/${eventId}`, formData)).data,
-  show: async (eventId) => (await apiClient.get(`/events/show/${eventId}`)).data.event,
+  update: async (eventId, formData) => (await apiClient.put(`/events/${eventId}`, formData)).data,
+  show: async (eventId) => (await apiClient.get(`/events/${eventId}/manage`)).data.event,
   myEvents: async (params = {}) => unwrap((await apiClient.get("/events/mine", { params: { per_page: 100, ...params } })).data.events),
 };
 
