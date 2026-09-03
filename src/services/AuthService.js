@@ -45,6 +45,10 @@ const authService = {
   },
 
   logout: async () => {
+    if (window.PeterIdentity?.logoutCurrentApp) {
+      await window.PeterIdentity.logoutCurrentApp();
+      return true;
+    }
     try {
       await apiClient.post(`/${apiServiceUrl}/logout`);
     } finally {
