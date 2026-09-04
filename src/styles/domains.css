@@ -143,6 +143,58 @@
 .cut-token-details { margin-top: 16px; color: var(--cut-text-muted); }
 .cut-token-details code { display: block; margin-top: 9px; padding: 11px; border: 1px solid var(--cut-border-soft); border-radius: var(--cut-radius-sm); background: rgba(0,0,0,.25); color: var(--cut-primary); word-break: break-all; }
 
+.cut-production-themed-card {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background: rgba(4, 11, 17, .78) !important;
+  border-color: rgba(255, 255, 255, .11) !important;
+}
+.cut-production-themed-card::before {
+  content: "";
+  position: absolute;
+  inset: -52px;
+  z-index: 0;
+  background-image: var(--cut-production-card-bg, none);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: blur(42px) saturate(1.45) brightness(.72);
+  transform: scale(1.16);
+  opacity: .88;
+  pointer-events: none;
+}
+.cut-production-themed-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    linear-gradient(180deg, rgba(2, 8, 13, .30) 0%, rgba(2, 8, 13, .68) 58%, rgba(2, 8, 13, .88) 100%),
+    radial-gradient(circle at 88% 4%, rgba(255, 255, 255, .10), transparent 32%);
+  pointer-events: none;
+}
+.cut-production-themed-card > * {
+  position: relative;
+  z-index: 1;
+}
+.cut-production-themed-card .card-body {
+  background: linear-gradient(180deg, rgba(3, 9, 14, .08), rgba(3, 9, 14, .22));
+}
+.cut-production-themed-card .cut-detail-list > div {
+  border-color: rgba(255, 255, 255, .10);
+  background: rgba(3, 10, 16, .34);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.cut-production-themed-card:hover {
+  border-color: rgba(255, 255, 255, .18) !important;
+}
+.cut-production-themed-card:hover::before {
+  filter: blur(38px) saturate(1.55) brightness(.76);
+  opacity: .94;
+}
+
 .cut-production-card__cover { position: relative; height: 160px; background-size: cover; background-position: center; background-color: var(--cut-surface-2); }
 .cut-production-card__cover::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent, rgba(3,8,16,.48)); }
 .cut-production-card__logo { width: 68px; height: 68px; object-fit: cover; border: 1px solid var(--cut-border); border-radius: 20px; background: var(--cut-surface-2); box-shadow: var(--cut-shadow-sm); }
