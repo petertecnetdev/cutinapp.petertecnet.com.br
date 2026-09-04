@@ -33,7 +33,7 @@ const addHours = (value, hours = 2) => {
 const createInitialForm = () => {
   const start = defaultStart();
   return {
-    production_id: "",
+    establishment_id: "",
     title: "",
     description: "",
     address: "",
@@ -60,10 +60,10 @@ export default function EventCreatePage() {
   const navigate = useNavigate();
   const location = useLocation();
   const [form, setForm] = useState(createInitialForm);
-  const [productions, setProductions] = useState([]);
+  const [establishments, setEstablishments] = useState([]);
   const [preview, setPreview] = useState("");
   const [loading, setLoading] = useState(false);
-  const [loadingProductions, setLoadingProductions] = useState(true);
+  const [loadingEstablishments, setLoadingEstablishments] = useState(true);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
@@ -71,18 +71,19 @@ export default function EventCreatePage() {
 
   useEffect(() => {
     let active = true;
-    const selectedProduction = new URLSearchParams(location.search).get("productionId") || "";
+    const query = new URLSearchParams(location.search);
+    const selectedEstablishment = query.get("establishmentId") || query.get("productionId") || "";
 
-    cutinappService.myProductions()
+    cutinappService.myEstablishments()
       .then((items) => {
         if (!active) return;
-        setProductions(items);
-        const requested = items.some((item) => String(item.id) === selectedProduction) ? selectedProduction : "";
+        setEstablishments(items);
+        const requested = items.some((item) => String(item.id) === selectedEstablishment) ? selectedEstablishment : "";
         const fallback = requested || (items.length === 1 ? String(items[0].id) : "");
-        setForm((current) => ({ ...current, production_id: fallback }));
+        setForm((current) => ({ ...current, establishment_id: fallback }));
       })
-      .catch((err) => active && setError(err?.message || "Não foi possível carregar suas produções."))
-      .finally(() => active && setLoadingProductions(false));
+      .catch((err) => active && setError(err?.message || "Não foi possível carregar seus estabelecimentos."))
+      .finally(() => active && setLoadingEstablishments(false));
 
     return () => { active = false; };
   }, [location.search]);
@@ -100,7 +101,7 @@ export default function EventCreatePage() {
   const capacityInvalid = submitted && form.max_attendees !== "" && Number(form.max_attendees) < 1;
 
   const requiredInvalid = submitted && {
-    production_id: !form.production_id,
+    establishment_id: !form.establishment_id,
     title: form.title.trim().length < 2,
     description: !form.description.trim(),
     address: !form.address.trim(),
@@ -111,7 +112,7 @@ export default function EventCreatePage() {
   };
 
   const canSubmit = useMemo(() => Boolean(
-    form.production_id &&
+    form.establishment_id &&
     form.title.trim().length >= 2 &&
     form.description.trim() &&
     form.address.trim() &&
@@ -129,9 +130,7 @@ export default function EventCreatePage() {
       const next = { ...current, [name]: normalized };
       if (name === "start_date" && normalized) {
         const suggestedEnd = addHours(normalized, 2);
-        if (!current.end_date || new Date(current.end_date) <= new Date(normalized)) {
-          next.end_date = suggestedEnd;
-        }
+        if (!current.end_date || new Date(current.end_date) <= new Date(normalized)) next.end_date = suggestedEnd;
       }
       return next;
     });
@@ -193,19 +192,19 @@ export default function EventCreatePage() {
   return (
     <div className="cut-app-page">
       <NavlogComponent />
-      {(loading || loadingProductions) && <ProcessingIndicatorComponent label={loading ? "Criando evento" : "Carregando produções"} />}
+      {(loading || loadingEstablishments) && <ProcessingIndicatorComponent label={loading ? "Criando evento" : "Carregando estabelecimentos"} />}
 
       <Container className="cut-page-container py-4 py-lg-5">
-        <div className="cut-page-heading"><div><span className="cut-eyebrow">Área do produtor</span><h1>Novo evento</h1><p>O evento nasce como rascunho. A data inicial já vem preparada para amanhã, porque eventos não podem ser cadastrados para o mesmo dia.</p></div></div>
+        <div className="cut-page-heading"><div><span className="cut-eyebrow">Gestão de eventos</span><h1>Novo evento</h1><p>O evento nasce como rascunho. A data inicial já vem preparada para amanhã, porque eventos não podem ser cadastrados para o mesmo dia.</p></div></div>
         {error && <Alert variant="danger">{error}</Alert>}
 
-        {!loadingProductions && productions.length === 0 ? (
-          <Card className="cut-empty-state"><Card.Body><h2>Primeiro crie uma produção</h2><p>Todo evento precisa pertencer a uma produção Cutinapp sob sua responsabilidade.</p><Button onClick={() => navigate("/production/create")}>Criar produção</Button></Card.Body></Card>
+        {!loadingEstablishments && establishments.length === 0 ? (
+          <Card className="cut-empty-state"><Card.Body><h2>Primeiro crie um estabelecimento</h2><p>Todo evento precisa pertencer a um estabelecimento do tipo produção sob sua responsabilidade.</p><Button onClick={() => navigate("/establishment/create")}>Criar estabelecimento</Button></Card.Body></Card>
         ) : (
           <Form onSubmit={submit} noValidate>
             <Row className="g-4">
               <Col lg={8}><Card className="cut-panel h-100"><Card.Body className="p-4 p-lg-5"><h2 className="cut-section-title">Informações do evento</h2><Row className="g-3">
-                <Col xs={12}><Form.Group><Form.Label>Produção *</Form.Label><Form.Select name="production_id" value={form.production_id} onChange={change} isInvalid={invalid("production_id", requiredInvalid.production_id)}><option value="">Selecione</option>{productions.map((production) => <option key={production.id} value={production.id}>{production.name}</option>)}</Form.Select><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "production_id") || "Selecione a produção responsável."}</Form.Control.Feedback></Form.Group></Col>
+                <Col xs={12}><Form.Group><Form.Label>Estabelecimento *</Form.Label><Form.Select name="establishment_id" value={form.establishment_id} onChange={change} isInvalid={invalid("establishment_id", requiredInvalid.establishment_id)}><option value="">Selecione</option>{establishments.map((establishment) => <option key={establishment.id} value={establishment.id}>{establishment.name}</option>)}</Form.Select><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "establishment_id") || "Selecione o estabelecimento responsável."}</Form.Control.Feedback></Form.Group></Col>
                 <Col xs={12}><Form.Group><Form.Label>Nome do evento *</Form.Label><Form.Control name="title" value={form.title} onChange={change} placeholder="Ex.: Noite de Lançamento" isInvalid={invalid("title", requiredInvalid.title)} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "title") || "Informe o nome do evento."}</Form.Control.Feedback></Form.Group></Col>
                 <Col xs={12}><Form.Group><Form.Label>Descrição *</Form.Label><Form.Control as="textarea" rows={5} name="description" value={form.description} onChange={change} isInvalid={invalid("description", requiredInvalid.description)} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "description") || "Descreva o evento."}</Form.Control.Feedback></Form.Group></Col>
                 <Col md={6}><Form.Group><Form.Label>Início *</Form.Label><Form.Control type="datetime-local" min={minStart} name="start_date" value={form.start_date} onChange={change} isInvalid={invalid("start_date", requiredInvalid.start_date)} /><Form.Text>Horário de Brasília · mínimo: amanhã.</Form.Text><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "start_date") || (startTooSoonInvalid ? "Escolha uma data a partir de amanhã." : "Informe quando o evento começa.")}</Form.Control.Feedback></Form.Group></Col>
