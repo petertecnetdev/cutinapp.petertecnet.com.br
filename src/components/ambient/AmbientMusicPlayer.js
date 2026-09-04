@@ -27,6 +27,11 @@ const readRememberedActivation = () => {
   catch (_) { return false; }
 };
 
+const rememberActivation = () => {
+  try { window.sessionStorage.setItem("cutinapp:ambient-music-enabled", "1"); }
+  catch (_) {}
+};
+
 export default function AmbientMusicPlayer({ subjectType, subjectId, fallbackSubjectType, fallbackSubjectId }) {
   const [media, setMedia] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -51,10 +56,6 @@ export default function AmbientMusicPlayer({ subjectType, subjectId, fallbackSub
     load().finally(() => active && setLoading(false));
     return () => { active = false; };
   }, [subjectType, subjectId, fallbackSubjectType, fallbackSubjectId]);
-
-  const rememberActivation = () => {
-    try { window.sessionStorage.setItem("cutinapp:ambient-music-enabled", "1"); } catch (_) {}
-  };
 
   const youtubeCommand = useCallback((func, args = []) => {
     youtubeRef.current?.contentWindow?.postMessage(JSON.stringify({ event: "command", func, args }), "https://www.youtube.com");
