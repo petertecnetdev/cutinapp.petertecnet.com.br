@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import PropTypes from "prop-types";
 import ambientMediaService from "../../services/AmbientMediaService";
 import { spotifyUri, youtubeEmbedUrl } from "../../utils/ambientMedia";
 
@@ -29,7 +30,8 @@ const readRememberedActivation = () => {
 
 const rememberActivation = () => {
   try { window.sessionStorage.setItem("cutinapp:ambient-music-enabled", "1"); }
-  catch (_) {}
+  catch (_) { return undefined; }
+  return undefined;
 };
 
 export default function AmbientMusicPlayer({ subjectType, subjectId, fallbackSubjectType, fallbackSubjectId }) {
@@ -174,3 +176,15 @@ export default function AmbientMusicPlayer({ subjectType, subjectId, fallbackSub
     </aside>
   );
 }
+
+AmbientMusicPlayer.propTypes = {
+  subjectType: PropTypes.oneOf(["organization", "event"]).isRequired,
+  subjectId: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+  fallbackSubjectType: PropTypes.oneOf(["organization", "event"]),
+  fallbackSubjectId: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+};
+
+AmbientMusicPlayer.defaultProps = {
+  fallbackSubjectType: undefined,
+  fallbackSubjectId: undefined,
+};
