@@ -25,6 +25,8 @@ const cutinappService = {
   locationStates: async () => (await appApiClient.get("/locations/states")).data.states || [],
   locationCities: async (uf, q = "") => (await appApiClient.get("/locations/cities", { params: { uf, q } })).data.cities || [],
   lookupCep: async (cep) => (await appApiClient.get(`/locations/cep/${String(cep).replace(/\D/g, "")}`)).data.address,
+  locationPlaces: async (q, sessionToken = "") => (await appApiClient.get("/locations/places", { params: { q, session_token: sessionToken || undefined } })).data.places || [],
+  locationPlace: async (placeId, sessionToken = "") => (await appApiClient.get(`/locations/places/${encodeURIComponent(placeId)}`, { params: { session_token: sessionToken || undefined } })).data.place,
 
   profileOverview: async () => (await appApiClient.get("/profile/overview")).data,
   myProductions: async () => unwrap((await appApiClient.get("/organizations/mine")).data.organizations),
