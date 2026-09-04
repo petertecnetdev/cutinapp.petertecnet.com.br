@@ -107,7 +107,7 @@ export default function EmailVerifyPage() {
     setMessage(null);
     try {
       await logout();
-    } catch (err) {
+    } catch {
       // O AuthService limpa o token local mesmo quando a API de logout está indisponível.
     } finally {
       navigate("/login", { replace: true });
