@@ -3,6 +3,7 @@ import { Alert, Button, Card, Col, Container, Form, Row } from "react-bootstrap"
 import { useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
+import AmbientMusicSettings from "../../components/ambient/AmbientMusicSettings";
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
 
@@ -132,7 +133,7 @@ export default function ProductionUpdatePage() {
       {saving && <ProcessingIndicatorComponent label="Salvando produção" />}
       <Container className="cut-page-container py-4 py-lg-5">
         <div className="cut-page-heading">
-          <div><span className="cut-eyebrow">Área do produtor</span><h1>Editar produção</h1><p>Atualize os dados e confirme a persistência voltando ao detalhe da produção.</p></div>
+          <div><span className="cut-eyebrow">Área do produtor</span><h1>Editar produção</h1><p>Atualize os dados, a identidade visual e a experiência sonora da sua produção.</p></div>
           <Button variant="outline-light" disabled={saving} onClick={() => navigate(`/production/${id}`)}>Voltar</Button>
         </div>
         {error && <Alert variant="danger">{error}</Alert>}
@@ -165,6 +166,9 @@ export default function ProductionUpdatePage() {
               </Card.Body></Card>
             </Col>
           </Row>
+          <div className="mt-4">
+            <AmbientMusicSettings subjectType="organization" subjectId={Number(id)} />
+          </div>
         </Form>}
       </Container>
     </div>

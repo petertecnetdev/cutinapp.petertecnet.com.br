@@ -4,6 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
+import AmbientMusicPlayer from "../../components/ambient/AmbientMusicPlayer";
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
 import { safeExternalHref } from "../../utils/safeUrl";
@@ -41,6 +42,7 @@ export default function ProductionPublicPage() {
   const websiteHref = safeExternalHref(production.website_url);
 
   return <div className="cut-app-page"><NavlogComponent />
+    <AmbientMusicPlayer subjectType="organization" subjectId={production.id} />
     <section className="cut-profile-hero" style={production.background ? { backgroundImage: `linear-gradient(180deg,rgba(2,8,13,.12),rgba(2,8,13,.95)),url(${mediaUrl(production.background)})` } : undefined}>
       <Container className="cut-page-container"><div className="cut-profile-hero__content"><div className="cut-profile-avatar cut-profile-avatar--square">{production.logo ? <img src={mediaUrl(production.logo)} alt={production.name} /> : <span>{production.name?.slice(0,2).toUpperCase()}</span>}</div><div><span className="cut-eyebrow">Produção Cutinapp</span><h1>{production.name}</h1><p>{production.city ? `${production.city}${production.uf ? ` - ${production.uf}` : ""}` : ""}</p><div className="cut-social-stats"><span>{production.followers_count || 0} seguidores</span><span>{upcoming.length} próximos eventos</span></div><div className="cut-card-actions mt-3"><Button onClick={toggleFollow} disabled={busy}>{production.is_following ? "Seguindo" : "Seguir produção"}</Button>{instagramHref && <Button as="a" href={instagramHref} target="_blank" rel="noopener noreferrer" variant="outline-light">Instagram</Button>}{websiteHref && <Button as="a" href={websiteHref} target="_blank" rel="noopener noreferrer" variant="outline-light">Site</Button>}</div></div></div></Container>
     </section>
