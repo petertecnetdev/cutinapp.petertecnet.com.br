@@ -21,9 +21,11 @@ import { apiBaseUrl, appSlug } from "./config";
 import reportWebVitals from "./reportWebVitals";
 import { installGlobalImageFallbacks } from "./utils/imageFallback";
 import { installPasswordFieldEnhancer } from "./utils/passwordFieldEnhancer";
+import { installClipboardFallback } from "./utils/clipboard";
 
 installGlobalImageFallbacks();
 installPasswordFieldEnhancer();
+installClipboardFallback();
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
