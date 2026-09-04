@@ -113,10 +113,11 @@ function AppRoutes() {
 
             <Route path="/dashboard" element={protectedRoute(<DashboardPage />)} />
             <Route path="/agent" element={acquisitionRoute(<AcquisitionDashboardPage />)} />
-            <Route path="/feed" element={protectedRoute(<FeedPage />)} />
+            <Route path="/feed" element={<FeedPage />} />
             <Route path="/notifications" element={protectedRoute(<NotificationsPage />)} />
             <Route path="/moderation/reports" element={protectedRoute(<ReportModerationPage />)} />
             <Route path="/profile" element={protectedRoute(<UserProfilePage />)} />
+            <Route path="/users/:userId" element={<UserProfilePage />} />
             <Route path="/user/edit" element={protectedRoute(<UserEditPage />)} />
             <Route path="/purchases" element={protectedRoute(<PurchasesPage />)} />
             <Route path="/purchases/:publicId" element={protectedRoute(<PurchaseDetailPage />)} />
