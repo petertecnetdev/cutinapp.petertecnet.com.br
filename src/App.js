@@ -7,6 +7,7 @@ import {
   useLocation,
 } from "react-router-dom";
 import { AuthContext } from "./context/AuthContext";
+import AppErrorBoundary from "./components/AppErrorBoundary";
 import CutinappVisualEffects from "./components/CutinappVisualEffects";
 import PeterTecnetSignature from "./components/PeterTecnetSignature";
 import ProcessingIndicatorComponent from "./components/ProcessingIndicatorComponent";
@@ -76,63 +77,66 @@ function AppRoutes() {
 
   const guestRoute = (element) => user ? <Navigate to="/dashboard" replace /> : element;
   const shellOwnsSignature = location.pathname === "/" || ["/login", "/register", "/password-email", "/email-verify"].includes(location.pathname);
+  const routeKey = `${location.pathname}${location.search}`;
 
   return (
     <>
       <CutinappVisualEffects />
-      <Suspense fallback={<ProcessingIndicatorComponent label="Carregando página" />}>
-        <SeoManager />
-        <Routes>
-          <Route path="/" element={user ? <Navigate to="/feed" replace /> : <HomePage />} />
-          <Route path="/login" element={guestRoute(<LoginPage />)} />
-          <Route path="/register" element={guestRoute(<RegisterPage />)} />
-          <Route path="/password-email" element={guestRoute(<PasswordEmailPage />)} />
-          <Route path="/email-verify" element={verifyRoute(<EmailVerifyPage />)} />
-          <Route path="/password" element={protectedRoute(<PasswordPage />)} />
-          <Route path="/logout" element={<LogoutPage />} />
+      <AppErrorBoundary resetKey={routeKey}>
+        <Suspense fallback={<ProcessingIndicatorComponent label="Carregando página" />}>
+          <SeoManager />
+          <Routes>
+            <Route path="/" element={user ? <Navigate to="/feed" replace /> : <HomePage />} />
+            <Route path="/login" element={guestRoute(<LoginPage />)} />
+            <Route path="/register" element={guestRoute(<RegisterPage />)} />
+            <Route path="/password-email" element={guestRoute(<PasswordEmailPage />)} />
+            <Route path="/email-verify" element={verifyRoute(<EmailVerifyPage />)} />
+            <Route path="/password" element={protectedRoute(<PasswordPage />)} />
+            <Route path="/logout" element={<LogoutPage />} />
 
-          <Route path="/dashboard" element={protectedRoute(<DashboardPage />)} />
-          <Route path="/feed" element={protectedRoute(<FeedPage />)} />
-          <Route path="/notifications" element={protectedRoute(<NotificationsPage />)} />
-          <Route path="/moderation/reports" element={protectedRoute(<ReportModerationPage />)} />
-          <Route path="/profile" element={protectedRoute(<UserProfilePage />)} />
-          <Route path="/user/edit" element={protectedRoute(<UserEditPage />)} />
-          <Route path="/purchases" element={protectedRoute(<PurchasesPage />)} />
-          <Route path="/purchases/:publicId" element={protectedRoute(<PurchaseDetailPage />)} />
+            <Route path="/dashboard" element={protectedRoute(<DashboardPage />)} />
+            <Route path="/feed" element={protectedRoute(<FeedPage />)} />
+            <Route path="/notifications" element={protectedRoute(<NotificationsPage />)} />
+            <Route path="/moderation/reports" element={protectedRoute(<ReportModerationPage />)} />
+            <Route path="/profile" element={protectedRoute(<UserProfilePage />)} />
+            <Route path="/user/edit" element={protectedRoute(<UserEditPage />)} />
+            <Route path="/purchases" element={protectedRoute(<PurchasesPage />)} />
+            <Route path="/purchases/:publicId" element={protectedRoute(<PurchaseDetailPage />)} />
 
-          <Route path="/artists" element={<ArtistListPage />} />
-          <Route path="/artist/:slug" element={<ArtistViewPage />} />
-          <Route path="/artist/manage" element={protectedRoute(<ArtistManagePage />)} />
+            <Route path="/artists" element={<ArtistListPage />} />
+            <Route path="/artist/:slug" element={<ArtistViewPage />} />
+            <Route path="/artist/manage" element={protectedRoute(<ArtistManagePage />)} />
 
-          <Route path="/production/create" element={protectedRoute(<ProductionCreatePage />)} />
-          <Route path="/production/mine" element={protectedRoute(<ProductionMinePage />)} />
-          <Route path="/producer/contracts" element={protectedRoute(<ProducerContractsPage />)} />
-          <Route path="/producer/finance" element={protectedRoute(<ProductionFinancePage />)} />
-          <Route path="/producer/sales" element={protectedRoute(<ProducerSalesPage />)} />
-          <Route path="/producer/sales/:productionId/:publicId" element={protectedRoute(<ProducerSaleDetailPage />)} />
-          <Route path="/production/:slug/public" element={<ProductionPublicPage />} />
-          <Route path="/production/:id" element={protectedRoute(<ProductionViewPage />)} />
-          <Route path="/production/edit/:id" element={protectedRoute(<ProductionUpdatePage />)} />
+            <Route path="/production/create" element={protectedRoute(<ProductionCreatePage />)} />
+            <Route path="/production/mine" element={protectedRoute(<ProductionMinePage />)} />
+            <Route path="/producer/contracts" element={protectedRoute(<ProducerContractsPage />)} />
+            <Route path="/producer/finance" element={protectedRoute(<ProductionFinancePage />)} />
+            <Route path="/producer/sales" element={protectedRoute(<ProducerSalesPage />)} />
+            <Route path="/producer/sales/:productionId/:publicId" element={protectedRoute(<ProducerSaleDetailPage />)} />
+            <Route path="/production/:slug/public" element={<ProductionPublicPage />} />
+            <Route path="/production/:id" element={protectedRoute(<ProductionViewPage />)} />
+            <Route path="/production/edit/:id" element={protectedRoute(<ProductionUpdatePage />)} />
 
-          <Route path="/event" element={<EventPage />} />
-          <Route path="/event/create" element={protectedRoute(<EventCreatePage />)} />
-          <Route path="/event/manage" element={protectedRoute(<EventManagePage />)} />
-          <Route path="/event/edit/:id" element={protectedRoute(<EventUpdatePage />)} />
-          <Route path="/event/:eventId/lineup" element={protectedRoute(<EventLineupPage />)} />
-          <Route path="/event/:eventId/artist-claims" element={protectedRoute(<EventArtistClaimsPage />)} />
-          <Route path="/event/:eventId/courtesies" element={protectedRoute(<CourtesyManagePage />)} />
-          <Route path="/event/:eventId/participants" element={protectedRoute(<ParticipantsPage />)} />
-          <Route path="/event/:slug" element={<EventViewPage />} />
-          <Route path="/checkout/:slug" element={protectedRoute(<CheckoutPage />)} />
+            <Route path="/event" element={<EventPage />} />
+            <Route path="/event/create" element={protectedRoute(<EventCreatePage />)} />
+            <Route path="/event/manage" element={protectedRoute(<EventManagePage />)} />
+            <Route path="/event/edit/:id" element={protectedRoute(<EventUpdatePage />)} />
+            <Route path="/event/:eventId/lineup" element={protectedRoute(<EventLineupPage />)} />
+            <Route path="/event/:eventId/artist-claims" element={protectedRoute(<EventArtistClaimsPage />)} />
+            <Route path="/event/:eventId/courtesies" element={protectedRoute(<CourtesyManagePage />)} />
+            <Route path="/event/:eventId/participants" element={protectedRoute(<ParticipantsPage />)} />
+            <Route path="/event/:slug" element={<EventViewPage />} />
+            <Route path="/checkout/:slug" element={protectedRoute(<CheckoutPage />)} />
 
-          <Route path="/ticket/create" element={protectedRoute(<TicketCreatePage />)} />
-          <Route path="/passes" element={protectedRoute(<MyPassesPage />)} />
-          <Route path="/passes/:id" element={protectedRoute(<PassDetailPage />)} />
-          <Route path="/checkin" element={protectedRoute(<CheckinPage />)} />
-          <Route path="*" element={<Navigate to={user ? "/feed" : "/"} replace />} />
-        </Routes>
-        {!shellOwnsSignature && <PeterTecnetSignature />}
-      </Suspense>
+            <Route path="/ticket/create" element={protectedRoute(<TicketCreatePage />)} />
+            <Route path="/passes" element={protectedRoute(<MyPassesPage />)} />
+            <Route path="/passes/:id" element={protectedRoute(<PassDetailPage />)} />
+            <Route path="/checkin" element={protectedRoute(<CheckinPage />)} />
+            <Route path="*" element={<Navigate to={user ? "/feed" : "/"} replace />} />
+          </Routes>
+          {!shellOwnsSignature && <PeterTecnetSignature />}
+        </Suspense>
+      </AppErrorBoundary>
     </>
   );
 }
