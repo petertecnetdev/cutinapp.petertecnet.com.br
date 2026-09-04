@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import PropTypes from "prop-types";
 import { Alert, Badge, Button, Card, Col, Form, Row, Spinner } from "react-bootstrap";
 import ambientMediaService from "../../services/AmbientMediaService";
 import { defaultAmbientMediaForm, detectAmbientProvider } from "../../utils/ambientMedia";
@@ -215,3 +216,17 @@ export default function AmbientMusicSettings({
     </Card>
   );
 }
+
+AmbientMusicSettings.propTypes = {
+  subjectType: PropTypes.oneOf(["organization", "event"]).isRequired,
+  subjectId: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+  recommendationSubjectType: PropTypes.oneOf(["organization", "event"]),
+  recommendationSubjectId: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+  allowInheritance: PropTypes.bool,
+};
+
+AmbientMusicSettings.defaultProps = {
+  recommendationSubjectType: undefined,
+  recommendationSubjectId: undefined,
+  allowInheritance: false,
+};
