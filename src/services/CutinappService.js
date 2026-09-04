@@ -44,7 +44,10 @@ const cutinappService = {
   createProduction: async (formData) => rename((await appApiClient.post("/organizations", formData)).data, "organization", "production"),
   updateProduction: async (id, formData) => rename((await appApiClient.patch(`/organizations/${id}`, formData)).data, "organization", "production"),
   deleteProduction: async (id) => (await appApiClient.delete(`/organizations/${id}`)).data,
-  producerContract: async (organizationId) => (await appApiClient.get(`/organizations/${organizationId}/agreement`)).data.contract,
+  producerContract: async (organizationId) => {
+    const data = (await appApiClient.get(`/organizations/${organizationId}/agreement`)).data;
+    return data?.agreement ?? data?.contract ?? null;
+  },
   signProducerContract: async (organizationId, payload) => (await appApiClient.post(`/organizations/${organizationId}/agreement/sign`, payload)).data,
   resendProducerContract: async (organizationId) => (await appApiClient.post(`/organizations/${organizationId}/agreement/resend`)).data,
   downloadProducerContract: async (organizationId) => (await appApiClient.get(`/organizations/${organizationId}/agreement/pdf`, { responseType: "blob" })).data,
