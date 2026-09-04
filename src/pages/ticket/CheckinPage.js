@@ -37,11 +37,30 @@ export default function CheckinPage() {
   const [token, setToken] = useState("");
   const [loading, setLoading] = useState(true);
   const [cameraEnabled, setCameraEnabled] = useState(false);
+  const [cameraNotice, setCameraNotice] = useState("");
   const [readerMode, setReaderMode] = useState(window.BarcodeDetector ? "native" : "fallback");
   const [fallbackReady, setFallbackReady] = useState(Boolean(window.jsQR));
   const [stats, setStats] = useState(null);
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
+
+  const stopCameraStream = useCallback(() => {
+    const stream = webcamRef.current?.video?.srcObject;
+    if (stream && typeof stream.getTracks === "function") {
+      stream.getTracks().forEach((track) => track.stop());
+    }
+  }, []);
+
+  const disableCamera = useCallback(() => {
+    stopCameraStream();
+    setCameraEnabled(false);
+  }, [stopCameraStream]);
+
+  const enableCamera = useCallback(() => {
+    setCameraNotice("");
+    setError("");
+    setCameraEnabled(true);
+  }, []);
 
   const refreshStats = useCallback(async (selectedEventId) => {
     if (!selectedEventId) {
@@ -81,6 +100,19 @@ export default function CheckinPage() {
       .catch((err) => setError(err?.message || "Seu navegador não conseguiu carregar o leitor QR alternativo."));
   }, [fallbackReady, readerMode]);
 
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== "hidden" || !cameraEnabled) return;
+      disableCamera();
+      setCameraNotice("Câmera pausada por segurança quando a Cutinapp saiu de primeiro plano. Ative novamente para continuar a leitura.");
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [cameraEnabled, disableCamera]);
+
+  useEffect(() => () => stopCameraStream(), [stopCameraStream]);
+
   const validate = useCallback(async (rawToken) => {
     const normalized = String(rawToken || "").trim();
     if (!eventId) {
@@ -98,7 +130,7 @@ export default function CheckinPage() {
       const response = await cutinappService.checkIn(normalized, eventId);
       setResult({ type: "success", ...response });
       setToken("");
-      setCameraEnabled(false);
+      disableCamera();
       await refreshStats(eventId);
     } catch (err) {
       const pass = err?.original?.response?.data?.pass || null;
@@ -107,13 +139,13 @@ export default function CheckinPage() {
         message: err?.message || "Não foi possível validar esta entrada.",
         pass,
       });
-      setCameraEnabled(false);
+      disableCamera();
       await refreshStats(eventId);
     } finally {
       setLoading(false);
       window.setTimeout(() => { scanningRef.current = false; }, 700);
     }
-  }, [eventId, refreshStats]);
+  }, [disableCamera, eventId, refreshStats]);
 
   useEffect(() => {
     if (!cameraEnabled || !eventId) return undefined;
@@ -130,7 +162,7 @@ export default function CheckinPage() {
     }
 
     const scan = async () => {
-      if (cancelled || scanningRef.current) return;
+      if (cancelled || scanningRef.current || document.visibilityState !== "visible") return;
       const video = webcamRef.current?.video;
       if (!video || video.readyState < 2 || video.videoWidth < 1 || video.videoHeight < 1) return;
 
@@ -165,7 +197,8 @@ export default function CheckinPage() {
 
   const selectEvent = async (value) => {
     setEventId(value);
-    setCameraEnabled(false);
+    disableCamera();
+    setCameraNotice("");
     setResult(null);
     setToken("");
     setError("");
@@ -176,7 +209,7 @@ export default function CheckinPage() {
     setResult(null);
     setError("");
     setToken("");
-    setCameraEnabled(true);
+    enableCamera();
   };
 
   return (
@@ -189,16 +222,17 @@ export default function CheckinPage() {
           <Badge bg={eventId ? "success" : "secondary"} className="cut-live-badge">{eventId ? "Evento selecionado" : "Selecione um evento"}</Badge>
         </div>
 
-        {error && <Alert variant="danger">{error}</Alert>}
+        {error && <Alert variant="danger" role="alert">{error}</Alert>}
+        {cameraNotice && <Alert variant="info" role="status" aria-live="polite">{cameraNotice}</Alert>}
 
         {events.length === 0 && !loading ? (
           <Card className="cut-empty-state"><Card.Body><h2>Nenhum evento publicado para operar</h2><p>Crie a cortesia e publique um evento antes de abrir a portaria.</p><Button onClick={() => navigate("/event/manage")}>Gerenciar eventos</Button></Card.Body></Card>
         ) : <>
-          <Card className="cut-panel mb-4"><Card.Body className="p-4"><Row className="g-3 align-items-end"><Col lg={7}><Form.Group><Form.Label>Evento da portaria *</Form.Label><Form.Select value={eventId} onChange={(event) => selectEvent(event.target.value)}><option value="">Selecione o evento</option>{events.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</Form.Select></Form.Group></Col><Col lg={5}><div className="cut-checkin-stats"><span><strong>{stats?.issued ?? 0}</strong> emitidos</span><span><strong>{stats?.checked_in ?? 0}</strong> entradas</span><span><strong>{Math.max(0, Number(stats?.issued || 0) - Number(stats?.checked_in || 0))}</strong> aguardando</span></div></Col></Row></Card.Body></Card>
+          <Card className="cut-panel mb-4"><Card.Body className="p-4"><Row className="g-3 align-items-end"><Col lg={7}><Form.Group><Form.Label>Evento da portaria *</Form.Label><Form.Select value={eventId} onChange={(event) => selectEvent(event.target.value)}><option value="">Selecione o evento</option>{events.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</Form.Select></Form.Group></Col><Col lg={5}><div className="cut-checkin-stats" role="status" aria-live="polite"><span><strong>{stats?.issued ?? 0}</strong> emitidos</span><span><strong>{stats?.checked_in ?? 0}</strong> entradas</span><span><strong>{Math.max(0, Number(stats?.issued || 0) - Number(stats?.checked_in || 0))}</strong> aguardando</span></div></Col></Row></Card.Body></Card>
 
           <Row className="g-4 justify-content-center">
             <Col lg={7}><Card className="cut-panel cut-scanner-card"><Card.Body className="p-3 p-md-4">
-              {!eventId ? <div className="cut-empty-state-inline"><h2>Selecione o evento</h2><p>A câmera só é liberada depois de escolher qual portaria está operando.</p></div> : result ? <div className={`cut-checkin-result cut-checkin-result--${result.type}`}><i className={result.type === "success" ? "fa-solid fa-circle-check" : "fa-solid fa-triangle-exclamation"} /><h2>{result.message}</h2>{result.pass && <div className="cut-checkin-person"><strong>{result.pass.holder_name || result.pass.holder_email || "Participante"}</strong><span>{result.pass.event?.title || "Evento"}</span><span>{result.pass.ticket?.name || "Ingresso"}</span></div>}<Button size="lg" onClick={nextParticipant}>Próximo participante</Button></div> : cameraEnabled ? <div className="cut-scanner"><Webcam ref={webcamRef} audio={false} className="cut-scanner__video" screenshotFormat="image/jpeg" videoConstraints={{ facingMode: { ideal: "environment" } }} onUserMediaError={(mediaError) => { setError(mediaError?.message || "Não foi possível acessar a câmera. Verifique a permissão do navegador."); setCameraEnabled(false); }} /><canvas ref={canvasRef} hidden /><div className="cut-scanner__frame" aria-hidden="true" /><span className="cut-scanner__hint">{readerMode === "native" ? "Leitor nativo ativo" : fallbackReady ? "Leitor compatível ativo" : "Preparando leitor QR..."} · posicione o QR no quadro</span></div> : <div className="cut-empty-state-inline"><i className="fa-solid fa-camera" /><h2>Câmera pronta para iniciar</h2><p>Toque no botão para solicitar a permissão da câmera deste aparelho.</p><Button size="lg" onClick={() => setCameraEnabled(true)}>Ativar câmera</Button></div>}
+              {!eventId ? <div className="cut-empty-state-inline"><h2>Selecione o evento</h2><p>A câmera só é liberada depois de escolher qual portaria está operando.</p></div> : result ? <div className={`cut-checkin-result cut-checkin-result--${result.type}`} role={result.type === "danger" ? "alert" : "status"} aria-live={result.type === "danger" ? "assertive" : "polite"}><i className={result.type === "success" ? "fa-solid fa-circle-check" : "fa-solid fa-triangle-exclamation"} aria-hidden="true" /><h2>{result.message}</h2>{result.pass && <div className="cut-checkin-person"><strong>{result.pass.holder_name || result.pass.holder_email || "Participante"}</strong><span>{result.pass.event?.title || "Evento"}</span><span>{result.pass.ticket?.name || "Ingresso"}</span></div>}<Button size="lg" onClick={nextParticipant}>Próximo participante</Button></div> : cameraEnabled ? <div className="cut-scanner"><Webcam ref={webcamRef} audio={false} className="cut-scanner__video" screenshotFormat="image/jpeg" videoConstraints={{ facingMode: { ideal: "environment" } }} onUserMediaError={(mediaError) => { setError(mediaError?.message || "Não foi possível acessar a câmera. Verifique a permissão do navegador."); disableCamera(); }} /><canvas ref={canvasRef} hidden /><div className="cut-scanner__frame" aria-hidden="true" /><span className="cut-scanner__hint" role="status" aria-live="polite">{readerMode === "native" ? "Leitor nativo ativo" : fallbackReady ? "Leitor compatível ativo" : "Preparando leitor QR..."} · posicione o QR no quadro</span></div> : <div className="cut-empty-state-inline"><i className="fa-solid fa-camera" aria-hidden="true" /><h2>Câmera pronta para iniciar</h2><p>Toque no botão para solicitar a permissão da câmera deste aparelho.</p><Button size="lg" onClick={enableCamera}>Ativar câmera</Button></div>}
             </Card.Body></Card></Col>
 
             <Col lg={5}><Card className="cut-panel h-100"><Card.Body className="p-4"><h2 className="cut-section-title">Validação manual</h2><p className="text-secondary">Use o código abaixo do QR apenas se a câmera estiver indisponível.</p><Form onSubmit={(event) => { event.preventDefault(); validate(token); }}><Form.Group><Form.Label>Código do ingresso</Form.Label><Form.Control value={token} onChange={(event) => setToken(event.target.value)} placeholder="CUT-..." autoComplete="off" /></Form.Group><Button className="w-100 mt-3" type="submit" disabled={!eventId || !token.trim() || loading}>Validar entrada</Button></Form><div className="cut-info-box mt-4"><strong>Proteção contra uso indevido</strong><span>O servidor confirma evento, operador, publicação, validade do QR e utilização anterior antes de registrar o check-in.</span></div></Card.Body></Card></Col>
