@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useEffect, useMemo, useState } from "react";
 import PropTypes from "prop-types";
 import authService from "../services/AuthService";
+import { subscribeToAuthTokenChanges } from "../utils/authSessionSync";
 
 export const AuthContext = createContext({
   user: null,
@@ -67,6 +68,36 @@ export function AuthProvider({ children }) {
     window.addEventListener("petertecnet:auth-invalidated", handleAuthInvalidated);
     return () => window.removeEventListener("petertecnet:auth-invalidated", handleAuthInvalidated);
   }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    const unsubscribe = subscribeToAuthTokenChanges(async (newToken) => {
+      if (!active) return;
+
+      if (!newToken) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        await refreshUser();
+      } catch (error) {
+        if (process.env.NODE_ENV !== "production") {
+          console.warn("Unable to synchronize Cutinapp session between tabs", error);
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    });
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, [refreshUser]);
 
   const login = useCallback(async (email, password) => {
     await authService.login(email, password);
