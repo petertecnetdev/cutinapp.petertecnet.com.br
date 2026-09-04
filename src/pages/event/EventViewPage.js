@@ -3,6 +3,7 @@ import { Alert, Badge, Button, Card, Col, Container, Row } from "react-bootstrap
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
+import AmbientMusicPlayer from "../../components/ambient/AmbientMusicPlayer";
 import EventCommunitySection from "../../components/event/EventCommunitySection";
 import EventCommercePanel from "../../components/event/EventCommercePanel";
 import { AuthContext } from "../../context/AuthContext";
@@ -108,7 +109,7 @@ export default function EventViewPage() {
     finally { setSocialBusy(false); }
   };
 
-  return <div className="cut-app-page"><NavlogComponent />{(loading || claimingId || artistClaimingId) && <ProcessingIndicatorComponent label={claimingId ? "Emitindo ingresso" : artistClaimingId ? "Enviando reivindicação" : "Carregando evento"} />}
+  return <div className="cut-app-page"><NavlogComponent />{event && <AmbientMusicPlayer subjectType="event" subjectId={event.id} fallbackSubjectType="organization" fallbackSubjectId={event.production?.id} />}{(loading || claimingId || artistClaimingId) && <ProcessingIndicatorComponent label={claimingId ? "Emitindo ingresso" : artistClaimingId ? "Enviando reivindicação" : "Carregando evento"} />}
     {!loading && event && <>
       <section className="cut-event-hero cut-event-hero--premium" style={event.image ? { backgroundImage: `linear-gradient(180deg,rgba(3,10,16,.08),rgba(3,10,16,.98)),url(${storageUrl}${String(event.image).replace(/^\//, "")})` } : undefined}>
         <Container className="cut-page-container"><div className="cut-event-hero__content"><div className="d-flex flex-wrap gap-2 mb-3">{event.category && <Badge bg="dark">{event.category}</Badge>}<Badge bg="success">Publicado</Badge>{tickets.some((t) => t.available) && <Badge bg="info" text="dark">Ingressos disponíveis</Badge>}</div><h1>{event.title}</h1><p className="cut-event-hero__date">{formatDate(event.start_date)}</p><span>{event.venue || event.address}{event.city ? ` · ${event.city}${event.uf ? ` - ${event.uf}` : ""}` : ""}</span>{event.production?.name && <button className="cut-inline-profile-link" onClick={() => navigate(`/production/${event.production.slug}/public`)}>Por {event.production.name} <i className="fa-solid fa-arrow-up-right-from-square" /></button>}<div className="cut-card-actions mt-4"><Button onClick={share}><i className="fa-solid fa-share-nodes me-2" />Compartilhar</Button><Button variant={interested ? "info" : "outline-light"} onClick={() => setEngagement("interested")} disabled={socialBusy}><i className="fa-regular fa-star me-2" />Tenho interesse</Button><Button variant={favorite ? "danger" : "outline-light"} onClick={() => setEngagement("favorite")} disabled={socialBusy}><i className={`${favorite ? "fa-solid" : "fa-regular"} fa-heart me-2`} />{favorite ? "Salvo" : "Salvar"}</Button><Button variant="outline-light" href="#comunidade"><i className="fa-regular fa-comments me-2" />Conversa</Button>{event.google_maps_url && <Button variant="outline-light" as="a" href={event.google_maps_url} target="_blank" rel="noreferrer"><i className="fa-solid fa-location-arrow me-2" />Maps</Button>}</div></div></Container>
