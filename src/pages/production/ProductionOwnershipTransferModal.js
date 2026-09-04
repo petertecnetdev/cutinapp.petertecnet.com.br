@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import PropTypes from "prop-types";
 import { Alert, Button, Form, ListGroup, Modal, Spinner } from "react-bootstrap";
 import cutinappService from "../../services/CutinappService";
 import userService from "../../services/UserService";
@@ -152,3 +153,13 @@ export default function ProductionOwnershipTransferModal({ production, onHide, o
     </Modal>
   );
 }
+
+ProductionOwnershipTransferModal.propTypes = {
+  production: PropTypes.shape({
+    id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    user_id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    name: PropTypes.string,
+  }),
+  onHide: PropTypes.func,
+  onTransferred: PropTypes.func,
+};
