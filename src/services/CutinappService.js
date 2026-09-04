@@ -54,7 +54,7 @@ const cutinappService = {
 
   artists: async (params = {}) => (await appApiClient.get("/artists", { params })).data,
   publicArtist: async (slug) => (await appApiClient.get(`/artists/${slug}`)).data,
-  publicArtistMembers: async (slug) => (await appApiClient.get(`/artists/${slug}/members`)).data,
+  publicArtistMembers: async (slug) => (await appApiClient.get(`/artists/${slug}/members`)).data.members || [],
   publicEventArtists: async (slug) => (await appApiClient.get(`/events/public/${slug}/artists`)).data.artists || [],
   eventCommunity: async (slug, params = {}) => (await appApiClient.get(`/events/public/${slug}/community`, { params })).data,
   createEventPost: async (eventId, payload) => (await appApiClient.post(`/events/${eventId}/community`, payload)).data,
@@ -101,6 +101,7 @@ const cutinappService = {
   claimCourtesy: async (ticketId) => (await appApiClient.post(`/passes/claim/${ticketId}`)).data,
   myPasses: async () => unwrap((await appApiClient.get("/passes/mine")).data.passes),
   getPass: async (passId) => (await appApiClient.get(`/passes/${passId}`)).data.pass,
+  transferPass: async (passId, recipientEmail) => (await appApiClient.post(`/passes/${passId}/transfer`, { recipient_email: recipientEmail })).data,
   eventParticipants: async (eventId) => (await appApiClient.get(`/events/${eventId}/participants`)).data,
   checkIn: async (token, eventId) => (await appApiClient.post("/checkin", { token, event_id: Number(eventId) })).data,
   checkInStats: async (eventId) => (await appApiClient.get(`/checkin/events/${eventId}/stats`)).data,
