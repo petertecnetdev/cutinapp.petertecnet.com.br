@@ -13,9 +13,23 @@ const notificationIcon = (type = "") => {
   return "fa-regular fa-bell";
 };
 
-const notificationTime = (value) => value
-  ? new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" }).format(new Date(value))
-  : "";
+const notificationTime = (value) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  try {
+    return new Intl.DateTimeFormat("pt-BR", {
+      day: "2-digit",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "America/Sao_Paulo",
+    }).format(date);
+  } catch (_) {
+    return "";
+  }
+};
 
 export default function NavlogComponent() {
   const { user, logout } = useContext(AuthContext);
@@ -39,6 +53,8 @@ export default function NavlogComponent() {
 
     let mounted = true;
     const refreshNotifications = async () => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+
       try {
         const response = await cutinappService.notifications({ per_page: 6 });
         if (!mounted) return;
@@ -47,6 +63,10 @@ export default function NavlogComponent() {
       } catch (_) {
         // O menu continua utilizável mesmo se a central estiver temporariamente indisponível.
       }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") refreshNotifications();
     };
 
     refreshNotifications();
@@ -58,9 +78,10 @@ export default function NavlogComponent() {
       window.dispatchEvent(new CustomEvent("cutinapp:notification-received", { detail: notification }));
     });
 
-    const timer = window.setInterval(refreshNotifications, 30000);
+    const timer = window.setInterval(refreshNotifications, 60000);
     window.addEventListener("focus", refreshNotifications);
     window.addEventListener("cutinapp:notifications-updated", refreshNotifications);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       mounted = false;
@@ -68,6 +89,7 @@ export default function NavlogComponent() {
       window.clearInterval(timer);
       window.removeEventListener("focus", refreshNotifications);
       window.removeEventListener("cutinapp:notifications-updated", refreshNotifications);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [userId]);
 
@@ -94,8 +116,11 @@ export default function NavlogComponent() {
 
   const signOut = async () => {
     closeMenu();
-    await logout();
-    navigate("/", { replace: true });
+    try {
+      await logout();
+    } finally {
+      navigate("/", { replace: true });
+    }
   };
 
   const openNotification = async (item) => {
