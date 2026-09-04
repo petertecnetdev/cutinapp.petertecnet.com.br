@@ -4,6 +4,10 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#030910" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Cutinapp" />
   <meta name="description" content="Cutinapp é a plataforma de eventos e ingressos da Peter Tecnet: descubra eventos, retire cortesias, receba seu QR Code e valide entradas pelo celular." />
   <meta property="og:title" content="Cutinapp — Eventos e Ingressos | Peter Tecnet" />
   <meta property="og:description" content="Eventos, cortesias digitais, QR Code individual e check-in em uma experiência conectada." />
@@ -24,5 +28,6 @@
 <body>
   <noscript>Ative o JavaScript para usar a Cutinapp.</noscript>
   <div id="root"></div>
+  <script>if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {})); }</script>
 </body>
 </html>
