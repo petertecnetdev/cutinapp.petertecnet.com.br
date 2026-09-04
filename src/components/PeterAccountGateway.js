@@ -1,8 +1,8 @@
 /* eslint-disable react/prop-types */
 import React, { useEffect, useRef } from "react";
 
-const SDK_VERSION = "2.0.0";
-const SDK_URL = `https://petertecnet.com.br/ecosystem/peter-ecosystem.js?v=${SDK_VERSION}`;
+const SDK_VERSION = "3.0.0";
+const SDK_URL = `https://petertecnet.com.br/ecosystem/peter-ecosystem-v3.js?v=${SDK_VERSION}`;
 let sdkPromise;
 
 function loadSdk() {
