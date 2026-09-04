@@ -6,6 +6,7 @@ import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorCo
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
 import "./production-experience.css";
+import "./production-mine.css";
 
 const imageUrl = (path) => {
   if (!path) return "";
