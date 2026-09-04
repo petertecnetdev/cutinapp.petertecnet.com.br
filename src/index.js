@@ -14,6 +14,7 @@ import "./styles/logo-theme.css";
 import "./styles/interactive-effects.css";
 import "./styles/error-boundary.css";
 import "./pages/HomeDiscovery.css";
+import "./styles/peter-branding-bridge.css";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import PeterAccountGateway from "./components/PeterAccountGateway";
