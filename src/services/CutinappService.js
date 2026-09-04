@@ -33,6 +33,7 @@ const cutinappService = {
   publicProduction: async (slug) => rename((await appApiClient.get(`/organizations/public/${slug}`)).data, "organization", "production"),
   createProduction: async (formData) => rename((await appApiClient.post("/organizations", formData)).data, "organization", "production"),
   updateProduction: async (id, formData) => rename((await appApiClient.patch(`/organizations/${id}`, formData)).data, "organization", "production"),
+  deleteProduction: async (id) => (await appApiClient.delete(`/organizations/${id}`)).data,
   producerContract: async (organizationId) => (await appApiClient.get(`/organizations/${organizationId}/agreement`)).data.contract,
   signProducerContract: async (organizationId, payload) => (await appApiClient.post(`/organizations/${organizationId}/agreement/sign`, payload)).data,
   resendProducerContract: async (organizationId) => (await appApiClient.post(`/organizations/${organizationId}/agreement/resend`)).data,
@@ -80,6 +81,15 @@ const cutinappService = {
   markAllNotificationsRead: async () => (await appApiClient.patch("/notifications/read-all")).data,
   publishEvent: async (eventId) => (await appApiClient.post(`/events/${eventId}/publish`)).data,
   unpublishEvent: async (eventId) => (await appApiClient.post(`/events/${eventId}/unpublish`)).data,
+  deleteEvent: async (eventId) => (await appApiClient.delete(`/events/${eventId}`)).data,
+  eventLifecycle: async (eventId) => (await appApiClient.get(`/events/${eventId}/lifecycle`)).data,
+  cancelEvent: async (eventId, payload) => (await appApiClient.post(`/events/${eventId}/cancel`, payload)).data,
+  postponeEvent: async (eventId, payload) => (await appApiClient.post(`/events/${eventId}/postpone`, payload)).data,
+  rescheduleEvent: async (eventId, payload) => (await appApiClient.post(`/events/${eventId}/reschedule`, payload)).data,
+
+  refundStatus: async (publicId) => (await appApiClient.get(`/commerce/orders/${publicId}/refund`)).data,
+  requestRefund: async (publicId, payload = {}) => (await appApiClient.post(`/commerce/orders/${publicId}/refund`, payload)).data,
+  retryRefund: async (refundId) => (await appApiClient.post(`/commerce/refunds/${refundId}/retry`)).data,
 
   eventCourtesies: async (eventId) => (await appApiClient.get(`/events/${eventId}/tickets`)).data,
   updateCourtesy: async (ticketId, payload) => (await appApiClient.patch(`/tickets/${ticketId}`, payload)).data,

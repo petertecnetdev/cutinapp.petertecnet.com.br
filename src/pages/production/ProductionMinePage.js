@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Alert, Badge, Button, Card, Col, Container, Row } from "react-bootstrap";
+import { Alert, Badge, Button, Card, Col, Container, Modal, Row } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
@@ -12,26 +12,48 @@ const imageUrl = (path) => {
   return `${storageUrl}${String(path).replace(/^\//, "")}`;
 };
 
+const apiMessage = (err, fallback) => err?.response?.data?.message || err?.message || fallback;
+
 export default function ProductionMinePage() {
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   useEffect(() => {
     let active = true;
     cutinappService
       .myProductions()
       .then((productions) => active && setItems(productions))
-      .catch((err) => active && setError(err?.message || "Não foi possível carregar suas produções."))
+      .catch((err) => active && setError(apiMessage(err, "Não foi possível carregar suas produções.")))
       .finally(() => active && setLoading(false));
     return () => { active = false; };
   }, []);
 
+  const removeProduction = async () => {
+    if (!deleteTarget) return;
+    setDeletingId(deleteTarget.id);
+    setError("");
+    setSuccess("");
+    try {
+      const response = await cutinappService.deleteProduction(deleteTarget.id);
+      setItems((current) => current.filter((item) => item.id !== deleteTarget.id));
+      setSuccess(response?.message || "Produção excluída com segurança.");
+      setDeleteTarget(null);
+    } catch (err) {
+      setError(apiMessage(err, "Não foi possível excluir esta produção."));
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <div className="cut-app-page">
       <NavlogComponent />
-      {loading && <ProcessingIndicatorComponent label="Carregando produções" />}
+      {(loading || deletingId) && <ProcessingIndicatorComponent label={loading ? "Carregando produções" : "Excluindo produção"} />}
       <Container className="cut-page-container py-4 py-lg-5">
         <div className="cut-page-heading">
           <div>
@@ -50,6 +72,7 @@ export default function ProductionMinePage() {
         </div>
 
         {error && <Alert variant="danger">{error}</Alert>}
+        {success && <Alert variant="success">{success}</Alert>}
 
         {!loading && !error && items.length === 0 ? (
           <Card className="cut-empty-state">
@@ -80,11 +103,22 @@ export default function ProductionMinePage() {
                       </div>
                     </div>
                     <p>{production.description || "Produção pronta para receber eventos."}</p>
+                    {production.can_delete === false && production.deletion_blockers?.length > 0 && (
+                      <div className="cut-info-box mb-3">
+                        <strong>Cadastro protegido</strong>
+                        <span>Esta produção possui vínculos e não pode ser apagada enquanto houver histórico associado.</span>
+                      </div>
+                    )}
                     <div className="cut-card-actions">
                       <Button onClick={() => navigate(`/production/${production.id}`)}>Abrir</Button>
                       <Button variant="outline-light" onClick={() => navigate(`/production/edit/${production.id}`)}>Editar</Button>
                       <Button variant="outline-light" onClick={() => navigate(`/event/create?productionId=${production.id}`)}>Criar evento</Button>
                       <Button variant="outline-light" onClick={() => navigate(`/producer/finance?production=${production.id}`)}>Financeiro</Button>
+                      {production.can_delete === true && (
+                        <Button variant="outline-danger" onClick={() => setDeleteTarget(production)}>
+                          <i className="fa-regular fa-trash-can me-2" />Excluir produção
+                        </Button>
+                      )}
                     </div>
                   </Card.Body>
                 </Card>
@@ -93,6 +127,26 @@ export default function ProductionMinePage() {
           </Row>
         )}
       </Container>
+
+      <Modal show={Boolean(deleteTarget)} onHide={() => !deletingId && setDeleteTarget(null)} centered>
+        <Modal.Header closeButton={!deletingId}>
+          <Modal.Title>Excluir produção</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Alert variant="warning" className="mb-3">
+            Esta ação é definitiva e só é permitida para uma produção sem eventos, pedidos ou histórico financeiro.
+          </Alert>
+          <p className="mb-0">
+            Confirma a exclusão de <strong>{deleteTarget?.name}</strong>?
+          </p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="outline-secondary" onClick={() => setDeleteTarget(null)} disabled={Boolean(deletingId)}>Voltar</Button>
+          <Button variant="danger" onClick={removeProduction} disabled={Boolean(deletingId)}>
+            {deletingId ? "Excluindo..." : "Excluir definitivamente"}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 }
