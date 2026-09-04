@@ -3,8 +3,23 @@ import { Alert, Button, Card, Container } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import NavlogComponent from "../components/NavlogComponent";
 import cutinappService from "../services/CutinappService";
+import { safeNavigationTarget } from "../utils/safeUrl";
 
-const fmt = (value) => value ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(new Date(value)) : "";
+const fmt = (value) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  try {
+    return new Intl.DateTimeFormat("pt-BR", {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: "America/Sao_Paulo",
+    }).format(date);
+  } catch (_) {
+    return "";
+  }
+};
 
 const notificationIcon = (type = "") => {
   if (type === "artist_lineup") return "fa-solid fa-music";
@@ -50,14 +65,14 @@ export default function NotificationsPage() {
         notifyBadgeChanged();
       } catch (_) { /* a navegação não deve ser bloqueada */ }
     }
-    if (item.reference_url) {
-      try {
-        const url = new URL(item.reference_url, window.location.origin);
-        if (url.origin === window.location.origin) return navigate(`${url.pathname}${url.search}${url.hash}`);
-        window.location.href = item.reference_url;
-        return;
-      } catch (_) { /* fallback abaixo */ }
+
+    const target = safeNavigationTarget(item.reference_url);
+    if (target?.type === "internal") return navigate(target.value);
+    if (target?.type === "external") {
+      window.location.assign(target.value);
+      return;
     }
+
     if (item.reference_type === "event") navigate("/event");
   };
 
