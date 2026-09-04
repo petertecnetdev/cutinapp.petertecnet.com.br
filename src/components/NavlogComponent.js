@@ -19,7 +19,6 @@ const notificationTime = (value) => {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-
   try {
     return new Intl.DateTimeFormat("pt-BR", {
       day: "2-digit",
@@ -57,7 +56,6 @@ export default function NavlogComponent() {
     let mounted = true;
     const refreshNotifications = async () => {
       if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
-
       try {
         const response = await cutinappService.notifications({ per_page: 6 });
         if (!mounted) return;
@@ -73,7 +71,6 @@ export default function NavlogComponent() {
     };
 
     refreshNotifications();
-
     const disconnectRealtime = subscribeToUserNotifications(userId, (notification) => {
       if (!mounted) return;
       if (!notification?.read_at) setUnreadNotifications((current) => current + 1);
@@ -143,7 +140,6 @@ export default function NavlogComponent() {
       window.location.assign(target.value);
       return;
     }
-
     navigate("/notifications");
   };
 
@@ -179,15 +175,15 @@ export default function NavlogComponent() {
                 <button type="button" className="cut-notification-popover__footer" onClick={() => navigate("/notifications")}>Ver todas as notificações</button>
               </div>
             </NavDropdown>
-            <NavDropdown title={<span><i className="fa-solid fa-bullhorn" /> Produzir</span>} id="cut-producer-menu">
-              <NavDropdown.Item as={Link} to="/production/mine">Minhas produções</NavDropdown.Item>
+            <NavDropdown title={<span><i className="fa-solid fa-building" /> Estabelecimentos</span>} id="cut-producer-menu">
+              <NavDropdown.Item as={Link} to="/establishment/mine">Meus estabelecimentos</NavDropdown.Item>
               <NavDropdown.Item as={Link} to="/producer/contracts"><i className="fa-solid fa-file-signature me-2" />Contratos</NavDropdown.Item>
               <NavDropdown.Item as={Link} to="/event/manage">Meus eventos</NavDropdown.Item>
               <NavDropdown.Item as={Link} to="/producer/sales"><i className="fa-solid fa-chart-line me-2" />Vendas</NavDropdown.Item>
               <NavDropdown.Item as={Link} to="/producer/finance"><i className="fa-solid fa-wallet me-2" />Financeiro</NavDropdown.Item>
               <NavDropdown.Item as={Link} to="/artist/manage">Artistas</NavDropdown.Item>
               <NavDropdown.Divider />
-              <NavDropdown.Item as={Link} to="/production/create">Nova produção</NavDropdown.Item>
+              <NavDropdown.Item as={Link} to="/establishment/create">Novo estabelecimento</NavDropdown.Item>
               <NavDropdown.Item as={Link} to="/event/create">Novo evento</NavDropdown.Item>
               <NavDropdown.Item as={Link} to="/ticket/create">Nova cortesia</NavDropdown.Item>
               <NavDropdown.Item as={Link} to="/checkin">Abrir portaria</NavDropdown.Item>
