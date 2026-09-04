@@ -27,12 +27,12 @@ const PasswordPage = lazy(() => import("./pages/auth/PasswordPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const UserEditPage = lazy(() => import("./pages/user/UserEditPage"));
 const UserProfilePage = lazy(() => import("./pages/user/UserProfilePage"));
-const ProductionCreatePage = lazy(() => import("./pages/production/ProductionCreatePage"));
-const ProductionMinePage = lazy(() => import("./pages/production/ProductionMinePage"));
-const ProductionViewPage = lazy(() => import("./pages/production/ProductionViewPage"));
-const ProductionPublicPage = lazy(() => import("./pages/production/ProductionPublicPage"));
-const ProductionUpdatePage = lazy(() => import("./pages/production/ProductionUpdatePage"));
-const ProductionFinancePage = lazy(() => import("./pages/production/ProductionFinancePage"));
+const EstablishmentCreatePage = lazy(() => import("./pages/production/ProductionCreatePage"));
+const EstablishmentMinePage = lazy(() => import("./pages/production/ProductionMinePage"));
+const EstablishmentViewPage = lazy(() => import("./pages/production/ProductionViewPage"));
+const EstablishmentPublicPage = lazy(() => import("./pages/production/ProductionPublicPage"));
+const EstablishmentUpdatePage = lazy(() => import("./pages/production/ProductionUpdatePage"));
+const EstablishmentFinancePage = lazy(() => import("./pages/production/ProductionFinancePage"));
 const ProducerContractsPage = lazy(() => import("./pages/production/ProducerContractsPage"));
 const ArtistListPage = lazy(() => import("./pages/artist/ArtistListPage"));
 const ArtistViewPage = lazy(() => import("./pages/artist/ArtistViewPage"));
@@ -109,15 +109,20 @@ function AppRoutes() {
             <Route path="/artist/:slug" element={<ArtistViewPage />} />
             <Route path="/artist/manage" element={protectedRoute(<ArtistManagePage />)} />
 
-            <Route path="/production/create" element={protectedRoute(<ProductionCreatePage />)} />
-            <Route path="/production/mine" element={protectedRoute(<ProductionMinePage />)} />
+            <Route path="/establishment/create" element={protectedRoute(<EstablishmentCreatePage />)} />
+            <Route path="/establishment/mine" element={protectedRoute(<EstablishmentMinePage />)} />
+            <Route path="/establishment/:slug/public" element={<EstablishmentPublicPage />} />
+            <Route path="/establishment/:id" element={protectedRoute(<EstablishmentViewPage />)} />
+            <Route path="/establishment/edit/:id" element={protectedRoute(<EstablishmentUpdatePage />)} />
             <Route path="/producer/contracts" element={protectedRoute(<ProducerContractsPage />)} />
-            <Route path="/producer/finance" element={protectedRoute(<ProductionFinancePage />)} />
+            <Route path="/producer/finance" element={protectedRoute(<EstablishmentFinancePage />)} />
             <Route path="/producer/sales" element={protectedRoute(<ProducerSalesPage />)} />
             <Route path="/producer/sales/:productionId/:publicId" element={protectedRoute(<ProducerSaleDetailPage />)} />
-            <Route path="/production/:slug/public" element={<ProductionPublicPage />} />
-            <Route path="/production/:id" element={protectedRoute(<ProductionViewPage />)} />
-            <Route path="/production/edit/:id" element={protectedRoute(<ProductionUpdatePage />)} />
+
+            {/* Bookmark redirects only; the canonical Cutinapp vocabulary is establishment. */}
+            <Route path="/production/create" element={<Navigate to="/establishment/create" replace />} />
+            <Route path="/production/mine" element={<Navigate to="/establishment/mine" replace />} />
+            <Route path="/production/:slug/public" element={<Navigate to={`/establishment/${location.pathname.split('/')[2]}/public`} replace />} />
 
             <Route path="/event" element={<EventPage />} />
             <Route path="/event/create" element={protectedRoute(<EventCreatePage />)} />
