@@ -15,7 +15,7 @@ export const detectAmbientProvider = (value = "") => {
     const url = new URL(value);
     const host = url.hostname.toLowerCase();
     if (host === "youtu.be" || host.endsWith("youtube.com") || host === "www.youtube-nocookie.com") return "youtube";
-    if (host === "open.spotify.com" || host === "spotify.link") return "spotify";
+    if (host === "open.spotify.com") return "spotify";
     if (url.protocol === "https:") return "audio";
   } catch (_) {}
   return null;
