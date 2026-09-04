@@ -26,9 +26,14 @@ export function AuthProvider({ children }) {
       setUser(currentUser);
       return currentUser;
     } catch (error) {
-      authService.clearToken();
-      setUser(null);
-      return null;
+      if (error?.status === 401) {
+        authService.clearToken();
+        setUser(null);
+        return null;
+      }
+
+      // Temporary network/server failures must not destroy a still-valid session token.
+      throw error;
     }
   }, []);
 
@@ -37,6 +42,10 @@ export function AuthProvider({ children }) {
     (async () => {
       try {
         if (active) await refreshUser();
+      } catch (error) {
+        if (process.env.NODE_ENV !== "production") {
+          console.warn("Unable to refresh Cutinapp session", error);
+        }
       } finally {
         if (active) setLoading(false);
       }
@@ -45,6 +54,19 @@ export function AuthProvider({ children }) {
       active = false;
     };
   }, [refreshUser]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+
+    const handleAuthInvalidated = () => {
+      authService.clearToken();
+      setUser(null);
+      setLoading(false);
+    };
+
+    window.addEventListener("petertecnet:auth-invalidated", handleAuthInvalidated);
+    return () => window.removeEventListener("petertecnet:auth-invalidated", handleAuthInvalidated);
+  }, []);
 
   const login = useCallback(async (email, password) => {
     await authService.login(email, password);
