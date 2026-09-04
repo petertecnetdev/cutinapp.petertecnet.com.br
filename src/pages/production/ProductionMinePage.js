@@ -12,6 +12,12 @@ const imageUrl = (path) => {
   return `${storageUrl}${String(path).replace(/^\//, "")}`;
 };
 
+const productionThemeStyle = (background) => (
+  background
+    ? { "--cut-production-card-bg": `url(${imageUrl(background)})` }
+    : undefined
+);
+
 const apiErrorMessage = (err, fallback) => (
   err?.response?.data?.message
   || err?.response?.data?.error
@@ -111,7 +117,7 @@ export default function ProductionMinePage() {
 
               return (
                 <Col md={6} xl={4} key={production.id}>
-                  <Card className="cut-production-card h-100">
+                  <Card className="cut-production-card cut-production-themed-card h-100" style={productionThemeStyle(production.background)}>
                     {production.background && (
                       <div className="cut-production-card__cover" style={{ backgroundImage: `url(${imageUrl(production.background)})` }} />
                     )}
