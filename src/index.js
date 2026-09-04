@@ -9,6 +9,7 @@ import "./styles/components.css";
 import "./styles/domains.css";
 import "./styles/community.css";
 import "./styles/social-network.css";
+import "./styles/social-feed.css";
 import "./styles/responsive.css";
 import "./styles/logo-theme.css";
 import "./styles/interactive-effects.css";
