@@ -13,6 +13,7 @@ import CutinappVisualEffects from "./components/CutinappVisualEffects";
 import PeterTecnetSignature from "./components/PeterTecnetSignature";
 import ProcessingIndicatorComponent from "./components/ProcessingIndicatorComponent";
 import SeoManager from "./components/SeoManager";
+import { hasContextRole } from "./utils/applicationRoles";
 
 const HomePage = lazy(() => import("./pages/HomePage"));
 const FeedPage = lazy(() => import("./pages/FeedPage"));
@@ -25,6 +26,8 @@ const LogoutPage = lazy(() => import("./pages/auth/LogoutPage"));
 const PasswordEmailPage = lazy(() => import("./pages/auth/PasswordEmailPage"));
 const PasswordPage = lazy(() => import("./pages/auth/PasswordPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
+const AcquisitionDashboardPage = lazy(() => import("./pages/acquisition/AcquisitionDashboardPage"));
+const AcquisitionActivationPage = lazy(() => import("./pages/acquisition/AcquisitionActivationPage"));
 const UserEditPage = lazy(() => import("./pages/user/UserEditPage"));
 const UserProfilePage = lazy(() => import("./pages/user/UserProfilePage"));
 const EstablishmentCreatePage = lazy(() => import("./pages/production/ProductionCreatePage"));
@@ -71,13 +74,24 @@ function AppRoutes() {
     return element;
   };
 
+  const acquisitionRoute = (element) => {
+    if (!user) {
+      const from = `${location.pathname}${location.search}${location.hash}`;
+      return <Navigate to="/login" state={{ from }} replace />;
+    }
+    if (!user.email_verified_at) return <Navigate to="/email-verify" replace />;
+    return hasContextRole(user, "acquisition_agent")
+      ? element
+      : <Navigate to="/dashboard" replace />;
+  };
+
   const verifyRoute = (element) => {
     if (!user) return <Navigate to="/login" replace />;
     return !user.email_verified_at ? element : <Navigate to="/dashboard" replace />;
   };
 
   const guestRoute = (element) => user ? <Navigate to="/dashboard" replace /> : element;
-  const shellOwnsSignature = location.pathname === "/" || ["/login", "/register", "/password-email", "/email-verify"].includes(location.pathname);
+  const shellOwnsSignature = location.pathname === "/" || ["/login", "/register", "/password-email", "/email-verify", "/agent/activate"].includes(location.pathname);
   const routeKey = `${location.pathname}${location.search}`;
 
   return (
@@ -95,8 +109,10 @@ function AppRoutes() {
             <Route path="/email-verify" element={verifyRoute(<EmailVerifyPage />)} />
             <Route path="/password" element={protectedRoute(<PasswordPage />)} />
             <Route path="/logout" element={<LogoutPage />} />
+            <Route path="/agent/activate" element={<AcquisitionActivationPage />} />
 
             <Route path="/dashboard" element={protectedRoute(<DashboardPage />)} />
+            <Route path="/agent" element={acquisitionRoute(<AcquisitionDashboardPage />)} />
             <Route path="/feed" element={protectedRoute(<FeedPage />)} />
             <Route path="/notifications" element={protectedRoute(<NotificationsPage />)} />
             <Route path="/moderation/reports" element={protectedRoute(<ReportModerationPage />)} />
