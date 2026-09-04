@@ -27,6 +27,7 @@ const cutinappService = {
   lookupCep: async (cep) => (await appApiClient.get(`/locations/cep/${String(cep).replace(/\D/g, "")}`)).data.address,
 
   profileOverview: async () => (await appApiClient.get("/profile/overview")).data,
+  publicProfile: async (userId) => (await appApiClient.get(`/users/${userId}/profile`)).data,
   myProductions: async () => unwrap((await appApiClient.get("/organizations/mine")).data.organizations),
   publicProductions: async (params = {}) => rename((await appApiClient.get("/organizations/public", { params })).data, "organizations", "productions"),
   getProduction: async (id) => (await appApiClient.get(`/organizations/${id}`)).data.organization,
@@ -48,8 +49,18 @@ const cutinappService = {
   deleteEventPost: async (postId) => (await appApiClient.delete(`/community/${postId}`)).data,
   likeEventPost: async (postId) => (await appApiClient.post(`/community/${postId}/like`)).data,
   unlikeEventPost: async (postId) => (await appApiClient.delete(`/community/${postId}/like`)).data,
+  recordEventPostView: async (postId) => (await appApiClient.post(`/community/${postId}/view`)).data,
+  eventPostViewers: async (postId) => (await appApiClient.get(`/community/${postId}/viewers`)).data,
   rateEvent: async (eventId, rating) => (await appApiClient.put(`/events/${eventId}/rating`, { rating })).data,
   reportEvent: async (eventId, payload) => (await appApiClient.post(`/events/${eventId}/report`, payload)).data,
+
+  socialPosts: async (params = {}) => (await appApiClient.get("/social/posts", { params })).data,
+  createSocialPost: async (payload) => (await appApiClient.post("/social/posts", payload)).data,
+  deleteSocialPost: async (postId) => (await appApiClient.delete(`/social/posts/${postId}`)).data,
+  likeSocialPost: async (postId) => (await appApiClient.post(`/social/posts/${postId}/like`)).data,
+  unlikeSocialPost: async (postId) => (await appApiClient.delete(`/social/posts/${postId}/like`)).data,
+  recordSocialPostView: async (postId) => (await appApiClient.post(`/social/posts/${postId}/view`)).data,
+  socialPostViewers: async (postId) => (await appApiClient.get(`/social/posts/${postId}/viewers`)).data,
 
   moderationReports: async (params = {}) => (await appApiClient.get("/moderation/reports", { params })).data,
   updateModerationReport: async (reportId, payload) => (await appApiClient.put(`/moderation/reports/${reportId}`, payload)).data,
