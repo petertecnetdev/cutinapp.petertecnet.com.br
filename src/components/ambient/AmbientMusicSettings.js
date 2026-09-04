@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Badge, Button, Card, Col, Form, Row, Spinner } from "react-bootstrap";
 import ambientMediaService from "../../services/AmbientMediaService";
 import { defaultAmbientMediaForm, detectAmbientProvider } from "../../utils/ambientMedia";
@@ -27,7 +27,7 @@ export default function AmbientMusicSettings({
   const [recommendationsLoading, setRecommendationsLoading] = useState(false);
   const [seed, setSeed] = useState(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const current = await ambientMediaService.manageMedia(subjectType, subjectId);
@@ -48,9 +48,9 @@ export default function AmbientMusicSettings({
     } finally {
       setLoading(false);
     }
-  };
+  }, [subjectType, subjectId]);
 
-  useEffect(() => { load(); }, [subjectType, subjectId]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); }, [load]);
 
   useEffect(() => {
     let active = true;
