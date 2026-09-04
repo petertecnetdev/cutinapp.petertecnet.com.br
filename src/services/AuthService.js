@@ -1,6 +1,7 @@
 import apiClient from "./ApiClient";
 
 const apiServiceUrl = "auth";
+const EMAIL_VERIFICATION_DEFERRED_TOKEN_KEY = "cutinapp_email_verification_deferred_token";
 
 const extractToken = (payload = {}) =>
   payload.token?.access_token ??
@@ -10,8 +11,14 @@ const extractToken = (payload = {}) =>
 
 const authService = {
   getToken: () => localStorage.getItem("token"),
-  setToken: (token) => localStorage.setItem("token", token),
-  clearToken: () => localStorage.removeItem("token"),
+  setToken: (token) => {
+    localStorage.removeItem(EMAIL_VERIFICATION_DEFERRED_TOKEN_KEY);
+    localStorage.setItem("token", token);
+  },
+  clearToken: () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem(EMAIL_VERIFICATION_DEFERRED_TOKEN_KEY);
+  },
 
   finishAuthentication: (payload) => {
     const token = extractToken(payload);
@@ -57,7 +64,26 @@ const authService = {
     const response = await apiClient.post(`/${apiServiceUrl}/email-verify`, {
       verification_code: String(verificationCode || "").trim(),
     });
+    localStorage.removeItem(EMAIL_VERIFICATION_DEFERRED_TOKEN_KEY);
     return response.data;
+  },
+
+  emailVerificationState: async () => {
+    const response = await apiClient.get(`/${apiServiceUrl}/email-verification-state`);
+    return response.data;
+  },
+
+  deferEmailVerification: async () => {
+    const response = await apiClient.post(`/${apiServiceUrl}/defer-email-verification`, {});
+    const token = authService.getToken();
+    if (token) localStorage.setItem(EMAIL_VERIFICATION_DEFERRED_TOKEN_KEY, token);
+    return response.data;
+  },
+
+  isEmailVerificationDeferredForCurrentSession: () => {
+    const token = authService.getToken();
+    if (!token) return false;
+    return localStorage.getItem(EMAIL_VERIFICATION_DEFERRED_TOKEN_KEY) === token;
   },
 
   changePassword: async (currentPassword, newPassword, confirmPassword) => {

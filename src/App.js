@@ -13,6 +13,7 @@ import CutinappVisualEffects from "./components/CutinappVisualEffects";
 import PeterTecnetSignature from "./components/PeterTecnetSignature";
 import ProcessingIndicatorComponent from "./components/ProcessingIndicatorComponent";
 import SeoManager from "./components/SeoManager";
+import authService from "./services/AuthService";
 import { hasContextRole } from "./utils/applicationRoles";
 
 const HomePage = lazy(() => import("./pages/HomePage"));
@@ -65,21 +66,29 @@ function AppRoutes() {
 
   if (loading) return <ProcessingIndicatorComponent label="Preparando Cutinapp" />;
 
+  const currentRoute = () => `${location.pathname}${location.search}${location.hash}`;
+  const canUseDeferredVerificationSession = () =>
+    authService.isEmailVerificationDeferredForCurrentSession();
+
   const protectedRoute = (element) => {
     if (!user) {
-      const from = `${location.pathname}${location.search}${location.hash}`;
+      const from = currentRoute();
       return <Navigate to="/login" state={{ from }} replace />;
     }
-    if (!user.email_verified_at) return <Navigate to="/email-verify" replace />;
+    if (!user.email_verified_at && !canUseDeferredVerificationSession()) {
+      return <Navigate to="/email-verify" state={{ from: currentRoute() }} replace />;
+    }
     return element;
   };
 
   const acquisitionRoute = (element) => {
     if (!user) {
-      const from = `${location.pathname}${location.search}${location.hash}`;
+      const from = currentRoute();
       return <Navigate to="/login" state={{ from }} replace />;
     }
-    if (!user.email_verified_at) return <Navigate to="/email-verify" replace />;
+    if (!user.email_verified_at && !canUseDeferredVerificationSession()) {
+      return <Navigate to="/email-verify" state={{ from: currentRoute() }} replace />;
+    }
     return hasContextRole(user, "acquisition_agent")
       ? element
       : <Navigate to="/dashboard" replace />;
