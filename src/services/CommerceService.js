@@ -1,8 +1,39 @@
 import appApiClient from "./AppApiClient";
 
+const pendingCheckouts = new Map();
+
+const checkoutRequestKey = (payload = {}) => JSON.stringify({
+  event_id: Number(payload.event_id || 0),
+  payment_method: String(payload.payment_method || ""),
+  tickets: (Array.isArray(payload.tickets) ? payload.tickets : []).map((item) => ({
+    id: Number(item?.id || 0),
+    quantity: Number(item?.quantity || 0),
+  })),
+  items: (Array.isArray(payload.items) ? payload.items : []).map((item) => ({
+    id: Number(item?.id || 0),
+    quantity: Number(item?.quantity || 0),
+  })),
+});
+
+const checkout = (payload) => {
+  const key = checkoutRequestKey(payload);
+  const pending = pendingCheckouts.get(key);
+  if (pending) return pending;
+
+  const request = appApiClient
+    .post("/commerce/checkout", payload)
+    .then((response) => response.data)
+    .finally(() => {
+      if (pendingCheckouts.get(key) === request) pendingCheckouts.delete(key);
+    });
+
+  pendingCheckouts.set(key, request);
+  return request;
+};
+
 const commerceService = {
   catalog: async (slug) => (await appApiClient.get(`/events/public/${slug}/commerce`)).data,
-  checkout: async (payload) => (await appApiClient.post("/commerce/checkout", payload)).data,
+  checkout,
   myOrders: async (params = {}) => (await appApiClient.get("/commerce/orders/mine", { params })).data,
   order: async (publicId) => (await appApiClient.get(`/commerce/orders/${publicId}`)).data.order,
   syncPayment: async (publicId) => (await appApiClient.post(`/commerce/orders/${publicId}/sync-payment`)).data.order,
