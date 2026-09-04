@@ -17,7 +17,9 @@ export const detectAmbientProvider = (value = "") => {
     if (host === "youtu.be" || host.endsWith("youtube.com") || host === "www.youtube-nocookie.com") return "youtube";
     if (host === "open.spotify.com") return "spotify";
     if (url.protocol === "https:") return "audio";
-  } catch (_) {}
+  } catch (_) {
+    return null;
+  }
   return null;
 };
 
