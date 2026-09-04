@@ -1,16 +1,4 @@
-export const copyText = async (value) => {
-  const text = String(value ?? "");
-  if (!text) return false;
-
-  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-    try {
-      await navigator.clipboard.writeText(text);
-      return true;
-    } catch (_) {
-      // Fallback below covers browsers/contexts where Clipboard API is denied.
-    }
-  }
-
+const fallbackCopyText = (text) => {
   if (typeof document === "undefined" || !document.body) return false;
 
   const textarea = document.createElement("textarea");
@@ -35,6 +23,63 @@ export const copyText = async (value) => {
   }
 
   return copied;
+};
+
+export const copyText = async (value) => {
+  const text = String(value ?? "");
+  if (!text) return false;
+
+  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (_) {
+      // Fallback below covers browsers/contexts where Clipboard API is denied.
+    }
+  }
+
+  return fallbackCopyText(text);
+};
+
+export const installClipboardFallback = () => {
+  if (typeof navigator === "undefined") return;
+
+  const clipboard = navigator.clipboard;
+  const nativeWriteText = clipboard?.writeText?.bind(clipboard);
+  const resilientWriteText = async (value) => {
+    const text = String(value ?? "");
+    if (!text) return;
+
+    if (nativeWriteText) {
+      try {
+        await nativeWriteText(text);
+        return;
+      } catch (_) {
+        // Some mobile/webview contexts expose Clipboard API but deny it at runtime.
+      }
+    }
+
+    if (!fallbackCopyText(text)) {
+      throw new Error("Não foi possível copiar o conteúdo neste navegador.");
+    }
+  };
+
+  try {
+    if (clipboard) {
+      Object.defineProperty(clipboard, "writeText", {
+        configurable: true,
+        value: resilientWriteText,
+      });
+      return;
+    }
+
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: resilientWriteText },
+    });
+  } catch (_) {
+    // Browsers may expose readonly navigator properties; callers can still use copyText directly.
+  }
 };
 
 export default copyText;
