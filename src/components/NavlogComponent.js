@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import cutinappService from "../services/CutinappService";
 import { subscribeToUserNotifications } from "../services/RealtimeNotificationService";
+import { hasContextRole } from "../utils/applicationRoles";
 import { safeNavigationTarget } from "../utils/safeUrl";
 
 const notificationIcon = (type = "") => {
@@ -18,7 +19,6 @@ const notificationTime = (value) => {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-
   try {
     return new Intl.DateTimeFormat("pt-BR", {
       day: "2-digit",
@@ -44,6 +44,7 @@ export default function NavlogComponent() {
   const active = (prefix) => location.pathname.startsWith(prefix);
   const closeMenu = () => setOpen(false);
   const isAdmin = user?.profile?.name === "Administrador" || user?.profile_name === "Administrador";
+  const isAcquisitionAgent = hasContextRole(user, "acquisition_agent");
 
   useEffect(() => {
     if (!userId) {
@@ -55,7 +56,6 @@ export default function NavlogComponent() {
     let mounted = true;
     const refreshNotifications = async () => {
       if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
-
       try {
         const response = await cutinappService.notifications({ per_page: 6 });
         if (!mounted) return;
@@ -71,7 +71,6 @@ export default function NavlogComponent() {
     };
 
     refreshNotifications();
-
     const disconnectRealtime = subscribeToUserNotifications(userId, (notification) => {
       if (!mounted) return;
       if (!notification?.read_at) setUnreadNotifications((current) => current + 1);
@@ -141,7 +140,6 @@ export default function NavlogComponent() {
       window.location.assign(target.value);
       return;
     }
-
     navigate("/notifications");
   };
 
@@ -167,6 +165,7 @@ export default function NavlogComponent() {
             <Nav.Link as={Link} to="/artists" className={active("/artist") ? "active" : ""}><i className="fa-solid fa-music" /> Artistas</Nav.Link>
             <Nav.Link as={Link} to="/passes" className={active("/passes") ? "active" : ""}><i className="fa-solid fa-ticket" /> Ingressos</Nav.Link>
             <Nav.Link as={Link} to="/purchases" className={active("/purchases") ? "active" : ""}><i className="fa-solid fa-receipt" /> Compras</Nav.Link>
+            {isAcquisitionAgent && <Nav.Link as={Link} to="/agent" className={active("/agent") ? "active" : ""}><i className="fa-solid fa-user-tie" /> Agente</Nav.Link>}
             <NavDropdown align="end" title={notificationToggle} id="cut-notifications-menu" className={`cut-nav-notification-menu ${active("/notifications") ? "active" : ""}`}>
               <div className="cut-notification-popover">
                 <div className="cut-notification-popover__head"><strong>Notificações</strong>{unreadNotifications > 0 && <span>{unreadNotifications} nova{unreadNotifications === 1 ? "" : "s"}</span>}</div>
@@ -194,6 +193,7 @@ export default function NavlogComponent() {
             <NavDropdown align="end" title={<span className="cut-navbar__user"><span className="cut-navbar__avatar">{String(user.first_name || "C").slice(0, 2).toUpperCase()}</span><span><strong>{user.first_name || "Minha conta"}</strong><small>{user.email}</small></span></span>} id="cut-account-menu">
               <NavDropdown.Item as={Link} to="/profile"><i className="fa-regular fa-user me-2" />Meu perfil</NavDropdown.Item>
               <NavDropdown.Item as={Link} to="/dashboard">Painel</NavDropdown.Item>
+              {isAcquisitionAgent && <NavDropdown.Item as={Link} to="/agent"><i className="fa-solid fa-user-tie me-2" />Painel do agente</NavDropdown.Item>}
               <NavDropdown.Item as={Link} to="/purchases"><i className="fa-solid fa-receipt me-2" />Minhas compras</NavDropdown.Item>
               <NavDropdown.Item as={Link} to="/user/edit">Editar conta</NavDropdown.Item>
               {isAdmin && <><NavDropdown.Divider /><NavDropdown.Item as={Link} to="/moderation/reports"><i className="fa-solid fa-shield-halved me-2" />Moderação</NavDropdown.Item></>}
