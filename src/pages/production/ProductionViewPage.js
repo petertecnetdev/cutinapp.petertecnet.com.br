@@ -32,36 +32,59 @@ export default function ProductionViewPage() {
     return () => { active = false; };
   }, [id]);
 
+  const heroStyle = production?.background
+    ? {
+        backgroundImage: `linear-gradient(90deg, rgba(2,8,13,.94) 0%, rgba(2,8,13,.7) 48%, rgba(2,8,13,.32) 100%), linear-gradient(180deg, rgba(2,8,13,.08), rgba(2,8,13,.92)), url(${imageUrl(production.background)})`,
+      }
+    : undefined;
+
   return (
     <div className="cut-app-page">
       <NavlogComponent />
       {loading && <ProcessingIndicatorComponent label="Abrindo produção" />}
-      <Container className="cut-page-container py-4 py-lg-5">
+
+      <Container className="cut-page-container pt-4">
         {location.state?.created && (
           <Alert variant="success">Produção criada e persistida com sucesso. Confira os dados abaixo antes de criar o evento.</Alert>
         )}
         {error && <Alert variant="danger">{error}</Alert>}
+      </Container>
 
-        {!loading && production && (
-          <>
-            <div className="cut-page-heading">
-              <div>
-                <span className="cut-eyebrow">Produção Cutinapp</span>
-                <h1>{production.name}</h1>
-                <p>{production.description || "Organização responsável pelos eventos."}</p>
+      {!loading && production && (
+        <>
+          <section className="cut-profile-hero" style={heroStyle}>
+            <Container className="cut-page-container">
+              <div className="cut-profile-hero__content">
+                <div className="cut-profile-avatar cut-profile-avatar--square">
+                  {production.logo ? (
+                    <img src={imageUrl(production.logo)} alt={`Logo de ${production.name}`} />
+                  ) : (
+                    <span>{String(production.name || "P").slice(0, 2).toUpperCase()}</span>
+                  )}
+                </div>
+
+                <div>
+                  <span className="cut-eyebrow">Produção Cutinapp</span>
+                  <h1>{production.name}</h1>
+                  <p>{production.description || "Organização responsável pelos eventos."}</p>
+                  <div className="cut-social-stats">
+                    <span>{production.events_count || 0} eventos</span>
+                    {[production.city, production.uf].filter(Boolean).length > 0 && (
+                      <span>{[production.city, production.uf].filter(Boolean).join(" / ")}</span>
+                    )}
+                  </div>
+                  <div className="cut-card-actions mt-3">
+                    <Button variant="outline-light" onClick={() => navigate("/production/mine")}>Minhas produções</Button>
+                    <Button variant="outline-light" onClick={() => navigate(`/production/edit/${production.id}`)}>Editar</Button>
+                    <Button onClick={() => navigate(`/event/create?productionId=${production.id}`)}>Criar evento</Button>
+                  </div>
+                </div>
               </div>
-              <div className="cut-card-actions">
-                <Button variant="outline-light" onClick={() => navigate("/production/mine")}>Minhas produções</Button>
-                <Button variant="outline-light" onClick={() => navigate(`/production/edit/${production.id}`)}>Editar</Button>
-                <Button onClick={() => navigate(`/event/create?productionId=${production.id}`)}>Criar evento</Button>
-              </div>
-            </div>
+            </Container>
+          </section>
 
-            {production.background && (
-              <div className="cut-production-detail__cover" style={{ backgroundImage: `url(${imageUrl(production.background)})` }} />
-            )}
-
-            <Row className="g-4 mt-1">
+          <Container className="cut-page-container py-4 py-lg-5">
+            <Row className="g-4">
               <Col lg={4}>
                 <Card className="cut-panel h-100"><Card.Body className="p-4">
                   <div className="d-flex align-items-center gap-3 mb-4">
@@ -91,9 +114,9 @@ export default function ProductionViewPage() {
                 </Card.Body></Card>
               </Col>
             </Row>
-          </>
-        )}
-      </Container>
+          </Container>
+        </>
+      )}
     </div>
   );
 }
