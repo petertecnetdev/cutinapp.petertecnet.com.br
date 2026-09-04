@@ -8,6 +8,7 @@ import {
 } from "react-router-dom";
 import { AuthContext } from "./context/AuthContext";
 import AppErrorBoundary from "./components/AppErrorBoundary";
+import ConnectionStatus from "./components/ConnectionStatus";
 import CutinappVisualEffects from "./components/CutinappVisualEffects";
 import PeterTecnetSignature from "./components/PeterTecnetSignature";
 import ProcessingIndicatorComponent from "./components/ProcessingIndicatorComponent";
@@ -81,6 +82,7 @@ function AppRoutes() {
 
   return (
     <>
+      <ConnectionStatus />
       <CutinappVisualEffects />
       <AppErrorBoundary resetKey={routeKey}>
         <Suspense fallback={<ProcessingIndicatorComponent label="Carregando página" />}>
