@@ -8,18 +8,10 @@ const rename = (data, from, to) => {
   return result;
 };
 
-// Product UI facade. Every request below consumes a reusable capability from
-// /api/v1/apps/{application}; product-specific backend URLs are intentionally
-// absent. Small response aliases keep the current UI stable during vocabulary
-// migration from "production" to the generic "organization" domain.
 const cutinappService = {
   publicConfig: async () => {
     const data = (await appApiClient.get("/config")).data;
-    return {
-      ...data,
-      app: data?.application?.slug || null,
-      app_id: data?.application?.id || null,
-    };
+    return { ...data, app: data?.application?.slug || null, app_id: data?.application?.id || null };
   },
   discoveryFacets: async () => (await appApiClient.get("/events/facets")).data,
   locationStates: async () => (await appApiClient.get("/locations/states")).data.states || [],
@@ -27,6 +19,16 @@ const cutinappService = {
   lookupCep: async (cep) => (await appApiClient.get(`/locations/cep/${String(cep).replace(/\D/g, "")}`)).data.address,
 
   profileOverview: async () => (await appApiClient.get("/profile/overview")).data,
+  myEstablishments: async () => unwrap((await appApiClient.get("/organizations/mine")).data.organizations),
+  publicEstablishments: async (params = {}) => (await appApiClient.get("/organizations/public", { params })).data,
+  getEstablishment: async (id) => (await appApiClient.get(`/organizations/${id}`)).data.organization,
+  publicEstablishment: async (slug) => (await appApiClient.get(`/organizations/public/${slug}`)).data,
+  createEstablishment: async (formData) => (await appApiClient.post("/organizations", formData)).data,
+  updateEstablishment: async (id, formData) => (await appApiClient.patch(`/organizations/${id}`, formData)).data,
+  deleteEstablishment: async (id) => (await appApiClient.delete(`/organizations/${id}`)).data,
+
+  // Rolling-deploy compatibility aliases. They no longer map to a Production
+  // entity; every operation above and below persists Establishment(type=production).
   myProductions: async () => unwrap((await appApiClient.get("/organizations/mine")).data.organizations),
   publicProductions: async (params = {}) => rename((await appApiClient.get("/organizations/public", { params })).data, "organizations", "productions"),
   getProduction: async (id) => (await appApiClient.get(`/organizations/${id}`)).data.organization,
@@ -34,6 +36,7 @@ const cutinappService = {
   createProduction: async (formData) => rename((await appApiClient.post("/organizations", formData)).data, "organization", "production"),
   updateProduction: async (id, formData) => rename((await appApiClient.patch(`/organizations/${id}`, formData)).data, "organization", "production"),
   deleteProduction: async (id) => (await appApiClient.delete(`/organizations/${id}`)).data,
+
   producerContract: async (organizationId) => (await appApiClient.get(`/organizations/${organizationId}/agreement`)).data.contract,
   signProducerContract: async (organizationId, payload) => (await appApiClient.post(`/organizations/${organizationId}/agreement/sign`, payload)).data,
   resendProducerContract: async (organizationId) => (await appApiClient.post(`/organizations/${organizationId}/agreement/resend`)).data,
@@ -69,8 +72,8 @@ const cutinappService = {
   eventArtists: async (eventId) => (await appApiClient.get(`/events/${eventId}/artists`)).data,
   attachArtist: async (eventId, payload) => (await appApiClient.post(`/events/${eventId}/artists`, payload)).data,
   detachArtist: async (eventId, artistId) => (await appApiClient.delete(`/events/${eventId}/artists/${artistId}`)).data,
-  follow: async (targetType, targetId) => (await appApiClient.post("/social/follow", { target_type: targetType, target_id: targetId })).data,
-  unfollow: async (targetType, targetId) => (await appApiClient.delete("/social/follow", { data: { target_type: targetType, target_id: targetId } })).data,
+  follow: async (targetType, targetId) => (await appApiClient.post("/social/follow", { target_type: targetType === "production" ? "establishment" : targetType, target_id: targetId })).data,
+  unfollow: async (targetType, targetId) => (await appApiClient.delete("/social/follow", { data: { target_type: targetType === "production" ? "establishment" : targetType, target_id: targetId } })).data,
   preferences: async () => (await appApiClient.get("/social/preferences")).data.preferences,
   savePreferences: async (payload) => (await appApiClient.put("/social/preferences", payload)).data,
   engagement: async (eventId, payload) => (await appApiClient.put(`/events/${eventId}/engagement`, payload)).data,
