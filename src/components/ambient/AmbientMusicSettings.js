@@ -88,6 +88,13 @@ export default function AmbientMusicSettings({
     setError("");
   };
 
+  const preventParentSubmit = (event) => {
+    if (event.key === "Enter" && ["INPUT", "SELECT"].includes(event.target?.tagName)) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  };
+
   const canSave = useMemo(() => /^https:\/\//i.test(form.source_url.trim()) && !saving, [form.source_url, saving]);
 
   const save = async () => {
@@ -108,7 +115,7 @@ export default function AmbientMusicSettings({
       }));
       setSuccess(response.message || "Trilha salva.");
     } catch (err) {
-      const validationMessage = Object.values(err?.errors || {})?.flat?.()?.[0];
+      const validationMessage = Object.values(err?.errors || {}).flat()[0];
       setError(validationMessage || err?.message || "Não foi possível salvar a trilha.");
     } finally {
       setSaving(false);
@@ -134,7 +141,7 @@ export default function AmbientMusicSettings({
   if (loading) return <Card className="cut-panel cut-music-settings"><Card.Body className="p-4 text-center"><Spinner size="sm" className="me-2" />Carregando trilha...</Card.Body></Card>;
 
   return (
-    <Card className="cut-panel cut-music-settings">
+    <Card className="cut-panel cut-music-settings" onKeyDown={preventParentSubmit}>
       <Card.Body className="p-4 p-lg-5">
         <div className="cut-music-settings__heading">
           <div>
@@ -168,7 +175,7 @@ export default function AmbientMusicSettings({
             <Form.Group>
               <Form.Label>Link da música ou playlist</Form.Label>
               <Form.Control type="url" name="source_url" value={form.source_url} onChange={changeUrl} placeholder={form.provider === "youtube" ? "https://www.youtube.com/watch?v=..." : form.provider === "spotify" ? "https://open.spotify.com/track/..." : "https://cdn.seudominio.com/musica.mp3"} />
-              <Form.Text>Somente HTTPS. O provedor é reconhecido automaticamente ao colar o link.</Form.Text>
+              <Form.Text>Somente HTTPS. Para Spotify, use o link completo de open.spotify.com. O provedor é reconhecido automaticamente.</Form.Text>
             </Form.Group>
           </Col>
           <Col md={6}><Form.Group><Form.Label>Título opcional</Form.Label><Form.Control name="title" value={form.title} onChange={change} placeholder="A API tenta identificar automaticamente" /></Form.Group></Col>
