@@ -12,6 +12,7 @@ import "./styles/social-network.css";
 import "./styles/responsive.css";
 import "./styles/logo-theme.css";
 import "./styles/interactive-effects.css";
+import "./styles/error-boundary.css";
 import "./pages/HomeDiscovery.css";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
