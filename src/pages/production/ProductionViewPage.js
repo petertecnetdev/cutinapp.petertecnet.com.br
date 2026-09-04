@@ -12,6 +12,12 @@ const imageUrl = (path) => {
   return `${storageUrl}${String(path).replace(/^\//, "")}`;
 };
 
+const productionThemeStyle = (background) => (
+  background
+    ? { "--cut-production-card-bg": `url(${imageUrl(background)})` }
+    : undefined
+);
+
 export default function ProductionViewPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -86,7 +92,7 @@ export default function ProductionViewPage() {
           <Container className="cut-page-container py-4 py-lg-5">
             <Row className="g-4">
               <Col lg={4}>
-                <Card className="cut-panel h-100"><Card.Body className="p-4">
+                <Card className="cut-panel cut-production-themed-card h-100" style={productionThemeStyle(production.background)}><Card.Body className="p-4">
                   <div className="d-flex align-items-center gap-3 mb-4">
                     {production.logo ? (
                       <img src={imageUrl(production.logo)} alt="" className="cut-production-card__logo" />
@@ -103,7 +109,7 @@ export default function ProductionViewPage() {
                 </Card.Body></Card>
               </Col>
               <Col lg={8}>
-                <Card className="cut-panel h-100"><Card.Body className="p-4">
+                <Card className="cut-panel cut-production-themed-card h-100" style={productionThemeStyle(production.background)}><Card.Body className="p-4">
                   <h2 className="cut-section-title">Dados persistidos</h2>
                   <div className="cut-detail-list">
                     <div><span>Endereço</span><strong>{production.address || "Não informado"}</strong></div>
