@@ -33,6 +33,7 @@ const dateLabel = (value) => {
   return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(date);
 };
 const errorMessage = (error) => error?.response?.data?.message || error?.response?.data?.error || "Não foi possível concluir a operação.";
+const referralStatusLabel = (status) => ({ accepted: "Ativado", pending: "Pendente", expired: "Expirado", revoked: "Revogado" }[status] || status);
 
 export default function AcquisitionDashboardPage() {
   const [dashboard, setDashboard] = useState(null);
@@ -227,9 +228,9 @@ export default function AcquisitionDashboardPage() {
                 {(dashboard?.recent_referrals || []).map((referral) => (
                   <article key={referral.id}>
                     <div><strong>{referral.production?.name || referral.name || referral.email}</strong><small>{referral.email}</small></div>
-                    <span className={`acq-status acq-status--${referral.status}`}>{referral.status === "accepted" ? "Ativado" : referral.status === "pending" ? "Pendente" : referral.status}</span>
+                    <span className={`acq-status acq-status--${referral.status}`}>{referralStatusLabel(referral.status)}</span>
                     <small>{referral.commissions_count || 0} evento(s) · {dateLabel(referral.created_at)}</small>
-                    {referral.status === "pending" && <button type="button" className="acq-link" onClick={() => resend(referral.id)}>Reenviar convite</button>}
+                    {["pending", "expired"].includes(referral.status) && <button type="button" className="acq-link" onClick={() => resend(referral.id)}>{referral.status === "expired" ? "Gerar novo convite" : "Reenviar convite"}</button>}
                   </article>
                 ))}
               </div>
@@ -243,7 +244,8 @@ export default function AcquisitionDashboardPage() {
                   <article key={row.id}>
                     <div className="acq-commission-title"><strong>{row.event?.title || `Evento #${row.event_id}`}</strong><small>{row.event?.production?.name}</small></div>
                     <div className="acq-commission-numbers"><span>{money(row.gross_sales)} vendidos</span><strong>{money(row.commission_amount)}</strong></div>
-                    <div className="acq-commission-edit"><input type="number" min="0" max="100" step="0.01" value={commissionDrafts[row.event_id] ?? row.percentage} onChange={(e) => setCommissionDrafts((current) => ({ ...current, [row.event_id]: e.target.value }))} /><span>%</span><button type="button" onClick={() => saveCommission(row.event_id)}>Salvar</button></div>
+                    <div className={`acq-commission-edit${row.commission_locked ? " acq-commission-edit--locked" : ""}`}><input type="number" min="0" max="100" step="0.01" value={commissionDrafts[row.event_id] ?? row.percentage} disabled={row.commission_locked} aria-label={`Comissão de ${row.event?.title || `evento ${row.event_id}`}`} onChange={(e) => setCommissionDrafts((current) => ({ ...current, [row.event_id]: e.target.value }))} /><span>%</span><button type="button" disabled={row.commission_locked} onClick={() => saveCommission(row.event_id)}>{row.commission_locked ? "Bloqueada" : "Salvar"}</button></div>
+                    {row.commission_locked && <small className="acq-commission-lock-note">Percentual protegido após a primeira venda paga.</small>}
                   </article>
                 ))}
               </div>
