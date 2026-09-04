@@ -21,6 +21,81 @@
   .cut-production-inline { align-items: flex-start; flex-direction: column; }
   .cut-form-actions { justify-content: stretch; }
   .cut-form-actions .btn { flex: 1; }
+
+  .cut-navbar .navbar-collapse {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 1450;
+    width: min(88vw, 360px);
+    height: 100dvh;
+    padding: 84px 18px 24px;
+    display: block !important;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: linear-gradient(180deg, rgba(8,18,28,.995), rgba(5,12,20,.995));
+    border-right: 1px solid rgba(86,220,233,.14);
+    box-shadow: 28px 0 80px rgba(0,0,0,.52);
+    transform: translateX(-105%);
+    transition: transform .24s ease;
+  }
+
+  .cut-navbar .navbar-collapse.show,
+  .cut-navbar .navbar-collapse.collapsing { transform: translateX(0); }
+  .cut-navbar .navbar-collapse.collapsing { height: 100dvh !important; transition: transform .24s ease; }
+
+  .cut-navbar__links {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    gap: 6px;
+  }
+
+  .cut-navbar__links .nav-link,
+  .cut-navbar__links .dropdown-toggle {
+    min-height: 50px;
+    display: flex !important;
+    align-items: center;
+    gap: 11px;
+    border-radius: 14px;
+    padding: 0 13px !important;
+    background: rgba(255,255,255,.015);
+  }
+
+  .cut-navbar__links .dropdown-menu,
+  .cut-navbar__account .dropdown-menu {
+    position: static !important;
+    transform: none !important;
+    margin: 5px 0 8px !important;
+    border-radius: 14px;
+    background: rgba(255,255,255,.025);
+    box-shadow: none;
+  }
+
+  .cut-navbar__account {
+    margin-top: 12px;
+    padding-top: 14px !important;
+    border-top: 1px solid rgba(255,255,255,.06);
+  }
+
+  .cut-navbar .navbar-toggler {
+    position: relative;
+    z-index: 1500;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+  }
+
+  .cut-navbar:has(.navbar-collapse.show)::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 1400;
+    background: rgba(0,7,12,.64);
+    backdrop-filter: blur(4px);
+    pointer-events: none;
+  }
 }
 
 @media (max-width: 767px) {
