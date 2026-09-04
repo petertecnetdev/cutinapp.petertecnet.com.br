@@ -72,7 +72,13 @@ const authService = {
   me: async () => {
     if (!authService.getToken()) throw new Error("Usuário não autenticado.");
     const response = await apiClient.get(`/${apiServiceUrl}/me`);
-    return response.data?.user ?? response.data;
+    const payload = response.data || {};
+    const user = payload.user ?? payload;
+    return {
+      ...user,
+      applications: payload.applications ?? user?.applications ?? [],
+      establishments: payload.establishments ?? user?.establishments ?? [],
+    };
   },
 
   passwordEmail: async (email) => {
