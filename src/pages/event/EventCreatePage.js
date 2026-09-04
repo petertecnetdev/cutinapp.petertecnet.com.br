@@ -56,11 +56,37 @@ const firstError = (errors, field) => {
   return typeof value === "string" ? value : "";
 };
 
+const productionAddress = (production) => {
+  if (!production) return "";
+  if (production.formatted_address) return production.formatted_address;
+
+  const street = [production.address, production.address_number]
+    .filter((value) => String(value || "").trim())
+    .join(", ");
+  const details = [production.neighborhood, production.address_complement]
+    .filter((value) => String(value || "").trim())
+    .join(" - ");
+
+  return [street, details].filter(Boolean).join(" · ") || production.location || "";
+};
+
+const priceLabel = (value) => {
+  const price = Number(value);
+  if (!Number.isFinite(price)) return "";
+  return price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+};
+
 export default function EventCreatePage() {
   const navigate = useNavigate();
   const location = useLocation();
   const [form, setForm] = useState(createInitialForm);
   const [productions, setProductions] = useState([]);
+  const [productionItems, setProductionItems] = useState([]);
+  const [useProductionItems, setUseProductionItems] = useState(false);
+  const [productionTemplateApplied, setProductionTemplateApplied] = useState(false);
+  const [loadingProductionData, setLoadingProductionData] = useState(false);
+  const [loadingProductionItems, setLoadingProductionItems] = useState(false);
+  const [itemLoadError, setItemLoadError] = useState("");
   const [preview, setPreview] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingProductions, setLoadingProductions] = useState(true);
@@ -86,6 +112,34 @@ export default function EventCreatePage() {
 
     return () => { active = false; };
   }, [location.search]);
+
+  useEffect(() => {
+    if (!form.production_id) {
+      setProductionItems([]);
+      setUseProductionItems(false);
+      setItemLoadError("");
+      return undefined;
+    }
+
+    let active = true;
+    setLoadingProductionItems(true);
+    setItemLoadError("");
+
+    cutinappService.productionItems(form.production_id)
+      .then((items) => {
+        if (!active) return;
+        setProductionItems(items.filter((item) => item?.status === undefined || Boolean(item.status)));
+      })
+      .catch((err) => {
+        if (!active) return;
+        setProductionItems([]);
+        setUseProductionItems(false);
+        setItemLoadError(err?.message || "Não foi possível consultar os itens desta produção.");
+      })
+      .finally(() => active && setLoadingProductionItems(false));
+
+    return () => { active = false; };
+  }, [form.production_id]);
 
   useEffect(() => () => {
     if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
@@ -125,6 +179,11 @@ export default function EventCreatePage() {
     const { name, value } = event.target;
     const normalized = name === "uf" ? value.toUpperCase().slice(0, 2) : value;
 
+    if (name === "production_id") {
+      setProductionTemplateApplied(false);
+      setUseProductionItems(false);
+    }
+
     setForm((current) => {
       const next = { ...current, [name]: normalized };
       if (name === "start_date" && normalized) {
@@ -142,6 +201,47 @@ export default function EventCreatePage() {
       delete next[name];
       return next;
     });
+  };
+
+  const applyProductionData = async () => {
+    if (!form.production_id || loadingProductionData) return;
+
+    setLoadingProductionData(true);
+    setError("");
+    try {
+      const fallback = productions.find((item) => String(item.id) === String(form.production_id));
+      let production = fallback;
+      try {
+        production = await cutinappService.getProduction(form.production_id);
+      } catch (fetchError) {
+        if (!fallback) throw fetchError;
+      }
+
+      setForm((current) => ({
+        ...current,
+        title: production?.name || current.title,
+        description: production?.description || current.description,
+        venue: production?.fantasy || production?.name || current.venue,
+        address: productionAddress(production) || current.address,
+        google_maps_url: production?.google_maps_url || current.google_maps_url,
+        city: production?.city || current.city,
+        uf: String(production?.uf || current.uf || "").toUpperCase().slice(0, 2),
+        max_attendees: production?.capacity || current.max_attendees,
+        contact_email: production?.contact_email || production?.email || current.contact_email,
+        contact_phone: production?.contact_phone || production?.phone || current.contact_phone,
+      }));
+
+      setFieldErrors((current) => {
+        const next = { ...current };
+        ["title", "description", "venue", "address", "google_maps_url", "city", "uf", "max_attendees", "contact_email", "contact_phone"].forEach((field) => delete next[field]);
+        return next;
+      });
+      setProductionTemplateApplied(true);
+    } catch (err) {
+      setError(err?.message || "Não foi possível usar os dados da produção neste evento.");
+    } finally {
+      setLoadingProductionData(false);
+    }
   };
 
   const chooseImage = (event) => {
@@ -174,6 +274,7 @@ export default function EventCreatePage() {
       Object.entries(form).forEach(([key, value]) => {
         if (value !== null && String(value).trim() !== "") payload.append(key, value);
       });
+      payload.append("use_production_items", useProductionItems ? "1" : "0");
 
       const response = await eventService.store(payload);
       const eventId = Number(response?.event?.id || 0);
@@ -189,6 +290,7 @@ export default function EventCreatePage() {
   };
 
   const invalid = (field, local = false) => Boolean(local || firstError(fieldErrors, field));
+  const selectedProduction = productions.find((item) => String(item.id) === String(form.production_id));
 
   return (
     <div className="cut-app-page">
@@ -196,7 +298,7 @@ export default function EventCreatePage() {
       {(loading || loadingProductions) && <ProcessingIndicatorComponent label={loading ? "Criando evento" : "Carregando produções"} />}
 
       <Container className="cut-page-container py-4 py-lg-5">
-        <div className="cut-page-heading"><div><span className="cut-eyebrow">Área do produtor</span><h1>Novo evento</h1><p>O evento nasce como rascunho. A data inicial já vem preparada para amanhã, porque eventos não podem ser cadastrados para o mesmo dia.</p></div></div>
+        <div className="cut-page-heading"><div><span className="cut-eyebrow">Área do produtor</span><h1>Novo evento</h1><p>Escolha a produção e reaproveite os dados que já estão cadastrados. Depois, altere somente o que for diferente neste evento.</p></div></div>
         {error && <Alert variant="danger">{error}</Alert>}
 
         {!loadingProductions && productions.length === 0 ? (
@@ -206,6 +308,9 @@ export default function EventCreatePage() {
             <Row className="g-4">
               <Col lg={8}><Card className="cut-panel h-100"><Card.Body className="p-4 p-lg-5"><h2 className="cut-section-title">Informações do evento</h2><Row className="g-3">
                 <Col xs={12}><Form.Group><Form.Label>Produção *</Form.Label><Form.Select name="production_id" value={form.production_id} onChange={change} isInvalid={invalid("production_id", requiredInvalid.production_id)}><option value="">Selecione</option>{productions.map((production) => <option key={production.id} value={production.id}>{production.name}</option>)}</Form.Select><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "production_id") || "Selecione a produção responsável."}</Form.Control.Feedback></Form.Group></Col>
+
+                {form.production_id && <Col xs={12}><div className="cut-info-box d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3"><div><strong>{productionTemplateApplied ? "Dados da produção aplicados" : "Cadastro rápido"}</strong><span>{productionTemplateApplied ? "Os campos continuam editáveis. Mude apenas o que for diferente neste evento." : `Use nome, descrição, local, endereço e contato de ${selectedProduction?.name || "sua produção"} como ponto de partida.`}</span></div><Button type="button" variant={productionTemplateApplied ? "outline-light" : "primary"} disabled={loadingProductionData} onClick={applyProductionData}>{loadingProductionData ? "Carregando..." : productionTemplateApplied ? "Aplicar novamente" : "Usar dados da produção"}</Button></div></Col>}
+
                 <Col xs={12}><Form.Group><Form.Label>Nome do evento *</Form.Label><Form.Control name="title" value={form.title} onChange={change} placeholder="Ex.: Noite de Lançamento" isInvalid={invalid("title", requiredInvalid.title)} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "title") || "Informe o nome do evento."}</Form.Control.Feedback></Form.Group></Col>
                 <Col xs={12}><Form.Group><Form.Label>Descrição *</Form.Label><Form.Control as="textarea" rows={5} name="description" value={form.description} onChange={change} isInvalid={invalid("description", requiredInvalid.description)} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "description") || "Descreva o evento."}</Form.Control.Feedback></Form.Group></Col>
                 <Col md={6}><Form.Group><Form.Label>Início *</Form.Label><Form.Control type="datetime-local" min={minStart} name="start_date" value={form.start_date} onChange={change} isInvalid={invalid("start_date", requiredInvalid.start_date)} /><Form.Text>Horário de Brasília · mínimo: amanhã.</Form.Text><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "start_date") || (startTooSoonInvalid ? "Escolha uma data a partir de amanhã." : "Informe quando o evento começa.")}</Form.Control.Feedback></Form.Group></Col>
@@ -218,6 +323,8 @@ export default function EventCreatePage() {
                 <Col md={6}><Form.Group><Form.Label>Capacidade</Form.Label><Form.Control type="number" min="1" max="1000000" name="max_attendees" value={form.max_attendees} onChange={change} isInvalid={invalid("max_attendees", capacityInvalid)} /><Form.Text>Deixe vazio se não quiser controlar capacidade geral.</Form.Text><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "max_attendees") || "A capacidade deve ser maior que zero."}</Form.Control.Feedback></Form.Group></Col>
                 <Col md={6}><Form.Group><Form.Label>E-mail de contato</Form.Label><Form.Control type="email" name="contact_email" value={form.contact_email} onChange={change} isInvalid={invalid("contact_email")} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "contact_email")}</Form.Control.Feedback></Form.Group></Col>
                 <Col md={6}><Form.Group><Form.Label>Telefone de contato</Form.Label><Form.Control name="contact_phone" value={form.contact_phone} onChange={change} isInvalid={invalid("contact_phone")} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "contact_phone")}</Form.Control.Feedback></Form.Group></Col>
+
+                {form.production_id && <Col xs={12}><div className="cut-info-box"><div className="d-flex align-items-start justify-content-between gap-3 flex-wrap"><div><strong>Itens da produção</strong><span>{loadingProductionItems ? "Consultando os itens cadastrados..." : productionItems.length > 0 ? `${productionItems.length} item(ns) ativo(s) estão disponíveis. Você pode usar os mesmos itens neste evento sem cadastrá-los novamente.` : "Esta produção ainda não possui itens ativos para reaproveitar."}</span></div><Form.Check type="switch" id="use-production-items" label="Usar os mesmos itens" checked={useProductionItems} disabled={loadingProductionItems || productionItems.length === 0} onChange={(event) => setUseProductionItems(event.target.checked)} /></div>{itemLoadError && <div className="text-warning small mt-2">{itemLoadError}</div>}{useProductionItems && productionItems.length > 0 && <div className="d-flex flex-wrap gap-2 mt-3">{productionItems.slice(0, 8).map((item) => <span key={item.id} className="badge rounded-pill text-bg-dark">{item.name}{item.price !== null && item.price !== undefined ? ` · ${priceLabel(item.price)}` : ""}</span>)}{productionItems.length > 8 && <span className="badge rounded-pill text-bg-dark">+{productionItems.length - 8} itens</span>}</div>}</div></Col>}
               </Row></Card.Body></Card></Col>
 
               <Col lg={4}><Card className="cut-panel h-100"><Card.Body className="p-4"><h2 className="cut-section-title">Imagem do evento</h2>{preview ? <img src={preview} alt="Prévia do evento" className="cut-upload-preview cut-upload-preview--event" /> : <div className="cut-upload-placeholder"><i className="fa-regular fa-image" /><span>Adicione uma capa 16:9</span></div>}<Form.Control className="mt-3" type="file" accept="image/png,image/jpeg,image/webp" onChange={chooseImage} isInvalid={invalid("image")} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "image")}</Form.Control.Feedback><Form.Text>JPG, PNG ou WebP, até 5 MB.</Form.Text><div className="cut-info-box mt-4"><strong>Próxima etapa</strong><span>Depois de salvar, você configura a quantidade de cortesias. A publicação será uma ação separada.</span></div></Card.Body></Card></Col>
