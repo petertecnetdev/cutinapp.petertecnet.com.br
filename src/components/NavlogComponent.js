@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import cutinappService from "../services/CutinappService";
 import { subscribeToUserNotifications } from "../services/RealtimeNotificationService";
+import { safeNavigationTarget } from "../utils/safeUrl";
 
 const notificationIcon = (type = "") => {
   if (type === "artist_lineup") return "fa-solid fa-music";
@@ -133,14 +134,14 @@ export default function NavlogComponent() {
         window.dispatchEvent(new CustomEvent("cutinapp:notifications-updated"));
       } catch (_) { /* a navegação continua */ }
     }
-    if (item.reference_url) {
-      try {
-        const url = new URL(item.reference_url, window.location.origin);
-        if (url.origin === window.location.origin) return navigate(`${url.pathname}${url.search}${url.hash}`);
-        window.location.href = item.reference_url;
-        return;
-      } catch (_) { /* fallback abaixo */ }
+
+    const target = safeNavigationTarget(item.reference_url);
+    if (target?.type === "internal") return navigate(target.value);
+    if (target?.type === "external") {
+      window.location.assign(target.value);
+      return;
     }
+
     navigate("/notifications");
   };
 
