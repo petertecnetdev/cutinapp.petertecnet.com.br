@@ -1,0 +1,582 @@
+/* Production management dashboard */
+.cut-production-mine-page .cut-page-container {
+  max-width: 1440px;
+}
+
+.cut-production-mine-heading {
+  align-items: flex-end;
+  margin-bottom: 28px;
+}
+
+.cut-production-mine-heading__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.cut-production-mine-heading__actions .btn {
+  min-height: 46px;
+  padding-inline: 18px;
+}
+
+.cut-production-mine-summary {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 30px;
+}
+
+.cut-production-summary-card {
+  position: relative;
+  min-height: 112px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  overflow: hidden;
+  padding: 18px;
+  border-radius: 22px;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.045), rgba(255,255,255,.018)),
+    rgba(7, 10, 28, .34);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
+  transition: transform .2s ease, border-color .2s ease, background .2s ease;
+}
+
+.cut-production-summary-card::after {
+  content: "";
+  position: absolute;
+  width: 110px;
+  height: 110px;
+  right: -46px;
+  top: -54px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(181,73,255,.13), transparent 70%);
+  pointer-events: none;
+}
+
+.cut-production-summary-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255,255,255,.15);
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.06), rgba(255,255,255,.025)),
+    rgba(7, 10, 28, .42);
+}
+
+.cut-production-summary-card.is-attention {
+  border-color: rgba(191, 82, 255, .22);
+}
+
+.cut-production-summary-card__icon {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 15px;
+  background: linear-gradient(145deg, rgba(183,71,250,.19), rgba(110,65,247,.08));
+  color: #e6c3ff;
+  font-size: 1rem;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+}
+
+.cut-production-summary-card > div:last-child {
+  min-width: 0;
+}
+
+.cut-production-summary-card span {
+  margin-bottom: 2px;
+}
+
+.cut-production-summary-card strong {
+  margin-top: 0;
+  font-size: 1.55rem;
+  line-height: 1;
+}
+
+.cut-production-summary-card small {
+  display: block;
+  margin-top: 6px;
+  overflow: hidden;
+  color: var(--cut-text-soft);
+  font-size: .7rem;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cut-production-mine-toolbar {
+  align-items: flex-end;
+  margin-bottom: 18px;
+}
+
+.cut-production-mine-toolbar__title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cut-production-mine-toolbar__title span {
+  color: var(--cut-text-soft);
+  font-size: .69rem;
+  font-weight: 850;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+
+.cut-production-mine-toolbar__title strong {
+  font-size: 1.12rem;
+  font-weight: 900;
+}
+
+.cut-production-search {
+  max-width: 520px;
+}
+
+.cut-production-search .form-control {
+  min-height: 48px;
+  padding-left: 44px;
+  padding-right: 44px;
+  border-radius: 16px;
+  background: rgba(255,255,255,.035);
+}
+
+.cut-production-search > i {
+  left: 16px;
+}
+
+.cut-production-search__clear {
+  position: absolute;
+  z-index: 3;
+  right: 9px;
+  top: 50%;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 10px;
+  background: rgba(255,255,255,.055);
+  color: var(--cut-text-muted);
+}
+
+.cut-production-search__clear:hover {
+  background: rgba(255,255,255,.1);
+  color: var(--cut-text);
+}
+
+.cut-production-search__clear i {
+  position: static;
+  transform: none;
+  color: inherit;
+}
+
+.cut-production-manage-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 18px;
+}
+
+.cut-production-manage-card {
+  min-width: 0;
+  min-height: 475px !important;
+  display: flex;
+  flex-direction: column;
+  cursor: default !important;
+  border-radius: 28px !important;
+  box-shadow: 0 18px 55px rgba(0,0,0,.13);
+}
+
+.cut-production-manage-card__cover {
+  position: relative;
+  min-height: 190px;
+  overflow: hidden;
+  background-color: #0b1024;
+  background-position: center;
+  background-size: cover;
+}
+
+.cut-production-manage-card__cover-fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 25% 25%, rgba(190,76,255,.2), transparent 34%),
+    linear-gradient(135deg, #151126, #090d1e 62%, #121a36);
+  color: rgba(255,255,255,.22);
+  font-size: 3rem;
+}
+
+.cut-production-manage-card__cover-shade {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(3,5,14,.12), rgba(3,5,14,.08) 46%, rgba(3,5,14,.8)),
+    linear-gradient(90deg, rgba(3,5,14,.16), transparent 48%);
+}
+
+.cut-production-manage-card__kind,
+.cut-production-manage-card__view-link {
+  position: absolute;
+  z-index: 2;
+  top: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 7px 11px;
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 999px;
+  background: rgba(5, 7, 18, .58);
+  color: rgba(255,255,255,.9);
+  font-size: .7rem;
+  font-weight: 850;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.cut-production-manage-card__kind {
+  left: 14px;
+}
+
+.cut-production-manage-card__view-link {
+  right: 14px;
+  cursor: pointer;
+}
+
+.cut-production-manage-card__view-link:hover {
+  border-color: rgba(255,255,255,.28);
+  background: rgba(10, 12, 30, .78);
+}
+
+.cut-production-manage-card .card-body {
+  gap: 18px;
+  padding: 22px !important;
+}
+
+.cut-production-manage-card__head {
+  grid-template-columns: 64px minmax(0, 1fr) 42px;
+  gap: 14px;
+}
+
+.cut-production-manage-card .cut-production-card__logo {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  border-color: rgba(255,255,255,.14);
+  box-shadow: 0 12px 34px rgba(0,0,0,.28);
+}
+
+.cut-production-manage-card__title h2 {
+  font-size: 1.22rem;
+  letter-spacing: -.025em;
+}
+
+.cut-production-manage-card__title small {
+  margin-top: 5px;
+  font-size: .77rem;
+}
+
+.cut-production-manage-card__menu .dropdown-toggle,
+.cut-production-manage-actions__edit {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  padding: 0 !important;
+  border-radius: 13px !important;
+}
+
+.cut-production-manage-card__menu .dropdown-toggle::after {
+  display: none;
+}
+
+.cut-production-manage-card__insights {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.cut-production-manage-card__insights > div {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 7px;
+  row-gap: 1px;
+  padding: 11px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 15px;
+  background: rgba(3, 7, 17, .34);
+  backdrop-filter: blur(12px);
+}
+
+.cut-production-manage-card__insights i {
+  grid-row: 1 / 3;
+  align-self: center;
+  color: var(--cut-primary);
+  font-size: .78rem;
+}
+
+.cut-production-manage-card__insights span {
+  min-width: 0;
+  color: var(--cut-text-soft);
+  font-size: .61rem;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.cut-production-manage-card__insights strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--cut-text);
+  font-size: .78rem;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cut-production-manage-card__callout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 13px 14px;
+  border: 1px solid rgba(190, 77, 255, .17);
+  border-radius: 17px;
+  background: linear-gradient(135deg, rgba(191,74,255,.095), rgba(100,63,244,.04));
+}
+
+.cut-production-manage-card__callout > div {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cut-production-manage-card__callout > div > i {
+  color: #dd9dff;
+}
+
+.cut-production-manage-card__callout span {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cut-production-manage-card__callout strong {
+  font-size: .76rem;
+  font-weight: 900;
+}
+
+.cut-production-manage-card__callout small {
+  overflow: hidden;
+  color: var(--cut-text-soft);
+  font-size: .67rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cut-production-manage-actions {
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) 44px;
+  gap: 9px;
+}
+
+.cut-production-manage-actions .btn {
+  min-height: 44px;
+  border-radius: 14px;
+}
+
+.cut-production-manage-grid.is-single .cut-production-manage-card {
+  min-height: 340px !important;
+  display: grid;
+  grid-template-columns: minmax(360px, .85fr) minmax(0, 1.15fr);
+}
+
+.cut-production-manage-grid.is-single .cut-production-manage-card__cover {
+  min-height: 340px;
+  height: 100%;
+}
+
+.cut-production-manage-grid.is-single .cut-production-manage-card .card-body {
+  justify-content: center;
+  padding: 28px !important;
+}
+
+.cut-production-manage-grid.is-single .cut-production-manage-card__title h2 {
+  font-size: 1.4rem;
+}
+
+.cut-production-empty-state {
+  max-width: 760px;
+  margin: 36px auto 0;
+  text-align: center;
+}
+
+.cut-production-empty-state .card-body {
+  padding: 46px 30px;
+}
+
+.cut-production-empty-state__icon {
+  width: 68px;
+  height: 68px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 18px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 22px;
+  background: linear-gradient(145deg, rgba(190,76,255,.16), rgba(107,65,247,.06));
+  color: #dfb0ff;
+  font-size: 1.4rem;
+}
+
+.cut-production-empty-filter p {
+  margin-bottom: 16px;
+}
+
+@media (max-width: 1199px) {
+  .cut-production-mine-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cut-production-manage-grid.is-single .cut-production-manage-card {
+    grid-template-columns: minmax(310px, .8fr) minmax(0, 1.2fr);
+  }
+}
+
+@media (max-width: 991px) {
+  .cut-production-manage-grid.is-single .cut-production-manage-card {
+    display: flex;
+    min-height: 0 !important;
+  }
+
+  .cut-production-manage-grid.is-single .cut-production-manage-card__cover {
+    min-height: 230px;
+    height: auto;
+  }
+
+  .cut-production-manage-grid.is-single .cut-production-manage-card .card-body {
+    padding: 22px !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .cut-production-mine-heading {
+    align-items: flex-start;
+  }
+
+  .cut-production-mine-heading__actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .cut-production-mine-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .cut-production-search {
+    width: 100%;
+    max-width: none;
+  }
+
+  .cut-production-manage-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 575px) {
+  .cut-production-mine-summary {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .cut-production-summary-card,
+  .cut-production-summary-card:last-child {
+    grid-column: auto;
+    min-height: 98px;
+    padding: 15px;
+  }
+
+  .cut-production-summary-card__icon {
+    width: 44px;
+    height: 44px;
+    flex-basis: 44px;
+  }
+
+  .cut-production-summary-card small {
+    white-space: normal;
+  }
+
+  .cut-production-mine-heading__actions .btn {
+    flex: 1 1 150px;
+  }
+
+  .cut-production-manage-card {
+    min-height: 0 !important;
+    border-radius: 23px !important;
+  }
+
+  .cut-production-manage-card__cover,
+  .cut-production-manage-grid.is-single .cut-production-manage-card__cover {
+    min-height: 190px;
+  }
+
+  .cut-production-manage-card__kind {
+    max-width: 58%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .cut-production-manage-card__view-link {
+    padding-inline: 10px;
+  }
+
+  .cut-production-manage-card .card-body,
+  .cut-production-manage-grid.is-single .cut-production-manage-card .card-body {
+    gap: 15px;
+    padding: 17px !important;
+  }
+
+  .cut-production-manage-card__head {
+    grid-template-columns: 54px minmax(0, 1fr) 40px;
+    gap: 11px;
+  }
+
+  .cut-production-manage-card .cut-production-card__logo {
+    width: 54px;
+    height: 54px;
+    border-radius: 15px;
+  }
+
+  .cut-production-manage-card__insights {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cut-production-manage-card__insights > div:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .cut-production-manage-card__callout {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .cut-production-manage-card__callout small {
+    white-space: normal;
+  }
+
+  .cut-production-manage-actions {
+    grid-template-columns: 1fr 1fr 42px;
+  }
+
+  .cut-production-manage-actions .btn {
+    padding-inline: 9px;
+    font-size: .76rem;
+  }
+}
