@@ -16,7 +16,7 @@ import SeoManager from "./components/SeoManager";
 import authService from "./services/AuthService";
 import { hasContextRole } from "./utils/applicationRoles";
 
-const HomePage = lazy(() => import("./pages/HomePage"));
+const HomePage = lazy(() => import("./pages/LandingPageV2"));
 const FeedPage = lazy(() => import("./pages/FeedPage"));
 const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
 const ReportModerationPage = lazy(() => import("./pages/moderation/ReportModerationPage"));
