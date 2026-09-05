@@ -3,6 +3,7 @@ import { Alert, Badge, Button, Card, Col, Container, Form, Row } from "react-boo
 import { useNavigate, useSearchParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
+import CollapsibleFilterPanel from "../../components/CollapsibleFilterPanel";
 import eventService from "../../services/EventService";
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
@@ -117,6 +118,7 @@ export default function EventPage() {
     filters.lat && { key: "lat", label: `Perto de mim · ${filters.radius_km || 50} km` },
   ].filter(Boolean);
 
+  const activeFilterCount = activeChips.length + (filters.date ? 1 : 0) + (filters.sort && filters.sort !== "soonest" ? 1 : 0);
   const cityValue = filters.city ? `${filters.city}|${filters.uf || ""}` : "";
 
   return (
@@ -136,45 +138,47 @@ export default function EventPage() {
         {error && <Alert variant="danger">{error}</Alert>}
 
         <Card className="cut-discovery-shell mb-4"><Card.Body>
-          <div className="cut-discovery-primary">
-            <Form.Select value={cityValue} onChange={(e) => {
-              const [city, uf] = e.target.value.split("|");
-              update({ city, uf, lat: "", lng: "", radius_km: "" });
-            }} aria-label="Cidade">
-              <option value="">Todas as cidades</option>
-              {facets.cities?.map((item) => <option key={`${item.city}-${item.uf}`} value={`${item.city}|${item.uf || ""}`}>{item.city}{item.uf ? ` - ${item.uf}` : ""} ({item.total})</option>)}
-            </Form.Select>
-            <Form.Select value={filters.period || ""} onChange={(e) => update({ period: e.target.value, date: "", from: "", to: "" })} aria-label="Período">
-              <option value="">Qualquer data</option>
-              {PERIOD_OPTIONS.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
-            </Form.Select>
-            <Button variant="outline-light" onClick={useMyLocation} disabled={locationBusy}><i className="fa-solid fa-location-crosshairs me-2" />{locationBusy ? "Localizando..." : "Perto de mim"}</Button>
-          </div>
+          <CollapsibleFilterPanel title="Pesquisar e filtrar eventos" activeCount={activeFilterCount} defaultOpen={activeFilterCount > 0}>
+            <div className="cut-discovery-primary">
+              <Form.Select value={cityValue} onChange={(e) => {
+                const [city, uf] = e.target.value.split("|");
+                update({ city, uf, lat: "", lng: "", radius_km: "" });
+              }} aria-label="Cidade">
+                <option value="">Todas as cidades</option>
+                {facets.cities?.map((item) => <option key={`${item.city}-${item.uf}`} value={`${item.city}|${item.uf || ""}`}>{item.city}{item.uf ? ` - ${item.uf}` : ""} ({item.total})</option>)}
+              </Form.Select>
+              <Form.Select value={filters.period || ""} onChange={(e) => update({ period: e.target.value, date: "", from: "", to: "" })} aria-label="Período">
+                <option value="">Qualquer data</option>
+                {PERIOD_OPTIONS.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+              </Form.Select>
+              <Button variant="outline-light" onClick={useMyLocation} disabled={locationBusy}><i className="fa-solid fa-location-crosshairs me-2" />{locationBusy ? "Localizando..." : "Perto de mim"}</Button>
+            </div>
 
-          <form className="cut-search-bar" onSubmit={submitSearch}>
-            <i className="fa-solid fa-magnifying-glass" />
-            <Form.Control value={draftSearch} onChange={(e) => setDraftSearch(e.target.value)} placeholder="Evento, artista, produção, cidade ou local" />
-            <Button type="submit">Buscar</Button>
-          </form>
+            <form className="cut-search-bar" onSubmit={submitSearch}>
+              <i className="fa-solid fa-magnifying-glass" />
+              <Form.Control value={draftSearch} onChange={(e) => setDraftSearch(e.target.value)} placeholder="Evento, artista, produção, cidade ou local" />
+              <Button type="submit">Buscar</Button>
+            </form>
 
-          <div className="cut-filter-shortcuts">
-            {[['today','Hoje'],['tomorrow','Amanhã'],['weekend','Fim de semana'],['saturday','Sábado'],['next7','7 dias']].map(([key, label]) =>
-              <button type="button" key={key} className={filters.period === key ? "active" : ""} onClick={() => update({ period: filters.period === key ? "" : key, date: "", from: "", to: "" })}>{label}</button>
-            )}
-            <button type="button" className={filters.free ? "active" : ""} onClick={() => update({ free: filters.free ? "" : 1 })}>Gratuitos</button>
-            <button type="button" className={filters.available ? "active" : ""} onClick={() => update({ available: filters.available ? "" : 1 })}>Com ingressos</button>
-          </div>
+            <div className="cut-filter-shortcuts">
+              {[['today','Hoje'],['tomorrow','Amanhã'],['weekend','Fim de semana'],['saturday','Sábado'],['next7','7 dias']].map(([key, label]) =>
+                <button type="button" key={key} className={filters.period === key ? "active" : ""} onClick={() => update({ period: filters.period === key ? "" : key, date: "", from: "", to: "" })}>{label}</button>
+              )}
+              <button type="button" className={filters.free ? "active" : ""} onClick={() => update({ free: filters.free ? "" : 1 })}>Gratuitos</button>
+              <button type="button" className={filters.available ? "active" : ""} onClick={() => update({ available: filters.available ? "" : 1 })}>Com ingressos</button>
+            </div>
 
-          <div className="cut-discovery-secondary">
-            <Form.Select value={filters.category || ""} onChange={(e) => update({ category: e.target.value })}>
-              <option value="">Todas as categorias</option>
-              {facets.categories?.map((item) => <option key={item.category} value={item.category}>{item.category} ({item.total})</option>)}
-            </Form.Select>
-            <Form.Control type="date" value={filters.date || ""} onChange={(e) => update({ date: e.target.value, period: e.target.value ? "" : filters.period, from: "", to: "" })} />
-            <Form.Select value={filters.sort || "soonest"} onChange={(e) => update({ sort: e.target.value })}>
-              <option value="soonest">Mais próximos</option><option value="newest">Novidades</option><option value="popular">Populares</option>
-            </Form.Select>
-          </div>
+            <div className="cut-discovery-secondary">
+              <Form.Select value={filters.category || ""} onChange={(e) => update({ category: e.target.value })}>
+                <option value="">Todas as categorias</option>
+                {facets.categories?.map((item) => <option key={item.category} value={item.category}>{item.category} ({item.total})</option>)}
+              </Form.Select>
+              <Form.Control type="date" value={filters.date || ""} onChange={(e) => update({ date: e.target.value, period: e.target.value ? "" : filters.period, from: "", to: "" })} />
+              <Form.Select value={filters.sort || "soonest"} onChange={(e) => update({ sort: e.target.value })}>
+                <option value="soonest">Mais próximos</option><option value="newest">Novidades</option><option value="popular">Populares</option>
+              </Form.Select>
+            </div>
+          </CollapsibleFilterPanel>
 
           {recentCities.length > 0 && <div className="cut-recent-cities"><span>Recentes:</span>{recentCities.map((item) => <button type="button" key={`${item.city}-${item.uf}`} onClick={() => update({ city: item.city, uf: item.uf, lat: "", lng: "" })}>{item.city}</button>)}</div>}
           {activeChips.length > 0 && <div className="cut-active-filters">{activeChips.map((chip) => <button type="button" key={chip.key} onClick={() => chip.key === "lat" ? update({ lat: "", lng: "", radius_km: "" }) : update({ [chip.key]: "", ...(chip.key === "city" ? { uf: "" } : {}) })}>{chip.label} <span>×</span></button>)}<button type="button" className="cut-clear-filters" onClick={clearFilters}>Limpar filtros</button></div>}
