@@ -46,6 +46,38 @@ const authService = {
     return response.data;
   },
 
+  startInstagram: async () => {
+    const response = await apiClient.post(`/${apiServiceUrl}/instagram/start`, {});
+    const authorizationUrl = String(response.data?.authorization_url || "").trim();
+    if (!authorizationUrl) throw new Error("A API não retornou a URL de autenticação do Instagram.");
+    return response.data;
+  },
+
+  loginInstagram: async (code, state) => {
+    if (!code || !state) throw new Error("O Instagram não retornou uma autorização válida.");
+    const response = await apiClient.post(`/${apiServiceUrl}/instagram/callback`, { code, state });
+    if (!response.data?.requires_completion) authService.finishAuthentication(response.data);
+    return response.data;
+  },
+
+  completeInstagram: async ({ completionToken, email, firstName }) => {
+    const response = await apiClient.post(`/${apiServiceUrl}/instagram/complete`, {
+      completion_token: completionToken,
+      email,
+      first_name: firstName || undefined,
+    });
+    authService.finishAuthentication(response.data);
+    return response.data;
+  },
+
+  linkInstagram: async (completionToken) => {
+    if (!completionToken) throw new Error("A confirmação do Instagram não foi encontrada.");
+    const response = await apiClient.post(`/${apiServiceUrl}/instagram/link`, {
+      completion_token: completionToken,
+    });
+    return response.data;
+  },
+
   register: async (userObject) => {
     const response = await apiClient.post(`/${apiServiceUrl}/register`, userObject);
     return response.data;
