@@ -18,6 +18,19 @@
   color: var(--cut-muted, #a9a7bb);
 }
 
+.cut-ai-import-local-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(80, 220, 160, .24);
+  background: rgba(80, 220, 160, .08);
+  font-size: .86rem;
+  font-weight: 700;
+}
+
 .cut-ai-import-upload .card-body {
   display: grid;
   gap: 18px;
@@ -45,6 +58,14 @@
   color: var(--cut-muted, #a9a7bb);
 }
 
+.cut-ai-import-privacy {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 10px;
+  color: var(--cut-muted, #a9a7bb);
+}
+
 .cut-ai-import-files {
   display: flex;
   flex-wrap: wrap;
@@ -65,10 +86,58 @@
   white-space: nowrap;
 }
 
+.cut-ai-import-progress {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .04);
+}
+
+.cut-ai-import-progress__label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cut-ai-import-progress small {
+  color: var(--cut-muted, #a9a7bb);
+}
+
 .cut-ai-import-upload__actions {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+.cut-ai-import-raw {
+  padding: 18px 20px;
+}
+
+.cut-ai-import-raw summary {
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.cut-ai-import-raw p {
+  margin: 12px 0 10px;
+  color: var(--cut-muted, #a9a7bb);
+}
+
+.cut-ai-import-raw pre {
+  max-height: 360px;
+  margin: 0;
+  padding: 14px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, .25);
+  color: inherit;
+  font: inherit;
+  font-size: .88rem;
 }
 
 .cut-ai-import-review {
