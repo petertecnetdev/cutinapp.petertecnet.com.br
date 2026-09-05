@@ -31,6 +31,8 @@ const AcquisitionDashboardPage = lazy(() => import("./pages/acquisition/Acquisit
 const AcquisitionActivationPage = lazy(() => import("./pages/acquisition/AcquisitionActivationPage"));
 const UserEditPage = lazy(() => import("./pages/user/UserEditPage"));
 const UserProfilePage = lazy(() => import("./pages/user/UserProfilePage"));
+const ParticipantDirectoryPage = lazy(() => import("./pages/participants/ParticipantDirectoryPage"));
+const ParticipantProfilePage = lazy(() => import("./pages/participants/ParticipantProfilePage"));
 const ProductionListPage = lazy(() => import("./pages/production/ProductionListPage"));
 const ProductionCreatePage = lazy(() => import("./pages/production/ProductionCreatePage"));
 const ProductionMinePage = lazy(() => import("./pages/production/ProductionMinePage"));
@@ -128,6 +130,8 @@ function AppRoutes() {
             <Route path="/moderation/reports" element={protectedRoute(<ReportModerationPage />)} />
             <Route path="/profile" element={protectedRoute(<UserProfilePage />)} />
             <Route path="/user/edit" element={protectedRoute(<UserEditPage />)} />
+            <Route path="/participantes" element={protectedRoute(<ParticipantDirectoryPage />)} />
+            <Route path="/participantes/:participantId" element={protectedRoute(<ParticipantProfilePage />)} />
             <Route path="/purchases" element={protectedRoute(<PurchasesPage />)} />
             <Route path="/purchases/:publicId" element={protectedRoute(<PurchaseDetailPage />)} />
 
