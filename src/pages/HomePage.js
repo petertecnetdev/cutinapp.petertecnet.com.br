@@ -15,6 +15,11 @@ const dateLabel = (value) => value
 
 const mediaUrl = (path) => path ? `${storageUrl}${String(path).replace(/^\//, "")}` : "";
 const normalizeKey = (value) => String(value || "").trim().toLocaleLowerCase("pt-BR");
+const formatEventLocation = (event) => {
+  const cityState = event?.city ? `${event.city}${event.uf ? ` - ${event.uf}` : ""}` : "";
+  const venue = event?.venue || event?.address || "";
+  return venue && cityState ? `${venue} · ${cityState}` : venue || cityState || "Local a confirmar";
+};
 
 const uniqueById = (items) => {
   const seen = new Set();
@@ -287,7 +292,7 @@ export default function HomePage() {
                 <div className="cut-home-discovery__sceneEventCopy">
                   <small>{featuredEvent ? dateLabel(featuredEvent.start_date) : "O próximo evento começa aqui"}</small>
                   <strong>{featuredEvent?.title || "Descubra experiências que combinam com você"}</strong>
-                  <span><i className="fa-solid fa-location-dot" /> {featuredEvent?.city || "Eventos por localização"}</span>
+                  <span><i className="fa-solid fa-location-dot" /> {featuredEvent ? formatEventLocation(featuredEvent) : "Eventos por localização"}</span>
                 </div>
               </article>
 
@@ -455,7 +460,7 @@ export default function HomePage() {
                         <div className="cut-home-discovery__eventInfo">
                           <small>{dateLabel(event.start_date)}</small>
                           <h3>{event.title}</h3>
-                          <p><i className="fa-solid fa-location-dot" /> {event.venue || event.city || "Local a confirmar"}{event.city && event.venue ? ` · ${event.city}` : ""}</p>
+                          <p><i className="fa-solid fa-location-dot" /> {formatEventLocation(event)}</p>
                           {event.production?.name && <span>{event.production.name}</span>}
                         </div>
                       </Link>
