@@ -5,6 +5,7 @@ import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import eventService from "../../services/EventService";
 import cutinappService from "../../services/CutinappService";
+import locationService from "../../services/LocationService";
 import { storageUrl } from "../../config";
 import { PERIOD_OPTIONS, paramsFromSearch, periodLabel, readDiscoveryPreference, readRecentCities, saveDiscoveryPreference } from "../../utils/discoveryFilters";
 
@@ -21,6 +22,7 @@ export default function EventPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [locationBusy, setLocationBusy] = useState(false);
+  const [detectedLocation, setDetectedLocation] = useState(() => locationService.readStored());
   const [draftSearch, setDraftSearch] = useState(searchParams.get("q") || "");
 
   const filters = useMemo(() => paramsFromSearch(searchParams), [searchParams]);
@@ -31,9 +33,42 @@ export default function EventPage() {
   }, []);
 
   useEffect(() => {
+    if (!filters.lat || !filters.lng) {
+      if (detectedLocation?.mode === "nearby") setDetectedLocation(null);
+      return undefined;
+    }
+
+    const stored = locationService.readStored();
+    if (locationService.sameCoordinates(stored, filters.lat, filters.lng)) {
+      setDetectedLocation(stored);
+      return undefined;
+    }
+
+    let active = true;
+    locationService.resolveCoordinates(filters.lat, filters.lng).then((location) => {
+      if (!active) return;
+      locationService.saveStored(location);
+      setDetectedLocation(location);
+    });
+    return () => { active = false; };
+  }, [filters.lat, filters.lng]);
+
+  useEffect(() => {
     const current = paramsFromSearch(searchParams);
+    const precise = locationService.readStored();
     const saved = readDiscoveryPreference();
-    if (!current.city && saved.city && !searchParams.has("city")) {
+
+    if (!current.city && !current.lat && precise?.lat && precise?.lng && !searchParams.has("lat")) {
+      const next = new URLSearchParams(searchParams);
+      next.set("lat", precise.lat);
+      next.set("lng", precise.lng);
+      next.set("radius_km", "80");
+      next.set("sort", "nearest");
+      setSearchParams(next, { replace: true });
+      return;
+    }
+
+    if (!current.city && !current.lat && saved.city && !searchParams.has("city")) {
       const next = new URLSearchParams(searchParams);
       next.set("city", saved.city);
       if (saved.uf) next.set("uf", saved.uf);
@@ -73,29 +108,67 @@ export default function EventPage() {
     update({ q: draftSearch.trim() });
   };
 
-  const useMyLocation = () => {
+  const useMyLocation = async () => {
     if (!navigator.geolocation) {
       setError("Seu navegador não oferece localização. Você pode escolher a cidade manualmente.");
       return;
     }
     setLocationBusy(true);
-    navigator.geolocation.getCurrentPosition(
-      ({ coords }) => {
-        update({ lat: coords.latitude.toFixed(6), lng: coords.longitude.toFixed(6), radius_km: 50, city: "", uf: "" });
-        setLocationBusy(false);
-      },
-      () => {
-        setError("Não foi possível acessar sua localização. Escolha uma cidade manualmente.");
-        setLocationBusy(false);
-      },
-      { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
-    );
+    setError("");
+    try {
+      const location = await locationService.detectCurrent({ timeout: 8000 });
+      setDetectedLocation(location);
+      update({
+        lat: location.lat,
+        lng: location.lng,
+        radius_km: 80,
+        city: "",
+        uf: "",
+        sort: "nearest",
+      });
+    } catch (locationError) {
+      setError(locationError?.code === 1
+        ? "A permissão de localização foi negada. Escolha uma cidade manualmente."
+        : "Não foi possível acessar sua localização. Escolha uma cidade manualmente.");
+    } finally {
+      setLocationBusy(false);
+    }
+  };
+
+  const chooseCity = (value) => {
+    const [city, uf] = value.split("|");
+    if (!city) {
+      locationService.clearStored();
+      saveDiscoveryPreference({ city: "", uf: "" });
+      setDetectedLocation(null);
+      update({ city: "", uf: "", lat: "", lng: "", radius_km: "", sort: filters.sort === "nearest" ? "soonest" : filters.sort });
+      return;
+    }
+
+    const location = { city, uf: uf || "", label: `${city}${uf ? ` - ${uf}` : ""}`, mode: "city" };
+    locationService.saveStored(location);
+    setDetectedLocation(location);
+    update({ city, uf, lat: "", lng: "", radius_km: "", sort: filters.sort === "nearest" ? "soonest" : filters.sort });
+  };
+
+  const clearGpsLocation = () => {
+    locationService.clearStored();
+    saveDiscoveryPreference({ city: "", uf: "" });
+    setDetectedLocation(null);
+    update({ lat: "", lng: "", radius_km: "", sort: filters.sort === "nearest" ? "soonest" : filters.sort });
   };
 
   const clearFilters = () => {
     setDraftSearch("");
+    locationService.clearStored();
+    saveDiscoveryPreference({ city: "", uf: "" });
+    setDetectedLocation(null);
     setSearchParams(new URLSearchParams());
   };
+
+  const locationLabel = detectedLocation?.label
+    || (detectedLocation?.city ? `${detectedLocation.city}${detectedLocation.uf ? ` - ${detectedLocation.uf}` : ""}` : "")
+    || "Sua localização atual";
 
   const activeChips = [
     filters.city && { key: "city", label: `${filters.city}${filters.uf ? ` - ${filters.uf}` : ""}` },
@@ -104,7 +177,7 @@ export default function EventPage() {
     filters.q && { key: "q", label: `“${filters.q}”` },
     filters.free && { key: "free", label: "Gratuitos" },
     filters.available && { key: "available", label: "Com ingressos" },
-    filters.lat && { key: "lat", label: `Perto de mim · ${filters.radius_km || 50} km` },
+    filters.lat && { key: "lat", label: `${locationLabel} · ${filters.radius_km || 80} km` },
   ].filter(Boolean);
 
   const cityValue = filters.city ? `${filters.city}|${filters.uf || ""}` : "";
@@ -117,7 +190,7 @@ export default function EventPage() {
         <div className="cut-page-heading">
           <div>
             <span className="cut-eyebrow">Descoberta</span>
-            <h1>{filters.city ? `Eventos em ${filters.city}` : "Encontre seu próximo evento"}</h1>
+            <h1>{filters.city ? `Eventos em ${filters.city}` : filters.lat ? `Eventos perto de ${locationLabel}` : "Encontre seu próximo evento"}</h1>
             <p>Busque pela cidade, pelo dia, pelo artista ou pela produção. Os filtros ficam na URL para você compartilhar a descoberta.</p>
           </div>
           <Button variant="outline-light" onClick={() => navigate("/passes")}>Minha carteira</Button>
@@ -126,11 +199,17 @@ export default function EventPage() {
         {error && <Alert variant="danger">{error}</Alert>}
 
         <Card className="cut-discovery-shell mb-4"><Card.Body>
+          {filters.lat && filters.lng && <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 border rounded-4 p-3 mb-3">
+            <div className="d-grid gap-1">
+              <small className="text-uppercase opacity-50 fw-bold">Localização encontrada</small>
+              <strong><i className="fa-solid fa-location-dot me-2" />{locationLabel}</strong>
+              <small className="opacity-75">Os eventos estão ordenados do mais perto para o mais distante em um raio de {filters.radius_km || 80} km.</small>
+            </div>
+            <Button size="sm" variant="outline-light" onClick={() => document.getElementById("cut-location-city-filter")?.focus()}>Alterar localização</Button>
+          </div>}
+
           <div className="cut-discovery-primary">
-            <Form.Select value={cityValue} onChange={(e) => {
-              const [city, uf] = e.target.value.split("|");
-              update({ city, uf, lat: "", lng: "", radius_km: "" });
-            }} aria-label="Cidade">
+            <Form.Select id="cut-location-city-filter" value={cityValue} onChange={(e) => chooseCity(e.target.value)} aria-label="Alterar localização por cidade">
               <option value="">Todas as cidades</option>
               {facets.cities?.map((item) => <option key={`${item.city}-${item.uf}`} value={`${item.city}|${item.uf || ""}`}>{item.city}{item.uf ? ` - ${item.uf}` : ""} ({item.total})</option>)}
             </Form.Select>
@@ -138,7 +217,7 @@ export default function EventPage() {
               <option value="">Qualquer data</option>
               {PERIOD_OPTIONS.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
             </Form.Select>
-            <Button variant="outline-light" onClick={useMyLocation} disabled={locationBusy}><i className="fa-solid fa-location-crosshairs me-2" />{locationBusy ? "Localizando..." : "Perto de mim"}</Button>
+            <Button variant="outline-light" onClick={useMyLocation} disabled={locationBusy}><i className="fa-solid fa-location-crosshairs me-2" />{locationBusy ? "Localizando..." : filters.lat ? "Atualizar localização" : "Usar minha localização"}</Button>
           </div>
 
           <form className="cut-search-bar" onSubmit={submitSearch}>
@@ -161,19 +240,22 @@ export default function EventPage() {
               {facets.categories?.map((item) => <option key={item.category} value={item.category}>{item.category} ({item.total})</option>)}
             </Form.Select>
             <Form.Control type="date" value={filters.date || ""} onChange={(e) => update({ date: e.target.value, period: e.target.value ? "" : filters.period, from: "", to: "" })} />
-            <Form.Select value={filters.sort || "soonest"} onChange={(e) => update({ sort: e.target.value })}>
-              <option value="soonest">Mais próximos</option><option value="newest">Novidades</option><option value="popular">Populares</option>
+            <Form.Select value={filters.sort || (filters.lat ? "nearest" : "soonest")} onChange={(e) => update({ sort: e.target.value })}>
+              <option value="nearest" disabled={!filters.lat}>Mais perto da minha localização</option>
+              <option value="soonest">Mais próximos na data</option>
+              <option value="newest">Novidades</option>
+              <option value="popular">Populares</option>
             </Form.Select>
           </div>
 
-          {recentCities.length > 0 && <div className="cut-recent-cities"><span>Recentes:</span>{recentCities.map((item) => <button type="button" key={`${item.city}-${item.uf}`} onClick={() => update({ city: item.city, uf: item.uf, lat: "", lng: "" })}>{item.city}</button>)}</div>}
-          {activeChips.length > 0 && <div className="cut-active-filters">{activeChips.map((chip) => <button type="button" key={chip.key} onClick={() => chip.key === "lat" ? update({ lat: "", lng: "", radius_km: "" }) : update({ [chip.key]: "", ...(chip.key === "city" ? { uf: "" } : {}) })}>{chip.label} <span>×</span></button>)}<button type="button" className="cut-clear-filters" onClick={clearFilters}>Limpar filtros</button></div>}
+          {recentCities.length > 0 && <div className="cut-recent-cities"><span>Recentes:</span>{recentCities.map((item) => <button type="button" key={`${item.city}-${item.uf}`} onClick={() => chooseCity(`${item.city}|${item.uf || ""}`)}>{item.city}</button>)}</div>}
+          {activeChips.length > 0 && <div className="cut-active-filters">{activeChips.map((chip) => <button type="button" key={chip.key} onClick={() => chip.key === "lat" ? clearGpsLocation() : update({ [chip.key]: "", ...(chip.key === "city" ? { uf: "" } : {}) })}>{chip.label} <span>×</span></button>)}<button type="button" className="cut-clear-filters" onClick={clearFilters}>Limpar filtros</button></div>}
         </Card.Body></Card>
 
         {!loading && events.length === 0 ? (
           <Card className="cut-empty-state"><Card.Body>
             <i className="fa-regular fa-calendar-xmark cut-empty-icon" />
-            <h2>{filters.city ? `Não encontramos eventos em ${filters.city}${filters.period ? ` para ${periodLabel(filters.period).toLowerCase()}` : ""}.` : "Nenhum evento encontrado com esses filtros."}</h2>
+            <h2>{filters.city ? `Não encontramos eventos em ${filters.city}${filters.period ? ` para ${periodLabel(filters.period).toLowerCase()}` : ""}.` : filters.lat ? `Não encontramos eventos em até ${filters.radius_km || 80} km de ${locationLabel}.` : "Nenhum evento encontrado com esses filtros."}</h2>
             <p>Experimente ampliar o período, remover uma categoria ou explorar outras cidades.</p>
             <div className="cut-card-actions justify-content-center">
               <Button onClick={() => update({ period: "next30", date: "", from: "", to: "" })}>Ver próximos 30 dias</Button>
