@@ -9,6 +9,7 @@ import "./styles/components.css";
 import "./styles/domains.css";
 import "./styles/community.css";
 import "./styles/social-network.css";
+import "./styles/profile-actors.css";
 import "./styles/responsive.css";
 import "./styles/nexus-mobile-nav.css";
 import "./styles/logo-theme.css";
