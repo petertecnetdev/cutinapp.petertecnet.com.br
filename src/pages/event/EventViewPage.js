@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useMemo, useState } from "react";
-import { Alert, Badge, Button, Card, Col, Container, Row } from "react-bootstrap";
+import { Alert, Badge, Button, Card, Col, Container, Modal, Row } from "react-bootstrap";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
@@ -13,6 +13,12 @@ import { storageUrl } from "../../config";
 const formatDate = (value) => value
   ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "long", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(new Date(value))
   : "Data não informada";
+
+const resolveImageUrl = (value) => {
+  if (!value) return "";
+  const image = String(value);
+  return /^https?:\/\//i.test(image) ? image : `${storageUrl}${image.replace(/^\/+/, "")}`;
+};
 
 const buildMapEmbedUrl = (event) => {
   if (!event) return "";
@@ -41,6 +47,7 @@ export default function EventViewPage() {
   const [socialBusy, setSocialBusy] = useState(false);
   const [favorite, setFavorite] = useState(false);
   const [interested, setInterested] = useState(false);
+  const [flyerOpen, setFlyerOpen] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -59,6 +66,7 @@ export default function EventViewPage() {
   const claimableArtists = useMemo(() => artists.filter((artist) => !artist.claimed_at), [artists]);
   const isOwner = Boolean(event?.production?.user_id && Number(event.production.user_id) === Number(user?.id));
   const mapEmbedUrl = useMemo(() => buildMapEmbedUrl(event), [event]);
+  const flyerUrl = useMemo(() => resolveImageUrl(event?.image), [event?.image]);
 
   const claim = async (ticket) => {
     if (!user) return navigate("/login", { state: { from: `${location.pathname}${location.search}` } });
@@ -110,8 +118,8 @@ export default function EventViewPage() {
 
   return <div className="cut-app-page"><NavlogComponent />{(loading || claimingId || artistClaimingId) && <ProcessingIndicatorComponent label={claimingId ? "Emitindo ingresso" : artistClaimingId ? "Enviando reivindicação" : "Carregando evento"} />}
     {!loading && event && <>
-      <section className="cut-event-hero cut-event-hero--premium" style={event.image ? { backgroundImage: `linear-gradient(180deg,rgba(3,10,16,.08),rgba(3,10,16,.98)),url(${storageUrl}${String(event.image).replace(/^\//, "")})` } : undefined}>
-        <Container className="cut-page-container"><div className="cut-event-hero__content"><div className="d-flex flex-wrap gap-2 mb-3">{event.category && <Badge bg="dark">{event.category}</Badge>}<Badge bg="success">Publicado</Badge>{tickets.some((t) => t.available) && <Badge bg="info" text="dark">Ingressos disponíveis</Badge>}</div><h1>{event.title}</h1><p className="cut-event-hero__date">{formatDate(event.start_date)}</p><span>{event.venue || event.address}{event.city ? ` · ${event.city}${event.uf ? ` - ${event.uf}` : ""}` : ""}</span>{event.production?.name && <button className="cut-inline-profile-link" onClick={() => navigate(`/production/${event.production.slug}/public`)}>Por {event.production.name} <i className="fa-solid fa-arrow-up-right-from-square" /></button>}<div className="cut-card-actions mt-4"><Button onClick={share}><i className="fa-solid fa-share-nodes me-2" />Compartilhar</Button><Button variant={interested ? "info" : "outline-light"} onClick={() => setEngagement("interested")} disabled={socialBusy}><i className="fa-regular fa-star me-2" />Tenho interesse</Button><Button variant={favorite ? "danger" : "outline-light"} onClick={() => setEngagement("favorite")} disabled={socialBusy}><i className={`${favorite ? "fa-solid" : "fa-regular"} fa-heart me-2`} />{favorite ? "Salvo" : "Salvar"}</Button><Button variant="outline-light" href="#comunidade"><i className="fa-regular fa-comments me-2" />Conversa</Button>{event.google_maps_url && <Button variant="outline-light" as="a" href={event.google_maps_url} target="_blank" rel="noreferrer"><i className="fa-solid fa-location-arrow me-2" />Maps</Button>}</div></div></Container>
+      <section className="cut-event-hero cut-event-hero--premium" style={flyerUrl ? { backgroundImage: `linear-gradient(180deg,rgba(3,10,16,.08),rgba(3,10,16,.98)),url(${flyerUrl})` } : undefined}>
+        <Container className="cut-page-container"><div className="cut-event-hero__content"><div className="d-flex flex-wrap gap-2 mb-3">{event.category && <Badge bg="dark">{event.category}</Badge>}<Badge bg="success">Publicado</Badge>{tickets.some((t) => t.available) && <Badge bg="info" text="dark">Ingressos disponíveis</Badge>}</div><h1>{event.title}</h1><p className="cut-event-hero__date">{formatDate(event.start_date)}</p><span>{event.venue || event.address}{event.city ? ` · ${event.city}${event.uf ? ` - ${event.uf}` : ""}` : ""}</span>{event.production?.name && <button className="cut-inline-profile-link" onClick={() => navigate(`/production/${event.production.slug}/public`)}>Por {event.production.name} <i className="fa-solid fa-arrow-up-right-from-square" /></button>}<div className="cut-card-actions mt-4"><Button onClick={share}><i className="fa-solid fa-share-nodes me-2" />Compartilhar</Button>{flyerUrl && <Button variant="outline-light" onClick={() => setFlyerOpen(true)}><i className="fa-regular fa-image me-2" />Ver Flyer</Button>}<Button variant={interested ? "info" : "outline-light"} onClick={() => setEngagement("interested")} disabled={socialBusy}><i className="fa-regular fa-star me-2" />Tenho interesse</Button><Button variant={favorite ? "danger" : "outline-light"} onClick={() => setEngagement("favorite")} disabled={socialBusy}><i className={`${favorite ? "fa-solid" : "fa-regular"} fa-heart me-2`} />{favorite ? "Salvo" : "Salvar"}</Button><Button variant="outline-light" href="#comunidade"><i className="fa-regular fa-comments me-2" />Conversa</Button>{event.google_maps_url && <Button variant="outline-light" as="a" href={event.google_maps_url} target="_blank" rel="noreferrer"><i className="fa-solid fa-location-arrow me-2" />Maps</Button>}</div></div></Container>
       </section>
 
       <Container className="cut-page-container py-4 py-lg-5">{error && <Alert variant="danger">{error}</Alert>}{success && <Alert variant="success">{success}</Alert>}
@@ -133,6 +141,12 @@ export default function EventViewPage() {
 
         <EventCommunitySection event={event} isOwner={isOwner} />
       </Container>
+
+      {flyerUrl && <Modal show={flyerOpen} onHide={() => setFlyerOpen(false)} centered size="xl" scrollable contentClassName="bg-dark text-light border-secondary">
+        <Modal.Header closeButton closeVariant="white" className="border-secondary"><Modal.Title>Flyer · {event.title}</Modal.Title></Modal.Header>
+        <Modal.Body className="p-2 p-md-3 text-center"><img src={flyerUrl} alt={`Flyer original do evento ${event.title}`} style={{ display: "block", width: "auto", maxWidth: "100%", height: "auto", maxHeight: "calc(100vh - 180px)", objectFit: "contain", margin: "0 auto" }} /></Modal.Body>
+        <Modal.Footer className="border-secondary"><Button variant="outline-light" as="a" href={flyerUrl} target="_blank" rel="noreferrer"><i className="fa-solid fa-up-right-from-square me-2" />Abrir imagem original</Button><Button onClick={() => setFlyerOpen(false)}>Fechar</Button></Modal.Footer>
+      </Modal>}
     </>}
     {!loading && !event && <Container className="cut-page-container py-5"><Alert variant="danger">{error || "Evento não encontrado ou não está publicado."}</Alert><Button variant="outline-light" onClick={() => navigate("/event")}>Voltar aos eventos</Button></Container>}
   </div>;
