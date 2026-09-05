@@ -11,7 +11,7 @@ export default function ProcessingIndicatorComponent({ fullscreen = true, label 
       aria-busy="true"
     >
       <div className="cut-processing__orb" aria-hidden="true">
-        <img src="/images/logo.png" alt="" className="cut-processing__logo" />
+        <img src="/images/logo.png" alt="" className="cut-processing__logo" data-peter-branding="logo" />
       </div>
       <span className="cut-processing__label">{label}</span>
     </div>
