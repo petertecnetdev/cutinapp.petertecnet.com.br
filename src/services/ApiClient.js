@@ -6,7 +6,7 @@ const firstValidationMessage = (errors) => {
   return Object.values(errors).flat().find((value) => typeof value === "string" && value.trim()) || "";
 };
 
-const humanizeMessage = (value, status, code) => {
+export const humanizeMessage = (value, status, code) => {
   const raw = String(value || "").trim();
 
   if (!status) {
@@ -18,14 +18,20 @@ const humanizeMessage = (value, status, code) => {
     }
   }
 
+  // Never surface backend exception details to the UI. Production 5xx payloads can
+  // contain SQL fragments, filesystem paths, stack traces or provider diagnostics.
+  if (status >= 500) {
+    return "O servidor não conseguiu concluir a solicitação. Tente novamente.";
+  }
+
   if (!raw) {
+    if (status === 401) return "Sua sessão expirou. Entre novamente para continuar.";
     if (status === 403) return "Você não possui permissão para realizar esta ação.";
     if (status === 404) return "O registro solicitado não foi encontrado.";
     if (status === 408) return "A solicitação expirou. Tente novamente.";
     if (status === 409) return "Esta operação entrou em conflito com o estado atual. Atualize a página e tente novamente.";
     if (status === 422) return "Revise os campos informados e tente novamente.";
     if (status === 429) return "Muitas solicitações foram feitas em pouco tempo. Aguarde um instante e tente novamente.";
-    if (status >= 500) return "O servidor não conseguiu concluir a solicitação. Tente novamente.";
     return "Não foi possível concluir a solicitação.";
   }
 
