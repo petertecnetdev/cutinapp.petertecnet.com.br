@@ -1,0 +1,122 @@
+.cut-collapsible-filters {
+  border: 1px solid var(--cut-border);
+  border-radius: var(--cut-radius-lg);
+  background: rgba(8, 20, 29, .58);
+  overflow: hidden;
+}
+
+.cut-collapsible-filters__toggle {
+  width: 100%;
+  min-height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--cut-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.cut-collapsible-filters__toggle:hover,
+.cut-collapsible-filters__toggle:focus-visible {
+  background: rgba(86, 220, 233, .055);
+}
+
+.cut-collapsible-filters__toggle:focus-visible {
+  outline: 2px solid var(--cut-border-focus);
+  outline-offset: -2px;
+}
+
+.cut-collapsible-filters__title,
+.cut-collapsible-filters__action {
+  display: flex;
+  align-items: center;
+}
+
+.cut-collapsible-filters__title {
+  gap: 11px;
+  min-width: 0;
+}
+
+.cut-collapsible-filters__title > span:last-child {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.cut-collapsible-filters__title strong {
+  font-size: .88rem;
+  font-weight: 880;
+  color: var(--cut-text-strong);
+}
+
+.cut-collapsible-filters__title small {
+  color: var(--cut-text-muted);
+  font-size: .72rem;
+  line-height: 1.35;
+}
+
+.cut-collapsible-filters__icon {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(86, 220, 233, .18);
+  border-radius: 12px;
+  background: var(--cut-primary-soft);
+  color: var(--cut-primary);
+}
+
+.cut-collapsible-filters__action {
+  gap: 9px;
+  flex: 0 0 auto;
+  color: var(--cut-text-muted);
+  font-size: .74rem;
+  font-weight: 820;
+}
+
+.cut-collapsible-filters__count {
+  min-width: 22px;
+  height: 22px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0 6px;
+  border-radius: var(--cut-radius-pill);
+  background: var(--cut-primary-soft);
+  color: var(--cut-primary);
+  font-size: .7rem;
+}
+
+.cut-collapsible-filters__body {
+  display: grid;
+  gap: 14px;
+  padding: 0 14px 14px;
+  border-top: 1px solid rgba(255, 255, 255, .045);
+}
+
+.cut-collapsible-filters__body > :first-child {
+  margin-top: 14px;
+}
+
+.cut-collapsible-filters.is-open {
+  border-color: var(--cut-border-strong);
+}
+
+@media (max-width: 575.98px) {
+  .cut-collapsible-filters__toggle {
+    min-height: 58px;
+    padding: 10px 12px;
+  }
+
+  .cut-collapsible-filters__action > span:first-child {
+    display: none;
+  }
+
+  .cut-collapsible-filters__body {
+    padding: 0 12px 12px;
+  }
+}
