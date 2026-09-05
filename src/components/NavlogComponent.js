@@ -137,6 +137,7 @@ export default function NavlogComponent() {
               <Nav.Link as={Link} to="/artists">Artistas</Nav.Link>
               <Nav.Link as={Link} to="/login">Entrar</Nav.Link>
             </Nav>
+            <span data-peter-ecosystem-slot className="cut-navbar__ecosystem-slot" aria-label="Navegação do ecossistema Peter Tecnet" />
           </Navbar.Collapse>
         </Container>
       </Navbar>
@@ -232,6 +233,7 @@ export default function NavlogComponent() {
               <NavDropdown.Item as="button" onClick={signOut}>Sair</NavDropdown.Item>
             </NavDropdown>
           </Nav>
+          <span data-peter-ecosystem-slot className="cut-navbar__ecosystem-slot" aria-label="Navegação do ecossistema Peter Tecnet" />
         </Navbar.Collapse>
       </Container>
     </Navbar>
