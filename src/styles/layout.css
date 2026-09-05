@@ -146,6 +146,13 @@
 }
 .cut-navbar__links .nav-link.active { box-shadow: inset 0 0 0 1px rgba(86,220,233,.14); }
 .cut-navbar__links i { color: var(--cut-primary); opacity: .88; }
+.cut-navbar__ecosystem-slot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  margin-left: 8px;
+}
 .cut-navbar__account { align-items: center; }
 .cut-navbar__account .dropdown-toggle { padding: 4px 7px !important; border-radius: 14px; }
 .cut-navbar__account .dropdown-toggle::after { margin-left: 9px; color: var(--cut-text-soft); }
