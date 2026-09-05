@@ -47,7 +47,8 @@ const EventManagePage = lazy(() => import("./pages/event/EventManagePage"));
 const EventUpdatePage = lazy(() => import("./pages/event/EventUpdatePage"));
 const EventLineupPage = lazy(() => import("./pages/event/EventLineupPage"));
 const EventArtistClaimsPage = lazy(() => import("./pages/event/EventArtistClaimsPage"));
-const EventViewPage = lazy(() => import("./pages/event/EventViewPage"));
+const EventAnnouncementsManagePage = lazy(() => import("./pages/event/EventAnnouncementsManagePage"));
+const EventExperiencePage = lazy(() => import("./pages/event/EventExperiencePage"));
 const CheckoutPage = lazy(() => import("./pages/checkout/CheckoutPage"));
 const PurchasesPage = lazy(() => import("./pages/commerce/PurchasesPage"));
 const PurchaseDetailPage = lazy(() => import("./pages/commerce/PurchaseDetailPage"));
@@ -150,9 +151,10 @@ function AppRoutes() {
             <Route path="/event/edit/:id" element={protectedRoute(<EventUpdatePage />)} />
             <Route path="/event/:eventId/lineup" element={protectedRoute(<EventLineupPage />)} />
             <Route path="/event/:eventId/artist-claims" element={protectedRoute(<EventArtistClaimsPage />)} />
+            <Route path="/event/:eventId/announcements" element={protectedRoute(<EventAnnouncementsManagePage />)} />
             <Route path="/event/:eventId/courtesies" element={protectedRoute(<CourtesyManagePage />)} />
             <Route path="/event/:eventId/participants" element={protectedRoute(<ParticipantsPage />)} />
-            <Route path="/event/:slug" element={<EventViewPage />} />
+            <Route path="/event/:slug" element={<EventExperiencePage />} />
             <Route path="/checkout/:slug" element={protectedRoute(<CheckoutPage />)} />
 
             <Route path="/ticket/create" element={protectedRoute(<TicketCreatePage />)} />
