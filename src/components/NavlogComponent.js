@@ -13,6 +13,7 @@ const notificationIcon = (type = "") => {
   if (type.includes("ticket")) return "fa-solid fa-ticket";
   if (type === "comment_like") return "fa-solid fa-heart";
   if (type === "event_comment" || type === "event_reply") return "fa-solid fa-comments";
+  if (type === "participant_follow") return "fa-solid fa-user-group";
   return "fa-regular fa-bell";
 };
 
@@ -193,6 +194,7 @@ export default function NavlogComponent() {
         <Navbar.Collapse id="cut-navbar">
           <Nav className="cut-navbar__links mx-auto">
             <Nav.Link as={Link} to="/feed" className={active("/feed") ? "active" : ""}><i className="fa-solid fa-bolt" /> Feed</Nav.Link>
+            <Nav.Link as={Link} to="/participantes" className={active("/participantes") ? "active" : ""}><i className="fa-solid fa-people-group" /> Participantes</Nav.Link>
             <Nav.Link as={Link} to="/event" className={active("/event") && !active("/event/manage") ? "active" : ""}><i className="fa-regular fa-calendar-days" /> Eventos</Nav.Link>
             <Nav.Link as={Link} to="/productions" className={active("/productions") ? "active" : ""}><i className="fa-solid fa-building" /> Produções</Nav.Link>
             <Nav.Link as={Link} to="/artists" className={active("/artist") ? "active" : ""}><i className="fa-solid fa-music" /> Artistas</Nav.Link>
@@ -225,6 +227,7 @@ export default function NavlogComponent() {
           <Nav className="cut-navbar__account">
             <NavDropdown align="end" title={<span className="cut-navbar__user"><span className="cut-navbar__avatar">{String(user.first_name || "C").slice(0, 2).toUpperCase()}</span><span><strong>{user.first_name || "Minha conta"}</strong><small>{user.email}</small></span></span>} id="cut-account-menu">
               <NavDropdown.Item as={Link} to="/profile"><i className="fa-regular fa-user me-2" />Meu perfil</NavDropdown.Item>
+              <NavDropdown.Item as={Link} to="/participantes"><i className="fa-solid fa-people-group me-2" />Comunidade</NavDropdown.Item>
               <NavDropdown.Item as={Link} to="/dashboard">Painel</NavDropdown.Item>
               {isAcquisitionAgent && <NavDropdown.Item as={Link} to="/agent"><i className="fa-solid fa-user-tie me-2" />Painel do agente</NavDropdown.Item>}
               <NavDropdown.Item as={Link} to="/purchases"><i className="fa-solid fa-receipt me-2" />Minhas compras</NavDropdown.Item>
