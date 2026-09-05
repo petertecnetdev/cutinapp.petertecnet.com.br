@@ -72,6 +72,15 @@ export default function ProductionViewPage() {
     finally { setMediaBusy(false); }
   };
 
+  const shareProductionOnWhatsApp = () => {
+    if (!production) return;
+    const publicPath = production.slug ? `/production/${production.slug}/public` : window.location.pathname;
+    const publicUrl = `${window.location.origin}${publicPath}`;
+    const message = `Conheça a produção ${production.name} na Cutinapp: ${publicUrl}`;
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+  };
+
   if (loading) return <div className="cut-app-page"><NavlogComponent /><ProcessingIndicatorComponent label="Abrindo produção" /></div>;
 
   const heroStyle = production?.background ? { backgroundImage: `linear-gradient(90deg,rgba(2,8,13,.94),rgba(2,8,13,.66) 52%,rgba(2,8,13,.28)),linear-gradient(180deg,rgba(2,8,13,.08),rgba(2,8,13,.94)),url(${mediaUrl(production.background)})` } : undefined;
@@ -81,7 +90,7 @@ export default function ProductionViewPage() {
     <NavlogComponent />
     <Container className="cut-page-container pt-4">{location.state?.created && <Alert variant="success">Produção criada com sucesso.</Alert>}{location.state?.updated && <Alert variant="success">Alterações salvas com sucesso.</Alert>}{error && <Alert variant="danger" dismissible onClose={() => setError("")}>{error}</Alert>}</Container>
     {production && <>
-      <section className="cut-profile-hero" style={heroStyle}><Container className="cut-page-container"><div className="cut-profile-hero__content"><div className="cut-profile-avatar cut-profile-avatar--square">{production.logo ? <img src={mediaUrl(production.logo)} alt={`Logo de ${production.name}`} /> : <span>{initials(production.name)}</span>}</div><div><span className="cut-eyebrow">Produção Cutinapp</span><h1>{production.name}</h1><p>{production.description || "Produção de eventos e experiências."}</p><div className="cut-social-stats"><span><i className="fa-regular fa-calendar me-1" />{production.events_count || events.length} eventos</span><span><i className="fa-regular fa-eye me-1" />{analytics.total_views || 0} visualizações</span><span><i className="fa-regular fa-user me-1" />{production.followers_count || 0} seguidores</span>{production.city && <span><i className="fa-solid fa-location-dot me-1" />{production.city}{production.uf ? ` - ${production.uf}` : ""}</span>}</div><div className="cut-card-actions mt-3"><Button variant="outline-light" onClick={() => navigate("/production/mine")}>Minhas produções</Button><Button variant="outline-light" onClick={() => navigate(`/production/edit/${production.id}`)}>Editar</Button><Button onClick={() => navigate(`/event/create?productionId=${production.id}`)}>Criar evento</Button>{production.slug && <Button variant="outline-light" onClick={() => navigate(`/production/${production.slug}/public`)}><i className="fa-solid fa-arrow-up-right-from-square me-2" />Ver página pública</Button>}</div></div></div></Container></section>
+      <section className="cut-profile-hero" style={heroStyle}><Container className="cut-page-container"><div className="cut-profile-hero__content"><div className="cut-profile-avatar cut-profile-avatar--square">{production.logo ? <img src={mediaUrl(production.logo)} alt={`Logo de ${production.name}`} /> : <span>{initials(production.name)}</span>}</div><div><span className="cut-eyebrow">Produção Cutinapp</span><h1>{production.name}</h1><p>{production.description || "Produção de eventos e experiências."}</p><div className="cut-social-stats"><span><i className="fa-regular fa-calendar me-1" />{production.events_count || events.length} eventos</span><span><i className="fa-regular fa-eye me-1" />{analytics.total_views || 0} visualizações</span><span><i className="fa-regular fa-user me-1" />{production.followers_count || 0} seguidores</span>{production.city && <span><i className="fa-solid fa-location-dot me-1" />{production.city}{production.uf ? ` - ${production.uf}` : ""}</span>}</div><div className="cut-card-actions mt-3"><Button variant="outline-light" onClick={() => navigate("/production/mine")}>Minhas produções</Button><Button variant="outline-light" onClick={() => navigate(`/production/edit/${production.id}`)}>Editar</Button><Button onClick={() => navigate(`/event/create?productionId=${production.id}`)}>Criar evento</Button>{production.slug && <Button variant="outline-light" onClick={() => navigate(`/production/${production.slug}/public`)}><i className="fa-solid fa-arrow-up-right-from-square me-2" />Ver página pública</Button>}<Button variant="success" onClick={shareProductionOnWhatsApp} aria-label={`Compartilhar ${production.name} pelo WhatsApp`} title="Compartilhar pelo WhatsApp"><i className="fa-brands fa-whatsapp me-2" />Compartilhar</Button></div></div></div></Container></section>
 
       <Container className="cut-page-container py-4 py-lg-5">
         <div className="cut-production-workspace-grid">
