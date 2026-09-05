@@ -129,6 +129,7 @@ function AppRoutes() {
             <Route path="/notifications" element={protectedRoute(<NotificationsPage />)} />
             <Route path="/moderation/reports" element={protectedRoute(<ReportModerationPage />)} />
             <Route path="/profile" element={protectedRoute(<UserProfilePage />)} />
+            <Route path="/profile/:userId" element={<UserProfilePage />} />
             <Route path="/user/edit" element={protectedRoute(<UserEditPage />)} />
             <Route path="/purchases" element={protectedRoute(<PurchasesPage />)} />
             <Route path="/purchases/:publicId" element={protectedRoute(<PurchaseDetailPage />)} />
