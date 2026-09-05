@@ -1,0 +1,340 @@
+.cut-flyer-modal-dialog {
+  width: min(1460px, 96vw);
+  max-width: min(1460px, 96vw);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.cut-flyer-modal {
+  overflow: hidden;
+  color: #fff;
+  background: rgba(4, 10, 16, .94);
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 28px;
+  box-shadow: 0 34px 90px rgba(0, 0, 0, .58), 0 0 0 1px rgba(255, 255, 255, .025) inset;
+  backdrop-filter: blur(28px) saturate(125%);
+}
+
+.cut-flyer-modal-backdrop.show {
+  opacity: .88;
+  backdrop-filter: blur(12px);
+}
+
+.cut-flyer-modal__header,
+.cut-flyer-modal__footer {
+  position: relative;
+  z-index: 5;
+  border-color: rgba(255, 255, 255, .08) !important;
+  background: linear-gradient(180deg, rgba(8, 16, 25, .98), rgba(8, 16, 25, .84));
+}
+
+.cut-flyer-modal__header {
+  min-height: 84px;
+  padding: 18px 22px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.cut-flyer-modal__heading {
+  min-width: 0;
+}
+
+.cut-flyer-modal__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 4px;
+  color: rgba(255,255,255,.58);
+  font-size: .74rem;
+  font-weight: 900;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.cut-flyer-modal__heading .modal-title {
+  overflow: hidden;
+  margin: 0;
+  font-size: clamp(1.08rem, 2vw, 1.5rem);
+  font-weight: 950;
+  letter-spacing: -.025em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cut-flyer-modal__heading small {
+  display: block;
+  overflow: hidden;
+  margin-top: 4px;
+  color: rgba(255,255,255,.54);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cut-flyer-modal__close {
+  display: inline-grid;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  place-items: center;
+  color: #fff;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 14px;
+  transition: transform .18s ease, background .18s ease, border-color .18s ease;
+}
+
+.cut-flyer-modal__close:hover {
+  transform: translateY(-1px);
+  background: rgba(255,255,255,.14);
+  border-color: rgba(255,255,255,.22);
+}
+
+.cut-flyer-modal__body {
+  padding: 0 !important;
+  background: #02060a;
+}
+
+.cut-flyer-stage {
+  position: relative;
+  min-height: min(72vh, 820px);
+  max-height: calc(100vh - 180px);
+  overflow: hidden;
+  isolation: isolate;
+  background: #02060a;
+}
+
+.cut-flyer-stage__ambient {
+  position: absolute;
+  inset: -52px;
+  z-index: -3;
+  background-position: center;
+  background-size: cover;
+  filter: blur(42px) saturate(130%);
+  opacity: .34;
+  transform: scale(1.08);
+}
+
+.cut-flyer-stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 30%, rgba(255,255,255,.09), transparent 38%),
+    linear-gradient(180deg, rgba(1,5,9,.28), rgba(1,5,9,.82));
+}
+
+.cut-flyer-stage__grid {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: .07;
+  background-image:
+    linear-gradient(rgba(255,255,255,.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.12) 1px, transparent 1px);
+  background-size: 34px 34px;
+  mask-image: linear-gradient(180deg, transparent, #000 18%, #000 82%, transparent);
+}
+
+.cut-flyer-stage__viewport {
+  display: flex;
+  min-height: min(72vh, 820px);
+  max-height: calc(100vh - 180px);
+  overflow: auto;
+  align-items: center;
+  justify-content: center;
+  padding: 34px 32px 92px;
+  overscroll-behavior: contain;
+  scrollbar-color: rgba(255,255,255,.26) transparent;
+  scrollbar-width: thin;
+}
+
+.cut-flyer-stage__image {
+  display: block;
+  width: auto;
+  max-width: min(100%, 1120px);
+  height: auto;
+  max-height: calc(100vh - 286px);
+  object-fit: contain;
+  border-radius: 16px;
+  box-shadow: 0 26px 70px rgba(0,0,0,.64), 0 0 0 1px rgba(255,255,255,.10);
+  transform-origin: center center;
+  transition: transform .22s cubic-bezier(.2,.8,.2,1), box-shadow .22s ease;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.cut-flyer-stage__image:hover {
+  box-shadow: 0 30px 82px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.16);
+}
+
+.cut-flyer-toolbar {
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px;
+  transform: translateX(-50%);
+  background: rgba(5, 12, 19, .78);
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: 18px;
+  box-shadow: 0 18px 42px rgba(0,0,0,.42);
+  backdrop-filter: blur(22px) saturate(140%);
+}
+
+.cut-flyer-toolbar button {
+  display: inline-grid;
+  min-width: 38px;
+  height: 38px;
+  place-items: center;
+  padding: 0 11px;
+  color: #fff;
+  background: transparent;
+  border: 0;
+  border-radius: 11px;
+  font-size: .86rem;
+  font-weight: 900;
+  transition: background .18s ease, opacity .18s ease, transform .18s ease;
+}
+
+.cut-flyer-toolbar button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: rgba(255,255,255,.11);
+}
+
+.cut-flyer-toolbar button:disabled {
+  opacity: .3;
+}
+
+.cut-flyer-toolbar__zoom {
+  min-width: 68px !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.cut-flyer-toolbar__divider {
+  width: 1px;
+  height: 24px;
+  margin: 0 2px;
+  background: rgba(255,255,255,.12);
+}
+
+.cut-flyer-stage__hint {
+  position: absolute;
+  right: 22px;
+  bottom: 28px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255,255,255,.52);
+  font-size: .74rem;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.cut-flyer-modal__footer {
+  min-height: 74px;
+  padding: 14px 20px;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.cut-flyer-modal__resolution {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: rgba(255,255,255,.55);
+  font-size: .78rem;
+  font-weight: 800;
+}
+
+.cut-flyer-modal__actions {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.cut-flyer-modal__actions .btn {
+  min-height: 42px;
+  border-radius: 12px;
+  font-weight: 850;
+}
+
+@media (max-width: 767.98px) {
+  .cut-flyer-modal-dialog {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+  }
+
+  .cut-flyer-modal {
+    min-height: 100dvh;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .cut-flyer-modal__header {
+    min-height: 76px;
+    padding: max(14px, env(safe-area-inset-top)) 14px 12px;
+  }
+
+  .cut-flyer-modal__heading .modal-title {
+    max-width: calc(100vw - 92px);
+  }
+
+  .cut-flyer-stage,
+  .cut-flyer-stage__viewport {
+    min-height: calc(100dvh - 148px);
+    max-height: calc(100dvh - 148px);
+  }
+
+  .cut-flyer-stage__viewport {
+    padding: 20px 14px 96px;
+    align-items: center;
+  }
+
+  .cut-flyer-stage__image {
+    max-width: 100%;
+    max-height: calc(100dvh - 260px);
+    border-radius: 12px;
+  }
+
+  .cut-flyer-toolbar {
+    bottom: 18px;
+  }
+
+  .cut-flyer-stage__hint {
+    display: none;
+  }
+
+  .cut-flyer-modal__footer {
+    min-height: 72px;
+    padding: 10px 12px max(10px, env(safe-area-inset-bottom));
+  }
+
+  .cut-flyer-modal__resolution {
+    display: none;
+  }
+
+  .cut-flyer-modal__actions {
+    width: 100%;
+  }
+
+  .cut-flyer-modal__actions .btn {
+    flex: 1 1 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cut-flyer-stage__image,
+  .cut-flyer-modal__close,
+  .cut-flyer-toolbar button {
+    transition: none;
+  }
+}
