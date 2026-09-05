@@ -1,0 +1,80 @@
+.cut-global-feed { margin-bottom: 3.5rem; }
+.cut-global-feed__heading { align-items: end; }
+.cut-global-feed__heading p { margin: .35rem 0 0; color: var(--cut-muted, #9aabb7); }
+.cut-post-composer,
+.cut-social-post,
+.cut-post-login-card { border: 1px solid rgba(255,255,255,.09); background: linear-gradient(180deg, rgba(16,29,38,.97), rgba(8,17,24,.97)); box-shadow: 0 18px 50px rgba(0,0,0,.18); }
+.cut-post-composer { max-width: 820px; margin: 0 auto 1.25rem; border-radius: 24px; }
+.cut-post-composer .card-body { padding: 1.15rem; }
+.cut-post-composer__identity,
+.cut-social-post__header { display: flex; align-items: center; gap: .8rem; }
+.cut-post-composer__identity { margin-bottom: .9rem; }
+.cut-post-composer__identity > div:last-child,
+.cut-social-post__author { display: flex; min-width: 0; flex: 1; flex-direction: column; }
+.cut-post-composer__identity small,
+.cut-social-post__author small { color: var(--cut-muted, #9aabb7); }
+.cut-social-avatar { width: 44px; height: 44px; flex: 0 0 44px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.07); font-weight: 900; }
+.cut-social-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.cut-post-composer__textarea { width: 100%; resize: vertical; min-height: 96px; border: 0; outline: 0; border-radius: 18px; padding: 1rem; background: rgba(255,255,255,.055); color: inherit; font: inherit; }
+.cut-post-composer__textarea::placeholder,
+.cut-poll-editor input::placeholder { color: rgba(220,232,239,.5); }
+.cut-post-composer__attachments { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .75rem; }
+.cut-post-composer__attachments span { max-width: 100%; padding: .5rem .7rem; border-radius: 999px; background: rgba(255,255,255,.07); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cut-post-composer__attachments button { border: 0; background: transparent; color: #c6d5de; text-decoration: underline; }
+.cut-post-composer__file { display: none; }
+.cut-post-composer__actions { display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin-top: .9rem; }
+.cut-post-composer__actions > div { display: flex; flex-wrap: wrap; gap: .35rem; }
+.cut-poll-editor { margin-top: .9rem; padding: .9rem; border-radius: 18px; background: rgba(255,255,255,.045); }
+.cut-poll-editor > input,
+.cut-poll-editor__option input { width: 100%; border: 1px solid rgba(255,255,255,.09); border-radius: 14px; padding: .72rem .85rem; background: rgba(0,0,0,.16); color: inherit; outline: none; }
+.cut-poll-editor__option { display: flex; gap: .45rem; margin-top: .55rem; }
+.cut-poll-editor__option button { width: 42px; flex: 0 0 42px; border: 0; border-radius: 12px; background: rgba(255,255,255,.07); color: inherit; }
+.cut-poll-editor > .btn { margin-top: .65rem; }
+.cut-post-list { max-width: 820px; margin: 0 auto; display: grid; gap: 1rem; }
+.cut-social-post { border-radius: 24px; overflow: hidden; }
+.cut-social-post .card-body { padding: 1.1rem; }
+.cut-social-post__header > .btn { margin-left: auto; }
+.cut-social-post__body { margin: 1rem 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 1.02rem; line-height: 1.58; }
+.cut-social-post__media { display: grid; gap: 4px; margin: .9rem -1.1rem 0; overflow: hidden; background: rgba(0,0,0,.25); }
+.cut-social-post__media img,
+.cut-social-post__media video { width: 100%; height: min(520px, 62vw); min-height: 250px; object-fit: cover; background: #05090c; }
+.cut-social-post__media--2,
+.cut-social-post__media--3,
+.cut-social-post__media--4 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.cut-social-post__media--2 img,
+.cut-social-post__media--2 video,
+.cut-social-post__media--3 img,
+.cut-social-post__media--3 video,
+.cut-social-post__media--4 img,
+.cut-social-post__media--4 video { height: 300px; }
+.cut-social-poll { margin-top: 1rem; padding: 1rem; border: 1px solid rgba(255,255,255,.08); border-radius: 18px; background: rgba(255,255,255,.035); }
+.cut-social-poll > strong { display: block; margin-bottom: .75rem; font-size: 1.04rem; }
+.cut-social-poll__options { display: grid; gap: .55rem; }
+.cut-social-poll__options button { position: relative; isolation: isolate; overflow: hidden; display: flex; justify-content: space-between; gap: .75rem; width: 100%; border: 1px solid rgba(255,255,255,.12); border-radius: 14px; padding: .72rem .85rem; background: rgba(255,255,255,.04); color: inherit; text-align: left; }
+.cut-social-poll__options button i { position: absolute; inset: 0 auto 0 0; z-index: -1; max-width: 100%; background: rgba(67,180,255,.15); transition: width .25s ease; }
+.cut-social-poll__options button.is-selected { border-color: rgba(67,180,255,.65); }
+.cut-social-poll > small { display: block; margin-top: .65rem; color: var(--cut-muted, #9aabb7); }
+.cut-global-feed__loading { min-height: 120px; display: flex; align-items: center; justify-content: center; gap: .7rem; color: var(--cut-muted, #9aabb7); }
+.cut-global-feed__empty,
+.cut-post-login-card { max-width: 820px; margin: 0 auto; border-radius: 24px; text-align: center; }
+
+@media (max-width: 575.98px) {
+  .cut-post-composer,
+  .cut-social-post,
+  .cut-post-login-card { border-radius: 18px; }
+  .cut-post-composer__actions { align-items: stretch; flex-direction: column; }
+  .cut-post-composer__actions > div { display: grid; grid-template-columns: 1fr 1fr; }
+  .cut-post-composer__actions > .btn { width: 100%; }
+  .cut-social-post__media { margin-left: -1.1rem; margin-right: -1.1rem; }
+  .cut-social-post__media--2,
+  .cut-social-post__media--3,
+  .cut-social-post__media--4 { grid-template-columns: 1fr; }
+  .cut-social-post__media img,
+  .cut-social-post__media video,
+  .cut-social-post__media--2 img,
+  .cut-social-post__media--2 video,
+  .cut-social-post__media--3 img,
+  .cut-social-post__media--3 video,
+  .cut-social-post__media--4 img,
+  .cut-social-post__media--4 video { height: auto; min-height: 220px; max-height: 520px; }
+}
