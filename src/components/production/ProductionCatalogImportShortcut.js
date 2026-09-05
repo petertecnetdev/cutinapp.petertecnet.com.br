@@ -14,10 +14,10 @@ export default function ProductionCatalogImportShortcut() {
     type="button"
     className="cut-catalog-import-shortcut"
     onClick={() => navigate(`/production/${match[1]}/items/import`)}
-    aria-label="Importar cardápio e cadastrar itens com inteligência artificial"
-    title="Importar cardápio com IA"
+    aria-label="Importar cardápio por foto e cadastrar itens"
+    title="Importar cardápio por foto"
   >
-    <i className="fa-solid fa-wand-magic-sparkles" />
+    <i className="fa-solid fa-camera" />
     <span>Importar cardápio</span>
   </Button>;
 }
