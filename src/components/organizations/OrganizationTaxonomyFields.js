@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Col, Form, Row } from "react-bootstrap";
-import cutinappService from "../../services/CutinappService";
+import appApiClient from "../../services/AppApiClient";
 import {
   FALLBACK_ORGANIZATION_TAXONOMY,
   canonicalOrganizationType,
@@ -13,8 +13,8 @@ export default function OrganizationTaxonomyFields({ value, onChange }) {
 
   useEffect(() => {
     let active = true;
-    cutinappService.organizationTaxonomy()
-      .then((data) => active && setTaxonomy(normalizeOrganizationTaxonomy(data)))
+    appApiClient.get("/organizations/taxonomy")
+      .then(({ data }) => active && setTaxonomy(normalizeOrganizationTaxonomy(data)))
       .catch(() => {});
     return () => { active = false; };
   }, []);
