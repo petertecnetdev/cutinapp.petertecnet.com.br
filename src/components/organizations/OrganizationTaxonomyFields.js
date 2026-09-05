@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import PropTypes from "prop-types";
 import { Col, Form, Row } from "react-bootstrap";
 import appApiClient from "../../services/AppApiClient";
 import {
@@ -15,7 +16,7 @@ export default function OrganizationTaxonomyFields({ value, onChange }) {
     let active = true;
     appApiClient.get("/organizations/taxonomy")
       .then(({ data }) => active && setTaxonomy(normalizeOrganizationTaxonomy(data)))
-      .catch(() => {});
+      .catch(() => undefined);
     return () => { active = false; };
   }, []);
 
@@ -84,3 +85,11 @@ export default function OrganizationTaxonomyFields({ value, onChange }) {
     </Col>
   </>;
 }
+
+OrganizationTaxonomyFields.propTypes = {
+  value: PropTypes.shape({
+    type: PropTypes.string,
+    roles: PropTypes.arrayOf(PropTypes.string),
+  }).isRequired,
+  onChange: PropTypes.func.isRequired,
+};
