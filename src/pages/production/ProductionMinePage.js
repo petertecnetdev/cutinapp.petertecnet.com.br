@@ -5,6 +5,7 @@ import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
+import ProductionOwnershipTransferModal from "./ProductionOwnershipTransferModal";
 import "./production-experience.css";
 import "./production-mine.css";
 
@@ -30,6 +31,7 @@ const productionKind = (production) => {
 };
 const apiErrorMessage = (err, fallback) => err?.response?.data?.message || err?.response?.data?.error || err?.message || fallback;
 const normalize = (value) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+const userDisplayName = (user) => [user?.first_name, user?.last_name].filter(Boolean).join(" ").trim() || user?.user_name || user?.email || "o novo responsável";
 
 export default function ProductionMinePage() {
   const navigate = useNavigate();
@@ -39,6 +41,7 @@ export default function ProductionMinePage() {
   const [success, setSuccess] = useState("");
   const [query, setQuery] = useState("");
   const [productionToDelete, setProductionToDelete] = useState(null);
+  const [productionToTransfer, setProductionToTransfer] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
 
   useEffect(() => {
@@ -63,7 +66,14 @@ export default function ProductionMinePage() {
   const withoutEvents = useMemo(() => items.filter((item) => Number(item.events_count || 0) === 0).length, [items]);
 
   const askDeleteProduction = (production) => { setError(""); setSuccess(""); setProductionToDelete(production); };
+  const askTransferProduction = (production) => { setError(""); setSuccess(""); setProductionToTransfer(production); };
   const closeDeleteModal = () => { if (!deletingId) setProductionToDelete(null); };
+  const handleTransferred = ({ production, targetUser }) => {
+    setItems((current) => current.filter((item) => Number(item.id) !== Number(production.id)));
+    setProductionToTransfer(null);
+    setError("");
+    setSuccess(`${production.name || "Produção"} foi transferida para ${userDisplayName(targetUser)} com sucesso.`);
+  };
   const deleteProduction = async () => {
     if (!productionToDelete?.id || deletingId) return;
     const id = productionToDelete.id;
@@ -196,6 +206,7 @@ export default function ProductionMinePage() {
                     <Dropdown.Menu>
                       <Dropdown.Item onClick={() => navigate(`/production/edit/${production.id}`)}><i className="fa-regular fa-pen-to-square me-2" />Editar produção</Dropdown.Item>
                       <Dropdown.Item onClick={() => navigate(`/producer/finance?production=${production.id}`)}><i className="fa-solid fa-chart-line me-2" />Financeiro</Dropdown.Item>
+                      <Dropdown.Item onClick={() => askTransferProduction(production)}><i className="fa-solid fa-arrow-right-arrow-left me-2" />Transferir produção</Dropdown.Item>
                       <Dropdown.Divider />
                       <Dropdown.Item className="text-danger" onClick={() => askDeleteProduction(production)}><i className="fa-regular fa-trash-can me-2" />Excluir produção</Dropdown.Item>
                     </Dropdown.Menu>
@@ -224,6 +235,12 @@ export default function ProductionMinePage() {
         </div>
       )}
     </Container>
+
+    <ProductionOwnershipTransferModal
+      production={productionToTransfer}
+      onHide={() => setProductionToTransfer(null)}
+      onTransferred={handleTransferred}
+    />
 
     <Modal show={Boolean(productionToDelete)} onHide={closeDeleteModal} centered backdrop={deletingId ? "static" : true} keyboard={!deletingId}>
       <Modal.Header closeButton={!deletingId}><Modal.Title>Excluir produção</Modal.Title></Modal.Header>

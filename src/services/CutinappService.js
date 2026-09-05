@@ -44,6 +44,7 @@ const cutinappService = {
   publicProduction: async (slug) => rename((await appApiClient.get(`/organizations/public/${slug}`)).data, "organization", "production"),
   createProduction: async (formData) => rename((await appApiClient.post("/organizations", formData)).data, "organization", "production"),
   updateProduction: async (id, formData) => rename((await appApiClient.patch(`/organizations/${id}`, formData)).data, "organization", "production"),
+  transferProduction: async (id, userId) => rename((await appApiClient.patch(`/organizations/${id}`, { owner_user_id: Number(userId) })).data, "organization", "production"),
   deleteProduction: async (id) => (await appApiClient.delete(`/organizations/${id}`)).data,
   producerContract: async (organizationId) => {
     const data = (await appApiClient.get(`/organizations/${organizationId}/agreement`)).data;

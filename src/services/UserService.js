@@ -9,6 +9,13 @@ const userService = {
     return response.data;
   },
 
+  search: async (query, perPage = 10) => {
+    const response = await apiClient.get(`/${apiServiceUrl}/search`, {
+      params: { q: String(query || "").trim(), per_page: perPage },
+    });
+    return response.data;
+  },
+
   update: async (userId, userData) => {
     const response = await apiClient.post(`/${apiServiceUrl}/${userId}`, userData, multipart);
     return response.data;
