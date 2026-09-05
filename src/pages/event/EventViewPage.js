@@ -3,6 +3,7 @@ import { Alert, Badge, Button, Card, Col, Container, Row } from "react-bootstrap
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
+import WhatsAppFloatingButton from "../../components/WhatsAppFloatingButton";
 import EventCommunitySection from "../../components/event/EventCommunitySection";
 import EventCommercePanel from "../../components/event/EventCommercePanel";
 import EventFlyerModal from "../../components/event/EventFlyerModal";
@@ -171,6 +172,12 @@ export default function EventViewPage() {
 
         <EventCommunitySection event={event} isOwner={isOwner} />
       </Container>
+
+      <WhatsAppFloatingButton
+        phone={event.production?.phone || event.phone}
+        label="Falar sobre o evento"
+        message={`Olá! Vi o evento ${event.title} na Cutinapp e gostaria de mais informações.`}
+      />
 
       <EventFlyerModal show={flyerOpen} onHide={() => setFlyerOpen(false)} event={event} flyerUrl={flyerUrl} />
     </>}
