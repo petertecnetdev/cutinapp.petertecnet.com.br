@@ -1,10 +1,11 @@
 import React, { useContext, useEffect, useMemo, useState } from "react";
-import { Alert, Badge, Button, Card, Col, Container, Modal, Row } from "react-bootstrap";
+import { Alert, Badge, Button, Card, Col, Container, Row } from "react-bootstrap";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import EventCommunitySection from "../../components/event/EventCommunitySection";
 import EventCommercePanel from "../../components/event/EventCommercePanel";
+import EventFlyerModal from "../../components/event/EventFlyerModal";
 import { AuthContext } from "../../context/AuthContext";
 import eventService from "../../services/EventService";
 import cutinappService from "../../services/CutinappService";
@@ -142,11 +143,7 @@ export default function EventViewPage() {
         <EventCommunitySection event={event} isOwner={isOwner} />
       </Container>
 
-      {flyerUrl && <Modal show={flyerOpen} onHide={() => setFlyerOpen(false)} centered size="xl" scrollable contentClassName="bg-dark text-light border-secondary">
-        <Modal.Header closeButton closeVariant="white" className="border-secondary"><Modal.Title>Flyer · {event.title}</Modal.Title></Modal.Header>
-        <Modal.Body className="p-2 p-md-3 text-center"><img src={flyerUrl} alt={`Flyer original do evento ${event.title}`} style={{ display: "block", width: "auto", maxWidth: "100%", height: "auto", maxHeight: "calc(100vh - 180px)", objectFit: "contain", margin: "0 auto" }} /></Modal.Body>
-        <Modal.Footer className="border-secondary"><Button variant="outline-light" as="a" href={flyerUrl} target="_blank" rel="noreferrer"><i className="fa-solid fa-up-right-from-square me-2" />Abrir imagem original</Button><Button onClick={() => setFlyerOpen(false)}>Fechar</Button></Modal.Footer>
-      </Modal>}
+      <EventFlyerModal show={flyerOpen} onHide={() => setFlyerOpen(false)} event={event} flyerUrl={flyerUrl} />
     </>}
     {!loading && !event && <Container className="cut-page-container py-5"><Alert variant="danger">{error || "Evento não encontrado ou não está publicado."}</Alert><Button variant="outline-light" onClick={() => navigate("/event")}>Voltar aos eventos</Button></Container>}
   </div>;
