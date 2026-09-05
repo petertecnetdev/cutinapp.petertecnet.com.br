@@ -116,30 +116,36 @@ function dockLauncherInNavbar(launcher) {
     }
   };
 
-  const target = findTarget();
-  if (target && launcher.parentElement !== target) target.appendChild(launcher);
-  launcher.setAttribute("data-peter-navbar-docked", target ? "true" : "false");
-  applyDockedLayout();
+  const mount = () => {
+    const target = findTarget();
+    if (!target) return false;
+    const toggle = target.querySelector?.(".navbar-toggler");
+    if (toggle && toggle.parentElement === target) target.insertBefore(launcher, toggle);
+    else if (launcher.parentElement !== target) target.appendChild(launcher);
+    launcher.style.display = "inline-flex";
+    launcher.style.alignItems = "center";
+    launcher.style.marginLeft = "8px";
+    launcher.style.flex = "0 0 auto";
+    launcher.setAttribute("data-peter-navbar-docked", "true");
+    applyDockedLayout();
+    return true;
+  };
+
+  mount();
 
   const shadowObserver = new MutationObserver(applyDockedLayout);
   if (launcher.shadowRoot) shadowObserver.observe(launcher.shadowRoot, { childList: true, subtree: true });
 
-  let navObserver = null;
-  if (!target) {
-    navObserver = new MutationObserver(() => {
-      const nextTarget = findTarget();
-      if (!nextTarget) return;
-      nextTarget.appendChild(launcher);
-      launcher.setAttribute("data-peter-navbar-docked", "true");
-      applyDockedLayout();
-      navObserver.disconnect();
-    });
+  const navObserver = new MutationObserver(() => {
+    if (mount()) navObserver.disconnect();
+  });
+  if (launcher.getAttribute("data-peter-navbar-docked") !== "true") {
     navObserver.observe(document.body, { childList: true, subtree: true });
   }
 
   return () => {
     shadowObserver.disconnect();
-    navObserver?.disconnect();
+    navObserver.disconnect();
   };
 }
 
