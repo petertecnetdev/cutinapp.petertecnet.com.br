@@ -8,7 +8,7 @@ import cutinappService from "../../services/CutinappService";
 import eventService from "../../services/EventService";
 
 const JSQR_URL = "https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js";
-const JSQR_INTEGRITY = "sha256-rsgbRZ1OOFaIX8oEtJdHQic5areT2u30Av2A97n8wzc=";
+const JSQR_INTEGRITY = "sha256-vEDIoVGWI2sjFNsIVvcsoLSZgM1UE7jIUqc0n1/uCFk=";
 const JSQR_LOAD_TIMEOUT_MS = 8000;
 
 const loadJsQr = () => new Promise((resolve, reject) => {
