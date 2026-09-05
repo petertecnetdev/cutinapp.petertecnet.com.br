@@ -1,4 +1,5 @@
 import React from "react";
+import PropTypes from "prop-types";
 import { Button, Form } from "react-bootstrap";
 import { youtubeEmbedUrl, youtubeVideoId } from "../../utils/eventMedia";
 
@@ -102,3 +103,14 @@ export default function EventOpeningMediaFields({
     </div>
   );
 }
+
+EventOpeningMediaFields.propTypes = {
+  type: PropTypes.oneOf(["banner", "video", "youtube"]),
+  onTypeChange: PropTypes.func.isRequired,
+  videoPreview: PropTypes.string,
+  youtubeUrl: PropTypes.string,
+  onYoutubeChange: PropTypes.func.isRequired,
+  onVideoChange: PropTypes.func.isRequired,
+  videoError: PropTypes.string,
+  youtubeError: PropTypes.string,
+};
