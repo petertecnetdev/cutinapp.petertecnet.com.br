@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Alert, Button, Card, Container, Dropdown, Form, Modal } from "react-bootstrap";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
+import ProductionAgendaManager from "./ProductionAgendaManager";
 import "./production-experience.css";
 import "./production-mine.css";
 
@@ -33,6 +34,7 @@ const normalize = (value) => String(value || "").normalize("NFD").replace(/[\u03
 
 export default function ProductionMinePage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -61,6 +63,23 @@ export default function ProductionMinePage() {
   const totalEvents = useMemo(() => items.reduce((sum, item) => sum + Number(item.events_count || 0), 0), [items]);
   const located = useMemo(() => items.filter((item) => item.city || item.address || item.formatted_address).length, [items]);
   const withoutEvents = useMemo(() => items.filter((item) => Number(item.events_count || 0) === 0).length, [items]);
+  const agendaProductionId = searchParams.get("agenda") || "";
+  const agendaProduction = useMemo(
+    () => items.find((production) => String(production.id) === String(agendaProductionId)) || null,
+    [agendaProductionId, items],
+  );
+
+  const openAgenda = (production) => {
+    const next = new URLSearchParams(searchParams);
+    next.set("agenda", String(production.id));
+    setSearchParams(next);
+  };
+
+  const closeAgenda = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete("agenda");
+    setSearchParams(next, { replace: true });
+  };
 
   const askDeleteProduction = (production) => { setError(""); setSuccess(""); setProductionToDelete(production); };
   const closeDeleteModal = () => { if (!deletingId) setProductionToDelete(null); };
@@ -75,6 +94,7 @@ export default function ProductionMinePage() {
       const response = await cutinappService.deleteProduction(id);
       setItems((current) => current.filter((production) => production.id !== id));
       setProductionToDelete(null);
+      if (String(agendaProductionId) === String(id)) closeAgenda();
       setSuccess(response?.message || `${name} excluída com sucesso.`);
     } catch (err) {
       setProductionToDelete(null);
@@ -93,7 +113,7 @@ export default function ProductionMinePage() {
         <div>
           <span className="cut-eyebrow">Área do produtor</span>
           <h1>Minhas produções</h1>
-          <p>Gerencie suas marcas, espaços, eventos e recebimentos em um só lugar.</p>
+          <p>Gerencie suas marcas, espaços, eventos, agendas fixas e recebimentos em um só lugar.</p>
         </div>
         <div className="cut-production-mine-heading__actions">
           <Button variant="outline-light" onClick={() => navigate("/producer/finance")}>
@@ -194,6 +214,7 @@ export default function ProductionMinePage() {
                   <Dropdown align="end" className="cut-production-manage-card__menu">
                     <Dropdown.Toggle variant="outline-light" aria-label={`Mais opções de ${production.name}`}><i className="fa-solid fa-ellipsis" /></Dropdown.Toggle>
                     <Dropdown.Menu>
+                      <Dropdown.Item onClick={() => openAgenda(production)}><i className="fa-solid fa-calendar-days me-2" />Agenda semanal</Dropdown.Item>
                       <Dropdown.Item onClick={() => navigate(`/production/edit/${production.id}`)}><i className="fa-regular fa-pen-to-square me-2" />Editar produção</Dropdown.Item>
                       <Dropdown.Item onClick={() => navigate(`/producer/finance?production=${production.id}`)}><i className="fa-solid fa-chart-line me-2" />Financeiro</Dropdown.Item>
                       <Dropdown.Divider />
@@ -206,6 +227,14 @@ export default function ProductionMinePage() {
                   <div><i className="fa-regular fa-calendar" /><span>Eventos</span><strong>{eventCount}</strong></div>
                   <div><i className="fa-solid fa-location-dot" /><span>Local</span><strong title={cityLabel}>{cityLabel}</strong></div>
                   <div><i className="fa-regular fa-circle-check" /><span>Cadastro</span><strong>{production.cnpj ? "Completo" : "Ativo"}</strong></div>
+                </div>
+
+                <div className="cut-production-agenda-entry">
+                  <div>
+                    <strong><i className="fa-solid fa-repeat me-2" />Tem programação fixa toda semana?</strong>
+                    <span>Cadastre a agenda uma vez e crie as próximas edições com um clique.</span>
+                  </div>
+                  <Button size="sm" variant="outline-light" onClick={() => openAgenda(production)} disabled={deleting}>Agenda semanal</Button>
                 </div>
 
                 {eventCount === 0 && <div className="cut-production-manage-card__callout">
@@ -224,6 +253,8 @@ export default function ProductionMinePage() {
         </div>
       )}
     </Container>
+
+    {agendaProduction && <ProductionAgendaManager production={agendaProduction} show onHide={closeAgenda} />}
 
     <Modal show={Boolean(productionToDelete)} onHide={closeDeleteModal} centered backdrop={deletingId ? "static" : true} keyboard={!deletingId}>
       <Modal.Header closeButton={!deletingId}><Modal.Title>Excluir produção</Modal.Title></Modal.Header>
