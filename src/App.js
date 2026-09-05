@@ -39,6 +39,8 @@ const ProductionPublicPage = lazy(() => import("./pages/production/ProductionPub
 const ProductionUpdatePage = lazy(() => import("./pages/production/ProductionUpdatePage"));
 const ProductionFinancePage = lazy(() => import("./pages/production/ProductionFinancePage"));
 const ProducerContractsPage = lazy(() => import("./pages/production/ProducerContractsPage"));
+const ProductionAgendaManager = lazy(() => import("./pages/production/ProductionAgendaManager"));
+const ProductionAgendaFormPage = lazy(() => import("./pages/production/ProductionAgendaFormPage"));
 const ArtistListPage = lazy(() => import("./pages/artist/ArtistListPage"));
 const ArtistViewPage = lazy(() => import("./pages/artist/ArtistViewPage"));
 const ArtistManagePage = lazy(() => import("./pages/artist/ArtistManagePage"));
@@ -142,6 +144,9 @@ function AppRoutes() {
             <Route path="/producer/finance" element={protectedRoute(<ProductionFinancePage />)} />
             <Route path="/producer/sales" element={protectedRoute(<ProducerSalesPage />)} />
             <Route path="/producer/sales/:productionId/:publicId" element={protectedRoute(<ProducerSaleDetailPage />)} />
+            <Route path="/production/:productionId/agenda" element={protectedRoute(<ProductionAgendaManager />)} />
+            <Route path="/production/:productionId/agenda/new" element={protectedRoute(<ProductionAgendaFormPage />)} />
+            <Route path="/production/:productionId/agenda/:scheduleId/edit" element={protectedRoute(<ProductionAgendaFormPage />)} />
             <Route path="/production/:slug/public" element={<ProductionPublicPage />} />
             <Route path="/production/:id" element={protectedRoute(<ProductionViewPage />)} />
             <Route path="/production/edit/:id" element={protectedRoute(<ProductionUpdatePage />)} />
