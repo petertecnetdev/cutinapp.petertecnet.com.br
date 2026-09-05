@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useMemo, useState } from "react";
+import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Badge, Button, Card, Col, Container, Row } from "react-bootstrap";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
@@ -11,6 +11,7 @@ import { AuthContext } from "../../context/AuthContext";
 import eventService from "../../services/EventService";
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
+import { resolveEventMediaUrl, youtubeEmbedUrl } from "../../utils/eventMedia";
 
 const formatDate = (value) => value
   ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "long", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(new Date(value))
@@ -41,6 +42,7 @@ export default function EventViewPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useContext(AuthContext);
+  const openingVideoRef = useRef(null);
   const [data, setData] = useState(null);
   const [artists, setArtists] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -51,6 +53,7 @@ export default function EventViewPage() {
   const [favorite, setFavorite] = useState(false);
   const [interested, setInterested] = useState(false);
   const [flyerOpen, setFlyerOpen] = useState(false);
+  const [openingVideoMuted, setOpeningVideoMuted] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -70,6 +73,21 @@ export default function EventViewPage() {
   const isOwner = Boolean(event?.production?.user_id && Number(event.production.user_id) === Number(user?.id));
   const mapEmbedUrl = useMemo(() => buildMapEmbedUrl(event), [event]);
   const flyerUrl = useMemo(() => resolveImageUrl(event?.image), [event?.image]);
+  const openingMediaType = event?.opening_media_type || "banner";
+  const openingMediaUrl = useMemo(() => resolveEventMediaUrl(event?.opening_media), [event?.opening_media]);
+  const openingYoutubeUrl = useMemo(
+    () => openingMediaType === "youtube" ? youtubeEmbedUrl(event?.opening_media, { autoplay: true }) : "",
+    [event?.opening_media, openingMediaType]
+  );
+  const hasOpeningVideo = openingMediaType === "video" && Boolean(openingMediaUrl);
+  const hasOpeningYoutube = openingMediaType === "youtube" && Boolean(openingYoutubeUrl);
+  const heroStyle = !hasOpeningVideo && !hasOpeningYoutube && flyerUrl
+    ? { backgroundImage: `linear-gradient(180deg,rgba(3,10,16,.08),rgba(3,10,16,.98)),url(${flyerUrl})` }
+    : undefined;
+
+  useEffect(() => {
+    setOpeningVideoMuted(true);
+  }, [event?.id, event?.opening_media]);
 
   useEffect(() => {
     if (!event?.id || !user?.id) {
@@ -135,6 +153,14 @@ export default function EventViewPage() {
     } catch (err) { if (err?.name !== "AbortError") setError("Não foi possível compartilhar neste navegador."); }
   };
 
+  const toggleOpeningVideoSound = () => {
+    const video = openingVideoRef.current;
+    if (!video) return;
+    video.muted = !video.muted;
+    setOpeningVideoMuted(video.muted);
+    if (video.paused) video.play().catch(() => {});
+  };
+
   const setEngagement = async (kind) => {
     if (!user) return navigate("/login", { state: { from: `${location.pathname}${location.search}` } });
     setSocialBusy(true); setError("");
@@ -149,7 +175,10 @@ export default function EventViewPage() {
 
   return <div className="cut-app-page"><NavlogComponent />{(loading || claimingId || artistClaimingId) && <ProcessingIndicatorComponent label={claimingId ? "Emitindo ingresso" : artistClaimingId ? "Enviando reivindicação" : "Carregando evento"} />}
     {!loading && event && <>
-      <section className="cut-event-hero cut-event-hero--premium" style={flyerUrl ? { backgroundImage: `linear-gradient(180deg,rgba(3,10,16,.08),rgba(3,10,16,.98)),url(${flyerUrl})` } : undefined}>
+      <section className={`cut-event-hero cut-event-hero--premium ${(hasOpeningVideo || hasOpeningYoutube) ? "cut-event-hero--has-opening-video" : ""}`} style={heroStyle}>
+        {hasOpeningVideo && <div className="cut-event-hero__media"><video ref={openingVideoRef} src={openingMediaUrl} poster={flyerUrl || undefined} autoPlay muted={openingVideoMuted} playsInline loop preload="metadata" onCanPlay={(mediaEvent) => mediaEvent.currentTarget.play().catch(() => {})} /></div>}
+        {hasOpeningYoutube && <div className="cut-event-hero__media cut-event-hero__media--youtube"><iframe src={openingYoutubeUrl} title={`Vídeo de abertura de ${event.title}`} allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen /></div>}
+        {hasOpeningVideo && <Button type="button" className="cut-event-hero__sound" variant="dark" size="sm" onClick={toggleOpeningVideoSound}><i className={`fa-solid ${openingVideoMuted ? "fa-volume-xmark" : "fa-volume-high"} me-2`} />{openingVideoMuted ? "Ativar som" : "Silenciar"}</Button>}
         <Container className="cut-page-container"><div className="cut-event-hero__content"><div className="d-flex flex-wrap gap-2 mb-3">{event.category && <Badge bg="dark">{event.category}</Badge>}<Badge bg="success">Publicado</Badge>{tickets.some((t) => t.available) && <Badge bg="info" text="dark">Ingressos disponíveis</Badge>}</div><h1>{event.title}</h1><p className="cut-event-hero__date">{formatDate(event.start_date)}</p><span>{event.venue || event.address}{event.city ? ` · ${event.city}${event.uf ? ` - ${event.uf}` : ""}` : ""}</span>{event.production?.name && <button className="cut-inline-profile-link" onClick={() => navigate(`/production/${event.production.slug}/public`)}>Por {event.production.name} <i className="fa-solid fa-arrow-up-right-from-square" /></button>}<div className="cut-card-actions mt-4"><Button onClick={share}><i className="fa-solid fa-share-nodes me-2" />Compartilhar</Button>{flyerUrl && <Button variant="outline-light" onClick={() => setFlyerOpen(true)}><i className="fa-regular fa-image me-2" />Ver Flyer</Button>}<Button variant={interested ? "info" : "outline-light"} onClick={() => setEngagement("interested")} disabled={socialBusy || engagementLoading}><i className="fa-regular fa-star me-2" />Tenho interesse</Button><Button variant={favorite ? "danger" : "outline-light"} onClick={() => setEngagement("favorite")} disabled={socialBusy || engagementLoading}><i className={`${favorite ? "fa-solid" : "fa-regular"} fa-heart me-2`} />{favorite ? "Salvo" : "Salvar"}</Button><Button variant="outline-light" href="#comunidade"><i className="fa-regular fa-comments me-2" />Conversa</Button>{event.google_maps_url && <Button variant="outline-light" as="a" href={event.google_maps_url} target="_blank" rel="noreferrer"><i className="fa-solid fa-location-arrow me-2" />Maps</Button>}</div></div></Container>
       </section>
 
