@@ -14,12 +14,13 @@ import PeterTecnetSignature from "./components/PeterTecnetSignature";
 import ProcessingIndicatorComponent from "./components/ProcessingIndicatorComponent";
 import SeoManager from "./components/SeoManager";
 import authService from "./services/AuthService";
-import { hasContextRole } from "./utils/applicationRoles";
+import { hasContextRole, isApplicationAdmin } from "./utils/applicationRoles";
 
 const HomePage = lazy(() => import("./pages/HomePage"));
 const FeedPage = lazy(() => import("./pages/FeedPage"));
 const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
 const ReportModerationPage = lazy(() => import("./pages/moderation/ReportModerationPage"));
+const ApplicationAdminPage = lazy(() => import("./pages/admin/ApplicationAdminPage"));
 const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
 const RegisterPage = lazy(() => import("./pages/auth/RegisterPage"));
 const EmailVerifyPage = lazy(() => import("./pages/auth/EmailVerifyPage"));
@@ -71,7 +72,7 @@ function AppRoutes() {
   const canUseDeferredVerificationSession = () =>
     authService.isEmailVerificationDeferredForCurrentSession();
 
-  const protectedRoute = (element) => {
+  const authenticatedRoute = () => {
     if (!user) {
       const from = currentRoute();
       return <Navigate to="/login" state={{ from }} replace />;
@@ -79,18 +80,32 @@ function AppRoutes() {
     if (!user.email_verified_at && !canUseDeferredVerificationSession()) {
       return <Navigate to="/email-verify" state={{ from: currentRoute() }} replace />;
     }
-    return element;
+    return null;
   };
 
+  const protectedRoute = (element) => authenticatedRoute() || element;
+
   const acquisitionRoute = (element) => {
-    if (!user) {
-      const from = currentRoute();
-      return <Navigate to="/login" state={{ from }} replace />;
-    }
-    if (!user.email_verified_at && !canUseDeferredVerificationSession()) {
-      return <Navigate to="/email-verify" state={{ from: currentRoute() }} replace />;
-    }
+    const redirect = authenticatedRoute();
+    if (redirect) return redirect;
     return hasContextRole(user, "acquisition_agent")
+      ? element
+      : <Navigate to="/dashboard" replace />;
+  };
+
+  const applicationAdminRoute = (element) => {
+    const redirect = authenticatedRoute();
+    if (redirect) return redirect;
+    return isApplicationAdmin(user)
+      ? element
+      : <Navigate to="/dashboard" replace />;
+  };
+
+  const moderationRoute = (element) => {
+    const redirect = authenticatedRoute();
+    if (redirect) return redirect;
+    const isLegacyModerator = user?.profile?.name === "Administrador" || user?.profile_name === "Administrador";
+    return isApplicationAdmin(user) || isLegacyModerator
       ? element
       : <Navigate to="/dashboard" replace />;
   };
@@ -101,7 +116,9 @@ function AppRoutes() {
   };
 
   const guestRoute = (element) => user ? <Navigate to="/dashboard" replace /> : element;
-  const shellOwnsSignature = location.pathname === "/" || ["/login", "/register", "/password-email", "/email-verify", "/agent/activate"].includes(location.pathname);
+  const shellOwnsSignature = location.pathname === "/"
+    || location.pathname.startsWith("/admin")
+    || ["/login", "/register", "/password-email", "/email-verify", "/agent/activate"].includes(location.pathname);
   const routeKey = `${location.pathname}${location.search}`;
 
   return (
@@ -122,10 +139,12 @@ function AppRoutes() {
             <Route path="/agent/activate" element={<AcquisitionActivationPage />} />
 
             <Route path="/dashboard" element={protectedRoute(<DashboardPage />)} />
+            <Route path="/admin" element={applicationAdminRoute(<ApplicationAdminPage />)} />
+            <Route path="/admin/:section" element={applicationAdminRoute(<ApplicationAdminPage />)} />
             <Route path="/agent" element={acquisitionRoute(<AcquisitionDashboardPage />)} />
             <Route path="/feed" element={protectedRoute(<FeedPage />)} />
             <Route path="/notifications" element={protectedRoute(<NotificationsPage />)} />
-            <Route path="/moderation/reports" element={protectedRoute(<ReportModerationPage />)} />
+            <Route path="/moderation/reports" element={moderationRoute(<ReportModerationPage />)} />
             <Route path="/profile" element={protectedRoute(<UserProfilePage />)} />
             <Route path="/user/edit" element={protectedRoute(<UserEditPage />)} />
             <Route path="/purchases" element={protectedRoute(<PurchasesPage />)} />

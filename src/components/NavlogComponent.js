@@ -4,7 +4,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import cutinappService from "../services/CutinappService";
 import { subscribeToUserNotifications } from "../services/RealtimeNotificationService";
-import { hasContextRole } from "../utils/applicationRoles";
+import { hasContextRole, isApplicationAdmin } from "../utils/applicationRoles";
 import { safeNavigationTarget } from "../utils/safeUrl";
 import { notificationTelemetryAttrs } from "../utils/notificationTelemetry";
 
@@ -46,6 +46,7 @@ export default function NavlogComponent() {
   const active = (prefix) => location.pathname.startsWith(prefix);
   const closeMenu = () => setOpen(false);
   const isAdmin = user?.profile?.name === "Administrador" || user?.profile_name === "Administrador";
+  const hasApplicationAdmin = isApplicationAdmin(user);
   const isAcquisitionAgent = hasContextRole(user, "acquisition_agent");
 
   useEffect(() => {
@@ -229,7 +230,8 @@ export default function NavlogComponent() {
               {isAcquisitionAgent && <NavDropdown.Item as={Link} to="/agent"><i className="fa-solid fa-user-tie me-2" />Painel do agente</NavDropdown.Item>}
               <NavDropdown.Item as={Link} to="/purchases"><i className="fa-solid fa-receipt me-2" />Minhas compras</NavDropdown.Item>
               <NavDropdown.Item as={Link} to="/user/edit">Editar conta</NavDropdown.Item>
-              {isAdmin && <><NavDropdown.Divider /><NavDropdown.Item as={Link} to="/moderation/reports"><i className="fa-solid fa-shield-halved me-2" />Moderação</NavDropdown.Item></>}
+              {hasApplicationAdmin && <><NavDropdown.Divider /><NavDropdown.Item as={Link} to="/admin"><i className="fa-solid fa-gauge-high me-2" />Administração Cutinapp</NavDropdown.Item></>}
+              {(isAdmin || hasApplicationAdmin) && <NavDropdown.Item as={Link} to="/moderation/reports"><i className="fa-solid fa-shield-halved me-2" />Moderação</NavDropdown.Item>}
               <NavDropdown.Item as={Link} to="/password">Alterar senha</NavDropdown.Item>
               <NavDropdown.Divider />
               <NavDropdown.Item as="button" onClick={signOut}>Sair</NavDropdown.Item>
