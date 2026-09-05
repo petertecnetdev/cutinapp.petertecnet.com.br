@@ -1,0 +1,152 @@
+.cut-user-profile-hero {
+  --cut-actor-color: #56dce9;
+  --cut-actor-soft: rgba(86, 220, 233, .18);
+  position: relative;
+  isolation: isolate;
+}
+
+.cut-user-profile-hero::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 4px;
+  z-index: 2;
+  background: linear-gradient(90deg, var(--cut-actor-color), transparent 78%);
+  box-shadow: 0 0 28px var(--cut-actor-soft);
+  pointer-events: none;
+}
+
+.cut-user-profile-hero.cut-actor-theme--artist { --cut-actor-color: #b86cff; --cut-actor-soft: rgba(184,108,255,.25); }
+.cut-user-profile-hero.cut-actor-theme--producer { --cut-actor-color: #ff9f43; --cut-actor-soft: rgba(255,159,67,.25); }
+.cut-user-profile-hero.cut-actor-theme--promoter { --cut-actor-color: #18d4ff; --cut-actor-soft: rgba(24,212,255,.24); }
+.cut-user-profile-hero.cut-actor-theme--staff { --cut-actor-color: #57e389; --cut-actor-soft: rgba(87,227,137,.22); }
+.cut-user-profile-hero.cut-actor-theme--ticket_seller { --cut-actor-color: #ffd166; --cut-actor-soft: rgba(255,209,102,.24); }
+.cut-user-profile-hero.cut-actor-theme--partner { --cut-actor-color: #2dd4bf; --cut-actor-soft: rgba(45,212,191,.23); }
+.cut-user-profile-hero.cut-actor-theme--participant { --cut-actor-color: #5da9ff; --cut-actor-soft: rgba(93,169,255,.22); }
+
+.cut-user-profile-hero.cut-actor-theme--multi::after {
+  height: 6px;
+  background: linear-gradient(90deg, #b86cff 0 16%, #ff9f43 16% 32%, #18d4ff 32% 48%, #57e389 48% 64%, #ffd166 64% 80%, #2dd4bf 80% 100%);
+}
+
+.cut-user-profile-hero .cut-user-profile-avatar {
+  border-color: color-mix(in srgb, var(--cut-actor-color) 68%, white 10%);
+  box-shadow: 0 0 0 5px var(--cut-actor-soft), 0 18px 46px rgba(0,0,0,.34);
+}
+
+.cut-profile-actor-badges {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 12px;
+}
+
+.cut-profile-actor-badge,
+.cut-profile-actor-multi-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 30px;
+  padding: 6px 11px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 999px;
+  background: rgba(3,10,16,.62);
+  color: #eefaff;
+  font-size: .72rem;
+  font-weight: 850;
+  letter-spacing: .025em;
+  backdrop-filter: blur(12px);
+}
+
+.cut-profile-actor-badge--artist { border-color: rgba(184,108,255,.5); background: rgba(184,108,255,.14); color: #e8d0ff; }
+.cut-profile-actor-badge--producer { border-color: rgba(255,159,67,.52); background: rgba(255,159,67,.14); color: #ffd6ad; }
+.cut-profile-actor-badge--promoter { border-color: rgba(24,212,255,.5); background: rgba(24,212,255,.13); color: #c7f6ff; }
+.cut-profile-actor-badge--staff { border-color: rgba(87,227,137,.5); background: rgba(87,227,137,.13); color: #c9f8d9; }
+.cut-profile-actor-badge--ticket_seller { border-color: rgba(255,209,102,.52); background: rgba(255,209,102,.13); color: #ffe9ad; }
+.cut-profile-actor-badge--partner { border-color: rgba(45,212,191,.5); background: rgba(45,212,191,.13); color: #c5fff7; }
+.cut-profile-actor-badge--participant { border-color: rgba(93,169,255,.5); background: rgba(93,169,255,.13); color: #d4e8ff; }
+
+.cut-profile-actor-multi-label {
+  border-style: dashed;
+  color: rgba(255,255,255,.72);
+}
+
+.cut-profile-actor-links {
+  margin: 0 0 34px;
+  padding: 22px;
+  border: 1px solid var(--cut-border);
+  border-radius: 24px;
+  background: linear-gradient(145deg, rgba(255,255,255,.035), rgba(255,255,255,.012));
+}
+
+.cut-profile-actor-link-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.cut-profile-actor-link {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 54px minmax(0,1fr) auto;
+  align-items: center;
+  gap: 13px;
+  padding: 13px;
+  border: 1px solid var(--cut-border);
+  border-radius: 18px;
+  background: rgba(4,11,17,.66);
+  color: var(--cut-text);
+  text-align: left;
+  transition: transform .18s ease, border-color .18s ease, background .18s ease;
+}
+
+.cut-profile-actor-link:hover {
+  transform: translateY(-2px);
+  background: rgba(255,255,255,.045);
+}
+
+.cut-profile-actor-link--artist:hover { border-color: rgba(184,108,255,.48); }
+.cut-profile-actor-link--producer:hover { border-color: rgba(255,159,67,.48); }
+
+.cut-profile-actor-link__media {
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 16px;
+  background: rgba(255,255,255,.06);
+  font-size: 1.2rem;
+}
+
+.cut-profile-actor-link--artist .cut-profile-actor-link__media { color: #c996ff; background: rgba(184,108,255,.12); }
+.cut-profile-actor-link--producer .cut-profile-actor-link__media { color: #ffb66f; background: rgba(255,159,67,.12); }
+.cut-profile-actor-link__media img { width: 100%; height: 100%; object-fit: cover; }
+
+.cut-profile-actor-link__copy { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.cut-profile-actor-link__copy small { color: var(--cut-text-soft); font-size: .68rem; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; }
+.cut-profile-actor-link__copy strong { overflow: hidden; color: var(--cut-text-strong); text-overflow: ellipsis; white-space: nowrap; }
+.cut-profile-actor-link__copy span { color: var(--cut-text-muted); font-size: .76rem; }
+
+.cut-profile-staff-titles {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--cut-divider);
+  color: var(--cut-text-muted);
+}
+
+.cut-profile-staff-titles > span { font-size: .73rem; font-weight: 850; text-transform: uppercase; letter-spacing: .07em; }
+.cut-profile-staff-titles > div { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
+.cut-profile-staff-titles > div > span { padding: 6px 10px; border: 1px solid rgba(87,227,137,.26); border-radius: 999px; background: rgba(87,227,137,.08); color: #c9f8d9; font-size: .73rem; }
+
+@media (max-width: 767.98px) {
+  .cut-profile-actor-link-grid { grid-template-columns: 1fr; }
+  .cut-profile-actor-links { padding: 16px; border-radius: 20px; }
+  .cut-profile-staff-titles { flex-direction: column; }
+  .cut-profile-staff-titles > div { justify-content: flex-start; }
+}
