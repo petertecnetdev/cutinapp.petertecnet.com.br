@@ -6,6 +6,7 @@ import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import cutinappService from "../../services/CutinappService";
 import eventService from "../../services/EventService";
+import { getNetworkStatus, isNetworkFailure, subscribeToNetworkStatus } from "../../utils/networkStatus";
 
 const JSQR_URL = "https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js";
 const JSQR_INTEGRITY = "sha256-vEDIoVGWI2sjFNsIVvcsoLSZgM1UE7jIUqc0n1/uCFk=";
@@ -76,6 +77,7 @@ export default function CheckinPage() {
   const [stats, setStats] = useState(null);
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
+  const [networkStatus, setNetworkStatus] = useState(() => getNetworkStatus());
 
   const stopCameraStream = useCallback(() => {
     const stream = webcamRef.current?.video?.srcObject;
@@ -144,6 +146,18 @@ export default function CheckinPage() {
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [cameraEnabled, disableCamera]);
 
+  useEffect(() => subscribeToNetworkStatus((status) => {
+    setNetworkStatus(status);
+    if (status === "offline" && cameraEnabled) {
+      disableCamera();
+      setCameraNotice("Sem conexão com a internet. A câmera foi pausada para evitar uma validação com resultado incerto.");
+    } else if (status === "online") {
+      setCameraNotice((notice) => notice.startsWith("Sem conexão")
+        ? "Conexão restabelecida. Você já pode reativar a câmera e continuar a portaria."
+        : notice);
+    }
+  }), [cameraEnabled, disableCamera]);
+
   useEffect(() => () => stopCameraStream(), [stopCameraStream]);
 
   const validate = useCallback(async (rawToken) => {
@@ -153,6 +167,16 @@ export default function CheckinPage() {
       return;
     }
     if (!normalized || scanningRef.current) return;
+    if (getNetworkStatus() === "offline") {
+      setError("");
+      setResult({
+        type: "warning",
+        message: "Sem conexão com a internet. Reconecte antes de validar este ingresso.",
+        pass: null,
+      });
+      disableCamera();
+      return;
+    }
 
     scanningRef.current = true;
     setLoading(true);
@@ -166,14 +190,17 @@ export default function CheckinPage() {
       disableCamera();
       await refreshStats(eventId);
     } catch (err) {
+      const networkFailure = isNetworkFailure(err);
       const pass = err?.original?.response?.data?.pass || null;
       setResult({
-        type: err?.status === 409 ? "warning" : "danger",
-        message: err?.message || "Não foi possível validar esta entrada.",
+        type: networkFailure || err?.status === 409 ? "warning" : "danger",
+        message: networkFailure
+          ? "A conexão caiu durante a validação. O servidor pode ter registrado a entrada. Reconecte e valide o mesmo QR novamente; se ele já tiver sido utilizado, a Cutinapp avisará sem registrar uma segunda entrada."
+          : err?.message || "Não foi possível validar esta entrada.",
         pass,
       });
       disableCamera();
-      await refreshStats(eventId);
+      if (!networkFailure) await refreshStats(eventId);
     } finally {
       setLoading(false);
       window.setTimeout(() => { scanningRef.current = false; }, 700);
@@ -245,6 +272,10 @@ export default function CheckinPage() {
     setResult(null);
     setError("");
     setToken("");
+    if (networkStatus === "offline") {
+      setCameraNotice("Sem conexão com a internet. Reconecte para continuar a portaria.");
+      return;
+    }
     enableCamera();
   };
 
@@ -259,6 +290,7 @@ export default function CheckinPage() {
         </div>
 
         {error && <Alert variant="danger" role="alert">{error}</Alert>}
+        {networkStatus === "offline" && <Alert variant="warning" role="alert">Portaria sem internet. Novas validações estão bloqueadas até a conexão voltar.</Alert>}
         {cameraNotice && <Alert variant="info" role="status" aria-live="polite">{cameraNotice}</Alert>}
 
         {events.length === 0 && !loading ? (
@@ -268,10 +300,10 @@ export default function CheckinPage() {
 
           <Row className="g-4 justify-content-center">
             <Col lg={7}><Card className="cut-panel cut-scanner-card"><Card.Body className="p-3 p-md-4">
-              {!eventId ? <div className="cut-empty-state-inline"><h2>Selecione o evento</h2><p>A câmera só é liberada depois de escolher qual portaria está operando.</p></div> : result ? <div className={`cut-checkin-result cut-checkin-result--${result.type}`} role={result.type === "danger" ? "alert" : "status"} aria-live={result.type === "danger" ? "assertive" : "polite"}><i className={result.type === "success" ? "fa-solid fa-circle-check" : "fa-solid fa-triangle-exclamation"} aria-hidden="true" /><h2>{result.message}</h2>{result.pass && <div className="cut-checkin-person"><strong>{result.pass.holder_name || result.pass.holder_email || "Participante"}</strong><span>{result.pass.event?.title || "Evento"}</span><span>{result.pass.ticket?.name || "Ingresso"}</span></div>}<Button size="lg" onClick={nextParticipant}>Próximo participante</Button></div> : cameraEnabled ? <div className="cut-scanner"><Webcam ref={webcamRef} audio={false} className="cut-scanner__video" screenshotFormat="image/jpeg" videoConstraints={{ facingMode: { ideal: "environment" } }} onUserMediaError={(mediaError) => { setError(mediaError?.message || "Não foi possível acessar a câmera. Verifique a permissão do navegador."); disableCamera(); }} /><canvas ref={canvasRef} hidden /><div className="cut-scanner__frame" aria-hidden="true" /><span className="cut-scanner__hint" role="status" aria-live="polite">{readerMode === "native" ? "Leitor nativo ativo" : fallbackReady ? "Leitor compatível ativo" : "Preparando leitor QR..."} · posicione o QR no quadro</span></div> : <div className="cut-empty-state-inline"><i className="fa-solid fa-camera" aria-hidden="true" /><h2>Câmera pronta para iniciar</h2><p>Toque no botão para solicitar a permissão da câmera deste aparelho.</p><Button size="lg" onClick={enableCamera}>Ativar câmera</Button></div>}
+              {!eventId ? <div className="cut-empty-state-inline"><h2>Selecione o evento</h2><p>A câmera só é liberada depois de escolher qual portaria está operando.</p></div> : result ? <div className={`cut-checkin-result cut-checkin-result--${result.type}`} role={result.type === "danger" ? "alert" : "status"} aria-live={result.type === "danger" ? "assertive" : "polite"}><i className={result.type === "success" ? "fa-solid fa-circle-check" : "fa-solid fa-triangle-exclamation"} aria-hidden="true" /><h2>{result.message}</h2>{result.pass && <div className="cut-checkin-person"><strong>{result.pass.holder_name || result.pass.holder_email || "Participante"}</strong><span>{result.pass.event?.title || "Evento"}</span><span>{result.pass.ticket?.name || "Ingresso"}</span></div>}<Button size="lg" onClick={nextParticipant}>Próximo participante</Button></div> : cameraEnabled ? <div className="cut-scanner"><Webcam ref={webcamRef} audio={false} className="cut-scanner__video" screenshotFormat="image/jpeg" videoConstraints={{ facingMode: { ideal: "environment" } }} onUserMediaError={(mediaError) => { setError(mediaError?.message || "Não foi possível acessar a câmera. Verifique a permissão do navegador."); disableCamera(); }} /><canvas ref={canvasRef} hidden /><div className="cut-scanner__frame" aria-hidden="true" /><span className="cut-scanner__hint" role="status" aria-live="polite">{readerMode === "native" ? "Leitor nativo ativo" : fallbackReady ? "Leitor compatível ativo" : "Preparando leitor QR..."} · posicione o QR no quadro</span></div> : <div className="cut-empty-state-inline"><i className="fa-solid fa-camera" aria-hidden="true" /><h2>Câmera pronta para iniciar</h2><p>Toque no botão para solicitar a permissão da câmera deste aparelho.</p><Button size="lg" onClick={enableCamera} disabled={networkStatus === "offline"}>Ativar câmera</Button></div>}
             </Card.Body></Card></Col>
 
-            <Col lg={5}><Card className="cut-panel h-100"><Card.Body className="p-4"><h2 className="cut-section-title">Validação manual</h2><p className="text-secondary">Use o código abaixo do QR apenas se a câmera estiver indisponível.</p><Form onSubmit={(event) => { event.preventDefault(); validate(token); }}><Form.Group><Form.Label>Código do ingresso</Form.Label><Form.Control value={token} onChange={(event) => setToken(event.target.value)} placeholder="CUT-..." autoComplete="off" /></Form.Group><Button className="w-100 mt-3" type="submit" disabled={!eventId || !token.trim() || loading}>Validar entrada</Button></Form><div className="cut-info-box mt-4"><strong>Proteção contra uso indevido</strong><span>O servidor confirma evento, operador, publicação, validade do QR e utilização anterior antes de registrar o check-in.</span></div></Card.Body></Card></Col>
+            <Col lg={5}><Card className="cut-panel h-100"><Card.Body className="p-4"><h2 className="cut-section-title">Validação manual</h2><p className="text-secondary">Use o código abaixo do QR apenas se a câmera estiver indisponível.</p><Form onSubmit={(event) => { event.preventDefault(); validate(token); }}><Form.Group><Form.Label>Código do ingresso</Form.Label><Form.Control value={token} onChange={(event) => setToken(event.target.value)} placeholder="CUT-..." autoComplete="off" /></Form.Group><Button className="w-100 mt-3" type="submit" disabled={!eventId || !token.trim() || loading || networkStatus === "offline"}>Validar entrada</Button></Form><div className="cut-info-box mt-4"><strong>Proteção contra uso indevido</strong><span>O servidor confirma evento, operador, publicação, validade do QR e utilização anterior antes de registrar o check-in.</span></div></Card.Body></Card></Col>
           </Row>
         </>}
       </Container>
