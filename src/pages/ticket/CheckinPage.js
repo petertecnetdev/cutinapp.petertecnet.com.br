@@ -7,21 +7,53 @@ import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorCo
 import cutinappService from "../../services/CutinappService";
 import eventService from "../../services/EventService";
 
+const JSQR_URL = "https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js";
+const JSQR_INTEGRITY = "sha256-rsgbRZ1OOFaIX8oEtJdHQic5areT2u30Av2A97n8wzc=";
+const JSQR_LOAD_TIMEOUT_MS = 8000;
+
 const loadJsQr = () => new Promise((resolve, reject) => {
   if (window.jsQR) return resolve(window.jsQR);
+
   const existing = document.querySelector('script[data-cutinapp-jsqr="1"]');
-  if (existing) {
-    existing.addEventListener("load", () => resolve(window.jsQR));
-    existing.addEventListener("error", () => reject(new Error("Leitor QR alternativo não carregou.")));
-    return;
+  const script = existing || document.createElement("script");
+  let settled = false;
+
+  const cleanup = () => {
+    window.clearTimeout(timeoutId);
+    script.removeEventListener("load", handleLoad);
+    script.removeEventListener("error", handleError);
+  };
+
+  const finish = (callback) => {
+    if (settled) return;
+    settled = true;
+    cleanup();
+    callback();
+  };
+
+  const handleLoad = () => finish(() => {
+    if (window.jsQR) resolve(window.jsQR);
+    else reject(new Error("Leitor QR alternativo indisponível."));
+  });
+
+  const handleError = () => finish(() => reject(new Error("Leitor QR alternativo não carregou.")));
+
+  const timeoutId = window.setTimeout(() => {
+    finish(() => reject(new Error("O leitor QR alternativo demorou demais para carregar. Verifique a conexão e tente novamente.")));
+  }, JSQR_LOAD_TIMEOUT_MS);
+
+  script.addEventListener("load", handleLoad);
+  script.addEventListener("error", handleError);
+
+  if (!existing) {
+    script.src = JSQR_URL;
+    script.async = true;
+    script.integrity = JSQR_INTEGRITY;
+    script.crossOrigin = "anonymous";
+    script.referrerPolicy = "no-referrer";
+    script.dataset.cutinappJsqr = "1";
+    document.head.appendChild(script);
   }
-  const script = document.createElement("script");
-  script.src = "https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js";
-  script.async = true;
-  script.dataset.cutinappJsqr = "1";
-  script.onload = () => window.jsQR ? resolve(window.jsQR) : reject(new Error("Leitor QR alternativo indisponível."));
-  script.onerror = () => reject(new Error("Leitor QR alternativo não carregou."));
-  document.head.appendChild(script);
 });
 
 export default function CheckinPage() {
