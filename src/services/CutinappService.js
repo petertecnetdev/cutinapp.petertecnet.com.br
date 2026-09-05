@@ -27,6 +27,7 @@ const cutinappService = {
   lookupCep: async (cep) => (await appApiClient.get(`/locations/cep/${String(cep).replace(/\D/g, "")}`)).data.address,
 
   profileOverview: async () => (await appApiClient.get("/profile/overview")).data,
+  publicProfile: async (userId) => (await appApiClient.get(`/profiles/${Number(userId)}`)).data,
   myProductions: async () => unwrap((await appApiClient.get("/organizations/mine")).data.organizations),
   publicProductions: async (params = {}) => rename((await appApiClient.get("/organizations/public", { params })).data, "organizations", "productions"),
   getProduction: async (id) => (await appApiClient.get(`/organizations/${id}`)).data.organization,
