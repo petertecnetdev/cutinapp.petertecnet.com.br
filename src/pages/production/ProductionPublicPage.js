@@ -4,12 +4,12 @@ import { useNavigate, useParams } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
-import WhatsAppFloatingButton from "../../components/WhatsAppFloatingButton";
 import ProductionCommunitySection from "../../components/production/ProductionCommunitySection";
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
 import { safeExternalHref } from "../../utils/safeUrl";
 import "./production-experience.css";
+import "../../components/WhatsAppFloatingButton.css";
 
 const mediaUrl = (value) => {
   if (!value) return "";
@@ -84,6 +84,10 @@ export default function ProductionPublicPage() {
   if (loading) return <div className="cut-app-page"><NavlogComponent /><ProcessingIndicatorComponent label="Carregando produção" /></div>;
   if (!data || !production) return <div className="cut-app-page"><NavlogComponent /><Container className="py-5"><Alert variant="danger">{error || "Produção não encontrada."}</Alert></Container></div>;
 
+  const productionUrl = `${window.location.origin}/production/${encodeURIComponent(slug)}/public`;
+  const whatsappShareMessage = `Olha esta produção na Cutinapp: ${production.name}\n${productionUrl}`;
+  const whatsappShareHref = `https://wa.me/?text=${encodeURIComponent(whatsappShareMessage)}`;
+
   return <div className="cut-app-page"><NavlogComponent />
     <section className="cut-profile-hero" style={production.background ? { backgroundImage: `linear-gradient(180deg,rgba(2,8,13,.12),rgba(2,8,13,.95)),url(${mediaUrl(production.background)})` } : undefined}><Container className="cut-page-container"><div className="cut-profile-hero__content"><div className="cut-profile-avatar cut-profile-avatar--square">{production.logo ? <img src={mediaUrl(production.logo)} alt={production.name} /> : <span>{initials(production.name)}</span>}</div><div><span className="cut-eyebrow">Produção Cutinapp</span><h1>{production.name}</h1><p>{production.city ? `${production.city}${production.uf ? ` - ${production.uf}` : ""}` : ""}</p><div className="cut-social-stats"><span>{production.followers_count || 0} seguidores</span><button type="button" className="cut-inline-profile-link" onClick={() => setShowViewers(true)}><i className="fa-regular fa-eye" /> {analytics.total_views || 0} visualizações</button><span>{upcoming.length} próximos eventos</span></div><div className="cut-card-actions mt-3"><Button onClick={toggleFollow} disabled={busy}>{production.is_following ? "Seguindo" : "Seguir produção"}</Button>{instagramHref && <Button as="a" href={instagramHref} target="_blank" rel="noopener noreferrer" variant="outline-light" className="cut-production-icon-link cut-production-icon-link--instagram" aria-label="Instagram" title="Instagram"><i className="fa-brands fa-instagram" /></Button>}{websiteHref && <Button as="a" href={websiteHref} target="_blank" rel="noopener noreferrer" variant="outline-light" className="cut-production-icon-link" aria-label="Site" title="Site"><i className="fa-solid fa-globe" /></Button>}</div></div></div></Container></section>
 
@@ -104,11 +108,17 @@ export default function ProductionPublicPage() {
       <ProductionCommunitySection production={production} />
     </Container>
 
-    <WhatsAppFloatingButton
-      phone={production.phone}
-      label="Falar com a produção"
-      message={`Olá! Encontrei a produção ${production.name} na Cutinapp e gostaria de mais informações.`}
-    />
+    <a
+      className="cut-whatsapp-fab"
+      href={whatsappShareHref}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Compartilhar produção no WhatsApp"
+      title="Compartilhar produção no WhatsApp"
+    >
+      <i className="fa-brands fa-whatsapp" aria-hidden="true" />
+      <span>Compartilhar</span>
+    </a>
 
     <Modal show={showViewers} onHide={() => setShowViewers(false)} centered><Modal.Header closeButton><Modal.Title>Quem visualizou</Modal.Title></Modal.Header><Modal.Body>{analytics.viewers?.length ? <div className="cut-viewer-list">{analytics.viewers.map((viewer) => <div className="cut-viewer-row" key={viewer.id}><div className="cut-viewer-avatar">{viewer.avatar ? <img src={mediaUrl(viewer.avatar)} alt="" /> : initials(viewer.name)}</div><div><strong>{viewer.name}</strong><small>{viewer.last_viewed_at ? `Última visita: ${fmt(viewer.last_viewed_at)}` : "Visitou a produção"}</small></div><span>{viewer.views_count} {viewer.views_count === 1 ? "visita" : "visitas"}</span></div>)}</div> : <p className="text-muted mb-0">As visualizações anônimas entram no total. Usuários identificados aparecem aqui quando acessarem a página.</p>}</Modal.Body></Modal>
   </div>;
