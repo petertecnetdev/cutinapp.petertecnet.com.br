@@ -46,6 +46,7 @@ export default function EventViewPage() {
   const [claimingId, setClaimingId] = useState(null);
   const [artistClaimingId, setArtistClaimingId] = useState(null);
   const [socialBusy, setSocialBusy] = useState(false);
+  const [engagementLoading, setEngagementLoading] = useState(false);
   const [favorite, setFavorite] = useState(false);
   const [interested, setInterested] = useState(false);
   const [flyerOpen, setFlyerOpen] = useState(false);
@@ -68,6 +69,34 @@ export default function EventViewPage() {
   const isOwner = Boolean(event?.production?.user_id && Number(event.production.user_id) === Number(user?.id));
   const mapEmbedUrl = useMemo(() => buildMapEmbedUrl(event), [event]);
   const flyerUrl = useMemo(() => resolveImageUrl(event?.image), [event?.image]);
+
+  useEffect(() => {
+    if (!event?.id || !user?.id) {
+      setFavorite(false);
+      setInterested(false);
+      setEngagementLoading(false);
+      return undefined;
+    }
+
+    let active = true;
+    const eventId = Number(event.id);
+    setEngagementLoading(true);
+
+    cutinappService.profileOverview()
+      .then((profile) => {
+        if (!active) return;
+        const interestedEvents = Array.isArray(profile?.interested_events) ? profile.interested_events : [];
+        const favoriteEvents = Array.isArray(profile?.favorite_events) ? profile.favorite_events : [];
+        setInterested(interestedEvents.some((item) => Number(item.id) === eventId));
+        setFavorite(favoriteEvents.some((item) => Number(item.id) === eventId));
+      })
+      .catch((err) => {
+        if (active) setError(err?.message || "Não foi possível carregar suas preferências neste evento.");
+      })
+      .finally(() => active && setEngagementLoading(false));
+
+    return () => { active = false; };
+  }, [event?.id, user?.id]);
 
   const claim = async (ticket) => {
     if (!user) return navigate("/login", { state: { from: `${location.pathname}${location.search}` } });
@@ -120,7 +149,7 @@ export default function EventViewPage() {
   return <div className="cut-app-page"><NavlogComponent />{(loading || claimingId || artistClaimingId) && <ProcessingIndicatorComponent label={claimingId ? "Emitindo ingresso" : artistClaimingId ? "Enviando reivindicação" : "Carregando evento"} />}
     {!loading && event && <>
       <section className="cut-event-hero cut-event-hero--premium" style={flyerUrl ? { backgroundImage: `linear-gradient(180deg,rgba(3,10,16,.08),rgba(3,10,16,.98)),url(${flyerUrl})` } : undefined}>
-        <Container className="cut-page-container"><div className="cut-event-hero__content"><div className="d-flex flex-wrap gap-2 mb-3">{event.category && <Badge bg="dark">{event.category}</Badge>}<Badge bg="success">Publicado</Badge>{tickets.some((t) => t.available) && <Badge bg="info" text="dark">Ingressos disponíveis</Badge>}</div><h1>{event.title}</h1><p className="cut-event-hero__date">{formatDate(event.start_date)}</p><span>{event.venue || event.address}{event.city ? ` · ${event.city}${event.uf ? ` - ${event.uf}` : ""}` : ""}</span>{event.production?.name && <button className="cut-inline-profile-link" onClick={() => navigate(`/production/${event.production.slug}/public`)}>Por {event.production.name} <i className="fa-solid fa-arrow-up-right-from-square" /></button>}<div className="cut-card-actions mt-4"><Button onClick={share}><i className="fa-solid fa-share-nodes me-2" />Compartilhar</Button>{flyerUrl && <Button variant="outline-light" onClick={() => setFlyerOpen(true)}><i className="fa-regular fa-image me-2" />Ver Flyer</Button>}<Button variant={interested ? "info" : "outline-light"} onClick={() => setEngagement("interested")} disabled={socialBusy}><i className="fa-regular fa-star me-2" />Tenho interesse</Button><Button variant={favorite ? "danger" : "outline-light"} onClick={() => setEngagement("favorite")} disabled={socialBusy}><i className={`${favorite ? "fa-solid" : "fa-regular"} fa-heart me-2`} />{favorite ? "Salvo" : "Salvar"}</Button><Button variant="outline-light" href="#comunidade"><i className="fa-regular fa-comments me-2" />Conversa</Button>{event.google_maps_url && <Button variant="outline-light" as="a" href={event.google_maps_url} target="_blank" rel="noreferrer"><i className="fa-solid fa-location-arrow me-2" />Maps</Button>}</div></div></Container>
+        <Container className="cut-page-container"><div className="cut-event-hero__content"><div className="d-flex flex-wrap gap-2 mb-3">{event.category && <Badge bg="dark">{event.category}</Badge>}<Badge bg="success">Publicado</Badge>{tickets.some((t) => t.available) && <Badge bg="info" text="dark">Ingressos disponíveis</Badge>}</div><h1>{event.title}</h1><p className="cut-event-hero__date">{formatDate(event.start_date)}</p><span>{event.venue || event.address}{event.city ? ` · ${event.city}${event.uf ? ` - ${event.uf}` : ""}` : ""}</span>{event.production?.name && <button className="cut-inline-profile-link" onClick={() => navigate(`/production/${event.production.slug}/public`)}>Por {event.production.name} <i className="fa-solid fa-arrow-up-right-from-square" /></button>}<div className="cut-card-actions mt-4"><Button onClick={share}><i className="fa-solid fa-share-nodes me-2" />Compartilhar</Button>{flyerUrl && <Button variant="outline-light" onClick={() => setFlyerOpen(true)}><i className="fa-regular fa-image me-2" />Ver Flyer</Button>}<Button variant={interested ? "info" : "outline-light"} onClick={() => setEngagement("interested")} disabled={socialBusy || engagementLoading}><i className="fa-regular fa-star me-2" />Tenho interesse</Button><Button variant={favorite ? "danger" : "outline-light"} onClick={() => setEngagement("favorite")} disabled={socialBusy || engagementLoading}><i className={`${favorite ? "fa-solid" : "fa-regular"} fa-heart me-2`} />{favorite ? "Salvo" : "Salvar"}</Button><Button variant="outline-light" href="#comunidade"><i className="fa-regular fa-comments me-2" />Conversa</Button>{event.google_maps_url && <Button variant="outline-light" as="a" href={event.google_maps_url} target="_blank" rel="noreferrer"><i className="fa-solid fa-location-arrow me-2" />Maps</Button>}</div></div></Container>
       </section>
 
       <Container className="cut-page-container py-4 py-lg-5">{error && <Alert variant="danger">{error}</Alert>}{success && <Alert variant="success">{success}</Alert>}
