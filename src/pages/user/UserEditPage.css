@@ -48,6 +48,9 @@
   cursor: pointer;
   font-weight: 850;
 }
+.cut-panel .cut-account-cover__action {
+  color: #041219 !important;
+}
 .cut-account-avatar {
   position: relative;
   width: 156px;
