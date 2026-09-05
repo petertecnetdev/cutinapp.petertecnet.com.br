@@ -46,6 +46,7 @@ const ArtistViewPage = lazy(() => import("./pages/artist/ArtistViewPage"));
 const ArtistManagePage = lazy(() => import("./pages/artist/ArtistManagePage"));
 const EventPage = lazy(() => import("./pages/event/EventPage"));
 const EventCreatePage = lazy(() => import("./pages/event/EventCreatePage"));
+const EventDuplicatePage = lazy(() => import("./pages/event/EventDuplicatePage"));
 const EventManagePage = lazy(() => import("./pages/event/EventManagePage"));
 const EventUpdatePage = lazy(() => import("./pages/event/EventUpdatePage"));
 const EventLineupPage = lazy(() => import("./pages/event/EventLineupPage"));
@@ -154,6 +155,7 @@ function AppRoutes() {
 
             <Route path="/event" element={<EventPage />} />
             <Route path="/event/create" element={protectedRoute(<EventCreatePage />)} />
+            <Route path="/event/duplicate/:id" element={protectedRoute(<EventDuplicatePage />)} />
             <Route path="/event/manage" element={protectedRoute(<EventManagePage />)} />
             <Route path="/event/edit/:id" element={protectedRoute(<EventUpdatePage />)} />
             <Route path="/event/:eventId/lineup" element={protectedRoute(<EventLineupPage />)} />
