@@ -52,6 +52,7 @@ export default function ProducerSalesPage() {
 
     return {
       averageTicket: paidCount > 0 ? grossPaid / paidCount : 0,
+      platformRevenuePerSale: paidCount > 0 ? platformFees / paidCount : 0,
       takeRate: grossPaid > 0 ? (platformFees / grossPaid) * 100 : 0,
     };
   }, [summary.gross_paid, summary.paid_count, summary.platform_fees]);
@@ -66,15 +67,16 @@ export default function ProducerSalesPage() {
 
       {productionId && <>
         <Row className="g-3 mb-3">
-          <Col sm={6} lg={4} xl={2}><div className="cut-commerce-stat"><small>Vendas pagas</small><strong>{summary.paid_count || 0}</strong></div></Col>
-          <Col sm={6} lg={4} xl={2}><div className="cut-commerce-stat"><small>GMV pago</small><strong>{money(summary.gross_paid)}</strong></div></Col>
-          <Col sm={6} lg={4} xl={2}><div className="cut-commerce-stat"><small>Ticket médio</small><strong>{money(economicMetrics.averageTicket)}</strong></div></Col>
-          <Col sm={6} lg={4} xl={2}><div className="cut-commerce-stat"><small>Receita Cutinapp</small><strong>{money(summary.platform_fees)}</strong></div></Col>
-          <Col sm={6} lg={4} xl={2}><div className="cut-commerce-stat"><small>Take rate efetivo</small><strong>{percent(economicMetrics.takeRate)}</strong></div></Col>
-          <Col sm={6} lg={4} xl={2}><div className="cut-commerce-stat"><small>Líquido do produtor</small><strong>{money(summary.producer_net)}</strong></div></Col>
+          <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Vendas pagas</small><strong>{summary.paid_count || 0}</strong></div></Col>
+          <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>GMV pago</small><strong>{money(summary.gross_paid)}</strong></div></Col>
+          <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Ticket médio</small><strong>{money(economicMetrics.averageTicket)}</strong></div></Col>
+          <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Receita Cutinapp</small><strong>{money(summary.platform_fees)}</strong></div></Col>
+          <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Receita Cutinapp / venda</small><strong>{money(economicMetrics.platformRevenuePerSale)}</strong></div></Col>
+          <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Take rate efetivo</small><strong>{percent(economicMetrics.takeRate)}</strong></div></Col>
+          <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Líquido do produtor</small><strong>{money(summary.producer_net)}</strong></div></Col>
         </Row>
         <Alert variant="info" className="mb-3">
-          O GMV considera as vendas pagas. A receita Cutinapp corresponde às taxas da plataforma já registradas nas vendas, e o take rate efetivo mostra quanto dessa receita representa sobre o GMV.
+          O GMV considera as vendas pagas. A receita Cutinapp corresponde às taxas da plataforma já registradas nas vendas. A receita por venda mostra quanto cada pedido pago gera, em média, para a plataforma, e o take rate efetivo mostra quanto dessa receita representa sobre o GMV.
         </Alert>
       </>}
 
