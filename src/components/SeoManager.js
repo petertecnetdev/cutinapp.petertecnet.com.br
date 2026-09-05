@@ -2,9 +2,9 @@ import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 
 const SITE_URL = "https://cutinapp.petertecnet.com.br";
-const DEFAULT_TITLE = "Cutinapp | Eventos, ingressos e experiências";
+const DEFAULT_TITLE = "Cutinapp | Eventos, artistas, produções e ingressos";
 const DEFAULT_DESCRIPTION =
-  "Descubra eventos, artistas e experiências, acompanhe produções e acesse ingressos pela Cutinapp, uma plataforma Peter Tecnet.";
+  "Descubra eventos perto de você, acompanhe artistas e produções, participe da comunidade e gerencie sua experiência pela Cutinapp, uma plataforma Peter Tecnet.";
 
 const PUBLIC_ROUTES = [
   { test: (path) => path === "/", title: DEFAULT_TITLE, description: DEFAULT_DESCRIPTION },
