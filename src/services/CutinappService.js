@@ -30,6 +30,7 @@ const cutinappService = {
   myProductions: async () => unwrap((await appApiClient.get("/organizations/mine")).data.organizations),
   publicProductions: async (params = {}) => rename((await appApiClient.get("/organizations/public", { params })).data, "organizations", "productions"),
   getProduction: async (id) => (await appApiClient.get(`/organizations/${id}`)).data.organization,
+  productionItems: async (id) => unwrap((await appApiClient.get(`/establishments/${id}/items`)).data.data),
   productionWorkspace: async (id) => (await appApiClient.get(`/organizations/${id}/workspace`)).data,
   productionExperience: async (slug) => (await appApiClient.get(`/organizations/public/${slug}/experience`)).data,
   updateProductionExperience: async (id, payload) => (await appApiClient.patch(`/organizations/${id}/experience-profile`, payload)).data,
