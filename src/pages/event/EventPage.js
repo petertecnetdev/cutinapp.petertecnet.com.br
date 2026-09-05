@@ -34,7 +34,7 @@ export default function EventPage() {
 
   useEffect(() => {
     if (!filters.lat || !filters.lng) {
-      if (detectedLocation?.mode === "nearby") setDetectedLocation(null);
+      setDetectedLocation((current) => current?.mode === "nearby" ? null : current);
       return undefined;
     }
 
@@ -63,7 +63,7 @@ export default function EventPage() {
       next.set("lat", precise.lat);
       next.set("lng", precise.lng);
       next.set("radius_km", "80");
-      next.set("sort", "nearest");
+      next.set("sort", "soonest");
       setSearchParams(next, { replace: true });
       return;
     }
@@ -76,10 +76,15 @@ export default function EventPage() {
       return;
     }
 
+    const apiFilters = {
+      ...current,
+      ...(current.sort === "nearest" ? { sort: "soonest" } : {}),
+    };
+
     let active = true;
     setLoading(true);
     setError("");
-    eventService.search({ ...current, per_page: 24 })
+    eventService.search({ ...apiFilters, per_page: 24 })
       .then((response) => {
         if (!active) return;
         setEvents(response.events?.data || []);
@@ -124,7 +129,7 @@ export default function EventPage() {
         radius_km: 80,
         city: "",
         uf: "",
-        sort: "nearest",
+        sort: "soonest",
       });
     } catch (locationError) {
       setError(locationError?.code === 1
@@ -141,21 +146,21 @@ export default function EventPage() {
       locationService.clearStored();
       saveDiscoveryPreference({ city: "", uf: "" });
       setDetectedLocation(null);
-      update({ city: "", uf: "", lat: "", lng: "", radius_km: "", sort: filters.sort === "nearest" ? "soonest" : filters.sort });
+      update({ city: "", uf: "", lat: "", lng: "", radius_km: "", sort: "soonest" });
       return;
     }
 
     const location = { city, uf: uf || "", label: `${city}${uf ? ` - ${uf}` : ""}`, mode: "city" };
     locationService.saveStored(location);
     setDetectedLocation(location);
-    update({ city, uf, lat: "", lng: "", radius_km: "", sort: filters.sort === "nearest" ? "soonest" : filters.sort });
+    update({ city, uf, lat: "", lng: "", radius_km: "", sort: "soonest" });
   };
 
   const clearGpsLocation = () => {
     locationService.clearStored();
     saveDiscoveryPreference({ city: "", uf: "" });
     setDetectedLocation(null);
-    update({ lat: "", lng: "", radius_km: "", sort: filters.sort === "nearest" ? "soonest" : filters.sort });
+    update({ lat: "", lng: "", radius_km: "", sort: "soonest" });
   };
 
   const clearFilters = () => {
@@ -240,9 +245,8 @@ export default function EventPage() {
               {facets.categories?.map((item) => <option key={item.category} value={item.category}>{item.category} ({item.total})</option>)}
             </Form.Select>
             <Form.Control type="date" value={filters.date || ""} onChange={(e) => update({ date: e.target.value, period: e.target.value ? "" : filters.period, from: "", to: "" })} />
-            <Form.Select value={filters.sort || (filters.lat ? "nearest" : "soonest")} onChange={(e) => update({ sort: e.target.value })}>
-              <option value="nearest" disabled={!filters.lat}>Mais perto da minha localização</option>
-              <option value="soonest">Mais próximos na data</option>
+            <Form.Select value={filters.sort === "nearest" ? "soonest" : (filters.sort || "soonest")} onChange={(e) => update({ sort: e.target.value })}>
+              <option value="soonest">{filters.lat ? "Mais perto da minha localização" : "Mais próximos na data"}</option>
               <option value="newest">Novidades</option>
               <option value="popular">Populares</option>
             </Form.Select>
