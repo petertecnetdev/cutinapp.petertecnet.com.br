@@ -29,6 +29,11 @@ const secureFieldStyle = {
   boxShadow: "inset 0 1px 0 rgba(255,255,255,.025)",
 };
 
+const money = (value) => new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+}).format(Number(value || 0));
+
 export default function MercadoPagoCardForm({ publicKey, amount, email, disabled, onSubmit }) {
   const submitRef = useRef(onSubmit);
   const disabledRef = useRef(disabled);
@@ -166,13 +171,17 @@ export default function MercadoPagoCardForm({ publicKey, amount, email, disabled
       <input className="form-control cut-payment-input" id="cut-mp-card-email" type="email" defaultValue={email || ""} placeholder="seu@email.com" />
 
       <div className="cut-payment-summary">
-        <span>Total da compra</span>
-        <strong>{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(amount || 0))}</strong>
+        <span>Valor final desta compra</span>
+        <strong>{money(amount)}</strong>
+      </div>
+      <div className="cut-payment-trust mb-3">
+        <i className="fa-solid fa-circle-check" />
+        <div><strong>Total transparente</strong><span>Este é o valor enviado para o pagamento. Nenhuma taxa adicional será acrescentada pela Cutinapp nesta etapa.</span></div>
       </div>
 
       <Button id="cut-mp-card-submit" type="submit" className="w-100 cut-payment-submit" disabled={disabled || !ready}>
         <i className="fa-solid fa-lock me-2" />
-        {disabled ? "Processando pagamento..." : ready ? "Pagar com cartão" : "Preparando ambiente seguro..."}
+        {disabled ? "Processando pagamento..." : ready ? `Pagar ${money(amount)} com cartão` : "Preparando ambiente seguro..."}
       </Button>
     </form>
 
