@@ -137,7 +137,7 @@ EventFlyerModal.propTypes = {
   onHide: PropTypes.func.isRequired,
   flyerUrl: PropTypes.string,
   event: PropTypes.shape({
-    title: PropTypes.string.isRequired,
+    title: PropTypes.string,
     city: PropTypes.string,
     uf: PropTypes.string,
     production: PropTypes.shape({
@@ -147,6 +147,6 @@ EventFlyerModal.propTypes = {
 };
 
 EventFlyerModal.defaultProps = {
-  flyerUrl: null,
+  flyerUrl: "",
   event: null,
 };
