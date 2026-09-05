@@ -230,7 +230,7 @@ export default function ProductionListPage() {
                       >
                         <i className="fa-solid fa-star" />
                         <strong>{rating.total > 0 ? rating.average.toFixed(1).replace(".", ",") : "—"}</strong>
-                        <small>{rating.total > 0 ? `(${formatMetric(rating.total)})` : "nova"}</small>
+                        <small>{rating.total > 0 ? `(${formatMetric(rating.total)})` : "Sem avaliações"}</small>
                       </span>
                     </div>
 
