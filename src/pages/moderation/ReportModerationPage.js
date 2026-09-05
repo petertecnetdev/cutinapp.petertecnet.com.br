@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Alert, Badge, Button, Card, Col, Container, Form, Row } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
+import CollapsibleFilterPanel from "../../components/CollapsibleFilterPanel";
 import cutinappService from "../../services/CutinappService";
 
 const labels = { open: "Aberta", reviewing: "Em análise", resolved: "Resolvida", dismissed: "Descartada" };
@@ -18,6 +19,7 @@ export default function ReportModerationPage() {
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState(null);
   const [notes, setNotes] = useState({});
+  const activeFilterCount = Number(Boolean(query.trim())) + Number(status !== "open");
 
   const load = useCallback(async () => {
     setLoading(true); setError("");
@@ -39,12 +41,21 @@ export default function ReportModerationPage() {
 
   const reports = data?.reports?.data || [];
   const counts = data?.counts || {};
+  const clearFilters = () => {
+    setStatus("open");
+    setQuery("");
+  };
 
   return <div className="cut-app-page"><NavlogComponent /><Container className="cut-page-container py-4 py-lg-5">
     <div className="cut-page-heading"><div><span className="cut-eyebrow">Segurança da comunidade</span><h1>Moderação de denúncias</h1><p>Analise relatos de usuários sem expor informações desnecessárias na área pública.</p></div></div>
     {error && <Alert variant="danger">{error}</Alert>}
-    <div className="cut-moderation-stats">{Object.keys(labels).map((key) => <button type="button" key={key} className={status === key ? "active" : ""} onClick={() => setStatus(key)}><strong>{counts[key] || 0}</strong><span>{labels[key]}</span></button>)}</div>
-    <Card className="cut-panel mb-4"><Card.Body><Row className="g-3 align-items-end"><Col md={8}><Form.Label>Pesquisar</Form.Label><Form.Control value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Evento, participante, e-mail ou conteúdo da denúncia" /></Col><Col md={4}><Button className="w-100" onClick={load}>Pesquisar</Button></Col></Row></Card.Body></Card>
+    <Card className="cut-panel mb-4"><Card.Body>
+      <CollapsibleFilterPanel title="Pesquisar e filtrar denúncias" activeCount={activeFilterCount} defaultOpen={activeFilterCount > 0}>
+        <div className="cut-moderation-stats">{Object.keys(labels).map((key) => <button type="button" key={key} className={status === key ? "active" : ""} onClick={() => setStatus(key)}><strong>{counts[key] || 0}</strong><span>{labels[key]}</span></button>)}</div>
+        <Row className="g-3 align-items-end"><Col md={8}><Form.Label>Pesquisar</Form.Label><Form.Control value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Evento, participante, e-mail ou conteúdo da denúncia" /></Col><Col md={4}><Button className="w-100" onClick={load}>Pesquisar</Button></Col></Row>
+        {activeFilterCount > 0 && <div className="d-flex justify-content-end"><Button type="button" variant="outline-light" size="sm" onClick={clearFilters}>Limpar filtros</Button></div>}
+      </CollapsibleFilterPanel>
+    </Card.Body></Card>
     {loading ? <div className="cut-notification-list" aria-busy="true">{Array.from({ length: 4 }).map((_, index) => <div className="cut-notification-skeleton" key={index} />)}</div> : reports.length === 0 ? <Card className="cut-empty-state"><Card.Body><i className="fa-solid fa-shield-halved cut-empty-icon" /><h2>Nenhuma denúncia neste filtro</h2><p>Não existem denúncias para a situação selecionada.</p></Card.Body></Card> : <div className="cut-moderation-list">{reports.map((report) => <Card className="cut-panel cut-report-card" key={report.id}><Card.Body>
       <div className="cut-report-card__head"><div><Badge bg={variants[report.status] || "secondary"}>{labels[report.status] || report.status}</Badge><span>{reasonLabels[report.reason] || report.reason}</span></div><time>{fmt(report.created_at)}</time></div>
       <button type="button" className="cut-report-card__event" onClick={() => navigate(`/event/${report.event_slug}`)}><strong>{report.event_title}</strong><i className="fa-solid fa-arrow-up-right-from-square" /></button>
