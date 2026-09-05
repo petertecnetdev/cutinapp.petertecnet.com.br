@@ -10,6 +10,15 @@ const formatDate = (value) => value
   ? new Intl.DateTimeFormat("pt-BR", { weekday: "short", day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value))
   : "Data não informada";
 
+const discoveryPathFromPass = (pass) => {
+  const params = new URLSearchParams();
+  if (pass?.event?.city) params.set("city", pass.event.city);
+  if (pass?.event?.uf) params.set("uf", pass.event.uf);
+  params.set("available", "1");
+  const query = params.toString();
+  return query ? `/event?${query}` : "/event";
+};
+
 export default function MyPassesPage() {
   const navigate = useNavigate();
   const [passes, setPasses] = useState([]);
@@ -36,10 +45,15 @@ export default function MyPassesPage() {
     return matchesText && matchesStatus;
   }), [passes, search, status]);
 
+  const lastAttendedPass = useMemo(() => passes
+    .filter((pass) => Boolean(pass.checked_in_at) && !(pass.status === "cancelled" || pass.event?.is_cancelled))
+    .sort((a, b) => new Date(b.checked_in_at || b.event?.start_date || 0) - new Date(a.checked_in_at || a.event?.start_date || 0))[0] || null, [passes]);
+
   return <div className="cut-app-page"><NavlogComponent />{loading && <ProcessingIndicatorComponent label="Carregando sua carteira" />}
     <Container className="cut-page-container py-4 py-lg-5">
       <div className="cut-page-heading"><div><span className="cut-eyebrow">Carteira digital</span><h1>Meus ingressos</h1><p>Todos os seus ingressos, com QR individual, situação de entrada e acesso rápido aos eventos.</p></div><Button variant="outline-light" onClick={() => navigate("/event")}>Encontrar eventos</Button></div>
       {error && <Alert variant="danger">{error}</Alert>}
+      {!loading && lastAttendedPass && <Card className="cut-wallet-toolbar mb-4"><Card.Body className="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3"><div><span className="cut-eyebrow">Seu próximo rolê</span><h2 className="h4 mb-2">Curtiu {lastAttendedPass.event?.title || "seu último evento"}?</h2><p className="mb-0 text-body-secondary">{lastAttendedPass.event?.city ? `Veja os próximos eventos com ingressos disponíveis em ${lastAttendedPass.event.city}.` : "Veja os próximos eventos com ingressos disponíveis e encontre sua próxima experiência."}</p></div><Button onClick={() => navigate(discoveryPathFromPass(lastAttendedPass))}>Ver próximos eventos</Button></Card.Body></Card>}
       <Card className="cut-wallet-toolbar mb-4"><Card.Body><div className="cut-search-bar"><i className="fa-solid fa-magnifying-glass"/><Form.Control value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Evento, lote, local ou código" /></div><div className="cut-filter-shortcuts">{[["active","Válidos"],["used","Utilizados"],["cancelled","Cancelados"],["all","Todos"]].map(([key,label]) => <button type="button" key={key} className={status===key?"active":""} onClick={() => setStatus(key)}>{label}</button>)}</div></Card.Body></Card>
       {!loading && filtered.length === 0 ? <Card className="cut-empty-state"><Card.Body><i className="fa-solid fa-ticket cut-empty-icon"/><h2>{passes.length ? "Nenhum ingresso corresponde aos filtros" : "Sua carteira ainda está vazia"}</h2><p>{passes.length ? "Tente outro termo ou situação." : "Encontre um evento e obtenha seu primeiro ingresso."}</p><Button onClick={() => navigate("/event")}>Explorar eventos</Button></Card.Body></Card> : <Row className="g-4">{filtered.map((pass) => {
         const used = Boolean(pass.checked_in_at); const cancelled = pass.status === "cancelled" || pass.event?.is_cancelled; const state = cancelled ? "Cancelado" : used ? "Utilizado" : "Válido";
