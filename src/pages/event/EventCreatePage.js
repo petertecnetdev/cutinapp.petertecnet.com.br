@@ -3,8 +3,10 @@ import { Alert, Button, Card, Col, Container, Form, Row } from "react-bootstrap"
 import { useLocation, useNavigate } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
+import EventOpeningMediaFields from "../../components/event/EventOpeningMediaFields";
 import eventService from "../../services/EventService";
 import cutinappService from "../../services/CutinappService";
+import { youtubeVideoId } from "../../utils/eventMedia";
 
 const pad = (value) => String(value).padStart(2, "0");
 const toLocalInput = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
@@ -47,6 +49,8 @@ const createInitialForm = () => {
     contact_email: "",
     contact_phone: "",
     image: null,
+    opening_media_type: "banner",
+    opening_media_url: "",
   };
 };
 
@@ -88,6 +92,8 @@ export default function EventCreatePage() {
   const [loadingProductionItems, setLoadingProductionItems] = useState(false);
   const [itemLoadError, setItemLoadError] = useState("");
   const [preview, setPreview] = useState("");
+  const [openingVideo, setOpeningVideo] = useState(null);
+  const [openingVideoPreview, setOpeningVideoPreview] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingProductions, setLoadingProductions] = useState(true);
   const [error, setError] = useState("");
@@ -145,6 +151,10 @@ export default function EventCreatePage() {
     if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
   }, [preview]);
 
+  useEffect(() => () => {
+    if (openingVideoPreview?.startsWith("blob:")) URL.revokeObjectURL(openingVideoPreview);
+  }, [openingVideoPreview]);
+
   const startDate = form.start_date ? new Date(form.start_date) : null;
   const endDate = form.end_date ? new Date(form.end_date) : null;
   const minimumStartDate = new Date(minStart);
@@ -152,6 +162,8 @@ export default function EventCreatePage() {
   const dateInvalid = submitted && startDate && endDate && endDate.getTime() <= startDate.getTime();
   const ufInvalid = submitted && form.uf.trim().length !== 2;
   const capacityInvalid = submitted && form.max_attendees !== "" && Number(form.max_attendees) < 1;
+  const youtubeInvalid = form.opening_media_type === "youtube" && !youtubeVideoId(form.opening_media_url);
+  const videoInvalid = form.opening_media_type === "video" && !openingVideo;
 
   const requiredInvalid = submitted && {
     production_id: !form.production_id,
@@ -172,8 +184,10 @@ export default function EventCreatePage() {
     form.city.trim() &&
     form.uf.trim().length === 2 &&
     form.start_date &&
-    form.end_date
-  ) && !loading, [form, loading]);
+    form.end_date &&
+    !youtubeInvalid &&
+    !videoInvalid
+  ) && !loading, [form, loading, youtubeInvalid, videoInvalid]);
 
   const change = (event) => {
     const { name, value } = event.target;
@@ -255,6 +269,50 @@ export default function EventCreatePage() {
     setPreview(file ? URL.createObjectURL(file) : "");
   };
 
+  const changeOpeningMediaType = (type) => {
+    setForm((current) => ({
+      ...current,
+      opening_media_type: type,
+      opening_media_url: type === "youtube" ? current.opening_media_url : "",
+    }));
+    setFieldErrors((current) => {
+      const next = { ...current };
+      delete next.opening_media_type;
+      delete next.opening_media_file;
+      delete next.opening_media_url;
+      return next;
+    });
+  };
+
+  const chooseOpeningVideo = (event) => {
+    const file = event.target.files?.[0] || null;
+    if (file && file.size > 50 * 1024 * 1024) {
+      setFieldErrors((current) => ({ ...current, opening_media_file: ["O vídeo de abertura deve ter no máximo 50 MB."] }));
+      event.target.value = "";
+      return;
+    }
+    if (openingVideoPreview?.startsWith("blob:")) URL.revokeObjectURL(openingVideoPreview);
+    setOpeningVideo(file);
+    setOpeningVideoPreview(file ? URL.createObjectURL(file) : "");
+    setFieldErrors((current) => {
+      if (!current.opening_media_file) return current;
+      const next = { ...current };
+      delete next.opening_media_file;
+      return next;
+    });
+  };
+
+  const changeYoutubeUrl = (event) => {
+    const value = event.target.value;
+    setForm((current) => ({ ...current, opening_media_url: value }));
+    setFieldErrors((current) => {
+      if (!current.opening_media_url) return current;
+      const next = { ...current };
+      delete next.opening_media_url;
+      return next;
+    });
+  };
+
   const submit = async (event) => {
     event.preventDefault();
     setSubmitted(true);
@@ -264,6 +322,8 @@ export default function EventCreatePage() {
     if (!canSubmit || dateInvalid || startTooSoonInvalid || ufInvalid || capacityInvalid) {
       if (startTooSoonInvalid) setError("O evento precisa ser criado com pelo menos um dia de antecedência. Escolha uma data a partir de amanhã.");
       else if (dateInvalid) setError("O término do evento precisa ser posterior ao início.");
+      else if (videoInvalid) setError("Selecione o vídeo que será exibido na abertura do evento.");
+      else if (youtubeInvalid) setError("Informe um link válido do YouTube para a abertura do evento.");
       else setError("Revise os campos destacados antes de continuar.");
       return;
     }
@@ -274,6 +334,7 @@ export default function EventCreatePage() {
       Object.entries(form).forEach(([key, value]) => {
         if (value !== null && String(value).trim() !== "") payload.append(key, value);
       });
+      if (form.opening_media_type === "video" && openingVideo) payload.append("opening_media_file", openingVideo);
       payload.append("use_production_items", useProductionItems ? "1" : "0");
 
       const response = await eventService.store(payload);
@@ -298,7 +359,7 @@ export default function EventCreatePage() {
       {(loading || loadingProductions) && <ProcessingIndicatorComponent label={loading ? "Criando evento" : "Carregando produções"} />}
 
       <Container className="cut-page-container py-4 py-lg-5">
-        <div className="cut-page-heading"><div><span className="cut-eyebrow">Área do produtor</span><h1>Novo evento</h1><p>Escolha a produção e reaproveite os dados que já estão cadastrados. Depois, altere somente o que for diferente neste evento.</p></div></div>
+        <div className="cut-page-heading"><div><span className="cut-eyebrow">Área do produtor</span><h1>Novo evento</h1><p>Escolha a produção, configure as informações e defina o banner ou vídeo que recebe o visitante na página do evento.</p></div></div>
         {error && <Alert variant="danger">{error}</Alert>}
 
         {!loadingProductions && productions.length === 0 ? (
@@ -327,7 +388,7 @@ export default function EventCreatePage() {
                 {form.production_id && <Col xs={12}><div className="cut-info-box"><div className="d-flex align-items-start justify-content-between gap-3 flex-wrap"><div><strong>Itens da produção</strong><span>{loadingProductionItems ? "Consultando os itens cadastrados..." : productionItems.length > 0 ? `${productionItems.length} item(ns) ativo(s) estão disponíveis. Você pode usar os mesmos itens neste evento sem cadastrá-los novamente.` : "Esta produção ainda não possui itens ativos para reaproveitar."}</span></div><Form.Check type="switch" id="use-production-items" label="Usar os mesmos itens" checked={useProductionItems} disabled={loadingProductionItems || productionItems.length === 0} onChange={(event) => setUseProductionItems(event.target.checked)} /></div>{itemLoadError && <div className="text-warning small mt-2">{itemLoadError}</div>}{useProductionItems && productionItems.length > 0 && <div className="d-flex flex-wrap gap-2 mt-3">{productionItems.slice(0, 8).map((item) => <span key={item.id} className="badge rounded-pill text-bg-dark">{item.name}{item.price !== null && item.price !== undefined ? ` · ${priceLabel(item.price)}` : ""}</span>)}{productionItems.length > 8 && <span className="badge rounded-pill text-bg-dark">+{productionItems.length - 8} itens</span>}</div>}</div></Col>}
               </Row></Card.Body></Card></Col>
 
-              <Col lg={4}><Card className="cut-panel h-100"><Card.Body className="p-4"><h2 className="cut-section-title">Imagem do evento</h2>{preview ? <img src={preview} alt="Prévia do evento" className="cut-upload-preview cut-upload-preview--event" /> : <div className="cut-upload-placeholder"><i className="fa-regular fa-image" /><span>Adicione uma capa 16:9</span></div>}<Form.Control className="mt-3" type="file" accept="image/png,image/jpeg,image/webp" onChange={chooseImage} isInvalid={invalid("image")} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "image")}</Form.Control.Feedback><Form.Text>JPG, PNG ou WebP, até 5 MB.</Form.Text><div className="cut-info-box mt-4"><strong>Próxima etapa</strong><span>Depois de salvar, você configura a quantidade de cortesias. A publicação será uma ação separada.</span></div></Card.Body></Card></Col>
+              <Col lg={4}><Card className="cut-panel h-100"><Card.Body className="p-4"><h2 className="cut-section-title">Capa do evento</h2>{preview ? <img src={preview} alt="Prévia do evento" className="cut-upload-preview cut-upload-preview--event" /> : <div className="cut-upload-placeholder"><i className="fa-regular fa-image" /><span>Adicione uma capa 16:9</span></div>}<Form.Control className="mt-3" type="file" accept="image/png,image/jpeg,image/webp" onChange={chooseImage} isInvalid={invalid("image")} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "image")}</Form.Control.Feedback><Form.Text>JPG, PNG ou WebP, até 5 MB. Essa capa aparece nos cards e serve como fallback/poster.</Form.Text><hr className="my-4" /><EventOpeningMediaFields type={form.opening_media_type} onTypeChange={changeOpeningMediaType} videoPreview={openingVideoPreview} youtubeUrl={form.opening_media_url} onYoutubeChange={changeYoutubeUrl} onVideoChange={chooseOpeningVideo} videoError={firstError(fieldErrors, "opening_media_file")} youtubeError={firstError(fieldErrors, "opening_media_url")} /><div className="cut-info-box mt-4"><strong>Próxima etapa</strong><span>Depois de salvar, você configura a quantidade de cortesias. A publicação será uma ação separada.</span></div></Card.Body></Card></Col>
             </Row>
 
             <div className="cut-form-actions mt-4"><Button type="button" variant="outline-light" disabled={loading} onClick={() => navigate("/event/manage")}>Cancelar</Button><Button type="submit" disabled={loading}>{loading ? "Criando..." : "Criar rascunho e configurar cortesia"}</Button></div>
