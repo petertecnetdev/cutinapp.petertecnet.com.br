@@ -6,6 +6,7 @@ import cutinappService from "../services/CutinappService";
 import { subscribeToUserNotifications } from "../services/RealtimeNotificationService";
 import { hasContextRole } from "../utils/applicationRoles";
 import { safeNavigationTarget } from "../utils/safeUrl";
+import { notificationTelemetryAttrs } from "../utils/notificationTelemetry";
 
 const notificationIcon = (type = "") => {
   if (type === "artist_lineup") return "fa-solid fa-music";
@@ -174,7 +175,7 @@ export default function NavlogComponent() {
               <div className="cut-notification-popover">
                 <div className="cut-notification-popover__head"><strong>Notificações</strong>{unreadNotifications > 0 && <span>{unreadNotifications} nova{unreadNotifications === 1 ? "" : "s"}</span>}</div>
                 <div className="cut-notification-popover__list">
-                  {notificationPreview.length === 0 ? <div className="cut-notification-popover__empty"><i className="fa-regular fa-bell" /><span>Nenhuma novidade por aqui.</span></div> : notificationPreview.map((item) => <button type="button" key={item.id} className={`cut-notification-popover__item ${item.read_at ? "" : "is-unread"}`} onClick={() => openNotification(item)}><span className="cut-notification-popover__icon"><i className={notificationIcon(item.type)} /></span><span className="cut-notification-popover__copy"><strong>{item.title || "Nova atividade"}</strong><small>{item.message || "Há uma novidade para você na Cutinapp."}</small><time>{notificationTime(item.created_at)}</time></span>{!item.read_at && <span className="cut-notification-popover__dot" />}</button>)}
+                  {notificationPreview.length === 0 ? <div className="cut-notification-popover__empty"><i className="fa-regular fa-bell" /><span>Nenhuma novidade por aqui.</span></div> : notificationPreview.map((item) => <button type="button" key={item.id} {...notificationTelemetryAttrs(item, "navbar_popover")} className={`cut-notification-popover__item ${item.read_at ? "" : "is-unread"}`} onClick={() => openNotification(item)}><span className="cut-notification-popover__icon"><i className={notificationIcon(item.type)} /></span><span className="cut-notification-popover__copy"><strong>{item.title || "Nova atividade"}</strong><small>{item.message || "Há uma novidade para você na Cutinapp."}</small><time>{notificationTime(item.created_at)}</time></span>{!item.read_at && <span className="cut-notification-popover__dot" />}</button>)}
                 </div>
                 <button type="button" className="cut-notification-popover__footer" onClick={() => navigate("/notifications")}>Ver todas as notificações</button>
               </div>
