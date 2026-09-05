@@ -91,8 +91,10 @@ export default function EventViewPage() {
         setInterested(interestedEvents.some((item) => Number(item.id) === eventId));
         setFavorite(favoriteEvents.some((item) => Number(item.id) === eventId));
       })
-      .catch((err) => {
-        if (active) setError(err?.message || "Não foi possível carregar suas preferências neste evento.");
+      .catch(() => {
+        if (!active) return;
+        setInterested(false);
+        setFavorite(false);
       })
       .finally(() => active && setEngagementLoading(false));
 
