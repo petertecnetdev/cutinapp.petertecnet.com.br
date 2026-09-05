@@ -31,6 +31,7 @@ const AcquisitionDashboardPage = lazy(() => import("./pages/acquisition/Acquisit
 const AcquisitionActivationPage = lazy(() => import("./pages/acquisition/AcquisitionActivationPage"));
 const UserEditPage = lazy(() => import("./pages/user/UserEditPage"));
 const UserProfilePage = lazy(() => import("./pages/user/UserProfilePage"));
+const ProductionListPage = lazy(() => import("./pages/production/ProductionListPage"));
 const ProductionCreatePage = lazy(() => import("./pages/production/ProductionCreatePage"));
 const ProductionMinePage = lazy(() => import("./pages/production/ProductionMinePage"));
 const ProductionViewPage = lazy(() => import("./pages/production/ProductionViewPage"));
@@ -134,6 +135,7 @@ function AppRoutes() {
             <Route path="/artist/:slug" element={<ArtistViewPage />} />
             <Route path="/artist/manage" element={protectedRoute(<ArtistManagePage />)} />
 
+            <Route path="/productions" element={<ProductionListPage />} />
             <Route path="/production/create" element={protectedRoute(<ProductionCreatePage />)} />
             <Route path="/production/mine" element={protectedRoute(<ProductionMinePage />)} />
             <Route path="/producer/contracts" element={protectedRoute(<ProducerContractsPage />)} />
