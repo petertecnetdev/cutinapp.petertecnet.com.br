@@ -1,4 +1,5 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import PropTypes from "prop-types";
 import { Alert, Spinner } from "react-bootstrap";
 import { useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
@@ -34,6 +35,22 @@ function Avatar({ person, size = "md" }) {
     </span>
   );
 }
+
+Avatar.propTypes = {
+  person: PropTypes.shape({
+    name: PropTypes.string,
+    first_name: PropTypes.string,
+    last_name: PropTypes.string,
+    user_name: PropTypes.string,
+    avatar: PropTypes.string,
+  }),
+  size: PropTypes.oneOf(["sm", "md", "lg", "xl"]),
+};
+
+Avatar.defaultProps = {
+  person: null,
+  size: "md",
+};
 
 export default function ChatPage() {
   const { user } = useContext(AuthContext);
