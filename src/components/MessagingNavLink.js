@@ -4,6 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import messagingService from "../services/MessagingService";
 import { subscribeToMessagingEvents } from "../services/RealtimeMessagingService";
+import "./MessagingNavLink.css";
 
 export default function MessagingNavLink() {
   const { user } = useContext(AuthContext);
