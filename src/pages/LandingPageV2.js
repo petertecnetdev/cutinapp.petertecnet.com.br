@@ -21,6 +21,11 @@ const dateLabel = (value) => value
 
 const mediaUrl = (path) => path ? `${storageUrl}${String(path).replace(/^\//, "")}` : "";
 const normalizeKey = (value) => String(value || "").trim().toLocaleLowerCase("pt-BR");
+const formatEventLocation = (event) => {
+  const cityState = event?.city ? `${event.city}${event.uf ? ` - ${event.uf}` : ""}` : "";
+  const venue = event?.venue || event?.address || "";
+  return venue && cityState ? `${venue} · ${cityState}` : venue || cityState || "Local a confirmar";
+};
 
 const uniqueById = (items) => {
   const seen = new Set();
@@ -350,7 +355,7 @@ export default function LandingPageV2() {
                 <div className="cut-landing__phoneBody">
                   <small>{featuredEvent ? dateLabel(featuredEvent.start_date) : "Descubra seu próximo evento"}</small>
                   <h2>{featuredEvent?.title || "A cena perto de você"}</h2>
-                  <p><i className="fa-solid fa-location-dot" /> {featuredEvent?.venue || featuredEvent?.city || locationLabel}</p>
+                  <p><i className="fa-solid fa-location-dot" /> {featuredEvent ? formatEventLocation(featuredEvent) : locationLabel}</p>
                   <div className="cut-landing__phoneActions"><span><i className="fa-regular fa-heart" /> Curtir</span><span><i className="fa-solid fa-share-nodes" /> Compartilhar</span></div>
                 </div>
               </div>
@@ -461,7 +466,7 @@ export default function LandingPageV2() {
                     <div className="cut-landing__eventInfo">
                       <small>{dateLabel(event.start_date)}</small>
                       <h3>{event.title}</h3>
-                      <p><i className="fa-solid fa-location-dot" /> {event.venue || event.city || "Local a confirmar"}{event.city && event.venue ? ` · ${event.city}` : ""}</p>
+                      <p><i className="fa-solid fa-location-dot" /> {formatEventLocation(event)}</p>
                       {event.production?.name && <span>{event.production.name}</span>}
                     </div>
                   </Link>
@@ -520,7 +525,7 @@ export default function LandingPageV2() {
               </div>
               <div className="cut-landing__activityCard">
                 <div className="cut-landing__activityHead"><strong>Na cena agora</strong><span><i /> AO VIVO</span></div>
-                <article><i className="fa-solid fa-calendar-plus" /><div><small>NOVO EVENTO</small><strong>{featuredEvent?.title || "Eventos entram na descoberta"}</strong><span>{featuredEvent?.city || locationLabel}</span></div></article>
+                <article><i className="fa-solid fa-calendar-plus" /><div><small>NOVO EVENTO</small><strong>{featuredEvent?.title || "Eventos entram na descoberta"}</strong><span>{featuredEvent?.city ? `${featuredEvent.city}${featuredEvent.uf ? ` - ${featuredEvent.uf}` : ""}` : locationLabel}</span></div></article>
                 <article><i className="fa-solid fa-users" /><div><small>PRODUÇÃO</small><strong>{featuredProduction?.name || "Produções ganham presença pública"}</strong><span>Acompanhe quem faz acontecer</span></div></article>
                 <article><i className="fa-solid fa-microphone-lines" /><div><small>LINE-UP</small><strong>{featuredArtists[0]?.stage_name || "Artistas conectados aos eventos"}</strong><span>Descubra além do flyer</span></div></article>
               </div>
