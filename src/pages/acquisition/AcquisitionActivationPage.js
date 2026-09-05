@@ -20,6 +20,31 @@ export default function AcquisitionActivationPage() {
   const [done, setDone] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  const nextProducerStep = useMemo(() => {
+    const firstEvent = referral?.events?.[0];
+    if (firstEvent?.id) {
+      return {
+        path: `/event/edit/${firstEvent.id}`,
+        label: "Entrar e preparar o evento para vender",
+        hint: "Continue direto na configuração do evento, dos lotes e dos ingressos.",
+      };
+    }
+
+    if (referral?.production?.id) {
+      return {
+        path: `/production/${referral.production.id}`,
+        label: "Entrar e continuar minha produção",
+        hint: "Continue direto na sua produção e crie o primeiro evento.",
+      };
+    }
+
+    return {
+      path: "/dashboard",
+      label: "Entrar na Cutinapp",
+      hint: "Seu acesso de produtor já está pronto.",
+    };
+  }, [referral]);
+
   useEffect(() => {
     let active = true;
     if (!token) {
@@ -89,7 +114,7 @@ export default function AcquisitionActivationPage() {
             </form>}
           </>}
 
-          {done && <div className="acq-activate-success"><i className="fa-solid fa-circle-check" /><h1>Acesso ativado</h1><p>{feedback?.text}</p><Link to="/login">Entrar na Cutinapp</Link></div>}
+          {done && <div className="acq-activate-success"><i className="fa-solid fa-circle-check" /><h1>Acesso ativado</h1><p>{feedback?.text}</p><p className="acq-activate-note">{nextProducerStep.hint}</p><Link to="/login" state={{ from: nextProducerStep.path }}>{nextProducerStep.label}</Link></div>}
         </section>
       </main>
     </div>
