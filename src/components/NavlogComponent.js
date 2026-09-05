@@ -49,6 +49,31 @@ export default function NavlogComponent() {
   const isAcquisitionAgent = hasContextRole(user, "acquisition_agent");
 
   useEffect(() => {
+    setOpen(false);
+  }, [location.pathname, location.search, location.hash]);
+
+  useEffect(() => {
+    if (!open || typeof document === "undefined") return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    const previousOverscroll = document.body.style.overscrollBehavior;
+    document.body.style.overflow = "hidden";
+    document.body.style.overscrollBehavior = "none";
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.body.style.overscrollBehavior = previousOverscroll;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
+  useEffect(() => {
     if (!userId) {
       setUnreadNotifications(0);
       setNotificationPreview([]);
@@ -105,7 +130,7 @@ export default function NavlogComponent() {
             <img src="/images/logo.png" alt="Cutinapp" />
             <div><strong>Cutinapp</strong><small>Rede social de eventos</small></div>
           </Navbar.Brand>
-          <Navbar.Toggle aria-controls="cut-navbar-public" aria-label="Abrir menu" />
+          <Navbar.Toggle aria-controls="cut-navbar-public" aria-label={open ? "Fechar menu" : "Abrir menu"} />
           <Navbar.Collapse id="cut-navbar-public">
             <Nav className="ms-auto cut-navbar__links">
               <Nav.Link as={Link} to="/event">Eventos</Nav.Link>
@@ -162,7 +187,7 @@ export default function NavlogComponent() {
           <img src="/images/logo.png" alt="Cutinapp" />
           <div><strong>Cutinapp</strong><small>Rede social de eventos</small></div>
         </Navbar.Brand>
-        <Navbar.Toggle aria-controls="cut-navbar" aria-label="Abrir menu" />
+        <Navbar.Toggle aria-controls="cut-navbar" aria-label={open ? "Fechar menu" : "Abrir menu"} />
         <Navbar.Collapse id="cut-navbar">
           <Nav className="cut-navbar__links mx-auto">
             <Nav.Link as={Link} to="/feed" className={active("/feed") ? "active" : ""}><i className="fa-solid fa-bolt" /> Feed</Nav.Link>
