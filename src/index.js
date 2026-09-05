@@ -18,6 +18,7 @@ import "./pages/HomeDiscovery.css";
 import "./styles/mobile-stability.css";
 import "./styles/peter-navbar-standard.css";
 import "./styles/cutinapp-mobile-final.css";
+import "./styles/peter-branding-bridge.css";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import PeterAccountGateway from "./components/PeterAccountGateway";
