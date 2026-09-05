@@ -12,6 +12,16 @@ const formatDate = (value) => value
   ? new Intl.DateTimeFormat("pt-BR", { weekday: "short", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(value))
   : "Data não informada";
 
+const formatEventLocation = (event) => {
+  const cityState = event?.city
+    ? `${event.city}${event.uf ? ` - ${event.uf}` : ""}`
+    : "";
+  const venue = event?.venue || event?.address || "";
+
+  if (venue && cityState) return `${venue} · ${cityState}`;
+  return venue || cityState || "Local a confirmar";
+};
+
 export default function EventPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -195,7 +205,7 @@ export default function EventPage() {
                   <h2>{event.title}</h2>
                   <div className="cut-event-card__meta">
                     <span><i className="fa-regular fa-calendar" />{formatDate(event.start_date)}</span>
-                    <span><i className="fa-solid fa-location-dot" />{event.venue || event.city || event.address || "Local a confirmar"}{event.city && event.venue ? ` · ${event.city}` : ""}</span>
+                    <span><i className="fa-solid fa-location-dot" />{formatEventLocation(event)}</span>
                     {event.artists?.length > 0 && <span><i className="fa-solid fa-music" />{event.artists.slice(0, 3).map((a) => a.stage_name).join(" · ")}</span>}
                     {event.distance_km != null && <span><i className="fa-solid fa-route" />{Number(event.distance_km).toFixed(1)} km de você</span>}
                   </div>
