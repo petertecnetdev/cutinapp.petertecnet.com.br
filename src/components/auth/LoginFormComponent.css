@@ -1,7 +1,9 @@
 .cut-login-form { display: flex; width: 100%; flex-direction: column; gap: 15px; }
 .cut-login-form__error { padding: 12px 14px; border: 1px solid rgba(255,107,125,.26); border-radius: var(--cut-radius-md); background: var(--cut-danger-soft); color: #ffdbe0; font-size: .87rem; line-height: 1.48; }
+.cut-login-form__info { padding: 12px 14px; border: 1px solid rgba(47,198,216,.24); border-radius: var(--cut-radius-md); background: rgba(47,198,216,.08); color: #d9f8fb; font-size: .87rem; line-height: 1.48; }
 .cut-login-form__field { display: flex; flex-direction: column; gap: 8px; }
 .cut-login-form__field label { margin: 0; color: #d3e2e9; font-size: .84rem; font-weight: 770; }
+.cut-login-form__hint { margin-top: -1px; color: var(--cut-text-muted); font-size: .74rem; line-height: 1.48; }
 .cut-login-form__inputWrap { position: relative; }
 .cut-login-form__inputWrap > i { position: absolute; left: 13px; top: 50%; z-index: 2; width: 29px; height: 29px; display: grid; place-items: center; transform: translateY(-50%); border: 1px solid var(--cut-border-soft); border-radius: 9px; background: rgba(255,255,255,.035); color: var(--cut-primary); font-size: .8rem; pointer-events: none; }
 .cut-login-form__inputWrap .form-control { min-height: 51px; padding: .88rem 1rem .88rem 3.35rem !important; border-radius: var(--cut-radius-md) !important; background: rgba(255,255,255,.038) !important; }
@@ -18,14 +20,38 @@
 .cut-login-form__spinner { display: inline-block; width: 16px; height: 16px; margin-right: 8px; vertical-align: -3px; border: 2px solid rgba(3,19,23,.25); border-top-color: #031317; border-radius: 50%; animation: cutLoginSpin .75s linear infinite; }
 .cut-login-form__divider { display: flex; align-items: center; gap: 12px; margin-top: 1px; color: var(--cut-text-faint); font-size: .72rem; font-weight: 820; letter-spacing: .09em; text-transform: uppercase; }
 .cut-login-form__divider::before, .cut-login-form__divider::after { content: ""; height: 1px; flex: 1; background: linear-gradient(90deg,transparent,var(--cut-divider),transparent); }
+.cut-login-form__providers { display: grid; gap: 10px; }
 .cut-login-form__google { position: relative; min-height: 46px; display: flex; justify-content: center; overflow: hidden; border-radius: var(--cut-radius-md); }
 .cut-google-render, .cut-google-render > div { width: 100% !important; display: flex !important; justify-content: center !important; overflow: hidden !important; }
 .cut-google-render iframe { display: block !important; max-width: 100% !important; min-height: 44px !important; }
 .cut-google-skeleton { position: absolute; inset: 0; display: grid; place-items: center; border: 1px solid var(--cut-border); border-radius: var(--cut-radius-md); background: rgba(255,255,255,.025); color: var(--cut-text-muted); font-size: .84rem; }
+.cut-login-form__instagram { width: 100%; min-height: 54px; display: grid; grid-template-columns: 34px 1fr 22px; align-items: center; gap: 10px; padding: 8px 13px; border: 1px solid rgba(225,48,108,.34); border-radius: var(--cut-radius-md); background: linear-gradient(115deg,rgba(131,58,180,.16),rgba(225,48,108,.12) 52%,rgba(252,175,69,.09)); color: #fff; text-align: left; cursor: pointer; transition: transform var(--cut-duration-normal) ease, border-color var(--cut-duration-normal) ease, background var(--cut-duration-normal) ease, box-shadow var(--cut-duration-normal) ease; }
+.cut-login-form__instagram > .fa-instagram { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 10px; background: linear-gradient(145deg,#833ab4,#e1306c 58%,#fcaf45); color: #fff; font-size: 1rem; box-shadow: 0 8px 22px rgba(225,48,108,.2); }
+.cut-login-form__instagram > span { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.cut-login-form__instagram strong { font-size: .86rem; font-weight: 880; }
+.cut-login-form__instagram small { color: #ccbfc9; font-size: .68rem; line-height: 1.35; }
+.cut-login-form__instagram > .fa-arrow-right { justify-self: end; color: #d9b6cb; font-size: .75rem; }
+.cut-login-form__instagram:hover:not(:disabled) { transform: translateY(-1px); border-color: rgba(225,48,108,.62); background: linear-gradient(115deg,rgba(131,58,180,.24),rgba(225,48,108,.18) 52%,rgba(252,175,69,.13)); box-shadow: 0 15px 35px rgba(131,58,180,.12); }
+.cut-login-form__instagram:focus-visible { outline: 2px solid rgba(225,48,108,.72); outline-offset: 2px; }
+.cut-login-form__instagram:disabled { opacity: .5; cursor: not-allowed; }
+.cut-instagram-account { position: relative; display: grid; grid-template-columns: 50px 1fr 24px; align-items: center; gap: 12px; padding: 13px; border: 1px solid rgba(225,48,108,.24); border-radius: var(--cut-radius-md); background: linear-gradient(115deg,rgba(131,58,180,.1),rgba(225,48,108,.07),rgba(47,198,216,.04)); }
+.cut-instagram-account__avatar { width: 50px; height: 50px; display: grid; place-items: center; object-fit: cover; border: 2px solid rgba(225,48,108,.45); border-radius: 16px; background: rgba(255,255,255,.04); }
+.cut-instagram-account__avatar--fallback { color: #fff; font-size: 1.1rem; background: linear-gradient(145deg,#833ab4,#e1306c 58%,#fcaf45); }
+.cut-instagram-account > div { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.cut-instagram-account strong { overflow: hidden; color: #fff; font-size: .91rem; font-weight: 880; text-overflow: ellipsis; white-space: nowrap; }
+.cut-instagram-account span { color: #d5c3cf; font-size: .78rem; }
+.cut-instagram-account small { color: var(--cut-text-muted); font-size: .68rem; }
+.cut-instagram-account__verified { justify-self: end; color: var(--cut-primary); font-size: 1rem; }
+.cut-login-form__secondaryAction, .cut-login-form__textAction { width: 100%; border-radius: var(--cut-radius-md); font-weight: 820; cursor: pointer; transition: border-color var(--cut-duration-normal) ease, background var(--cut-duration-normal) ease, color var(--cut-duration-normal) ease; }
+.cut-login-form__secondaryAction { min-height: 44px; border: 1px solid var(--cut-border); background: rgba(255,255,255,.025); color: #d9e8ee; font-size: .82rem; }
+.cut-login-form__secondaryAction:hover:not(:disabled) { border-color: rgba(47,198,216,.42); background: rgba(47,198,216,.08); color: #fff; }
+.cut-login-form__textAction { min-height: 34px; border: 0; background: transparent; color: var(--cut-text-muted); font-size: .77rem; }
+.cut-login-form__textAction:hover:not(:disabled) { color: var(--cut-primary); }
+.cut-login-form__secondaryAction:disabled, .cut-login-form__textAction:disabled { opacity: .5; cursor: not-allowed; }
 .cut-login-form__links { display: flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
 .cut-login-form__links a { color: var(--cut-primary); font-size: .84rem; font-weight: 820; text-decoration: none; }
 .cut-login-form__links a:hover { color: var(--cut-primary-hover); }
 .cut-login-form__links span { color: var(--cut-text-faint); }
 @keyframes cutLoginSpin { to { transform: rotate(360deg); } }
-@media (max-width: 480px) { .cut-login-form__inputWrap--password .form-control { padding-right: 5.4rem !important; } .cut-login-form__passwordToggle { right: 7px; min-width: 64px; min-height: 34px; padding-inline: 8px; font-size: .71rem; } }
+@media (max-width: 480px) { .cut-login-form__inputWrap--password .form-control { padding-right: 5.4rem !important; } .cut-login-form__passwordToggle { right: 7px; min-width: 64px; min-height: 34px; padding-inline: 8px; font-size: .71rem; } .cut-login-form__instagram { grid-template-columns: 32px 1fr 18px; padding-inline: 11px; } .cut-instagram-account { grid-template-columns: 46px 1fr 20px; padding: 11px; } .cut-instagram-account__avatar { width: 46px; height: 46px; border-radius: 14px; } }
 @media (prefers-reduced-motion: reduce) { .cut-login-form__spinner { animation: none; } }
