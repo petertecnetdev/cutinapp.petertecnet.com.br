@@ -59,9 +59,13 @@ export default function UserProfilePage() {
 
   const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(" ") || profile.user_name || "Participante Cutinapp";
   const initials = `${profile.first_name?.[0] || "C"}${profile.last_name?.[0] || ""}`.toUpperCase();
+  const background = image(profile.background);
 
   return <div className="cut-app-page"><NavlogComponent />
-    <section className="cut-user-profile-hero"><Container className="cut-page-container"><div className="cut-user-profile-hero__inner">
+    <section
+      className={`cut-user-profile-hero${background ? " has-background" : ""}`}
+      style={background ? { backgroundImage: `url(${JSON.stringify(background)})` } : undefined}
+    ><Container className="cut-page-container"><div className="cut-user-profile-hero__inner">
       <div className="cut-user-profile-avatar">{profile.avatar ? <img src={image(profile.avatar)} alt={fullName} /> : <span>{initials}</span>}</div>
       <div className="cut-user-profile-identity"><span className="cut-eyebrow">Perfil Cutinapp</span><h1>{fullName}</h1>{profile.user_name && <p>@{profile.user_name}</p>}<div className="cut-user-profile-meta">{profile.city && <span><i className="fa-solid fa-location-dot" />{profile.city}{profile.uf ? ` - ${profile.uf}` : ""}</span>}{profile.favorite_genre && <span><i className="fa-solid fa-music" />{profile.favorite_genre}</span>}</div>{profile.about && <p className="cut-user-profile-bio">{profile.about}</p>}</div>
       <Button variant="outline-light" onClick={() => navigate("/user/edit")}><i className="fa-regular fa-pen-to-square me-2" />Editar perfil</Button>
