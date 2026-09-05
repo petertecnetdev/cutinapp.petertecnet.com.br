@@ -28,6 +28,7 @@ export default function CheckinPage() {
   const webcamRef = useRef(null);
   const canvasRef = useRef(null);
   const scanningRef = useRef(false);
+  const decodingRef = useRef(false);
   const location = useLocation();
   const navigate = useNavigate();
   const requestedEventId = new URLSearchParams(location.search).get("eventId") || "";
@@ -162,10 +163,11 @@ export default function CheckinPage() {
     }
 
     const scan = async () => {
-      if (cancelled || scanningRef.current || document.visibilityState !== "visible") return;
+      if (cancelled || scanningRef.current || decodingRef.current || document.visibilityState !== "visible") return;
       const video = webcamRef.current?.video;
       if (!video || video.readyState < 2 || video.videoWidth < 1 || video.videoHeight < 1) return;
 
+      decodingRef.current = true;
       try {
         let rawValue = "";
         if (detector) {
@@ -185,6 +187,8 @@ export default function CheckinPage() {
         if (rawValue.startsWith("CUT-")) await validate(rawValue);
       } catch {
         // Uma falha isolada de frame não encerra a portaria; o próximo frame tenta novamente.
+      } finally {
+        decodingRef.current = false;
       }
     };
 
