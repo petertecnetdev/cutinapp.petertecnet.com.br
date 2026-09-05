@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Button, Form } from "react-bootstrap";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
@@ -34,7 +34,7 @@ const readInstagramCompletion = () => {
   try {
     const stored = window.sessionStorage.getItem(INSTAGRAM_COMPLETION_KEY);
     return stored ? JSON.parse(stored) : null;
-  } catch (error) {
+  } catch {
     window.sessionStorage.removeItem(INSTAGRAM_COMPLETION_KEY);
     return null;
   }
@@ -80,21 +80,21 @@ export default function LoginFormComponent() {
     [completionEmail, loading]
   );
 
-  const clearInstagramSession = (keepReturn = false) => {
+  const clearInstagramSession = useCallback((keepReturn = false) => {
     if (typeof window === "undefined") return;
     window.sessionStorage.removeItem(INSTAGRAM_COMPLETION_KEY);
     window.sessionStorage.removeItem(INSTAGRAM_LINK_TOKEN_KEY);
     if (!keepReturn) window.sessionStorage.removeItem(INSTAGRAM_RETURN_KEY);
-  };
+  }, []);
 
-  const linkPendingInstagram = async () => {
+  const linkPendingInstagram = useCallback(async () => {
     const completionToken = window.sessionStorage.getItem(INSTAGRAM_LINK_TOKEN_KEY);
     if (!completionToken) return false;
     await linkInstagram(completionToken);
     window.sessionStorage.removeItem(INSTAGRAM_LINK_TOKEN_KEY);
     window.sessionStorage.removeItem(INSTAGRAM_COMPLETION_KEY);
     return true;
-  };
+  }, [linkInstagram]);
 
   useEffect(() => {
     let active = true;
@@ -153,7 +153,7 @@ export default function LoginFormComponent() {
     return () => {
       active = false;
     };
-  }, [destination, location.search, loginInstagram, navigate]);
+  }, [clearInstagramSession, destination, location.search, loginInstagram, navigate]);
 
   useEffect(() => {
     let active = true;
@@ -166,9 +166,8 @@ export default function LoginFormComponent() {
       setInfo("");
       try {
         await loginGoogle(credential);
-        const linked = await linkPendingInstagram();
+        await linkPendingInstagram();
         clearInstagramSession();
-        if (linked) setInfo("Instagram vinculado à sua conta.");
         navigate(destination, { replace: true });
       } catch (err) {
         if (active) setError(err?.message || "Não foi possível entrar com o Google.");
@@ -220,7 +219,7 @@ export default function LoginFormComponent() {
     return () => {
       active = false;
     };
-  }, [destination, instagramCompletion, linkInstagram, loginGoogle, navigate]);
+  }, [clearInstagramSession, destination, instagramCompletion, linkPendingInstagram, loginGoogle, navigate]);
 
   const submit = async (event) => {
     event.preventDefault();
@@ -302,12 +301,12 @@ export default function LoginFormComponent() {
     setInfo("Entre na sua conta Cutinapp para vincular este Instagram.");
   };
 
-  const restartInstagram = () => {
+  const restartInstagram = async () => {
     clearInstagramSession(true);
     setInstagramCompletion(null);
     setCompletionEmail("");
     setCompletionName("");
-    beginInstagram();
+    await beginInstagram();
   };
 
   if (instagramCompletion) {
