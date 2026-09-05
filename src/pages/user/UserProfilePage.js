@@ -4,6 +4,7 @@ import { Alert, Badge, Button, Card, Col, Container, Row } from "react-bootstrap
 import { useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import SkeletonCard from "../../components/SkeletonCard";
+import { ProfileActorBadges, ProfileActorLinks, actorThemeClass } from "../../components/user/ProfileActorIdentity";
 import { AuthContext } from "../../context/AuthContext";
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
@@ -70,6 +71,8 @@ export default function UserProfilePage() {
   const profile = data?.profile || {};
   const stats = data?.stats || {};
   const socialSettings = data?.social_settings || {};
+  const actorIdentity = data?.actor_identity || { primary_role: "participant", roles: [{ key: "participant", label: "Participante" }] };
+  const actorRoles = Array.isArray(actorIdentity.roles) ? actorIdentity.roles : [];
   const interests = Array.isArray(data?.interests) ? data.interests : [];
   const publicInterestedEvents = Array.isArray(data?.interested_events) ? data.interested_events : [];
   const currentEvents = useMemo(() => {
@@ -83,20 +86,34 @@ export default function UserProfilePage() {
   const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(" ") || profile.user_name || "Participante Cutinapp";
   const initials = `${profile.first_name?.[0] || "C"}${profile.last_name?.[0] || ""}`.toUpperCase();
   const background = image(profile.background);
+  const profileEyebrow = isOwnProfile
+    ? "Seu perfil Cutinapp"
+    : actorRoles.length > 1
+      ? "Perfil multiator Cutinapp"
+      : actorRoles[0]?.label ? `${actorRoles[0].label} na Cutinapp` : "Perfil Cutinapp";
 
   return <div className="cut-app-page"><NavlogComponent />
     {data?.profile && <section
-      className={`cut-user-profile-hero${background ? " has-background" : ""}`}
+      className={`cut-user-profile-hero ${actorThemeClass(actorIdentity)}${background ? " has-background" : ""}`}
       style={background ? { backgroundImage: `url(${JSON.stringify(background)})` } : undefined}
     ><Container className="cut-page-container"><div className="cut-user-profile-hero__inner">
       <div className="cut-user-profile-avatar">{profile.avatar ? <img src={image(profile.avatar)} alt={fullName} /> : <span>{initials}</span>}</div>
-      <div className="cut-user-profile-identity"><span className="cut-eyebrow">{isOwnProfile ? "Seu perfil Cutinapp" : "Perfil Cutinapp"}</span><h1>{fullName}</h1>{profile.user_name && <p>@{profile.user_name}</p>}<div className="cut-user-profile-meta">{profile.city && <span><i className="fa-solid fa-location-dot" />{profile.city}{profile.uf ? ` - ${profile.uf}` : ""}</span>}{profile.favorite_genre && <span><i className="fa-solid fa-music" />{profile.favorite_genre}</span>}</div>{profile.about && <p className="cut-user-profile-bio">{profile.about}</p>}</div>
+      <div className="cut-user-profile-identity">
+        <span className="cut-eyebrow">{profileEyebrow}</span>
+        <h1>{fullName}</h1>
+        <ProfileActorBadges identity={actorIdentity} />
+        {profile.user_name && <p>@{profile.user_name}</p>}
+        <div className="cut-user-profile-meta">{profile.city && <span><i className="fa-solid fa-location-dot" />{profile.city}{profile.uf ? ` - ${profile.uf}` : ""}</span>}{profile.favorite_genre && <span><i className="fa-solid fa-music" />{profile.favorite_genre}</span>}</div>
+        {profile.about && <p className="cut-user-profile-bio">{profile.about}</p>}
+      </div>
       {isOwnProfile && <Button variant="outline-light" onClick={() => navigate("/user/edit")}><i className="fa-regular fa-pen-to-square me-2" />Editar perfil</Button>}
     </div></Container></section>}
 
     <Container className="cut-page-container py-4 py-lg-5">
       {error && <Alert variant="danger">{error}</Alert>}
       {loading ? <Row className="g-4">{Array.from({ length: 3 }).map((_, index) => <Col md={4} key={index}><SkeletonCard /></Col>)}</Row> : data ? <>
+        <ProfileActorLinks identity={actorIdentity} />
+
         {isOwnProfile ? <>
           <div className="cut-user-profile-stats">
             <div><strong>{stats.upcoming_with_ticket || 0}</strong><span>Próximos com ingresso</span></div>
