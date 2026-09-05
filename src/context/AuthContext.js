@@ -9,6 +9,10 @@ export const AuthContext = createContext({
   refreshUser: async () => null,
   login: async () => null,
   loginGoogle: async () => null,
+  startInstagram: async () => null,
+  loginInstagram: async () => null,
+  completeInstagram: async () => null,
+  linkInstagram: async () => null,
   logout: async () => null,
 });
 
@@ -109,6 +113,24 @@ export function AuthProvider({ children }) {
     return refreshUser();
   }, [refreshUser]);
 
+  const startInstagram = useCallback(async () => authService.startInstagram(), []);
+
+  const loginInstagram = useCallback(async (code, state) => {
+    const result = await authService.loginInstagram(code, state);
+    if (!result?.requires_completion) await refreshUser();
+    return result;
+  }, [refreshUser]);
+
+  const completeInstagram = useCallback(async (payload) => {
+    const result = await authService.completeInstagram(payload);
+    await refreshUser();
+    return result;
+  }, [refreshUser]);
+
+  const linkInstagram = useCallback(async (completionToken) => {
+    return authService.linkInstagram(completionToken);
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       await authService.logout();
@@ -118,8 +140,30 @@ export function AuthProvider({ children }) {
   }, []);
 
   const value = useMemo(
-    () => ({ user, loading, refreshUser, login, loginGoogle, logout }),
-    [user, loading, refreshUser, login, loginGoogle, logout]
+    () => ({
+      user,
+      loading,
+      refreshUser,
+      login,
+      loginGoogle,
+      startInstagram,
+      loginInstagram,
+      completeInstagram,
+      linkInstagram,
+      logout,
+    }),
+    [
+      user,
+      loading,
+      refreshUser,
+      login,
+      loginGoogle,
+      startInstagram,
+      loginInstagram,
+      completeInstagram,
+      linkInstagram,
+      logout,
+    ]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
