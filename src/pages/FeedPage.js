@@ -2,6 +2,7 @@ import React, { useCallback, useContext, useEffect, useState } from "react";
 import { Alert, Badge, Button, Card, Col, Container, Row } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
+import GlobalFeedPosts from "../components/GlobalFeedPosts";
 import NavlogComponent from "../components/NavlogComponent";
 import SkeletonCard from "../components/SkeletonCard";
 import cutinappService from "../services/CutinappService";
@@ -78,8 +79,10 @@ export default function FeedPage() {
 
   return <div className="cut-app-page"><NavlogComponent />
     <Container className="cut-page-container py-4 py-lg-5">
-      <div className="cut-page-heading"><div><span className="cut-eyebrow">Timeline</span><h1>Feed Cutinapp</h1><p>Acompanhe os eventos mais recentes da Cutinapp em ordem de criação, além das produções, artistas e experiências que fazem sentido para você.</p>{context.preferred_city && <span className="cut-feed-context"><i className="fa-solid fa-location-dot" /> Sua preferência: {context.preferred_city}{context.preferred_uf ? ` - ${context.preferred_uf}` : ""}</span>}</div><div className="cut-card-actions"><Button onClick={() => navigate("/event")}>Explorar eventos</Button></div></div>
+      <div className="cut-page-heading"><div><span className="cut-eyebrow">Timeline</span><h1>Feed Cutinapp</h1><p>Veja o que a comunidade está publicando e acompanhe eventos, produções, artistas e experiências que fazem sentido para você.</p>{context.preferred_city && <span className="cut-feed-context"><i className="fa-solid fa-location-dot" /> Sua preferência: {context.preferred_city}{context.preferred_uf ? ` - ${context.preferred_uf}` : ""}</span>}</div><div className="cut-card-actions"><Button onClick={() => navigate("/event")}>Explorar eventos</Button></div></div>
       {error && <Alert variant="danger" dismissible onClose={() => setError("")}>{error}</Alert>}
+
+      <GlobalFeedPosts />
 
       {loading ? <Row className="g-4" aria-busy="true">{Array.from({ length: 6 }).map((_, index) => <Col md={6} xl={4} key={index}><SkeletonCard /></Col>)}</Row> : <section>
         <div className="cut-section-heading"><div><span className="cut-eyebrow">Novidades</span><h2>Eventos mais recentes</h2></div><Button variant="ghost" onClick={() => navigate("/event")}>Ver descoberta</Button></div>
