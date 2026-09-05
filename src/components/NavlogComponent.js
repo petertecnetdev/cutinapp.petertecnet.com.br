@@ -7,6 +7,7 @@ import { subscribeToUserNotifications } from "../services/RealtimeNotificationSe
 import { hasContextRole } from "../utils/applicationRoles";
 import { safeNavigationTarget } from "../utils/safeUrl";
 import { notificationTelemetryAttrs } from "../utils/notificationTelemetry";
+import MessagingNavLink from "./MessagingNavLink";
 
 const notificationIcon = (type = "") => {
   if (type === "artist_lineup") return "fa-solid fa-music";
@@ -193,6 +194,7 @@ export default function NavlogComponent() {
         <Navbar.Collapse id="cut-navbar">
           <Nav className="cut-navbar__links mx-auto">
             <Nav.Link as={Link} to="/feed" className={active("/feed") ? "active" : ""}><i className="fa-solid fa-bolt" /> Feed</Nav.Link>
+            <MessagingNavLink />
             <Nav.Link as={Link} to="/event" className={active("/event") && !active("/event/manage") ? "active" : ""}><i className="fa-regular fa-calendar-days" /> Eventos</Nav.Link>
             <Nav.Link as={Link} to="/productions" className={active("/productions") ? "active" : ""}><i className="fa-solid fa-building" /> Produções</Nav.Link>
             <Nav.Link as={Link} to="/artists" className={active("/artist") ? "active" : ""}><i className="fa-solid fa-music" /> Artistas</Nav.Link>
