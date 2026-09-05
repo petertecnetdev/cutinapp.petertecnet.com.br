@@ -5,6 +5,7 @@ import { AuthContext } from "../../context/AuthContext";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import userService from "../../services/UserService";
+import { storageUrl } from "../../config";
 import "./UserEditPage.css";
 
 const emptyForm = {
@@ -19,12 +20,17 @@ const emptyForm = {
   about: "",
 };
 
+const image = (value) => !value ? "" : /^https?:/.test(value) ? value : `${storageUrl}${String(value).replace(/^\//, "")}`;
+const acceptedImageTypes = ["image/png", "image/jpeg", "image/webp"];
+
 export default function UserEditPage() {
   const navigate = useNavigate();
   const { user, refreshUser } = useContext(AuthContext);
   const [form, setForm] = useState(emptyForm);
   const [avatar, setAvatar] = useState(null);
   const [preview, setPreview] = useState("");
+  const [background, setBackground] = useState(null);
+  const [backgroundPreview, setBackgroundPreview] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -42,7 +48,8 @@ export default function UserEditPage() {
       address: user.address || "",
       about: user.about || "",
     });
-    setPreview(user.avatar || "");
+    setPreview(image(user.avatar));
+    setBackgroundPreview(image(user.background));
   }, [user]);
 
   const change = (event) => {
@@ -52,8 +59,28 @@ export default function UserEditPage() {
 
   const chooseAvatar = (event) => {
     const file = event.target.files?.[0] || null;
+    if (!file) return;
+    if (!acceptedImageTypes.includes(file.type) || file.size > 4 * 1024 * 1024) {
+      setError("A foto do perfil deve ser PNG, JPG ou WEBP de até 4 MB.");
+      event.target.value = "";
+      return;
+    }
+    setError("");
     setAvatar(file);
-    if (file) setPreview(URL.createObjectURL(file));
+    setPreview(URL.createObjectURL(file));
+  };
+
+  const chooseBackground = (event) => {
+    const file = event.target.files?.[0] || null;
+    if (!file) return;
+    if (!acceptedImageTypes.includes(file.type) || file.size > 8 * 1024 * 1024) {
+      setError("A capa deve ser PNG, JPG ou WEBP de até 8 MB.");
+      event.target.value = "";
+      return;
+    }
+    setError("");
+    setBackground(file);
+    setBackgroundPreview(URL.createObjectURL(file));
   };
 
   const submit = async (event) => {
@@ -67,9 +94,12 @@ export default function UserEditPage() {
       const payload = new FormData();
       Object.entries(form).forEach(([key, value]) => payload.append(key, value ?? ""));
       if (avatar) payload.append("avatar", avatar);
+      if (background) payload.append("background", background);
 
       const response = await userService.update(user.id, payload);
       await refreshUser();
+      setAvatar(null);
+      setBackground(null);
       setSuccess(response?.message || "Dados atualizados com sucesso.");
     } catch (err) {
       setError(err?.message || "Não foi possível atualizar sua conta.");
@@ -90,7 +120,7 @@ export default function UserEditPage() {
           <div>
             <span className="cut-eyebrow">Minha conta</span>
             <h1>Dados pessoais</h1>
-            <p>Mantenha seus dados corretos para identificação das cortesias e comunicação dos eventos.</p>
+            <p>Personalize seu perfil e mantenha seus dados corretos para suas experiências na Cutinapp.</p>
           </div>
           <Button variant="outline-light" onClick={() => navigate("/password")}>Alterar senha</Button>
         </div>
@@ -99,6 +129,32 @@ export default function UserEditPage() {
         {success && <Alert variant="success">{success}</Alert>}
 
         <Form onSubmit={submit}>
+          <Card className="cut-panel cut-account-cover-card mb-4">
+            <div
+              className={`cut-account-cover${backgroundPreview ? " has-image" : ""}`}
+              style={backgroundPreview ? { backgroundImage: `url("${backgroundPreview}")` } : undefined}
+            >
+              <div className="cut-account-cover__overlay" />
+              <div className="cut-account-cover__content">
+                <div>
+                  <span className="cut-eyebrow">Capa do perfil</span>
+                  <strong>Mostre sua identidade na Cutinapp</strong>
+                  <small>Recomendado: imagem horizontal, PNG, JPG ou WEBP de até 8 MB.</small>
+                </div>
+                <Form.Label htmlFor="profile-background" className="btn btn-light cut-account-cover__action mb-0">
+                  <i className="fa-regular fa-image me-2" />{backgroundPreview ? "Trocar capa" : "Escolher capa"}
+                </Form.Label>
+                <Form.Control
+                  id="profile-background"
+                  className="visually-hidden"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={chooseBackground}
+                />
+              </div>
+            </div>
+          </Card>
+
           <Row className="g-4">
             <Col lg={4}>
               <Card className="cut-panel h-100">
