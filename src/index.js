@@ -13,6 +13,7 @@ import "./styles/responsive.css";
 import "./styles/nexus-mobile-nav.css";
 import "./styles/logo-theme.css";
 import "./styles/interactive-effects.css";
+import "./styles/mobile-stability.css";
 import "./styles/error-boundary.css";
 import "./pages/HomeDiscovery.css";
 import App from "./App";
