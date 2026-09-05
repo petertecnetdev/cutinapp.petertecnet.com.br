@@ -40,7 +40,7 @@ const locationService = {
     const normalizedLat = normalizeCoordinate(lat);
     const normalizedLng = normalizeCoordinate(lng);
     try {
-      const { data } = await appApiClient.get("/locations/cities", {
+      const { data } = await appApiClient.get("/locations/reverse", {
         params: { lat: normalizedLat, lng: normalizedLng },
       });
       return {
