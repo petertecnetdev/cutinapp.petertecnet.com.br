@@ -1,0 +1,137 @@
+.cut-opening-media-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.cut-opening-media-options .btn {
+  min-height: 84px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  padding: 14px;
+  text-align: left;
+  border-radius: var(--cut-radius-lg);
+}
+
+.cut-opening-media-options .btn > i {
+  width: 28px;
+  font-size: 1.25rem;
+  text-align: center;
+}
+
+.cut-opening-media-options .btn > span {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cut-opening-media-options .btn strong {
+  font-size: .9rem;
+}
+
+.cut-opening-media-options .btn small {
+  opacity: .72;
+  font-size: .68rem;
+  white-space: normal;
+}
+
+.cut-opening-media-preview,
+.cut-opening-media-youtube-preview {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 1px solid var(--cut-border);
+  border-radius: var(--cut-radius-lg);
+  overflow: hidden;
+  background: #02070c;
+}
+
+.cut-opening-media-preview {
+  display: block;
+  object-fit: cover;
+}
+
+.cut-opening-media-youtube-preview iframe {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border: 0;
+}
+
+.cut-opening-media-placeholder {
+  aspect-ratio: 16 / 9;
+  min-height: 0;
+}
+
+.cut-event-hero__media {
+  position: absolute !important;
+  inset: 0;
+  z-index: 0 !important;
+  overflow: hidden;
+  background: #02070c;
+}
+
+.cut-event-hero__media video {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.cut-event-hero__media--youtube iframe {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100vw, 177.78vh);
+  height: max(56.25vw, 100%);
+  min-width: 100%;
+  min-height: 100%;
+  transform: translate(-50%, -50%);
+  border: 0;
+}
+
+.cut-event-hero::before {
+  z-index: 1;
+  pointer-events: none;
+}
+
+.cut-event-hero > .cut-page-container {
+  z-index: 2;
+}
+
+.cut-event-hero__sound {
+  position: absolute !important;
+  right: max(18px, calc((100vw - 1320px) / 2 + 18px));
+  top: 22px;
+  z-index: 3 !important;
+  border-color: rgba(255, 255, 255, .18) !important;
+  background: rgba(2, 8, 13, .7) !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.cut-event-hero--has-opening-video {
+  background: #02070c;
+}
+
+@media (max-width: 767.98px) {
+  .cut-opening-media-options {
+    grid-template-columns: 1fr;
+  }
+
+  .cut-opening-media-options .btn {
+    min-height: 64px;
+  }
+
+  .cut-event-hero__sound {
+    top: 14px;
+    right: 14px;
+  }
+
+  .cut-event-hero__media--youtube iframe {
+    width: max(177.78vh, 100vw);
+    height: max(100%, 56.25vw);
+  }
+}
