@@ -3,11 +3,6 @@ import PropTypes from "prop-types";
 import { Alert, Button, Form } from "react-bootstrap";
 import { useLocation, useNavigate } from "react-router-dom";
 import commerceService from "../../services/CommerceService";
-import {
-  openPwaInstall,
-  requiresPwaInstallForPurchase,
-  subscribeToPwaInstallState,
-} from "../../utils/pwaInstall";
 
 const money = (value) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
 
@@ -18,9 +13,6 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
   const [quantities, setQuantities] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [installRequired, setInstallRequired] = useState(() => requiresPwaInstallForPurchase());
-
-  useEffect(() => subscribeToPwaInstallState(({ required }) => setInstallRequired(required)), []);
 
   useEffect(() => {
     let active = true;
@@ -54,12 +46,6 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
   };
 
   const continueToCheckout = () => {
-    if (installRequired || requiresPwaInstallForPurchase()) {
-      setInstallRequired(true);
-      setError("Para comprar ingressos pelo celular, instale a Cutinapp primeiro. A instalação é rápida e gratuita.");
-      openPwaInstall();
-      return;
-    }
     if (!user) {
       onLoginRequired?.();
       return;
@@ -92,10 +78,6 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
     <h3 className="cut-section-title mt-2">Ingressos e itens</h3>
     <p className="text-secondary small">Escolha o que deseja comprar. O pagamento será concluído em nosso checkout seguro.</p>
     {error && <Alert variant="danger">{error}</Alert>}
-    {installRequired && <Alert variant="info" className="d-flex flex-column gap-2 align-items-start">
-      <div><strong>Instalação necessária no celular.</strong><br />Para comprar ingressos, instale a Cutinapp. Depois da instalação esta mensagem desaparece automaticamente.</div>
-      <Button size="sm" onClick={openPwaInstall}><i className="fa-solid fa-download me-2" />Instalar Cutinapp</Button>
-    </Alert>}
     {!checkoutAvailable && <Alert variant="warning">Pagamentos temporariamente indisponíveis para este evento.</Alert>}
 
     {(catalog.tickets || []).map((ticket) => {
@@ -133,8 +115,8 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
 
     <div className="d-flex align-items-center justify-content-between mt-3"><strong>Total</strong><strong>{money(total)}</strong></div>
     <Button className="w-100 mt-3" onClick={continueToCheckout} disabled={total <= 0 || !checkoutAvailable}>
-      <i className={`fa-solid ${installRequired ? "fa-download" : "fa-lock"} me-2`} />
-      {installRequired ? "Instalar Cutinapp para comprar" : (user ? "Continuar para pagamento" : "Entrar para comprar")}
+      <i className="fa-solid fa-lock me-2" />
+      {user ? "Continuar para pagamento" : "Entrar para comprar"}
     </Button>
     <small className="d-block text-secondary mt-2 text-center"><i className="fa-solid fa-shield-halved me-1" />Checkout protegido pelo Mercado Pago</small>
   </div>;

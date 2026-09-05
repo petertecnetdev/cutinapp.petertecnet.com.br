@@ -13,7 +13,6 @@ import CutinappVisualEffects from "./components/CutinappVisualEffects";
 import PeterTecnetSignature from "./components/PeterTecnetSignature";
 import ProcessingIndicatorComponent from "./components/ProcessingIndicatorComponent";
 import SeoManager from "./components/SeoManager";
-import MobilePwaPurchaseGuard from "./components/pwa/MobilePwaPurchaseGuard";
 import authService from "./services/AuthService";
 import { hasContextRole } from "./utils/applicationRoles";
 
@@ -154,7 +153,7 @@ function AppRoutes() {
             <Route path="/event/:eventId/courtesies" element={protectedRoute(<CourtesyManagePage />)} />
             <Route path="/event/:eventId/participants" element={protectedRoute(<ParticipantsPage />)} />
             <Route path="/event/:slug" element={<EventViewPage />} />
-            <Route path="/checkout/:slug" element={protectedRoute(<MobilePwaPurchaseGuard><CheckoutPage /></MobilePwaPurchaseGuard>)} />
+            <Route path="/checkout/:slug" element={protectedRoute(<CheckoutPage />)} />
 
             <Route path="/ticket/create" element={protectedRoute(<TicketCreatePage />)} />
             <Route path="/passes" element={protectedRoute(<MyPassesPage />)} />
