@@ -15,3 +15,14 @@ export const subscribeToNetworkStatus = (listener) => {
     window.removeEventListener("offline", emit);
   };
 };
+
+export const isNetworkFailure = (error) => {
+  if (!error) return false;
+  if (getNetworkStatus() === "offline") return true;
+  if (error.status) return false;
+
+  const code = String(error.code || "").toUpperCase();
+  const message = String(error.message || "");
+  return ["ERR_NETWORK", "ECONNABORTED", "ETIMEDOUT"].includes(code)
+    || /network error|failed to fetch|load failed|conectar ao servidor|conexão/i.test(message);
+};
