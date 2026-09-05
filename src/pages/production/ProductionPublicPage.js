@@ -4,6 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
+import WhatsAppFloatingButton from "../../components/WhatsAppFloatingButton";
 import ProductionCommunitySection from "../../components/production/ProductionCommunitySection";
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
@@ -102,6 +103,12 @@ export default function ProductionPublicPage() {
 
       <ProductionCommunitySection production={production} />
     </Container>
+
+    <WhatsAppFloatingButton
+      phone={production.phone}
+      label="Falar com a produção"
+      message={`Olá! Encontrei a produção ${production.name} na Cutinapp e gostaria de mais informações.`}
+    />
 
     <Modal show={showViewers} onHide={() => setShowViewers(false)} centered><Modal.Header closeButton><Modal.Title>Quem visualizou</Modal.Title></Modal.Header><Modal.Body>{analytics.viewers?.length ? <div className="cut-viewer-list">{analytics.viewers.map((viewer) => <div className="cut-viewer-row" key={viewer.id}><div className="cut-viewer-avatar">{viewer.avatar ? <img src={mediaUrl(viewer.avatar)} alt="" /> : initials(viewer.name)}</div><div><strong>{viewer.name}</strong><small>{viewer.last_viewed_at ? `Última visita: ${fmt(viewer.last_viewed_at)}` : "Visitou a produção"}</small></div><span>{viewer.views_count} {viewer.views_count === 1 ? "visita" : "visitas"}</span></div>)}</div> : <p className="text-muted mb-0">As visualizações anônimas entram no total. Usuários identificados aparecem aqui quando acessarem a página.</p>}</Modal.Body></Modal>
   </div>;
