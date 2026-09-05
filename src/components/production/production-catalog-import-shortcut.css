@@ -1,0 +1,20 @@
+.cut-catalog-import-shortcut {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 1040;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 12px 17px;
+  border-radius: 999px;
+  box-shadow: 0 16px 42px rgba(0, 0, 0, .34);
+}
+
+@media (max-width: 767.98px) {
+  .cut-catalog-import-shortcut {
+    right: 12px;
+    bottom: 12px;
+    max-width: calc(100vw - 24px);
+  }
+}
