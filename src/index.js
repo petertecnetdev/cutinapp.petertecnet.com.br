@@ -17,6 +17,7 @@ import "./styles/error-boundary.css";
 import "./pages/HomeDiscovery.css";
 import "./styles/mobile-stability.css";
 import "./styles/peter-navbar-standard.css";
+import "./styles/cutinapp-mobile-final.css";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import PeterAccountGateway from "./components/PeterAccountGateway";
