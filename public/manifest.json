@@ -12,5 +12,13 @@
   "scope": "/",
   "display": "standalone",
   "theme_color": "#030910",
-  "background_color": "#030910"
+  "background_color": "#030910",
+  "prefer_related_applications": false,
+  "related_applications": [
+    {
+      "platform": "webapp",
+      "url": "https://cutinapp.petertecnet.com.br/manifest.json",
+      "id": "/"
+    }
+  ]
 }
