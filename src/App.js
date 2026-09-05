@@ -12,6 +12,7 @@ import ConnectionStatus from "./components/ConnectionStatus";
 import CutinappVisualEffects from "./components/CutinappVisualEffects";
 import PeterTecnetSignature from "./components/PeterTecnetSignature";
 import ProcessingIndicatorComponent from "./components/ProcessingIndicatorComponent";
+import ProductionCatalogImportShortcut from "./components/production/ProductionCatalogImportShortcut";
 import SeoManager from "./components/SeoManager";
 import authService from "./services/AuthService";
 import { hasContextRole } from "./utils/applicationRoles";
@@ -111,6 +112,7 @@ function AppRoutes() {
     <>
       <ConnectionStatus />
       <CutinappVisualEffects />
+      <ProductionCatalogImportShortcut />
       <AppErrorBoundary resetKey={routeKey}>
         <Suspense fallback={<ProcessingIndicatorComponent label="Carregando página" />}>
           <SeoManager />
