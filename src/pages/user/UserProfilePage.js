@@ -60,6 +60,8 @@ export default function UserProfilePage() {
   const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(" ") || profile.user_name || "Participante Cutinapp";
   const initials = `${profile.first_name?.[0] || "C"}${profile.last_name?.[0] || ""}`.toUpperCase();
   const background = image(profile.background);
+  const interests = data?.interests || [];
+  const socialSettings = data?.social_settings || {};
 
   return <div className="cut-app-page"><NavlogComponent />
     <section
@@ -67,7 +69,7 @@ export default function UserProfilePage() {
       style={background ? { backgroundImage: `url(${JSON.stringify(background)})` } : undefined}
     ><Container className="cut-page-container"><div className="cut-user-profile-hero__inner">
       <div className="cut-user-profile-avatar">{profile.avatar ? <img src={image(profile.avatar)} alt={fullName} /> : <span>{initials}</span>}</div>
-      <div className="cut-user-profile-identity"><span className="cut-eyebrow">Perfil Cutinapp</span><h1>{fullName}</h1>{profile.user_name && <p>@{profile.user_name}</p>}<div className="cut-user-profile-meta">{profile.city && <span><i className="fa-solid fa-location-dot" />{profile.city}{profile.uf ? ` - ${profile.uf}` : ""}</span>}{profile.favorite_genre && <span><i className="fa-solid fa-music" />{profile.favorite_genre}</span>}</div>{profile.about && <p className="cut-user-profile-bio">{profile.about}</p>}</div>
+      <div className="cut-user-profile-identity"><span className="cut-eyebrow">Perfil de participante</span><h1>{fullName}</h1>{profile.user_name && <p>@{profile.user_name}</p>}<div className="cut-user-profile-meta">{profile.city && <span><i className="fa-solid fa-location-dot" />{profile.city}{profile.uf ? ` - ${profile.uf}` : ""}</span>}{profile.favorite_genre && <span><i className="fa-solid fa-music" />{profile.favorite_genre}</span>}</div>{profile.about && <p className="cut-user-profile-bio">{profile.about}</p>}</div>
       <Button variant="outline-light" onClick={() => navigate("/user/edit")}><i className="fa-regular fa-pen-to-square me-2" />Editar perfil</Button>
     </div></Container></section>
 
@@ -75,13 +77,32 @@ export default function UserProfilePage() {
       {error && <Alert variant="danger">{error}</Alert>}
       {loading ? <Row className="g-4">{Array.from({ length: 3 }).map((_, index) => <Col md={4} key={index}><SkeletonCard /></Col>)}</Row> : <>
         <div className="cut-user-profile-stats">
-          <div><strong>{stats.upcoming_with_ticket || 0}</strong><span>Próximos com ingresso</span></div>
+          <div><strong>{stats.followers || 0}</strong><span>Seguidores</span></div>
+          <div><strong>{stats.following_participants || 0}</strong><span>Participantes seguindo</span></div>
+          <div><strong>{stats.connections || 0}</strong><span>Conexões</span></div>
           <div><strong>{stats.interested || 0}</strong><span>Tenho interesse</span></div>
-          <div><strong>{stats.favorites || 0}</strong><span>Salvos</span></div>
+          <div><strong>{stats.upcoming_with_ticket || 0}</strong><span>Próximos com ingresso</span></div>
           <div><strong>{stats.following_artists || 0}</strong><span>Artistas seguindo</span></div>
           <div><strong>{stats.following_productions || 0}</strong><span>Produções seguindo</span></div>
-          <div><strong>{stats.posts || 0}</strong><span>Publicações</span></div>
+          <div><strong>{stats.favorites || 0}</strong><span>Salvos</span></div>
         </div>
+
+        <Card className="cut-empty-state mb-4">
+          <Card.Body>
+            <div className="d-flex flex-wrap align-items-start justify-content-between gap-3">
+              <div>
+                <span className="cut-eyebrow">Sua identidade social</span>
+                <h2 className="mt-2 mb-2">Seus interesses ajudam a Cutinapp a aproximar pessoas e eventos.</h2>
+                <p className="mb-3">{socialSettings.discoverable === false ? "Você está fora da descoberta de novos participantes, mas suas conexões atuais continuam funcionando." : "Seu perfil pode aparecer para participantes com sinais reais de afinidade."}</p>
+                {interests.length > 0 ? <div className="d-flex flex-wrap gap-2">{interests.slice(0, 12).map((interest) => <Badge bg="secondary" key={interest}>{interest}</Badge>)}</div> : <p className="text-white-50 mb-0">Você ainda não cadastrou interesses sociais.</p>}
+              </div>
+              <div className="d-flex flex-wrap gap-2">
+                <Button onClick={() => navigate("/participantes")}><i className="fa-solid fa-people-group me-2" />Explorar participantes</Button>
+                <Button variant="outline-light" onClick={() => navigate("/user/edit")}><i className="fa-solid fa-pen me-2" />Editar interesses</Button>
+              </div>
+            </div>
+          </Card.Body>
+        </Card>
 
         <div className="cut-user-profile-tabs" role="tablist" aria-label="Conteúdo do perfil">
           {[['tickets','Com ingresso'],['interest','Tenho interesse'],['favorites','Salvos'],['history','Histórico']].map(([key,label]) => <button key={key} type="button" role="tab" aria-selected={tab === key} className={tab === key ? "active" : ""} onClick={() => setTab(key)}>{label}</button>)}
