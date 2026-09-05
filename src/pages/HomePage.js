@@ -3,6 +3,7 @@ import { Button, Container } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import eventService from "../services/EventService";
 import cutinappService from "../services/CutinappService";
+import locationService from "../services/LocationService";
 import PeterTecnetSignature from "../components/PeterTecnetSignature";
 import { storageUrl } from "../config";
 import { readDiscoveryPreference, saveDiscoveryPreference } from "../utils/discoveryFilters";
@@ -25,16 +26,6 @@ const uniqueById = (items) => {
   });
 };
 
-const readHomeLocation = () => {
-  try { return JSON.parse(window.localStorage.getItem("cutinapp.homeLocation") || "null"); }
-  catch (_) { return null; }
-};
-
-const saveHomeLocation = (value) => {
-  try { window.localStorage.setItem("cutinapp.homeLocation", JSON.stringify(value)); }
-  catch (_) { /* localização local é apenas conveniência */ }
-};
-
 export default function HomePage() {
   const [events, setEvents] = useState([]);
   const [productions, setProductions] = useState([]);
@@ -42,9 +33,10 @@ export default function HomePage() {
   const [cities, setCities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [locationBusy, setLocationBusy] = useState(false);
+  const [locationError, setLocationError] = useState("");
   const [usingFallback, setUsingFallback] = useState(false);
   const [location, setLocation] = useState(() => {
-    const precise = readHomeLocation();
+    const precise = locationService.readStored();
     if (precise?.lat && precise?.lng) return precise;
     const saved = readDiscoveryPreference();
     return saved?.city ? { city: saved.city, uf: saved.uf || "", mode: "city" } : null;
@@ -109,53 +101,68 @@ export default function HomePage() {
 
   useEffect(() => {
     if (location || !navigator.permissions || !navigator.geolocation) return;
-    navigator.permissions.query({ name: "geolocation" }).then((permission) => {
+    let active = true;
+    navigator.permissions.query({ name: "geolocation" }).then(async (permission) => {
       if (permission.state !== "granted") return;
-      navigator.geolocation.getCurrentPosition(({ coords }) => {
-        const next = { lat: coords.latitude.toFixed(6), lng: coords.longitude.toFixed(6), mode: "nearby" };
-        saveHomeLocation(next);
-        setLocation(next);
-      }, () => undefined, { enableHighAccuracy: false, timeout: 7000, maximumAge: 600000 });
+      try {
+        const next = await locationService.detectCurrent({ timeout: 7000, maximumAge: 600000 });
+        if (active) setLocation(next);
+      } catch (_) {
+        // A descoberta pública continua sem bloquear o usuário.
+      }
     }).catch(() => undefined);
+    return () => { active = false; };
   }, [location]);
 
-  const useMyLocation = () => {
-    if (!navigator.geolocation) return;
+  const useMyLocation = async () => {
+    if (!navigator.geolocation) {
+      setLocationError("Seu navegador não oferece localização. Escolha uma cidade abaixo.");
+      return;
+    }
     setLocationBusy(true);
-    navigator.geolocation.getCurrentPosition(({ coords }) => {
-      const next = { lat: coords.latitude.toFixed(6), lng: coords.longitude.toFixed(6), mode: "nearby" };
-      saveHomeLocation(next);
+    setLocationError("");
+    try {
+      const next = await locationService.detectCurrent();
       setLocation(next);
+      saveDiscoveryPreference({ city: next.city || "", uf: next.uf || "" });
+    } catch (error) {
+      setLocationError(error?.code === 1
+        ? "A permissão de localização foi negada. Você pode escolher uma cidade manualmente."
+        : "Não foi possível encontrar sua localização agora. Escolha uma cidade manualmente.");
+    } finally {
       setLocationBusy(false);
-    }, () => setLocationBusy(false), { enableHighAccuracy: false, timeout: 9000, maximumAge: 300000 });
+    }
   };
 
   const chooseCity = (city) => {
-    const next = { city: city.city, uf: city.uf || "", mode: "city" };
-    saveHomeLocation(next);
+    const next = { city: city.city, uf: city.uf || "", label: `${city.city}${city.uf ? ` - ${city.uf}` : ""}`, mode: "city" };
+    locationService.saveStored(next);
     saveDiscoveryPreference({ city: city.city, uf: city.uf || "" });
     setLocation(next);
+    setLocationError("");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const clearLocation = () => {
-    try { window.localStorage.removeItem("cutinapp.homeLocation"); }
-    catch (_) { /* sem persistência a descoberta continua funcionando */ }
+    locationService.clearStored();
     setLocation(null);
+    setLocationError("");
     saveDiscoveryPreference({ city: "", uf: "" });
   };
 
-  const locationLabel = location?.city
-    ? `${location.city}${location.uf ? ` - ${location.uf}` : ""}`
-    : location?.lat
-      ? "perto de você"
-      : "na Cutinapp";
+  const locationLabel = location?.label
+    || (location?.city ? `${location.city}${location.uf ? ` - ${location.uf}` : ""}` : "")
+    || (location?.lat ? "Sua localização atual" : "na Cutinapp");
 
-  const browseLink = location?.city
-    ? `/event?city=${encodeURIComponent(location.city)}${location.uf ? `&uf=${encodeURIComponent(location.uf)}` : ""}`
-    : location?.lat
-      ? `/event?lat=${location.lat}&lng=${location.lng}&radius_km=80`
+  const browseLink = location?.lat && location?.lng
+    ? `/event?lat=${location.lat}&lng=${location.lng}&radius_km=80`
+    : location?.city
+      ? `/event?city=${encodeURIComponent(location.city)}${location.uf ? `&uf=${encodeURIComponent(location.uf)}` : ""}`
       : "/event";
+
+  const selectedCity = location?.mode === "city" && location?.city
+    ? `${location.city}|${location.uf || ""}`
+    : "";
 
   return (
     <div className="cut-home cut-home-discovery">
@@ -176,9 +183,23 @@ export default function HomePage() {
                 <p>Eventos, artistas e produções para descobrir agora. Sem precisar entrar para começar.</p>
               </div>
               <div className="cut-home-discovery__locationBox">
-                <span><i className="fa-solid fa-location-dot" /> {locationLabel}</span>
-                <Button size="sm" variant="outline-light" onClick={useMyLocation} disabled={locationBusy}>{locationBusy ? "Localizando..." : "Usar localização"}</Button>
-                {location && <button type="button" onClick={clearLocation}>Limpar</button>}
+                <div className="cut-home-discovery__locationCurrent">
+                  <small>Localização usada</small>
+                  <strong><i className="fa-solid fa-location-dot" /> {locationLabel}</strong>
+                  {location?.lat && location?.lng && <span>Eventos mais próximos primeiro · até 80 km</span>}
+                </div>
+                <Button size="sm" variant="outline-light" onClick={useMyLocation} disabled={locationBusy}>{locationBusy ? "Localizando..." : location?.lat ? "Atualizar minha localização" : "Usar minha localização"}</Button>
+                {cities.length > 0 && <select className="cut-home-discovery__locationSelect" value={selectedCity} onChange={(e) => {
+                  if (!e.target.value) return;
+                  const [cityName, uf] = e.target.value.split("|");
+                  const city = cities.find((item) => item.city === cityName && String(item.uf || "") === String(uf || ""));
+                  if (city) chooseCity(city);
+                }} aria-label="Alterar filtro de localização">
+                  <option value="">Alterar localização...</option>
+                  {cities.map((city) => <option key={`${city.city}-${city.uf}`} value={`${city.city}|${city.uf || ""}`}>{city.city}{city.uf ? ` - ${city.uf}` : ""}</option>)}
+                </select>}
+                {locationError && <p className="cut-home-discovery__locationError">{locationError}</p>}
+                {location && <button type="button" onClick={clearLocation}>Limpar localização</button>}
               </div>
             </div>
 
@@ -192,7 +213,7 @@ export default function HomePage() {
 
             {cities.length > 0 && <div className="cut-home-discovery__cities" aria-label="Cidades com eventos">
               {cities.map((city) => {
-                const active = location?.city && normalizeKey(location.city) === normalizeKey(city.city) && (!location.uf || location.uf === city.uf);
+                const active = location?.mode === "city" && location?.city && normalizeKey(location.city) === normalizeKey(city.city) && (!location.uf || location.uf === city.uf);
                 return <button key={`${city.city}-${city.uf}`} type="button" className={active ? "active" : ""} onClick={() => chooseCity(city)}><i className="fa-solid fa-location-dot" /><span>{city.city}{city.uf ? ` - ${city.uf}` : ""}</span><small>{city.total}</small></button>;
               })}
             </div>}
@@ -201,10 +222,10 @@ export default function HomePage() {
 
         <section id="eventos" className="cut-home-discovery__section">
           <Container>
-            <div className="cut-home-discovery__sectionHead"><div><span>Próximos</span><h2>{usingFallback ? "Eventos em destaque" : `Eventos ${locationLabel}`}</h2></div><Link to={browseLink}>Ver todos</Link></div>
+            <div className="cut-home-discovery__sectionHead"><div><span>{location?.lat ? "Mais perto de você" : "Próximos"}</span><h2>{usingFallback ? "Eventos em destaque" : `Eventos ${locationLabel}`}</h2></div><Link to={browseLink}>Ver todos</Link></div>
             {loading ? <div className="cut-home-discovery__loading">Carregando eventos...</div> : events.length ? <div className="cut-home-discovery__events">
               {events.map((event) => <Link key={event.id} to={`/event/${event.slug}`} className="cut-home-discovery__eventCard">
-                <div className="cut-home-discovery__eventImage">{event.image ? <img src={mediaUrl(event.image)} alt={event.title} loading="lazy" /> : <span><i className="fa-regular fa-calendar" /></span>}{event.free_ticket_lots_count > 0 && <b>GRÁTIS</b>}</div>
+                <div className="cut-home-discovery__eventImage">{event.image ? <img src={mediaUrl(event.image)} alt={event.title} loading="lazy" /> : <span><i className="fa-regular fa-calendar" /></span>}{event.free_ticket_lots_count > 0 && <b>GRÁTIS</b>}{event.distance_km != null && <em>{Number(event.distance_km).toFixed(1)} km</em>}</div>
                 <div className="cut-home-discovery__eventInfo"><small>{dateLabel(event.start_date)}</small><h3>{event.title}</h3><p><i className="fa-solid fa-location-dot" /> {event.venue || event.city || "Local a confirmar"}{event.city && event.venue ? ` · ${event.city}` : ""}</p>{event.production?.name && <span>{event.production.name}</span>}</div>
               </Link>)}
             </div> : <div className="cut-home-discovery__empty">Nenhum evento público disponível agora.</div>}
