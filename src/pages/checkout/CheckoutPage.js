@@ -11,6 +11,14 @@ const money = (value) => new Intl.NumberFormat("pt-BR", { style: "currency", cur
 const failedStatuses = ["refunded", "charged_back", "rejected", "cancelled"];
 const PAYMENT_SYNC_INTERVAL_MS = 5000;
 
+const trackCheckout = (type, details = {}) => {
+  try {
+    window.PeterTecnetTelemetry?.track?.(type, details);
+  } catch (_) {
+    // Telemetry must never interrupt checkout.
+  }
+};
+
 export default function CheckoutPage() {
   const { slug } = useParams();
   const location = useLocation();
@@ -25,6 +33,8 @@ export default function CheckoutPage() {
   const [syncingNow, setSyncingNow] = useState(false);
   const [error, setError] = useState("");
   const resultRef = useRef(result);
+  const trackedStatusRef = useRef("");
+  const checkoutViewedRef = useRef(false);
   resultRef.current = result;
 
   const checkoutStorageKey = `cutinapp_checkout_${slug}`;
@@ -86,6 +96,42 @@ export default function CheckoutPage() {
   const approved = orderStatus === "paid";
   const fulfilled = approved && fulfillmentStatus === "completed";
   const failed = failedStatuses.includes(orderStatus);
+
+  useEffect(() => {
+    if (!catalog?.event?.id || !selection || !lines.length || checkoutViewedRef.current) return;
+    checkoutViewedRef.current = true;
+    trackCheckout("checkout_opened", {
+      label: "Checkout aberto",
+      target: slug,
+      metadata: {
+        event_id: Number(catalog.event.id),
+        amount: Number(total.toFixed(2)),
+        ticket_quantity: lines.filter((line) => line.kind === "ticket").reduce((sum, line) => sum + line.quantity, 0),
+        item_quantity: lines.filter((line) => line.kind === "item").reduce((sum, line) => sum + line.quantity, 0),
+        available_methods: methods,
+      },
+    });
+  }, [catalog?.event?.id, lines, methods, selection, slug, total]);
+
+  useEffect(() => {
+    if (!result?.order?.public_id || !orderStatus) return;
+    const statusKey = `${result.order.public_id}:${orderStatus}:${fulfillmentStatus || ""}`;
+    if (trackedStatusRef.current === statusKey) return;
+    trackedStatusRef.current = statusKey;
+    const type = fulfilled ? "checkout_fulfilled" : approved ? "payment_approved" : failed ? "payment_failed" : "payment_pending";
+    trackCheckout(type, {
+      label: fulfilled ? "Ingresso emitido" : approved ? "Pagamento aprovado" : failed ? "Pagamento não concluído" : "Pagamento aguardando confirmação",
+      target: slug,
+      metadata: {
+        event_id: Number(catalog?.event?.id || 0),
+        amount: Number(result?.order?.total || total || 0),
+        payment_method: method,
+        order_status: orderStatus,
+        fulfillment_status: fulfillmentStatus || "pending",
+        outcome: fulfilled || approved ? "success" : failed ? "error" : "pending",
+      },
+    });
+  }, [approved, catalog?.event?.id, failed, fulfilled, fulfillmentStatus, method, orderStatus, result?.order?.public_id, result?.order?.total, slug, total]);
 
   const syncCurrentPayment = async ({ manual = false } = {}) => {
     const publicId = resultRef.current?.order?.public_id;
@@ -159,25 +205,47 @@ export default function CheckoutPage() {
     return false;
   };
 
+  const chooseMethod = (nextMethod) => {
+    if (nextMethod === method) return;
+    setMethod(nextMethod);
+    trackCheckout("payment_method_selected", {
+      label: nextMethod === "pix" ? "PIX selecionado" : "Cartão selecionado",
+      target: slug,
+      metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(total.toFixed(2)), payment_method: nextMethod },
+    });
+    if (!approved) {
+      setResult(null);
+      sessionStorage.removeItem(paymentStorageKey);
+    }
+  };
+
   const checkoutPix = async () => {
     if (!ensurePaymentAvailable("pix")) return;
+    trackCheckout("payment_attempted", { label: "PIX solicitado", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(total.toFixed(2)), payment_method: "pix" } });
     setPaying(true); setError("");
     try {
       const checkoutResult = await commerceService.checkout(payload("pix"));
       setResult(checkoutResult);
       sessionStorage.setItem(paymentStorageKey, JSON.stringify(checkoutResult));
-    } catch (err) { setError(err?.message || "Não foi possível gerar o PIX."); }
+    } catch (err) {
+      trackCheckout("payment_attempt_failed", { label: "Falha ao iniciar PIX", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(total.toFixed(2)), payment_method: "pix", outcome: "error", status: Number(err?.status || 0) } });
+      setError(err?.message || "Não foi possível gerar o PIX.");
+    }
     finally { setPaying(false); }
   };
 
   const checkoutCard = async (cardData) => {
     if (!ensurePaymentAvailable("card")) return;
+    trackCheckout("payment_attempted", { label: "Pagamento com cartão enviado", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(total.toFixed(2)), payment_method: "card" } });
     setPaying(true); setError("");
     try {
       const checkoutResult = await commerceService.checkout({ ...payload("card"), ...cardData });
       setResult(checkoutResult);
       sessionStorage.setItem(paymentStorageKey, JSON.stringify(checkoutResult));
-    } catch (err) { setError(err?.message || "Não foi possível processar o cartão."); }
+    } catch (err) {
+      trackCheckout("payment_attempt_failed", { label: "Falha ao processar cartão", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(total.toFixed(2)), payment_method: "card", outcome: "error", status: Number(err?.status || 0) } });
+      setError(err?.message || "Não foi possível processar o cartão.");
+    }
     finally { setPaying(false); }
   };
 
@@ -188,7 +256,7 @@ export default function CheckoutPage() {
   if (loading) return <ProcessingIndicatorComponent label="Preparando checkout seguro" />;
   if (!selection || !lines.length) return <div className="cut-checkout-page"><Container className="cut-checkout-container"><Alert variant="warning">Sua seleção de compra não foi encontrada.</Alert><Button onClick={() => navigate(`/event/${slug}`)}>Voltar ao evento</Button></Container></div>;
 
-  return <div className="cut-checkout-page">
+  return <div className="cut-checkout-page" data-telemetry-screen="Checkout">
     <header className="cut-checkout-topbar">
       <Container className="cut-checkout-topbar__inner">
         <Link to={`/event/${slug}`} className="cut-checkout-back"><i className="fa-solid fa-arrow-left" /> Voltar ao evento</Link>
@@ -212,17 +280,17 @@ export default function CheckoutPage() {
             {(result.order?.items || []).map((item) => <div className="cut-checkout-purchased" key={item.id}><div><small>{item.type === "ticket" ? "INGRESSO" : "ITEM"}</small><strong>{item.name}</strong><span>{item.quantity} × {money(item.unit_price)}</span></div><i className="fa-solid fa-circle-check" /></div>)}
             <Button as={Link} to="/passes" className="cut-checkout-primary mt-3">Ver meus ingressos</Button>
           </section> : <>
-            <section className="cut-checkout-section">
+            <section className="cut-checkout-section" data-telemetry-context="Forma de pagamento">
               <div className="cut-checkout-section__head"><div className="cut-checkout-step">1</div><div><h2>Forma de pagamento</h2><p>Escolha como deseja pagar.</p></div></div>
               <div className="cut-payment-methods">
-                {pixAvailable && <button type="button" className={method === "pix" ? "is-active" : ""} onClick={() => { setMethod("pix"); if (!approved) { setResult(null); sessionStorage.removeItem(paymentStorageKey); } }}><i className="fa-brands fa-pix" /><div><strong>PIX</strong><span>Aprovação rápida</span></div><i className="fa-solid fa-circle-check" /></button>}
-                {cardAvailable && <button type="button" className={method === "card" ? "is-active" : ""} onClick={() => { setMethod("card"); if (!approved) { setResult(null); sessionStorage.removeItem(paymentStorageKey); } }}><i className="fa-regular fa-credit-card" /><div><strong>Cartão de crédito</strong><span>Pagamento protegido</span></div><i className="fa-solid fa-circle-check" /></button>}
+                {pixAvailable && <button type="button" data-track="Selecionar PIX" className={method === "pix" ? "is-active" : ""} onClick={() => chooseMethod("pix")}><i className="fa-brands fa-pix" /><div><strong>PIX</strong><span>Aprovação rápida</span></div><i className="fa-solid fa-circle-check" /></button>}
+                {cardAvailable && <button type="button" data-track="Selecionar cartão" className={method === "card" ? "is-active" : ""} onClick={() => chooseMethod("card")}><i className="fa-regular fa-credit-card" /><div><strong>Cartão de crédito</strong><span>Pagamento protegido</span></div><i className="fa-solid fa-circle-check" /></button>}
               </div>
             </section>
 
-            <section className="cut-checkout-section">
+            <section className="cut-checkout-section" data-telemetry-context="Pagamento">
               <div className="cut-checkout-section__head"><div className="cut-checkout-step">2</div><div><h2>Pagamento</h2><p>Seus dados são processados em ambiente seguro.</p></div></div>
-              {!result && method === "pix" && pixAvailable && <div className="cut-pix-start"><div className="cut-pix-start__icon"><i className="fa-brands fa-pix" /></div><h3>Pagamento via PIX</h3><p>Geraremos um QR Code exclusivo para esta compra. A confirmação aparecerá automaticamente nesta tela.</p><div className="cut-payment-total"><span>Total a pagar</span><strong>{money(total)}</strong></div><Button className="cut-checkout-primary" onClick={checkoutPix} disabled={paying}>{paying ? "Gerando PIX seguro..." : "Gerar QR Code PIX"}</Button></div>}
+              {!result && method === "pix" && pixAvailable && <div className="cut-pix-start"><div className="cut-pix-start__icon"><i className="fa-brands fa-pix" /></div><h3>Pagamento via PIX</h3><p>Geraremos um QR Code exclusivo para esta compra. A confirmação aparecerá automaticamente nesta tela.</p><div className="cut-payment-total"><span>Total a pagar</span><strong>{money(total)}</strong></div><Button data-track="Gerar PIX" className="cut-checkout-primary" onClick={checkoutPix} disabled={paying}>{paying ? "Gerando PIX seguro..." : "Gerar QR Code PIX"}</Button></div>}
               {!result && method === "card" && cardAvailable && <MercadoPagoCardForm publicKey={catalog?.payment_config?.public_key || ""} amount={total} email={user?.email || ""} disabled={paying} onSubmit={checkoutCard} />}
               {approved && !fulfilled && <div className="cut-payment-waiting"><div className="cut-payment-waiting__pulse"><i className="fa-solid fa-ticket" /></div><h3>Pagamento confirmado</h3><p>O dinheiro já foi reconhecido. Estamos finalizando a emissão do seu ingresso. Você não precisa pagar novamente.</p><Button className="cut-checkout-primary w-100" onClick={() => syncCurrentPayment({ manual: true })} disabled={syncingNow}>{syncingNow ? "Verificando..." : "Verificar emissão agora"}</Button><div className="cut-checkout-live"><span /><strong>Recuperação automática ativa</strong></div></div>}
               {result && !failed && !approved && <div className="cut-payment-waiting"><div className="cut-payment-waiting__pulse"><i className="fa-solid fa-shield-halved" /></div><h3>Aguardando confirmação</h3><p>Assim que o Mercado Pago confirmar o pagamento, esta página será atualizada automaticamente. Se você já pagou, não gere outro PIX.</p>{method === "pix" && result.payment?.qr_code_image && <div className="cut-pix-qr"><img src={result.payment.qr_code_image} alt="QR Code PIX" /></div>}{method === "pix" && result.payment?.qr_code && <><div className="cut-pix-code">{result.payment.qr_code}</div><Button variant="outline-light" className="w-100" onClick={copyPix}><i className="fa-regular fa-copy me-2" />Copiar código PIX</Button></>}<Button className="cut-checkout-primary w-100 mt-3" onClick={() => syncCurrentPayment({ manual: true })} disabled={syncingNow}>{syncingNow ? "Verificando pagamento..." : "Já paguei — verificar agora"}</Button><div className="cut-checkout-live"><span /><strong>Confirmação automática ativa</strong></div></div>}
