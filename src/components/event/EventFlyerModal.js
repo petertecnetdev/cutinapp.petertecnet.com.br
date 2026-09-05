@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import PropTypes from "prop-types";
 import { Button, Modal } from "react-bootstrap";
 import "./EventFlyerModal.css";
 
@@ -130,3 +131,22 @@ export default function EventFlyerModal({ show, onHide, event, flyerUrl }) {
     </Modal>
   );
 }
+
+EventFlyerModal.propTypes = {
+  show: PropTypes.bool.isRequired,
+  onHide: PropTypes.func.isRequired,
+  flyerUrl: PropTypes.string,
+  event: PropTypes.shape({
+    title: PropTypes.string,
+    city: PropTypes.string,
+    uf: PropTypes.string,
+    production: PropTypes.shape({
+      name: PropTypes.string,
+    }),
+  }),
+};
+
+EventFlyerModal.defaultProps = {
+  flyerUrl: "",
+  event: null,
+};
