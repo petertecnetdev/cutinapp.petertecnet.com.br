@@ -10,6 +10,7 @@ const PUBLIC_ROUTES = [
   { test: (path) => path === "/", title: DEFAULT_TITLE, description: DEFAULT_DESCRIPTION },
   { test: (path) => path === "/event", title: "Eventos | Cutinapp", description: "Encontre eventos e experiências disponíveis na Cutinapp." },
   { test: (path) => path.startsWith("/event/"), title: "Evento | Cutinapp", description: "Confira informações, atrações e ingressos deste evento na Cutinapp." },
+  { test: (path) => path === "/productions", title: "Produções | Cutinapp", description: "Descubra produtoras, casas, coletivos e equipes responsáveis pelos eventos publicados na Cutinapp." },
   { test: (path) => path === "/artists", title: "Artistas | Cutinapp", description: "Conheça artistas e atrações presentes nos eventos da Cutinapp." },
   { test: (path) => path.startsWith("/artist/"), title: "Artista | Cutinapp", description: "Conheça este artista e encontre eventos relacionados na Cutinapp." },
   { test: (path) => path.includes("/public") && path.startsWith("/production/"), title: "Produção | Cutinapp", description: "Conheça esta produção e seus eventos na Cutinapp." },
