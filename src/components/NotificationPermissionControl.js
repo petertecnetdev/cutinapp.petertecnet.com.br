@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import PropTypes from "prop-types";
 import { Alert, Button, Collapse } from "react-bootstrap";
 
 const PERMISSION_EVENT = "cutinapp:notification-permission-changed";
@@ -187,3 +188,7 @@ export default function NotificationPermissionControl({ compact = false }) {
     </Alert>
   );
 }
+
+NotificationPermissionControl.propTypes = {
+  compact: PropTypes.bool,
+};
