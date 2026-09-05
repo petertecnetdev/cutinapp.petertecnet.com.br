@@ -25,10 +25,12 @@ import reportWebVitals from "./reportWebVitals";
 import { installGlobalImageFallbacks } from "./utils/imageFallback";
 import { installPasswordFieldEnhancer } from "./utils/passwordFieldEnhancer";
 import { installClipboardFallback } from "./utils/clipboard";
+import { installPeterWhatsappFallback } from "./utils/peterWhatsappFallback";
 
 installGlobalImageFallbacks();
 installPasswordFieldEnhancer();
 installClipboardFallback();
+installPeterWhatsappFallback();
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
