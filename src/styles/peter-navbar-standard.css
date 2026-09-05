@@ -1,0 +1,308 @@
+/* Peter Tecnet navbar standard — Cutinapp
+ * Camada final de padronizacao visual baseada na landing principal.
+ */
+
+.cut-navbar {
+  --cut-nav-glass: rgba(5, 12, 24, .86);
+  --cut-nav-border: rgba(118, 201, 255, .16);
+  --cut-nav-hover: rgba(86, 220, 233, .085);
+  min-height: 72px;
+  border-bottom: 1px solid var(--cut-nav-border) !important;
+  background: var(--cut-nav-glass) !important;
+  box-shadow: 0 14px 42px rgba(0, 0, 0, .18);
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+}
+
+.cut-navbar__inner {
+  width: min(1180px, calc(100% - 32px));
+  min-height: 72px;
+  padding-inline: 0 !important;
+  gap: 16px;
+}
+
+.cut-navbar__brand {
+  min-width: 0;
+  margin-right: 12px !important;
+  flex: 0 1 auto;
+}
+
+.cut-navbar__brand > img {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+}
+
+.cut-navbar__brand > div {
+  min-width: 0;
+}
+
+.cut-navbar__brand strong {
+  font-size: .98rem;
+  letter-spacing: -.025em;
+}
+
+.cut-navbar__brand small {
+  font-size: .59rem;
+  letter-spacing: .055em;
+}
+
+.cut-navbar__links {
+  min-width: 0;
+  align-items: center;
+  gap: 2px;
+}
+
+.cut-navbar__links .nav-link,
+.cut-navbar__links .dropdown-toggle {
+  min-height: 40px;
+  padding: 8px 10px !important;
+  border-radius: 12px !important;
+  font-size: .82rem;
+  white-space: nowrap;
+}
+
+.cut-navbar__links .nav-link:hover,
+.cut-navbar__links .nav-link.active,
+.cut-navbar__links .dropdown-toggle:hover,
+.cut-navbar__links .show > .dropdown-toggle {
+  background: var(--cut-nav-hover) !important;
+}
+
+.cut-navbar__account {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.cut-navbar__account .dropdown-toggle {
+  max-width: 220px;
+}
+
+/* O badge fica contido dentro de uma area reservada, evitando sair do nav. */
+.cut-nav-notification-menu {
+  flex: 0 0 auto;
+}
+
+.cut-nav-notification-menu > .dropdown-toggle {
+  width: 44px !important;
+  min-width: 44px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  padding: 0 !important;
+  overflow: visible;
+}
+
+.cut-nav-notification-toggle {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 32px;
+  overflow: visible;
+}
+
+.cut-nav-notification__badge {
+  top: -5px !important;
+  right: -8px !important;
+  min-width: 17px !important;
+  max-width: 30px;
+  height: 17px !important;
+  padding: 0 4px !important;
+  overflow: hidden;
+  font-size: .56rem !important;
+  line-height: 17px !important;
+  white-space: nowrap;
+  text-overflow: clip;
+  transform: none !important;
+}
+
+@media (max-width: 1199.98px) and (min-width: 992px) {
+  .cut-navbar__inner {
+    width: min(100% - 24px, 1140px);
+    gap: 8px;
+  }
+
+  .cut-navbar__brand {
+    margin-right: 4px !important;
+  }
+
+  .cut-navbar__brand small {
+    display: none;
+  }
+
+  .cut-navbar__links .nav-link,
+  .cut-navbar__links .dropdown-toggle {
+    gap: 6px;
+    padding-inline: 8px !important;
+    font-size: .77rem;
+  }
+
+  .cut-navbar__user > span:last-child {
+    max-width: 116px;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .cut-navbar {
+    min-height: 68px;
+  }
+
+  .cut-navbar__inner {
+    width: min(100% - 24px, 760px);
+    min-height: 68px;
+    gap: 10px;
+  }
+
+  .cut-navbar__brand {
+    max-width: calc(100% - 58px);
+    margin-right: auto !important;
+  }
+
+  .cut-navbar__brand strong,
+  .cut-navbar__brand small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .cut-navbar .navbar-collapse {
+    width: min(380px, 92vw) !important;
+    padding-top: calc(78px + env(safe-area-inset-top, 0px)) !important;
+  }
+
+  .cut-navbar__links {
+    align-items: stretch;
+    gap: 7px;
+  }
+
+  .cut-navbar__links .nav-link,
+  .cut-navbar__links .dropdown-toggle {
+    width: 100%;
+    min-height: 50px !important;
+    padding: 0 14px !important;
+    border: 1px solid rgba(118, 201, 255, .08);
+    border-radius: 14px !important;
+    background: rgba(255, 255, 255, .025) !important;
+    white-space: normal;
+  }
+
+  .cut-nav-notification-menu > .dropdown-toggle {
+    width: 100% !important;
+    min-width: 100% !important;
+    height: 50px !important;
+    justify-content: flex-start !important;
+    padding: 0 14px !important;
+    border-radius: 14px !important;
+  }
+
+  .cut-nav-notification-toggle {
+    width: 36px;
+    height: 36px;
+    flex-basis: 36px;
+  }
+
+  .cut-nav-notification__badge {
+    top: -2px !important;
+    right: -5px !important;
+  }
+
+  .cut-nav-notification-menu .dropdown-menu {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-inline: 0 !important;
+    overflow: hidden;
+  }
+
+  .cut-notification-popover__head,
+  .cut-notification-popover__item,
+  .cut-notification-popover__footer {
+    min-width: 0;
+  }
+
+  .cut-notification-popover__head span {
+    max-width: 48%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .cut-notification-popover__copy strong,
+  .cut-notification-popover__copy small {
+    max-width: 100%;
+  }
+
+  .cut-navbar__account .dropdown-toggle {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .cut-navbar__inner {
+    width: calc(100% - 20px);
+  }
+
+  .cut-navbar__brand {
+    gap: 9px;
+    max-width: calc(100% - 52px);
+  }
+
+  .cut-navbar__brand > img {
+    width: 36px;
+    height: 36px;
+    flex-basis: 36px;
+  }
+
+  .cut-navbar__brand small {
+    display: none;
+  }
+
+  .cut-navbar__brand strong {
+    font-size: .94rem;
+  }
+
+  .cut-navbar .navbar-toggler {
+    width: 42px !important;
+    height: 42px !important;
+    flex-basis: 42px;
+  }
+
+  .cut-navbar .navbar-collapse {
+    width: min(100vw, 350px) !important;
+    padding-left: 12px !important;
+    padding-right: max(12px, env(safe-area-inset-right, 0px)) !important;
+  }
+
+  .cut-notification-popover__head {
+    padding: 14px 13px 10px;
+  }
+
+  .cut-notification-popover__item {
+    grid-template-columns: 38px minmax(0, 1fr) 8px;
+    gap: 9px;
+    padding: 11px 12px;
+  }
+
+  .cut-notification-popover__icon {
+    width: 38px;
+    height: 38px;
+  }
+}
+
+@media (max-width: 360px) {
+  .cut-navbar__inner {
+    width: calc(100% - 16px);
+  }
+
+  .cut-navbar__brand {
+    max-width: calc(100% - 48px);
+  }
+
+  .cut-navbar__brand strong {
+    font-size: .9rem;
+  }
+
+  .cut-navbar .navbar-collapse {
+    width: 100vw !important;
+  }
+}
