@@ -59,12 +59,13 @@ export default function UserProfilePage() {
 
   const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(" ") || profile.user_name || "Participante Cutinapp";
   const initials = `${profile.first_name?.[0] || "C"}${profile.last_name?.[0] || ""}`.toUpperCase();
+  const interests = Array.isArray(profile.interests) ? profile.interests : [];
 
   return <div className="cut-app-page"><NavlogComponent />
     <section className="cut-user-profile-hero"><Container className="cut-page-container"><div className="cut-user-profile-hero__inner">
       <div className="cut-user-profile-avatar">{profile.avatar ? <img src={image(profile.avatar)} alt={fullName} /> : <span>{initials}</span>}</div>
       <div className="cut-user-profile-identity"><span className="cut-eyebrow">Perfil Cutinapp</span><h1>{fullName}</h1>{profile.user_name && <p>@{profile.user_name}</p>}<div className="cut-user-profile-meta">{profile.city && <span><i className="fa-solid fa-location-dot" />{profile.city}{profile.uf ? ` - ${profile.uf}` : ""}</span>}{profile.favorite_genre && <span><i className="fa-solid fa-music" />{profile.favorite_genre}</span>}</div>{profile.about && <p className="cut-user-profile-bio">{profile.about}</p>}</div>
-      <Button variant="outline-light" onClick={() => navigate("/user/edit")}><i className="fa-regular fa-pen-to-square me-2" />Editar perfil</Button>
+      <div className="d-flex flex-column gap-2"><Button variant="outline-light" onClick={() => navigate("/user/edit")}><i className="fa-regular fa-pen-to-square me-2" />Editar perfil</Button><Button onClick={() => navigate("/participantes")}><i className="fa-solid fa-people-group me-2" />Explorar participantes</Button></div>
     </div></Container></section>
 
     <Container className="cut-page-container py-4 py-lg-5">
@@ -74,10 +75,17 @@ export default function UserProfilePage() {
           <div><strong>{stats.upcoming_with_ticket || 0}</strong><span>Próximos com ingresso</span></div>
           <div><strong>{stats.interested || 0}</strong><span>Tenho interesse</span></div>
           <div><strong>{stats.favorites || 0}</strong><span>Salvos</span></div>
+          <div><strong>{stats.followers || 0}</strong><span>Seguidores</span></div>
+          <div><strong>{stats.following_participants || 0}</strong><span>Participantes seguindo</span></div>
           <div><strong>{stats.following_artists || 0}</strong><span>Artistas seguindo</span></div>
           <div><strong>{stats.following_productions || 0}</strong><span>Produções seguindo</span></div>
           <div><strong>{stats.posts || 0}</strong><span>Publicações</span></div>
         </div>
+
+        <section className="mb-4">
+          <div className="cut-section-heading"><div><span className="cut-eyebrow">Seu gosto</span><h2>Interesses que alimentam sua afinidade</h2></div><Button variant="outline-light" onClick={() => navigate("/user/edit")}>{interests.length ? "Editar interesses" : "Adicionar interesses"}</Button></div>
+          {interests.length > 0 ? <div className="d-flex flex-wrap gap-2">{interests.map((interest) => <Badge key={interest} pill bg="dark" className="border border-secondary border-opacity-50 px-3 py-2">{interest}</Badge>)}</div> : <Card className="cut-empty-state"><Card.Body><i className="fa-solid fa-wand-magic-sparkles cut-empty-icon" /><h2>Ajude a Cutinapp a entender sua cena</h2><p>Adicione estilos, cenas e tipos de evento que você curte. Isso melhora a afinidade com participantes e a descoberta social.</p><Button onClick={() => navigate("/user/edit")}>Adicionar meus interesses</Button></Card.Body></Card>}
+        </section>
 
         <div className="cut-user-profile-tabs" role="tablist" aria-label="Conteúdo do perfil">
           {[['tickets','Com ingresso'],['interest','Tenho interesse'],['favorites','Salvos'],['history','Histórico']].map(([key,label]) => <button key={key} type="button" role="tab" aria-selected={tab === key} className={tab === key ? "active" : ""} onClick={() => setTab(key)}>{label}</button>)}
