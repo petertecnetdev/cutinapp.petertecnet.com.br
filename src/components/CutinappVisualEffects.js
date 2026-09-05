@@ -50,8 +50,10 @@ export default function CutinappVisualEffects() {
     const root = document.documentElement;
     const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     const coarsePointer = window.matchMedia?.("(pointer: coarse)").matches;
+    const mobileLite = window.matchMedia?.("(max-width: 900px), (pointer: coarse)").matches;
 
     root.classList.add("cut-fx-enabled");
+    root.classList.toggle("cut-fx-mobile-lite", Boolean(mobileLite));
 
     let pointerFrame = null;
     const setPointer = (event) => {
@@ -65,7 +67,7 @@ export default function CutinappVisualEffects() {
       });
     };
 
-    if (!coarsePointer) {
+    if (!coarsePointer && !mobileLite) {
       window.addEventListener("pointermove", setPointer, { passive: true });
     }
 
@@ -80,18 +82,26 @@ export default function CutinappVisualEffects() {
         scrollFrame = null;
       });
     };
-    setScrollProgress();
-    window.addEventListener("scroll", setScrollProgress, { passive: true });
-    window.addEventListener("resize", setScrollProgress, { passive: true });
+
+    // Em celulares, evitar trabalho JS em cada frame do scroll. A barra de progresso
+    // é apenas decorativa e não deve disputar CPU/GPU com a navegação principal.
+    if (!mobileLite) {
+      setScrollProgress();
+      window.addEventListener("scroll", setScrollProgress, { passive: true });
+      window.addEventListener("resize", setScrollProgress, { passive: true });
+    } else {
+      root.style.setProperty("--cut-scroll-progress", "0");
+      root.style.setProperty("--cut-scroll-y", "0px");
+    }
 
     const revealNodes = Array.from(document.querySelectorAll(REVEAL_SELECTOR));
     revealNodes.forEach((node, index) => {
       node.classList.add("cut-fx-reveal");
-      node.style.setProperty("--cut-reveal-delay", `${Math.min(index % 8, 7) * 45}ms`);
+      node.style.setProperty("--cut-reveal-delay", mobileLite ? "0ms" : `${Math.min(index % 8, 7) * 45}ms`);
     });
 
     let observer = null;
-    if (reduceMotion || !("IntersectionObserver" in window)) {
+    if (reduceMotion || mobileLite || !("IntersectionObserver" in window)) {
       revealNodes.forEach((node) => node.classList.add("cut-fx-visible"));
     } else {
       observer = new IntersectionObserver(
@@ -108,7 +118,7 @@ export default function CutinappVisualEffects() {
       revealNodes.forEach((node) => observer.observe(node));
     }
 
-    const surfaceNodes = coarsePointer ? [] : Array.from(document.querySelectorAll(SURFACE_SELECTOR));
+    const surfaceNodes = coarsePointer || mobileLite ? [] : Array.from(document.querySelectorAll(SURFACE_SELECTOR));
     const surfaceCleanups = surfaceNodes.map((node) => {
       node.classList.add("cut-fx-surface");
 
@@ -148,7 +158,7 @@ export default function CutinappVisualEffects() {
       };
     });
 
-    const magnetNodes = coarsePointer ? [] : Array.from(document.querySelectorAll(MAGNET_SELECTOR));
+    const magnetNodes = coarsePointer || mobileLite ? [] : Array.from(document.querySelectorAll(MAGNET_SELECTOR));
     const magnetCleanups = magnetNodes.map((node) => {
       node.classList.add("cut-fx-magnetic");
 
@@ -189,6 +199,7 @@ export default function CutinappVisualEffects() {
       window.removeEventListener("resize", setScrollProgress);
       if (pointerFrame) window.cancelAnimationFrame(pointerFrame);
       if (scrollFrame) window.cancelAnimationFrame(scrollFrame);
+      root.classList.remove("cut-fx-mobile-lite");
     };
   }, [location.pathname]);
 
