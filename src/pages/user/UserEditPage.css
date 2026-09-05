@@ -1,3 +1,53 @@
+.cut-account-cover-card {
+  overflow: hidden;
+}
+.cut-account-cover {
+  position: relative;
+  min-height: 260px;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 15% 15%, rgba(86,220,233,.18), transparent 34%),
+    radial-gradient(circle at 85% 10%, rgba(115,99,244,.2), transparent 32%),
+    linear-gradient(135deg, #081a26, #030910);
+  background-size: cover;
+  background-position: center;
+}
+.cut-account-cover__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(3,9,16,.12), rgba(3,9,16,.88));
+  pointer-events: none;
+}
+.cut-account-cover__content {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 28px;
+}
+.cut-account-cover__content > div {
+  display: grid;
+  gap: 6px;
+}
+.cut-account-cover__content strong {
+  color: var(--cut-text);
+  font-size: clamp(1.25rem, 2.2vw, 1.8rem);
+  font-weight: 950;
+  letter-spacing: -.025em;
+}
+.cut-account-cover__content small {
+  color: var(--cut-text-muted);
+}
+.cut-account-cover__action {
+  flex: 0 0 auto;
+  cursor: pointer;
+  font-weight: 850;
+}
 .cut-account-avatar {
   position: relative;
   width: 156px;
@@ -25,6 +75,14 @@
 .cut-panel .form-text { color: var(--cut-text-soft) !important; }
 .cut-panel .form-label { color: #d4e3ea; font-weight: 760; }
 
+@media (max-width: 767px) {
+  .cut-account-cover { min-height: 220px; }
+  .cut-account-cover__content { align-items: stretch; flex-direction: column; padding: 22px; }
+  .cut-account-cover__action { width: 100%; text-align: center; }
+}
+
 @media (max-width: 575px) {
+  .cut-account-cover { min-height: 200px; }
+  .cut-account-cover__content { padding: 18px; }
   .cut-account-avatar { width: 124px; height: 124px; border-radius: 28px; font-size: 1.8rem; }
 }
