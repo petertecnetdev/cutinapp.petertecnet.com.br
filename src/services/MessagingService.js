@@ -4,6 +4,7 @@ const messagingService = {
   conversations: async (params = {}) => (await appApiClient.get("/messaging/conversations", { params })).data,
   unreadCount: async () => (await appApiClient.get("/messaging/unread-count")).data,
   people: async (params = {}) => (await appApiClient.get("/messaging/people", { params })).data,
+  blockStatus: async (userId) => (await appApiClient.get(`/messaging/people/${userId}/block-status`)).data,
   createDirect: async (recipientUserId) => (await appApiClient.post("/messaging/conversations/direct", {
     recipient_user_id: Number(recipientUserId),
   })).data,
