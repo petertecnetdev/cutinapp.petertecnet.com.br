@@ -1,0 +1,55 @@
+/* Peter Tecnet mobile navigation standard — based on Nexus */
+@keyframes ptNexusDrawerIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes ptNexusBackdropIn { from { opacity: 0; } to { opacity: 1; } }
+
+@media (max-width: 991px) {
+  .cut-navbar .navbar-collapse {
+    inset: 0 0 0 auto !important;
+    width: min(390px, 91vw) !important;
+    padding: 82px 14px 24px !important;
+    color: #f7fbff;
+    background: linear-gradient(155deg, #12273d 0%, #0b1c2d 62%, #081522 100%) !important;
+    border-right: 0 !important;
+    border-left: 1px solid rgba(101, 209, 255, .22) !important;
+    box-shadow: -24px 0 70px rgba(0, 0, 0, .42) !important;
+    transform: translateX(105%) !important;
+    transition: none !important;
+  }
+
+  .cut-navbar .navbar-collapse.show,
+  .cut-navbar .navbar-collapse.collapsing {
+    transform: translateX(0) !important;
+    animation: ptNexusDrawerIn .24s cubic-bezier(.2, .8, .2, 1);
+  }
+
+  .cut-navbar:has(.navbar-collapse.show)::after {
+    background: rgba(2, 8, 17, .7) !important;
+    backdrop-filter: blur(4px) !important;
+    -webkit-backdrop-filter: blur(4px) !important;
+    animation: ptNexusBackdropIn .2s ease;
+  }
+
+  .cut-navbar__links .nav-link,
+  .cut-navbar__links .dropdown-toggle {
+    min-height: 50px !important;
+    border: 1px solid transparent;
+    border-radius: 14px !important;
+    background: rgba(255, 255, 255, .025) !important;
+  }
+
+  .cut-navbar__links .nav-link:hover,
+  .cut-navbar__links .nav-link.active,
+  .cut-navbar__links .show > .dropdown-toggle {
+    background: rgba(89, 199, 255, .1) !important;
+    border-color: rgba(101, 209, 255, .16) !important;
+  }
+
+  .cut-navbar__account {
+    border-top-color: rgba(101, 209, 255, .13) !important;
+  }
+
+  .cut-navbar .navbar-toggler {
+    border-color: #31506e !important;
+    background: rgba(255, 255, 255, .04) !important;
+  }
+}
