@@ -145,7 +145,7 @@ export default function TicketCreatePage() {
       if (!ticketId) throw new Error("A API informou sucesso, mas não retornou o ingresso criado.");
       if (Number(response?.ticket?.event_id) !== Number(eventId)) throw new Error("A API vinculou o ingresso a um evento diferente do selecionado.");
       if (Math.abs(Number(response?.ticket?.price) - normalizedPrice) > 0.0001) throw new Error("A API retornou um preço diferente do informado.");
-      navigate(`/event/${eventId}/courtesies?created=${ticketId}`, { replace: true });
+      navigate(`/event/${eventId}/courtesies?created=${ticketId}&activation=first-ticket`, { replace: true });
     } catch (err) {
       setFieldErrors(err?.errors || {});
       setError(err?.message || "Não foi possível criar o ingresso.");
