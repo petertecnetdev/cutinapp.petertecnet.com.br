@@ -52,9 +52,8 @@ export default function HomePage() {
     setLoading(true);
     setUsingFallback(false);
     try {
-      const hasCoordinates = Boolean(params.lat && params.lng);
       const [eventResult, productionResult, artistResult, facetResult] = await Promise.allSettled([
-        eventService.search({ ...params, per_page: 12, sort: hasCoordinates ? "nearest" : "soonest" }),
+        eventService.search({ ...params, per_page: 12, sort: "soonest" }),
         cutinappService.publicProductions({ ...params, per_page: 10 }),
         cutinappService.artists({ ...(params.city ? { city: params.city, ...(params.uf ? { uf: params.uf } : {}) } : {}), per_page: 12 }),
         cutinappService.discoveryFacets(),
@@ -156,7 +155,7 @@ export default function HomePage() {
     || (location?.lat ? "Sua localização atual" : "na Cutinapp");
 
   const browseLink = location?.lat && location?.lng
-    ? `/event?lat=${location.lat}&lng=${location.lng}&radius_km=80&sort=nearest`
+    ? `/event?lat=${location.lat}&lng=${location.lng}&radius_km=80`
     : location?.city
       ? `/event?city=${encodeURIComponent(location.city)}${location.uf ? `&uf=${encodeURIComponent(location.uf)}` : ""}`
       : "/event";
