@@ -32,11 +32,16 @@ const checkout = (payload) => {
 };
 
 const commerceService = {
-  catalog: async (slug) => (await appApiClient.get(`/events/public/${slug}/commerce`)).data,
+  catalog: async (slug) => (await appApiClient.get(`/events/public/${slug}/purchase-options`)).data,
   checkout,
   myOrders: async (params = {}) => (await appApiClient.get("/commerce/orders/mine", { params })).data,
   order: async (publicId) => (await appApiClient.get(`/commerce/orders/${publicId}`)).data.order,
   syncPayment: async (publicId) => (await appApiClient.post(`/commerce/orders/${publicId}/sync-payment`)).data.order,
+  pickupCredential: async (publicId) => (await appApiClient.get(`/commerce/orders/${publicId}/pickup-credential`)).data.credential,
+  redeemEventItems: async (token, eventId) => (await appApiClient.post("/commerce/item-redemptions/redeem", {
+    token,
+    event_id: Number(eventId),
+  })).data,
 
   purchases: async (params = {}) => (await appApiClient.get("/commerce/purchases", { params })).data,
   purchase: async (publicId) => (await appApiClient.get(`/commerce/purchases/${publicId}`)).data.order,

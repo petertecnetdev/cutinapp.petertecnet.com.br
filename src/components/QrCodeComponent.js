@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import PropTypes from "prop-types";
 import QRCode from "qrcode";
 
-export default function QrCodeComponent({ value, size = 260 }) {
+export default function QrCodeComponent({ value, size = 260, subject = "ingresso", alt }) {
   const [dataUrl, setDataUrl] = useState("");
   const [error, setError] = useState("");
 
@@ -13,7 +13,7 @@ export default function QrCodeComponent({ value, size = 260 }) {
     setError("");
 
     if (!value) {
-      setError("Código do ingresso indisponível.");
+      setError(`Código de ${subject} indisponível.`);
       return () => {
         active = false;
       };
@@ -32,13 +32,13 @@ export default function QrCodeComponent({ value, size = 260 }) {
         if (active) setDataUrl(url);
       })
       .catch(() => {
-        if (active) setError("Não foi possível gerar o QR Code deste ingresso.");
+        if (active) setError(`Não foi possível gerar o QR Code de ${subject}.`);
       });
 
     return () => {
       active = false;
     };
-  }, [value, size]);
+  }, [value, size, subject]);
 
   if (error) {
     return (
@@ -57,7 +57,7 @@ export default function QrCodeComponent({ value, size = 260 }) {
       src={dataUrl}
       width={size}
       height={size}
-      alt="QR Code individual do ingresso"
+      alt={alt || `QR Code de ${subject}`}
       className="cut-qr-image"
     />
   );
@@ -66,4 +66,6 @@ export default function QrCodeComponent({ value, size = 260 }) {
 QrCodeComponent.propTypes = {
   value: PropTypes.string.isRequired,
   size: PropTypes.number,
+  subject: PropTypes.string,
+  alt: PropTypes.string,
 };

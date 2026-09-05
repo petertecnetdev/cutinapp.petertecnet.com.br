@@ -18,9 +18,33 @@ const payload = {
   items: [],
 };
 
-describe("CommerceService checkout", () => {
+describe("CommerceService", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  test("loads date-aware purchase options for an event", async () => {
+    appApiClient.get.mockResolvedValue({ data: { event: { id: 10 } } });
+
+    await expect(commerceService.catalog("evento-teste")).resolves.toEqual({ event: { id: 10 } });
+    expect(appApiClient.get).toHaveBeenCalledWith("/events/public/evento-teste/purchase-options");
+  });
+
+  test("loads the pickup credential for a paid order", async () => {
+    appApiClient.get.mockResolvedValue({ data: { credential: { token: "ITEM-order.signature" } } });
+
+    await expect(commerceService.pickupCredential("order-uuid")).resolves.toEqual({ token: "ITEM-order.signature" });
+    expect(appApiClient.get).toHaveBeenCalledWith("/commerce/orders/order-uuid/pickup-credential");
+  });
+
+  test("redeems event items against the selected event", async () => {
+    appApiClient.post.mockResolvedValue({ data: { status: "redeemed" } });
+
+    await expect(commerceService.redeemEventItems("ITEM-order.signature", "42")).resolves.toEqual({ status: "redeemed" });
+    expect(appApiClient.post).toHaveBeenCalledWith("/commerce/item-redemptions/redeem", {
+      token: "ITEM-order.signature",
+      event_id: 42,
+    });
   });
 
   test("coalesces identical checkout submissions while the request is pending", async () => {
