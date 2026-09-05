@@ -1,11 +1,12 @@
 import React, { useContext, useEffect, useState } from "react";
-import { Alert, Badge, Button, Card, Col, Container, Form, Row } from "react-bootstrap";
+import { Alert, Badge, Button, Card, Col, Collapse, Container, Form, Row } from "react-bootstrap";
 import { Link, useSearchParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import { AuthContext } from "../../context/AuthContext";
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
+import "./production-experience.css";
 
 const mediaUrl = (value) => {
   if (!value) return "";
@@ -21,6 +22,25 @@ const initials = (name) => String(name || "P")
   .join("")
   .toUpperCase();
 
+const compactNumber = new Intl.NumberFormat("pt-BR", {
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
+
+const formatMetric = (value) => {
+  const numeric = Number(value ?? 0);
+  return Number.isFinite(numeric) ? compactNumber.format(Math.max(0, numeric)) : "0";
+};
+
+const ratingValue = (production) => {
+  const average = Number(production?.rating_average ?? 0);
+  const total = Number(production?.ratings_count ?? 0);
+  return {
+    average: Number.isFinite(average) ? average : 0,
+    total: Number.isFinite(total) ? total : 0,
+  };
+};
+
 export default function ProductionListPage() {
   const { user } = useContext(AuthContext);
   const [params, setParams] = useSearchParams();
@@ -30,6 +50,7 @@ export default function ProductionListPage() {
   const [pagination, setPagination] = useState({ current: 1, last: 1, total: 0 });
   const [search, setSearch] = useState(params.get("q") || "");
   const [city, setCity] = useState(params.get("city") || "");
+  const [filtersOpen, setFiltersOpen] = useState(Boolean(params.get("q") || params.get("city")));
 
   const q = params.get("q") || "";
   const cityFilter = params.get("city") || "";
@@ -38,6 +59,7 @@ export default function ProductionListPage() {
   useEffect(() => {
     setSearch(q);
     setCity(cityFilter);
+    if (q || cityFilter) setFiltersOpen(true);
   }, [q, cityFilter]);
 
   useEffect(() => {
@@ -95,16 +117,16 @@ export default function ProductionListPage() {
   };
 
   return (
-    <div className="cut-app-page">
+    <div className="cut-app-page cut-production-discovery-page">
       <NavlogComponent />
       {loading && <ProcessingIndicatorComponent label="Buscando produções" />}
 
       <Container className="cut-page-container py-4 py-lg-5">
-        <div className="cut-page-heading">
+        <div className="cut-page-heading cut-production-discovery-heading">
           <div>
             <span className="cut-eyebrow">Quem movimenta a cena</span>
             <h1>Produções da Cutinapp</h1>
-            <p>Descubra produtoras, casas, coletivos e equipes responsáveis pelos eventos publicados na Cutinapp.</p>
+            <p>Conheça quem cria experiências, acompanhe sua evolução e descubra os próximos nomes por trás dos eventos da sua cidade.</p>
           </div>
           <Button as={Link} to={user ? "/production/create" : "/login"}>
             <i className="fa-solid fa-plus me-2" />
@@ -112,41 +134,65 @@ export default function ProductionListPage() {
           </Button>
         </div>
 
-        <Card className="cut-panel mb-4">
-          <Card.Body className="p-3 p-lg-4">
-            <Form onSubmit={submitFilters}>
-              <Row className="g-3 align-items-end">
-                <Col md={6}>
-                  <Form.Label>Buscar produção</Form.Label>
-                  <Form.Control
-                    value={search}
-                    onChange={(event) => setSearch(event.target.value)}
-                    placeholder="Nome da produção"
-                    aria-label="Buscar produção pelo nome"
-                  />
-                </Col>
-                <Col md={4}>
-                  <Form.Label>Cidade</Form.Label>
-                  <Form.Control
-                    value={city}
-                    onChange={(event) => setCity(event.target.value)}
-                    placeholder="Ex.: Belo Horizonte"
-                    aria-label="Filtrar produções por cidade"
-                  />
-                </Col>
-                <Col md={2} className="d-grid gap-2">
-                  <Button type="submit"><i className="fa-solid fa-magnifying-glass me-2" />Buscar</Button>
-                </Col>
-              </Row>
-              {(q || cityFilter) && (
-                <div className="d-flex align-items-center justify-content-between gap-3 flex-wrap mt-3">
-                  <small className="text-muted">{pagination.total} produção(ões) encontrada(s)</small>
-                  <Button type="button" variant="outline-light" size="sm" onClick={clearFilters}>Limpar filtros</Button>
-                </div>
-              )}
-            </Form>
-          </Card.Body>
-        </Card>
+        <div className="cut-production-discovery-toolbar mb-4">
+          <div className="cut-production-discovery-total" aria-live="polite">
+            <strong>{formatMetric(pagination.total)}</strong>
+            <span>{pagination.total === 1 ? "produção pública" : "produções públicas"}</span>
+          </div>
+          <Button
+            type="button"
+            variant="outline-light"
+            className="cut-production-filter-toggle"
+            aria-controls="production-discovery-filters"
+            aria-expanded={filtersOpen}
+            onClick={() => setFiltersOpen((open) => !open)}
+          >
+            <i className="fa-solid fa-sliders me-2" />
+            Pesquisar e filtrar
+            {(q || cityFilter) && <span className="cut-production-filter-dot" aria-label="Filtros ativos" />}
+            <i className={`fa-solid fa-chevron-${filtersOpen ? "up" : "down"} ms-2`} />
+          </Button>
+        </div>
+
+        <Collapse in={filtersOpen}>
+          <div id="production-discovery-filters">
+            <Card className="cut-panel cut-production-filter-panel mb-4">
+              <Card.Body className="p-3 p-lg-4">
+                <Form onSubmit={submitFilters}>
+                  <Row className="g-3 align-items-end">
+                    <Col md={6}>
+                      <Form.Label>Buscar produção</Form.Label>
+                      <Form.Control
+                        value={search}
+                        onChange={(event) => setSearch(event.target.value)}
+                        placeholder="Nome da produção"
+                        aria-label="Buscar produção pelo nome"
+                      />
+                    </Col>
+                    <Col md={4}>
+                      <Form.Label>Cidade</Form.Label>
+                      <Form.Control
+                        value={city}
+                        onChange={(event) => setCity(event.target.value)}
+                        placeholder="Ex.: Belo Horizonte"
+                        aria-label="Filtrar produções por cidade"
+                      />
+                    </Col>
+                    <Col md={2} className="d-grid gap-2">
+                      <Button type="submit"><i className="fa-solid fa-magnifying-glass me-2" />Buscar</Button>
+                    </Col>
+                  </Row>
+                  {(q || cityFilter) && (
+                    <div className="d-flex align-items-center justify-content-between gap-3 flex-wrap mt-3">
+                      <small className="text-muted">{pagination.total} produção(ões) encontrada(s)</small>
+                      <Button type="button" variant="outline-light" size="sm" onClick={clearFilters}>Limpar filtros</Button>
+                    </div>
+                  )}
+                </Form>
+              </Card.Body>
+            </Card>
+          </div>
+        </Collapse>
 
         {error && <Alert variant="danger">{error}</Alert>}
 
@@ -159,42 +205,82 @@ export default function ProductionListPage() {
             </Card.Body>
           </Card>
         ) : (
-          <Row className="g-4">
-            {productions.map((production) => (
-              <Col sm={6} lg={4} xl={3} key={production.id}>
-                <Card className="cut-panel h-100 overflow-hidden">
-                  <div className="ratio ratio-4x3 bg-dark">
-                    {production.logo ? (
-                      <img
-                        src={mediaUrl(production.logo)}
-                        alt={`Logo de ${production.name}`}
-                        loading="lazy"
-                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                      />
-                    ) : (
-                      <div className="d-flex align-items-center justify-content-center fs-1 fw-bold">{initials(production.name)}</div>
-                    )}
-                  </div>
-                  <Card.Body className="d-flex flex-column p-4">
-                    <div className="d-flex align-items-center justify-content-between gap-2 mb-2">
-                      <Badge bg="secondary">Produção</Badge>
-                      <small className="text-muted">{production.upcoming_events_count || 0} próximo(s)</small>
+          <Row className="g-4 cut-production-discovery-grid">
+            {productions.map((production) => {
+              const rating = ratingValue(production);
+              const background = mediaUrl(production.background);
+              const location = production.city
+                ? `${production.city}${production.uf ? ` - ${production.uf}` : ""}`
+                : "Localização não informada";
+
+              return (
+                <Col sm={6} lg={4} xl={3} key={production.id}>
+                  <Link
+                    to={`/production/${production.slug}/public`}
+                    className="cut-production-discovery-card"
+                    aria-label={`Ver produção ${production.name}`}
+                    style={background ? { "--cut-production-cover": `url("${background}")` } : undefined}
+                  >
+                    <div className="cut-production-discovery-card__cover" aria-hidden="true" />
+                    <div className="cut-production-discovery-card__topline">
+                      <Badge bg="dark" className="cut-production-discovery-badge">Produção</Badge>
+                      <span
+                        className={`cut-production-rating ${rating.total > 0 ? "is-rated" : ""}`}
+                        title={rating.total > 0 ? `Média de ${rating.total} avaliação(ões) dos eventos desta produção` : "Ainda sem avaliações"}
+                      >
+                        <i className="fa-solid fa-star" />
+                        <strong>{rating.total > 0 ? rating.average.toFixed(1).replace(".", ",") : "—"}</strong>
+                        <small>{rating.total > 0 ? `(${formatMetric(rating.total)})` : "nova"}</small>
+                      </span>
                     </div>
-                    <Card.Title as="h2" className="h5 mb-2">{production.name}</Card.Title>
-                    <p className="text-muted mb-3">
-                      <i className="fa-solid fa-location-dot me-2" />
-                      {production.city ? `${production.city}${production.uf ? ` - ${production.uf}` : ""}` : "Localização não informada"}
-                    </p>
-                    {production.description && <p className="mb-3">{String(production.description).slice(0, 130)}{String(production.description).length > 130 ? "…" : ""}</p>}
-                    <div className="cut-social-stats mt-auto mb-3">
-                      <span>{production.followers_count || 0} seguidores</span>
-                      <span>{production.upcoming_events_count || 0} eventos</span>
+
+                    <div className="cut-production-discovery-card__content">
+                      <div className="cut-production-discovery-card__identity">
+                        <div className="cut-production-discovery-logo">
+                          {production.logo ? (
+                            <img src={mediaUrl(production.logo)} alt={`Logo de ${production.name}`} loading="lazy" />
+                          ) : (
+                            <span>{initials(production.name)}</span>
+                          )}
+                        </div>
+                        <div className="cut-production-discovery-name">
+                          <h2>{production.name}</h2>
+                          <p><i className="fa-solid fa-location-dot" /> {location}</p>
+                        </div>
+                      </div>
+
+                      <div className="cut-production-discovery-metrics" aria-label={`Indicadores de ${production.name}`}>
+                        <span title="Visualizações da produção">
+                          <i className="fa-regular fa-eye" />
+                          <strong>{formatMetric(production.views_count)}</strong>
+                          <small>views</small>
+                        </span>
+                        <span title="Seguidores da produção">
+                          <i className="fa-solid fa-user-group" />
+                          <strong>{formatMetric(production.followers_count)}</strong>
+                          <small>seguidores</small>
+                        </span>
+                        <span title="Eventos públicos da produção">
+                          <i className="fa-regular fa-calendar" />
+                          <strong>{formatMetric(production.events_count)}</strong>
+                          <small>eventos</small>
+                        </span>
+                        <span title="Itens ativos da produção">
+                          <i className="fa-solid fa-bag-shopping" />
+                          <strong>{formatMetric(production.items_count)}</strong>
+                          <small>itens</small>
+                        </span>
+                      </div>
+
+                      <div className="cut-production-discovery-card__footer">
+                        <span>{formatMetric(production.upcoming_events_count)} {Number(production.upcoming_events_count || 0) === 1 ? "próximo evento" : "próximos eventos"}</span>
+                        <strong>Ver produção <i className="fa-solid fa-arrow-right" /></strong>
+                      </div>
                     </div>
-                    <Button as={Link} to={`/production/${production.slug}/public`} className="w-100">Ver produção</Button>
-                  </Card.Body>
-                </Card>
-              </Col>
-            ))}
+                  </Link>
+                </Col>
+              );
+            })}
           </Row>
         )}
 
