@@ -57,6 +57,37 @@ export default function ProducerSalesPage() {
     };
   }, [summary.gross_paid, summary.paid_count, summary.platform_fees]);
 
+  const eventEconomics = useMemo(() => {
+    const grouped = new Map();
+
+    orders.filter((order) => order.status === "paid").forEach((order) => {
+      const eventId = String(order.event?.id || order.event_id || order.event?.title || "evento");
+      const current = grouped.get(eventId) || {
+        id: eventId,
+        title: order.event?.title || "Evento",
+        paidCount: 0,
+        gmv: 0,
+        platformRevenue: 0,
+        producerNet: 0,
+      };
+
+      current.paidCount += 1;
+      current.gmv += Number(order.total || 0);
+      current.platformRevenue += Number(order.platform_fee || 0);
+      current.producerNet += Number(order.producer_net || 0);
+      grouped.set(eventId, current);
+    });
+
+    return Array.from(grouped.values())
+      .map((event) => ({
+        ...event,
+        averageTicket: event.paidCount > 0 ? event.gmv / event.paidCount : 0,
+        takeRate: event.gmv > 0 ? (event.platformRevenue / event.gmv) * 100 : 0,
+      }))
+      .sort((a, b) => b.platformRevenue - a.platformRevenue)
+      .slice(0, 5);
+  }, [orders]);
+
   return <>
     <NavlogComponent />
     <Container className="cut-commerce-history py-4 py-lg-5">
@@ -78,6 +109,28 @@ export default function ProducerSalesPage() {
         <Alert variant="info" className="mb-3">
           O GMV considera as vendas pagas. A receita Cutinapp corresponde às taxas da plataforma já registradas nas vendas. A receita por venda mostra quanto cada pedido pago gera, em média, para a plataforma, e o take rate efetivo mostra quanto dessa receita representa sobre o GMV.
         </Alert>
+        {!!eventEconomics.length && <Card className="cut-commerce-card mb-3">
+          <Card.Body>
+            <div className="cut-commerce-order-top mb-3">
+              <div>
+                <small>Monetização por evento</small>
+                <h2>Eventos que mais geram receita Cutinapp</h2>
+                <p>Ranking das vendas pagas atualmente carregadas, ordenado pela taxa de plataforma efetivamente registrada.</p>
+              </div>
+            </div>
+            <Row className="g-3">
+              {eventEconomics.map((event, index) => <Col lg={6} key={event.id}>
+                <div className="cut-commerce-stat h-100">
+                  <small>#{index + 1} · {event.title}</small>
+                  <strong>{money(event.platformRevenue)}</strong>
+                  <span>{money(event.gmv)} GMV · {event.paidCount} venda(s)</span>
+                  <span>Ticket médio {money(event.averageTicket)} · Take rate {percent(event.takeRate)}</span>
+                  <span>Líquido do produtor {money(event.producerNet)}</span>
+                </div>
+              </Col>)}
+            </Row>
+          </Card.Body>
+        </Card>}
       </>}
 
       {loading && <div className="text-center py-5"><Spinner animation="border" /></div>}
