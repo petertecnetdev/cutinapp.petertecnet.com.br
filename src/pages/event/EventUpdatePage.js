@@ -3,9 +3,11 @@ import { Alert, Badge, Button, Card, Col, Container, Form, Row } from "react-boo
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
+import EventOpeningMediaFields from "../../components/event/EventOpeningMediaFields";
 import eventService from "../../services/EventService";
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
+import { resolveEventMediaUrl, youtubeVideoId } from "../../utils/eventMedia";
 
 const pad = (number) => String(number).padStart(2, "0");
 const toLocalInput = (value) => {
@@ -28,6 +30,8 @@ export default function EventUpdatePage() {
   const [eventData, setEventData] = useState(null);
   const [image, setImage] = useState(null);
   const [preview, setPreview] = useState("");
+  const [openingVideo, setOpeningVideo] = useState(null);
+  const [openingVideoPreview, setOpeningVideoPreview] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -55,8 +59,13 @@ export default function EventUpdatePage() {
       max_attendees: item.max_attendees ?? "",
       contact_email: item.contact_email || "",
       contact_phone: item.contact_phone || "",
+      opening_media_type: item.opening_media_type || "banner",
+      opening_media_url: item.opening_media_type === "youtube" ? (item.opening_media || "") : "",
     });
+    setImage(null);
+    setOpeningVideo(null);
     setPreview(item.image ? `${storageUrl}${String(item.image).replace(/^\//, "")}` : "");
+    setOpeningVideoPreview(item.opening_media_type === "video" && item.opening_media ? resolveEventMediaUrl(item.opening_media) : "");
   };
 
   const loadEvent = async () => applyEvent(await eventService.show(id));
@@ -75,14 +84,22 @@ export default function EventUpdatePage() {
     if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
   }, [preview]);
 
+  useEffect(() => () => {
+    if (openingVideoPreview?.startsWith("blob:")) URL.revokeObjectURL(openingVideoPreview);
+  }, [openingVideoPreview]);
+
   const dateInvalid = Boolean(form?.start_date && form?.end_date && new Date(form.end_date) <= new Date(form.start_date));
   const capacityInvalid = Boolean(form?.max_attendees !== "" && Number(form?.max_attendees) < 1);
   const ufInvalid = Boolean(form?.uf && form.uf.trim().length !== 2);
+  const youtubeInvalid = Boolean(form?.opening_media_type === "youtube" && !youtubeVideoId(form?.opening_media_url));
+  const existingVideoAvailable = Boolean(eventData?.opening_media_type === "video" && eventData?.opening_media);
+  const videoInvalid = Boolean(form?.opening_media_type === "video" && !openingVideo && !existingVideoAvailable);
 
   const canSave = useMemo(() => Boolean(
     form && form.title.trim().length >= 2 && form.description.trim() && form.address.trim() &&
-    form.start_date && form.end_date && !dateInvalid && !capacityInvalid && !ufInvalid && !saving
-  ), [form, dateInvalid, capacityInvalid, ufInvalid, saving]);
+    form.start_date && form.end_date && !dateInvalid && !capacityInvalid && !ufInvalid &&
+    !youtubeInvalid && !videoInvalid && !saving
+  ), [form, dateInvalid, capacityInvalid, ufInvalid, youtubeInvalid, videoInvalid, saving]);
 
   const change = (event) => {
     const { name, value } = event.target;
@@ -106,13 +123,63 @@ export default function EventUpdatePage() {
     if (file) setPreview(URL.createObjectURL(file));
   };
 
+  const changeOpeningMediaType = (type) => {
+    setForm((current) => ({
+      ...current,
+      opening_media_type: type,
+      opening_media_url: type === "youtube" ? current.opening_media_url : "",
+    }));
+    if (type === "video" && !openingVideo) {
+      setOpeningVideoPreview(eventData?.opening_media_type === "video" && eventData?.opening_media ? resolveEventMediaUrl(eventData.opening_media) : "");
+    }
+    setFieldErrors((current) => {
+      const next = { ...current };
+      delete next.opening_media_type;
+      delete next.opening_media_file;
+      delete next.opening_media_url;
+      return next;
+    });
+  };
+
+  const chooseOpeningVideo = (event) => {
+    const file = event.target.files?.[0] || null;
+    if (file && file.size > 50 * 1024 * 1024) {
+      setFieldErrors((current) => ({ ...current, opening_media_file: ["O vídeo de abertura deve ter no máximo 50 MB."] }));
+      event.target.value = "";
+      return;
+    }
+    if (openingVideoPreview?.startsWith("blob:")) URL.revokeObjectURL(openingVideoPreview);
+    setOpeningVideo(file);
+    setOpeningVideoPreview(file ? URL.createObjectURL(file) : (eventData?.opening_media_type === "video" ? resolveEventMediaUrl(eventData?.opening_media) : ""));
+    setFieldErrors((current) => {
+      if (!current.opening_media_file) return current;
+      const next = { ...current };
+      delete next.opening_media_file;
+      return next;
+    });
+  };
+
+  const changeYoutubeUrl = (event) => {
+    const value = event.target.value;
+    setForm((current) => ({ ...current, opening_media_url: value }));
+    setFieldErrors((current) => {
+      if (!current.opening_media_url) return current;
+      const next = { ...current };
+      delete next.opening_media_url;
+      return next;
+    });
+  };
+
   const submit = async (event) => {
     event.preventDefault();
     setError("");
     setSuccess("");
     setFieldErrors({});
     if (!canSave) {
-      setError(dateInvalid ? "O término do evento precisa ser posterior ao início." : "Revise os campos destacados antes de salvar.");
+      if (dateInvalid) setError("O término do evento precisa ser posterior ao início.");
+      else if (videoInvalid) setError("Selecione o vídeo que será exibido na abertura do evento.");
+      else if (youtubeInvalid) setError("Informe um link válido do YouTube para a abertura do evento.");
+      else setError("Revise os campos destacados antes de salvar.");
       return;
     }
 
@@ -123,6 +190,7 @@ export default function EventUpdatePage() {
         if (value !== null && value !== "") data.append(key, value);
       });
       if (image) data.append("image", image);
+      if (form.opening_media_type === "video" && openingVideo) data.append("opening_media_file", openingVideo);
       const response = await eventService.update(id, data);
       applyEvent(response.event);
       setSuccess("Alterações salvas com sucesso.");
@@ -165,7 +233,7 @@ export default function EventUpdatePage() {
       <NavlogComponent />
       {(saving || publishing) && <ProcessingIndicatorComponent label={publishing ? "Atualizando publicação" : "Salvando evento"} />}
       <Container className="cut-page-container py-4 py-lg-5">
-        <div className="cut-page-heading"><div><span className="cut-eyebrow">Gestão do evento</span><h1>Editar evento</h1><p>Revise agenda, localização, mapa, cortesias e publicação antes de colocar o evento no ar.</p></div><div className="cut-card-actions"><Button variant="outline-light" onClick={() => navigate("/event/manage")}>Voltar</Button>{eventData?.is_published && eventData?.slug && <Button variant="outline-light" onClick={() => navigate(`/event/${eventData.slug}`)}>Página pública</Button>}</div></div>
+        <div className="cut-page-heading"><div><span className="cut-eyebrow">Gestão do evento</span><h1>Editar evento</h1><p>Revise agenda, localização, mídia de abertura, cortesias e publicação antes de colocar o evento no ar.</p></div><div className="cut-card-actions"><Button variant="outline-light" onClick={() => navigate("/event/manage")}>Voltar</Button>{eventData?.is_published && eventData?.slug && <Button variant="outline-light" onClick={() => navigate(`/event/${eventData.slug}`)}>Página pública</Button>}</div></div>
 
         {error && <Alert variant="danger">{error}</Alert>}
         {success && <Alert variant="success">{success}</Alert>}
@@ -175,7 +243,8 @@ export default function EventUpdatePage() {
             <Col lg={8}><Card className="cut-panel"><Card.Body className="p-4 p-lg-5"><span className="cut-eyebrow">Apresentação</span><h2 className="cut-section-title mt-2">Informações principais</h2><Row className="g-3">
               <Col xs={12}><Form.Group><Form.Label>Nome do evento *</Form.Label><Form.Control name="title" value={form.title} onChange={change} isInvalid={Boolean(fieldError("title"))} /><Form.Control.Feedback type="invalid">{fieldError("title")}</Form.Control.Feedback></Form.Group></Col>
               <Col xs={12}><Form.Group><Form.Label>Descrição *</Form.Label><Form.Control as="textarea" rows={7} name="description" value={form.description} onChange={change} isInvalid={Boolean(fieldError("description"))} /><Form.Control.Feedback type="invalid">{fieldError("description")}</Form.Control.Feedback></Form.Group></Col>
-              <Col xs={12}><Form.Group><Form.Label>Imagem/capa</Form.Label>{preview && <img src={preview} className="cut-upload-preview cut-upload-preview--event" alt="Prévia" />}<Form.Control type="file" accept="image/png,image/jpeg,image/webp" onChange={chooseImage} isInvalid={Boolean(fieldError("image"))} /><Form.Control.Feedback type="invalid">{fieldError("image")}</Form.Control.Feedback></Form.Group></Col>
+              <Col xs={12}><Form.Group><Form.Label>Capa/flyer</Form.Label>{preview && <img src={preview} className="cut-upload-preview cut-upload-preview--event" alt="Prévia" />}<Form.Control type="file" accept="image/png,image/jpeg,image/webp" onChange={chooseImage} isInvalid={Boolean(fieldError("image"))} /><Form.Control.Feedback type="invalid">{fieldError("image")}</Form.Control.Feedback><Form.Text>Essa imagem continua sendo usada nos cards do evento e como fallback/poster do vídeo.</Form.Text></Form.Group></Col>
+              <Col xs={12}><EventOpeningMediaFields type={form.opening_media_type} onTypeChange={changeOpeningMediaType} videoPreview={openingVideoPreview} youtubeUrl={form.opening_media_url} onYoutubeChange={changeYoutubeUrl} onVideoChange={chooseOpeningVideo} videoError={fieldError("opening_media_file")} youtubeError={fieldError("opening_media_url")} /></Col>
               <Col md={6}><Form.Group><Form.Label>E-mail de contato</Form.Label><Form.Control type="email" name="contact_email" value={form.contact_email} onChange={change} isInvalid={Boolean(fieldError("contact_email"))} /><Form.Control.Feedback type="invalid">{fieldError("contact_email")}</Form.Control.Feedback></Form.Group></Col>
               <Col md={6}><Form.Group><Form.Label>Telefone de contato</Form.Label><Form.Control name="contact_phone" value={form.contact_phone} onChange={change} /></Form.Group></Col>
             </Row></Card.Body></Card></Col>
