@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import PropTypes from "prop-types";
 import { Alert, Badge, Button, Card, Col, Form, Modal, Row, Spinner } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import eventService from "../../services/EventService";
@@ -476,3 +477,31 @@ export default function ProductionAgendaManager({ production, show, onHide }) {
     </Modal>
   );
 }
+
+ProductionAgendaManager.propTypes = {
+  production: PropTypes.shape({
+    id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+    name: PropTypes.string,
+    fantasy: PropTypes.string,
+    description: PropTypes.string,
+    formatted_address: PropTypes.string,
+    address: PropTypes.string,
+    address_number: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    neighborhood: PropTypes.string,
+    address_complement: PropTypes.string,
+    location: PropTypes.string,
+    google_maps_url: PropTypes.string,
+    city: PropTypes.string,
+    uf: PropTypes.string,
+    cep: PropTypes.string,
+    latitude: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    longitude: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    capacity: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    contact_email: PropTypes.string,
+    email: PropTypes.string,
+    contact_phone: PropTypes.string,
+    phone: PropTypes.string,
+  }).isRequired,
+  show: PropTypes.bool,
+  onHide: PropTypes.func,
+};
