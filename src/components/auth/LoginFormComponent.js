@@ -61,6 +61,7 @@ export default function LoginFormComponent() {
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [googleReady, setGoogleReady] = useState(false);
+  const [instagramEnabled, setInstagramEnabled] = useState(false);
   const [instagramCompletion, setInstagramCompletion] = useState(readInstagramCompletion);
   const [completionEmail, setCompletionEmail] = useState("");
   const [completionName, setCompletionName] = useState(
@@ -95,6 +96,23 @@ export default function LoginFormComponent() {
     window.sessionStorage.removeItem(INSTAGRAM_COMPLETION_KEY);
     return true;
   }, [linkInstagram]);
+
+  useEffect(() => {
+    let active = true;
+
+    (async () => {
+      try {
+        await startInstagram();
+        if (active) setInstagramEnabled(true);
+      } catch {
+        if (active) setInstagramEnabled(false);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [startInstagram]);
 
   useEffect(() => {
     let active = true;
@@ -424,14 +442,16 @@ export default function LoginFormComponent() {
           <div ref={googleRef} className="cut-google-render" />
           {!googleReady && <div className="cut-google-skeleton">Carregando Google...</div>}
         </div>
-        <button type="button" className="cut-login-form__instagram" onClick={beginInstagram} disabled={loading}>
-          <i className="fa-brands fa-instagram" aria-hidden="true" />
-          <span>
-            <strong>Continuar com Instagram</strong>
-            <small>Conta profissional Creator ou Business</small>
-          </span>
-          <i className="fa-solid fa-arrow-right" aria-hidden="true" />
-        </button>
+        {instagramEnabled && (
+          <button type="button" className="cut-login-form__instagram" onClick={beginInstagram} disabled={loading}>
+            <i className="fa-brands fa-instagram" aria-hidden="true" />
+            <span>
+              <strong>Continuar com Instagram</strong>
+              <small>Conta profissional Creator ou Business</small>
+            </span>
+            <i className="fa-solid fa-arrow-right" aria-hidden="true" />
+          </button>
+        )}
       </div>
 
       <div className="cut-login-form__links">
