@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Alert, Badge, Button, Card, Col, Container, Form, Row, Spinner } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
+import CollapsibleFilterPanel from "../../components/CollapsibleFilterPanel";
 import commerceService from "../../services/CommerceService";
 import cutinappService from "../../services/CutinappService";
 import "./CommerceHistory.css";
@@ -17,6 +18,7 @@ export default function ProducerSalesPage() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const activeFilterCount = Number(Boolean(filters.q.trim())) + Number(Boolean(filters.status));
 
   useEffect(() => {
     let active = true;
@@ -88,13 +90,24 @@ export default function ProducerSalesPage() {
       .slice(0, 5);
   }, [orders]);
 
+  const clearFilters = () => setFilters({ q: "", status: "" });
+
   return <>
     <NavlogComponent />
     <Container className="cut-commerce-history py-4 py-lg-5">
       <div className="cut-commerce-heading"><div><span className="cut-commerce-kicker">Produtor</span><h1>Vendas</h1><p>Controle pedidos, pagamentos, taxas e recibos da sua produção.</p></div><Button as={Link} to="/producer/finance" variant="outline-light">Financeiro</Button></div>
       {error && <Alert variant="danger">{error}</Alert>}
       {!loading && !productions.length && <Alert variant="info">Você ainda não possui uma produção para acompanhar vendas.</Alert>}
-      {!!productions.length && <Card className="cut-commerce-card mb-3"><Card.Body><Row className="g-3"><Col md={5}><Form.Label>Produção</Form.Label><Form.Select value={productionId} onChange={(e) => setProductionId(e.target.value)}>{productions.map((production) => <option key={production.id} value={production.id}>{production.name}</option>)}</Form.Select></Col><Col md={4}><Form.Label>Buscar</Form.Label><Form.Control value={filters.q} onChange={(e) => setFilters((current) => ({ ...current, q: e.target.value }))} placeholder="Pedido, nome ou e-mail" /></Col><Col md={3}><Form.Label>Status</Form.Label><Form.Select value={filters.status} onChange={(e) => setFilters((current) => ({ ...current, status: e.target.value }))}><option value="">Todos</option><option value="paid">Pagos</option><option value="pending">Pendentes</option><option value="cancelled">Cancelados</option><option value="refunded">Reembolsados</option><option value="charged_back">Contestados</option></Form.Select></Col></Row></Card.Body></Card>}
+      {!!productions.length && <Card className="cut-commerce-card mb-3"><Card.Body>
+        <CollapsibleFilterPanel title="Pesquisar e filtrar vendas" activeCount={activeFilterCount} defaultOpen={activeFilterCount > 0}>
+          <Row className="g-3 align-items-end">
+            <Col md={5}><Form.Label>Produção</Form.Label><Form.Select value={productionId} onChange={(e) => setProductionId(e.target.value)}>{productions.map((production) => <option key={production.id} value={production.id}>{production.name}</option>)}</Form.Select></Col>
+            <Col md={4}><Form.Label>Buscar</Form.Label><Form.Control value={filters.q} onChange={(e) => setFilters((current) => ({ ...current, q: e.target.value }))} placeholder="Pedido, nome ou e-mail" /></Col>
+            <Col md={3}><Form.Label>Status</Form.Label><Form.Select value={filters.status} onChange={(e) => setFilters((current) => ({ ...current, status: e.target.value }))}><option value="">Todos</option><option value="paid">Pagos</option><option value="pending">Pendentes</option><option value="cancelled">Cancelados</option><option value="refunded">Reembolsados</option><option value="charged_back">Contestados</option></Form.Select></Col>
+          </Row>
+          {activeFilterCount > 0 && <div className="d-flex justify-content-end"><Button type="button" variant="outline-light" size="sm" onClick={clearFilters}>Limpar filtros</Button></div>}
+        </CollapsibleFilterPanel>
+      </Card.Body></Card>}
 
       {productionId && <>
         <Row className="g-3 mb-3">
