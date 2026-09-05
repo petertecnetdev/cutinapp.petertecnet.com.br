@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import PropTypes from "prop-types";
 import { Alert, Badge } from "react-bootstrap";
 import cutinappService from "../../services/CutinappService";
 
@@ -24,7 +25,7 @@ export default function EventAnnouncementsFeed({ slug }) {
       try {
         const response = await cutinappService.publicEventAnnouncements(slug);
         if (active) setAnnouncements(response?.announcements || []);
-      } catch (_) {
+      } catch {
         // A página do evento não deve falhar se os avisos estiverem temporariamente indisponíveis.
       } finally {
         if (active) setLoaded(true);
@@ -76,3 +77,7 @@ export default function EventAnnouncementsFeed({ slug }) {
     </section>
   );
 }
+
+EventAnnouncementsFeed.propTypes = {
+  slug: PropTypes.string.isRequired,
+};
