@@ -82,7 +82,9 @@ export default function ProducerSalesPage() {
       .map((event) => ({
         ...event,
         averageTicket: event.paidCount > 0 ? event.gmv / event.paidCount : 0,
+        platformRevenuePerSale: event.paidCount > 0 ? event.platformRevenue / event.paidCount : 0,
         takeRate: event.gmv > 0 ? (event.platformRevenue / event.gmv) * 100 : 0,
+        producerShare: event.gmv > 0 ? (event.producerNet / event.gmv) * 100 : 0,
       }))
       .sort((a, b) => b.platformRevenue - a.platformRevenue)
       .slice(0, 5);
@@ -115,7 +117,7 @@ export default function ProducerSalesPage() {
               <div>
                 <small>Monetização por evento</small>
                 <h2>Eventos que mais geram receita Cutinapp</h2>
-                <p>Ranking das vendas pagas atualmente carregadas, ordenado pela taxa de plataforma efetivamente registrada.</p>
+                <p>Compare receita por venda, ticket médio e participação econômica usando somente as taxas efetivamente registradas nas vendas pagas carregadas.</p>
               </div>
             </div>
             <Row className="g-3">
@@ -124,8 +126,9 @@ export default function ProducerSalesPage() {
                   <small>#{index + 1} · {event.title}</small>
                   <strong>{money(event.platformRevenue)}</strong>
                   <span>{money(event.gmv)} GMV · {event.paidCount} venda(s)</span>
+                  <span>Receita Cutinapp / venda {money(event.platformRevenuePerSale)}</span>
                   <span>Ticket médio {money(event.averageTicket)} · Take rate {percent(event.takeRate)}</span>
-                  <span>Líquido do produtor {money(event.producerNet)}</span>
+                  <span>Líquido do produtor {money(event.producerNet)} · {percent(event.producerShare)} do GMV</span>
                 </div>
               </Col>)}
             </Row>
