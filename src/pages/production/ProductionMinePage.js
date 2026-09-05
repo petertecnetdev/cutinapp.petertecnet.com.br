@@ -1,11 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Alert, Button, Card, Container, Dropdown, Form, Modal } from "react-bootstrap";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
-import ProductionAgendaManager from "./ProductionAgendaManager";
 import "./production-experience.css";
 import "./production-mine.css";
 
@@ -34,7 +33,6 @@ const normalize = (value) => String(value || "").normalize("NFD").replace(/[\u03
 
 export default function ProductionMinePage() {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -63,26 +61,11 @@ export default function ProductionMinePage() {
   const totalEvents = useMemo(() => items.reduce((sum, item) => sum + Number(item.events_count || 0), 0), [items]);
   const located = useMemo(() => items.filter((item) => item.city || item.address || item.formatted_address).length, [items]);
   const withoutEvents = useMemo(() => items.filter((item) => Number(item.events_count || 0) === 0).length, [items]);
-  const agendaProductionId = searchParams.get("agenda") || "";
-  const agendaProduction = useMemo(
-    () => items.find((production) => String(production.id) === String(agendaProductionId)) || null,
-    [agendaProductionId, items],
-  );
 
-  const openAgenda = (production) => {
-    const next = new URLSearchParams(searchParams);
-    next.set("agenda", String(production.id));
-    setSearchParams(next);
-  };
-
-  const closeAgenda = () => {
-    const next = new URLSearchParams(searchParams);
-    next.delete("agenda");
-    setSearchParams(next, { replace: true });
-  };
-
+  const openAgenda = (production) => navigate(`/production/${production.id}/agenda`);
   const askDeleteProduction = (production) => { setError(""); setSuccess(""); setProductionToDelete(production); };
   const closeDeleteModal = () => { if (!deletingId) setProductionToDelete(null); };
+
   const deleteProduction = async () => {
     if (!productionToDelete?.id || deletingId) return;
     const id = productionToDelete.id;
@@ -94,7 +77,6 @@ export default function ProductionMinePage() {
       const response = await cutinappService.deleteProduction(id);
       setItems((current) => current.filter((production) => production.id !== id));
       setProductionToDelete(null);
-      if (String(agendaProductionId) === String(id)) closeAgenda();
       setSuccess(response?.message || `${name} excluída com sucesso.`);
     } catch (err) {
       setProductionToDelete(null);
@@ -232,7 +214,7 @@ export default function ProductionMinePage() {
                 <div className="cut-production-agenda-entry">
                   <div>
                     <strong><i className="fa-solid fa-repeat me-2" />Tem programação fixa toda semana?</strong>
-                    <span>Cadastre a agenda uma vez e crie as próximas edições com um clique.</span>
+                    <span>Abra a agenda em uma página própria e cadastre cada evento com formulário dedicado.</span>
                   </div>
                   <Button size="sm" variant="outline-light" onClick={() => openAgenda(production)} disabled={deleting}>Agenda semanal</Button>
                 </div>
@@ -253,8 +235,6 @@ export default function ProductionMinePage() {
         </div>
       )}
     </Container>
-
-    {agendaProduction && <ProductionAgendaManager production={agendaProduction} show onHide={closeAgenda} />}
 
     <Modal show={Boolean(productionToDelete)} onHide={closeDeleteModal} centered backdrop={deletingId ? "static" : true} keyboard={!deletingId}>
       <Modal.Header closeButton={!deletingId}><Modal.Title>Excluir produção</Modal.Title></Modal.Header>
