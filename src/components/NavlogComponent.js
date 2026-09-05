@@ -134,6 +134,7 @@ export default function NavlogComponent() {
           <Navbar.Collapse id="cut-navbar-public">
             <Nav className="ms-auto cut-navbar__links">
               <Nav.Link as={Link} to="/event">Eventos</Nav.Link>
+              <Nav.Link as={Link} to="/productions">Produções</Nav.Link>
               <Nav.Link as={Link} to="/artists">Artistas</Nav.Link>
               <Nav.Link as={Link} to="/login">Entrar</Nav.Link>
             </Nav>
@@ -193,6 +194,7 @@ export default function NavlogComponent() {
           <Nav className="cut-navbar__links mx-auto">
             <Nav.Link as={Link} to="/feed" className={active("/feed") ? "active" : ""}><i className="fa-solid fa-bolt" /> Feed</Nav.Link>
             <Nav.Link as={Link} to="/event" className={active("/event") && !active("/event/manage") ? "active" : ""}><i className="fa-regular fa-calendar-days" /> Eventos</Nav.Link>
+            <Nav.Link as={Link} to="/productions" className={active("/productions") ? "active" : ""}><i className="fa-solid fa-building" /> Produções</Nav.Link>
             <Nav.Link as={Link} to="/artists" className={active("/artist") ? "active" : ""}><i className="fa-solid fa-music" /> Artistas</Nav.Link>
             <Nav.Link as={Link} to="/passes" className={active("/passes") ? "active" : ""}><i className="fa-solid fa-ticket" /> Ingressos</Nav.Link>
             <Nav.Link as={Link} to="/purchases" className={active("/purchases") ? "active" : ""}><i className="fa-solid fa-receipt" /> Compras</Nav.Link>
