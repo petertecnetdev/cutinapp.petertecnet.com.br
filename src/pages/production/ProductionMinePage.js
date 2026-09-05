@@ -3,6 +3,7 @@ import { Alert, Button, Card, Container, Dropdown, Form, Modal } from "react-boo
 import { useNavigate } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
+import CollapsibleFilterPanel from "../../components/CollapsibleFilterPanel";
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
 import "./production-experience.css";
@@ -135,16 +136,18 @@ export default function ProductionMinePage() {
             <span>Suas produções</span>
             <strong>{filtered.length === items.length ? `${items.length} cadastrada${items.length === 1 ? "" : "s"}` : `${filtered.length} encontrada${filtered.length === 1 ? "" : "s"}`}</strong>
           </div>
-          <div className="cut-production-search">
-            <i className="fa-solid fa-magnifying-glass" />
-            <Form.Control
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar por nome, cidade ou estado"
-              aria-label="Buscar produção"
-            />
-            {query && <button type="button" className="cut-production-search__clear" onClick={() => setQuery("")} aria-label="Limpar busca"><i className="fa-solid fa-xmark" /></button>}
-          </div>
+          <CollapsibleFilterPanel title="Pesquisar produções" activeCount={query.trim() ? 1 : 0} defaultOpen={Boolean(query.trim())} className="cut-production-mine-filter-panel">
+            <div className="cut-production-search">
+              <i className="fa-solid fa-magnifying-glass" />
+              <Form.Control
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Buscar por nome, cidade ou estado"
+                aria-label="Buscar produção"
+              />
+              {query && <button type="button" className="cut-production-search__clear" onClick={() => setQuery("")} aria-label="Limpar busca"><i className="fa-solid fa-xmark" /></button>}
+            </div>
+          </CollapsibleFilterPanel>
         </div>
       </>}
 
