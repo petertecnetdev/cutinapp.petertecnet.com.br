@@ -84,6 +84,7 @@ const eventService = {
   update: async (eventId, formData) => (await appApiClient.patch(`/events/${eventId}`, formData)).data,
   show: async (eventId) => (await appApiClient.get(`/events/${eventId}/manage`)).data.event,
   myEvents: async (params = {}) => unwrap((await appApiClient.get("/events/mine", { params: { per_page: 100, ...params } })).data.events),
+  duplicate: async (eventId, date) => (await appApiClient.post(`/events/${eventId}/duplicate`, { date })).data,
 
   agenda: async (productionId) => (await appApiClient.get(`/event-agenda/productions/${productionId}`)).data,
   setAgendaStatus: async (productionId, isActive) => (await appApiClient.patch(`/event-agenda/productions/${productionId}/status`, { is_active: isActive })).data,
