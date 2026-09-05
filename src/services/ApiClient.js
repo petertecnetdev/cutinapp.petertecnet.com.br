@@ -56,6 +56,7 @@ export const createApiClient = (baseURL) => {
       const keepSessionOn401 =
         requestUrl.includes("/auth/login") ||
         requestUrl.includes("/auth/google") ||
+        requestUrl.includes("/auth/instagram") ||
         requestUrl.includes("/auth/change-password");
 
       if (status === 401 && !keepSessionOn401) {
@@ -70,8 +71,9 @@ export const createApiClient = (baseURL) => {
 
       const normalizedError = new Error(message);
       normalizedError.status = status;
-      normalizedError.code = error.code || null;
+      normalizedError.code = data?.code || error.code || null;
       normalizedError.errors = data?.errors || null;
+      normalizedError.data = data || null;
       normalizedError.retryAfter = error.response?.headers?.["retry-after"] || null;
       normalizedError.original = error;
       return Promise.reject(normalizedError);
