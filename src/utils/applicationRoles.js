@@ -1,5 +1,7 @@
 import { appSlug } from "../config";
 
+const OWNER_EMAIL = "petertecnet@gmail.com";
+
 const parseMetadata = (value) => {
   if (!value) return {};
   if (typeof value === "object") return value;
@@ -13,4 +15,9 @@ export const hasContextRole = (user, role) => {
   if (pivot.role === role) return true;
   const metadata = parseMetadata(pivot.metadata);
   return Array.isArray(metadata.roles) && metadata.roles.includes(role);
+};
+
+export const isApplicationAdmin = (user) => {
+  const email = String(user?.email || "").trim().toLowerCase();
+  return email === OWNER_EMAIL || hasContextRole(user, "application_admin");
 };
