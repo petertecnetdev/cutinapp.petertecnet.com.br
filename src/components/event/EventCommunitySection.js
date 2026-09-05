@@ -19,6 +19,7 @@ const REPORT_REASONS = [
 
 const fmt = (value) => value ? new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" }).format(new Date(value)) : "";
 const initials = (item) => `${item?.first_name?.[0] || "U"}${item?.last_name?.[0] || ""}`.toUpperCase();
+const displayName = (item) => [item?.first_name, item?.last_name].filter(Boolean).join(" ") || "Participante";
 
 export default function EventCommunitySection({ event, isOwner = false }) {
   const { user } = useContext(AuthContext);
@@ -36,6 +37,12 @@ export default function EventCommunitySection({ event, isOwner = false }) {
   const [report, setReport] = useState({ reason: "", details: "" });
 
   const login = () => navigate("/login", { state: { from: `${location.pathname}${location.search}#comunidade` } });
+  const openProfile = (item) => {
+    const targetUserId = Number(item?.user_id ?? item?.id);
+    if (!targetUserId) return;
+    navigate(user && Number(user.id) === targetUserId ? "/profile" : `/profile/${targetUserId}`);
+  };
+
   const load = useCallback(async (page = 1, append = false) => {
     append ? setMoreLoading(true) : setLoading(true);
     try {
@@ -65,7 +72,6 @@ export default function EventCommunitySection({ event, isOwner = false }) {
   const posts = community?.posts?.data || [];
   const rating = community?.rating || { average: 0, total: 0, mine: null };
   const stars = useMemo(() => [1, 2, 3, 4, 5], []);
-
   const refresh = () => load(1, false);
 
   const publish = async (parentId = null) => {
@@ -123,6 +129,22 @@ export default function EventCommunitySection({ event, isOwner = false }) {
     finally { setBusy(false); }
   };
 
+  const avatarButton = (item, small = false) => <button
+    type="button"
+    className={`cut-community-avatar${small ? " cut-community-avatar--sm" : ""}`}
+    onClick={() => openProfile(item)}
+    aria-label={`Abrir perfil de ${displayName(item)}`}
+    title={`Ver perfil de ${displayName(item)}`}
+    style={{ border: 0, padding: 0, cursor: "pointer" }}
+  >{item?.avatar ? <img src={item.avatar} alt={displayName(item)} /> : initials(item)}</button>;
+
+  const nameButton = (item) => <button
+    type="button"
+    onClick={() => openProfile(item)}
+    title={`Ver perfil de ${displayName(item)}`}
+    style={{ appearance: "none", border: 0, padding: 0, background: "transparent", color: "inherit", font: "inherit", fontWeight: 700, cursor: "pointer", textAlign: "left" }}
+  >{displayName(item)}</button>;
+
   return <section className="cut-community" id="comunidade">
     <div className="cut-community__head">
       <div><span className="cut-eyebrow">Comunidade</span><h2>Conversa sobre o evento</h2><p>Combine encontros, tire dúvidas e compartilhe expectativas com quem também está acompanhando.</p></div>
@@ -138,7 +160,7 @@ export default function EventCommunitySection({ event, isOwner = false }) {
     </div>
 
     <div className="cut-community__composer">
-      <div className="cut-community-avatar">{user ? initials(user) : <i className="fa-regular fa-user" />}</div>
+      {user ? <button type="button" className="cut-community-avatar" onClick={() => navigate("/profile")} aria-label="Abrir meu perfil" title="Abrir meu perfil" style={{ border: 0, padding: 0, cursor: "pointer" }}>{user.avatar ? <img src={user.avatar} alt={displayName(user)} /> : initials(user)}</button> : <div className="cut-community-avatar"><i className="fa-regular fa-user" /></div>}
       <div className="cut-community__composer-body">
         <Form.Control as="textarea" rows={3} value={body} maxLength={3000} onChange={(e) => setBody(e.target.value)} placeholder={user ? "Publique algo sobre este evento..." : "Entre para participar da conversa"} onFocus={() => { if (!user) login(); }} />
         <div><small>{body.length}/3000</small><Button disabled={busy || body.trim().length < 2} onClick={() => publish()}>{busy ? "Publicando..." : "Publicar"}</Button></div>
@@ -146,13 +168,13 @@ export default function EventCommunitySection({ event, isOwner = false }) {
     </div>
 
     {loading ? <div className="cut-community-loading"><span /><span /><span /></div> : posts.length === 0 ? <div className="cut-community-empty"><i className="fa-regular fa-comments" /><strong>A conversa ainda não começou</strong><span>Seja a primeira pessoa a publicar algo sobre este evento.</span></div> : <div className="cut-community-list">{posts.map((post) => <article className="cut-community-post" key={post.id}>
-      <div className="cut-community-avatar">{post.avatar ? <img src={post.avatar} alt="" /> : initials(post)}</div>
+      {avatarButton(post)}
       <div className="cut-community-post__content">
-        <header><div><strong>{[post.first_name, post.last_name].filter(Boolean).join(" ") || "Participante"}</strong>{post.is_pinned ? <span className="cut-community-pin"><i className="fa-solid fa-thumbtack" /> Destaque</span> : null}</div><time>{fmt(post.created_at)}{post.edited_at ? " · editado" : ""}</time></header>
+        <header><div>{nameButton(post)}{post.is_pinned ? <span className="cut-community-pin"><i className="fa-solid fa-thumbtack" /> Destaque</span> : null}</div><time>{fmt(post.created_at)}{post.edited_at ? " · editado" : ""}</time></header>
         <p>{post.body}</p>
         <div className="cut-community-post__actions"><button type="button" className={post.is_liked ? "active" : ""} onClick={() => toggleLike(post)}><i className={`${post.is_liked ? "fa-solid" : "fa-regular"} fa-heart`} /> {post.likes_count || 0}</button><button type="button" onClick={() => user ? setReplyTo(replyTo === post.id ? null : post.id) : login()}><i className="fa-regular fa-comment" /> {post.comments_count || 0} Responder</button>{user && (Number(post.user_id) === Number(user.id) || isOwner) && <button type="button" className="danger" onClick={() => remove(post.id)}><i className="fa-regular fa-trash-can" /> Remover</button>}</div>
         {replyTo === post.id && <div className="cut-community-replybox"><Form.Control as="textarea" rows={2} value={replyBody} maxLength={3000} onChange={(e) => setReplyBody(e.target.value)} placeholder="Escreva sua resposta..." /><div><Button variant="outline-light" size="sm" onClick={() => { setReplyTo(null); setReplyBody(""); }}>Cancelar</Button><Button size="sm" disabled={busy || replyBody.trim().length < 2} onClick={() => publish(post.id)}>Responder</Button></div></div>}
-        {post.replies?.length > 0 && <div className="cut-community-replies">{post.replies.map((reply) => <div className="cut-community-reply" key={reply.id}><div className="cut-community-avatar cut-community-avatar--sm">{reply.avatar ? <img src={reply.avatar} alt="" /> : initials(reply)}</div><div><header><strong>{[reply.first_name, reply.last_name].filter(Boolean).join(" ") || "Participante"}</strong><time>{fmt(reply.created_at)}</time></header><p>{reply.body}</p><div className="cut-community-post__actions"><button type="button" className={reply.is_liked ? "active" : ""} onClick={() => toggleLike(reply)}><i className={`${reply.is_liked ? "fa-solid" : "fa-regular"} fa-heart`} /> {reply.likes_count || 0}</button>{user && (Number(reply.user_id) === Number(user.id) || isOwner) && <button type="button" className="danger" onClick={() => remove(reply.id)}>Remover</button>}</div></div></div>)}</div>}
+        {post.replies?.length > 0 && <div className="cut-community-replies">{post.replies.map((reply) => <div className="cut-community-reply" key={reply.id}>{avatarButton(reply, true)}<div><header>{nameButton(reply)}<time>{fmt(reply.created_at)}</time></header><p>{reply.body}</p><div className="cut-community-post__actions"><button type="button" className={reply.is_liked ? "active" : ""} onClick={() => toggleLike(reply)}><i className={`${reply.is_liked ? "fa-solid" : "fa-regular"} fa-heart`} /> {reply.likes_count || 0}</button>{user && (Number(reply.user_id) === Number(user.id) || isOwner) && <button type="button" className="danger" onClick={() => remove(reply.id)}>Remover</button>}</div></div></div>)}</div>}
       </div>
     </article>)}</div>}
 
