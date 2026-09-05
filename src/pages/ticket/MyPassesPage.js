@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import QrCodeComponent from "../../components/QrCodeComponent";
+import CollapsibleFilterPanel from "../../components/CollapsibleFilterPanel";
 import cutinappService from "../../services/CutinappService";
 
 const formatDate = (value) => value
@@ -26,6 +27,7 @@ export default function MyPassesPage() {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("active");
+  const activeFilterCount = Number(Boolean(search.trim())) + Number(status !== "active");
 
   useEffect(() => {
     let active = true;
@@ -49,12 +51,23 @@ export default function MyPassesPage() {
     .filter((pass) => Boolean(pass.checked_in_at) && !(pass.status === "cancelled" || pass.event?.is_cancelled))
     .sort((a, b) => new Date(b.checked_in_at || b.event?.start_date || 0) - new Date(a.checked_in_at || a.event?.start_date || 0))[0] || null, [passes]);
 
+  const clearFilters = () => {
+    setSearch("");
+    setStatus("active");
+  };
+
   return <div className="cut-app-page"><NavlogComponent />{loading && <ProcessingIndicatorComponent label="Carregando sua carteira" />}
     <Container className="cut-page-container py-4 py-lg-5">
       <div className="cut-page-heading"><div><span className="cut-eyebrow">Carteira digital</span><h1>Meus ingressos</h1><p>Todos os seus ingressos, com QR individual, situação de entrada e acesso rápido aos eventos.</p></div><Button variant="outline-light" onClick={() => navigate("/event")}>Encontrar eventos</Button></div>
       {error && <Alert variant="danger">{error}</Alert>}
       {!loading && lastAttendedPass && <Card className="cut-wallet-toolbar mb-4"><Card.Body className="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3"><div><span className="cut-eyebrow">Seu próximo rolê</span><h2 className="h4 mb-2">Curtiu {lastAttendedPass.event?.title || "seu último evento"}?</h2><p className="mb-0 text-body-secondary">{lastAttendedPass.event?.city ? `Veja os próximos eventos com ingressos disponíveis em ${lastAttendedPass.event.city}.` : "Veja os próximos eventos com ingressos disponíveis e encontre sua próxima experiência."}</p></div><Button onClick={() => navigate(discoveryPathFromPass(lastAttendedPass))}>Ver próximos eventos</Button></Card.Body></Card>}
-      <Card className="cut-wallet-toolbar mb-4"><Card.Body><div className="cut-search-bar"><i className="fa-solid fa-magnifying-glass"/><Form.Control value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Evento, lote, local ou código" /></div><div className="cut-filter-shortcuts">{[["active","Válidos"],["used","Utilizados"],["cancelled","Cancelados"],["all","Todos"]].map(([key,label]) => <button type="button" key={key} className={status===key?"active":""} onClick={() => setStatus(key)}>{label}</button>)}</div></Card.Body></Card>
+      <Card className="cut-wallet-toolbar mb-4"><Card.Body>
+        <CollapsibleFilterPanel title="Pesquisar e filtrar ingressos" activeCount={activeFilterCount} defaultOpen={activeFilterCount > 0}>
+          <div className="cut-search-bar"><i className="fa-solid fa-magnifying-glass"/><Form.Control value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Evento, lote, local ou código" aria-label="Buscar ingressos" /></div>
+          <div className="cut-filter-shortcuts">{[["active","Válidos"],["used","Utilizados"],["cancelled","Cancelados"],["all","Todos"]].map(([key,label]) => <button type="button" key={key} className={status===key?"active":""} onClick={() => setStatus(key)}>{label}</button>)}</div>
+          {activeFilterCount > 0 && <div className="d-flex justify-content-end"><Button type="button" variant="outline-light" size="sm" onClick={clearFilters}>Limpar filtros</Button></div>}
+        </CollapsibleFilterPanel>
+      </Card.Body></Card>
       {!loading && filtered.length === 0 ? <Card className="cut-empty-state"><Card.Body><i className="fa-solid fa-ticket cut-empty-icon"/><h2>{passes.length ? "Nenhum ingresso corresponde aos filtros" : "Sua carteira ainda está vazia"}</h2><p>{passes.length ? "Tente outro termo ou situação." : "Encontre um evento e obtenha seu primeiro ingresso."}</p><Button onClick={() => navigate("/event")}>Explorar eventos</Button></Card.Body></Card> : <Row className="g-4">{filtered.map((pass) => {
         const used = Boolean(pass.checked_in_at); const cancelled = pass.status === "cancelled" || pass.event?.is_cancelled; const state = cancelled ? "Cancelado" : used ? "Utilizado" : "Válido";
         return <Col xl={6} key={pass.id}><Card className={`cut-ticket-wallet-card ${used ? "is-used" : ""} ${cancelled ? "is-cancelled" : ""}`}><div className="cut-ticket-wallet-card__accent"/><Card.Body className="p-0"><div className="cut-ticket-wallet-card__main"><div className="cut-ticket-wallet-card__info"><div className="d-flex flex-wrap gap-2 mb-3"><Badge bg={cancelled ? "danger" : used ? "secondary" : "success"}>{state}</Badge><Badge bg="dark">{pass.ticket?.type || pass.ticket?.ticket_type || "Ingresso"}</Badge></div><span className="cut-eyebrow">{pass.ticket?.name || "Ingresso Cutinapp"}</span><h2>{pass.event?.title || "Evento"}</h2><div className="cut-ticket-wallet-card__meta"><span><i className="fa-regular fa-calendar"/>{formatDate(pass.event?.start_date)}</span><span><i className="fa-solid fa-location-dot"/>{pass.event?.venue || pass.event?.city || "Local do evento"}</span><span><i className="fa-regular fa-user"/>{pass.holder_name || pass.holder_email}</span>{used && <span><i className="fa-solid fa-circle-check"/>Entrada validada em {formatDate(pass.checked_in_at)}</span>}</div></div><div className="cut-ticket-wallet-card__qr"><QrCodeComponent value={pass.token} size={150}/><small>Apresente na entrada</small></div></div><div className="cut-ticket-wallet-card__footer"><span>ID #{pass.id}</span><div className="cut-card-actions"><Button size="sm" onClick={() => navigate(`/passes/${pass.id}`)}>Abrir ingresso</Button>{pass.event?.slug && <Button size="sm" variant="outline-light" onClick={() => navigate(`/event/${pass.event.slug}`)}>Evento</Button>}{used && !cancelled && <Button size="sm" variant="outline-light" onClick={() => navigate(discoveryPathFromPass(pass))}>Ver similares</Button>}</div></div></Card.Body></Card></Col>;
