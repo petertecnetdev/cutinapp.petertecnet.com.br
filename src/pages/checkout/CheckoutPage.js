@@ -32,6 +32,7 @@ export default function CheckoutPage() {
   const [paying, setPaying] = useState(false);
   const [syncingNow, setSyncingNow] = useState(false);
   const [error, setError] = useState("");
+  const [pixCopyStatus, setPixCopyStatus] = useState("idle");
   const resultRef = useRef(result);
   const trackedStatusRef = useRef("");
   const checkoutViewedRef = useRef(false);
@@ -250,7 +251,37 @@ export default function CheckoutPage() {
   };
 
   const copyPix = async () => {
-    if (result?.payment?.qr_code) await navigator.clipboard.writeText(result.payment.qr_code);
+    const pixCode = result?.payment?.qr_code;
+    if (!pixCode) return;
+
+    try {
+      await navigator.clipboard.writeText(pixCode);
+      setPixCopyStatus("copied");
+      setError("");
+      trackCheckout("pix_code_copied", {
+        label: "Código PIX copiado",
+        target: slug,
+        metadata: {
+          event_id: Number(catalog?.event?.id || 0),
+          amount: Number(result?.order?.total || total || 0),
+          payment_method: "pix",
+        },
+      });
+      window.setTimeout(() => setPixCopyStatus("idle"), 2500);
+    } catch (_) {
+      setPixCopyStatus("error");
+      setError("Não foi possível copiar automaticamente. Toque e segure o código PIX acima para copiar.");
+      trackCheckout("pix_code_copy_failed", {
+        label: "Falha ao copiar código PIX",
+        target: slug,
+        metadata: {
+          event_id: Number(catalog?.event?.id || 0),
+          amount: Number(result?.order?.total || total || 0),
+          payment_method: "pix",
+          outcome: "error",
+        },
+      });
+    }
   };
 
   if (loading) return <ProcessingIndicatorComponent label="Preparando checkout seguro" />;
@@ -293,7 +324,7 @@ export default function CheckoutPage() {
               {!result && method === "pix" && pixAvailable && <div className="cut-pix-start"><div className="cut-pix-start__icon"><i className="fa-brands fa-pix" /></div><h3>Pagamento via PIX</h3><p>Geraremos um QR Code exclusivo para esta compra. A confirmação aparecerá automaticamente nesta tela.</p><div className="cut-payment-total"><span>Total a pagar</span><strong>{money(total)}</strong></div><Button data-track="Gerar PIX" className="cut-checkout-primary" onClick={checkoutPix} disabled={paying}>{paying ? "Gerando PIX seguro..." : "Gerar QR Code PIX"}</Button></div>}
               {!result && method === "card" && cardAvailable && <MercadoPagoCardForm publicKey={catalog?.payment_config?.public_key || ""} amount={total} email={user?.email || ""} disabled={paying} onSubmit={checkoutCard} />}
               {approved && !fulfilled && <div className="cut-payment-waiting"><div className="cut-payment-waiting__pulse"><i className="fa-solid fa-ticket" /></div><h3>Pagamento confirmado</h3><p>O dinheiro já foi reconhecido. Estamos finalizando a emissão do seu ingresso. Você não precisa pagar novamente.</p><Button className="cut-checkout-primary w-100" onClick={() => syncCurrentPayment({ manual: true })} disabled={syncingNow}>{syncingNow ? "Verificando..." : "Verificar emissão agora"}</Button><div className="cut-checkout-live"><span /><strong>Recuperação automática ativa</strong></div></div>}
-              {result && !failed && !approved && <div className="cut-payment-waiting"><div className="cut-payment-waiting__pulse"><i className="fa-solid fa-shield-halved" /></div><h3>Aguardando confirmação</h3><p>Assim que o Mercado Pago confirmar o pagamento, esta página será atualizada automaticamente. Se você já pagou, não gere outro PIX.</p>{method === "pix" && result.payment?.qr_code_image && <div className="cut-pix-qr"><img src={result.payment.qr_code_image} alt="QR Code PIX" /></div>}{method === "pix" && result.payment?.qr_code && <><div className="cut-pix-code">{result.payment.qr_code}</div><Button variant="outline-light" className="w-100" onClick={copyPix}><i className="fa-regular fa-copy me-2" />Copiar código PIX</Button></>}<Button className="cut-checkout-primary w-100 mt-3" onClick={() => syncCurrentPayment({ manual: true })} disabled={syncingNow}>{syncingNow ? "Verificando pagamento..." : "Já paguei — verificar agora"}</Button><div className="cut-checkout-live"><span /><strong>Confirmação automática ativa</strong></div></div>}
+              {result && !failed && !approved && <div className="cut-payment-waiting"><div className="cut-payment-waiting__pulse"><i className="fa-solid fa-shield-halved" /></div><h3>Aguardando confirmação</h3><p>Assim que o Mercado Pago confirmar o pagamento, esta página será atualizada automaticamente. Se você já pagou, não gere outro PIX.</p>{method === "pix" && result.payment?.qr_code_image && <div className="cut-pix-qr"><img src={result.payment.qr_code_image} alt="QR Code PIX" /></div>}{method === "pix" && result.payment?.qr_code && <><div className="cut-pix-code">{result.payment.qr_code}</div><Button variant="outline-light" className="w-100" onClick={copyPix} aria-live="polite"><i className={`fa-regular ${pixCopyStatus === "copied" ? "fa-circle-check" : "fa-copy"} me-2`} />{pixCopyStatus === "copied" ? "Código PIX copiado" : pixCopyStatus === "error" ? "Tentar copiar novamente" : "Copiar código PIX"}</Button></>}<Button className="cut-checkout-primary w-100 mt-3" onClick={() => syncCurrentPayment({ manual: true })} disabled={syncingNow}>{syncingNow ? "Verificando pagamento..." : "Já paguei — verificar agora"}</Button><div className="cut-checkout-live"><span /><strong>Confirmação automática ativa</strong></div></div>}
               {failed && <Alert variant="danger" className="mb-0"><strong>Pagamento não concluído.</strong><div>Escolha outra forma de pagamento ou tente novamente.</div><Button variant="outline-light" className="mt-3" onClick={() => { setResult(null); sessionStorage.removeItem(paymentStorageKey); }}>Tentar novamente</Button></Alert>}
             </section>
           </>}
