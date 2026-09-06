@@ -5,6 +5,7 @@ import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import eventService from "../../services/EventService";
 import cutinappService from "../../services/CutinappService";
+import commerceService from "../../services/CommerceService";
 import { storageUrl } from "../../config";
 
 const pad = (number) => String(number).padStart(2, "0");
@@ -33,6 +34,11 @@ export default function EventUpdatePage() {
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
+  const [eventItems, setEventItems] = useState([]);
+  const [itemForm, setItemForm] = useState({ name: "", description: "", price: "", quantity: "" });
+  const [itemLoading, setItemLoading] = useState(false);
+  const [itemSaving, setItemSaving] = useState(false);
+  const [itemBusyId, setItemBusyId] = useState(null);
   const [success, setSuccess] = useState(
     new URLSearchParams(location.search).get("courtesyCreated") === "1"
       ? "Cortesia criada. Revise o evento e publique quando estiver pronto."
@@ -60,6 +66,18 @@ export default function EventUpdatePage() {
   };
 
   const loadEvent = async () => applyEvent(await eventService.show(id));
+  const loadEventItems = async () => {
+    if (!eventData?.is_published || !eventData?.slug) return;
+    setItemLoading(true);
+    try {
+      const catalog = await commerceService.catalog(eventData.slug);
+      setEventItems(Array.isArray(catalog?.items) ? catalog.items : []);
+    } catch (err) {
+      setError(err?.message || "Não foi possível carregar os adicionais deste evento.");
+    } finally {
+      setItemLoading(false);
+    }
+  };
 
   useEffect(() => {
     let active = true;
@@ -70,6 +88,10 @@ export default function EventUpdatePage() {
       .finally(() => active && setLoading(false));
     return () => { active = false; };
   }, [id]);
+
+  useEffect(() => {
+    if (eventData?.is_published && eventData?.slug) loadEventItems();
+  }, [eventData?.is_published, eventData?.slug]);
 
   useEffect(() => () => {
     if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
@@ -153,6 +175,58 @@ export default function EventUpdatePage() {
     }
   };
 
+  const saveAddOn = async () => {
+    const price = Number(itemForm.price);
+    const quantity = Number(itemForm.quantity);
+    if (!itemForm.name.trim() || !Number.isFinite(price) || price < 0.01 || !Number.isInteger(quantity) || quantity < 0) {
+      setError("Informe nome, preço válido e estoque inteiro para o adicional.");
+      return;
+    }
+    setItemSaving(true);
+    setError("");
+    setSuccess("");
+    try {
+      const response = await commerceService.saveEventItem(id, {
+        name: itemForm.name.trim(),
+        description: itemForm.description.trim() || null,
+        price,
+        quantity,
+        is_active: true,
+      });
+      setItemForm({ name: "", description: "", price: "", quantity: "" });
+      if (eventData?.is_published && eventData?.slug) await loadEventItems();
+      else if (response?.item) setEventItems((current) => [...current.filter((item) => item.id !== response.item.id), response.item]);
+      setSuccess("Adicional disponível para venda neste evento.");
+      try {
+        window.PeterTecnetTelemetry?.track?.("producer_event_addon_created", {
+          label: "Adicional criado no evento",
+          target: String(id),
+          metadata: { event_id: Number(id), price, quantity, gross_potential: Number((price * quantity).toFixed(2)) },
+        });
+      } catch (_) { /* Telemetria nunca bloqueia monetização. */ }
+    } catch (err) {
+      setError(err?.message || "Não foi possível salvar o adicional.");
+    } finally {
+      setItemSaving(false);
+    }
+  };
+
+  const removeAddOn = async (item) => {
+    setItemBusyId(item.id);
+    setError("");
+    setSuccess("");
+    try {
+      await commerceService.deleteEventItem(id, item.id);
+      setEventItems((current) => current.filter((entry) => entry.id !== item.id));
+      if (eventData?.is_published && eventData?.slug) await loadEventItems();
+      setSuccess("Adicional removido das novas vendas.");
+    } catch (err) {
+      setError(err?.message || "Não foi possível remover o adicional.");
+    } finally {
+      setItemBusyId(null);
+    }
+  };
+
   const fieldError = (field) => {
     const value = fieldErrors?.[field];
     return Array.isArray(value) ? value[0] : value || "";
@@ -194,6 +268,24 @@ export default function EventUpdatePage() {
               <Card className="cut-panel"><Card.Body className="p-4"><div className="d-flex justify-content-between gap-3 align-items-start"><div><span className="cut-eyebrow">Publicação</span><h2 className="cut-section-title mt-2">{eventData?.is_published ? "Evento no ar" : "Evento em rascunho"}</h2></div><Badge bg={eventData?.is_published ? "success" : "secondary"}>{eventData?.is_published ? "Publicado" : "Rascunho"}</Badge></div><div className="cut-info-box mt-3"><strong>{eventData?.tickets_count || 0} lote(s) configurado(s)</strong><span>Para publicar, o evento precisa estar no futuro e possuir ao menos uma cortesia gratuita disponível.</span></div><div className="d-grid gap-2 mt-3"><Button variant="outline-light" onClick={() => navigate(`/event/${id}/courtesies`)}>Gerenciar cortesias</Button><Button variant="outline-light" onClick={() => navigate(`/ticket/create?eventId=${id}`)}>Criar nova cortesia</Button><Button onClick={togglePublication} disabled={publishing || eventData?.is_cancelled}>{eventData?.is_published ? "Retirar da publicação" : "Publicar evento"}</Button>{eventData?.is_published && <Button variant="outline-light" onClick={() => navigate(`/checkin?eventId=${id}`)}>Abrir portaria deste evento</Button>}</div></Card.Body></Card>
             </Col>
           </Row>
+
+          <Card className="cut-panel mt-4"><Card.Body className="p-4 p-lg-5">
+            <div className="d-flex flex-column flex-lg-row justify-content-between gap-3 align-items-lg-start mb-4">
+              <div><span className="cut-eyebrow">Monetização do evento</span><h2 className="cut-section-title mt-2">Adicionais e pré-venda</h2><p className="text-secondary mb-0">Venda itens e serviços junto do ingresso para aumentar o ticket médio. O valor entra no mesmo checkout e segue as taxas vigentes, sem cobrança escondida.</p></div>
+              <Badge bg={eventItems.length ? "success" : "secondary"}>{eventItems.length} adicional(is) ativo(s)</Badge>
+            </div>
+            <Row className="g-3 align-items-end">
+              <Col md={5}><Form.Group><Form.Label>Nome do adicional *</Form.Label><Form.Control value={itemForm.name} maxLength={140} onChange={(e) => setItemForm((current) => ({ ...current, name: e.target.value }))} placeholder="Ex.: estacionamento, combo, camiseta" /></Form.Group></Col>
+              <Col md={3}><Form.Group><Form.Label>Preço real *</Form.Label><Form.Control type="number" min="0.01" step="0.01" value={itemForm.price} onChange={(e) => setItemForm((current) => ({ ...current, price: e.target.value }))} placeholder="0,00" /></Form.Group></Col>
+              <Col md={2}><Form.Group><Form.Label>Estoque *</Form.Label><Form.Control type="number" min="0" step="1" value={itemForm.quantity} onChange={(e) => setItemForm((current) => ({ ...current, quantity: e.target.value }))} placeholder="0" /></Form.Group></Col>
+              <Col md={2}><Button type="button" className="w-100" onClick={saveAddOn} disabled={itemSaving}>{itemSaving ? "Salvando..." : "Adicionar"}</Button></Col>
+              <Col xs={12}><Form.Group><Form.Label>Descrição</Form.Label><Form.Control as="textarea" rows={2} maxLength={2000} value={itemForm.description} onChange={(e) => setItemForm((current) => ({ ...current, description: e.target.value }))} placeholder="Explique o que o comprador recebe e como retirar/usar no evento." /></Form.Group></Col>
+            </Row>
+            {Number(itemForm.price) > 0 && Number(itemForm.quantity) >= 0 && <div className="cut-info-box mt-3"><strong>Potencial bruto deste estoque: {(Number(itemForm.price) * Number(itemForm.quantity || 0)).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong><span>É apenas uma referência de GMV se todo o estoque for vendido; não é garantia de receita e não altera o take rate.</span></div>}
+            <div className="mt-4">
+              {itemLoading ? <div className="text-secondary">Carregando adicionais...</div> : eventItems.length === 0 ? <Alert variant="info" className="mb-0">Nenhum adicional ativo. Você pode começar com itens de conveniência, alimentação, estacionamento, merchandising ou experiências relacionadas ao evento.</Alert> : <Row className="g-3">{eventItems.map((item) => <Col md={6} key={item.id}><div className="cut-info-box h-100"><div className="d-flex justify-content-between gap-3"><div><strong>{item.name}</strong><span>{Number(item.price || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} · estoque {Number(item.quantity || 0)}</span>{item.description && <small className="d-block text-secondary mt-1">{item.description}</small>}</div><Button type="button" size="sm" variant="outline-danger" disabled={itemBusyId === item.id} onClick={() => removeAddOn(item)}>{itemBusyId === item.id ? "Removendo..." : "Remover"}</Button></div></div></Col>)}</Row>}
+            </div>
+          </Card.Body></Card>
         </Form>}
       </Container>
     </div>
