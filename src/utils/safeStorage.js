@@ -7,15 +7,17 @@ const getBrowserStorage = (name) => {
   }
 };
 
-export const safeGetLocalItem = (key) => {
+export const safeReadLocalItem = (key) => {
   const storage = getBrowserStorage("localStorage");
-  if (!storage) return null;
+  if (!storage) return { available: false, value: null };
   try {
-    return storage.getItem(key);
+    return { available: true, value: storage.getItem(key) };
   } catch (_) {
-    return null;
+    return { available: false, value: null };
   }
 };
+
+export const safeGetLocalItem = (key) => safeReadLocalItem(key).value;
 
 export const safeGetLocalJson = (key, fallback = null) => {
   const stored = safeGetLocalItem(key);
