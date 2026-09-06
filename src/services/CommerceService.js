@@ -2,6 +2,7 @@ import appApiClient from "./AppApiClient";
 import { isNetworkFailure } from "../utils/networkStatus";
 import { safeGetSessionJson, safeRemoveSessionItem, safeSetSessionJson } from "../utils/safeStorage";
 import { trackTelemetry } from "../utils/telemetry";
+import { shouldKeepCheckoutAttempt } from "../utils/checkoutRetryPolicy";
 
 const pendingCheckouts = new Map();
 const fallbackAttempts = new Map();
@@ -68,8 +69,6 @@ const idempotencyKeyFor = (requestKey) => {
   return created;
 };
 
-const shouldKeepAttempt = (error) => isNetworkFailure(error) || Number(error?.status || 0) === 409;
-
 const checkout = (payload) => {
   const requestKey = checkoutRequestKey(payload);
   const pending = pendingCheckouts.get(requestKey);
@@ -85,7 +84,7 @@ const checkout = (payload) => {
       return response.data;
     })
     .catch((error) => {
-      if (!shouldKeepAttempt(error)) clearAttempt(requestKey);
+      if (!shouldKeepCheckoutAttempt(error)) clearAttempt(requestKey);
       throw error;
     })
     .finally(() => {
