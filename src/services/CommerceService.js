@@ -4,7 +4,9 @@ import { safeGetSessionJson, safeRemoveSessionItem, safeSetSessionJson } from ".
 
 const pendingCheckouts = new Map();
 const fallbackAttempts = new Map();
+const catalogCache = new Map();
 const CHECKOUT_ATTEMPT_PREFIX = "cutinapp_checkout_attempt_";
+const CATALOG_CACHE_TTL_MS = 15000;
 
 const checkoutRequestKey = (payload = {}) => JSON.stringify({
   event_id: Number(payload.event_id || 0),
@@ -93,8 +95,34 @@ const checkout = (payload) => {
   return request;
 };
 
+const catalog = (slug) => {
+  const key = String(slug || "").trim();
+  const now = Date.now();
+  const cached = catalogCache.get(key);
+
+  if (cached?.data && cached.expiresAt > now) return Promise.resolve(cached.data);
+  if (cached?.request) return cached.request;
+
+  const request = appApiClient
+    .get(`/events/public/${key}/purchase-options`)
+    .then((response) => {
+      const data = response.data;
+      catalogCache.set(key, { data, expiresAt: Date.now() + CATALOG_CACHE_TTL_MS });
+      return data;
+    })
+    .catch((error) => {
+      catalogCache.delete(key);
+      throw error;
+    });
+
+  catalogCache.set(key, { request });
+  return request;
+};
+
+const invalidateCatalogCache = () => catalogCache.clear();
+
 const commerceService = {
-  catalog: async (slug) => (await appApiClient.get(`/events/public/${slug}/purchase-options`)).data,
+  catalog,
   checkout,
   myOrders: async (params = {}) => (await appApiClient.get("/commerce/orders/mine", { params })).data,
   order: async (publicId) => (await appApiClient.get(`/commerce/orders/${publicId}`)).data.order,
@@ -118,12 +146,18 @@ const commerceService = {
     await appApiClient.get(`/organizations/${organizationId}/sales/${publicId}`)
   ).data.order,
 
-  saveEventItem: async (eventId, payload, itemId = null) => (
-    itemId
+  saveEventItem: async (eventId, payload, itemId = null) => {
+    const response = itemId
       ? await appApiClient.patch(`/events/${eventId}/items/${itemId}`, payload)
-      : await appApiClient.post(`/events/${eventId}/items`, payload)
-  ).data,
-  deleteEventItem: async (eventId, itemId) => (await appApiClient.delete(`/events/${eventId}/items/${itemId}`)).data,
+      : await appApiClient.post(`/events/${eventId}/items`, payload);
+    invalidateCatalogCache();
+    return response.data;
+  },
+  deleteEventItem: async (eventId, itemId) => {
+    const response = await appApiClient.delete(`/events/${eventId}/items/${itemId}`);
+    invalidateCatalogCache();
+    return response.data;
+  },
   paymentAccount: async (organizationId) => (await appApiClient.get(`/organizations/${organizationId}/payment-account`)).data.account,
   connectMercadoPago: async (organizationId) => (await appApiClient.get(`/organizations/${organizationId}/payment-provider/connect`)).data,
   financialSummary: async (organizationId) => (await appApiClient.get(`/organizations/${organizationId}/financial-summary`)).data,
