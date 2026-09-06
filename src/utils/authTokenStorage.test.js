@@ -40,6 +40,17 @@ describe("authTokenStorage", () => {
     expect(getAuthToken()).toBe("memory-token");
   });
 
+  test("keeps an already hydrated session when localStorage later becomes unreadable", () => {
+    window.localStorage.setItem("token", "persisted-token");
+    expect(getAuthToken()).toBe("persisted-token");
+
+    jest.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new DOMException("Blocked", "SecurityError");
+    });
+
+    expect(getAuthToken()).toBe("persisted-token");
+  });
+
   test("returns a safe unauthenticated state when localStorage reads are blocked", () => {
     window.localStorage.setItem("token", "persisted-token");
     resetAuthTokenMemoryForTests();
