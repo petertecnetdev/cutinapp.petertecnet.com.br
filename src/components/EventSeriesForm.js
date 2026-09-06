@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import PropTypes from "prop-types";
 import { Alert, Badge, Button, Col, Form, Row } from "react-bootstrap";
+import { addCalendarDays, seriesDefaults, toDateInput } from "../utils/eventSeriesDates";
 
 const WEEKDAYS = [
   { value: 1, label: "Seg" },
@@ -12,40 +13,25 @@ const WEEKDAYS = [
   { value: 0, label: "Dom" },
 ];
 
-const toDateInput = (value) => {
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  const pad = (number) => String(number).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-};
-
-const addDays = (value, days) => {
-  const date = new Date(value);
-  date.setDate(date.getDate() + days);
-  return toDateInput(date);
-};
-
 export default function EventSeriesForm({ event, busy = false, onSubmit }) {
-  const tomorrow = useMemo(() => addDays(new Date(), 1), []);
+  const tomorrow = useMemo(() => addCalendarDays(new Date(), 1), []);
   const [mode, setMode] = useState("dates");
   const [candidateDate, setCandidateDate] = useState(tomorrow);
   const [dates, setDates] = useState([]);
   const [weekdays, setWeekdays] = useState([]);
   const [rangeStart, setRangeStart] = useState(tomorrow);
-  const [rangeEnd, setRangeEnd] = useState(addDays(new Date(), 56));
+  const [rangeEnd, setRangeEnd] = useState(addCalendarDays(tomorrow, 56));
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const source = new Date(event?.start_date);
-    if (!Number.isNaN(source.getTime())) {
-      setWeekdays([source.getDay()]);
-      const suggested = new Date(source);
-      suggested.setDate(suggested.getDate() + 7);
-      if (suggested > new Date()) setCandidateDate(toDateInput(suggested));
-    }
+    const defaults = seriesDefaults(event?.start_date, tomorrow);
+    setWeekdays(defaults.weekday === null ? [] : [defaults.weekday]);
+    setCandidateDate(defaults.candidateDate || tomorrow);
+    setRangeStart(defaults.rangeStart || tomorrow);
+    setRangeEnd(defaults.rangeEnd || addCalendarDays(tomorrow, 56));
     setDates([]);
     setError("");
-  }, [event?.id, event?.start_date]);
+  }, [event?.id, event?.start_date, tomorrow]);
 
   const addDate = () => {
     if (!candidateDate) return;
@@ -76,6 +62,10 @@ export default function EventSeriesForm({ event, busy = false, onSubmit }) {
     }
     if (mode === "weekly" && (!rangeStart || !rangeEnd)) {
       setError("Informe o início e o fim da agenda semanal.");
+      return;
+    }
+    if (mode === "weekly" && rangeEnd < rangeStart) {
+      setError("A data final da agenda precisa ser igual ou posterior à data inicial.");
       return;
     }
 
@@ -130,7 +120,7 @@ export default function EventSeriesForm({ event, busy = false, onSubmit }) {
       <Form.Text>Ex.: marque quinta e sábado para gerar automaticamente todas as quintas e sábados do período.</Form.Text>
     </>}
 
-    {error && <Alert variant="danger" className="mt-3 mb-0">{error}</Alert>}
+    {error && <Alert variant="danger" className="mt-3 mb-0" role="alert">{error}</Alert>}
 
     <Button className="mt-4 w-100" type="button" onClick={submit} disabled={busy || !event?.id}>
       {busy ? "Criando agenda..." : mode === "dates" ? `Criar ${dates.length || "várias"} edição(ões)` : "Criar agenda semanal"}
