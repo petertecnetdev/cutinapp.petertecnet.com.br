@@ -10,6 +10,7 @@ import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorCo
 import commerceService from "../../services/CommerceService";
 import cutinappService from "../../services/CutinappService";
 import financeService from "../../services/FinanceService";
+import { estimateNetRevenueEconomics } from "../../utils/netRevenueEconomics";
 
 const money = (value) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
 const percent = (value) => `${Number(value || 0).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 2 })}%`;
@@ -125,6 +126,14 @@ export default function ProductionFinancePage() {
   const platformNetAfterProcessing = platformRevenue - processorFees;
   const effectiveTakeRate = grossRevenue > 0 ? (platformRevenue / grossRevenue) * 100 : 0;
   const contributionMargin = platformRevenue > 0 ? (platformNetAfterProcessing / platformRevenue) * 100 : 0;
+  const netEconomics = useMemo(() => estimateNetRevenueEconomics({
+    grossRevenue,
+    platformRevenue,
+    processorFees,
+    paidOrders: Number(revenueFunnel?.orders_paid || 0),
+    platformRevenueAtRisk: Number(revenueFunnel?.platform_revenue_at_risk || 0),
+    recoveredPlatformRevenue: Number(revenueFunnel?.recovered_platform_revenue || 0),
+  }), [grossRevenue, platformRevenue, processorFees, revenueFunnel?.orders_paid, revenueFunnel?.platform_revenue_at_risk, revenueFunnel?.recovered_platform_revenue]);
 
   const run = async (task, successMessage) => {
     setWorking(true); setError(""); setSuccess("");
@@ -281,15 +290,17 @@ export default function ProductionFinancePage() {
             <Col md={4} xl={3}><RevenueMetric label="Receita plataforma" value={money(platformRevenue)} detail={`Take rate efetivo ${percent(effectiveTakeRate)}`} /></Col>
             <Col md={4} xl={3}><RevenueMetric label="Processamento" value={money(processorFees)} detail="Custo registrado nos pedidos pagos" /></Col>
             <Col md={4} xl={3}><RevenueMetric label="Após processamento" value={money(platformNetAfterProcessing)} detail={`Margem de contribuição ${percent(contributionMargin)}`} /></Col>
+            <Col md={4} xl={3}><RevenueMetric label="Take rate líquido" value={percent(netEconomics.netTakeRate)} detail={`Processamento consome ${percent(netEconomics.processingShareOfPlatformRevenue)} da receita da plataforma`} /></Col>
+            <Col md={4} xl={3}><RevenueMetric label="Receita líquida / venda" value={money(netEconomics.netRevenuePerPaidOrder)} detail="Após custo de processamento registrado" /></Col>
             <Col md={4} xl={3}><RevenueMetric label="Líquido do produtor" value={money(revenueFunnel.producer_net)} detail={`Descontos: ${money(revenueFunnel.discounts)}`} /></Col>
           </Row>
 
           {Number(revenueFunnel.gross_revenue_at_risk || 0) > 0 && <Alert variant="warning" className="mt-4 mb-0">
-            Há <strong>{money(revenueFunnel.gross_revenue_at_risk)}</strong> em pedidos ainda pendentes, equivalentes a <strong>{money(revenueFunnel.platform_revenue_at_risk)}</strong> de receita de plataforma potencial. Priorize recuperação de pagamento antes de aumentar desconto.
+            Há <strong>{money(revenueFunnel.gross_revenue_at_risk)}</strong> em pedidos ainda pendentes, equivalentes a <strong>{money(revenueFunnel.platform_revenue_at_risk)}</strong> de receita de plataforma potencial e cerca de <strong>{money(netEconomics.estimatedNetRevenueAtRisk)}</strong> após processamento, usando a margem observada no período. Priorize recuperação de pagamento antes de aumentar desconto.
           </Alert>}
 
           {Number(revenueFunnel.checkout_recovery_attempts || 0) > 0 && <Alert variant="info" className="mt-3 mb-0">
-            Recuperação de checkout converteu <strong>{percent(revenueFunnel.checkout_recovery_conversion_rate)}</strong> das tentativas e recuperou <strong>{money(revenueFunnel.recovered_gross_revenue)}</strong> em GMV / <strong>{money(revenueFunnel.recovered_platform_revenue)}</strong> em receita de plataforma.
+            Recuperação de checkout converteu <strong>{percent(revenueFunnel.checkout_recovery_conversion_rate)}</strong> das tentativas e recuperou <strong>{money(revenueFunnel.recovered_gross_revenue)}</strong> em GMV / <strong>{money(revenueFunnel.recovered_platform_revenue)}</strong> em receita de plataforma, equivalente a aproximadamente <strong>{money(netEconomics.estimatedRecoveredNetRevenue)}</strong> de receita líquida após processamento pela margem observada.
           </Alert>}
 
           {(revenueFunnel.payment_methods || []).length > 0 && <div className="table-responsive mt-4"><Table variant="dark" hover className="align-middle mb-0"><thead><tr><th>Pagamento</th><th>Checkouts</th><th>Pagos</th><th>Conversão</th><th>GMV</th><th>Receita plataforma</th><th>GMV em risco</th></tr></thead><tbody>{revenueFunnel.payment_methods.map((row) => <tr key={row.payment_method}><td>{paymentMethodLabel[row.payment_method] || row.payment_method}</td><td>{row.orders_created}</td><td>{row.orders_paid}</td><td>{percent(row.conversion_rate)}</td><td>{money(row.gross_revenue)}</td><td>{money(row.platform_revenue)}</td><td>{money(row.gross_at_risk)}</td></tr>)}</tbody></Table></div>}
