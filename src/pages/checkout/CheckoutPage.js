@@ -7,6 +7,7 @@ import { AuthContext } from "../../context/AuthContext";
 import commerceService from "../../services/CommerceService";
 import { clearCheckoutRecovery, readCheckoutRecovery, writeCheckoutRecovery } from "../../utils/checkoutRecovery";
 import { resolveCheckoutPaymentMethod } from "../../utils/paymentMethod";
+import { rankCheckoutAddOns } from "../../utils/checkoutAddOns";
 import { getPaymentSyncDelay } from "../../utils/paymentSyncSchedule";
 import { createKeyedSingleFlight } from "../../utils/singleFlight";
 import { safeGetSessionJson, safeRemoveSessionItem, safeSetSessionJson } from "../../utils/safeStorage";
@@ -131,9 +132,7 @@ export default function CheckoutPage() {
   const availableAddOns = useMemo(() => {
     if (!catalog || !selection) return [];
     const selectedIds = new Set((selection.items || []).map((item) => Number(item.id)));
-    return (catalog.items || [])
-      .filter((item) => !selectedIds.has(Number(item.id)) && Number(item.price || 0) > 0)
-      .slice(0, 3);
+    return rankCheckoutAddOns(catalog.items || [], selectedIds, 3);
   }, [catalog, selection]);
   const paymentAvailable = Boolean(catalog?.payment_config?.available);
   const methods = Array.isArray(catalog?.payment_config?.methods) ? catalog.payment_config.methods : [];
