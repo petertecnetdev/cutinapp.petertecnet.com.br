@@ -1,5 +1,6 @@
 import apiClient from "./ApiClient";
 import { clearAuthToken, getAuthToken, setAuthToken } from "../utils/authTokenStorage";
+import { clearCachedAuthUser } from "../utils/authUserCache";
 import {
   safeGetLocalItem,
   safeRemoveLocalItem,
@@ -19,10 +20,12 @@ const authService = {
   getToken: getAuthToken,
   setToken: (token) => {
     safeRemoveLocalItem(EMAIL_VERIFICATION_DEFERRED_TOKEN_KEY);
+    clearCachedAuthUser();
     setAuthToken(token);
   },
   clearToken: () => {
     clearAuthToken();
+    clearCachedAuthUser();
     safeRemoveLocalItem(EMAIL_VERIFICATION_DEFERRED_TOKEN_KEY);
   },
 

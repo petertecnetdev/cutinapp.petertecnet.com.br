@@ -25,7 +25,8 @@ export default function FeedPage() {
   const { user } = useContext(AuthContext);
   const [events, setEvents] = useState([]);
   const [publishEvents, setPublishEvents] = useState([]);
-  const [publishEventsLoading, setPublishEventsLoading] = useState(true);
+  const [publishEventsLoading, setPublishEventsLoading] = useState(false);
+  const [publishEventsLoaded, setPublishEventsLoaded] = useState(false);
   const [communityActivity, setCommunityActivity] = useState([]);
   const [context, setContext] = useState({});
   const [page, setPage] = useState(1);
@@ -69,6 +70,7 @@ export default function FeedPage() {
   }, []);
 
   const loadPublishEvents = useCallback(async () => {
+    if (publishEventsLoaded || publishEventsLoading) return;
     setPublishEventsLoading(true);
     try {
       const response = await cutinappService.publicEvents({ sort: "newest", per_page: 50 });
@@ -79,11 +81,11 @@ export default function FeedPage() {
       setPublishEvents([]);
     } finally {
       setPublishEventsLoading(false);
+      setPublishEventsLoaded(true);
     }
-  }, []);
+  }, [publishEventsLoaded, publishEventsLoading]);
 
   useEffect(() => { load(1); }, [load]);
-  useEffect(() => { loadPublishEvents(); }, [loadPublishEvents]);
 
   const composerEvents = useMemo(() => {
     const seen = new Set();
@@ -164,7 +166,7 @@ export default function FeedPage() {
           <Form onSubmit={publishPost}>
             <Form.Group className="mb-3" controlId="timeline-event">
               <Form.Label>Evento relacionado</Form.Label>
-              <Form.Select value={postEventId} onChange={(event) => setPostEventId(event.target.value)} disabled={publishing || (publishEventsLoading && composerEvents.length === 0) || composerEvents.length === 0}>
+              <Form.Select value={postEventId} onChange={(event) => setPostEventId(event.target.value)} onFocus={loadPublishEvents} onPointerDown={loadPublishEvents} disabled={publishing || composerEvents.length === 0}>
                 {publishEventsLoading && composerEvents.length === 0 && <option value="">Carregando eventos publicados...</option>}
                 {!publishEventsLoading && composerEvents.length === 0 && <option value="">Nenhum evento público disponível</option>}
                 {composerEvents.map((event) => <option value={event.id} key={event.id}>{event.title}</option>)}

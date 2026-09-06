@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useEffect, useMemo, useState } from 
 import PropTypes from "prop-types";
 import authService from "../services/AuthService";
 import { subscribeToAuthTokenChanges } from "../utils/authSessionSync";
+import { cacheAuthUser, readCachedAuthUser } from "../utils/authUserCache";
 
 export const AuthContext = createContext({
   user: null,
@@ -17,8 +18,9 @@ export const AuthContext = createContext({
 });
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const initialUser = authService.getToken() ? readCachedAuthUser() : null;
+  const [user, setUser] = useState(initialUser);
+  const [loading, setLoading] = useState(() => Boolean(authService.getToken()) && !initialUser);
 
   const refreshUser = useCallback(async () => {
     if (!authService.getToken()) {
@@ -29,6 +31,7 @@ export function AuthProvider({ children }) {
     try {
       const currentUser = await authService.me();
       setUser(currentUser);
+      cacheAuthUser(currentUser);
       return currentUser;
     } catch (error) {
       if (error?.status === 401) {
