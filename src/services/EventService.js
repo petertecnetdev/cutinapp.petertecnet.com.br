@@ -53,14 +53,11 @@ const search = async (params = {}) => {
   if (!isHomeDiscoverySearch(params)) return response;
 
   const localEvents = response?.events?.data || [];
-
-  // Preserva o fallback atual da Home quando uma localização não possui nenhum evento.
   if (hasLocationFilter(params) && localEvents.length === 0) return response;
 
   try {
     const todayResponse = await rawSearch({ date: dateKeyInTimeZone(), per_page: 12 });
     const todayEvents = todayResponse?.events?.data || [];
-
     if (todayEvents.length === 0 || !response?.events) return response;
 
     return {
@@ -71,7 +68,6 @@ const search = async (params = {}) => {
       },
     };
   } catch (_) {
-    // A descoberta principal continua disponível mesmo se a consulta prioritária de hoje falhar.
     return response;
   }
 };
@@ -85,6 +81,7 @@ const eventService = {
   show: async (eventId) => (await appApiClient.get(`/events/${eventId}/manage`)).data.event,
   myEvents: async (params = {}) => unwrap((await appApiClient.get("/events/mine", { params: { per_page: 100, ...params } })).data.events),
   duplicate: async (eventId, date) => (await appApiClient.post(`/events/${eventId}/duplicate`, { date })).data,
+  series: async (eventId, payload) => (await appApiClient.post(`/events/${eventId}/series`, payload)).data,
 
   agenda: async (productionId) => (await appApiClient.get(`/event-agenda/productions/${productionId}`)).data,
   setAgendaStatus: async (productionId, isActive) => (await appApiClient.patch(`/event-agenda/productions/${productionId}/status`, { is_active: isActive })).data,
