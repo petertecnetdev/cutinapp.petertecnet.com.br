@@ -250,6 +250,24 @@ export default function CheckoutPage() {
     finally { setPaying(false); }
   };
 
+  const recoverFailedPayment = (nextMethod = method) => {
+    trackCheckout("payment_recovery_selected", {
+      label: nextMethod === method ? "Tentar pagamento novamente" : `Trocar para ${nextMethod === "pix" ? "PIX" : "cartão"}`,
+      target: slug,
+      metadata: {
+        event_id: Number(catalog?.event?.id || 0),
+        amount: Number(result?.order?.total || total || 0),
+        previous_payment_method: method,
+        payment_method: nextMethod,
+        previous_status: orderStatus || "failed",
+      },
+    });
+    setMethod(nextMethod);
+    setResult(null);
+    setError("");
+    sessionStorage.removeItem(paymentStorageKey);
+  };
+
   const copyPix = async () => {
     const pixCode = result?.payment?.qr_code;
     if (!pixCode) return;
@@ -326,7 +344,7 @@ export default function CheckoutPage() {
               {!result && method === "card" && cardAvailable && <MercadoPagoCardForm publicKey={catalog?.payment_config?.public_key || ""} amount={total} email={user?.email || ""} disabled={paying} onSubmit={checkoutCard} />}
               {approved && !fulfilled && <div className="cut-payment-waiting"><div className="cut-payment-waiting__pulse"><i className="fa-solid fa-ticket" /></div><h3>Pagamento confirmado</h3><p>O dinheiro já foi reconhecido. Estamos finalizando a emissão do seu ingresso. Você não precisa pagar novamente.</p><Button className="cut-checkout-primary w-100" onClick={() => syncCurrentPayment({ manual: true })} disabled={syncingNow}>{syncingNow ? "Verificando..." : "Verificar emissão agora"}</Button><div className="cut-checkout-live"><span /><strong>Recuperação automática ativa</strong></div></div>}
               {result && !failed && !approved && <div className="cut-payment-waiting"><div className="cut-payment-waiting__pulse"><i className="fa-solid fa-shield-halved" /></div><h3>Aguardando confirmação</h3><p>Assim que o Mercado Pago confirmar o pagamento, esta página será atualizada automaticamente. Se você já pagou, não gere outro PIX.</p>{method === "pix" && result.payment?.qr_code_image && <div className="cut-pix-qr"><img src={result.payment.qr_code_image} alt="QR Code PIX" /></div>}{method === "pix" && result.payment?.qr_code && <><div className="cut-pix-code">{result.payment.qr_code}</div><Button variant="outline-light" className="w-100" onClick={copyPix} aria-live="polite"><i className={`fa-regular ${pixCopyStatus === "copied" ? "fa-circle-check" : "fa-copy"} me-2`} />{pixCopyStatus === "copied" ? "Código PIX copiado" : pixCopyStatus === "error" ? "Tentar copiar novamente" : "Copiar código PIX"}</Button></>}<Button className="cut-checkout-primary w-100 mt-3" onClick={() => syncCurrentPayment({ manual: true })} disabled={syncingNow}>{syncingNow ? "Verificando pagamento..." : "Já paguei — verificar agora"}</Button><div className="cut-checkout-live"><span /><strong>Confirmação automática ativa</strong></div></div>}
-              {failed && <Alert variant="danger" className="mb-0"><strong>Pagamento não concluído.</strong><div>Escolha outra forma de pagamento ou tente novamente.</div><Button variant="outline-light" className="mt-3" onClick={() => { setResult(null); sessionStorage.removeItem(paymentStorageKey); }}>Tentar novamente</Button></Alert>}
+              {failed && <Alert variant="danger" className="mb-0"><strong>Pagamento não concluído.</strong><div>Esta tentativa não foi concluída. Tente novamente ou escolha outra forma de pagamento disponível.</div><div className="d-grid gap-2 mt-3"><Button variant="outline-light" onClick={() => recoverFailedPayment(method)}>Tentar novamente com {method === "pix" ? "PIX" : "cartão"}</Button>{method !== "pix" && pixAvailable && <Button variant="light" onClick={() => recoverFailedPayment("pix")}><i className="fa-brands fa-pix me-2" />Tentar com PIX</Button>}{method !== "card" && cardAvailable && <Button variant="light" onClick={() => recoverFailedPayment("card")}><i className="fa-regular fa-credit-card me-2" />Tentar com cartão</Button>}</div></Alert>}
             </section>
           </>}
 
