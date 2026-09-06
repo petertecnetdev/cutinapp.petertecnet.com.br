@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import PropTypes from "prop-types";
 import { Alert, Badge, Button, Col, Form, Row } from "react-bootstrap";
 
 const WEEKDAYS = [
@@ -136,3 +137,13 @@ export default function EventSeriesForm({ event, busy = false, onSubmit }) {
     </Button>
   </div>;
 }
+
+EventSeriesForm.propTypes = {
+  event: PropTypes.shape({
+    id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    start_date: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
+    title: PropTypes.string,
+  }),
+  busy: PropTypes.bool,
+  onSubmit: PropTypes.func.isRequired,
+};
