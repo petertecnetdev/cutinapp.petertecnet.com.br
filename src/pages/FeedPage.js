@@ -1,5 +1,5 @@
 import React, { useCallback, useContext, useEffect, useState } from "react";
-import { Alert, Badge, Button, Card, Col, Container, Row } from "react-bootstrap";
+import { Alert, Badge, Button, Card, Col, Container, Form, Row } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import NavlogComponent from "../components/NavlogComponent";
@@ -9,6 +9,7 @@ import { storageUrl } from "../config";
 
 const fmt = (value) => value ? new Intl.DateTimeFormat("pt-BR", { weekday: "short", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" }).format(new Date(value)) : "";
 const imageUrl = (value) => !value ? "" : /^https?:/.test(value) ? value : `${storageUrl}${String(value).replace(/^\//, "")}`;
+const authorName = (post) => [post?.first_name, post?.last_name].filter(Boolean).join(" ") || "Participante Cutinapp";
 const reasonLabel = {
   ticket: "Você tem ingresso",
   interest: "Você acompanha",
@@ -23,14 +24,19 @@ export default function FeedPage() {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
   const [events, setEvents] = useState([]);
+  const [communityActivity, setCommunityActivity] = useState([]);
   const [context, setContext] = useState({});
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [moreLoading, setMoreLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [followedProductions, setFollowedProductions] = useState(() => new Set());
   const [followBusy, setFollowBusy] = useState(null);
+  const [postBody, setPostBody] = useState("");
+  const [postEventId, setPostEventId] = useState("");
+  const [publishing, setPublishing] = useState(false);
 
   const load = useCallback(async (nextPage = 1) => {
     nextPage === 1 ? setLoading(true) : setMoreLoading(true);
@@ -39,7 +45,14 @@ export default function FeedPage() {
       const response = await cutinappService.feed({ page: nextPage, per_page: 12 });
       const batch = response.feed?.data || [];
       setEvents((current) => nextPage === 1 ? batch : [...current, ...batch.filter((item) => !current.some((old) => old.id === item.id))]);
-      if (nextPage === 1) setContext(response.context || {});
+      if (nextPage === 1) {
+        setContext(response.context || {});
+        setCommunityActivity(Array.isArray(response.community_activity) ? response.community_activity : []);
+        setPostEventId((current) => {
+          if (current && batch.some((event) => String(event.id) === String(current))) return current;
+          return batch[0]?.id ? String(batch[0].id) : "";
+        });
+      }
       setFollowedProductions((current) => {
         const next = new Set(current);
         batch.forEach((event) => {
@@ -50,7 +63,7 @@ export default function FeedPage() {
       setPage(response.feed?.current_page || nextPage);
       setLastPage(response.feed?.last_page || 1);
     } catch (err) {
-      setError(err?.message || "Não foi possível montar seu feed agora.");
+      setError(err?.response?.data?.message || err?.message || "Não foi possível montar seu feed agora.");
     } finally {
       setLoading(false);
       setMoreLoading(false);
@@ -58,6 +71,39 @@ export default function FeedPage() {
   }, []);
 
   useEffect(() => { load(1); }, [load]);
+
+  const publishPost = async (event) => {
+    event.preventDefault();
+    setError("");
+    setSuccess("");
+
+    if (!user) {
+      navigate("/login", { state: { from: "/feed" } });
+      return;
+    }
+
+    const body = postBody.trim();
+    if (body.length < 2) {
+      setError("Escreva pelo menos 2 caracteres para publicar.");
+      return;
+    }
+    if (!postEventId) {
+      setError("Escolha o evento relacionado à publicação.");
+      return;
+    }
+
+    setPublishing(true);
+    try {
+      await cutinappService.createEventPost(Number(postEventId), { body });
+      setPostBody("");
+      setSuccess("Publicação enviada para a timeline.");
+      await load(1);
+    } catch (err) {
+      setError(err?.response?.data?.message || err?.message || "Não foi possível publicar agora.");
+    } finally {
+      setPublishing(false);
+    }
+  };
 
   const followProduction = async (event, production) => {
     event.stopPropagation();
@@ -70,7 +116,7 @@ export default function FeedPage() {
       await cutinappService.follow("production", production.id);
       setFollowedProductions((current) => new Set([...current, production.id]));
     } catch (err) {
-      setError(err?.message || "Não foi possível seguir esta produção agora.");
+      setError(err?.response?.data?.message || err?.message || "Não foi possível seguir esta produção agora.");
     } finally {
       setFollowBusy(null);
     }
@@ -78,18 +124,59 @@ export default function FeedPage() {
 
   return <div className="cut-app-page"><NavlogComponent />
     <Container className="cut-page-container py-4 py-lg-5">
-      <div className="cut-page-heading"><div><span className="cut-eyebrow">Timeline</span><h1>Feed Cutinapp</h1><p>Acompanhe os eventos mais recentes da Cutinapp em ordem de criação, além das produções, artistas e experiências que fazem sentido para você.</p>{context.preferred_city && <span className="cut-feed-context"><i className="fa-solid fa-location-dot" /> Sua preferência: {context.preferred_city}{context.preferred_uf ? ` - ${context.preferred_uf}` : ""}</span>}</div><div className="cut-card-actions"><Button onClick={() => navigate("/event")}>Explorar eventos</Button></div></div>
+      <div className="cut-page-heading"><div><span className="cut-eyebrow">Timeline</span><h1>Feed Cutinapp</h1><p>Publique, acompanhe a comunidade e descubra os eventos, produções e artistas que fazem sentido para você.</p>{context.preferred_city && <span className="cut-feed-context"><i className="fa-solid fa-location-dot" /> Sua preferência: {context.preferred_city}{context.preferred_uf ? ` - ${context.preferred_uf}` : ""}</span>}</div><div className="cut-card-actions"><Button onClick={() => navigate("/event")}>Explorar eventos</Button></div></div>
       {error && <Alert variant="danger" dismissible onClose={() => setError("")}>{error}</Alert>}
+      {success && <Alert variant="success" dismissible onClose={() => setSuccess("")}>{success}</Alert>}
 
-      {loading ? <Row className="g-4" aria-busy="true">{Array.from({ length: 6 }).map((_, index) => <Col md={6} xl={4} key={index}><SkeletonCard /></Col>)}</Row> : <section>
-        <div className="cut-section-heading"><div><span className="cut-eyebrow">Novidades</span><h2>Eventos mais recentes</h2></div><Button variant="ghost" onClick={() => navigate("/event")}>Ver descoberta</Button></div>
-        {events.length === 0 ? <Card className="cut-empty-state"><Card.Body><div className="cut-empty-icon"><i className="fa-solid fa-bolt" /></div><h2>A timeline está começando</h2><p>Assim que novos eventos públicos forem criados e publicados, eles aparecerão aqui. Você também pode seguir artistas, produções e demonstrar interesse para enriquecer sua experiência.</p><div className="cut-card-actions justify-content-center"><Button onClick={() => navigate("/event")}>Descobrir eventos</Button><Button variant="outline-light" onClick={() => navigate("/artists")}>Descobrir artistas</Button></div></Card.Body></Card> : <Row className="g-4">{events.map((event) => {
-          const production = event.production;
-          const isFollowing = production?.id && followedProductions.has(production.id);
-          return <Col md={6} xl={4} key={event.id}><Card className="cut-feed-card h-100" onClick={() => navigate(`/event/${event.slug}`)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/event/${event.slug}`); } }} role="link" tabIndex={0}><div className="cut-event-card__media">{event.image ? <img src={imageUrl(event.image)} alt={event.title} loading="lazy" /> : <div className="cut-event-card__placeholder"><i className="fa-regular fa-calendar" /></div>}<Badge className="cut-event-card__category">{reasonLabel[event.feed_reason] || reasonLabel.discovery}</Badge></div><Card.Body className="p-4"><div className="cut-feed-source"><span>{production?.name || "Cutinapp"}</span><small>{event.city || ""}</small></div><h2>{event.title}</h2><p><i className="fa-regular fa-calendar me-2" />{fmt(event.start_date)}</p>{event.artists?.length > 0 && <div className="cut-lineup-preview">{event.artists.slice(0, 4).map((artist) => <span key={artist.id}>{artist.stage_name}</span>)}</div>}{production?.id && <div className="cut-card-actions mt-3"><Button size="sm" variant={isFollowing ? "outline-light" : "primary"} disabled={isFollowing || followBusy === production.id} onClick={(clickEvent) => followProduction(clickEvent, production)}>{followBusy === production.id ? "Seguindo..." : isFollowing ? "Produção seguida" : "Seguir produção"}</Button></div>}</Card.Body></Card></Col>;
-        })}</Row>}
-        {page < lastPage && <div className="cut-load-more"><Button variant="outline-light" disabled={moreLoading} onClick={() => load(page + 1)}>{moreLoading ? "Carregando..." : "Carregar mais eventos"}</Button></div>}
-      </section>}
+      {!loading && events.length > 0 && <Card className="cut-feed-card mb-4">
+        <Card.Body className="p-4">
+          <div className="cut-section-heading mb-3"><div><span className="cut-eyebrow">Comunidade</span><h2>Compartilhe com a timeline</h2></div></div>
+          <Form onSubmit={publishPost}>
+            <Form.Group className="mb-3" controlId="timeline-event">
+              <Form.Label>Evento relacionado</Form.Label>
+              <Form.Select value={postEventId} onChange={(event) => setPostEventId(event.target.value)} disabled={publishing}>
+                {events.map((event) => <option value={event.id} key={event.id}>{event.title}</option>)}
+              </Form.Select>
+            </Form.Group>
+            <Form.Group className="mb-3" controlId="timeline-post">
+              <Form.Label>O que você quer compartilhar?</Form.Label>
+              <Form.Control as="textarea" rows={3} maxLength={3000} value={postBody} onChange={(event) => setPostBody(event.target.value)} placeholder="Conte algo sobre o evento, combine com a galera ou compartilhe sua expectativa..." disabled={publishing} />
+              <Form.Text>{postBody.length}/3000</Form.Text>
+            </Form.Group>
+            <div className="cut-card-actions justify-content-end">
+              <Button type="submit" disabled={publishing || postBody.trim().length < 2 || !postEventId}>{publishing ? "Publicando..." : "Publicar na timeline"}</Button>
+            </div>
+          </Form>
+        </Card.Body>
+      </Card>}
+
+      {loading ? <Row className="g-4" aria-busy="true">{Array.from({ length: 6 }).map((_, index) => <Col md={6} xl={4} key={index}><SkeletonCard /></Col>)}</Row> : <>
+        {communityActivity.length > 0 && <section className="mb-5">
+          <div className="cut-section-heading"><div><span className="cut-eyebrow">Comunidade</span><h2>Publicações recentes</h2></div></div>
+          <Row className="g-4">{communityActivity.map((post) => <Col lg={6} key={post.id}>
+            <Card className="cut-feed-card h-100">
+              <Card.Body className="p-4">
+                <div className="d-flex align-items-center gap-3 mb-3">
+                  {post.avatar ? <img src={imageUrl(post.avatar)} alt="" width="44" height="44" className="rounded-circle object-fit-cover" /> : <div className="cut-empty-icon" style={{ width: 44, height: 44, margin: 0 }}><i className="fa-regular fa-user" /></div>}
+                  <div><strong>{authorName(post)}</strong><div><small>{fmt(post.created_at)}</small></div></div>
+                </div>
+                <p className="mb-3" style={{ whiteSpace: "pre-wrap" }}>{post.body}</p>
+                <Button variant="outline-light" size="sm" onClick={() => navigate(`/event/${post.event_slug}#comunidade`)}>{post.event_title || "Ver evento"}</Button>
+              </Card.Body>
+            </Card>
+          </Col>)}</Row>
+        </section>}
+
+        <section>
+          <div className="cut-section-heading"><div><span className="cut-eyebrow">Novidades</span><h2>Eventos mais recentes</h2></div><Button variant="ghost" onClick={() => navigate("/event")}>Ver descoberta</Button></div>
+          {events.length === 0 ? <Card className="cut-empty-state"><Card.Body><div className="cut-empty-icon"><i className="fa-solid fa-bolt" /></div><h2>A timeline está começando</h2><p>Assim que novos eventos públicos forem criados e publicados, eles aparecerão aqui. Você também pode seguir artistas, produções e demonstrar interesse para enriquecer sua experiência.</p><div className="cut-card-actions justify-content-center"><Button onClick={() => navigate("/event")}>Descobrir eventos</Button><Button variant="outline-light" onClick={() => navigate("/artists")}>Descobrir artistas</Button></div></Card.Body></Card> : <Row className="g-4">{events.map((event) => {
+            const production = event.production;
+            const isFollowing = production?.id && followedProductions.has(production.id);
+            return <Col md={6} xl={4} key={event.id}><Card className="cut-feed-card h-100" onClick={() => navigate(`/event/${event.slug}`)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/event/${event.slug}`); } }} role="link" tabIndex={0}><div className="cut-event-card__media">{event.image ? <img src={imageUrl(event.image)} alt={event.title} loading="lazy" /> : <div className="cut-event-card__placeholder"><i className="fa-regular fa-calendar" /></div>}<Badge className="cut-event-card__category">{reasonLabel[event.feed_reason] || reasonLabel.discovery}</Badge></div><Card.Body className="p-4"><div className="cut-feed-source"><span>{production?.name || "Cutinapp"}</span><small>{event.city || ""}</small></div><h2>{event.title}</h2><p><i className="fa-regular fa-calendar me-2" />{fmt(event.start_date)}</p>{event.artists?.length > 0 && <div className="cut-lineup-preview">{event.artists.slice(0, 4).map((artist) => <span key={artist.id}>{artist.stage_name}</span>)}</div>}{production?.id && <div className="cut-card-actions mt-3"><Button size="sm" variant={isFollowing ? "outline-light" : "primary"} disabled={isFollowing || followBusy === production.id} onClick={(clickEvent) => followProduction(clickEvent, production)}>{followBusy === production.id ? "Seguindo..." : isFollowing ? "Produção seguida" : "Seguir produção"}</Button></div>}</Card.Body></Card></Col>;
+          })}</Row>}
+          {page < lastPage && <div className="cut-load-more"><Button variant="outline-light" disabled={moreLoading} onClick={() => load(page + 1)}>{moreLoading ? "Carregando..." : "Carregar mais eventos"}</Button></div>}
+        </section>
+      </>}
     </Container>
   </div>;
 }
