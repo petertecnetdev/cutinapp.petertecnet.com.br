@@ -12,6 +12,7 @@ import ConnectionStatus from "./components/ConnectionStatus";
 import CutinappVisualEffects from "./components/CutinappVisualEffects";
 import PeterTecnetSignature from "./components/PeterTecnetSignature";
 import ProcessingIndicatorComponent from "./components/ProcessingIndicatorComponent";
+import ProductionCatalogImportShortcut from "./components/production/ProductionCatalogImportShortcut";
 import SeoManager from "./components/SeoManager";
 import authService from "./services/AuthService";
 import { hasContextRole } from "./utils/applicationRoles";
@@ -37,6 +38,7 @@ const ProductionMinePage = lazy(() => import("./pages/production/ProductionMineP
 const ProductionViewPage = lazy(() => import("./pages/production/ProductionViewPage"));
 const ProductionPublicPage = lazy(() => import("./pages/production/ProductionPublicPage"));
 const ProductionUpdatePage = lazy(() => import("./pages/production/ProductionUpdatePage"));
+const ProductionItemImportPage = lazy(() => import("./pages/production/ProductionItemImportPage"));
 const ProductionFinancePage = lazy(() => import("./pages/production/ProductionFinancePage"));
 const ProducerContractsPage = lazy(() => import("./pages/production/ProducerContractsPage"));
 const ProductionAgendaManager = lazy(() => import("./pages/production/ProductionAgendaManager"));
@@ -110,6 +112,7 @@ function AppRoutes() {
     <>
       <ConnectionStatus />
       <CutinappVisualEffects />
+      <ProductionCatalogImportShortcut />
       <AppErrorBoundary resetKey={routeKey}>
         <Suspense fallback={<ProcessingIndicatorComponent label="Carregando página" />}>
           <SeoManager />
@@ -149,6 +152,7 @@ function AppRoutes() {
             <Route path="/production/:productionId/agenda/new" element={protectedRoute(<ProductionAgendaFormPage />)} />
             <Route path="/production/:productionId/agenda/:scheduleId/edit" element={protectedRoute(<ProductionAgendaFormPage />)} />
             <Route path="/production/:slug/public" element={<ProductionPublicPage />} />
+            <Route path="/production/:id/items/import" element={protectedRoute(<ProductionItemImportPage />)} />
             <Route path="/production/:id" element={protectedRoute(<ProductionViewPage />)} />
             <Route path="/production/edit/:id" element={protectedRoute(<ProductionUpdatePage />)} />
 
