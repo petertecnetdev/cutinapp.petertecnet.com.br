@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Button, Container } from "react-bootstrap";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import MercadoPagoCardForm from "../../components/payment/MercadoPagoCardForm";
@@ -7,6 +7,7 @@ import { AuthContext } from "../../context/AuthContext";
 import commerceService from "../../services/CommerceService";
 import { clearCheckoutRecovery, readCheckoutRecovery, writeCheckoutRecovery } from "../../utils/checkoutRecovery";
 import { resolveCheckoutPaymentMethod } from "../../utils/paymentMethod";
+import { createKeyedSingleFlight } from "../../utils/singleFlight";
 import "./CheckoutPage.css";
 
 const money = (value) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
@@ -38,6 +39,7 @@ export default function CheckoutPage() {
   const resultRef = useRef(result);
   const trackedStatusRef = useRef("");
   const checkoutViewedRef = useRef(false);
+  const paymentSyncGateRef = useRef(createKeyedSingleFlight());
   resultRef.current = result;
 
   const checkoutStorageKey = `cutinapp_checkout_${slug}`;
@@ -175,12 +177,16 @@ export default function CheckoutPage() {
     });
   }, [approved, catalog?.event?.id, failed, fulfilled, fulfillmentStatus, method, orderStatus, result?.order?.public_id, result?.order?.total, slug, total]);
 
+  const requestPaymentSync = useCallback((publicId) => (
+    paymentSyncGateRef.current.run(publicId, () => commerceService.syncPayment(publicId))
+  ), []);
+
   const syncCurrentPayment = async ({ manual = false } = {}) => {
     const publicId = resultRef.current?.order?.public_id;
-    if (!publicId || syncingNow) return;
+    if (!publicId) return;
     if (manual) setSyncingNow(true);
     try {
-      const order = await commerceService.syncPayment(publicId);
+      const order = await requestPaymentSync(publicId);
       const payments = Array.isArray(order?.payments) ? order.payments : [];
       const latestPayment = payments.length ? payments[payments.length - 1] : resultRef.current?.payment;
       setResult((current) => ({ ...current, order, payment: latestPayment || current?.payment }));
@@ -209,7 +215,7 @@ export default function CheckoutPage() {
       if (!active || syncing || document.visibilityState === "hidden") return;
       syncing = true;
       try {
-        const order = await commerceService.syncPayment(publicId);
+        const order = await requestPaymentSync(publicId);
         if (!active) return;
         const payments = Array.isArray(order?.payments) ? order.payments : [];
         const latestPayment = payments.length ? payments[payments.length - 1] : resultRef.current?.payment;
@@ -238,7 +244,7 @@ export default function CheckoutPage() {
       window.removeEventListener("focus", handleFocus);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [result?.order?.public_id, result?.order?.status, result?.order?.metadata?.fulfillment_status, paymentStorageKey]);
+  }, [result?.order?.public_id, result?.order?.status, result?.order?.metadata?.fulfillment_status, paymentStorageKey, requestPaymentSync, slug]);
 
   const payload = (paymentMethod) => ({
     event_id: catalog?.event?.id,
