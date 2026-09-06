@@ -216,7 +216,7 @@ export default function CheckoutPage() {
     const publicId = result?.order?.public_id;
     const status = result?.order?.status || result?.payment?.status;
     const fulfillment = result?.order?.metadata?.fulfillment_status;
-    const terminal = failedStatusEs.includes(status) || (status === "paid" && fulfillment === "completed");
+    const terminal = failedStatuses.includes(status) || (status === "paid" && fulfillment === "completed");
     if (!publicId || terminal) return undefined;
     let active = true;
     let syncing = false;
