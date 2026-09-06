@@ -76,11 +76,35 @@ const search = async (params = {}) => {
   }
 };
 
+const store = async (formData) => {
+  const useCatalogItems = typeof formData?.get === "function"
+    && String(formData.get("use_production_items") || "0") === "1";
+  const response = (await appApiClient.post("/events", formData)).data;
+  const eventId = Number(response?.event?.id || 0);
+
+  if (useCatalogItems && eventId) {
+    try {
+      const catalog = (await appApiClient.put(`/events/${eventId}/catalog-items`, {
+        all_active: true,
+        replace: true,
+      })).data;
+      return { ...response, catalog_import: catalog };
+    } catch (error) {
+      return {
+        ...response,
+        catalog_import_warning: error?.message || "O evento foi criado, mas os produtos do estabelecimento não puderam ser importados automaticamente.",
+      };
+    }
+  }
+
+  return response;
+};
+
 const eventService = {
   search,
   list: async (params = {}) => unwrap((await appApiClient.get("/events", { params })).data.events),
   view: async (slug) => (await appApiClient.get(`/events/public/${slug}`)).data,
-  store: async (formData) => (await appApiClient.post("/events", formData)).data,
+  store,
   update: async (eventId, formData) => (await appApiClient.patch(`/events/${eventId}`, formData)).data,
   show: async (eventId) => (await appApiClient.get(`/events/${eventId}/manage`)).data.event,
   myEvents: async (params = {}) => unwrap((await appApiClient.get("/events/mine", { params: { per_page: 100, ...params } })).data.events),
