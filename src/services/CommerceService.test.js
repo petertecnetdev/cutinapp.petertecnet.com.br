@@ -18,9 +18,14 @@ const payload = {
   items: [],
 };
 
+const idempotencyKeyAt = (callIndex) => (
+  appApiClient.post.mock.calls[callIndex]?.[2]?.headers?.["Idempotency-Key"]
+);
+
 describe("CommerceService", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    sessionStorage.clear();
   });
 
   test("loads date-aware purchase options for an event", async () => {
@@ -58,12 +63,13 @@ describe("CommerceService", () => {
 
     expect(appApiClient.post).toHaveBeenCalledTimes(1);
     expect(second).toBe(first);
+    expect(idempotencyKeyAt(0)).toBeTruthy();
 
     resolveRequest({ data: { order: { public_id: "order-1" } } });
     await expect(first).resolves.toEqual({ order: { public_id: "order-1" } });
   });
 
-  test("allows a new checkout after the previous request finishes", async () => {
+  test("allows a new checkout with a new key after the previous request succeeds", async () => {
     appApiClient.post
       .mockResolvedValueOnce({ data: { order: { public_id: "order-1" } } })
       .mockResolvedValueOnce({ data: { order: { public_id: "order-2" } } });
@@ -72,6 +78,50 @@ describe("CommerceService", () => {
     await commerceService.checkout(payload);
 
     expect(appApiClient.post).toHaveBeenCalledTimes(2);
+    expect(idempotencyKeyAt(0)).toBeTruthy();
+    expect(idempotencyKeyAt(1)).toBeTruthy();
+    expect(idempotencyKeyAt(1)).not.toBe(idempotencyKeyAt(0));
+  });
+
+  test("reuses the same key after an ambiguous network failure", async () => {
+    const networkError = Object.assign(new Error("Network Error"), { code: "ERR_NETWORK" });
+    appApiClient.post
+      .mockRejectedValueOnce(networkError)
+      .mockResolvedValueOnce({ data: { order: { public_id: "order-1" } } });
+
+    await expect(commerceService.checkout(payload)).rejects.toThrow("Network Error");
+    const firstKey = idempotencyKeyAt(0);
+
+    await expect(commerceService.checkout(payload)).resolves.toEqual({ order: { public_id: "order-1" } });
+
+    expect(firstKey).toBeTruthy();
+    expect(idempotencyKeyAt(1)).toBe(firstKey);
+  });
+
+  test("keeps the same key while the server reports the operation is still processing", async () => {
+    appApiClient.post
+      .mockRejectedValueOnce({ status: 409, message: "Esta operação já está em processamento." })
+      .mockResolvedValueOnce({ data: { order: { public_id: "order-1" } } });
+
+    await expect(commerceService.checkout(payload)).rejects.toMatchObject({ status: 409 });
+    const firstKey = idempotencyKeyAt(0);
+
+    await commerceService.checkout(payload);
+
+    expect(idempotencyKeyAt(1)).toBe(firstKey);
+  });
+
+  test("uses a new key after a definitive validation failure", async () => {
+    appApiClient.post
+      .mockRejectedValueOnce({ status: 422, message: "Dados inválidos" })
+      .mockResolvedValueOnce({ data: { order: { public_id: "order-1" } } });
+
+    await expect(commerceService.checkout(payload)).rejects.toMatchObject({ status: 422 });
+    const rejectedKey = idempotencyKeyAt(0);
+
+    await commerceService.checkout(payload);
+
+    expect(idempotencyKeyAt(1)).not.toBe(rejectedKey);
   });
 
   test("does not coalesce distinct carts", async () => {
