@@ -1,10 +1,19 @@
 import appApiClient from "./AppApiClient";
+import { isNetworkFailure } from "../utils/networkStatus";
 
 const pendingCheckouts = new Map();
+const fallbackAttempts = new Map();
+const CHECKOUT_ATTEMPT_PREFIX = "cutinapp_checkout_attempt_";
 
 const checkoutRequestKey = (payload = {}) => JSON.stringify({
   event_id: Number(payload.event_id || 0),
   payment_method: String(payload.payment_method || ""),
+  payment_method_id: String(payload.payment_method_id || ""),
+  issuer_id: String(payload.issuer_id || ""),
+  installments: Number(payload.installments || 0),
+  payer_email: String(payload.payer_email || "").trim().toLowerCase(),
+  payer_identification_type: String(payload.payer_identification_type || ""),
+  payer_identification_number: String(payload.payer_identification_number || "").replace(/\D+/g, ""),
   tickets: (Array.isArray(payload.tickets) ? payload.tickets : []).map((item) => ({
     id: Number(item?.id || 0),
     quantity: Number(item?.quantity || 0),
@@ -15,19 +24,84 @@ const checkoutRequestKey = (payload = {}) => JSON.stringify({
   })),
 });
 
+const requestKeyHash = (value) => {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(16).padStart(8, "0");
+};
+
+const createIdempotencyKey = () => {
+  if (typeof globalThis.crypto?.randomUUID === "function") return globalThis.crypto.randomUUID();
+  return `checkout-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 14)}`;
+};
+
+const storageFor = (requestKey) => `${CHECKOUT_ATTEMPT_PREFIX}${requestKeyHash(requestKey)}`;
+
+const readAttempt = (requestKey) => {
+  const storageKey = storageFor(requestKey);
+  try {
+    const stored = JSON.parse(sessionStorage.getItem(storageKey) || "null");
+    if (stored?.requestKey === requestKey && stored?.idempotencyKey) return stored.idempotencyKey;
+  } catch (_) {
+    // Memory fallback below keeps checkout working when storage is unavailable.
+  }
+  return fallbackAttempts.get(requestKey) || null;
+};
+
+const saveAttempt = (requestKey, idempotencyKey) => {
+  fallbackAttempts.set(requestKey, idempotencyKey);
+  try {
+    sessionStorage.setItem(storageFor(requestKey), JSON.stringify({ requestKey, idempotencyKey }));
+  } catch (_) {
+    // Private browsing/storage restrictions are covered by the memory fallback.
+  }
+};
+
+const clearAttempt = (requestKey) => {
+  fallbackAttempts.delete(requestKey);
+  try {
+    sessionStorage.removeItem(storageFor(requestKey));
+  } catch (_) {
+    // Nothing else to clean up.
+  }
+};
+
+const idempotencyKeyFor = (requestKey) => {
+  const existing = readAttempt(requestKey);
+  if (existing) return existing;
+  const created = createIdempotencyKey();
+  saveAttempt(requestKey, created);
+  return created;
+};
+
+const shouldKeepAttempt = (error) => isNetworkFailure(error) || Number(error?.status || 0) === 409;
+
 const checkout = (payload) => {
-  const key = checkoutRequestKey(payload);
-  const pending = pendingCheckouts.get(key);
+  const requestKey = checkoutRequestKey(payload);
+  const pending = pendingCheckouts.get(requestKey);
   if (pending) return pending;
 
+  const idempotencyKey = idempotencyKeyFor(requestKey);
   const request = appApiClient
-    .post("/commerce/checkout", payload)
-    .then((response) => response.data)
+    .post("/commerce/checkout", payload, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    })
+    .then((response) => {
+      clearAttempt(requestKey);
+      return response.data;
+    })
+    .catch((error) => {
+      if (!shouldKeepAttempt(error)) clearAttempt(requestKey);
+      throw error;
+    })
     .finally(() => {
-      if (pendingCheckouts.get(key) === request) pendingCheckouts.delete(key);
+      if (pendingCheckouts.get(requestKey) === request) pendingCheckouts.delete(requestKey);
     });
 
-  pendingCheckouts.set(key, request);
+  pendingCheckouts.set(requestKey, request);
   return request;
 };
 
