@@ -38,7 +38,9 @@ export default function MercadoPagoCardForm({ publicKey, amount, email, disabled
   const disabledRef = useRef(disabled);
   const emailRef = useRef(email);
   const cardFormRef = useRef(null);
+  const submittingRef = useRef(false);
   const [ready, setReady] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   submitRef.current = onSubmit;
@@ -48,6 +50,8 @@ export default function MercadoPagoCardForm({ publicKey, amount, email, disabled
   useEffect(() => {
     let active = true;
     let localCardForm = null;
+    submittingRef.current = false;
+    setSubmitting(false);
     setReady(false);
     setError("");
 
@@ -83,22 +87,33 @@ export default function MercadoPagoCardForm({ publicKey, amount, email, disabled
             },
             onSubmit: async (event) => {
               event.preventDefault();
-              if (!localCardForm || disabledRef.current) return;
+              if (!localCardForm || disabledRef.current || submittingRef.current) return;
               const data = localCardForm.getCardFormData();
               if (!data?.token || !data?.paymentMethodId || !data?.installments) {
                 setError("Confira os dados do cartão antes de continuar.");
                 return;
               }
-              setError("");
-              await submitRef.current?.({
-                card_token: data.token,
-                payment_method_id: data.paymentMethodId,
-                issuer_id: data.issuerId || undefined,
-                installments: Number(data.installments),
-                payer_identification_type: data.identificationType || "CPF",
-                payer_identification_number: data.identificationNumber || "",
-                payer_email: data.cardholderEmail || emailRef.current || "",
-              });
+
+              submittingRef.current = true;
+              if (active) {
+                setSubmitting(true);
+                setError("");
+              }
+
+              try {
+                await submitRef.current?.({
+                  card_token: data.token,
+                  payment_method_id: data.paymentMethodId,
+                  issuer_id: data.issuerId || undefined,
+                  installments: Number(data.installments),
+                  payer_identification_type: data.identificationType || "CPF",
+                  payer_identification_number: data.identificationNumber || "",
+                  payer_email: data.cardholderEmail || emailRef.current || "",
+                });
+              } finally {
+                submittingRef.current = false;
+                if (active) setSubmitting(false);
+              }
             },
             onFetching: () => {
               setReady(false);
@@ -112,10 +127,13 @@ export default function MercadoPagoCardForm({ publicKey, amount, email, disabled
 
     return () => {
       active = false;
+      submittingRef.current = false;
       if (cardFormRef.current === localCardForm) cardFormRef.current = null;
       if (typeof localCardForm?.unmount === "function") localCardForm.unmount();
     };
   }, [publicKey, amount]);
+
+  const paymentBusy = disabled || submitting;
 
   return <div className="cut-payment-card-shell mt-3">
     <div className="cut-payment-card-head">
@@ -178,9 +196,9 @@ export default function MercadoPagoCardForm({ publicKey, amount, email, disabled
         <div><strong>Total transparente</strong><span>Este é o valor enviado para o pagamento. Nenhuma taxa adicional será acrescentada pela Cutinapp nesta etapa.</span></div>
       </div>
 
-      <Button id="cut-mp-card-submit" type="submit" className="w-100 cut-payment-submit" disabled={disabled || !ready} aria-busy={disabled || !ready}>
+      <Button id="cut-mp-card-submit" type="submit" className="w-100 cut-payment-submit" disabled={paymentBusy || !ready} aria-busy={paymentBusy || !ready}>
         <i className="fa-solid fa-lock me-2" />
-        {disabled ? "Processando pagamento..." : ready ? `Pagar ${money(amount)} com cartão` : "Preparando ambiente seguro..."}
+        {paymentBusy ? "Processando pagamento..." : ready ? `Pagar ${money(amount)} com cartão` : "Preparando ambiente seguro..."}
       </Button>
     </form>
 
