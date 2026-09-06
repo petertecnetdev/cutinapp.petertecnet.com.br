@@ -1,6 +1,7 @@
 import axios from "axios";
 import { apiBaseUrl, appSlug } from "../config";
 import { humanizeApiErrorMessage } from "../utils/apiErrorMessage";
+import { getRetryDelayMs, shouldRetryRequest } from "../utils/apiRetryPolicy";
 
 const firstValidationMessage = (errors) => {
   if (!errors || typeof errors !== "object") return "";
@@ -18,6 +19,8 @@ const publishAuthInvalidation = (requestUrl) => {
     },
   }));
 };
+
+const wait = (delayMs) => new Promise((resolve) => setTimeout(resolve, delayMs));
 
 export const createApiClient = (baseURL) => {
   const client = axios.create({
@@ -50,7 +53,17 @@ export const createApiClient = (baseURL) => {
 
   client.interceptors.response.use(
     (response) => response,
-    (error) => {
+    async (error) => {
+      if (shouldRetryRequest(error)) {
+        const retryConfig = {
+          ...error.config,
+          _peterRetryCount: Number(error.config?._peterRetryCount || 0) + 1,
+        };
+
+        await wait(getRetryDelayMs(error));
+        return client.request(retryConfig);
+      }
+
       const status = error.response?.status;
       const requestUrl = String(error.config?.url || "");
       const keepSessionOn401 =
