@@ -1,22 +1,21 @@
 import React, { useEffect, useRef, useState } from "react";
 import PropTypes from "prop-types";
 import { Alert, Button } from "react-bootstrap";
+import { loadExternalScript } from "../../utils/loadExternalScript";
 
-const loadMercadoPago = () => new Promise((resolve, reject) => {
-  if (window.MercadoPago) return resolve(window.MercadoPago);
-  const existing = document.querySelector('script[data-mercadopago-sdk="true"]');
-  if (existing) {
-    existing.addEventListener("load", () => resolve(window.MercadoPago), { once: true });
-    existing.addEventListener("error", reject, { once: true });
-    return;
-  }
-  const script = document.createElement("script");
-  script.src = "https://sdk.mercadopago.com/js/v2";
-  script.async = true;
-  script.dataset.mercadopagoSdk = "true";
-  script.onload = () => resolve(window.MercadoPago);
-  script.onerror = () => reject(new Error("Não foi possível carregar o ambiente seguro do Mercado Pago."));
-  document.head.appendChild(script);
+const MERCADO_PAGO_SDK_SRC = "https://sdk.mercadopago.com/js/v2";
+const MERCADO_PAGO_SDK_TIMEOUT_MS = 15000;
+
+const loadMercadoPago = () => loadExternalScript({
+  src: MERCADO_PAGO_SDK_SRC,
+  selector: 'script[data-mercadopago-sdk="true"]',
+  isReady: () => window.MercadoPago,
+  timeoutMs: MERCADO_PAGO_SDK_TIMEOUT_MS,
+  attributes: {
+    "data-mercadopago-sdk": "true",
+    referrerpolicy: "strict-origin-when-cross-origin",
+  },
+  errorMessage: "Não foi possível carregar o ambiente seguro do Mercado Pago. Verifique sua conexão e tente novamente.",
 });
 
 const secureFieldStyle = {
@@ -131,7 +130,7 @@ export default function MercadoPagoCardForm({ publicKey, amount, email, disabled
     </div>
 
     <form id="cut-mp-card-form" className="cut-payment-card-form">
-      {error && <Alert variant="danger">{error}</Alert>}
+      {error && <Alert variant="danger" role="alert" aria-live="assertive">{error}</Alert>}
 
       <label className="cut-payment-label" htmlFor="cut-mp-card-number">Número do cartão</label>
       <div className="cut-payment-secure-field" id="cut-mp-card-number" style={secureFieldStyle} />
@@ -163,14 +162,14 @@ export default function MercadoPagoCardForm({ publicKey, amount, email, disabled
 
       <label className="cut-payment-label">Documento do titular</label>
       <div className="cut-payment-grid cut-payment-grid--document">
-        <select className="form-select cut-payment-input" id="cut-mp-card-document-type" defaultValue=""><option value="" disabled>Tipo</option></select>
-        <input className="form-control cut-payment-input" id="cut-mp-card-document" type="text" inputMode="numeric" placeholder="Número do documento" />
+        <select className="form-select cut-payment-input" id="cut-mp-card-document-type" defaultValue="" aria-label="Tipo de documento"><option value="" disabled>Tipo</option></select>
+        <input className="form-control cut-payment-input" id="cut-mp-card-document" type="text" inputMode="numeric" autoComplete="off" aria-label="Número do documento" placeholder="Número do documento" />
       </div>
 
       <label className="cut-payment-label" htmlFor="cut-mp-card-email">E-mail para confirmação</label>
-      <input className="form-control cut-payment-input" id="cut-mp-card-email" type="email" defaultValue={email || ""} placeholder="seu@email.com" />
+      <input className="form-control cut-payment-input" id="cut-mp-card-email" type="email" autoComplete="email" defaultValue={email || ""} placeholder="seu@email.com" />
 
-      <div className="cut-payment-summary">
+      <div className="cut-payment-summary" aria-live="polite">
         <span>Valor final desta compra</span>
         <strong>{money(amount)}</strong>
       </div>
@@ -179,7 +178,7 @@ export default function MercadoPagoCardForm({ publicKey, amount, email, disabled
         <div><strong>Total transparente</strong><span>Este é o valor enviado para o pagamento. Nenhuma taxa adicional será acrescentada pela Cutinapp nesta etapa.</span></div>
       </div>
 
-      <Button id="cut-mp-card-submit" type="submit" className="w-100 cut-payment-submit" disabled={disabled || !ready}>
+      <Button id="cut-mp-card-submit" type="submit" className="w-100 cut-payment-submit" disabled={disabled || !ready} aria-busy={disabled || !ready}>
         <i className="fa-solid fa-lock me-2" />
         {disabled ? "Processando pagamento..." : ready ? `Pagar ${money(amount)} com cartão` : "Preparando ambiente seguro..."}
       </Button>
