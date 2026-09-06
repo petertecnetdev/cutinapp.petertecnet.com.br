@@ -6,6 +6,7 @@ import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorCo
 import { AuthContext } from "../../context/AuthContext";
 import commerceService from "../../services/CommerceService";
 import { clearCheckoutRecovery, readCheckoutRecovery, writeCheckoutRecovery } from "../../utils/checkoutRecovery";
+import { copyText } from "../../utils/clipboard";
 import { resolveCheckoutPaymentMethod } from "../../utils/paymentMethod";
 import { getPaymentSyncDelay } from "../../utils/paymentSyncSchedule";
 import { createKeyedSingleFlight } from "../../utils/singleFlight";
@@ -215,7 +216,7 @@ export default function CheckoutPage() {
     const publicId = result?.order?.public_id;
     const status = result?.order?.status || result?.payment?.status;
     const fulfillment = result?.order?.metadata?.fulfillment_status;
-    const terminal = failedStatuses.includes(status) || (status === "paid" && fulfillment === "completed");
+    const terminal = failedStatusEs.includes(status) || (status === "paid" && fulfillment === "completed");
     if (!publicId || terminal) return undefined;
     let active = true;
     let syncing = false;
@@ -380,7 +381,8 @@ export default function CheckoutPage() {
     if (!pixCode) return;
 
     try {
-      await navigator.clipboard.writeText(pixCode);
+      const copied = await copyText(pixCode);
+      if (!copied) throw new Error("clipboard_unavailable");
       setPixCopyStatus("copied");
       setError("");
       trackCheckout("pix_code_copied", {
