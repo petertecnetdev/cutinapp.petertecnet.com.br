@@ -100,12 +100,48 @@ export default function EventCreatePage() {
     const selectedProduction = new URLSearchParams(location.search).get("productionId") || "";
 
     cutinappService.myProductions()
-      .then((items) => {
+      .then(async (items) => {
         if (!active) return;
         setProductions(items);
         const requested = items.some((item) => String(item.id) === selectedProduction) ? selectedProduction : "";
         const fallback = requested || (items.length === 1 ? String(items[0].id) : "");
         setForm((current) => ({ ...current, production_id: fallback }));
+
+        if (!requested) return;
+
+        const fallbackProduction = items.find((item) => String(item.id) === requested);
+        let production = fallbackProduction;
+        try {
+          production = await cutinappService.getProduction(requested);
+        } catch (fetchError) {
+          if (!fallbackProduction) throw fetchError;
+        }
+        if (!active || !production) return;
+
+        setForm((current) => ({
+          ...current,
+          production_id: requested,
+          title: current.title || production?.name || "",
+          description: current.description || production?.description || "",
+          venue: current.venue || production?.fantasy || production?.name || "",
+          address: current.address || productionAddress(production),
+          google_maps_url: current.google_maps_url || production?.google_maps_url || "",
+          city: current.city || production?.city || "",
+          uf: current.uf || String(production?.uf || "").toUpperCase().slice(0, 2),
+          max_attendees: current.max_attendees || production?.capacity || "",
+          contact_email: current.contact_email || production?.contact_email || production?.email || "",
+          contact_phone: current.contact_phone || production?.contact_phone || production?.phone || "",
+        }));
+        setProductionTemplateApplied(true);
+        try {
+          window.PeterTecnetTelemetry?.track?.("producer_event_template_auto_applied", {
+            label: "Dados da produção aplicados automaticamente",
+            target: requested,
+            metadata: { activation_stage: "event_creation", next_step: "create_ticket" },
+          });
+        } catch (_) {
+          // Telemetry must never interrupt producer onboarding.
+        }
       })
       .catch((err) => active && setError(err?.message || "Não foi possível carregar suas produções."))
       .finally(() => active && setLoadingProductions(false));
