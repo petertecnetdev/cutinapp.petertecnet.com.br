@@ -23,14 +23,23 @@ const normalizeSelection = (selection) => {
 };
 
 export const clearCheckoutRecovery = (slug) => {
-  if (!slug) return;
-  try { storage()?.removeItem(storageKey(slug)); } catch (_) { /* Storage is best-effort. */ }
+  if (!slug) return false;
+  const browserStorage = storage();
+  if (!browserStorage) return false;
+  try {
+    browserStorage.removeItem(storageKey(slug));
+    return true;
+  } catch (_) {
+    return false;
+  }
 };
 
 export const readCheckoutRecovery = (slug, now = Date.now()) => {
   if (!slug) return null;
+  const browserStorage = storage();
+  if (!browserStorage) return null;
   try {
-    const raw = storage()?.getItem(storageKey(slug));
+    const raw = browserStorage.getItem(storageKey(slug));
     if (!raw) return null;
     const value = JSON.parse(raw);
     const savedAt = Number(value?.savedAt || 0);
@@ -59,8 +68,12 @@ export const writeCheckoutRecovery = (slug, { selection, orderPublicId } = {}, n
     clearCheckoutRecovery(slug);
     return false;
   }
+
+  const browserStorage = storage();
+  if (!browserStorage) return false;
+
   try {
-    storage()?.setItem(storageKey(slug), JSON.stringify({
+    browserStorage.setItem(storageKey(slug), JSON.stringify({
       version: 1,
       selection: normalizedSelection,
       orderPublicId: normalizedOrderPublicId || null,
