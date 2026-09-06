@@ -1,15 +1,9 @@
+import { safeGetLocalJson, safeRemoveLocalItem, safeSetLocalJson } from "./safeStorage";
+
 const CHECKOUT_RECOVERY_PREFIX = "cutinapp_checkout_recovery_";
 export const CHECKOUT_RECOVERY_TTL_MS = 48 * 60 * 60 * 1000;
 
 const storageKey = (slug) => `${CHECKOUT_RECOVERY_PREFIX}${String(slug || "").trim()}`;
-
-const storage = () => {
-  try {
-    return typeof window !== "undefined" ? window.localStorage : null;
-  } catch (_) {
-    return null;
-  }
-};
 
 const normalizeLines = (lines) => (Array.isArray(lines) ? lines : [])
   .map((item) => ({ id: Number(item?.id || 0), quantity: Number(item?.quantity || 0) }))
@@ -24,40 +18,28 @@ const normalizeSelection = (selection) => {
 
 export const clearCheckoutRecovery = (slug) => {
   if (!slug) return false;
-  const browserStorage = storage();
-  if (!browserStorage) return false;
-  try {
-    browserStorage.removeItem(storageKey(slug));
-    return true;
-  } catch (_) {
-    return false;
-  }
+  return safeRemoveLocalItem(storageKey(slug));
 };
 
 export const readCheckoutRecovery = (slug, now = Date.now()) => {
   if (!slug) return null;
-  const browserStorage = storage();
-  if (!browserStorage) return null;
-  try {
-    const raw = browserStorage.getItem(storageKey(slug));
-    if (!raw) return null;
-    const value = JSON.parse(raw);
-    const savedAt = Number(value?.savedAt || 0);
-    if (!savedAt || savedAt > now + 5 * 60 * 1000 || now - savedAt > CHECKOUT_RECOVERY_TTL_MS) {
-      clearCheckoutRecovery(slug);
-      return null;
-    }
-    const selection = normalizeSelection(value?.selection);
-    const orderPublicId = typeof value?.orderPublicId === "string" ? value.orderPublicId.trim() : "";
-    if (!selection && !orderPublicId) {
-      clearCheckoutRecovery(slug);
-      return null;
-    }
-    return { selection, orderPublicId: orderPublicId || null, savedAt };
-  } catch (_) {
+  const value = safeGetLocalJson(storageKey(slug));
+  if (!value || typeof value !== "object") return null;
+
+  const savedAt = Number(value?.savedAt || 0);
+  if (!savedAt || savedAt > now + 5 * 60 * 1000 || now - savedAt > CHECKOUT_RECOVERY_TTL_MS) {
     clearCheckoutRecovery(slug);
     return null;
   }
+
+  const selection = normalizeSelection(value?.selection);
+  const orderPublicId = typeof value?.orderPublicId === "string" ? value.orderPublicId.trim() : "";
+  if (!selection && !orderPublicId) {
+    clearCheckoutRecovery(slug);
+    return null;
+  }
+
+  return { selection, orderPublicId: orderPublicId || null, savedAt };
 };
 
 export const writeCheckoutRecovery = (slug, { selection, orderPublicId } = {}, now = Date.now()) => {
@@ -69,18 +51,10 @@ export const writeCheckoutRecovery = (slug, { selection, orderPublicId } = {}, n
     return false;
   }
 
-  const browserStorage = storage();
-  if (!browserStorage) return false;
-
-  try {
-    browserStorage.setItem(storageKey(slug), JSON.stringify({
-      version: 1,
-      selection: normalizedSelection,
-      orderPublicId: normalizedOrderPublicId || null,
-      savedAt: Number(now),
-    }));
-    return true;
-  } catch (_) {
-    return false;
-  }
+  return safeSetLocalJson(storageKey(slug), {
+    version: 1,
+    selection: normalizedSelection,
+    orderPublicId: normalizedOrderPublicId || null,
+    savedAt: Number(now),
+  });
 };
