@@ -35,6 +35,45 @@ describe("CommerceService", () => {
     expect(appApiClient.get).toHaveBeenCalledWith("/events/public/evento-teste/purchase-options");
   });
 
+  test("reuses recent purchase options across event and checkout views", async () => {
+    const response = { event: { id: 11 }, tickets: [{ id: 1 }] };
+    appApiClient.get.mockResolvedValue({ data: response });
+
+    const first = await commerceService.catalog("evento-cache");
+    const second = await commerceService.catalog("evento-cache");
+
+    expect(first).toEqual(response);
+    expect(second).toBe(first);
+    expect(appApiClient.get).toHaveBeenCalledTimes(1);
+  });
+
+  test("coalesces concurrent purchase-options requests", async () => {
+    let resolveRequest;
+    appApiClient.get.mockReturnValue(new Promise((resolve) => {
+      resolveRequest = resolve;
+    }));
+
+    const first = commerceService.catalog("evento-concorrente");
+    const second = commerceService.catalog("evento-concorrente");
+
+    expect(second).toBe(first);
+    expect(appApiClient.get).toHaveBeenCalledTimes(1);
+
+    resolveRequest({ data: { event: { id: 12 } } });
+    await expect(first).resolves.toEqual({ event: { id: 12 } });
+  });
+
+  test("does not cache a failed purchase-options request", async () => {
+    appApiClient.get
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValueOnce({ data: { event: { id: 13 } } });
+
+    await expect(commerceService.catalog("evento-retry")).rejects.toThrow("offline");
+    await expect(commerceService.catalog("evento-retry")).resolves.toEqual({ event: { id: 13 } });
+
+    expect(appApiClient.get).toHaveBeenCalledTimes(2);
+  });
+
   test("loads the pickup credential for a paid order", async () => {
     appApiClient.get.mockResolvedValue({ data: { credential: { token: "ITEM-order.signature" } } });
 
