@@ -10,6 +10,7 @@ const now = 1_800_000_000_000;
 
 describe("checkoutRecovery", () => {
   beforeEach(() => localStorage.clear());
+  afterEach(() => jest.restoreAllMocks());
 
   test("persists only the minimal cart and order reference needed to recover checkout", () => {
     expect(writeCheckoutRecovery(slug, {
@@ -44,7 +45,33 @@ describe("checkoutRecovery", () => {
 
   test("clears a recovery record explicitly", () => {
     writeCheckoutRecovery(slug, { orderPublicId: "order-public-123" }, now);
-    clearCheckoutRecovery(slug);
+    expect(clearCheckoutRecovery(slug)).toBe(true);
     expect(readCheckoutRecovery(slug, now)).toBeNull();
+  });
+
+  test("reports failure when localStorage cannot be accessed", () => {
+    const descriptor = Object.getOwnPropertyDescriptor(window, "localStorage");
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      get() {
+        throw new DOMException("Blocked", "SecurityError");
+      },
+    });
+
+    try {
+      expect(writeCheckoutRecovery(slug, { orderPublicId: "order-public-123" }, now)).toBe(false);
+      expect(readCheckoutRecovery(slug, now)).toBeNull();
+      expect(clearCheckoutRecovery(slug)).toBe(false);
+    } finally {
+      Object.defineProperty(window, "localStorage", descriptor);
+    }
+  });
+
+  test("reports failure when localStorage rejects writes", () => {
+    jest.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new DOMException("Quota exceeded", "QuotaExceededError");
+    });
+
+    expect(writeCheckoutRecovery(slug, { orderPublicId: "order-public-123" }, now)).toBe(false);
   });
 });
