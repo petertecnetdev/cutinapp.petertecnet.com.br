@@ -44,7 +44,7 @@ export default function TicketCreatePage() {
   const [events, setEvents] = useState([]);
   const [kind, setKind] = useState("paid");
   const [name, setName] = useState("1º Lote");
-  const [price, setPrice] = useState("0.01");
+  const [price, setPrice] = useState("");
   const [quantity, setQuantity] = useState(100);
   const [limitDate, setLimitDate] = useState("");
   const [description, setDescription] = useState("Ingresso para acesso ao evento mediante QR Code individual.");
@@ -67,7 +67,11 @@ export default function TicketCreatePage() {
           return;
         }
         const selected = items.find((item) => String(item.id) === String(requestedEventId));
-        if (selected) setLimitDate(suggestedLimitDate(selected));
+        if (selected) {
+          setLimitDate(suggestedLimitDate(selected));
+          const capacity = Number(selected.max_attendees || 0);
+          if (Number.isInteger(capacity) && capacity > 0) setQuantity(Math.min(capacity, 100000));
+        }
       })
       .catch((err) => active && setError(err?.message || "Não foi possível carregar seus eventos."))
       .finally(() => active && setInitialLoading(false));
@@ -91,7 +95,8 @@ export default function TicketCreatePage() {
     return Boolean(maximum && limit > maximum);
   }, [limitDate, minimumLimit, maximumLimit]);
   const normalizedPrice = kind === "free" ? 0 : Number(price);
-  const priceInvalid = kind === "paid" && (!Number.isFinite(normalizedPrice) || normalizedPrice < 0.01 || normalizedPrice > 999999.99);
+  const priceInvalid = kind === "paid" && (!price.trim() || !Number.isFinite(normalizedPrice) || normalizedPrice < 0.01 || normalizedPrice > 999999.99);
+  const projectedGross = kind === "paid" && !priceInvalid ? normalizedPrice * Number(quantity || 0) : 0;
   const canSubmit = useMemo(
     () => Boolean(eventId && name.trim() && Number(quantity) > 0 && Number(quantity) <= 100000 && !priceInvalid && !loading && !limitDateInvalid),
     [eventId, name, quantity, priceInvalid, loading, limitDateInvalid]
@@ -102,6 +107,8 @@ export default function TicketCreatePage() {
     setEventId(value);
     const selected = events.find((item) => String(item.id) === String(value));
     setLimitDate(selected ? suggestedLimitDate(selected) : "");
+    const capacity = Number(selected?.max_attendees || 0);
+    if (Number.isInteger(capacity) && capacity > 0) setQuantity(Math.min(capacity, 100000));
     setFieldErrors((current) => ({ ...current, event_id: undefined, limit_date: undefined }));
   };
 
@@ -113,7 +120,7 @@ export default function TicketCreatePage() {
       setDescription("Entrada gratuita mediante apresentação do QR Code individual.");
     } else {
       setName("1º Lote");
-      setPrice("0.01");
+      setPrice("");
       setDescription("Ingresso para acesso ao evento mediante QR Code individual.");
     }
   };
@@ -145,6 +152,22 @@ export default function TicketCreatePage() {
       if (!ticketId) throw new Error("A API informou sucesso, mas não retornou o ingresso criado.");
       if (Number(response?.ticket?.event_id) !== Number(eventId)) throw new Error("A API vinculou o ingresso a um evento diferente do selecionado.");
       if (Math.abs(Number(response?.ticket?.price) - normalizedPrice) > 0.0001) throw new Error("A API retornou um preço diferente do informado.");
+      try {
+        window.PeterTecnetTelemetry?.track?.("producer_first_ticket_created", {
+          label: kind === "paid" ? "Primeiro lote pago criado" : "Primeira cortesia criada",
+          target: String(eventId),
+          metadata: {
+            activation_stage: "ticket_created",
+            next_step: "publish_event",
+            ticket_type: kind,
+            quantity: Number(quantity),
+            unit_price: normalizedPrice,
+            projected_gross: Number(projectedGross.toFixed(2)),
+          },
+        });
+      } catch (_) {
+        // Telemetry must never interrupt producer onboarding.
+      }
       navigate(`/event/${eventId}/courtesies?created=${ticketId}&activation=first-ticket`, { replace: true });
     } catch (err) {
       setFieldErrors(err?.errors || {});
@@ -161,7 +184,7 @@ export default function TicketCreatePage() {
       <NavlogComponent />
       {(loading || initialLoading) && <ProcessingIndicatorComponent label={loading ? "Criando ingresso" : "Carregando eventos"} />}
       <Container className="cut-page-container py-4 py-lg-5">
-        <div className="cut-page-heading"><div><span className="cut-eyebrow">Ingressos</span><h1>Criar ingresso</h1><p>Crie cortesias ou lotes pagos. Para homologação, você pode informar R$ 0,01.</p></div></div>
+        <div className="cut-page-heading"><div><span className="cut-eyebrow">Ativação do produtor</span><h1>Configure o primeiro lote</h1><p>Defina o preço real e a quantidade que você pretende vender. Depois disso, o evento já estará pronto para publicação.</p></div></div>
         {error && <Alert variant="danger">{error}</Alert>}
 
         {!initialLoading && events.length === 0 ? (
@@ -175,12 +198,12 @@ export default function TicketCreatePage() {
                 {selectedEvent && <Col xs={12}><div className="cut-info-box"><strong>Início do evento</strong><span>{formatDateTime(selectedEvent.start_date)} · Horário de Brasília</span></div></Col>}
                 <Col xs={12}><Form.Group><Form.Label>Tipo *</Form.Label><div className="d-flex gap-2 flex-wrap"><Button type="button" variant={kind === "paid" ? "primary" : "outline-light"} onClick={() => changeKind("paid")}>Ingresso pago</Button><Button type="button" variant={kind === "free" ? "primary" : "outline-light"} onClick={() => changeKind("free")}>Cortesia</Button></div></Form.Group></Col>
                 <Col md={kind === "paid" ? 5 : 7}><Form.Group><Form.Label>Nome do lote *</Form.Label><Form.Control value={name} onChange={(event) => setName(event.target.value)} isInvalid={invalid("name", submitted && !name.trim())} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "name") || "Informe o nome do ingresso."}</Form.Control.Feedback></Form.Group></Col>
-                {kind === "paid" && <Col md={2}><Form.Group><Form.Label>Preço *</Form.Label><Form.Control type="number" min="0.01" step="0.01" value={price} onChange={(event) => setPrice(event.target.value)} isInvalid={invalid("price", submitted && priceInvalid)} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "price") || "Mínimo R$ 0,01."}</Form.Control.Feedback></Form.Group></Col>}
+                {kind === "paid" && <Col md={2}><Form.Group><Form.Label>Preço real *</Form.Label><Form.Control type="number" min="0.01" step="0.01" value={price} placeholder="Ex.: 50,00" onChange={(event) => setPrice(event.target.value)} isInvalid={invalid("price", submitted && priceInvalid)} /><Form.Text>Informe o valor que será cobrado do comprador.</Form.Text><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "price") || "Defina um preço a partir de R$ 0,01."}</Form.Control.Feedback></Form.Group></Col>}
                 <Col md={5}><Form.Group><Form.Label>Quantidade *</Form.Label><Form.Control type="number" min={1} max={100000} value={quantity} onChange={(event) => setQuantity(event.target.value)} isInvalid={invalid("quantity", submitted && (Number(quantity) < 1 || Number(quantity) > 100000))} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "quantity") || "Informe de 1 a 100.000 ingressos."}</Form.Control.Feedback></Form.Group></Col>
                 <Col xs={12}><Form.Group><Form.Label>Disponível até</Form.Label><Form.Control type="datetime-local" min={minimumLimit} max={maximumLimit || undefined} value={limitDate} onChange={(event) => setLimitDate(event.target.value)} isInvalid={invalid("limit_date", submitted && limitDateInvalid)} /><Form.Text>O prazo não pode ultrapassar o início do evento.</Form.Text><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "limit_date") || "Informe um prazo válido."}</Form.Control.Feedback></Form.Group></Col>
                 <Col xs={12}><Form.Group><Form.Label>Descrição</Form.Label><Form.Control as="textarea" rows={4} value={description} onChange={(event) => setDescription(event.target.value)} /></Form.Group></Col>
               </Row>
-              <div className="cut-info-box mt-4"><strong>{kind === "paid" ? `Preço: R$ ${normalizedPrice.toFixed(2).replace(".", ",")}` : "Preço: R$ 0,00"}</strong><span>{kind === "paid" ? "O pagamento será processado pela conta Mercado Pago conectada à produção." : "Cada participante recebe um ingresso gratuito com token e QR Code únicos."}</span></div>
+              <div className="cut-info-box mt-4"><strong>{kind === "paid" ? (priceInvalid ? "Defina o preço para continuar" : `Preço: R$ ${normalizedPrice.toFixed(2).replace(".", ",")} · potencial bruto do lote: R$ ${projectedGross.toFixed(2).replace(".", ",")}`) : "Preço: R$ 0,00"}</strong><span>{kind === "paid" ? "A quantidade usa a capacidade do evento como sugestão quando ela está cadastrada. Revise preço e quantidade antes de salvar; nenhuma taxa extra é adicionada nesta tela." : "Cada participante recebe um ingresso gratuito com token e QR Code únicos."}</span></div>
               <div className="cut-form-actions mt-4"><Button type="button" variant="outline-light" disabled={loading} onClick={() => navigate(eventId ? `/event/edit/${eventId}` : "/event/manage")}>Cancelar</Button><Button type="submit" disabled={loading}>{loading ? "Criando..." : "Salvar ingresso"}</Button></div>
             </Form>
           </Card.Body></Card></Col></Row>
