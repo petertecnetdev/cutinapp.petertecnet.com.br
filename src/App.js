@@ -20,6 +20,7 @@ const HomePage = lazy(() => import("./pages/LandingPageV2"));
 const FeedPage = lazy(() => import("./pages/FeedPage"));
 const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
 const ReportModerationPage = lazy(() => import("./pages/moderation/ReportModerationPage"));
+const AdminCenterPage = lazy(() => import("./pages/admin/AdminCenterPage"));
 const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
 const RegisterPage = lazy(() => import("./pages/auth/RegisterPage"));
 const EmailVerifyPage = lazy(() => import("./pages/auth/EmailVerifyPage"));
@@ -124,6 +125,7 @@ function AppRoutes() {
             <Route path="/agent/activate" element={<AcquisitionActivationPage />} />
 
             <Route path="/dashboard" element={protectedRoute(<DashboardPage />)} />
+            <Route path="/admin" element={protectedRoute(<AdminCenterPage />)} />
             <Route path="/agent" element={acquisitionRoute(<AcquisitionDashboardPage />)} />
             <Route path="/feed" element={protectedRoute(<FeedPage />)} />
             <Route path="/notifications" element={protectedRoute(<NotificationsPage />)} />
