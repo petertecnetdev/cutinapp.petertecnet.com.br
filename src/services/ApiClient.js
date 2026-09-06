@@ -2,6 +2,11 @@ import axios from "axios";
 import { apiBaseUrl, appSlug } from "../config";
 import { humanizeApiErrorMessage } from "../utils/apiErrorMessage";
 
+const MAX_TRANSIENT_RETRIES = 2;
+const RETRYABLE_METHODS = new Set(["get", "head", "options"]);
+const RETRYABLE_STATUS = new Set([429, 502, 503, 504]);
+const RETRYABLE_NETWORK_CODES = new Set(["ERR_NETWORK", "ECONNABORTED", "ETIMEDOUT"]);
+
 const firstValidationMessage = (errors) => {
   if (!errors || typeof errors !== "object") return "";
   return Object.values(errors).flat().find((value) => typeof value === "string" && value.trim()) || "";
@@ -18,6 +23,35 @@ const publishAuthInvalidation = (requestUrl) => {
     },
   }));
 };
+
+export const shouldRetryRequest = (error) => {
+  const method = String(error?.config?.method || "get").toLowerCase();
+  if (!RETRYABLE_METHODS.has(method)) return false;
+
+  const retryCount = Number(error?.config?._peterRetryCount || 0);
+  if (retryCount >= MAX_TRANSIENT_RETRIES) return false;
+
+  const status = error?.response?.status;
+  if (RETRYABLE_STATUS.has(status)) return true;
+
+  return !error?.response && RETRYABLE_NETWORK_CODES.has(error?.code);
+};
+
+export const getRetryDelayMs = (error) => {
+  const retryAfterHeader = error?.response?.headers?.["retry-after"];
+  const retryAfterSeconds = Number(retryAfterHeader);
+
+  if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds >= 0) {
+    return Math.min(retryAfterSeconds * 1000, 5000);
+  }
+
+  const retryCount = Number(error?.config?._peterRetryCount || 0);
+  const baseDelay = Math.min(300 * (2 ** retryCount), 2000);
+  const jitter = Math.floor(Math.random() * 150);
+  return baseDelay + jitter;
+};
+
+const wait = (delayMs) => new Promise((resolve) => setTimeout(resolve, delayMs));
 
 export const createApiClient = (baseURL) => {
   const client = axios.create({
@@ -50,7 +84,17 @@ export const createApiClient = (baseURL) => {
 
   client.interceptors.response.use(
     (response) => response,
-    (error) => {
+    async (error) => {
+      if (shouldRetryRequest(error)) {
+        const retryConfig = {
+          ...error.config,
+          _peterRetryCount: Number(error.config?._peterRetryCount || 0) + 1,
+        };
+
+        await wait(getRetryDelayMs(error));
+        return client.request(retryConfig);
+      }
+
       const status = error.response?.status;
       const requestUrl = String(error.config?.url || "");
       const keepSessionOn401 =
