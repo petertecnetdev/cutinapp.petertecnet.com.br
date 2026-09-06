@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect, useState } from "react";
+import React, { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Alert, Badge, Button, Card, Col, Container, Form, Row } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
@@ -24,6 +24,8 @@ export default function FeedPage() {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
   const [events, setEvents] = useState([]);
+  const [publishEvents, setPublishEvents] = useState([]);
+  const [publishEventsLoading, setPublishEventsLoading] = useState(true);
   const [communityActivity, setCommunityActivity] = useState([]);
   const [context, setContext] = useState({});
   const [page, setPage] = useState(1);
@@ -48,10 +50,6 @@ export default function FeedPage() {
       if (nextPage === 1) {
         setContext(response.context || {});
         setCommunityActivity(Array.isArray(response.community_activity) ? response.community_activity : []);
-        setPostEventId((current) => {
-          if (current && batch.some((event) => String(event.id) === String(current))) return current;
-          return batch[0]?.id ? String(batch[0].id) : "";
-        });
       }
       setFollowedProductions((current) => {
         const next = new Set(current);
@@ -70,7 +68,39 @@ export default function FeedPage() {
     }
   }, []);
 
+  const loadPublishEvents = useCallback(async () => {
+    setPublishEventsLoading(true);
+    try {
+      const response = await cutinappService.publicEvents({ sort: "newest", per_page: 50 });
+      setPublishEvents(Array.isArray(response.events?.data) ? response.events.data : []);
+    } catch {
+      // The feed events below remain a safe fallback for the composer. A failure
+      // here must never hide the publishing UI again.
+      setPublishEvents([]);
+    } finally {
+      setPublishEventsLoading(false);
+    }
+  }, []);
+
   useEffect(() => { load(1); }, [load]);
+  useEffect(() => { loadPublishEvents(); }, [loadPublishEvents]);
+
+  const composerEvents = useMemo(() => {
+    const seen = new Set();
+    return [...publishEvents, ...events].filter((event) => {
+      const id = String(event?.id || "");
+      if (!id || seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+  }, [publishEvents, events]);
+
+  useEffect(() => {
+    setPostEventId((current) => {
+      if (current && composerEvents.some((event) => String(event.id) === String(current))) return current;
+      return composerEvents[0]?.id ? String(composerEvents[0].id) : "";
+    });
+  }, [composerEvents]);
 
   const publishPost = async (event) => {
     event.preventDefault();
@@ -128,15 +158,18 @@ export default function FeedPage() {
       {error && <Alert variant="danger" dismissible onClose={() => setError("")}>{error}</Alert>}
       {success && <Alert variant="success" dismissible onClose={() => setSuccess("")}>{success}</Alert>}
 
-      {!loading && events.length > 0 && <Card className="cut-feed-card mb-4">
+      {!loading && <Card className="cut-feed-card mb-4">
         <Card.Body className="p-4">
           <div className="cut-section-heading mb-3"><div><span className="cut-eyebrow">Comunidade</span><h2>Compartilhe com a timeline</h2></div></div>
           <Form onSubmit={publishPost}>
             <Form.Group className="mb-3" controlId="timeline-event">
               <Form.Label>Evento relacionado</Form.Label>
-              <Form.Select value={postEventId} onChange={(event) => setPostEventId(event.target.value)} disabled={publishing}>
-                {events.map((event) => <option value={event.id} key={event.id}>{event.title}</option>)}
+              <Form.Select value={postEventId} onChange={(event) => setPostEventId(event.target.value)} disabled={publishing || (publishEventsLoading && composerEvents.length === 0) || composerEvents.length === 0}>
+                {publishEventsLoading && composerEvents.length === 0 && <option value="">Carregando eventos publicados...</option>}
+                {!publishEventsLoading && composerEvents.length === 0 && <option value="">Nenhum evento público disponível</option>}
+                {composerEvents.map((event) => <option value={event.id} key={event.id}>{event.title}</option>)}
               </Form.Select>
+              {!publishEventsLoading && composerEvents.length === 0 && <Form.Text>Quando um evento for publicado, ele ficará disponível aqui para receber posts.</Form.Text>}
             </Form.Group>
             <Form.Group className="mb-3" controlId="timeline-post">
               <Form.Label>O que você quer compartilhar?</Form.Label>
