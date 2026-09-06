@@ -5,27 +5,12 @@ import NavlogComponent from "../../components/NavlogComponent";
 import CollapsibleFilterPanel from "../../components/CollapsibleFilterPanel";
 import commerceService from "../../services/CommerceService";
 import cutinappService from "../../services/CutinappService";
+import { estimateAddOnAttachmentOpportunity } from "../../utils/addOnOpportunity";
 import "./CommerceHistory.css";
 
 const money = (value) => Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const percent = (value) => `${Number(value || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
 const statusLabel = { paid: "Pago", pending: "Pendente", cancelled: "Cancelado", refunded: "Reembolsado", charged_back: "Contestada" };
-
-const addOnAttachmentOpportunity = ({ paidCount, addOnOrders, averageAddOnValue, takeRate }) => {
-  const paid = Math.max(0, Number(paidCount || 0));
-  const attached = Math.max(0, Number(addOnOrders || 0));
-  const average = Math.max(0, Number(averageAddOnValue || 0));
-  const rate = Math.max(0, Number(takeRate || 0));
-  const availableOrders = Math.max(0, paid - attached);
-  const incrementalOrders = Math.min(availableOrders, paid * 0.10);
-  const incrementalGmv = incrementalOrders * average;
-
-  return {
-    incrementalOrders,
-    incrementalGmv,
-    incrementalPlatformRevenue: incrementalGmv * (rate / 100),
-  };
-};
 
 export default function ProducerSalesPage() {
   const [productions, setProductions] = useState([]);
@@ -84,7 +69,7 @@ export default function ProducerSalesPage() {
         .reduce((itemSum, item) => itemSum + Number(item.subtotal || (Number(item.unit_price || 0) * Number(item.quantity || 0))), 0)
     ), 0);
     const averageAddOnValue = ordersWithAddOns.length > 0 ? addOnGmv / ordersWithAddOns.length : 0;
-    const opportunity = addOnAttachmentOpportunity({
+    const opportunity = estimateAddOnAttachmentOpportunity({
       paidCount: paidOrders.length,
       addOnOrders: ordersWithAddOns.length,
       averageAddOnValue,
@@ -103,6 +88,7 @@ export default function ProducerSalesPage() {
 
   const eventEconomics = useMemo(() => {
     const grouped = new Map();
+    const benchmarkAddOnValue = addOnEconomics.averageAddOnValue;
 
     orders.filter((order) => order.status === "paid").forEach((order) => {
       const eventId = String(order.event?.id || order.event_id || order.event?.title || "evento");
@@ -134,10 +120,11 @@ export default function ProducerSalesPage() {
       .map((event) => {
         const takeRate = event.gmv > 0 ? (event.platformRevenue / event.gmv) * 100 : 0;
         const averageAddOnValue = event.addOnOrders > 0 ? event.addOnGmv / event.addOnOrders : 0;
-        const opportunity = addOnAttachmentOpportunity({
+        const opportunity = estimateAddOnAttachmentOpportunity({
           paidCount: event.paidCount,
           addOnOrders: event.addOnOrders,
           averageAddOnValue,
+          benchmarkAddOnValue,
           takeRate,
         });
 
@@ -155,7 +142,7 @@ export default function ProducerSalesPage() {
       })
       .sort((a, b) => b.incrementalPlatformRevenue - a.incrementalPlatformRevenue || b.platformRevenue - a.platformRevenue)
       .slice(0, 5);
-  }, [orders]);
+  }, [addOnEconomics.averageAddOnValue, orders]);
 
   const clearFilters = () => setFilters({ q: "", status: "" });
 
