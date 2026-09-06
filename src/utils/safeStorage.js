@@ -17,11 +17,33 @@ export const safeGetLocalItem = (key) => {
   }
 };
 
+export const safeGetLocalJson = (key, fallback = null) => {
+  const stored = safeGetLocalItem(key);
+  if (!stored) return fallback;
+  try {
+    return JSON.parse(stored);
+  } catch (_) {
+    safeRemoveLocalItem(key);
+    return fallback;
+  }
+};
+
 export const safeSetLocalItem = (key, value) => {
   const storage = getBrowserStorage("localStorage");
   if (!storage) return false;
   try {
     storage.setItem(key, String(value));
+    return true;
+  } catch (_) {
+    return false;
+  }
+};
+
+export const safeSetLocalJson = (key, value) => {
+  const storage = getBrowserStorage("localStorage");
+  if (!storage) return false;
+  try {
+    storage.setItem(key, JSON.stringify(value));
     return true;
   } catch (_) {
     return false;
