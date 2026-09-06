@@ -6,6 +6,7 @@ import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorCo
 import { AuthContext } from "../../context/AuthContext";
 import commerceService from "../../services/CommerceService";
 import { clearCheckoutRecovery, readCheckoutRecovery, writeCheckoutRecovery } from "../../utils/checkoutRecovery";
+import { resolveCheckoutPaymentMethod } from "../../utils/paymentMethod";
 import "./CheckoutPage.css";
 
 const money = (value) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
@@ -64,6 +65,7 @@ export default function CheckoutPage() {
       const storedPayment = JSON.parse(sessionStorage.getItem(paymentStorageKey) || "null");
       if (storedPayment?.order?.public_id) {
         hasSessionPayment = true;
+        setMethod(resolveCheckoutPaymentMethod(storedPayment));
         setResult(storedPayment);
       }
     } catch (_) {
@@ -76,6 +78,7 @@ export default function CheckoutPage() {
           if (!active) return;
           const payments = Array.isArray(order?.payments) ? order.payments : [];
           const latestPayment = payments.length ? payments[payments.length - 1] : null;
+          setMethod(resolveCheckoutPaymentMethod({ order, payment: latestPayment }));
           setResult({ order, payment: latestPayment });
           trackCheckout("checkout_recovered", {
             label: "Checkout recuperado após reabrir",
@@ -389,7 +392,7 @@ export default function CheckoutPage() {
               {!result && method === "pix" && pixAvailable && <div className="cut-pix-start"><div className="cut-pix-start__icon"><i className="fa-brands fa-pix" /></div><h3>Pagamento via PIX</h3><p>Geraremos um QR Code exclusivo para esta compra. A confirmação aparecerá automaticamente nesta tela.</p><Button data-track="Gerar PIX" className="cut-checkout-primary" onClick={checkoutPix} disabled={paying}>{paying ? "Gerando PIX seguro..." : "Gerar QR Code PIX"}</Button></div>}
               {!result && method === "card" && cardAvailable && <MercadoPagoCardForm publicKey={catalog?.payment_config?.public_key || ""} amount={total} email={user?.email || ""} disabled={paying} onSubmit={checkoutCard} />}
               {approved && !fulfilled && <div className="cut-payment-waiting"><div className="cut-payment-waiting__pulse"><i className="fa-solid fa-ticket" /></div><h3>Pagamento confirmado</h3><p>O dinheiro já foi reconhecido. Estamos finalizando a emissão do seu ingresso. Você não precisa pagar novamente.</p><Button className="cut-checkout-primary w-100" onClick={() => syncCurrentPayment({ manual: true })} disabled={syncingNow}>{syncingNow ? "Verificando..." : "Verificar emissão agora"}</Button><div className="cut-checkout-live"><span /><strong>Recuperação automática ativa</strong></div></div>}
-              {result && !failed && !approved && <div className="cut-payment-waiting"><div className="cut-payment-waiting__pulse"><i className="fa-solid fa-shield-halved" /></div><h3>Aguardando confirmação</h3><p>Assim que o Mercado Pago confirmar o pagamento, esta página será atualizada automaticamente. Se você já pagou, não gere outro PIX.</p>{method === "pix" && result.payment?.qr_code_image && <div className="cut-pix-qr"><img src={result.payment.qr_code_image} alt="QR Code PIX" /></div>}{method === "pix" && result.payment?.qr_code && <><div className="cut-pix-code">{result.payment.qr_code}</div><Button variant="outline-light" className="w-100" onClick={copyPix} aria-live="polite"><i className={`fa-regular ${pixCopyStatus === "copied" ? "fa-circle-check" : "fa-copy"} me-2`} />{pixCopyStatus === "copied" ? "Código PIX copiado" : pixCopyStatus === "error" ? "Tentar copiar novamente" : "Copiar código PIX"}</Button></>}<Button className="cut-checkout-primary w-100 mt-3" onClick={() => syncCurrentPayment({ manual: true })} disabled={syncingNow}>{syncingNow ? "Verificando pagamento..." : "Já paguei — verificar agora"}</Button><div className="cut-checkout-live"><span /><strong>Confirmação automática ativa</strong></div></div>}
+              {result && !failed && !approved && <div className="cut-payment-waiting"><div className="cut-payment-waiting__pulse"><i className="fa-solid fa-shield-halved" /></div><h3>Aguardando confirmação</h3><p>Assim que o Mercado Pago confirmar o pagamento, esta página será atualizada automaticamente. {method === "pix" ? "Se você já pagou, não gere outro PIX." : "Se você já enviou o pagamento, não envie novamente."}</p>{method === "pix" && result.payment?.qr_code_image && <div className="cut-pix-qr"><img src={result.payment.qr_code_image} alt="QR Code PIX" /></div>}{method === "pix" && result.payment?.qr_code && <><div className="cut-pix-code">{result.payment.qr_code}</div><Button variant="outline-light" className="w-100" onClick={copyPix} aria-live="polite"><i className={`fa-regular ${pixCopyStatus === "copied" ? "fa-circle-check" : "fa-copy"} me-2`} />{pixCopyStatus === "copied" ? "Código PIX copiado" : pixCopyStatus === "error" ? "Tentar copiar novamente" : "Copiar código PIX"}</Button></>}<Button className="cut-checkout-primary w-100 mt-3" onClick={() => syncCurrentPayment({ manual: true })} disabled={syncingNow}>{syncingNow ? "Verificando pagamento..." : "Já paguei — verificar agora"}</Button><div className="cut-checkout-live"><span /><strong>Confirmação automática ativa</strong></div></div>}
               {failed && <Alert variant="danger" className="mb-0"><strong>Pagamento não concluído.</strong><div>Esta tentativa não foi concluída. Tente novamente ou escolha outra forma de pagamento disponível.</div><div className="d-grid gap-2 mt-3"><Button variant="outline-light" onClick={() => recoverFailedPayment(method)}>Tentar novamente com {method === "pix" ? "PIX" : "cartão"}</Button>{method !== "pix" && pixAvailable && <Button variant="light" onClick={() => recoverFailedPayment("pix")}><i className="fa-brands fa-pix me-2" />Tentar com PIX</Button>}{method !== "card" && cardAvailable && <Button variant="light" onClick={() => recoverFailedPayment("card")}><i className="fa-regular fa-credit-card me-2" />Tentar com cartão</Button>}</div></Alert>}
             </section>
           </>}
