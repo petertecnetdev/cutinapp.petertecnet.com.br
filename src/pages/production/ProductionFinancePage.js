@@ -12,6 +12,7 @@ import cutinappService from "../../services/CutinappService";
 import financeService from "../../services/FinanceService";
 
 const money = (value) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
+const percent = (value) => `${Number(value || 0).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 2 })}%`;
 const dateTime = (value) => value ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(value)) : "—";
 const payoutStatus = {
   pending: { label: "Solicitado", bg: "warning" },
@@ -21,12 +22,23 @@ const payoutStatus = {
   failed: { label: "Falhou", bg: "danger" },
   cancelled: { label: "Cancelado", bg: "secondary" },
 };
+const paymentMethodLabel = {
+  pix: "Pix",
+  card: "Cartão",
+  credit_card: "Cartão",
+  debit_card: "Débito",
+  unknown: "Não identificado",
+};
 
 function StatusLine({ ok, title, detail }) {
   return <div className="d-flex align-items-start gap-3 py-2">
     <Badge bg={ok ? "success" : "secondary"} className="mt-1">{ok ? "OK" : "Pendente"}</Badge>
     <div><strong>{title}</strong>{detail && <div className="text-secondary small">{detail}</div>}</div>
   </div>;
+}
+
+function RevenueMetric({ label, value, detail }) {
+  return <div className="cut-ticket-option h-100"><div><span className="cut-ticket-kicker">{label}</span><strong>{value}</strong>{detail && <small className="text-secondary d-block mt-1">{detail}</small>}</div></div>;
 }
 
 export default function ProductionFinancePage() {
@@ -37,6 +49,8 @@ export default function ProductionFinancePage() {
   const [productionId, setProductionId] = useState(params.get("production") || "");
   const [finance, setFinance] = useState(null);
   const [summary, setSummary] = useState(null);
+  const [revenueFunnel, setRevenueFunnel] = useState(null);
+  const [revenueDays, setRevenueDays] = useState(30);
   const [identityForm, setIdentityForm] = useState({ legal_name: "", document_number: "", birthdate: "" });
   const [frontDocument, setFrontDocument] = useState(null);
   const [backDocument, setBackDocument] = useState(null);
@@ -50,12 +64,14 @@ export default function ProductionFinancePage() {
   const [success, setSuccess] = useState("");
 
   const loadFinance = useCallback(async (id) => {
-    const [financeOverview, financial] = await Promise.all([
+    const [financeOverview, financial, funnel] = await Promise.all([
       financeService.overview(id),
       commerceService.financialSummary(id),
+      commerceService.revenueFunnel(id, revenueDays),
     ]);
     setFinance(financeOverview);
     setSummary(financial);
+    setRevenueFunnel(funnel);
     setPayoutAmount(String(financeOverview?.balance?.available || ""));
 
     const identity = financeOverview?.identity;
@@ -66,7 +82,7 @@ export default function ProductionFinancePage() {
       document_number: current.document_number || "",
       birthdate: beneficiary.birthdate || prefill.birthdate || current.birthdate || "",
     }));
-  }, []);
+  }, [revenueDays]);
 
   useEffect(() => {
     let active = true;
@@ -103,6 +119,12 @@ export default function ProductionFinancePage() {
   const livenessVerified = verification?.liveness_status === "passed" && verification?.face_match_status === "passed";
   const pixVerified = Boolean(destination?.verified_at && ["active", "cooling"].includes(destination?.status));
   const available = Number(balance.available || 0);
+  const grossRevenue = Number(revenueFunnel?.gross_revenue || 0);
+  const platformRevenue = Number(revenueFunnel?.platform_revenue || 0);
+  const processorFees = Number(revenueFunnel?.processor_fees || 0);
+  const platformNetAfterProcessing = platformRevenue - processorFees;
+  const effectiveTakeRate = grossRevenue > 0 ? (platformRevenue / grossRevenue) * 100 : 0;
+  const contributionMargin = platformRevenue > 0 ? (platformNetAfterProcessing / platformRevenue) * 100 : 0;
 
   const run = async (task, successMessage) => {
     setWorking(true); setError(""); setSuccess("");
@@ -223,10 +245,10 @@ export default function ProductionFinancePage() {
           <Col lg={7}><Card className="cut-production-card h-100"><Card.Body className="p-4">
             <span className="cut-eyebrow">Resumo financeiro</span><h2 className="mt-2 mb-4">{production?.name || "Produção"}</h2>
             <Row className="g-3">
-              <Col sm={6}><div className="cut-ticket-option h-100"><div><span className="cut-ticket-kicker">Volume bruto</span><strong>{money(summary?.gross_sales)}</strong></div></div></Col>
-              <Col sm={6}><div className="cut-ticket-option h-100"><div><span className="cut-ticket-kicker">Crédito do produtor</span><strong>{money(balance.producer_credit)}</strong></div></div></Col>
-              <Col sm={6}><div className="cut-ticket-option h-100"><div><span className="cut-ticket-kicker">Aguardando liberação</span><strong>{money(balance.pending_release)}</strong></div></div></Col>
-              <Col sm={6}><div className="cut-ticket-option h-100"><div><span className="cut-ticket-kicker">Reserva de segurança</span><strong>{money(balance.security_reserve)}</strong></div></div></Col>
+              <Col sm={6}><RevenueMetric label="Volume bruto" value={money(summary?.gross_sales)} /></Col>
+              <Col sm={6}><RevenueMetric label="Crédito do produtor" value={money(balance.producer_credit)} /></Col>
+              <Col sm={6}><RevenueMetric label="Aguardando liberação" value={money(balance.pending_release)} /></Col>
+              <Col sm={6}><RevenueMetric label="Reserva de segurança" value={money(balance.security_reserve)} /></Col>
             </Row>
             <Alert variant={finance?.ready_for_sales ? "success" : "warning"} className="mt-4 mb-0">
               {finance?.ready_for_sales
@@ -235,6 +257,43 @@ export default function ProductionFinancePage() {
             </Alert>
           </Card.Body></Card></Col>
         </Row>
+
+        {revenueFunnel && <Card className="cut-production-card mt-4"><Card.Body className="p-4">
+          <div className="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+            <div>
+              <span className="cut-eyebrow">Economia dos eventos</span>
+              <h2 className="mt-2 mb-1">GMV, conversão e receita por venda</h2>
+              <p className="text-secondary mb-0">Valores calculados pela API central a partir dos pedidos reais. Nenhuma taxa é adicionada nesta tela.</p>
+            </div>
+            <Form.Select aria-label="Período do funil de receita" value={revenueDays} onChange={(event) => setRevenueDays(Number(event.target.value))} style={{ width: 180 }}>
+              <option value={7}>Últimos 7 dias</option>
+              <option value={30}>Últimos 30 dias</option>
+              <option value={90}>Últimos 90 dias</option>
+              <option value={365}>Últimos 12 meses</option>
+            </Form.Select>
+          </div>
+
+          <Row className="g-3">
+            <Col md={4} xl={3}><RevenueMetric label="GMV pago" value={money(grossRevenue)} detail={`${revenueFunnel.orders_paid || 0} pedidos pagos`} /></Col>
+            <Col md={4} xl={3}><RevenueMetric label="Ticket médio" value={money(revenueFunnel.average_paid_order)} detail="Por pedido pago" /></Col>
+            <Col md={4} xl={3}><RevenueMetric label="Conversão checkout" value={percent(revenueFunnel.checkout_conversion_rate)} detail={`${revenueFunnel.orders_created || 0} checkouts criados`} /></Col>
+            <Col md={4} xl={3}><RevenueMetric label="Abandono" value={percent(revenueFunnel.abandonment_rate)} detail={money(revenueFunnel.gross_revenue_lost_to_abandonment) + " de GMV perdido"} /></Col>
+            <Col md={4} xl={3}><RevenueMetric label="Receita plataforma" value={money(platformRevenue)} detail={`Take rate efetivo ${percent(effectiveTakeRate)}`} /></Col>
+            <Col md={4} xl={3}><RevenueMetric label="Processamento" value={money(processorFees)} detail="Custo registrado nos pedidos pagos" /></Col>
+            <Col md={4} xl={3}><RevenueMetric label="Após processamento" value={money(platformNetAfterProcessing)} detail={`Margem de contribuição ${percent(contributionMargin)}`} /></Col>
+            <Col md={4} xl={3}><RevenueMetric label="Líquido do produtor" value={money(revenueFunnel.producer_net)} detail={`Descontos: ${money(revenueFunnel.discounts)}`} /></Col>
+          </Row>
+
+          {Number(revenueFunnel.gross_revenue_at_risk || 0) > 0 && <Alert variant="warning" className="mt-4 mb-0">
+            Há <strong>{money(revenueFunnel.gross_revenue_at_risk)}</strong> em pedidos ainda pendentes, equivalentes a <strong>{money(revenueFunnel.platform_revenue_at_risk)}</strong> de receita de plataforma potencial. Priorize recuperação de pagamento antes de aumentar desconto.
+          </Alert>}
+
+          {Number(revenueFunnel.checkout_recovery_attempts || 0) > 0 && <Alert variant="info" className="mt-3 mb-0">
+            Recuperação de checkout converteu <strong>{percent(revenueFunnel.checkout_recovery_conversion_rate)}</strong> das tentativas e recuperou <strong>{money(revenueFunnel.recovered_gross_revenue)}</strong> em GMV / <strong>{money(revenueFunnel.recovered_platform_revenue)}</strong> em receita de plataforma.
+          </Alert>}
+
+          {(revenueFunnel.payment_methods || []).length > 0 && <div className="table-responsive mt-4"><Table variant="dark" hover className="align-middle mb-0"><thead><tr><th>Pagamento</th><th>Checkouts</th><th>Pagos</th><th>Conversão</th><th>GMV</th><th>Receita plataforma</th><th>GMV em risco</th></tr></thead><tbody>{revenueFunnel.payment_methods.map((row) => <tr key={row.payment_method}><td>{paymentMethodLabel[row.payment_method] || row.payment_method}</td><td>{row.orders_created}</td><td>{row.orders_paid}</td><td>{percent(row.conversion_rate)}</td><td>{money(row.gross_revenue)}</td><td>{money(row.platform_revenue)}</td><td>{money(row.gross_at_risk)}</td></tr>)}</tbody></Table></div>}
+        </Card.Body></Card>}
 
         {!identityVerified && <Card className="cut-production-card mt-4"><Card.Body className="p-4">
           <span className="cut-eyebrow">Etapa 1</span><h2 className="mt-2">Confirme quem receberá</h2>
@@ -294,10 +353,10 @@ export default function ProductionFinancePage() {
         <Card className="cut-production-card mt-4"><Card.Body className="p-4">
           <div className="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4"><div><span className="cut-eyebrow">Saldo</span><h2 className="mt-2 mb-1">Receber na sua chave Pix</h2><p className="text-secondary mb-0">Somente valores já liberados podem ser enviados. A reserva ajuda a cobrir cancelamentos, reembolsos e contestações.</p></div><Badge bg={finance?.ready_for_payout ? "success" : "warning"}>{finance?.ready_for_payout ? "Pix ativo" : "Aguardando ativação"}</Badge></div>
           <Row className="g-3 mb-4">
-            <Col md={3}><div className="cut-ticket-option h-100"><div><span className="cut-ticket-kicker">Crédito</span><strong>{money(balance.producer_credit)}</strong></div></div></Col>
-            <Col md={3}><div className="cut-ticket-option h-100"><div><span className="cut-ticket-kicker">Reserva</span><strong>{money(balance.security_reserve)}</strong></div></div></Col>
-            <Col md={3}><div className="cut-ticket-option h-100"><div><span className="cut-ticket-kicker">Em processamento</span><strong>{money(balance.payout_pending)}</strong></div></div></Col>
-            <Col md={3}><div className="cut-ticket-option h-100"><div><span className="cut-ticket-kicker">Disponível</span><strong>{money(available)}</strong></div></div></Col>
+            <Col md={3}><RevenueMetric label="Crédito" value={money(balance.producer_credit)} /></Col>
+            <Col md={3}><RevenueMetric label="Reserva" value={money(balance.security_reserve)} /></Col>
+            <Col md={3}><RevenueMetric label="Em processamento" value={money(balance.payout_pending)} /></Col>
+            <Col md={3}><RevenueMetric label="Disponível" value={money(available)} /></Col>
           </Row>
 
           {finance?.ready_for_payout && available > 0 && <div className="d-flex flex-column flex-md-row gap-2 align-items-md-end mb-4"><Form.Group className="flex-grow-1"><Form.Label>Valor a receber</Form.Label><Form.Control type="number" min="0.01" step="0.01" max={available} value={payoutAmount} onChange={(event) => setPayoutAmount(event.target.value)} /></Form.Group><Button onClick={requestPayout} disabled={working}>Receber via Pix</Button></div>}
