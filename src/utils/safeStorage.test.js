@@ -3,6 +3,7 @@ import {
   safeGetLocalJson,
   safeGetSessionItem,
   safeGetSessionJson,
+  safeReadLocalItem,
   safeRemoveLocalItem,
   safeRemoveSessionItem,
   safeSetLocalItem,
@@ -78,6 +79,17 @@ describe("safeStorage", () => {
     expect(safeGetLocalItem("preference")).toBe("value");
     expect(safeRemoveLocalItem("preference")).toBe(true);
     expect(safeGetLocalItem("preference")).toBeNull();
+  });
+
+  test("reports whether localStorage can actually be read", () => {
+    window.localStorage.setItem("preference", "value");
+    expect(safeReadLocalItem("preference")).toEqual({ available: true, value: "value" });
+
+    jest.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new DOMException("Blocked", "SecurityError");
+    });
+
+    expect(safeReadLocalItem("preference")).toEqual({ available: false, value: null });
   });
 
   test("returns safe fallbacks when localStorage operations are blocked", () => {
