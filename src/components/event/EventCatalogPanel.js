@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import PropTypes from "prop-types";
 import { Alert, Badge, Button, Card, Col, Form, Row, Spinner } from "react-bootstrap";
 import commerceService from "../../services/CommerceService";
 
@@ -139,7 +140,7 @@ export default function EventCatalogPanel({ eventId }) {
                         {item.image_url ? (
                           <img src={item.image_url} alt="" width="62" height="62" style={{ objectFit: "cover", borderRadius: 12 }} />
                         ) : (
-                          <div className="d-grid place-items-center" style={{ width: 62, height: 62 }}>
+                          <div className="d-grid" style={{ width: 62, height: 62, placeItems: "center" }}>
                             <i className="fa-solid fa-box" aria-hidden="true" />
                           </div>
                         )}
@@ -207,3 +208,7 @@ export default function EventCatalogPanel({ eventId }) {
     </Card>
   );
 }
+
+EventCatalogPanel.propTypes = {
+  eventId: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+};
