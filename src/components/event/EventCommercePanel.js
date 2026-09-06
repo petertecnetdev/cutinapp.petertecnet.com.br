@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 import { Alert, Button, Form } from "react-bootstrap";
 import { useLocation, useNavigate } from "react-router-dom";
 import commerceService from "../../services/CommerceService";
+import { safeRemoveSessionItem, safeSetSessionJson } from "../../utils/safeStorage";
 
 const money = (value) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
 const dateLabel = (value) => {
@@ -97,8 +98,8 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
       items: selected.items.map((item) => ({ id: item.id, quantity: Number(quantities[`item:${item.id}`]) })),
     };
 
-    sessionStorage.removeItem(`cutinapp_payment_${activeSlug}`);
-    sessionStorage.setItem(`cutinapp_checkout_${activeSlug}`, JSON.stringify(checkout));
+    safeRemoveSessionItem(`cutinapp_payment_${activeSlug}`);
+    safeSetSessionJson(`cutinapp_checkout_${activeSlug}`, checkout);
     navigate(`/checkout/${activeSlug}`, { state: { checkout, from: `${location.pathname}${location.search}` } });
   };
 
