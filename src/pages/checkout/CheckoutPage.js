@@ -144,6 +144,7 @@ export default function CheckoutPage() {
   const approved = orderStatus === "paid";
   const fulfilled = approved && fulfillmentStatus === "completed";
   const failed = failedStatuses.includes(orderStatus);
+  const paymentPending = Boolean(result && !failed && !approved);
   const failedPaymentGuidance = method === "card"
     ? {
         title: "O cartão não concluiu o pagamento",
@@ -381,6 +382,21 @@ export default function CheckoutPage() {
 
   const chooseMethod = (nextMethod) => {
     if (nextMethod === method) return;
+    if (paymentPending) {
+      trackCheckout("payment_method_change_blocked", {
+        label: "Troca de método bloqueada durante pagamento pendente",
+        target: slug,
+        metadata: {
+          event_id: Number(catalog?.event?.id || 0),
+          amount: Number(result?.order?.total || total || 0),
+          previous_payment_method: method,
+          requested_payment_method: nextMethod,
+          order_status: orderStatus || "pending",
+        },
+      });
+      setError("Há um pagamento em andamento para esta compra. Aguarde a confirmação ou verifique o status antes de escolher outra forma de pagamento.");
+      return;
+    }
     setMethod(nextMethod);
     trackCheckout("payment_method_selected", {
       label: nextMethod === "pix" ? "PIX selecionado" : "Cartão selecionado",
@@ -505,10 +521,10 @@ export default function CheckoutPage() {
             <Button as={Link} to="/passes" className="cut-checkout-primary mt-3">Ver meus ingressos</Button>
           </section> : <>
             <section className="cut-checkout-section" data-telemetry-context="Forma de pagamento">
-              <div className="cut-checkout-section__head"><div className="cut-checkout-step">1</div><div><h2>Forma de pagamento</h2><p>Escolha como deseja pagar.</p></div></div>
+              <div className="cut-checkout-section__head"><div className="cut-checkout-step">1</div><div><h2>Forma de pagamento</h2><p>{paymentPending ? "Há um pagamento em andamento. A forma de pagamento fica protegida até a confirmação ou falha desta tentativa." : "Escolha como deseja pagar."}</p></div></div>
               <div className="cut-payment-methods">
-                {pixAvailable && <button type="button" data-track="Selecionar PIX" className={method === "pix" ? "is-active" : ""} onClick={() => chooseMethod("pix")}><i className="fa-brands fa-pix" /><div><strong>PIX</strong><span>Aprovação rápida</span></div><i className="fa-solid fa-circle-check" /></button>}
-                {cardAvailable && <button type="button" data-track="Selecionar cartão" className={method === "card" ? "is-active" : ""} onClick={() => chooseMethod("card")}><i className="fa-regular fa-credit-card" /><div><strong>Cartão de crédito</strong><span>Pagamento protegido</span></div><i className="fa-solid fa-circle-check" /></button>}
+                {pixAvailable && <button type="button" data-track="Selecionar PIX" className={method === "pix" ? "is-active" : ""} onClick={() => chooseMethod("pix")} disabled={paymentPending && method !== "pix"} aria-disabled={paymentPending && method !== "pix"}><i className="fa-brands fa-pix" /><div><strong>PIX</strong><span>Aprovação rápida</span></div><i className="fa-solid fa-circle-check" /></button>}
+                {cardAvailable && <button type="button" data-track="Selecionar cartão" className={method === "card" ? "is-active" : ""} onClick={() => chooseMethod("card")} disabled={paymentPending && method !== "card"} aria-disabled={paymentPending && method !== "card"}><i className="fa-regular fa-credit-card" /><div><strong>Cartão de crédito</strong><span>Pagamento protegido</span></div><i className="fa-solid fa-circle-check" /></button>}
               </div>
             </section>
 
