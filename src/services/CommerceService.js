@@ -43,6 +43,11 @@ const commerceService = {
     event_id: Number(eventId),
   })).data,
 
+  eventCatalog: async (eventId) => (await appApiClient.get(`/events/${Number(eventId)}/catalog-items`)).data,
+  syncEventCatalog: async (eventId, payload) => (
+    await appApiClient.put(`/events/${Number(eventId)}/catalog-items`, payload)
+  ).data,
+
   purchases: async (params = {}) => (await appApiClient.get("/commerce/purchases", { params })).data,
   purchase: async (publicId) => (await appApiClient.get(`/commerce/purchases/${publicId}`)).data.order,
   receipt: async (publicId) => (await appApiClient.get(`/commerce/purchases/${publicId}/receipt`)).data.receipt,

@@ -6,6 +6,7 @@ jest.mock("./AppApiClient", () => ({
   default: {
     get: jest.fn(),
     post: jest.fn(),
+    put: jest.fn(),
     patch: jest.fn(),
     delete: jest.fn(),
   },
@@ -28,6 +29,21 @@ describe("CommerceService", () => {
 
     await expect(commerceService.catalog("evento-teste")).resolves.toEqual({ event: { id: 10 } });
     expect(appApiClient.get).toHaveBeenCalledWith("/events/public/evento-teste/purchase-options");
+  });
+
+  test("loads and saves the establishment catalog for one event date", async () => {
+    appApiClient.get.mockResolvedValue({ data: { catalog: [{ item_id: 7 }] } });
+    appApiClient.put.mockResolvedValue({ data: { selected_count: 1 } });
+
+    await expect(commerceService.eventCatalog("42")).resolves.toEqual({ catalog: [{ item_id: 7 }] });
+    expect(appApiClient.get).toHaveBeenCalledWith("/events/42/catalog-items");
+
+    const catalogPayload = {
+      replace: true,
+      items: [{ item_id: 7, price: 35, quantity: 20, is_active: true }],
+    };
+    await expect(commerceService.syncEventCatalog(42, catalogPayload)).resolves.toEqual({ selected_count: 1 });
+    expect(appApiClient.put).toHaveBeenCalledWith("/events/42/catalog-items", catalogPayload);
   });
 
   test("loads the pickup credential for a paid order", async () => {
