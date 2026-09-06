@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useMemo, useState } from "react";
-import { Alert, Badge, Button, Card, Col, Container, Row } from "react-bootstrap";
+import { Alert, Badge, Button, Card, Col, Container, Form, Row } from "react-bootstrap";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
@@ -10,11 +10,26 @@ import EventFlyerModal from "../../components/event/EventFlyerModal";
 import { AuthContext } from "../../context/AuthContext";
 import eventService from "../../services/EventService";
 import cutinappService from "../../services/CutinappService";
+import commerceService from "../../services/CommerceService";
 import { storageUrl } from "../../config";
 
 const formatDate = (value) => value
   ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "long", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(new Date(value))
   : "Data não informada";
+
+const money = (value) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
+
+const saoPauloDateKey = (offsetDays = 0) => {
+  const target = new Date(Date.now() + (offsetDays * 86400000));
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(target);
+  const values = Object.fromEntries(parts.filter(({ type }) => ["year", "month", "day"].includes(type)).map(({ type, value }) => [type, value]));
+  return `${values.year}-${values.month}-${values.day}`;
+};
 
 const resolveImageUrl = (value) => {
   if (!value) return "";
@@ -59,12 +74,14 @@ const copyText = async (value) => {
 
 const getEventTemporalState = (event, currentTime = Date.now()) => {
   if (!event) return "future";
+  const apiState = ["future", "ongoing", "past"].includes(event.temporal_status) ? event.temporal_status : null;
   const startAt = event.start_date ? new Date(event.start_date).getTime() : Number.NaN;
   const endAt = event.end_date ? new Date(event.end_date).getTime() : Number.NaN;
 
   if (Number.isFinite(endAt) && currentTime >= endAt) return "past";
-  if (Number.isFinite(startAt) && currentTime >= startAt) return "ongoing";
-  return "future";
+  if (Number.isFinite(startAt) && currentTime >= startAt && (!Number.isFinite(endAt) || currentTime < endAt)) return "ongoing";
+  if (Number.isFinite(startAt) && currentTime < startAt) return "future";
+  return apiState || "future";
 };
 
 const temporalMeta = {
@@ -112,6 +129,11 @@ export default function EventViewPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [clock, setClock] = useState(() => Date.now());
+  const [ownerResults, setOwnerResults] = useState(null);
+  const [ownerResultsLoading, setOwnerResultsLoading] = useState(false);
+  const [ownerResultsError, setOwnerResultsError] = useState("");
+  const [duplicateDate, setDuplicateDate] = useState("");
+  const [duplicating, setDuplicating] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -124,14 +146,17 @@ export default function EventViewPage() {
   }, [slug]);
 
   const event = data?.event || null;
+  const history = data?.history || null;
   const tickets = useMemo(() => (data?.tickets || []).filter((ticket) => Number(ticket.price) === 0), [data]);
   const claimableArtists = useMemo(() => artists.filter((artist) => !artist.claimed_at), [artists]);
   const isOwner = Boolean(event?.production?.user_id && Number(event.production.user_id) === Number(user?.id));
+  const productionId = Number(event?.production_id || event?.production?.id || 0);
   const mapEmbedUrl = useMemo(() => buildMapEmbedUrl(event), [event]);
   const flyerUrl = useMemo(() => resolveImageUrl(event?.image), [event?.image]);
   const temporalState = useMemo(() => getEventTemporalState(event, clock), [event, clock]);
   const temporal = temporalMeta[temporalState];
   const isPastEvent = temporalState === "past";
+  const canMarkInterested = event?.allowed_actions?.mark_interested ?? !isPastEvent;
   const heroStyle = useMemo(() => {
     if (!flyerUrl) return undefined;
     const overlay = temporalState === "past"
@@ -178,8 +203,35 @@ export default function EventViewPage() {
     return () => { active = false; };
   }, [event?.id, user?.id]);
 
+  useEffect(() => {
+    if (!isPastEvent || !isOwner || !event?.id || !productionId) {
+      setOwnerResults(null);
+      setOwnerResultsLoading(false);
+      setOwnerResultsError("");
+      return undefined;
+    }
+
+    let active = true;
+    setOwnerResultsLoading(true);
+    setOwnerResultsError("");
+
+    Promise.allSettled([
+      commerceService.producerSales(productionId, { event_id: event.id, per_page: 1 }),
+      cutinappService.eventParticipants(event.id),
+    ]).then(([salesResult, attendanceResult]) => {
+      if (!active) return;
+      const sales = salesResult.status === "fulfilled" ? salesResult.value?.summary || null : null;
+      const attendance = attendanceResult.status === "fulfilled" ? attendanceResult.value?.stats || null : null;
+      setOwnerResults({ sales, attendance });
+      if (!sales && !attendance) setOwnerResultsError("Não foi possível carregar o fechamento deste evento agora.");
+      else if (!sales || !attendance) setOwnerResultsError("Parte das métricas está temporariamente indisponível.");
+    }).finally(() => active && setOwnerResultsLoading(false));
+
+    return () => { active = false; };
+  }, [isPastEvent, isOwner, event?.id, productionId]);
+
   const claim = async (ticket) => {
-    if (isPastEvent) {
+    if (isPastEvent || event?.allowed_actions?.claim_courtesy === false) {
       setError("Este evento já terminou. Não é mais possível emitir ou retirar ingressos.");
       return;
     }
@@ -232,7 +284,7 @@ export default function EventViewPage() {
   };
 
   const setEngagement = async (kind) => {
-    if (kind === "interested" && isPastEvent) {
+    if (kind === "interested" && !canMarkInterested) {
       setError("Este evento já terminou e não aceita novas marcações de interesse.");
       return;
     }
@@ -248,15 +300,46 @@ export default function EventViewPage() {
     finally { setSocialBusy(false); }
   };
 
-  return <div className="cut-app-page"><NavlogComponent />{(loading || claimingId || artistClaimingId) && <ProcessingIndicatorComponent label={claimingId ? "Emitindo ingresso" : artistClaimingId ? "Enviando reivindicação" : "Carregando evento"} />}
+  const duplicateEvent = async () => {
+    if (!duplicateDate) {
+      setError("Escolha a data da próxima edição antes de duplicar o evento.");
+      return;
+    }
+    setDuplicating(true);
+    setError("");
+    setSuccess("");
+    try {
+      const response = await eventService.duplicate(event.id, duplicateDate);
+      const duplicatedId = Number(response?.event?.id || 0);
+      if (!duplicatedId) throw new Error("A API não retornou a nova edição criada.");
+      navigate(`/event/edit/${duplicatedId}`, {
+        state: { success: response?.message || "Nova edição criada como rascunho." },
+      });
+    } catch (err) {
+      setError(err?.message || "Não foi possível duplicar este evento.");
+    } finally {
+      setDuplicating(false);
+    }
+  };
+
+  const attendanceIssued = Number(ownerResults?.attendance?.issued || 0);
+  const attendanceCheckedIn = Number(ownerResults?.attendance?.checked_in || 0);
+  const attendanceRate = attendanceIssued > 0 ? Math.round((attendanceCheckedIn / attendanceIssued) * 100) : 0;
+
+  return <div className="cut-app-page"><NavlogComponent />{(loading || claimingId || artistClaimingId || duplicating) && <ProcessingIndicatorComponent label={claimingId ? "Emitindo ingresso" : artistClaimingId ? "Enviando reivindicação" : duplicating ? "Criando próxima edição" : "Carregando evento"} />}
     {!loading && event && <>
       <section className="cut-event-hero cut-event-hero--premium" style={heroStyle}>
-        <Container className="cut-page-container"><div className="cut-event-hero__content"><div className="d-flex flex-wrap gap-2 mb-3">{event.category && <Badge bg="dark">{event.category}</Badge>}<Badge bg={temporal.badgeVariant}>{temporal.badge}</Badge>{!isPastEvent && tickets.some((t) => t.available) && <Badge bg="info" text="dark">Ingressos disponíveis</Badge>}</div><h1>{event.title}</h1><p className="cut-event-hero__date">{formatDate(event.start_date)}</p><span>{event.venue || event.address}{event.city ? ` · ${event.city}${event.uf ? ` - ${event.uf}` : ""}` : ""}</span>{event.production?.name && <button className="cut-inline-profile-link" onClick={() => navigate(`/production/${event.production.slug}/public`)}>Por {event.production.name} <i className="fa-solid fa-arrow-up-right-from-square" /></button>}<div className="cut-card-actions mt-4"><Button onClick={share} aria-label={`Compartilhar ${event.title}`} title="Compartilhar este evento"><i className="fa-solid fa-share-nodes me-2" />Compartilhar</Button>{flyerUrl && <Button variant="outline-light" onClick={() => setFlyerOpen(true)}><i className="fa-regular fa-image me-2" />Ver Flyer</Button>}{!isPastEvent && <Button variant={interested ? "info" : "outline-light"} onClick={() => setEngagement("interested")} disabled={socialBusy || engagementLoading}><i className="fa-regular fa-star me-2" />Tenho interesse</Button>}<Button variant={favorite ? "danger" : "outline-light"} onClick={() => setEngagement("favorite")} disabled={socialBusy || engagementLoading}><i className={`${favorite ? "fa-solid" : "fa-regular"} fa-heart me-2`} />{favorite ? "Salvo" : "Salvar"}</Button><Button variant="outline-light" href="#comunidade"><i className="fa-regular fa-comments me-2" />Conversa</Button>{event.google_maps_url && <Button variant="outline-light" as="a" href={event.google_maps_url} target="_blank" rel="noreferrer"><i className="fa-solid fa-location-arrow me-2" />Maps</Button>}</div></div></Container>
+        <Container className="cut-page-container"><div className="cut-event-hero__content"><div className="d-flex flex-wrap gap-2 mb-3">{event.category && <Badge bg="dark">{event.category}</Badge>}<Badge bg={temporal.badgeVariant}>{temporal.badge}</Badge>{!isPastEvent && tickets.some((t) => t.available) && <Badge bg="info" text="dark">Ingressos disponíveis</Badge>}</div><h1>{event.title}</h1><p className="cut-event-hero__date">{formatDate(event.start_date)}</p><span>{event.venue || event.address}{event.city ? ` · ${event.city}${event.uf ? ` - ${event.uf}` : ""}` : ""}</span>{event.production?.name && <button className="cut-inline-profile-link" onClick={() => navigate(`/production/${event.production.slug}/public`)}>Por {event.production.name} <i className="fa-solid fa-arrow-up-right-from-square" /></button>}<div className="cut-card-actions mt-4"><Button onClick={share} aria-label={`Compartilhar ${event.title}`} title="Compartilhar este evento"><i className="fa-solid fa-share-nodes me-2" />Compartilhar</Button>{flyerUrl && <Button variant="outline-light" onClick={() => setFlyerOpen(true)}><i className="fa-regular fa-image me-2" />Ver Flyer</Button>}{canMarkInterested && <Button variant={interested ? "info" : "outline-light"} onClick={() => setEngagement("interested")} disabled={socialBusy || engagementLoading}><i className="fa-regular fa-star me-2" />Tenho interesse</Button>}<Button variant={favorite ? "danger" : "outline-light"} onClick={() => setEngagement("favorite")} disabled={socialBusy || engagementLoading}><i className={`${favorite ? "fa-solid" : "fa-regular"} fa-heart me-2`} />{favorite ? "Salvo" : "Salvar"}</Button><Button variant="outline-light" href="#comunidade"><i className="fa-regular fa-comments me-2" />Conversa</Button>{event.google_maps_url && <Button variant="outline-light" as="a" href={event.google_maps_url} target="_blank" rel="noreferrer"><i className="fa-solid fa-location-arrow me-2" />Maps</Button>}</div></div></Container>
       </section>
 
       <Container className="cut-page-container py-4 py-lg-5">
         <Alert variant={temporal.alertVariant} className="d-flex align-items-start gap-3 mb-4" role="status"><i className={`${temporal.icon} fs-4 mt-1`} aria-hidden="true" /><div><strong className="d-block mb-1">{temporal.title}</strong><span>{temporal.description}{temporalState === "ongoing" && event.end_date ? ` Término previsto para ${formatDate(event.end_date)}.` : ""}</span></div></Alert>
         {error && <Alert variant="danger">{error}</Alert>}{success && <Alert variant="success">{success}</Alert>}
+
+        {isPastEvent && <Card className="cut-panel mb-4"><Card.Body className="p-4 p-lg-5"><span className="cut-eyebrow">Memória do evento</span><h2 className="cut-section-title mt-2">O que ficou desta edição</h2><p className="text-secondary">Realizado de {formatDate(event.start_date)} até {formatDate(event.end_date)}. A página permanece como registro da experiência, do line-up e da comunidade.</p><div className="cut-event-details mt-4"><div><i className="fa-solid fa-users" /><span><strong>Participantes</strong>{Number(history?.participants || 0)}</span></div><div><i className="fa-solid fa-qrcode" /><span><strong>Check-ins</strong>{Number(history?.checkins || 0)}</span></div><div><i className="fa-solid fa-music" /><span><strong>Artistas</strong>{Number(history?.artists ?? artists.length)}</span></div><div><i className="fa-regular fa-comments" /><span><strong>Publicações</strong>{Number(history?.community_posts || 0)}</span></div><div><i className="fa-solid fa-star" /><span><strong>Avaliações</strong>{Number(history?.rating_total || 0) > 0 ? `${Number(history?.rating_average || 0).toFixed(1)} / 5 · ${history.rating_total}` : "Ainda sem avaliações"}</span></div></div></Card.Body></Card>}
+
+        {isPastEvent && isOwner && <Card className="cut-panel mb-5"><Card.Body className="p-4 p-lg-5"><div className="d-flex flex-column flex-lg-row justify-content-between gap-4"><div className="flex-grow-1"><span className="cut-eyebrow">Resultados do produtor</span><h2 className="cut-section-title mt-2">Fechamento desta edição</h2><p className="text-secondary">Use os números deste evento para avaliar presença, vendas e preparar a próxima edição.</p>{ownerResultsLoading ? <p className="text-secondary mb-0">Carregando fechamento...</p> : <><div className="cut-event-details mt-4"><div><i className="fa-solid fa-ticket" /><span><strong>Ingressos pagos</strong>{Number(ownerResults?.sales?.paid_tickets || 0)}</span></div><div><i className="fa-solid fa-bag-shopping" /><span><strong>Pedidos pagos</strong>{Number(ownerResults?.sales?.paid_count || 0)}</span></div><div><i className="fa-solid fa-box" /><span><strong>Itens vendidos</strong>{Number(ownerResults?.sales?.paid_items || 0)}</span></div><div><i className="fa-solid fa-money-bill-trend-up" /><span><strong>Receita bruta</strong>{money(ownerResults?.sales?.gross_paid)}</span></div><div><i className="fa-solid fa-wallet" /><span><strong>Líquido da produção</strong>{money(ownerResults?.sales?.organization_net)}</span></div><div><i className="fa-solid fa-user-check" /><span><strong>Entradas</strong>{attendanceCheckedIn} de {attendanceIssued} · {attendanceRate}%</span></div></div>{ownerResultsError && <Alert variant="warning" className="mt-3 mb-0">{ownerResultsError}</Alert>}</>}</div><div style={{ minWidth: "min(100%, 300px)" }}><Card className="cut-panel h-100"><Card.Body className="p-4"><span className="cut-eyebrow">Próxima edição</span><h3 className="h5 mt-2">Duplicar este evento</h3><p className="text-secondary small">Reaproveita informações, ingressos, itens e line-up. Vendas, passes, check-ins e histórico começam zerados.</p><Form.Group className="mb-3"><Form.Label>Nova data</Form.Label><Form.Control type="date" min={saoPauloDateKey(1)} value={duplicateDate} onChange={(e) => setDuplicateDate(e.target.value)} /></Form.Group><Button className="w-100" onClick={duplicateEvent} disabled={duplicating || !duplicateDate}><i className="fa-regular fa-copy me-2" />Duplicar evento</Button></Card.Body></Card></div></div></Card.Body></Card>}
+
         {location.state?.artistClaim && <Alert variant="info">Sua conta foi criada. Agora selecione abaixo o artista que representa você e envie a reivindicação ao produtor deste evento.</Alert>}
         {artists.length > 0 && <section className="mb-5"><div className="cut-section-heading"><div><span className="cut-eyebrow">Line-up</span><h2>Quem faz este evento acontecer</h2></div></div><div className="cut-lineup-grid">{artists.map((artist) => <button key={artist.id} className={`cut-lineup-card ${artist.pivot?.is_headliner ? "cut-lineup-card--headliner" : ""}`} onClick={() => navigate(`/artist/${artist.slug}`)}><div className="cut-lineup-card__avatar">{artist.photo ? <img src={/^https?:/.test(artist.photo) ? artist.photo : `${storageUrl}${String(artist.photo).replace(/^\//, "")}`} alt={artist.stage_name} /> : <span>{artist.stage_name?.slice(0,2).toUpperCase()}</span>}</div><div><span>{artist.pivot?.is_headliner ? "Atração principal" : artist.pivot?.participation_type || "Artista"}</span><strong>{artist.stage_name}</strong>{artist.pivot?.scheduled_at && <small>{formatDate(artist.pivot.scheduled_at)}</small>}{artist.pivot?.stage && <small>{artist.pivot.stage}</small>}</div><i className="fa-solid fa-chevron-right" /></button>)}</div>
           {claimableArtists.length > 0 && <Card className="cut-panel mt-4"><Card.Body className="p-4"><span className="cut-eyebrow">Artista do evento?</span><h3 className="cut-section-title">Reivindique seu vínculo</h3><p className="text-secondary">Se o produtor cadastrou você antes da criação da sua conta, escolha seu perfil abaixo. O produtor receberá a solicitação e confirmará que você realmente faz parte deste line-up.</p><div className="d-flex flex-wrap gap-2">{claimableArtists.map((artist) => <Button key={artist.id} variant="outline-light" onClick={() => claimArtist(artist)} disabled={artistClaimingId === artist.id}><i className="fa-solid fa-user-check me-2" />Sou {artist.stage_name}</Button>)}</div>{!user && <small className="d-block text-secondary mt-3">Você será direcionado ao cadastro e voltará para este evento após confirmar o e-mail.</small>}</Card.Body></Card>}
