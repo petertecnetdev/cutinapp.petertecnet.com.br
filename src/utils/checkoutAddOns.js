@@ -19,3 +19,17 @@ export const rankCheckoutAddOns = (items = [], selectedIds = new Set(), limit = 
 
   return eligible.slice(0, Math.max(0, Number(limit) || 0)).map(({ item }) => item);
 };
+
+export const summarizeCheckoutAddOnOffer = (items = []) => {
+  const offered = (Array.isArray(items) ? items : [])
+    .filter((item) => item?.id != null && Number(item.price || 0) > 0)
+    .map((item) => ({ id: Number(item.id), price: Number(item.price || 0) }));
+
+  return {
+    offered_items: offered.length,
+    offered_item_ids: offered.map((item) => item.id).join(","),
+    offered_item_prices: offered.map((item) => item.price.toFixed(2)).join(","),
+    offered_value: Number(offered.reduce((sum, item) => sum + item.price, 0).toFixed(2)),
+    min_addon_price: offered.length ? Math.min(...offered.map((item) => item.price)) : 0,
+  };
+};
