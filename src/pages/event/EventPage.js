@@ -156,7 +156,7 @@ export default function EventPage() {
 
             <form className="cut-search-bar" onSubmit={submitSearch}>
               <i className="fa-solid fa-magnifying-glass" />
-              <Form.Control value={draftSearch} onChange={(e) => setDraftSearch(e.target.value)} placeholder="Evento, artista, produção, cidade ou local" />
+              <Form.Control value={draftSearch} onChange={(e) => setDraftSearch(e.target.value)} placeholder="Evento, artista, produção, cidade ou local" aria-label="Buscar eventos" />
               <Button type="submit">Buscar</Button>
             </form>
 
@@ -169,12 +169,12 @@ export default function EventPage() {
             </div>
 
             <div className="cut-discovery-secondary">
-              <Form.Select value={filters.category || ""} onChange={(e) => update({ category: e.target.value })}>
+              <Form.Select value={filters.category || ""} onChange={(e) => update({ category: e.target.value })} aria-label="Categoria do evento">
                 <option value="">Todas as categorias</option>
                 {facets.categories?.map((item) => <option key={item.category} value={item.category}>{item.category} ({item.total})</option>)}
               </Form.Select>
-              <Form.Control type="date" value={filters.date || ""} onChange={(e) => update({ date: e.target.value, period: e.target.value ? "" : filters.period, from: "", to: "" })} />
-              <Form.Select value={filters.sort || "soonest"} onChange={(e) => update({ sort: e.target.value })}>
+              <Form.Control type="date" value={filters.date || ""} onChange={(e) => update({ date: e.target.value, period: e.target.value ? "" : filters.period, from: "", to: "" })} aria-label="Data do evento" />
+              <Form.Select value={filters.sort || "soonest"} onChange={(e) => update({ sort: e.target.value })} aria-label="Ordenar eventos">
                 <option value="soonest">Mais próximos</option><option value="newest">Novidades</option><option value="popular">Populares</option>
               </Form.Select>
             </div>
@@ -198,9 +198,9 @@ export default function EventPage() {
         ) : (
           <Row className="g-4">
             {events.map((event) => <Col md={6} xl={4} key={event.id}>
-              <Card className="cut-event-card h-100" role="button" onClick={() => navigate(`/event/${event.slug}`)}>
+              <Card className="cut-event-card h-100" role="button" tabIndex={0} aria-label={`Abrir evento ${event.title}`} onClick={() => navigate(`/event/${event.slug}`)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/event/${event.slug}`); } }}>
                 <div className="cut-event-card__media">
-                  {event.image ? <img src={`${storageUrl}${String(event.image).replace(/^\//, "")}`} alt={event.title} /> : <div className="cut-event-card__placeholder"><i className="fa-regular fa-calendar" /></div>}
+                  {event.image ? <img src={`${storageUrl}${String(event.image).replace(/^\//, "")}`} alt={event.title} loading="lazy" decoding="async" /> : <div className="cut-event-card__placeholder"><i className="fa-regular fa-calendar" /></div>}
                   {event.category && <Badge bg="dark" className="cut-event-card__category">{event.category}</Badge>}
                   {event.free_ticket_lots_count > 0 && <Badge bg="success" className="cut-event-card__badge">Gratuito</Badge>}
                 </div>
