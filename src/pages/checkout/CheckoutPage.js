@@ -5,6 +5,7 @@ import MercadoPagoCardForm from "../../components/payment/MercadoPagoCardForm";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import { AuthContext } from "../../context/AuthContext";
 import commerceService from "../../services/CommerceService";
+import { clearCheckoutRecovery, readCheckoutRecovery, writeCheckoutRecovery } from "../../utils/checkoutRecovery";
 import "./CheckoutPage.css";
 
 const money = (value) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
@@ -42,36 +43,73 @@ export default function CheckoutPage() {
   const paymentStorageKey = `cutinapp_payment_${slug}`;
 
   useEffect(() => {
+    let active = true;
     const fromState = location.state?.checkout || null;
-    if (fromState) sessionStorage.setItem(checkoutStorageKey, JSON.stringify(fromState));
+    const recovery = readCheckoutRecovery(slug);
+
+    if (fromState) {
+      try { sessionStorage.setItem(checkoutStorageKey, JSON.stringify(fromState)); } catch (_) { /* Durable fallback below. */ }
+      writeCheckoutRecovery(slug, { selection: fromState, orderPublicId: null });
+    }
+
     let stored = fromState;
     if (!stored) {
       try { stored = JSON.parse(sessionStorage.getItem(checkoutStorageKey) || "null"); } catch (_) { stored = null; }
     }
+    if (!stored) stored = recovery?.selection || null;
     setSelection(stored);
 
+    let hasSessionPayment = false;
     try {
       const storedPayment = JSON.parse(sessionStorage.getItem(paymentStorageKey) || "null");
-      if (storedPayment?.order?.public_id) setResult(storedPayment);
+      if (storedPayment?.order?.public_id) {
+        hasSessionPayment = true;
+        setResult(storedPayment);
+      }
     } catch (_) {
-      sessionStorage.removeItem(paymentStorageKey);
+      try { sessionStorage.removeItem(paymentStorageKey); } catch (_) { /* Ignore unavailable storage. */ }
+    }
+
+    if (!fromState && !hasSessionPayment && recovery?.orderPublicId) {
+      commerceService.order(recovery.orderPublicId)
+        .then((order) => {
+          if (!active) return;
+          const payments = Array.isArray(order?.payments) ? order.payments : [];
+          const latestPayment = payments.length ? payments[payments.length - 1] : null;
+          setResult({ order, payment: latestPayment });
+          trackCheckout("checkout_recovered", {
+            label: "Checkout recuperado após reabrir",
+            target: slug,
+            metadata: {
+              order_status: order?.status || "unknown",
+              fulfillment_status: order?.metadata?.fulfillment_status || "pending",
+            },
+          });
+        })
+        .catch((err) => {
+          if (err?.status === 403 || err?.status === 404) clearCheckoutRecovery(slug);
+        });
     }
 
     commerceService.catalog(slug)
       .then((response) => {
+        if (!active) return;
         setCatalog(response);
         const methods = Array.isArray(response?.payment_config?.methods) ? response.payment_config.methods : [];
         if (methods.length && !methods.includes("pix")) setMethod(methods[0]);
       })
-      .catch((err) => setError(err?.message || "Não foi possível preparar o checkout."))
-      .finally(() => setLoading(false));
+      .catch((err) => active && setError(err?.message || "Não foi possível preparar o checkout."))
+      .finally(() => active && setLoading(false));
+
+    return () => { active = false; };
   }, [slug, location.state, checkoutStorageKey, paymentStorageKey]);
 
   useEffect(() => {
     if (result?.order?.public_id) {
-      sessionStorage.setItem(paymentStorageKey, JSON.stringify(result));
+      try { sessionStorage.setItem(paymentStorageKey, JSON.stringify(result)); } catch (_) { /* Durable recovery remains available. */ }
+      writeCheckoutRecovery(slug, { selection, orderPublicId: result.order.public_id });
     }
-  }, [result, paymentStorageKey]);
+  }, [result, paymentStorageKey, selection, slug]);
 
   const lines = useMemo(() => {
     if (!catalog || !selection) return [];
@@ -145,7 +183,10 @@ export default function CheckoutPage() {
       setResult((current) => ({ ...current, order, payment: latestPayment || current?.payment }));
       setError("");
     } catch (err) {
-      if (err?.status === 403 || err?.status === 404) sessionStorage.removeItem(paymentStorageKey);
+      if (err?.status === 403 || err?.status === 404) {
+        try { sessionStorage.removeItem(paymentStorageKey); } catch (_) { /* Ignore unavailable session storage. */ }
+        clearCheckoutRecovery(slug);
+      }
       if (err?.status && err.status !== 429) setError(err?.message || "Não foi possível atualizar o status do pagamento.");
     } finally {
       if (manual) setSyncingNow(false);
@@ -172,7 +213,10 @@ export default function CheckoutPage() {
         setResult((current) => ({ ...current, order, payment: latestPayment || current?.payment }));
         setError("");
       } catch (err) {
-        if (err?.status === 403 || err?.status === 404) sessionStorage.removeItem(paymentStorageKey);
+        if (err?.status === 403 || err?.status === 404) {
+          try { sessionStorage.removeItem(paymentStorageKey); } catch (_) { /* Ignore unavailable session storage. */ }
+          clearCheckoutRecovery(slug);
+        }
         if (err?.status && err.status !== 429) setError(err?.message || "Não foi possível atualizar o status do pagamento.");
       } finally {
         syncing = false;
@@ -216,7 +260,8 @@ export default function CheckoutPage() {
     });
     if (!approved) {
       setResult(null);
-      sessionStorage.removeItem(paymentStorageKey);
+      try { sessionStorage.removeItem(paymentStorageKey); } catch (_) { /* Ignore unavailable session storage. */ }
+      writeCheckoutRecovery(slug, { selection, orderPublicId: null });
     }
   };
 
@@ -227,7 +272,7 @@ export default function CheckoutPage() {
     try {
       const checkoutResult = await commerceService.checkout(payload("pix"));
       setResult(checkoutResult);
-      sessionStorage.setItem(paymentStorageKey, JSON.stringify(checkoutResult));
+      try { sessionStorage.setItem(paymentStorageKey, JSON.stringify(checkoutResult)); } catch (_) { /* Durable recovery effect will persist the order reference. */ }
     } catch (err) {
       trackCheckout("payment_attempt_failed", { label: "Falha ao iniciar PIX", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(total.toFixed(2)), payment_method: "pix", outcome: "error", status: Number(err?.status || 0) } });
       setError(err?.message || "Não foi possível gerar o PIX.");
@@ -242,7 +287,7 @@ export default function CheckoutPage() {
     try {
       const checkoutResult = await commerceService.checkout({ ...payload("card"), ...cardData });
       setResult(checkoutResult);
-      sessionStorage.setItem(paymentStorageKey, JSON.stringify(checkoutResult));
+      try { sessionStorage.setItem(paymentStorageKey, JSON.stringify(checkoutResult)); } catch (_) { /* Durable recovery effect will persist the order reference. */ }
     } catch (err) {
       trackCheckout("payment_attempt_failed", { label: "Falha ao processar cartão", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(total.toFixed(2)), payment_method: "card", outcome: "error", status: Number(err?.status || 0) } });
       setError(err?.message || "Não foi possível processar o cartão.");
@@ -265,7 +310,8 @@ export default function CheckoutPage() {
     setMethod(nextMethod);
     setResult(null);
     setError("");
-    sessionStorage.removeItem(paymentStorageKey);
+    try { sessionStorage.removeItem(paymentStorageKey); } catch (_) { /* Ignore unavailable session storage. */ }
+    writeCheckoutRecovery(slug, { selection, orderPublicId: null });
   };
 
   const copyPix = async () => {
