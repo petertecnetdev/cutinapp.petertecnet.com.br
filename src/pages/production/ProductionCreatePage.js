@@ -5,6 +5,7 @@ import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import LocationFields from "../../components/location/LocationFields";
 import cutinappService from "../../services/CutinappService";
+import { runBestEffort } from "../../utils/bestEffort";
 
 const initialForm = {
   name: "",
@@ -106,7 +107,7 @@ export default function ProductionCreatePage() {
       const id = Number(production?.id || 0);
       if (!id) throw new Error("A produção foi criada, mas não conseguimos abrir seus dados.");
 
-      await cutinappService.updateProductionExperience(id, {
+      const experiencePayload = {
         type: form.type,
         city_id: form.city_id || null,
         city: form.city || null,
@@ -118,7 +119,18 @@ export default function ProductionCreatePage() {
         address_complement: form.address_complement || null,
         address_reference: form.address_reference || null,
         location_public: Boolean(form.location_public),
-      });
+      };
+
+      const experienceSynced = await runBestEffort(
+        () => cutinappService.updateProductionExperience(id, experiencePayload),
+        (syncError) => {
+          trackProducerActivation("producer_production_experience_sync_failed", { ...production, id, name: production?.name || form.name }, {
+            activation_stage: "production_created",
+            next_step: "event_create",
+            status: Number(syncError?.status || syncError?.response?.status || 0) || null,
+          });
+        }
+      );
 
       const usedQuickPath = !showOptionalDetails;
       trackProducerActivation("producer_production_created", { ...production, id, name: production?.name || form.name }, {
@@ -133,7 +145,10 @@ export default function ProductionCreatePage() {
         });
       }
 
-      navigate(`/event/create?productionId=${id}`, { replace: true, state: { productionCreated: true } });
+      navigate(`/event/create?productionId=${id}`, {
+        replace: true,
+        state: { productionCreated: true, productionExperienceSynced: experienceSynced },
+      });
     } catch (err) {
       setFieldErrors(err?.errors || {});
       setError(err?.message || "Não foi possível criar a produção.");
