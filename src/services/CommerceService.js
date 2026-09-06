@@ -1,5 +1,6 @@
 import appApiClient from "./AppApiClient";
 import { isNetworkFailure } from "../utils/networkStatus";
+import { safeGetSessionJson, safeRemoveSessionItem, safeSetSessionJson } from "../utils/safeStorage";
 
 const pendingCheckouts = new Map();
 const fallbackAttempts = new Map();
@@ -41,32 +42,19 @@ const createIdempotencyKey = () => {
 const storageFor = (requestKey) => `${CHECKOUT_ATTEMPT_PREFIX}${requestKeyHash(requestKey)}`;
 
 const readAttempt = (requestKey) => {
-  const storageKey = storageFor(requestKey);
-  try {
-    const stored = JSON.parse(sessionStorage.getItem(storageKey) || "null");
-    if (stored?.requestKey === requestKey && stored?.idempotencyKey) return stored.idempotencyKey;
-  } catch (_) {
-    // Memory fallback below keeps checkout working when storage is unavailable.
-  }
+  const stored = safeGetSessionJson(storageFor(requestKey));
+  if (stored?.requestKey === requestKey && stored?.idempotencyKey) return stored.idempotencyKey;
   return fallbackAttempts.get(requestKey) || null;
 };
 
 const saveAttempt = (requestKey, idempotencyKey) => {
   fallbackAttempts.set(requestKey, idempotencyKey);
-  try {
-    sessionStorage.setItem(storageFor(requestKey), JSON.stringify({ requestKey, idempotencyKey }));
-  } catch (_) {
-    // Private browsing/storage restrictions are covered by the memory fallback.
-  }
+  safeSetSessionJson(storageFor(requestKey), { requestKey, idempotencyKey });
 };
 
 const clearAttempt = (requestKey) => {
   fallbackAttempts.delete(requestKey);
-  try {
-    sessionStorage.removeItem(storageFor(requestKey));
-  } catch (_) {
-    // Nothing else to clean up.
-  }
+  safeRemoveSessionItem(storageFor(requestKey));
 };
 
 const idempotencyKeyFor = (requestKey) => {
