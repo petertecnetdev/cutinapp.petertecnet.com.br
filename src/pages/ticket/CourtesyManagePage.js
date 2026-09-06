@@ -4,6 +4,8 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import cutinappService from "../../services/CutinappService";
+import { copyText } from "../../utils/clipboard";
+import { buildEventSaleShareText, buildEventSaleUrl, buildWhatsAppShareUrl } from "../../utils/eventSaleShare";
 
 const toLocalInput = (value) => {
   if (!value) return "";
@@ -11,6 +13,21 @@ const toLocalInput = (value) => {
   if (Number.isNaN(date.getTime())) return "";
   const pad = (number) => String(number).padStart(2, "0");
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
+
+const trackProducerActivation = (type, event, metadata = {}) => {
+  try {
+    window.PeterTecnetTelemetry?.track?.(type, {
+      label: event?.title || "Evento",
+      target: String(event?.id || ""),
+      metadata: {
+        event_id: Number(event?.id || 0),
+        ...metadata,
+      },
+    });
+  } catch (_) {
+    // Telemetry must never interrupt producer activation.
+  }
 };
 
 export default function CourtesyManagePage() {
@@ -24,6 +41,8 @@ export default function CourtesyManagePage() {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState(null);
   const [publishing, setPublishing] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -45,6 +64,7 @@ export default function CourtesyManagePage() {
   const load = async () => {
     const response = await cutinappService.eventCourtesies(eventId);
     applyResponse(response);
+    return response;
   };
 
   useEffect(() => {
@@ -58,6 +78,11 @@ export default function CourtesyManagePage() {
   }, [eventId]);
 
   const totalIssued = useMemo(() => tickets.reduce((sum, ticket) => sum + Number(ticket.passes_count || 0), 0), [tickets]);
+  const eventSaleUrl = useMemo(() => {
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    return buildEventSaleUrl(event, origin);
+  }, [event]);
+  const whatsappShareUrl = useMemo(() => buildWhatsAppShareUrl(eventSaleUrl, event), [eventSaleUrl, event]);
 
   const change = (ticketId, field, value) => {
     setEditing((current) => ({ ...current, [ticketId]: { ...current[ticketId], [field]: value } }));
@@ -107,13 +132,82 @@ export default function CourtesyManagePage() {
     setSuccess("");
     try {
       const response = await cutinappService.publishEvent(event.id);
-      await load();
+      const refreshed = await load();
+      const publishedEvent = refreshed?.event || event;
       setSuccess(response?.message || "Evento publicado. As vendas já podem começar pela página pública.");
+      trackProducerActivation("producer_event_published", publishedEvent, {
+        activation_stage: "event_published",
+        next_step: "first_sale",
+        ticket_lots: tickets.length,
+      });
     } catch (err) {
       setError(err?.message || "Não foi possível publicar o evento. Revise os dados e tente novamente.");
     } finally {
       setPublishing(false);
     }
+  };
+
+  const copySaleLink = async () => {
+    if (!eventSaleUrl) return;
+    setError("");
+    const copiedOk = await copyText(eventSaleUrl);
+    setCopied(copiedOk);
+    if (!copiedOk) {
+      setError("Não foi possível copiar o link neste navegador. Abra a página pública e copie o endereço manualmente.");
+      return;
+    }
+    setSuccess("Link de venda copiado. Envie para seu público para buscar a primeira venda.");
+    trackProducerActivation("producer_sale_link_copied", event, {
+      activation_stage: "event_distribution",
+      next_step: "first_sale",
+    });
+    window.setTimeout(() => setCopied(false), 2500);
+  };
+
+  const shareSaleLink = async () => {
+    if (!eventSaleUrl || sharing) return;
+    setSharing(true);
+    setError("");
+    try {
+      if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+        await navigator.share({
+          title: event?.title || "Evento na Cutinapp",
+          text: buildEventSaleShareText(event),
+          url: eventSaleUrl,
+        });
+        trackProducerActivation("producer_sale_link_shared", event, {
+          activation_stage: "event_distribution",
+          next_step: "first_sale",
+          channel: "native_share",
+        });
+        return;
+      }
+
+      const copiedOk = await copyText(eventSaleUrl);
+      if (!copiedOk) throw new Error("share_unavailable");
+      setSuccess("Link de venda copiado. Cole no WhatsApp, Instagram ou onde seu público estiver.");
+      trackProducerActivation("producer_sale_link_shared", event, {
+        activation_stage: "event_distribution",
+        next_step: "first_sale",
+        channel: "clipboard_fallback",
+      });
+    } catch (err) {
+      if (err?.name !== "AbortError") {
+        setError("Não foi possível abrir o compartilhamento. Você ainda pode copiar o link de venda.");
+      }
+    } finally {
+      setSharing(false);
+    }
+  };
+
+  const openWhatsApp = () => {
+    if (!whatsappShareUrl) return;
+    trackProducerActivation("producer_sale_link_shared", event, {
+      activation_stage: "event_distribution",
+      next_step: "first_sale",
+      channel: "whatsapp",
+    });
+    window.open(whatsappShareUrl, "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -132,13 +226,17 @@ export default function CourtesyManagePage() {
         {!loading && activation === "first-ticket" && event && tickets.length > 0 && !event.is_cancelled && (
           <Card className="cut-panel mb-4"><Card.Body className="p-4">
             <span className="cut-eyebrow">Ativação do produtor</span>
-            <h2 className="cut-section-title mt-2">Primeiro lote criado. Agora coloque o evento à venda.</h2>
-            <p className="text-secondary mb-3">Seu evento já tem ingresso configurado. {event.is_published ? "A página pública está disponível para começar a divulgar e vender." : "Publique agora para liberar a página pública e reduzir o tempo até a primeira venda."}</p>
+            <h2 className="cut-section-title mt-2">{event.is_published ? "Evento publicado. Agora busque a primeira venda." : "Primeiro lote criado. Agora coloque o evento à venda."}</h2>
+            <p className="text-secondary mb-3">{event.is_published ? "A página pública já está pronta. Compartilhe o link de venda agora, enquanto o evento está fresco para você e sua equipe." : "Seu evento já tem ingresso configurado. Publique agora para liberar a página pública e reduzir o tempo até a primeira venda."}</p>
             <div className="d-flex flex-wrap gap-2">
               {!event.is_published && <Button onClick={publish} disabled={publishing}>{publishing ? "Publicando..." : "Publicar evento e começar a vender"}</Button>}
-              {event.is_published && event.slug && <Button onClick={() => navigate(`/event/${event.slug}`)}>Ver página pública</Button>}
+              {event.is_published && eventSaleUrl && <Button onClick={shareSaleLink} disabled={sharing}>{sharing ? "Abrindo..." : "Compartilhar link de venda"}</Button>}
+              {event.is_published && whatsappShareUrl && <Button variant="success" onClick={openWhatsApp}>Enviar no WhatsApp</Button>}
+              {event.is_published && eventSaleUrl && <Button variant="outline-light" onClick={copySaleLink}>{copied ? "Link copiado" : "Copiar link"}</Button>}
+              {event.is_published && event.slug && <Button variant="outline-light" onClick={() => navigate(`/event/${event.slug}`)}>Ver página pública</Button>}
               <Button variant="outline-light" onClick={() => navigate(`/event/edit/${event.id}`)}>Revisar evento</Button>
             </div>
+            {event.is_published && eventSaleUrl && <div className="cut-info-box mt-3"><strong>Link de venda pronto</strong><span className="text-break">{eventSaleUrl}</span></div>}
           </Card.Body></Card>
         )}
 
