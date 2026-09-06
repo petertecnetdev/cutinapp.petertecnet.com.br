@@ -3,6 +3,7 @@ import { Alert, Badge, Button, Card, Col, Container, Form, Row } from "react-boo
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
+import EventCatalogPanel from "../../components/event/EventCatalogPanel";
 import eventService from "../../services/EventService";
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
@@ -165,7 +166,7 @@ export default function EventUpdatePage() {
       <NavlogComponent />
       {(saving || publishing) && <ProcessingIndicatorComponent label={publishing ? "Atualizando publicação" : "Salvando evento"} />}
       <Container className="cut-page-container py-4 py-lg-5">
-        <div className="cut-page-heading"><div><span className="cut-eyebrow">Gestão do evento</span><h1>Editar evento</h1><p>Revise agenda, localização, mapa, cortesias e publicação antes de colocar o evento no ar.</p></div><div className="cut-card-actions"><Button variant="outline-light" onClick={() => navigate("/event/manage")}>Voltar</Button>{eventData?.is_published && eventData?.slug && <Button variant="outline-light" onClick={() => navigate(`/event/${eventData.slug}`)}>Página pública</Button>}</div></div>
+        <div className="cut-page-heading"><div><span className="cut-eyebrow">Gestão do evento</span><h1>Editar evento</h1><p>Revise agenda, localização, produtos, cortesias e publicação antes de colocar o evento no ar.</p></div><div className="cut-card-actions"><Button variant="outline-light" onClick={() => navigate("/event/manage")}>Voltar</Button>{eventData?.is_published && eventData?.slug && <Button variant="outline-light" onClick={() => navigate(`/event/${eventData.slug}`)}>Página pública</Button>}</div></div>
 
         {error && <Alert variant="danger">{error}</Alert>}
         {success && <Alert variant="success">{success}</Alert>}
@@ -191,9 +192,11 @@ export default function EventUpdatePage() {
               <Button type="submit" disabled={!canSave}>Salvar alterações</Button>
             </div></Card.Body></Card>
 
-              <Card className="cut-panel"><Card.Body className="p-4"><div className="d-flex justify-content-between gap-3 align-items-start"><div><span className="cut-eyebrow">Publicação</span><h2 className="cut-section-title mt-2">{eventData?.is_published ? "Evento no ar" : "Evento em rascunho"}</h2></div><Badge bg={eventData?.is_published ? "success" : "secondary"}>{eventData?.is_published ? "Publicado" : "Rascunho"}</Badge></div><div className="cut-info-box mt-3"><strong>{eventData?.tickets_count || 0} lote(s) configurado(s)</strong><span>Para publicar, o evento precisa estar no futuro e possuir ao menos uma cortesia gratuita disponível.</span></div><div className="d-grid gap-2 mt-3"><Button variant="outline-light" onClick={() => navigate(`/event/${id}/courtesies`)}>Gerenciar cortesias</Button><Button variant="outline-light" onClick={() => navigate(`/ticket/create?eventId=${id}`)}>Criar nova cortesia</Button><Button onClick={togglePublication} disabled={publishing || eventData?.is_cancelled}>{eventData?.is_published ? "Retirar da publicação" : "Publicar evento"}</Button>{eventData?.is_published && <Button variant="outline-light" onClick={() => navigate(`/checkin?eventId=${id}`)}>Abrir portaria deste evento</Button>}</div></Card.Body></Card>
+              <Card className="cut-panel"><Card.Body className="p-4"><div className="d-flex justify-content-between gap-3 align-items-start"><div><span className="cut-eyebrow">Publicação</span><h2 className="cut-section-title mt-2">{eventData?.is_published ? "Evento no ar" : "Evento em rascunho"}</h2></div><Badge bg={eventData?.is_published ? "success" : "secondary"}>{eventData?.is_published ? "Publicado" : "Rascunho"}</Badge></div><div className="cut-info-box mt-3"><strong>{eventData?.tickets_count || 0} lote(s) configurado(s)</strong><span>Para publicar, o evento precisa estar no futuro e possuir ao menos um ingresso disponível.</span></div><div className="d-grid gap-2 mt-3"><Button variant="outline-light" onClick={() => navigate(`/event/${id}/courtesies`)}>Gerenciar cortesias</Button><Button variant="outline-light" onClick={() => navigate(`/ticket/create?eventId=${id}`)}>Criar nova cortesia</Button><Button onClick={togglePublication} disabled={publishing || eventData?.is_cancelled}>{eventData?.is_published ? "Retirar da publicação" : "Publicar evento"}</Button>{eventData?.is_published && <Button variant="outline-light" onClick={() => navigate(`/checkin?eventId=${id}`)}>Abrir portaria deste evento</Button>}</div></Card.Body></Card>
             </Col>
           </Row>
+
+          <EventCatalogPanel eventId={id} />
         </Form>}
       </Container>
     </div>
