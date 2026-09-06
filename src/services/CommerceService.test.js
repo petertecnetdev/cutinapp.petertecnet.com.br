@@ -28,11 +28,11 @@ describe("CommerceService", () => {
     sessionStorage.clear();
   });
 
-  test("loads date-aware purchase options for an event", async () => {
+  test("loads the canonical commerce catalog for an event", async () => {
     appApiClient.get.mockResolvedValue({ data: { event: { id: 10 } } });
 
     await expect(commerceService.catalog("evento-teste")).resolves.toEqual({ event: { id: 10 } });
-    expect(appApiClient.get).toHaveBeenCalledWith("/events/public/evento-teste/purchase-options");
+    expect(appApiClient.get).toHaveBeenCalledWith("/events/public/evento-teste/commerce");
   });
 
   test("reuses recent purchase options across event and checkout views", async () => {
