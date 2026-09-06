@@ -1,8 +1,11 @@
 import {
   safeGetLocalItem,
+  safeGetSessionItem,
+  safeGetSessionJson,
   safeRemoveLocalItem,
   safeRemoveSessionItem,
   safeSetLocalItem,
+  safeSetSessionItem,
   safeSetSessionJson,
 } from "./safeStorage";
 
@@ -16,6 +19,38 @@ describe("safeStorage", () => {
   test("stores JSON in sessionStorage", () => {
     expect(safeSetSessionJson("checkout", { eventId: 42 })).toBe(true);
     expect(JSON.parse(window.sessionStorage.getItem("checkout"))).toEqual({ eventId: 42 });
+  });
+
+  test("reads raw and JSON session values safely", () => {
+    expect(safeSetSessionItem("return_to", "/passes")).toBe(true);
+    expect(safeGetSessionItem("return_to")).toBe("/passes");
+
+    expect(safeSetSessionJson("completion", { token: "abc" })).toBe(true);
+    expect(safeGetSessionJson("completion")).toEqual({ token: "abc" });
+  });
+
+  test("returns safe fallbacks when sessionStorage reads are blocked", () => {
+    jest.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new DOMException("Blocked", "SecurityError");
+    });
+
+    expect(() => safeGetSessionItem("return_to")).not.toThrow();
+    expect(safeGetSessionItem("return_to")).toBeNull();
+    expect(safeGetSessionJson("completion")).toBeNull();
+  });
+
+  test("clears malformed session JSON without throwing", () => {
+    window.sessionStorage.setItem("completion", "{broken");
+    expect(safeGetSessionJson("completion")).toBeNull();
+    expect(window.sessionStorage.getItem("completion")).toBeNull();
+  });
+
+  test("does not throw when raw sessionStorage writes are blocked", () => {
+    jest.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new DOMException("Blocked", "SecurityError");
+    });
+
+    expect(safeSetSessionItem("return_to", "/passes")).toBe(false);
   });
 
   test("does not throw when sessionStorage write is blocked", () => {

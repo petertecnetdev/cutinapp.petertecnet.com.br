@@ -3,6 +3,13 @@ import { Button, Form } from "react-bootstrap";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import cutinappService from "../../services/CutinappService";
+import {
+  safeGetSessionItem,
+  safeGetSessionJson,
+  safeRemoveSessionItem,
+  safeSetSessionItem,
+  safeSetSessionJson,
+} from "../../utils/safeStorage";
 import "./LoginFormComponent.css";
 
 const INSTAGRAM_RETURN_KEY = "cutinapp_instagram_return_to";
@@ -29,16 +36,7 @@ const safeDestination = (value) => {
   return destination.startsWith("/") && !destination.startsWith("//") ? destination : "/dashboard";
 };
 
-const readInstagramCompletion = () => {
-  if (typeof window === "undefined") return null;
-  try {
-    const stored = window.sessionStorage.getItem(INSTAGRAM_COMPLETION_KEY);
-    return stored ? JSON.parse(stored) : null;
-  } catch {
-    window.sessionStorage.removeItem(INSTAGRAM_COMPLETION_KEY);
-    return null;
-  }
-};
+const readInstagramCompletion = () => safeGetSessionJson(INSTAGRAM_COMPLETION_KEY);
 
 export default function LoginFormComponent() {
   const navigate = useNavigate();
@@ -70,7 +68,7 @@ export default function LoginFormComponent() {
 
   const destination = safeDestination(
     location.state?.from ||
-      (typeof window !== "undefined" ? window.sessionStorage.getItem(INSTAGRAM_RETURN_KEY) : null)
+      safeGetSessionItem(INSTAGRAM_RETURN_KEY)
   );
   const canSubmit = useMemo(
     () => username.trim().length > 0 && password.length > 0 && !loading,
@@ -83,17 +81,17 @@ export default function LoginFormComponent() {
 
   const clearInstagramSession = useCallback((keepReturn = false) => {
     if (typeof window === "undefined") return;
-    window.sessionStorage.removeItem(INSTAGRAM_COMPLETION_KEY);
-    window.sessionStorage.removeItem(INSTAGRAM_LINK_TOKEN_KEY);
-    if (!keepReturn) window.sessionStorage.removeItem(INSTAGRAM_RETURN_KEY);
+    safeRemoveSessionItem(INSTAGRAM_COMPLETION_KEY);
+    safeRemoveSessionItem(INSTAGRAM_LINK_TOKEN_KEY);
+    if (!keepReturn) safeRemoveSessionItem(INSTAGRAM_RETURN_KEY);
   }, []);
 
   const linkPendingInstagram = useCallback(async () => {
-    const completionToken = window.sessionStorage.getItem(INSTAGRAM_LINK_TOKEN_KEY);
+    const completionToken = safeGetSessionItem(INSTAGRAM_LINK_TOKEN_KEY);
     if (!completionToken) return false;
     await linkInstagram(completionToken);
-    window.sessionStorage.removeItem(INSTAGRAM_LINK_TOKEN_KEY);
-    window.sessionStorage.removeItem(INSTAGRAM_COMPLETION_KEY);
+    safeRemoveSessionItem(INSTAGRAM_LINK_TOKEN_KEY);
+    safeRemoveSessionItem(INSTAGRAM_COMPLETION_KEY);
     return true;
   }, [linkInstagram]);
 
@@ -152,7 +150,7 @@ export default function LoginFormComponent() {
           };
           setInstagramCompletion(completion);
           setCompletionName(result.account?.display_name || result.account?.username || "");
-          window.sessionStorage.setItem(INSTAGRAM_COMPLETION_KEY, JSON.stringify(completion));
+          safeSetSessionJson(INSTAGRAM_COMPLETION_KEY, completion);
           setInfo("Instagram confirmado. Complete seu cadastro para entrar na Cutinapp.");
           clearCallbackQuery();
           return;
@@ -268,7 +266,7 @@ export default function LoginFormComponent() {
     setInfo("");
     try {
       const result = await startInstagram();
-      window.sessionStorage.setItem(INSTAGRAM_RETURN_KEY, destination);
+      safeSetSessionItem(INSTAGRAM_RETURN_KEY, destination);
       window.location.assign(result.authorization_url);
     } catch (err) {
       setError(err?.message || "Não foi possível iniciar o login com Instagram.");
@@ -295,8 +293,8 @@ export default function LoginFormComponent() {
       navigate("/email-verify", { replace: true });
     } catch (err) {
       if (err?.status === 409 && err?.code === "instagram_existing_account_requires_auth") {
-        window.sessionStorage.setItem(INSTAGRAM_LINK_TOKEN_KEY, instagramCompletion.token);
-        window.sessionStorage.removeItem(INSTAGRAM_COMPLETION_KEY);
+        safeSetSessionItem(INSTAGRAM_LINK_TOKEN_KEY, instagramCompletion.token);
+        safeRemoveSessionItem(INSTAGRAM_COMPLETION_KEY);
         setUsername(completionEmail.trim());
         setInstagramCompletion(null);
         setError("");
@@ -312,8 +310,8 @@ export default function LoginFormComponent() {
 
   const useExistingAccount = () => {
     if (!instagramCompletion?.token) return;
-    window.sessionStorage.setItem(INSTAGRAM_LINK_TOKEN_KEY, instagramCompletion.token);
-    window.sessionStorage.removeItem(INSTAGRAM_COMPLETION_KEY);
+    safeSetSessionItem(INSTAGRAM_LINK_TOKEN_KEY, instagramCompletion.token);
+    safeRemoveSessionItem(INSTAGRAM_COMPLETION_KEY);
     setInstagramCompletion(null);
     setError("");
     setInfo("Entre na sua conta Cutinapp para vincular este Instagram.");

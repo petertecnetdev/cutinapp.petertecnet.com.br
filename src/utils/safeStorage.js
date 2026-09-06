@@ -39,6 +39,38 @@ export const safeRemoveLocalItem = (key) => {
   }
 };
 
+export const safeGetSessionItem = (key) => {
+  const storage = getBrowserStorage("sessionStorage");
+  if (!storage) return null;
+  try {
+    return storage.getItem(key);
+  } catch (_) {
+    return null;
+  }
+};
+
+export const safeGetSessionJson = (key) => {
+  const stored = safeGetSessionItem(key);
+  if (!stored) return null;
+  try {
+    return JSON.parse(stored);
+  } catch (_) {
+    safeRemoveSessionItem(key);
+    return null;
+  }
+};
+
+export const safeSetSessionItem = (key, value) => {
+  const storage = getBrowserStorage("sessionStorage");
+  if (!storage) return false;
+  try {
+    storage.setItem(key, String(value));
+    return true;
+  } catch (_) {
+    return false;
+  }
+};
+
 export const safeSetSessionJson = (key, value) => {
   const storage = getBrowserStorage("sessionStorage");
   if (!storage) return false;
