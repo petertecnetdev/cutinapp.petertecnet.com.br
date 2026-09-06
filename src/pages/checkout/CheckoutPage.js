@@ -7,12 +7,12 @@ import { AuthContext } from "../../context/AuthContext";
 import commerceService from "../../services/CommerceService";
 import { clearCheckoutRecovery, readCheckoutRecovery, writeCheckoutRecovery } from "../../utils/checkoutRecovery";
 import { resolveCheckoutPaymentMethod } from "../../utils/paymentMethod";
+import { getPaymentSyncDelay } from "../../utils/paymentSyncSchedule";
 import { createKeyedSingleFlight } from "../../utils/singleFlight";
 import "./CheckoutPage.css";
 
 const money = (value) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
 const failedStatuses = ["refunded", "charged_back", "rejected", "cancelled"];
-const PAYMENT_SYNC_INTERVAL_MS = 5000;
 
 const trackCheckout = (type, details = {}) => {
   try {
@@ -210,10 +210,21 @@ export default function CheckoutPage() {
     if (!publicId || terminal) return undefined;
     let active = true;
     let syncing = false;
+    let timer = null;
+    let attempt = 0;
 
-    const sync = async () => {
+    const scheduleNext = ({ rateLimited = false } = {}) => {
+      if (!active) return;
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => sync("timer"), getPaymentSyncDelay(attempt, { rateLimited }));
+    };
+
+    const sync = async (source = "timer") => {
       if (!active || syncing || document.visibilityState === "hidden") return;
       syncing = true;
+      const startedAt = Date.now();
+      const currentAttempt = attempt + 1;
+      let rateLimited = false;
       try {
         const order = await requestPaymentSync(publicId);
         if (!active) return;
@@ -221,26 +232,58 @@ export default function CheckoutPage() {
         const latestPayment = payments.length ? payments[payments.length - 1] : resultRef.current?.payment;
         setResult((current) => ({ ...current, order, payment: latestPayment || current?.payment }));
         setError("");
+        trackCheckout("payment_sync_cycle", {
+          label: "Status de pagamento sincronizado",
+          target: slug,
+          metadata: {
+            source,
+            attempt: currentAttempt,
+            duration_ms: Date.now() - startedAt,
+            order_status: order?.status || "unknown",
+            fulfillment_status: order?.metadata?.fulfillment_status || "pending",
+            outcome: "success",
+          },
+        });
       } catch (err) {
+        rateLimited = err?.status === 429;
         if (err?.status === 403 || err?.status === 404) {
           try { sessionStorage.removeItem(paymentStorageKey); } catch (_) { /* Ignore unavailable session storage. */ }
           clearCheckoutRecovery(slug);
+          active = false;
         }
         if (err?.status && err.status !== 429) setError(err?.message || "Não foi possível atualizar o status do pagamento.");
+        trackCheckout("payment_sync_cycle", {
+          label: rateLimited ? "Sincronização de pagamento limitada" : "Falha ao sincronizar pagamento",
+          target: slug,
+          metadata: {
+            source,
+            attempt: currentAttempt,
+            duration_ms: Date.now() - startedAt,
+            status: Number(err?.status || 0),
+            outcome: rateLimited ? "rate_limited" : "error",
+          },
+        });
       } finally {
+        attempt += 1;
         syncing = false;
+        if (active) scheduleNext({ rateLimited });
       }
     };
 
-    sync();
-    const timer = window.setInterval(sync, PAYMENT_SYNC_INTERVAL_MS);
-    const handleFocus = () => sync();
-    const handleVisibility = () => { if (document.visibilityState === "visible") sync(); };
+    const syncImmediately = (source) => {
+      if (!active || document.visibilityState === "hidden") return;
+      window.clearTimeout(timer);
+      sync(source);
+    };
+
+    sync("initial");
+    const handleFocus = () => syncImmediately("focus");
+    const handleVisibility = () => { if (document.visibilityState === "visible") syncImmediately("visibility"); };
     window.addEventListener("focus", handleFocus);
     document.addEventListener("visibilitychange", handleVisibility);
     return () => {
       active = false;
-      window.clearInterval(timer);
+      window.clearTimeout(timer);
       window.removeEventListener("focus", handleFocus);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
