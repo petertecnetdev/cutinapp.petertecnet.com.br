@@ -6,6 +6,7 @@ import CollapsibleFilterPanel from "../../components/CollapsibleFilterPanel";
 import commerceService from "../../services/CommerceService";
 import cutinappService from "../../services/CutinappService";
 import { estimateAddOnAttachmentOpportunity } from "../../utils/addOnOpportunity";
+import { estimatePendingRevenueOpportunity } from "../../utils/pendingRevenueOpportunity";
 import "./CommerceHistory.css";
 
 const money = (value) => Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -59,6 +60,11 @@ export default function ProducerSalesPage() {
       takeRate: grossPaid > 0 ? (platformFees / grossPaid) * 100 : 0,
     };
   }, [summary.gross_paid, summary.paid_count, summary.platform_fees]);
+
+  const pendingRevenue = useMemo(() => estimatePendingRevenueOpportunity({
+    orders,
+    fallbackTakeRate: economicMetrics.takeRate,
+  }), [economicMetrics.takeRate, orders]);
 
   const addOnEconomics = useMemo(() => {
     const paidOrders = orders.filter((order) => order.status === "paid");
@@ -177,10 +183,33 @@ export default function ProducerSalesPage() {
           <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Adicional médio</small><strong>{money(addOnEconomics.averageAddOnValue)}</strong></div></Col>
           <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Receita Cutinapp estimada em adicionais</small><strong>{money(addOnEconomics.estimatedPlatformRevenue)}</strong></div></Col>
           <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Oportunidade +10 p.p. em adicionais</small><strong>+{money(addOnEconomics.incrementalGmv)} GMV</strong><span>+{money(addOnEconomics.incrementalPlatformRevenue)} receita Cutinapp estimada</span></div></Col>
+          <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>GMV pendente recuperável</small><strong>{money(pendingRevenue.pendingGmv)}</strong><span>{pendingRevenue.pendingCount} pedido(s) aguardando pagamento</span></div></Col>
+          <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Receita Cutinapp em pendências</small><strong>{money(pendingRevenue.estimatedPlatformRevenue)}</strong><span>estimativa pelo fee do pedido ou take rate efetivo</span></div></Col>
         </Row>
         <Alert variant="info" className="mb-3">
-          O GMV considera as vendas pagas. A receita Cutinapp corresponde às taxas da plataforma já registradas nas vendas. A receita por venda mostra quanto cada pedido pago gera, em média, para a plataforma, e o take rate efetivo mostra quanto dessa receita representa sobre o GMV. Os indicadores de adicionais consideram itens não classificados como ingresso. A oportunidade de +10 p.p. simula somente mais vendas aderindo a adicionais pelo valor médio já observado e pelo take rate efetivo; não muda preços, taxas ou regras de pagamento e não representa garantia de receita.
+          O GMV considera as vendas pagas. A receita Cutinapp corresponde às taxas da plataforma já registradas nas vendas. A receita por venda mostra quanto cada pedido pago gera, em média, para a plataforma, e o take rate efetivo mostra quanto dessa receita representa sobre o GMV. Os indicadores de adicionais consideram itens não classificados como ingresso. A oportunidade de +10 p.p. simula somente mais vendas aderindo a adicionais pelo valor médio já observado e pelo take rate efetivo. As pendências mostram receita potencial já iniciada no checkout; usam a taxa registrada no pedido quando disponível e, como fallback analítico, o take rate efetivo da produção. Nenhuma projeção altera preços, taxas ou regras de pagamento e nenhuma delas representa garantia de receita.
         </Alert>
+        {!!pendingRevenue.events.length && <Card className="cut-commerce-card mb-3">
+          <Card.Body>
+            <div className="cut-commerce-order-top mb-3">
+              <div>
+                <small>Receita em recuperação</small>
+                <h2>Eventos com mais GMV aguardando pagamento</h2>
+                <p>Prioriza pedidos já iniciados e ainda pendentes. É uma leitura econômica para orientar recuperação de checkout; não cria cobrança, desconto ou contato automático.</p>
+              </div>
+            </div>
+            <Row className="g-3">
+              {pendingRevenue.events.slice(0, 5).map((event, index) => <Col lg={6} key={event.id}>
+                <div className="cut-commerce-stat h-100">
+                  <small>#{index + 1} · {event.title}</small>
+                  <strong>{money(event.pendingGmv)} GMV pendente</strong>
+                  <span>{event.pendingCount} pedido(s) aguardando pagamento</span>
+                  <span>{money(event.estimatedPlatformRevenue)} de receita Cutinapp potencial associada</span>
+                </div>
+              </Col>)}
+            </Row>
+          </Card.Body>
+        </Card>}
         {!!eventEconomics.length && <Card className="cut-commerce-card mb-3">
           <Card.Body>
             <div className="cut-commerce-order-top mb-3">
