@@ -3,6 +3,7 @@ import { apiBaseUrl, appSlug } from "../config";
 import { humanizeApiErrorMessage } from "../utils/apiErrorMessage";
 import { getRetryDelayMs, shouldRetryRequest } from "../utils/apiRetryPolicy";
 import { createRequestId, getHeaderValue, resolveRequestId } from "../utils/requestCorrelation";
+import { clearAuthToken, getAuthToken } from "../utils/authTokenStorage";
 
 const firstValidationMessage = (errors) => {
   if (!errors || typeof errors !== "object") return "";
@@ -49,7 +50,7 @@ export const createApiClient = (baseURL) => {
   });
 
   client.interceptors.request.use((config) => {
-    const token = localStorage.getItem("token");
+    const token = getAuthToken();
     if (token) config.headers.Authorization = `Bearer ${token}`;
 
     if (!getHeaderValue(config.headers, "x-request-id")) {
@@ -102,7 +103,7 @@ export const createApiClient = (baseURL) => {
         requestUrl.includes("/auth/change-password");
 
       if (status === 401 && !keepSessionOn401) {
-        localStorage.removeItem("token");
+        clearAuthToken();
         publishAuthInvalidation(requestUrl);
       }
 

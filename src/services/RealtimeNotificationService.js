@@ -1,4 +1,5 @@
 import { apiBaseUrl } from "../config";
+import { getAuthToken } from "../utils/authTokenStorage";
 
 const APP_SLUG = "cutinapp";
 const EVENT_NAME = "app.notification.created";
@@ -50,7 +51,7 @@ export function subscribeToUserNotifications(userId, onNotification) {
   const scheme = String(process.env.REACT_APP_REVERB_SCHEME || "https").trim().toLowerCase();
   const port = Number(process.env.REACT_APP_REVERB_PORT || (scheme === "https" ? 443 : 80));
   const channelName = `private-App.Models.User.${userId}`;
-  const token = localStorage.getItem("token");
+  const token = getAuthToken();
 
   let socket = null;
   let stopped = false;
