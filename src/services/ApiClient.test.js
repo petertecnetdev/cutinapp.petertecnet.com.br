@@ -1,5 +1,5 @@
-import { getRetryDelayMs, shouldRetryRequest } from "./ApiClient";
 import { humanizeApiErrorMessage } from "../utils/apiErrorMessage";
+import { getRetryDelayMs, shouldRetryRequest } from "../utils/apiRetryPolicy";
 
 describe("ApiClient error messages", () => {
   test("never exposes backend internals for 5xx responses", () => {
