@@ -87,6 +87,8 @@ export default function ProducerSalesPage() {
         platformRevenuePerSale: event.paidCount > 0 ? event.platformRevenue / event.paidCount : 0,
         takeRate: event.gmv > 0 ? (event.platformRevenue / event.gmv) * 100 : 0,
         producerShare: event.gmv > 0 ? (event.producerNet / event.gmv) * 100 : 0,
+        ticketUpliftGmv: event.gmv * 0.10,
+        ticketUpliftPlatformRevenue: event.platformRevenue * 0.10,
       }))
       .sort((a, b) => b.platformRevenue - a.platformRevenue)
       .slice(0, 5);
@@ -130,7 +132,7 @@ export default function ProducerSalesPage() {
               <div>
                 <small>Monetização por evento</small>
                 <h2>Eventos que mais geram receita Cutinapp</h2>
-                <p>Compare receita por venda, ticket médio e participação econômica usando somente as taxas efetivamente registradas nas vendas pagas carregadas.</p>
+                <p>Compare receita por venda, ticket médio e participação econômica. A simulação de +10% no ticket médio projeta impacto mantendo o take rate observado, sem alterar taxas nem representar garantia de receita.</p>
               </div>
             </div>
             <Row className="g-3">
@@ -142,6 +144,7 @@ export default function ProducerSalesPage() {
                   <span>Receita Cutinapp / venda {money(event.platformRevenuePerSale)}</span>
                   <span>Ticket médio {money(event.averageTicket)} · Take rate {percent(event.takeRate)}</span>
                   <span>Líquido do produtor {money(event.producerNet)} · {percent(event.producerShare)} do GMV</span>
+                  <span>Simulação +10% ticket médio: +{money(event.ticketUpliftGmv)} GMV · +{money(event.ticketUpliftPlatformRevenue)} receita Cutinapp</span>
                 </div>
               </Col>)}
             </Row>
