@@ -21,6 +21,7 @@ const cutinappService = {
       app_id: data?.application?.id || null,
     };
   },
+  publicEvents: async (params = {}) => (await appApiClient.get("/events", { params })).data,
   discoveryFacets: async () => (await appApiClient.get("/events/facets")).data,
   locationStates: async () => (await appApiClient.get("/locations/states")).data.states || [],
   locationCities: async (uf, q = "") => (await appApiClient.get("/locations/cities", { params: { uf, q } })).data.cities || [],
