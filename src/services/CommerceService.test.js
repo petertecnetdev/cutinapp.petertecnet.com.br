@@ -74,6 +74,19 @@ describe("CommerceService", () => {
     expect(appApiClient.get).toHaveBeenCalledTimes(2);
   });
 
+  test("loads revenue funnel with a bounded period", async () => {
+    appApiClient.get.mockResolvedValue({ data: { gross_revenue: 1250 } });
+
+    await expect(commerceService.revenueFunnel(42, 999)).resolves.toEqual({ gross_revenue: 1250 });
+    expect(appApiClient.get).toHaveBeenCalledWith("/organizations/42/revenue-funnel", { params: { days: 365 } });
+  });
+
+  test("keeps financial flows usable when revenue analytics are unavailable", async () => {
+    appApiClient.get.mockRejectedValue(new Error("analytics unavailable"));
+
+    await expect(commerceService.revenueFunnel(42, 30)).resolves.toBeNull();
+  });
+
   test("loads the pickup credential for a paid order", async () => {
     appApiClient.get.mockResolvedValue({ data: { credential: { token: "ITEM-order.signature" } } });
 
