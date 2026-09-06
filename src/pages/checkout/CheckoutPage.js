@@ -7,7 +7,7 @@ import { AuthContext } from "../../context/AuthContext";
 import commerceService from "../../services/CommerceService";
 import { clearCheckoutRecovery, readCheckoutRecovery, writeCheckoutRecovery } from "../../utils/checkoutRecovery";
 import { resolveCheckoutPaymentMethod } from "../../utils/paymentMethod";
-import { rankCheckoutAddOns } from "../../utils/checkoutAddOns";
+import { rankCheckoutAddOns, summarizeCheckoutAddOnOffer } from "../../utils/checkoutAddOns";
 import { getPaymentSyncDelay } from "../../utils/paymentSyncSchedule";
 import { createKeyedSingleFlight } from "../../utils/singleFlight";
 import { safeGetSessionJson, safeRemoveSessionItem, safeSetSessionJson } from "../../utils/safeStorage";
@@ -111,7 +111,7 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (result?.order?.public_id) {
       safeSetSessionJson(paymentStorageKey, result);
-      writeCheckoutRecovery(slug, { selection, orderPublicId: result.order.public_id });
+      writeCheckoutRecovery(slug, { selection: selection, orderPublicId: result.order.public_id });
     }
   }, [result, paymentStorageKey, selection, slug]);
 
@@ -178,9 +178,8 @@ export default function CheckoutPage() {
       target: slug,
       metadata: {
         event_id: Number(catalog?.event?.id || 0),
-        offered_items: availableAddOns.length,
         current_amount: Number(total.toFixed(2)),
-        min_addon_price: Math.min(...availableAddOns.map((item) => Number(item.price || 0))),
+        ...summarizeCheckoutAddOnOffer(availableAddOns),
       },
     });
   }, [availableAddOns, catalog?.event?.id, result, slug, total]);
@@ -484,7 +483,7 @@ export default function CheckoutPage() {
   return <div className="cut-checkout-page" data-telemetry-screen="Checkout">
     <header className="cut-checkout-topbar">
       <Container className="cut-checkout-topbar__inner">
-        <Link to={`/event/${slug}`} className="cut-checkout-back"><i className="fa-solid fa-arrow-left" /> Voltar ao evento</Link>
+        <Link to={`/event/${slug}`} className="cut-checkout-back"><i className="fa-solid fa-arrow-left" /> Voltar ao event</Link>
         <div className="cut-checkout-brand"><span className="cut-checkout-brand__mark">C</span><div><strong>Cutinapp</strong><small>Checkout seguro</small></div></div>
         <div className="cut-checkout-secure"><i className="fa-solid fa-lock" /> Ambiente protegido</div>
       </Container>
@@ -531,7 +530,7 @@ export default function CheckoutPage() {
             </section>
           </>}
 
-          <div className="cut-checkout-trustbar"><div><i className="fa-solid fa-lock" /><span><strong>Conexão segura</strong>Dados criptografados</span></div><div><i className="fa-solid fa-shield-halved" /><span><strong>Mercado Pago</strong>Processamento protegido</span></div><div><i className="fa-solid fa-ticket" /><span><strong>Liberação automática</strong>Ingresso após aprovação</span></div></div>
+          <div className="cut-checkout-trustbar"><div><i className="fa-solid fa-lock" /><span><strong>Conexão segura</strong>Dados criptografados</span></div><div><i className="fa-solid fa-shield-halved" /><span><strong>Mercado Pago</strong>Processamento protegido</span></div><div><i className="fa-solid fa-ticket" /><span><strong>Liberação automática</strong>Ingresso apos aprovação</span></div></div>
         </main>
         <aside className="cut-checkout-summary"><span className="cut-eyebrow">Resumo do pedido</span><h2>Sua compra</h2><div className="cut-checkout-summary__event"><i className="fa-regular fa-calendar-check" /><div><strong>{catalog?.event?.title}</strong><span>Compra pela Cutinapp</span></div></div><div className="cut-checkout-summary__lines">{lines.map((line) => <div key={`${line.kind}-${line.id}`}><div><small>{line.kind === "ticket" ? "Ingresso" : "Item"}</small><strong>{line.name}</strong>{!result && line.kind === "item" ? <div className="d-flex flex-row align-items-center gap-2 mt-2" aria-label={`Quantidade de ${line.name}`}><Button type="button" variant="outline-light" size="sm" onClick={() => updateItemQuantity(line, line.quantity - 1)} aria-label={`Diminuir quantidade de ${line.name}`}><i className="fa-solid fa-minus" /></Button><span aria-live="polite">{line.quantity}</span><Button type="button" variant="outline-light" size="sm" onClick={() => updateItemQuantity(line, line.quantity + 1)} disabled={line.quantity >= 10} aria-label={`Aumentar quantidade de ${line.name}`}><i className="fa-solid fa-plus" /></Button></div> : <span>Qtd. {line.quantity}</span>}</div><strong>{money(Number(line.price) * line.quantity)}</strong></div>)}</div><div className="cut-checkout-summary__total"><span>Total</span><strong>{money(total)}</strong></div><div className="cut-checkout-summary__security"><i className="fa-solid fa-shield-halved" /><span>Pagamento processado com segurança pelo Mercado Pago.</span></div></aside>
       </div>

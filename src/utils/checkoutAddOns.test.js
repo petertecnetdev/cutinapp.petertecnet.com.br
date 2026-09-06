@@ -1,4 +1,4 @@
-import { rankCheckoutAddOns } from "./checkoutAddOns";
+import { rankCheckoutAddOns, summarizeCheckoutAddOnOffer } from "./checkoutAddOns";
 
 describe("rankCheckoutAddOns", () => {
   test("prioritizes explicit merchandising priority before price", () => {
@@ -30,5 +30,35 @@ describe("rankCheckoutAddOns", () => {
     ];
 
     expect(rankCheckoutAddOns(items, new Set([1]), 3).map((item) => item.id)).toEqual([3]);
+  });
+});
+
+describe("summarizeCheckoutAddOnOffer", () => {
+  test("captures the exact items and value exposed to the buyer", () => {
+    expect(summarizeCheckoutAddOnOffer([
+      { id: 8, price: 12.5 },
+      { id: 11, price: "30" },
+      { id: 14, price: 7 },
+    ])).toEqual({
+      offered_items: 3,
+      offered_item_ids: "8,11,14",
+      offered_item_prices: "12.50,30.00,7.00",
+      offered_value: 49.5,
+      min_addon_price: 7,
+    });
+  });
+
+  test("ignores invalid or free entries from monetization exposure", () => {
+    expect(summarizeCheckoutAddOnOffer([
+      { id: 1, price: 0 },
+      { price: 20 },
+      { id: 2, price: 15 },
+    ])).toEqual({
+      offered_items: 1,
+      offered_item_ids: "2",
+      offered_item_prices: "15.00",
+      offered_value: 15,
+      min_addon_price: 15,
+    });
   });
 });
