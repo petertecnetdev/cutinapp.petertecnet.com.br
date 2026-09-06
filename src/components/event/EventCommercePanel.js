@@ -120,10 +120,6 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
   };
 
   const continueToCheckout = () => {
-    if (!user) {
-      onLoginRequired?.();
-      return;
-    }
     if (!selected.tickets.length && !selected.items.length) {
       setError("Selecione ao menos um ingresso ou item.");
       return;
@@ -139,6 +135,24 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
       tickets: selected.tickets.map((item) => ({ id: item.id, quantity: Number(quantities[`ticket:${item.id}`]) })),
       items: selected.items.map((item) => ({ id: item.id, quantity: Number(quantities[`item:${item.id}`]) })),
     };
+    const checkoutPath = `/checkout/${activeSlug}`;
+
+    safeRemoveSessionItem(`cutinapp_payment_${activeSlug}`);
+    safeSetSessionJson(`cutinapp_checkout_${activeSlug}`, checkout);
+
+    if (!user) {
+      trackCommerce("event_purchase_login_required", {
+        label: "Seleção preservada antes do login",
+        target: activeSlug,
+        metadata: {
+          event_id: activeEventId,
+          amount: Number(total.toFixed(2)),
+          quantity: selectedQuantity,
+        },
+      });
+      onLoginRequired?.(checkoutPath);
+      return;
+    }
 
     trackCommerce("event_purchase_checkout_started", {
       label: "Seleção enviada ao checkout",
@@ -152,9 +166,7 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
       },
     });
 
-    safeRemoveSessionItem(`cutinapp_payment_${activeSlug}`);
-    safeSetSessionJson(`cutinapp_checkout_${activeSlug}`, checkout);
-    navigate(`/checkout/${activeSlug}`, { state: { checkout, from: `${location.pathname}${location.search}` } });
+    navigate(checkoutPath, { state: { checkout, from: `${location.pathname}${location.search}` } });
   };
 
   if (loading) return <p className="text-secondary mb-0">Carregando opções de compra...</p>;
