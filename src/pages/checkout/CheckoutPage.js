@@ -7,7 +7,7 @@ import { AuthContext } from "../../context/AuthContext";
 import commerceService from "../../services/CommerceService";
 import { clearCheckoutRecovery, readCheckoutRecovery, writeCheckoutRecovery } from "../../utils/checkoutRecovery";
 import { resolveCheckoutPaymentMethod } from "../../utils/paymentMethod";
-import { rankCheckoutAddOns } from "../../utils/checkoutAddOns";
+import { rankCheckoutAddOns, summarizeCheckoutAddOnOffer } from "../../utils/checkoutAddOns";
 import { getPaymentSyncDelay } from "../../utils/paymentSyncSchedule";
 import { createKeyedSingleFlight } from "../../utils/singleFlight";
 import { safeGetSessionJson, safeRemoveSessionItem, safeSetSessionJson } from "../../utils/safeStorage";
@@ -178,9 +178,8 @@ export default function CheckoutPage() {
       target: slug,
       metadata: {
         event_id: Number(catalog?.event?.id || 0),
-        offered_items: availableAddOns.length,
         current_amount: Number(total.toFixed(2)),
-        min_addon_price: Math.min(...availableAddOns.map((item) => Number(item.price || 0))),
+        ...summarizeCheckoutAddOnOffer(availableAddOns),
       },
     });
   }, [availableAddOns, catalog?.event?.id, result, slug, total]);
