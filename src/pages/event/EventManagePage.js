@@ -106,7 +106,7 @@ export default function EventManagePage() {
         ? await cutinappService.unpublishEvent(event.id)
         : await cutinappService.publishEvent(event.id);
       await load();
-      setSuccess(response.message || "Situação do evento atualizada.");
+      setSuccess(event.is_published ? (response.message || "Evento retirado da publicação.") : "Evento publicado. Agora compartilhe a página pública para buscar a primeira venda.");
     } catch (err) {
       setError(err?.message || "Não foi possível alterar a publicação do evento.");
     } finally {
@@ -126,6 +126,13 @@ export default function EventManagePage() {
     } catch (err) {
       if (err?.name !== "AbortError") setError("Não foi possível compartilhar o link deste navegador.");
     }
+  };
+
+  const shareWhatsApp = (event) => {
+    if (!event.is_published || !event.slug) return;
+    const url = `${window.location.origin}/event/${event.slug}`;
+    const message = `Confira ${event.title} na Cutinapp: ${url}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
   };
 
   const openDuplicate = (event) => {
@@ -209,6 +216,12 @@ export default function EventManagePage() {
                   <Badge bg={event.is_published ? "success" : "secondary"}>3. Publicação</Badge>
                 </div>
                 <Button className="mt-3" size="sm" variant={readiness.completed === 3 ? "outline-light" : "light"} onClick={() => navigate(readiness.route)}>{readiness.action}</Button>
+              </div>}
+
+              {event.is_published && !event.is_cancelled && <div className="cut-info-box mt-3">
+                <strong>Próxima meta: primeira venda</strong>
+                <span>Seu evento já está no ar. Compartilhe a página pública para transformar divulgação em ingressos vendidos.</span>
+                <Button className="mt-3" size="sm" onClick={() => shareWhatsApp(event)}><i className="fa-brands fa-whatsapp me-2" />Compartilhar no WhatsApp</Button>
               </div>}
 
               <div className="cut-card-actions mt-4">
