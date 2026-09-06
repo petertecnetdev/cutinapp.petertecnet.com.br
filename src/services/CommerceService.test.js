@@ -1,5 +1,6 @@
 import appApiClient from "./AppApiClient";
 import commerceService from "./CommerceService";
+import { trackTelemetry } from "../utils/telemetry";
 
 jest.mock("./AppApiClient", () => ({
   __esModule: true,
@@ -9,6 +10,10 @@ jest.mock("./AppApiClient", () => ({
     patch: jest.fn(),
     delete: jest.fn(),
   },
+}));
+
+jest.mock("../utils/telemetry", () => ({
+  trackTelemetry: jest.fn(),
 }));
 
 const payload = {
@@ -81,10 +86,20 @@ describe("CommerceService", () => {
     expect(appApiClient.get).toHaveBeenCalledWith("/organizations/42/revenue-funnel", { params: { days: 365 } });
   });
 
-  test("keeps financial flows usable when revenue analytics are unavailable", async () => {
-    appApiClient.get.mockRejectedValue(new Error("analytics unavailable"));
+  test("keeps financial flows usable and records telemetry when revenue analytics are unavailable", async () => {
+    const error = Object.assign(new Error("analytics unavailable"), { status: 503 });
+    appApiClient.get.mockRejectedValue(error);
 
     await expect(commerceService.revenueFunnel(42, 30)).resolves.toBeNull();
+    expect(trackTelemetry).toHaveBeenCalledWith("producer_revenue_analytics_unavailable", {
+      label: "Métricas financeiras temporariamente indisponíveis",
+      target: "42",
+      metadata: {
+        days: 30,
+        status: 503,
+        network_failure: false,
+      },
+    });
   });
 
   test("loads the pickup credential for a paid order", async () => {

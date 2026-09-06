@@ -1,6 +1,7 @@
 import appApiClient from "./AppApiClient";
 import { isNetworkFailure } from "../utils/networkStatus";
 import { safeGetSessionJson, safeRemoveSessionItem, safeSetSessionJson } from "../utils/safeStorage";
+import { trackTelemetry } from "../utils/telemetry";
 
 const pendingCheckouts = new Map();
 const fallbackAttempts = new Map();
@@ -162,11 +163,21 @@ const commerceService = {
   connectMercadoPago: async (organizationId) => (await appApiClient.get(`/organizations/${organizationId}/payment-provider/connect`)).data,
   financialSummary: async (organizationId) => (await appApiClient.get(`/organizations/${organizationId}/financial-summary`)).data,
   revenueFunnel: async (organizationId, days = 30) => {
+    const boundedDays = Math.min(Math.max(Number(days) || 30, 1), 365);
     try {
       return (await appApiClient.get(`/organizations/${organizationId}/revenue-funnel`, {
-        params: { days: Math.min(Math.max(Number(days) || 30, 1), 365) },
+        params: { days: boundedDays },
       })).data;
-    } catch {
+    } catch (error) {
+      trackTelemetry("producer_revenue_analytics_unavailable", {
+        label: "Métricas financeiras temporariamente indisponíveis",
+        target: String(organizationId || ""),
+        metadata: {
+          days: boundedDays,
+          status: Number(error?.status || error?.response?.status || 0) || null,
+          network_failure: isNetworkFailure(error),
+        },
+      });
       return null;
     }
   },
