@@ -30,6 +30,22 @@ const suggestedDuplicateDate = (event) => {
   return toDateInput(candidate);
 };
 
+const trackProducerActivation = (type, event, metadata = {}) => {
+  try {
+    window.PeterTecnetTelemetry?.track?.(type, {
+      label: event?.title || "Evento",
+      target: event?.slug || String(event?.id || ""),
+      metadata: {
+        event_id: Number(event?.id || 0),
+        production_id: Number(event?.production?.id || event?.production_id || 0),
+        ...metadata,
+      },
+    });
+  } catch (_) {
+    // Telemetry must never interrupt producer activation.
+  }
+};
+
 const getSalesReadiness = (event) => {
   const hasBasics = Boolean(
     String(event?.title || "").trim()
@@ -106,6 +122,7 @@ export default function EventManagePage() {
         ? await cutinappService.unpublishEvent(event.id)
         : await cutinappService.publishEvent(event.id);
       await load();
+      if (!event.is_published) trackProducerActivation("producer_event_published", event, { activation_stage: "published" });
       setSuccess(event.is_published ? (response.message || "Evento retirado da publicação.") : "Evento publicado. Agora compartilhe a página pública para buscar a primeira venda.");
     } catch (err) {
       setError(err?.message || "Não foi possível alterar a publicação do evento.");
@@ -118,9 +135,12 @@ export default function EventManagePage() {
     if (!event.is_published || !event.slug) return;
     const url = `${window.location.origin}/event/${event.slug}`;
     try {
-      if (navigator.share) await navigator.share({ title: event.title, url });
-      else {
+      if (navigator.share) {
+        await navigator.share({ title: event.title, url });
+        trackProducerActivation("producer_event_shared", event, { channel: "native_share", activation_stage: "distribution" });
+      } else {
         await navigator.clipboard.writeText(url);
+        trackProducerActivation("producer_event_shared", event, { channel: "clipboard", activation_stage: "distribution" });
         setSuccess("Link público copiado.");
       }
     } catch (err) {
@@ -132,6 +152,7 @@ export default function EventManagePage() {
     if (!event.is_published || !event.slug) return;
     const url = `${window.location.origin}/event/${event.slug}`;
     const message = `Confira ${event.title} na Cutinapp: ${url}`;
+    trackProducerActivation("producer_event_shared", event, { channel: "whatsapp", activation_stage: "distribution" });
     window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
   };
 
@@ -221,7 +242,10 @@ export default function EventManagePage() {
               {event.is_published && !event.is_cancelled && <div className="cut-info-box mt-3">
                 <strong>Próxima meta: primeira venda</strong>
                 <span>Seu evento já está no ar. Compartilhe a página pública para transformar divulgação em ingressos vendidos.</span>
-                <Button className="mt-3" size="sm" onClick={() => shareWhatsApp(event)}><i className="fa-brands fa-whatsapp me-2" />Compartilhar no WhatsApp</Button>
+                <div className="d-flex flex-wrap gap-2 mt-3">
+                  <Button size="sm" onClick={() => shareWhatsApp(event)}><i className="fa-brands fa-whatsapp me-2" />Compartilhar no WhatsApp</Button>
+                  <Button size="sm" variant="outline-light" onClick={() => { trackProducerActivation("producer_sales_monitor_opened", event, { activation_stage: "first_sale" }); navigate("/producer/sales"); }}><i className="fa-solid fa-chart-line me-2" />Acompanhar primeira venda</Button>
+                </div>
               </div>}
 
               <div className="cut-card-actions mt-4">
