@@ -2,6 +2,7 @@ import React, { useContext, useEffect, useState } from "react";
 import { Container, Nav, Navbar, NavDropdown } from "react-bootstrap";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
+import adminCenterService from "../services/AdminCenterService";
 import cutinappService from "../services/CutinappService";
 import { subscribeToUserNotifications } from "../services/RealtimeNotificationService";
 import { hasContextRole } from "../utils/applicationRoles";
@@ -42,6 +43,7 @@ export default function NavlogComponent() {
   const [open, setOpen] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [notificationPreview, setNotificationPreview] = useState([]);
+  const [hasAdminAccess, setHasAdminAccess] = useState(false);
   const userId = user?.id;
 
   const active = (prefix) => location.pathname.startsWith(prefix);
@@ -52,6 +54,24 @@ export default function NavlogComponent() {
   useEffect(() => {
     setOpen(false);
   }, [location.pathname, location.search, location.hash]);
+
+  useEffect(() => {
+    if (!userId) {
+      setHasAdminAccess(false);
+      return undefined;
+    }
+
+    let mounted = true;
+    adminCenterService.context()
+      .then((access) => {
+        if (mounted) setHasAdminAccess(Boolean(access?.authorized));
+      })
+      .catch(() => {
+        if (mounted) setHasAdminAccess(false);
+      });
+
+    return () => { mounted = false; };
+  }, [userId]);
 
   useEffect(() => {
     if (!open || typeof document === "undefined") return undefined;
@@ -228,6 +248,7 @@ export default function NavlogComponent() {
             <NavDropdown align="end" title={<span className="cut-navbar__user"><span className="cut-navbar__avatar">{String(user.first_name || "C").slice(0, 2).toUpperCase()}</span><span><strong>{user.first_name || "Minha conta"}</strong><small>{user.email}</small></span></span>} id="cut-account-menu">
               <NavDropdown.Item as={Link} to="/profile"><i className="fa-regular fa-user me-2" />Meu perfil</NavDropdown.Item>
               <NavDropdown.Item as={Link} to="/dashboard">Painel</NavDropdown.Item>
+              {hasAdminAccess && <><NavDropdown.Divider /><NavDropdown.Item as={Link} to="/admin"><i className="fa-solid fa-screwdriver-wrench me-2" />Admin Cutinapp</NavDropdown.Item></>}
               {isAcquisitionAgent && <NavDropdown.Item as={Link} to="/agent"><i className="fa-solid fa-user-tie me-2" />Painel do agente</NavDropdown.Item>}
               <NavDropdown.Item as={Link} to="/purchases"><i className="fa-solid fa-receipt me-2" />Minhas compras</NavDropdown.Item>
               <NavDropdown.Item as={Link} to="/user/edit">Editar conta</NavDropdown.Item>
