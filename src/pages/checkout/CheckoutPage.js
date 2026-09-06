@@ -9,6 +9,7 @@ import { clearCheckoutRecovery, readCheckoutRecovery, writeCheckoutRecovery } fr
 import { resolveCheckoutPaymentMethod } from "../../utils/paymentMethod";
 import { getPaymentSyncDelay } from "../../utils/paymentSyncSchedule";
 import { createKeyedSingleFlight } from "../../utils/singleFlight";
+import { safeGetSessionJson, safeRemoveSessionItem, safeSetSessionJson } from "../../utils/safeStorage";
 import "./CheckoutPage.css";
 
 const money = (value) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
@@ -52,27 +53,23 @@ export default function CheckoutPage() {
     const recovery = readCheckoutRecovery(slug);
 
     if (fromState) {
-      try { sessionStorage.setItem(checkoutStorageKey, JSON.stringify(fromState)); } catch (_) { /* Durable fallback below. */ }
+      safeSetSessionJson(checkoutStorageKey, fromState);
       writeCheckoutRecovery(slug, { selection: fromState, orderPublicId: null });
     }
 
     let stored = fromState;
     if (!stored) {
-      try { stored = JSON.parse(sessionStorage.getItem(checkoutStorageKey) || "null"); } catch (_) { stored = null; }
+      stored = safeGetSessionJson(checkoutStorageKey);
     }
     if (!stored) stored = recovery?.selection || null;
     setSelection(stored);
 
     let hasSessionPayment = false;
-    try {
-      const storedPayment = JSON.parse(sessionStorage.getItem(paymentStorageKey) || "null");
-      if (storedPayment?.order?.public_id) {
-        hasSessionPayment = true;
-        setMethod(resolveCheckoutPaymentMethod(storedPayment));
-        setResult(storedPayment);
-      }
-    } catch (_) {
-      try { sessionStorage.removeItem(paymentStorageKey); } catch (_) { /* Ignore unavailable storage. */ }
+    const storedPayment = safeGetSessionJson(paymentStorageKey);
+    if (storedPayment?.order?.public_id) {
+      hasSessionPayment = true;
+      setMethod(resolveCheckoutPaymentMethod(storedPayment));
+      setResult(storedPayment);
     }
 
     if (!fromState && !hasSessionPayment && recovery?.orderPublicId) {
@@ -112,7 +109,7 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     if (result?.order?.public_id) {
-      try { sessionStorage.setItem(paymentStorageKey, JSON.stringify(result)); } catch (_) { /* Durable recovery remains available. */ }
+      safeSetSessionJson(paymentStorageKey, result);
       writeCheckoutRecovery(slug, { selection, orderPublicId: result.order.public_id });
     }
   }, [result, paymentStorageKey, selection, slug]);
@@ -225,7 +222,7 @@ export default function CheckoutPage() {
       setError("");
     } catch (err) {
       if (err?.status === 403 || err?.status === 404) {
-        try { sessionStorage.removeItem(paymentStorageKey); } catch (_) { /* Ignore unavailable session storage. */ }
+        safeRemoveSessionItem(paymentStorageKey);
         clearCheckoutRecovery(slug);
       }
       if (err?.status && err.status !== 429) setError(err?.message || "Não foi possível atualizar o status do pagamento.");
@@ -279,7 +276,7 @@ export default function CheckoutPage() {
       } catch (err) {
         rateLimited = err?.status === 429;
         if (err?.status === 403 || err?.status === 404) {
-          try { sessionStorage.removeItem(paymentStorageKey); } catch (_) { /* Ignore unavailable session storage. */ }
+          safeRemoveSessionItem(paymentStorageKey);
           clearCheckoutRecovery(slug);
           active = false;
         }
@@ -328,7 +325,7 @@ export default function CheckoutPage() {
       items: [...(selection?.items || []), { id: Number(item.id), quantity: 1 }],
     };
     setSelection(nextSelection);
-    try { sessionStorage.setItem(checkoutStorageKey, JSON.stringify(nextSelection)); } catch (_) { /* Durable fallback below. */ }
+    safeSetSessionJson(checkoutStorageKey, nextSelection);
     writeCheckoutRecovery(slug, { selection: nextSelection, orderPublicId: null });
     trackCheckout("checkout_addon_added", {
       label: "Adicional incluído no checkout",
@@ -353,7 +350,7 @@ export default function CheckoutPage() {
       : currentItems.map((entry) => Number(entry.id) === Number(item.id) ? { ...entry, quantity } : entry);
     const nextSelection = { ...selection, items: nextItems };
     setSelection(nextSelection);
-    try { sessionStorage.setItem(checkoutStorageKey, JSON.stringify(nextSelection)); } catch (_) { /* Durable fallback below. */ }
+    safeSetSessionJson(checkoutStorageKey, nextSelection);
     writeCheckoutRecovery(slug, { selection: nextSelection, orderPublicId: null });
     trackCheckout("checkout_item_quantity_changed", {
       label: quantity === 0 ? "Item removido do checkout" : "Quantidade de item alterada no checkout",
@@ -394,7 +391,7 @@ export default function CheckoutPage() {
     });
     if (!approved) {
       setResult(null);
-      try { sessionStorage.removeItem(paymentStorageKey); } catch (_) { /* Ignore unavailable session storage. */ }
+      safeRemoveSessionItem(paymentStorageKey);
       writeCheckoutRecovery(slug, { selection, orderPublicId: null });
     }
   };
@@ -406,7 +403,7 @@ export default function CheckoutPage() {
     try {
       const checkoutResult = await commerceService.checkout(payload("pix"));
       setResult(checkoutResult);
-      try { sessionStorage.setItem(paymentStorageKey, JSON.stringify(checkoutResult)); } catch (_) { /* Durable recovery effect will persist the order reference. */ }
+      safeSetSessionJson(paymentStorageKey, checkoutResult);
     } catch (err) {
       trackCheckout("payment_attempt_failed", { label: "Falha ao iniciar PIX", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(total.toFixed(2)), payment_method: "pix", outcome: "error", status: Number(err?.status || 0) } });
       setError(err?.message || "Não foi possível gerar o PIX.");
@@ -421,7 +418,7 @@ export default function CheckoutPage() {
     try {
       const checkoutResult = await commerceService.checkout({ ...payload("card"), ...cardData });
       setResult(checkoutResult);
-      try { sessionStorage.setItem(paymentStorageKey, JSON.stringify(checkoutResult)); } catch (_) { /* Durable recovery effect will persist the order reference. */ }
+      safeSetSessionJson(paymentStorageKey, checkoutResult);
     } catch (err) {
       trackCheckout("payment_attempt_failed", { label: "Falha ao processar cartão", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(total.toFixed(2)), payment_method: "card", outcome: "error", status: Number(err?.status || 0) } });
       setError(err?.message || "Não foi possível processar o cartão.");
@@ -444,7 +441,7 @@ export default function CheckoutPage() {
     setMethod(nextMethod);
     setResult(null);
     setError("");
-    try { sessionStorage.removeItem(paymentStorageKey); } catch (_) { /* Ignore unavailable session storage. */ }
+    safeRemoveSessionItem(paymentStorageKey);
     writeCheckoutRecovery(slug, { selection, orderPublicId: null });
   };
 
