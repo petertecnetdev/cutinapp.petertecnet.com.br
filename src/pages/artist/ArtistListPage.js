@@ -5,6 +5,7 @@ import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import CollapsibleFilterPanel from "../../components/CollapsibleFilterPanel";
 import cutinappService from "../../services/CutinappService";
+import { activateOnKeyboard } from "../../utils/keyboardActivation";
 
 const TYPE_LABELS = { solo: "Artista solo", band: "Banda", duo: "Duo", group: "Grupo", collective: "Coletivo", orchestra: "Orquestra" };
 
@@ -51,7 +52,7 @@ export default function ArtistListPage() {
           </div>
         </CollapsibleFilterPanel>
       </Card.Body></Card>
-      {!loading && artists.length === 0 ? <Card className="cut-empty-state"><Card.Body><h2>Nenhum perfil artístico encontrado</h2><p>Tente outro nome ou cidade.</p></Card.Body></Card> : <Row className="g-4">{artists.map((artist) => <Col sm={6} lg={4} xl={3} key={artist.id}><Card className="cut-artist-card h-100" onClick={() => navigate(`/artist/${artist.slug}`)} role="button"><div className="cut-artist-card__photo">{artist.photo ? <img src={artist.photo} alt={artist.stage_name} /> : <span>{artist.stage_name?.slice(0,2).toUpperCase()}</span>}</div><Card.Body><div className="d-flex gap-2 align-items-center flex-wrap mb-2"><Badge bg="secondary">{TYPE_LABELS[artist.artist_type] || "Artista solo"}</Badge><span className="cut-eyebrow mb-0">{artist.genres?.slice(0,2).join(" · ") || "Cutinapp"}</span></div><h2>{artist.stage_name}</h2><p>{artist.city ? `${artist.city}${artist.uf ? ` - ${artist.uf}` : ""}` : "Perfil Cutinapp"}</p><div className="cut-social-stats"><span>{artist.followers_count || 0} seguidores</span><span>{artist.upcoming_events_count || 0} próximos eventos</span></div><Button className="w-100 mt-3">Ver perfil</Button></Card.Body></Card></Col>)}</Row>}
+      {!loading && artists.length === 0 ? <Card className="cut-empty-state"><Card.Body><h2>Nenhum perfil artístico encontrado</h2><p>Tente outro nome ou cidade.</p></Card.Body></Card> : <Row className="g-4">{artists.map((artist) => <Col sm={6} lg={4} xl={3} key={artist.id}><Card className="cut-artist-card h-100" onClick={() => navigate(`/artist/${artist.slug}`)} role="link" tabIndex={0} aria-label={`Abrir perfil de ${artist.stage_name}`} onKeyDown={(event) => activateOnKeyboard(event, () => navigate(`/artist/${artist.slug}`))}><div className="cut-artist-card__photo">{artist.photo ? <img src={artist.photo} alt={artist.stage_name} loading="lazy" decoding="async" /> : <span>{artist.stage_name?.slice(0,2).toUpperCase()}</span>}</div><Card.Body><div className="d-flex gap-2 align-items-center flex-wrap mb-2"><Badge bg="secondary">{TYPE_LABELS[artist.artist_type] || "Artista solo"}</Badge><span className="cut-eyebrow mb-0">{artist.genres?.slice(0,2).join(" · ") || "Cutinapp"}</span></div><h2>{artist.stage_name}</h2><p>{artist.city ? `${artist.city}${artist.uf ? ` - ${artist.uf}` : ""}` : "Perfil Cutinapp"}</p><div className="cut-social-stats"><span>{artist.followers_count || 0} seguidores</span><span>{artist.upcoming_events_count || 0} próximos eventos</span></div><Button className="w-100 mt-3">Ver perfil</Button></Card.Body></Card></Col>)}</Row>}
     </Container>
   </div>;
 }
