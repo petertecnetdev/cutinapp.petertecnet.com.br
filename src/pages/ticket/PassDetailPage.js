@@ -24,6 +24,20 @@ export default function PassDetailPage() {
   const [transferLoading, setTransferLoading] = useState(false);
   const [transferError, setTransferError] = useState("");
   const [transferred, setTransferred] = useState(null);
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const refreshNow = () => setNow(Date.now());
+    const timerId = window.setInterval(refreshNow, 30000);
+    document.addEventListener("visibilitychange", refreshNow);
+    window.addEventListener("focus", refreshNow);
+
+    return () => {
+      window.clearInterval(timerId);
+      document.removeEventListener("visibilitychange", refreshNow);
+      window.removeEventListener("focus", refreshNow);
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -52,8 +66,8 @@ export default function PassDetailPage() {
   const eventEnded = useMemo(() => {
     if (!pass?.event?.end_date) return false;
     const end = new Date(pass.event.end_date);
-    return Number.isFinite(end.getTime()) && end.getTime() < Date.now();
-  }, [pass?.event?.end_date]);
+    return Number.isFinite(end.getTime()) && end.getTime() <= now;
+  }, [pass?.event?.end_date, now]);
   const canTransfer = Boolean(pass && !used && !invalid && !eventEnded);
 
   const openTransfer = () => {
