@@ -11,6 +11,22 @@ const money = (value) => Number(value || 0).toLocaleString("pt-BR", { style: "cu
 const percent = (value) => `${Number(value || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
 const statusLabel = { paid: "Pago", pending: "Pendente", cancelled: "Cancelado", refunded: "Reembolsado", charged_back: "Contestada" };
 
+const addOnAttachmentOpportunity = ({ paidCount, addOnOrders, averageAddOnValue, takeRate }) => {
+  const paid = Math.max(0, Number(paidCount || 0));
+  const attached = Math.max(0, Number(addOnOrders || 0));
+  const average = Math.max(0, Number(averageAddOnValue || 0));
+  const rate = Math.max(0, Number(takeRate || 0));
+  const availableOrders = Math.max(0, paid - attached);
+  const incrementalOrders = Math.min(availableOrders, paid * 0.10);
+  const incrementalGmv = incrementalOrders * average;
+
+  return {
+    incrementalOrders,
+    incrementalGmv,
+    incrementalPlatformRevenue: incrementalGmv * (rate / 100),
+  };
+};
+
 export default function ProducerSalesPage() {
   const [productions, setProductions] = useState([]);
   const [productionId, setProductionId] = useState("");
@@ -67,13 +83,21 @@ export default function ProducerSalesPage() {
         .filter((item) => item.type !== "ticket")
         .reduce((itemSum, item) => itemSum + Number(item.subtotal || (Number(item.unit_price || 0) * Number(item.quantity || 0))), 0)
     ), 0);
+    const averageAddOnValue = ordersWithAddOns.length > 0 ? addOnGmv / ordersWithAddOns.length : 0;
+    const opportunity = addOnAttachmentOpportunity({
+      paidCount: paidOrders.length,
+      addOnOrders: ordersWithAddOns.length,
+      averageAddOnValue,
+      takeRate: economicMetrics.takeRate,
+    });
 
     return {
       ordersWithAddOns: ordersWithAddOns.length,
       attachmentRate: paidOrders.length > 0 ? (ordersWithAddOns.length / paidOrders.length) * 100 : 0,
       addOnGmv,
-      averageAddOnValue: ordersWithAddOns.length > 0 ? addOnGmv / ordersWithAddOns.length : 0,
+      averageAddOnValue,
       estimatedPlatformRevenue: addOnGmv * (economicMetrics.takeRate / 100),
+      ...opportunity,
     };
   }, [economicMetrics.takeRate, orders]);
 
@@ -107,19 +131,29 @@ export default function ProducerSalesPage() {
     });
 
     return Array.from(grouped.values())
-      .map((event) => ({
-        ...event,
-        averageTicket: event.paidCount > 0 ? event.gmv / event.paidCount : 0,
-        platformRevenuePerSale: event.paidCount > 0 ? event.platformRevenue / event.paidCount : 0,
-        takeRate: event.gmv > 0 ? (event.platformRevenue / event.gmv) * 100 : 0,
-        producerShare: event.gmv > 0 ? (event.producerNet / event.gmv) * 100 : 0,
-        addOnAttachmentRate: event.paidCount > 0 ? (event.addOnOrders / event.paidCount) * 100 : 0,
-        averageAddOnValue: event.addOnOrders > 0 ? event.addOnGmv / event.addOnOrders : 0,
-        estimatedAddOnPlatformRevenue: event.gmv > 0 ? event.addOnGmv * (event.platformRevenue / event.gmv) : 0,
-        ticketUpliftGmv: event.gmv * 0.10,
-        ticketUpliftPlatformRevenue: event.platformRevenue * 0.10,
-      }))
-      .sort((a, b) => b.platformRevenue - a.platformRevenue)
+      .map((event) => {
+        const takeRate = event.gmv > 0 ? (event.platformRevenue / event.gmv) * 100 : 0;
+        const averageAddOnValue = event.addOnOrders > 0 ? event.addOnGmv / event.addOnOrders : 0;
+        const opportunity = addOnAttachmentOpportunity({
+          paidCount: event.paidCount,
+          addOnOrders: event.addOnOrders,
+          averageAddOnValue,
+          takeRate,
+        });
+
+        return {
+          ...event,
+          averageTicket: event.paidCount > 0 ? event.gmv / event.paidCount : 0,
+          platformRevenuePerSale: event.paidCount > 0 ? event.platformRevenue / event.paidCount : 0,
+          takeRate,
+          producerShare: event.gmv > 0 ? (event.producerNet / event.gmv) * 100 : 0,
+          addOnAttachmentRate: event.paidCount > 0 ? (event.addOnOrders / event.paidCount) * 100 : 0,
+          averageAddOnValue,
+          estimatedAddOnPlatformRevenue: event.gmv > 0 ? event.addOnGmv * (event.platformRevenue / event.gmv) : 0,
+          ...opportunity,
+        };
+      })
+      .sort((a, b) => b.incrementalPlatformRevenue - a.incrementalPlatformRevenue || b.platformRevenue - a.platformRevenue)
       .slice(0, 5);
   }, [orders]);
 
@@ -155,31 +189,30 @@ export default function ProducerSalesPage() {
           <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Vendas com adicional</small><strong>{percent(addOnEconomics.attachmentRate)}</strong></div></Col>
           <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Adicional médio</small><strong>{money(addOnEconomics.averageAddOnValue)}</strong></div></Col>
           <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Receita Cutinapp estimada em adicionais</small><strong>{money(addOnEconomics.estimatedPlatformRevenue)}</strong></div></Col>
+          <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Oportunidade +10 p.p. em adicionais</small><strong>+{money(addOnEconomics.incrementalGmv)} GMV</strong><span>+{money(addOnEconomics.incrementalPlatformRevenue)} receita Cutinapp estimada</span></div></Col>
         </Row>
         <Alert variant="info" className="mb-3">
-          O GMV considera as vendas pagas. A receita Cutinapp corresponde às taxas da plataforma já registradas nas vendas. A receita por venda mostra quanto cada pedido pago gera, em média, para a plataforma, e o take rate efetivo mostra quanto dessa receita representa sobre o GMV. Os indicadores de adicionais consideram itens não classificados como ingresso; a receita Cutinapp sobre adicionais é uma estimativa pelo take rate efetivo observado, sem alterar taxas ou regras de pagamento.
+          O GMV considera as vendas pagas. A receita Cutinapp corresponde às taxas da plataforma já registradas nas vendas. A receita por venda mostra quanto cada pedido pago gera, em média, para a plataforma, e o take rate efetivo mostra quanto dessa receita representa sobre o GMV. Os indicadores de adicionais consideram itens não classificados como ingresso. A oportunidade de +10 p.p. simula somente mais vendas aderindo a adicionais pelo valor médio já observado e pelo take rate efetivo; não muda preços, taxas ou regras de pagamento e não representa garantia de receita.
         </Alert>
         {!!eventEconomics.length && <Card className="cut-commerce-card mb-3">
           <Card.Body>
             <div className="cut-commerce-order-top mb-3">
               <div>
                 <small>Monetização por evento</small>
-                <h2>Eventos que mais geram receita Cutinapp</h2>
-                <p>Compare receita por venda, ticket médio e participação econômica. A simulação de +10% no ticket médio projeta impacto mantendo o take rate observado, sem alterar taxas nem representar garantia de receita.</p>
+                <h2>Onde há mais receita incremental disponível</h2>
+                <p>Os eventos são priorizados pela oportunidade estimada de elevar em 10 pontos percentuais a adesão aos adicionais, usando somente o valor médio real dos adicionais já vendidos e o take rate observado.</p>
               </div>
             </div>
             <Row className="g-3">
               {eventEconomics.map((event, index) => <Col lg={6} key={event.id}>
                 <div className="cut-commerce-stat h-100">
                   <small>#{index + 1} · {event.title}</small>
-                  <strong>{money(event.platformRevenue)}</strong>
-                  <span>{money(event.gmv)} GMV · {event.paidCount} venda(s)</span>
-                  <span>Receita Cutinapp / venda {money(event.platformRevenuePerSale)}</span>
-                  <span>Ticket médio {money(event.averageTicket)} · Take rate {percent(event.takeRate)}</span>
-                  <span>Líquido do produtor {money(event.producerNet)} · {percent(event.producerShare)} do GMV</span>
+                  <strong>+{money(event.incrementalPlatformRevenue)} receita Cutinapp estimada</strong>
+                  <span>Oportunidade: +{money(event.incrementalGmv)} GMV com até {event.incrementalOrders.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} venda(s) adicional(is) aderindo ao cross-sell</span>
+                  <span>Atual: {money(event.platformRevenue)} receita Cutinapp · {money(event.gmv)} GMV · {event.paidCount} venda(s)</span>
+                  <span>Receita Cutinapp / venda {money(event.platformRevenuePerSale)} · Take rate {percent(event.takeRate)}</span>
+                  <span>Ticket médio {money(event.averageTicket)} · Líquido do produtor {money(event.producerNet)}</span>
                   <span>Adicionais: {money(event.addOnGmv)} GMV · {percent(event.addOnAttachmentRate)} das vendas · médio {money(event.averageAddOnValue)}</span>
-                  <span>Receita Cutinapp estimada em adicionais: {money(event.estimatedAddOnPlatformRevenue)}</span>
-                  <span>Simulação +10% ticket médio: +{money(event.ticketUpliftGmv)} GMV · +{money(event.ticketUpliftPlatformRevenue)} receita Cutinapp</span>
                 </div>
               </Col>)}
             </Row>
