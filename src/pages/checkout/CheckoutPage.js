@@ -39,6 +39,7 @@ export default function CheckoutPage() {
   const resultRef = useRef(result);
   const trackedStatusRef = useRef("");
   const checkoutViewedRef = useRef(false);
+  const addOnOfferViewedRef = useRef(false);
   const paymentSyncGateRef = useRef(createKeyedSingleFlight());
   resultRef.current = result;
 
@@ -130,6 +131,13 @@ export default function CheckoutPage() {
   }, [catalog, selection]);
 
   const total = useMemo(() => lines.reduce((sum, line) => sum + Number(line.price) * line.quantity, 0), [lines]);
+  const availableAddOns = useMemo(() => {
+    if (!catalog || !selection) return [];
+    const selectedIds = new Set((selection.items || []).map((item) => Number(item.id)));
+    return (catalog.items || [])
+      .filter((item) => !selectedIds.has(Number(item.id)) && Number(item.price || 0) > 0)
+      .slice(0, 3);
+  }, [catalog, selection]);
   const paymentAvailable = Boolean(catalog?.payment_config?.available);
   const methods = Array.isArray(catalog?.payment_config?.methods) ? catalog.payment_config.methods : [];
   const pixAvailable = paymentAvailable && methods.includes("pix");
@@ -165,6 +173,21 @@ export default function CheckoutPage() {
       },
     });
   }, [catalog?.event?.id, lines, methods, selection, slug, total]);
+
+  useEffect(() => {
+    if (!availableAddOns.length || result || addOnOfferViewedRef.current) return;
+    addOnOfferViewedRef.current = true;
+    trackCheckout("checkout_addon_offer_viewed", {
+      label: "Oferta opcional de adicionais exibida",
+      target: slug,
+      metadata: {
+        event_id: Number(catalog?.event?.id || 0),
+        offered_items: availableAddOns.length,
+        current_amount: Number(total.toFixed(2)),
+        min_addon_price: Math.min(...availableAddOns.map((item) => Number(item.price || 0))),
+      },
+    });
+  }, [availableAddOns, catalog?.event?.id, result, slug, total]);
 
   useEffect(() => {
     if (!result?.order?.public_id || !orderStatus) return;
@@ -297,6 +320,29 @@ export default function CheckoutPage() {
       document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, [result?.order?.public_id, result?.order?.status, result?.order?.metadata?.fulfillment_status, paymentStorageKey, requestPaymentSync, slug]);
+
+  const addOptionalItem = (item) => {
+    if (result || !item?.id) return;
+    const nextSelection = {
+      ...selection,
+      items: [...(selection?.items || []), { id: Number(item.id), quantity: 1 }],
+    };
+    setSelection(nextSelection);
+    try { sessionStorage.setItem(checkoutStorageKey, JSON.stringify(nextSelection)); } catch (_) { /* Durable fallback below. */ }
+    writeCheckoutRecovery(slug, { selection: nextSelection, orderPublicId: null });
+    trackCheckout("checkout_addon_added", {
+      label: "Adicional incluído no checkout",
+      target: slug,
+      metadata: {
+        event_id: Number(catalog?.event?.id || 0),
+        item_id: Number(item.id),
+        item_name: item.name || "Item",
+        addon_price: Number(item.price || 0),
+        previous_amount: Number(total.toFixed(2)),
+        new_amount: Number((total + Number(item.price || 0)).toFixed(2)),
+      },
+    });
+  };
 
   const payload = (paymentMethod) => ({
     event_id: catalog?.event?.id,
@@ -443,6 +489,13 @@ export default function CheckoutPage() {
                 {cardAvailable && <button type="button" data-track="Selecionar cartão" className={method === "card" ? "is-active" : ""} onClick={() => chooseMethod("card")}><i className="fa-regular fa-credit-card" /><div><strong>Cartão de crédito</strong><span>Pagamento protegido</span></div><i className="fa-solid fa-circle-check" /></button>}
               </div>
             </section>
+
+            {!result && availableAddOns.length > 0 && <section className="cut-checkout-section cut-checkout-addons" data-telemetry-context="Adicionais opcionais">
+              <div className="cut-checkout-section__head"><div className="cut-checkout-step"><i className="fa-solid fa-plus" /></div><div><h2>Complete sua experiência</h2><p>Itens opcionais do evento. Adicione somente se fizer sentido para você.</p></div></div>
+              <div className="cut-checkout-addons__grid">
+                {availableAddOns.map((item) => <div className="cut-checkout-addon" key={item.id}><div><small>Opcional</small><strong>{item.name}</strong><span>{money(item.price)}</span></div><Button type="button" variant="outline-light" onClick={() => addOptionalItem(item)} aria-label={`Adicionar ${item.name} por ${money(item.price)}`}><i className="fa-solid fa-plus me-2" />Adicionar</Button></div>)}
+              </div>
+            </section>}
 
             <section className="cut-checkout-section" data-telemetry-context="Pagamento">
               <div className="cut-checkout-section__head"><div className="cut-checkout-step">2</div><div><h2>Pagamento</h2><p>Seus dados são processados em ambiente seguro.</p></div></div>
