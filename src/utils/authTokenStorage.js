@@ -1,4 +1,5 @@
 import {
+  safeReadLocalItem,
   safeRemoveLocalItem,
   safeSetLocalItem,
 } from "./safeStorage";
@@ -7,14 +8,7 @@ const AUTH_TOKEN_KEY = "token";
 let memoryToken = null;
 let memoryFallback = false;
 
-const readPersistedToken = () => {
-  if (typeof window === "undefined") return { available: false, value: null };
-  try {
-    return { available: true, value: window.localStorage.getItem(AUTH_TOKEN_KEY) };
-  } catch (_) {
-    return { available: false, value: null };
-  }
-};
+const readPersistedToken = () => safeReadLocalItem(AUTH_TOKEN_KEY);
 
 export const getAuthToken = () => {
   if (memoryFallback) return memoryToken;
