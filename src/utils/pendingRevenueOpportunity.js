@@ -13,9 +13,9 @@ export function estimatePendingRevenueOpportunity({ orders = [], fallbackTakeRat
   const normalizedNow = Number.isFinite(Number(now)) ? Number(now) : Date.now();
   const freshWindowMs = Math.max(0, Number(freshWindowHours || 0)) * 60 * 60 * 1000;
   const grouped = new Map();
-  let pendingGmv = 0;
-  let estimatedPlatformRevenue = 0;
-  let pendingCount = 0;
+  let totalPendingGmv = 0;
+  let totalEstimatedPlatformRevenue = 0;
+  let totalPendingCount = 0;
   let freshPendingGmv = 0;
   let freshEstimatedPlatformRevenue = 0;
   let freshPendingCount = 0;
@@ -37,9 +37,9 @@ export function estimatePendingRevenueOpportunity({ orders = [], fallbackTakeRat
     const current = grouped.get(eventId) || {
       id: eventId,
       title: order.event?.title || "Evento",
-      pendingCount: 0,
-      pendingGmv: 0,
-      estimatedPlatformRevenue: 0,
+      totalPendingCount: 0,
+      totalPendingGmv: 0,
+      totalEstimatedPlatformRevenue: 0,
       freshPendingCount: 0,
       freshPendingGmv: 0,
       freshEstimatedPlatformRevenue: 0,
@@ -48,12 +48,12 @@ export function estimatePendingRevenueOpportunity({ orders = [], fallbackTakeRat
       unknownAgeCount: 0,
     };
 
-    pendingCount += 1;
-    pendingGmv += total;
-    estimatedPlatformRevenue += estimatedFee;
-    current.pendingCount += 1;
-    current.pendingGmv += total;
-    current.estimatedPlatformRevenue += estimatedFee;
+    totalPendingCount += 1;
+    totalPendingGmv += total;
+    totalEstimatedPlatformRevenue += estimatedFee;
+    current.totalPendingCount += 1;
+    current.totalPendingGmv += total;
+    current.totalEstimatedPlatformRevenue += estimatedFee;
 
     if (isFresh) {
       freshPendingCount += 1;
@@ -75,10 +75,23 @@ export function estimatePendingRevenueOpportunity({ orders = [], fallbackTakeRat
     grouped.set(eventId, current);
   });
 
+  const events = Array.from(grouped.values())
+    .map((event) => ({
+      ...event,
+      pendingCount: event.freshPendingCount,
+      pendingGmv: event.freshPendingGmv,
+      estimatedPlatformRevenue: event.freshEstimatedPlatformRevenue,
+    }))
+    .filter((event) => event.pendingCount > 0)
+    .sort((a, b) => b.estimatedPlatformRevenue - a.estimatedPlatformRevenue || b.pendingGmv - a.pendingGmv);
+
   return {
-    pendingCount,
-    pendingGmv,
-    estimatedPlatformRevenue,
+    pendingCount: freshPendingCount,
+    pendingGmv: freshPendingGmv,
+    estimatedPlatformRevenue: freshEstimatedPlatformRevenue,
+    totalPendingCount,
+    totalPendingGmv,
+    totalEstimatedPlatformRevenue,
     freshWindowHours: Math.max(0, Number(freshWindowHours || 0)),
     freshPendingCount,
     freshPendingGmv,
@@ -86,7 +99,6 @@ export function estimatePendingRevenueOpportunity({ orders = [], fallbackTakeRat
     stalePendingCount,
     stalePendingGmv,
     unknownAgeCount,
-    events: Array.from(grouped.values())
-      .sort((a, b) => b.freshEstimatedPlatformRevenue - a.freshEstimatedPlatformRevenue || b.estimatedPlatformRevenue - a.estimatedPlatformRevenue || b.pendingGmv - a.pendingGmv),
+    events,
   };
 }
