@@ -73,7 +73,8 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
       .reduce((sum, entry) => sum + Number(quantities[`${entry.kind}:${entry.item.id}`] || 0), 0)
   ), [selected, quantities]);
 
-  const checkoutAvailable = catalog?.payment_config?.available ?? catalog?.payment_config?.connected ?? false;
+  const salesClosed = Boolean(catalog?.sales_closed || catalog?.event?.sales_closed);
+  const checkoutAvailable = !salesClosed && (catalog?.payment_config?.available ?? catalog?.payment_config?.connected ?? false);
   const activeEventId = Number(catalog?.event?.id || eventId);
   const activeSlug = catalog?.event?.slug || slug;
   const availableDates = catalog?.available_dates || [];
@@ -120,6 +121,10 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
   };
 
   const continueToCheckout = () => {
+    if (salesClosed) {
+      setError("As vendas deste evento já foram encerradas.");
+      return;
+    }
     if (!selected.tickets.length && !selected.items.length) {
       setError("Selecione ao menos um ingresso ou item.");
       return;
@@ -170,6 +175,7 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
   };
 
   if (loading) return <p className="text-secondary mb-0">Carregando opções de compra...</p>;
+  if (salesClosed) return <Alert variant="secondary" className="mt-4 mb-0"><strong>Vendas encerradas.</strong><span className="d-block mt-1">Ingressos e itens antecipados não podem mais ser adquiridos para esta edição.</span></Alert>;
   if (!(catalog.tickets || []).length && !(catalog.items || []).length && availableDates.length <= 1) return null;
 
   return <div className="cut-commerce-panel mt-4">
