@@ -2,6 +2,7 @@ import axios from "axios";
 import { apiBaseUrl, appSlug } from "../config";
 import { humanizeApiErrorMessage } from "../utils/apiErrorMessage";
 import { getRetryDelayMs, shouldRetryRequest } from "../utils/apiRetryPolicy";
+import { createRequestId, getHeaderValue, resolveRequestId } from "../utils/requestCorrelation";
 
 const firstValidationMessage = (errors) => {
   if (!errors || typeof errors !== "object") return "";
@@ -16,6 +17,21 @@ const publishAuthInvalidation = (requestUrl) => {
       application: appSlug,
       path: requestUrl,
       reason: "unauthorized",
+    },
+  }));
+};
+
+const publishApiFailure = ({ requestId, requestUrl, method, status, code }) => {
+  if (typeof window === "undefined") return;
+
+  window.dispatchEvent(new CustomEvent("petertecnet:api-failure", {
+    detail: {
+      application: appSlug,
+      requestId: requestId || null,
+      path: requestUrl,
+      method: String(method || "GET").toUpperCase(),
+      status: status || null,
+      code: code || null,
     },
   }));
 };
@@ -35,6 +51,15 @@ export const createApiClient = (baseURL) => {
   client.interceptors.request.use((config) => {
     const token = localStorage.getItem("token");
     if (token) config.headers.Authorization = `Bearer ${token}`;
+
+    if (!getHeaderValue(config.headers, "x-request-id")) {
+      const requestId = createRequestId();
+      if (typeof config.headers?.set === "function") {
+        config.headers.set("X-Request-ID", requestId);
+      } else if (config.headers) {
+        config.headers["X-Request-ID"] = requestId;
+      }
+    }
 
     const isFormData = typeof FormData !== "undefined" && config.data instanceof FormData;
     if (isFormData) {
@@ -66,6 +91,10 @@ export const createApiClient = (baseURL) => {
 
       const status = error.response?.status;
       const requestUrl = String(error.config?.url || "");
+      const requestId = resolveRequestId({
+        responseHeaders: error.response?.headers,
+        requestHeaders: error.config?.headers,
+      });
       const keepSessionOn401 =
         requestUrl.includes("/auth/login") ||
         requestUrl.includes("/auth/google") ||
@@ -88,7 +117,17 @@ export const createApiClient = (baseURL) => {
       normalizedError.errors = data?.errors || null;
       normalizedError.data = data || null;
       normalizedError.retryAfter = error.response?.headers?.["retry-after"] || null;
+      normalizedError.requestId = requestId || null;
       normalizedError.original = error;
+
+      publishApiFailure({
+        requestId,
+        requestUrl,
+        method: error.config?.method,
+        status,
+        code: normalizedError.code,
+      });
+
       return Promise.reject(normalizedError);
     }
   );
