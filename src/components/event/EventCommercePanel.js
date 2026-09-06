@@ -12,6 +12,14 @@ const dateLabel = (value) => {
   return new Intl.DateTimeFormat("pt-BR", { weekday: "short", day: "2-digit", month: "short", year: "numeric" }).format(date);
 };
 
+const trackCommerce = (type, details = {}) => {
+  try {
+    window.PeterTecnetTelemetry?.track?.(type, details);
+  } catch (_) {
+    // Telemetry must never interrupt ticket selection.
+  }
+};
+
 export default function EventCommercePanel({ slug, eventId, user, onLoginRequired }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -60,6 +68,11 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
     return ticketTotal + itemTotal;
   }, [selected, quantities]);
 
+  const selectedQuantity = useMemo(() => (
+    [...selected.tickets.map((item) => ({ kind: "ticket", item })), ...selected.items.map((item) => ({ kind: "item", item }))]
+      .reduce((sum, entry) => sum + Number(quantities[`${entry.kind}:${entry.item.id}`] || 0), 0)
+  ), [selected, quantities]);
+
   const checkoutAvailable = catalog?.payment_config?.available ?? catalog?.payment_config?.connected ?? false;
   const activeEventId = Number(catalog?.event?.id || eventId);
   const activeSlug = catalog?.event?.slug || slug;
@@ -69,8 +82,57 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
     const configuredMax = kind === "ticket" ? 20 : 50;
     const max = availableMax === null ? configuredMax : Math.max(0, Math.min(configuredMax, Number(availableMax || 0)));
     const parsed = Math.max(0, Math.min(max, Number(value || 0)));
-    setQuantities((current) => ({ ...current, [`${kind}:${id}`]: parsed }));
+    const key = `${kind}:${id}`;
+    setQuantities((current) => ({ ...current, [key]: parsed }));
+    trackCommerce("event_purchase_quantity_changed", {
+      label: kind === "ticket" ? "Quantidade de ingresso alterada" : "Quantidade de item alterada",
+      target: activeSlug,
+      metadata: {
+        event_id: activeEventId,
+        item_type: kind,
+        item_id: Number(id),
+        quantity: parsed,
+      },
+    });
   };
+
+  const QuantityStepper = ({ kind, id, value, max, label }) => {
+    const quantity = Number(value || 0);
+    return <div className="d-inline-flex align-items-center gap-2" role="group" aria-label={`Quantidade de ${label}`}>
+      <Button
+        type="button"
+        variant="outline-secondary"
+        className="rounded-circle p-0 d-inline-flex align-items-center justify-content-center"
+        style={{ width: 42, height: 42 }}
+        onClick={() => setQuantity(kind, id, quantity - 1, max)}
+        disabled={quantity <= 0}
+        aria-label={`Remover uma unidade de ${label}`}
+      >
+        <i className="fa-solid fa-minus" />
+      </Button>
+      <output className="fw-bold text-center" style={{ minWidth: 28 }} aria-live="polite">{quantity}</output>
+      <Button
+        type="button"
+        variant="outline-primary"
+        className="rounded-circle p-0 d-inline-flex align-items-center justify-content-center"
+        style={{ width: 42, height: 42 }}
+        onClick={() => setQuantity(kind, id, quantity + 1, max)}
+        disabled={quantity >= max}
+        aria-label={`Adicionar uma unidade de ${label}`}
+      >
+        <i className="fa-solid fa-plus" />
+      </Button>
+    </div>;
+  };
+
+  QuantityStepper.propTypes = {
+    kind: PropTypes.oneOf(["ticket", "item"]).isRequired,
+    id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+    value: PropTypes.number,
+    max: PropTypes.number.isRequired,
+    label: PropTypes.string.isRequired,
+  };
+  QuantityStepper.defaultProps = { value: 0 };
 
   const handleDateChange = (nextSlug) => {
     if (!nextSlug || nextSlug === activeSlug) return;
@@ -97,6 +159,18 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
       tickets: selected.tickets.map((item) => ({ id: item.id, quantity: Number(quantities[`ticket:${item.id}`]) })),
       items: selected.items.map((item) => ({ id: item.id, quantity: Number(quantities[`item:${item.id}`]) })),
     };
+
+    trackCommerce("event_purchase_checkout_started", {
+      label: "Seleção enviada ao checkout",
+      target: activeSlug,
+      metadata: {
+        event_id: activeEventId,
+        amount: Number(total.toFixed(2)),
+        quantity: selectedQuantity,
+        ticket_quantity: selected.tickets.reduce((sum, item) => sum + Number(quantities[`ticket:${item.id}`] || 0), 0),
+        item_quantity: selected.items.reduce((sum, item) => sum + Number(quantities[`item:${item.id}`] || 0), 0),
+      },
+    });
 
     safeRemoveSessionItem(`cutinapp_payment_${activeSlug}`);
     safeSetSessionJson(`cutinapp_checkout_${activeSlug}`, checkout);
@@ -134,23 +208,24 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
           <span>{money(ticket.price)}</span>
           <small className={soldOut ? "text-secondary" : "text-success"}>{expired ? "Venda encerrada" : soldOut ? "Esgotado" : `${remaining} disponível${remaining === 1 ? "" : "is"}`}</small>
         </div>
-        {soldOut ? <Button variant="secondary" disabled>Esgotado</Button> : <Form.Control type="number" min="0" max={maxQuantity} value={quantities[`ticket:${ticket.id}`] || 0} onChange={(event) => setQuantity("ticket", ticket.id, event.target.value, remaining)} style={{ width: 82 }} />}
+        {soldOut ? <Button variant="secondary" disabled>Esgotado</Button> : <QuantityStepper kind="ticket" id={ticket.id} value={Number(quantities[`ticket:${ticket.id}`] || 0)} max={maxQuantity} label={ticket.name} />}
       </div>;
     })}
 
     {(catalog.items || []).map((item) => {
       const remaining = Math.max(0, Number(item.remaining ?? item.quantity ?? 0));
       const soldOut = item.available === false || remaining <= 0;
+      const maxQuantity = Math.min(50, remaining);
       return <div className={`cut-ticket-option ${soldOut ? "opacity-50" : ""}`} key={`event-item-${item.id}`} aria-disabled={soldOut}>
         <div><span className="cut-ticket-kicker">Retirada no evento</span><strong>{item.name}</strong><span>{money(item.price)}</span>{item.description && <small>{item.description}</small>}<small className={soldOut ? "text-secondary" : "text-success"}>{soldOut ? "Esgotado" : `${remaining} disponível${remaining === 1 ? "" : "is"}`}</small></div>
-        {soldOut ? <Button variant="secondary" disabled>Esgotado</Button> : <Form.Control type="number" min="0" max={Math.min(50, remaining)} value={quantities[`item:${item.id}`] || 0} onChange={(event) => setQuantity("item", item.id, event.target.value, remaining)} style={{ width: 82 }} />}
+        {soldOut ? <Button variant="secondary" disabled>Esgotado</Button> : <QuantityStepper kind="item" id={item.id} value={Number(quantities[`item:${item.id}`] || 0)} max={maxQuantity} label={item.name} />}
       </div>;
     })}
 
-    <div className="d-flex align-items-center justify-content-between mt-3"><strong>Total</strong><strong>{money(total)}</strong></div>
+    <div className="d-flex align-items-center justify-content-between mt-3"><strong>{selectedQuantity > 0 ? `${selectedQuantity} selecionado${selectedQuantity === 1 ? "" : "s"}` : "Total"}</strong><strong>{money(total)}</strong></div>
     <Button className="w-100 mt-3" onClick={continueToCheckout} disabled={total <= 0 || !checkoutAvailable}>
       <i className="fa-solid fa-lock me-2" />
-      {user ? "Continuar para pagamento" : "Entrar para comprar"}
+      {user ? `Continuar · ${money(total)}` : "Entrar para comprar"}
     </Button>
     <small className="d-block text-secondary mt-2 text-center"><i className="fa-solid fa-shield-halved me-1" />Ingressos usam QR de entrada; itens antecipados usam QR de retirada.</small>
   </div>;
