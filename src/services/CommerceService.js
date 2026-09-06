@@ -104,7 +104,7 @@ const catalog = (slug) => {
   if (cached?.request) return cached.request;
 
   const request = appApiClient
-    .get(`/events/public/${key}/purchase-options`)
+    .get(`/events/public/${key}/commerce`)
     .then((response) => {
       const data = response.data;
       catalogCache.set(key, { data, expiresAt: Date.now() + CATALOG_CACHE_TTL_MS });
