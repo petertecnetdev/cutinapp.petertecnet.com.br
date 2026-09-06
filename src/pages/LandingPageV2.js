@@ -6,6 +6,7 @@ import cutinappService from "../services/CutinappService";
 import eventService from "../services/EventService";
 import { storageUrl } from "../config";
 import { readDiscoveryPreference, saveDiscoveryPreference } from "../utils/discoveryFilters";
+import { clearHomeLocation, readHomeLocation, saveHomeLocation } from "../utils/homeLocationStorage";
 import "./HomePage.css";
 import "./LandingPageV2.css";
 
@@ -34,16 +35,6 @@ const uniqueById = (items) => {
     seen.add(item.id);
     return true;
   });
-};
-
-const readHomeLocation = () => {
-  try { return JSON.parse(window.localStorage.getItem("cutinapp.homeLocation") || "null"); }
-  catch (_) { return null; }
-};
-
-const saveHomeLocation = (value) => {
-  try { window.localStorage.setItem("cutinapp.homeLocation", JSON.stringify(value)); }
-  catch (_) { /* localização local é apenas conveniência */ }
 };
 
 const roles = [
@@ -254,8 +245,7 @@ export default function LandingPageV2() {
   };
 
   const clearLocation = () => {
-    try { window.localStorage.removeItem("cutinapp.homeLocation"); }
-    catch (_) { /* descoberta continua sem persistência */ }
+    clearHomeLocation();
     setLocation(null);
     saveDiscoveryPreference({ city: "", uf: "" });
   };
