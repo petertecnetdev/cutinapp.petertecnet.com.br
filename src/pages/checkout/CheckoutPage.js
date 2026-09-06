@@ -344,6 +344,33 @@ export default function CheckoutPage() {
     });
   };
 
+  const updateItemQuantity = (item, nextQuantity) => {
+    if (result || !item?.id) return;
+    const quantity = Math.max(0, Math.min(10, Number(nextQuantity || 0)));
+    const currentItems = selection?.items || [];
+    const nextItems = quantity === 0
+      ? currentItems.filter((entry) => Number(entry.id) !== Number(item.id))
+      : currentItems.map((entry) => Number(entry.id) === Number(item.id) ? { ...entry, quantity } : entry);
+    const nextSelection = { ...selection, items: nextItems };
+    setSelection(nextSelection);
+    try { sessionStorage.setItem(checkoutStorageKey, JSON.stringify(nextSelection)); } catch (_) { /* Durable fallback below. */ }
+    writeCheckoutRecovery(slug, { selection: nextSelection, orderPublicId: null });
+    trackCheckout("checkout_item_quantity_changed", {
+      label: quantity === 0 ? "Item removido do checkout" : "Quantidade de item alterada no checkout",
+      target: slug,
+      metadata: {
+        event_id: Number(catalog?.event?.id || 0),
+        item_id: Number(item.id),
+        item_name: item.name || "Item",
+        previous_quantity: Number(item.quantity || 0),
+        new_quantity: quantity,
+        unit_price: Number(item.price || 0),
+        previous_amount: Number(total.toFixed(2)),
+        new_amount: Number((total + (quantity - Number(item.quantity || 0)) * Number(item.price || 0)).toFixed(2)),
+      },
+    });
+  };
+
   const payload = (paymentMethod) => ({
     event_id: catalog?.event?.id,
     payment_method: paymentMethod,
@@ -510,7 +537,7 @@ export default function CheckoutPage() {
 
           <div className="cut-checkout-trustbar"><div><i className="fa-solid fa-lock" /><span><strong>Conexão segura</strong>Dados criptografados</span></div><div><i className="fa-solid fa-shield-halved" /><span><strong>Mercado Pago</strong>Processamento protegido</span></div><div><i className="fa-solid fa-ticket" /><span><strong>Liberação automática</strong>Ingresso após aprovação</span></div></div>
         </main>
-        <aside className="cut-checkout-summary"><span className="cut-eyebrow">Resumo do pedido</span><h2>Sua compra</h2><div className="cut-checkout-summary__event"><i className="fa-regular fa-calendar-check" /><div><strong>{catalog?.event?.title}</strong><span>Compra pela Cutinapp</span></div></div><div className="cut-checkout-summary__lines">{lines.map((line) => <div key={`${line.kind}-${line.id}`}><div><small>{line.kind === "ticket" ? "Ingresso" : "Item"}</small><strong>{line.name}</strong><span>Qtd. {line.quantity}</span></div><strong>{money(Number(line.price) * line.quantity)}</strong></div>)}</div><div className="cut-checkout-summary__total"><span>Total</span><strong>{money(total)}</strong></div><div className="cut-checkout-summary__security"><i className="fa-solid fa-shield-halved" /><span>Pagamento processado com segurança pelo Mercado Pago.</span></div></aside>
+        <aside className="cut-checkout-summary"><span className="cut-eyebrow">Resumo do pedido</span><h2>Sua compra</h2><div className="cut-checkout-summary__event"><i className="fa-regular fa-calendar-check" /><div><strong>{catalog?.event?.title}</strong><span>Compra pela Cutinapp</span></div></div><div className="cut-checkout-summary__lines">{lines.map((line) => <div key={`${line.kind}-${line.id}`}><div><small>{line.kind === "ticket" ? "Ingresso" : "Item"}</small><strong>{line.name}</strong>{!result && line.kind === "item" ? <div className="d-flex flex-row align-items-center gap-2 mt-2" aria-label={`Quantidade de ${line.name}`}><Button type="button" variant="outline-light" size="sm" onClick={() => updateItemQuantity(line, line.quantity - 1)} aria-label={`Diminuir quantidade de ${line.name}`}><i className="fa-solid fa-minus" /></Button><span aria-live="polite">{line.quantity}</span><Button type="button" variant="outline-light" size="sm" onClick={() => updateItemQuantity(line, line.quantity + 1)} disabled={line.quantity >= 10} aria-label={`Aumentar quantidade de ${line.name}`}><i className="fa-solid fa-plus" /></Button></div> : <span>Qtd. {line.quantity}</span>}</div><strong>{money(Number(line.price) * line.quantity)}</strong></div>)}</div><div className="cut-checkout-summary__total"><span>Total</span><strong>{money(total)}</strong></div><div className="cut-checkout-summary__security"><i className="fa-solid fa-shield-halved" /><span>Pagamento processado com segurança pelo Mercado Pago.</span></div></aside>
       </div>
     </Container>
   </div>;
