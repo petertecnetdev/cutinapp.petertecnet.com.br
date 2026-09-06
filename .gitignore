@@ -1,5 +1,7 @@
 node_modules/
 build/
+/.build-staging-*
+/.automation-evolve/
 .env
 .env.local
 .env.*.local
