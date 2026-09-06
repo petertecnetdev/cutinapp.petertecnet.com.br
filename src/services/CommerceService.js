@@ -161,14 +161,18 @@ const commerceService = {
   paymentAccount: async (organizationId) => (await appApiClient.get(`/organizations/${organizationId}/payment-account`)).data.account,
   connectMercadoPago: async (organizationId) => (await appApiClient.get(`/organizations/${organizationId}/payment-provider/connect`)).data,
   financialSummary: async (organizationId) => (await appApiClient.get(`/organizations/${organizationId}/financial-summary`)).data,
-  revenueFunnel: async (organizationId, days = 30) => (
-    await appApiClient.get(`/organizations/${organizationId}/revenue-funnel`, {
-      params: { days: Math.min(Math.max(Number(days) || 30, 1), 365) },
-    })
-  ).data,
+  revenueFunnel: async (organizationId, days = 30) => {
+    try {
+      return (await appApiClient.get(`/organizations/${organizationId}/revenue-funnel`, {
+        params: { days: Math.min(Math.max(Number(days) || 30, 1), 365) },
+      })).data;
+    } catch {
+      return null;
+    }
+  },
   payoutSummary: async (organizationId) => (await appApiClient.get(`/organizations/${organizationId}/payouts`)).data,
   requestPayout: async (organizationId, amount) => (await appApiClient.post(`/organizations/${organizationId}/payouts`, { amount })).data,
-  cancelPayout: async (organizationId, payoutId) => (await appApiClient.post(`/organizations/${organizationId}/payouts/${payoutId}/cancel`)).data,
+  cancelPayout: async (organizationId, payoutId) => (await appApiClient.post(`/organizations/${organizationId}/payouts/${payoutId}/cancel`, { amount })).data,
 };
 
 export default commerceService;
