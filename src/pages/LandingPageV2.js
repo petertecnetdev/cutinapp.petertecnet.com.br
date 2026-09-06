@@ -379,48 +379,13 @@ export default function LandingPageV2() {
           </Container>
         </section>
 
-        <section id="para-voce" className="cut-landing__section cut-landing__roles">
-          <Container>
-            <div className="cut-landing__sectionHead">
-              <div><span className="cut-landing__eyebrow">Feita para toda a cena</span><h2>Como você vive os eventos?</h2></div>
-              <p>A mesma plataforma entrega valor diferente para quem participa, produz, se apresenta ou ajuda a divulgar.</p>
-            </div>
-
-            <div className="cut-landing__roleTabs" role="tablist" aria-label="Perfis da Cutinapp">
-              {roles.map((role) => (
-                <button key={role.key} type="button" className={activeRole === role.key ? "active" : ""} onClick={() => setActiveRole(role.key)}>
-                  <i className={role.icon} /><span>{role.label}</span>
-                </button>
-              ))}
-            </div>
-
-            <div className="cut-landing__rolePanel">
-              <div className="cut-landing__rolePanelCopy">
-                <span>{activeRoleData.label}</span>
-                <h3>{activeRoleData.title}</h3>
-                <p>{activeRoleData.text}</p>
-                <ul>{activeRoleData.benefits.map((benefit) => <li key={benefit}><i className="fa-solid fa-check" /> {benefit}</li>)}</ul>
-                <Button as={Link} to={activeRoleData.key === "publico" ? browseLink : activeRoleData.to} state={activeRoleData.state} className="cut-landing__primary">
-                  {activeRoleData.cta} <i className="fa-solid fa-arrow-right" />
-                </Button>
-              </div>
-              <div className={`cut-landing__roleVisual cut-landing__roleVisual--${activeRoleData.key}`}>
-                <div className="cut-landing__roleVisualIcon"><i className={activeRoleData.icon} /></div>
-                <div className="cut-landing__roleVisualStack">
-                  {activeRoleData.benefits.map((benefit, index) => <span key={benefit}><b>0{index + 1}</b>{benefit}</span>)}
-                </div>
-              </div>
-            </div>
-          </Container>
-        </section>
-
         <section id="descobrir" className="cut-landing__section cut-landing__discovery">
           <Container>
             <div className="cut-landing__discoveryTop">
               <div>
-                <span className="cut-landing__eyebrow">Descoberta com dados reais</span>
-                <h2>O que está acontecendo <em>{location?.city ? `em ${location.city}` : "perto de você"}</em></h2>
-                <p>Eventos publicados na Cutinapp entram aqui de verdade. A landing já funciona como porta de entrada para a cena.</p>
+                <span className="cut-landing__eyebrow">Eventos na Cutinapp</span>
+                <h2>Próximos eventos <em>{location?.city ? `em ${location.city}` : "na Cutinapp"}</em></h2>
+                <p>Veja primeiro o que realmente importa: eventos publicados, com data, local e acesso direto aos detalhes e ingressos.</p>
               </div>
               <div className="cut-landing__locationBox">
                 <small>SUA DESCOBERTA</small>
@@ -466,6 +431,41 @@ export default function LandingPageV2() {
 
             <div className="cut-landing__centerAction"><Button as={Link} to={browseLink} className="cut-landing__primary">Ver todos os eventos <i className="fa-solid fa-arrow-right" /></Button></div>
             {usingFallback && <p className="cut-landing__fallbackNote">Não encontramos eventos na localização escolhida, então mostramos destaques da Cutinapp para você continuar explorando.</p>}
+          </Container>
+        </section>
+
+        <section id="para-voce" className="cut-landing__section cut-landing__roles">
+          <Container>
+            <div className="cut-landing__sectionHead">
+              <div><span className="cut-landing__eyebrow">Feita para toda a cena</span><h2>Como você vive os eventos?</h2></div>
+              <p>A mesma plataforma entrega valor diferente para quem participa, produz, se apresenta ou ajuda a divulgar.</p>
+            </div>
+
+            <div className="cut-landing__roleTabs" role="tablist" aria-label="Perfis da Cutinapp">
+              {roles.map((role) => (
+                <button key={role.key} type="button" className={activeRole === role.key ? "active" : ""} onClick={() => setActiveRole(role.key)}>
+                  <i className={role.icon} /><span>{role.label}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="cut-landing__rolePanel">
+              <div className="cut-landing__rolePanelCopy">
+                <span>{activeRoleData.label}</span>
+                <h3>{activeRoleData.title}</h3>
+                <p>{activeRoleData.text}</p>
+                <ul>{activeRoleData.benefits.map((benefit) => <li key={benefit}><i className="fa-solid fa-check" /> {benefit}</li>)}</ul>
+                <Button as={Link} to={activeRoleData.key === "publico" ? browseLink : activeRoleData.to} state={activeRoleData.state} className="cut-landing__primary">
+                  {activeRoleData.cta} <i className="fa-solid fa-arrow-right" />
+                </Button>
+              </div>
+              <div className={`cut-landing__roleVisual cut-landing__roleVisual--${activeRoleData.key}`}>
+                <div className="cut-landing__roleVisualIcon"><i className={activeRoleData.icon} /></div>
+                <div className="cut-landing__roleVisualStack">
+                  {activeRoleData.benefits.map((benefit, index) => <span key={benefit}><b>0{index + 1}</b>{benefit}</span>)}
+                </div>
+              </div>
+            </div>
           </Container>
         </section>
 
