@@ -172,7 +172,7 @@ const commerceService = {
   },
   payoutSummary: async (organizationId) => (await appApiClient.get(`/organizations/${organizationId}/payouts`)).data,
   requestPayout: async (organizationId, amount) => (await appApiClient.post(`/organizations/${organizationId}/payouts`, { amount })).data,
-  cancelPayout: async (organizationId, payoutId) => (await appApiClient.post(`/organizations/${organizationId}/payouts/${payoutId}/cancel`, { amount })).data,
+  cancelPayout: async (organizationId, payoutId) => (await appApiClient.post(`/organizations/${organizationId}/payouts/${payoutId}/cancel`)).data,
 };
 
 export default commerceService;
