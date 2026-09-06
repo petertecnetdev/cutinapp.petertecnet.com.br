@@ -16,7 +16,7 @@ export const toDateInput = (value) => {
       const year = Number(match[1]);
       const month = Number(match[2]);
       const day = Number(match[3]);
-      if (validDateParts(year, month, day)) return `${match[1]}-${match[2]}-${match[3]}`;
+      return validDateParts(year, month, day) ? `${match[1]}-${match[2]}-${match[3]}` : "";
     }
   }
 
