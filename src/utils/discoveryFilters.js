@@ -1,3 +1,5 @@
+import { safeGetLocalJson, safeSetLocalJson } from "./safeStorage";
+
 export const PERIOD_OPTIONS = [
   ["today", "Hoje"],
   ["tomorrow", "Amanhã"],
@@ -12,34 +14,19 @@ export const PERIOD_OPTIONS = [
 
 export const periodLabel = (value) => PERIOD_OPTIONS.find(([key]) => key === value)?.[1] || "";
 
-export const readDiscoveryPreference = () => {
-  try {
-    return JSON.parse(window.localStorage.getItem("cutinapp.discovery") || "{}");
-  } catch (_) {
-    return {};
-  }
-};
+export const readDiscoveryPreference = () => safeGetLocalJson("cutinapp.discovery", {});
 
 export const saveDiscoveryPreference = (value) => {
-  try {
-    window.localStorage.setItem("cutinapp.discovery", JSON.stringify(value));
-    const recent = JSON.parse(window.localStorage.getItem("cutinapp.recentCities") || "[]");
-    if (value?.city) {
-      const next = [{ city: value.city, uf: value.uf || "" }, ...recent.filter((item) => item.city !== value.city)].slice(0, 5);
-      window.localStorage.setItem("cutinapp.recentCities", JSON.stringify(next));
-    }
-  } catch (_) {
-    // Persistência local é apenas uma conveniência; a busca continua funcionando sem ela.
+  safeSetLocalJson("cutinapp.discovery", value);
+  const storedRecent = safeGetLocalJson("cutinapp.recentCities", []);
+  const recent = Array.isArray(storedRecent) ? storedRecent : [];
+  if (value?.city) {
+    const next = [{ city: value.city, uf: value.uf || "" }, ...recent.filter((item) => item?.city !== value.city)].slice(0, 5);
+    safeSetLocalJson("cutinapp.recentCities", next);
   }
 };
 
-export const readRecentCities = () => {
-  try {
-    return JSON.parse(window.localStorage.getItem("cutinapp.recentCities") || "[]");
-  } catch (_) {
-    return [];
-  }
-};
+export const readRecentCities = () => safeGetLocalJson("cutinapp.recentCities", []);
 
 export const paramsFromSearch = (searchParams) => {
   const keys = ["q", "city", "uf", "category", "period", "date", "from", "to", "sort", "artist_id", "production_id", "free", "available", "lat", "lng", "radius_km", "page"];

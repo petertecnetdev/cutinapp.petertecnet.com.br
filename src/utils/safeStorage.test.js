@@ -1,10 +1,12 @@
 import {
   safeGetLocalItem,
+  safeGetLocalJson,
   safeGetSessionItem,
   safeGetSessionJson,
   safeRemoveLocalItem,
   safeRemoveSessionItem,
   safeSetLocalItem,
+  safeSetLocalJson,
   safeSetSessionItem,
   safeSetSessionJson,
 } from "./safeStorage";
@@ -96,5 +98,30 @@ describe("safeStorage", () => {
     });
     expect(safeRemoveLocalItem("preference")).toBe(false);
     removeSpy.mockRestore();
+  });
+
+  test("stores and reads local JSON safely", () => {
+    expect(safeSetLocalJson("location", { city: "Belo Horizonte", uf: "MG" })).toBe(true);
+    expect(safeGetLocalJson("location")).toEqual({ city: "Belo Horizonte", uf: "MG" });
+  });
+
+  test("clears malformed local JSON and returns the requested fallback", () => {
+    window.localStorage.setItem("location", "{broken");
+    expect(safeGetLocalJson("location", {})).toEqual({});
+    expect(window.localStorage.getItem("location")).toBeNull();
+  });
+
+  test("returns safe JSON fallbacks when localStorage is blocked", () => {
+    const getSpy = jest.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new DOMException("Blocked", "SecurityError");
+    });
+    expect(safeGetLocalJson("location", [])).toEqual([]);
+    getSpy.mockRestore();
+
+    const setSpy = jest.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new DOMException("Blocked", "SecurityError");
+    });
+    expect(safeSetLocalJson("location", { city: "Recife" })).toBe(false);
+    setSpy.mockRestore();
   });
 });
