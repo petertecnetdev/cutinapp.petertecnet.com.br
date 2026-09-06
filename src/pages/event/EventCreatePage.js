@@ -90,6 +90,8 @@ export default function EventCreatePage() {
   const [preview, setPreview] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingProductions, setLoadingProductions] = useState(true);
+  const [quickProductionName, setQuickProductionName] = useState("");
+  const [creatingQuickProduction, setCreatingQuickProduction] = useState(false);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
@@ -280,6 +282,54 @@ export default function EventCreatePage() {
     }
   };
 
+  const createQuickProduction = async (event) => {
+    event.preventDefault();
+    const name = quickProductionName.trim();
+    if (name.length < 2 || creatingQuickProduction) return;
+
+    setCreatingQuickProduction(true);
+    setError("");
+    try {
+      const payload = new FormData();
+      payload.append("name", name);
+      payload.append("type", "independent");
+
+      const response = await cutinappService.createProduction(payload);
+      const production = response?.production || null;
+      const productionId = Number(production?.id || 0);
+      if (!productionId) throw new Error("A produção foi criada, mas não conseguimos vinculá-la ao evento.");
+
+      const normalizedProduction = { ...production, id: productionId, name: production?.name || name };
+      setProductions((current) => [...current, normalizedProduction]);
+      setForm((current) => ({
+        ...current,
+        production_id: String(productionId),
+        title: current.title || normalizedProduction.name,
+        venue: current.venue || normalizedProduction.name,
+      }));
+      setQuickProductionName("");
+
+      try {
+        window.PeterTecnetTelemetry?.track?.("producer_inline_production_created", {
+          label: normalizedProduction.name,
+          target: String(productionId),
+          metadata: {
+            production_id: productionId,
+            activation_stage: "event_creation",
+            onboarding_path: "inline_quick",
+            next_step: "event_create",
+          },
+        });
+      } catch (_) {
+        // Telemetry must never interrupt producer activation.
+      }
+    } catch (err) {
+      setError(err?.message || "Não foi possível criar a produção agora.");
+    } finally {
+      setCreatingQuickProduction(false);
+    }
+  };
+
   const chooseImage = (event) => {
     const file = event.target.files?.[0] || null;
     if (file && file.size > 5 * 1024 * 1024) {
@@ -338,7 +388,39 @@ export default function EventCreatePage() {
         {error && <Alert variant="danger">{error}</Alert>}
 
         {!loadingProductions && productions.length === 0 ? (
-          <Card className="cut-empty-state"><Card.Body><h2>Primeiro crie uma produção</h2><p>Todo evento precisa pertencer a uma produção Cutinapp sob sua responsabilidade.</p><Button onClick={() => navigate("/production/create")}>Criar produção</Button></Card.Body></Card>
+          <Card className="cut-panel mx-auto" style={{ maxWidth: 720 }}>
+            <Card.Body className="p-4 p-lg-5">
+              <span className="cut-eyebrow">Ativação rápida</span>
+              <h2 className="cut-section-title mt-2">Crie sua produção sem sair do evento</h2>
+              <p className="text-secondary">Informe somente o nome agora. Assim que a produção for criada, você continua neste mesmo cadastro de evento e segue para o primeiro lote.</p>
+              <Form onSubmit={createQuickProduction} className="mt-4">
+                <Form.Group>
+                  <Form.Label>Nome da produção *</Form.Label>
+                  <Form.Control
+                    value={quickProductionName}
+                    onChange={(event) => setQuickProductionName(event.target.value)}
+                    placeholder="Ex.: Peter Eventos"
+                    autoComplete="organization"
+                    autoFocus
+                    minLength={2}
+                    disabled={creatingQuickProduction}
+                  />
+                </Form.Group>
+                <div className="d-flex flex-column flex-sm-row gap-2 mt-3">
+                  <Button type="submit" disabled={quickProductionName.trim().length < 2 || creatingQuickProduction}>
+                    {creatingQuickProduction ? "Criando produção..." : "Criar e continuar neste evento"}
+                  </Button>
+                  <Button type="button" variant="outline-light" onClick={() => navigate("/production/create")}>
+                    Completar cadastro da produção
+                  </Button>
+                </div>
+              </Form>
+              <div className="cut-info-box mt-4">
+                <strong>Sem cobrança para começar</strong>
+                <span>A criação da produção não ativa plano ou taxa. A monetização continua vinculada às vendas e serviços do evento.</span>
+              </div>
+            </Card.Body>
+          </Card>
         ) : (
           <Form onSubmit={submit} noValidate>
             <Row className="g-4">
