@@ -73,3 +73,79 @@ describe("FinanceService payout idempotency", () => {
     await expect(first).resolves.toEqual({ payout: { id: 94 } });
   });
 });
+
+describe("FinanceService liveness idempotency", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    sessionStorage.clear();
+  });
+
+  test("protects liveness session creation with an idempotency key", async () => {
+    appApiClient.post.mockResolvedValueOnce({ data: { session_id: "session-12345678901234567890" } });
+
+    await expect(financeService.startLiveness(12)).resolves.toEqual({
+      session_id: "session-12345678901234567890",
+    });
+
+    expect(appApiClient.post).toHaveBeenCalledWith(
+      "/organizations/12/finance/identity/liveness-session",
+      undefined,
+      { headers: { "Idempotency-Key": expect.any(String) } }
+    );
+  });
+
+  test("reuses the same liveness session key after an uncertain network failure", async () => {
+    appApiClient.post
+      .mockRejectedValueOnce({ code: "ERR_NETWORK", message: "Network Error" })
+      .mockResolvedValueOnce({ data: { session_id: "session-12345678901234567890" } });
+
+    await expect(financeService.startLiveness(12)).rejects.toMatchObject({ code: "ERR_NETWORK" });
+    const firstKey = idempotencyKeyAt(0);
+
+    await expect(financeService.startLiveness(12)).resolves.toEqual({
+      session_id: "session-12345678901234567890",
+    });
+    expect(idempotencyKeyAt(1)).toBe(firstKey);
+  });
+
+  test("deduplicates concurrent liveness session creation", async () => {
+    let resolveSession;
+    appApiClient.post.mockImplementationOnce(() => new Promise((resolve) => { resolveSession = resolve; }));
+
+    const first = financeService.startLiveness(12);
+    const second = financeService.startLiveness(12);
+
+    expect(first).toBe(second);
+    expect(appApiClient.post).toHaveBeenCalledTimes(1);
+
+    resolveSession({ data: { session_id: "session-12345678901234567890" } });
+    await expect(first).resolves.toEqual({ session_id: "session-12345678901234567890" });
+  });
+
+  test("protects liveness completion and normalizes the session identifier", async () => {
+    appApiClient.post.mockResolvedValueOnce({ data: { identity: { status: "verified" } } });
+
+    await expect(financeService.completeLiveness(12, "  session-12345678901234567890  ")).resolves.toEqual({
+      identity: { status: "verified" },
+    });
+
+    expect(appApiClient.post).toHaveBeenCalledWith(
+      "/organizations/12/finance/identity/liveness-complete",
+      { session_id: "session-12345678901234567890" },
+      { headers: { "Idempotency-Key": expect.any(String) } }
+    );
+  });
+
+  test("reuses the same completion key after a 503", async () => {
+    appApiClient.post
+      .mockRejectedValueOnce({ response: { status: 503 } })
+      .mockResolvedValueOnce({ data: { identity: { status: "verified" } } });
+
+    await expect(financeService.completeLiveness(12, "session-12345678901234567890"))
+      .rejects.toMatchObject({ response: { status: 503 } });
+    const firstKey = idempotencyKeyAt(0);
+
+    await financeService.completeLiveness(12, " session-12345678901234567890 ");
+    expect(idempotencyKeyAt(1)).toBe(firstKey);
+  });
+});
