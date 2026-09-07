@@ -12,6 +12,7 @@ permissions:
 jobs:
   deploy:
     # Zero-downtime central deploy: build off-path, publish assets first, switch index last.
+    # Frontend releases are built from main in an isolated worktree; live source work is preserved.
     uses: petertecnetdev/petertecnet.com.br/.github/workflows/reusable-vps-deploy.yml@main
     with:
       deploy_path: /var/www/cutinapp.petertecnet.com.br
