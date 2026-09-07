@@ -4,6 +4,7 @@ import { Alert, Button, Form } from "react-bootstrap";
 import { useLocation, useNavigate } from "react-router-dom";
 import commerceService from "../../services/CommerceService";
 import { resolveCheckoutQuantity } from "../../utils/checkoutAddOns";
+import { reconcileStoredSelection } from "../../utils/checkoutSelectionRecovery";
 import { safeGetSessionJson, safeRemoveSessionItem, safeSetSessionJson } from "../../utils/safeStorage";
 
 const money = (value) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
@@ -31,27 +32,6 @@ const stockLabel = (item, soldOut, limit) => {
 };
 
 const checkoutStorageKey = (slug) => `cutinapp_checkout_${slug}`;
-
-export const reconcileStoredSelection = (catalog, storedCheckout, fallbackEventId = 0) => {
-  const eventId = Number(catalog?.event?.id || fallbackEventId || 0);
-  if (!storedCheckout || Number(storedCheckout?.eventId || 0) !== eventId) return {};
-
-  const restored = {};
-  const reconcile = (kind, catalogItems, storedItems, limit) => {
-    const availableById = new Map((catalogItems || []).map((item) => [String(item.id), item]));
-    (storedItems || []).forEach((entry) => {
-      const item = availableById.get(String(entry?.id));
-      if (!item) return;
-      const max = resolveCheckoutQuantity(item, limit, limit);
-      const quantity = Math.max(0, Math.min(max, Number(entry?.quantity || 0)));
-      if (quantity > 0) restored[`${kind}:${item.id}`] = quantity;
-    });
-  };
-
-  reconcile("ticket", catalog?.tickets, storedCheckout?.tickets, 20);
-  reconcile("item", catalog?.items, storedCheckout?.items, 50);
-  return restored;
-};
 
 export default function EventCommercePanel({ slug, eventId, user, onLoginRequired }) {
   const navigate = useNavigate();
