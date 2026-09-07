@@ -29,6 +29,18 @@ describe("paymentFailureGuidance", () => {
     expect(result.message).toContain("sem refazer sua seleção");
   });
 
+  test("redirects an unsupported card type to an eligible card or PIX", () => {
+    const result = paymentFailureGuidance({
+      method: "card",
+      pixAvailable: true,
+      payment: { provider_payload: { status_detail: "cc_rejected_card_type_not_allowed" } },
+    });
+    expect(result.reason).toBe("card_type_not_allowed");
+    expect(result.title).toContain("tipo de cartão");
+    expect(result.message).toContain("outro cartão elegível");
+    expect(result.message).toContain("sem refazer sua seleção");
+  });
+
   test("does not recommend repeating identical data after a security rejection", () => {
     const result = paymentFailureGuidance({
       method: "card",
