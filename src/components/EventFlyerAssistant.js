@@ -151,9 +151,7 @@ async function renderFlyer({ data, production, formatKey, themeKey, generatedBac
       ctx.globalAlpha = generatedBackground ? 0.9 : 0.48;
       drawCoverImage(ctx, img, width, height);
       ctx.restore();
-    } catch (_) {
-      // Gradient fallback keeps flyer generation available if a remote image cannot be drawn.
-    }
+    } catch (_) {}
   }
 
   const overlay = ctx.createLinearGradient(0, 0, 0, height);
@@ -246,7 +244,7 @@ export default function EventFlyerAssistant() {
     setGenerationSource("");
     setProduction(null);
     if (data.productionId) {
-      try { setProduction(await cutinappService.getProduction(data.productionId)); } catch (_) { /* optional reference */ }
+      try { setProduction(await cutinappService.getProduction(data.productionId)); } catch (_) {}
     }
   };
 
@@ -304,15 +302,22 @@ export default function EventFlyerAssistant() {
   const useAsCover = async () => {
     const file = await generate();
     if (!file) return;
-    const input = document.querySelector('input[type="file"][accept*="image"]');
-    if (!input) {
-      setError("O campo de imagem do evento não foi encontrado. Feche e abra o estúdio novamente.");
-      return;
+
+    // React owns the event form state. A DOM-only assignment to input.files can
+    // visually look selected while the state used to build FormData still holds
+    // null. Dispatch the file explicitly so create/edit pages persist it.
+    window.dispatchEvent(new CustomEvent("cutinapp:event-cover-selected", {
+      detail: { file, source: "ai_flyer" },
+    }));
+
+    // Keep the native input synchronized for accessibility/browser affordances.
+    const input = document.querySelector('[data-event-image-input="true"]') || document.querySelector('input[name="image"][type="file"]');
+    if (input && typeof DataTransfer !== "undefined") {
+      const transfer = new DataTransfer();
+      transfer.items.add(file);
+      input.files = transfer.files;
     }
-    const transfer = new DataTransfer();
-    transfer.items.add(file);
-    input.files = transfer.files;
-    input.dispatchEvent(new Event("change", { bubbles: true }));
+
     try {
       window.PeterTecnetTelemetry?.track?.("producer_event_flyer_generated", {
         label: context.title || "Evento",
@@ -323,7 +328,7 @@ export default function EventFlyerAssistant() {
           source: generationSource === "cloudflare" ? "cloudflare_workers_ai" : (productionImage(production) ? "production_identity" : "cutinapp_theme"),
         },
       });
-    } catch (_) { /* telemetry cannot block the flow */ }
+    } catch (_) {}
     setOpen(false);
   };
 
