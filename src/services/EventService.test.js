@@ -164,3 +164,83 @@ describe("EventService derived event mutation idempotency", () => {
     expect(idempotencyKeyAt(1)).not.toBe(rejectedKey);
   });
 });
+
+const agendaPayload = () => {
+  const data = new FormData();
+  data.append("title", "DJ Aurora");
+  data.append("starts_at", "2026-10-10T22:00:00");
+  data.append("description", "Palco principal");
+  return data;
+};
+
+describe("EventService agenda creation idempotency", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    sessionStorage.clear();
+  });
+
+  test("sends an idempotency key when creating an agenda item", async () => {
+    appApiClient.post.mockResolvedValueOnce({ data: { schedule: { id: 51 } } });
+
+    await eventService.createAgendaItem(42, agendaPayload());
+
+    expect(appApiClient.post).toHaveBeenCalledWith(
+      "/event-agenda/productions/42/items",
+      expect.any(FormData),
+      { headers: { "Idempotency-Key": expect.any(String) } }
+    );
+    expect(idempotencyKeyAt(0)).toBeTruthy();
+  });
+
+  test("reuses the agenda key after an uncertain network failure", async () => {
+    appApiClient.post
+      .mockRejectedValueOnce({ code: "ERR_NETWORK", message: "Network Error" })
+      .mockResolvedValueOnce({ data: { schedule: { id: 52 } } });
+
+    await expect(eventService.createAgendaItem(42, agendaPayload())).rejects.toMatchObject({ code: "ERR_NETWORK" });
+    const firstKey = idempotencyKeyAt(0);
+
+    await eventService.createAgendaItem(42, agendaPayload());
+    expect(idempotencyKeyAt(1)).toBe(firstKey);
+  });
+
+  test("rotates the agenda key after a definitive validation error", async () => {
+    appApiClient.post
+      .mockRejectedValueOnce({ response: { status: 422 } })
+      .mockResolvedValueOnce({ data: { schedule: { id: 53 } } });
+
+    await expect(eventService.createAgendaItem(42, agendaPayload())).rejects.toMatchObject({ response: { status: 422 } });
+    const rejectedKey = idempotencyKeyAt(0);
+
+    await eventService.createAgendaItem(42, agendaPayload());
+    expect(idempotencyKeyAt(1)).not.toBe(rejectedKey);
+  });
+
+  test("deduplicates concurrent equivalent agenda submissions", async () => {
+    let resolveRequest;
+    appApiClient.post.mockReturnValueOnce(new Promise((resolve) => { resolveRequest = resolve; }));
+
+    const first = eventService.createAgendaItem(42, agendaPayload());
+    const second = eventService.createAgendaItem(42, agendaPayload());
+
+    expect(second).toBe(first);
+    expect(appApiClient.post).toHaveBeenCalledTimes(1);
+
+    resolveRequest({ data: { schedule: { id: 54 } } });
+    await expect(first).resolves.toMatchObject({ schedule: { id: 54 } });
+  });
+
+  test("keeps equal agenda payloads isolated between productions", async () => {
+    appApiClient.post
+      .mockResolvedValueOnce({ data: { schedule: { id: 55 } } })
+      .mockResolvedValueOnce({ data: { schedule: { id: 56 } } });
+
+    await Promise.all([
+      eventService.createAgendaItem(42, agendaPayload()),
+      eventService.createAgendaItem(43, agendaPayload()),
+    ]);
+
+    expect(appApiClient.post).toHaveBeenCalledTimes(2);
+    expect(idempotencyKeyAt(0)).not.toBe(idempotencyKeyAt(1));
+  });
+});
