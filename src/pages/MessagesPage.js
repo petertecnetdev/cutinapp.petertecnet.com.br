@@ -1,7 +1,7 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { AuthContext } from "../context/AuthContext";
 import NavlogComponent from "../components/NavlogComponent";
-import cutinappService from "../services/CutinappService";
+import messagingService from "../services/MessagingService";
 import "./MessagesPage.css";
 
 const POLL_MS = 5000;
@@ -36,7 +36,7 @@ export default function MessagesPage() {
 
   const loadConversations = useCallback(async (query = conversationQuery) => {
     try {
-      const response = await cutinappService.conversations(query ? { q: query } : {});
+      const response = await messagingService.conversations(query ? { q: query } : {});
       setConversations(response?.data || []);
     } catch (requestError) {
       setError(requestError?.response?.data?.message || "Não foi possível carregar suas conversas.");
@@ -49,9 +49,9 @@ export default function MessagesPage() {
     if (!conversationId) return;
     if (!quiet) setThreadLoading(true);
     try {
-      const response = await cutinappService.conversationMessages(conversationId);
+      const response = await messagingService.messages(conversationId);
       setMessages(response?.data || []);
-      cutinappService.markConversationRead(conversationId).catch(() => undefined);
+      messagingService.markRead(conversationId).catch(() => undefined);
     } catch (requestError) {
       if (!quiet) setError(requestError?.response?.data?.message || "Não foi possível abrir a conversa.");
     } finally {
@@ -83,7 +83,7 @@ export default function MessagesPage() {
     let cancelled = false;
     const timeout = window.setTimeout(async () => {
       try {
-        const response = await cutinappService.searchMessagePeople(peopleQuery.trim());
+        const response = await messagingService.searchPeople(peopleQuery.trim());
         if (!cancelled) setPeople(response?.data || []);
       } catch (_) {
         if (!cancelled) setPeople([]);
@@ -102,7 +102,7 @@ export default function MessagesPage() {
 
   const startChat = async (person) => {
     try {
-      const response = await cutinappService.openDirectConversation(person.id);
+      const response = await messagingService.openDirect(person.id);
       const conversation = { ...response?.data, user: response?.data?.user || person, unread_count: 0 };
       setNewChatOpen(false);
       setPeopleQuery("");
@@ -126,7 +126,7 @@ export default function MessagesPage() {
     setMessages((current) => [...current, optimistic]);
 
     try {
-      const response = await cutinappService.sendConversationMessage(active.id, body);
+      const response = await messagingService.send(active.id, body);
       setMessages((current) => current.map((item) => item.id === optimisticId ? response.data : item));
       loadConversations("");
     } catch (requestError) {
