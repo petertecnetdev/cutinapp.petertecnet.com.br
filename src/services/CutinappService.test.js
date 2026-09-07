@@ -258,3 +258,64 @@ describe("CutinappService check-in idempotency", () => {
     expect(idempotencyKeyAt(1)).not.toBe(idempotencyKeyAt(0));
   });
 });
+
+describe("CutinappService producer contract signing idempotency", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    sessionStorage.clear();
+  });
+
+  test("sends an idempotency key when signing a producer agreement", async () => {
+    appApiClient.post.mockResolvedValueOnce({ data: { agreement: { id: 91, status: "signed" } } });
+
+    await expect(cutinappService.signProducerContract(12, { accepted: true, version: "v3" }))
+      .resolves.toEqual({ agreement: { id: 91, status: "signed" } });
+
+    expect(appApiClient.post).toHaveBeenCalledWith(
+      "/organizations/12/agreement/sign",
+      { accepted: true, version: "v3" },
+      { headers: { "Idempotency-Key": expect.any(String) } }
+    );
+  });
+
+  test("reuses the same key after an uncertain network failure", async () => {
+    appApiClient.post
+      .mockRejectedValueOnce({ code: "ERR_NETWORK", message: "Network Error" })
+      .mockResolvedValueOnce({ data: { agreement: { id: 92, status: "signed" } } });
+
+    const payload = { accepted: true, version: "v3" };
+    await expect(cutinappService.signProducerContract(12, payload)).rejects.toMatchObject({ code: "ERR_NETWORK" });
+    const firstKey = idempotencyKeyAt(0);
+
+    await expect(cutinappService.signProducerContract("12", { version: "v3", accepted: true }))
+      .resolves.toMatchObject({ agreement: { id: 92 } });
+    expect(idempotencyKeyAt(1)).toBe(firstKey);
+  });
+
+  test("uses a fresh key after a definitive validation failure", async () => {
+    appApiClient.post
+      .mockRejectedValueOnce({ response: { status: 422 } })
+      .mockResolvedValueOnce({ data: { agreement: { id: 93, status: "signed" } } });
+
+    await expect(cutinappService.signProducerContract(13, { accepted: true })).rejects.toMatchObject({ response: { status: 422 } });
+    const rejectedKey = idempotencyKeyAt(0);
+
+    await cutinappService.signProducerContract(13, { accepted: true });
+    expect(idempotencyKeyAt(1)).toBeTruthy();
+    expect(idempotencyKeyAt(1)).not.toBe(rejectedKey);
+  });
+
+  test("deduplicates equivalent concurrent signing submissions", async () => {
+    let resolveSign;
+    appApiClient.post.mockImplementationOnce(() => new Promise((resolve) => { resolveSign = resolve; }));
+
+    const first = cutinappService.signProducerContract(14, { accepted: true, version: "v4" });
+    const second = cutinappService.signProducerContract("14", { version: "v4", accepted: true });
+
+    expect(first).toBe(second);
+    expect(appApiClient.post).toHaveBeenCalledTimes(1);
+
+    resolveSign({ data: { agreement: { id: 94, status: "signed" } } });
+    await expect(first).resolves.toMatchObject({ agreement: { id: 94 } });
+  });
+});
