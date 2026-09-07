@@ -1,0 +1,237 @@
+@media (max-width: 991.98px) {
+  :root {
+    --cut-instagram-topbar-height: 58px;
+    --cut-instagram-bottombar-height: 64px;
+  }
+
+  html[data-cut-instagram-shell="active"] body.cut-has-mobile-bottom-nav {
+    padding-bottom: calc(var(--cut-instagram-bottombar-height) + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-capability-nav {
+    min-height: var(--cut-instagram-topbar-height) !important;
+    background: rgba(255, 255, 255, 0.96) !important;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.08) !important;
+    box-shadow: none !important;
+    backdrop-filter: blur(18px) saturate(150%);
+    -webkit-backdrop-filter: blur(18px) saturate(150%);
+    z-index: 1040 !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-capability-nav .cut-navbar__inner {
+    width: 100% !important;
+    min-height: var(--cut-instagram-topbar-height) !important;
+    margin: 0 !important;
+    padding: 0 12px !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto auto !important;
+    align-items: center !important;
+    gap: 4px !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-capability-nav .cut-navbar__brand {
+    min-width: 0 !important;
+    max-width: 190px !important;
+    margin: 0 !important;
+    padding: 6px 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-capability-nav .cut-navbar__brand img {
+    width: 34px !important;
+    height: 34px !important;
+    border-radius: 10px !important;
+    object-fit: contain !important;
+    flex: 0 0 34px !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-capability-nav .cut-navbar__brand strong {
+    display: block !important;
+    font-size: 1.04rem !important;
+    line-height: 1 !important;
+    letter-spacing: -0.035em !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-capability-nav .cut-navbar__brand small {
+    display: none !important;
+  }
+
+  .cut-instagram-mobile-actions {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 2px;
+  }
+
+  .cut-instagram-mobile-action,
+  html[data-cut-instagram-shell="active"] .cut-capability-nav .navbar-toggler {
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px !important;
+    min-height: 42px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 12px !important;
+    background: transparent !important;
+    color: var(--cut-text-strong, #111827) !important;
+    display: inline-grid !important;
+    place-items: center !important;
+    box-shadow: none !important;
+    text-decoration: none !important;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color 150ms ease, transform 150ms ease;
+  }
+
+  .cut-instagram-mobile-action i,
+  html[data-cut-instagram-shell="active"] .cut-capability-nav .navbar-toggler::before {
+    font-size: 1.34rem !important;
+  }
+
+  .cut-instagram-mobile-action:active,
+  html[data-cut-instagram-shell="active"] .cut-capability-nav .navbar-toggler:active {
+    transform: scale(0.92);
+    background: rgba(15, 23, 42, 0.06) !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-capability-nav .navbar-toggler {
+    position: static !important;
+    margin: 0 !important;
+    z-index: auto !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-capability-nav .navbar-toggler-icon {
+    width: 21px !important;
+    height: 21px !important;
+    background-size: 21px 21px !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-capability-nav .navbar-collapse {
+    grid-column: 1 / -1 !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-mobile-bottom-nav {
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    height: calc(var(--cut-instagram-bottombar-height) + env(safe-area-inset-bottom, 0px)) !important;
+    padding: 4px 6px env(safe-area-inset-bottom, 0px) !important;
+    margin: 0 !important;
+    display: grid !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    align-items: center !important;
+    gap: 0 !important;
+    background: rgba(255, 255, 255, 0.97) !important;
+    border-top: 1px solid rgba(15, 23, 42, 0.09) !important;
+    box-shadow: 0 -8px 30px rgba(15, 23, 42, 0.06) !important;
+    backdrop-filter: blur(18px) saturate(150%);
+    -webkit-backdrop-filter: blur(18px) saturate(150%);
+    z-index: 1035 !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-mobile-bottom-nav > a,
+  html[data-cut-instagram-shell="active"] .cut-mobile-bottom-nav > button {
+    position: relative !important;
+    min-width: 0 !important;
+    min-height: 52px !important;
+    width: 100% !important;
+    height: 52px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 14px !important;
+    background: transparent !important;
+    color: #596274 !important;
+    display: grid !important;
+    place-items: center !important;
+    text-decoration: none !important;
+    box-shadow: none !important;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 140ms ease, color 140ms ease, background-color 140ms ease;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-mobile-bottom-nav > a > span,
+  html[data-cut-instagram-shell="active"] .cut-mobile-bottom-nav > button > span {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-mobile-bottom-nav i {
+    font-size: 1.34rem !important;
+    line-height: 1 !important;
+    transition: transform 150ms ease;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-mobile-bottom-nav > :active {
+    transform: scale(0.9);
+    background: rgba(15, 23, 42, 0.05) !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-mobile-bottom-nav > .active {
+    color: var(--cut-primary, #6f35ff) !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-mobile-bottom-nav > .active i {
+    transform: scale(1.08);
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-mobile-bottom-nav > .active::after {
+    content: "";
+    position: absolute;
+    bottom: 3px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-mobile-bottom-nav__primary {
+    color: #fff !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-mobile-bottom-nav__primary::before {
+    content: "";
+    position: absolute;
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--cut-primary, #6f35ff), #a84bff);
+    box-shadow: 0 8px 20px rgba(111, 53, 255, 0.25);
+    z-index: -1;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-mobile-bottom-nav__primary.active::after {
+    display: none;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-navbar__ecosystem-slot {
+    margin-right: 0 !important;
+  }
+
+  html[data-cut-instagram-shell="active"] main,
+  html[data-cut-instagram-shell="active"] .cut-page-shell,
+  html[data-cut-instagram-shell="active"] .container {
+    scroll-margin-top: calc(var(--cut-instagram-topbar-height) + 8px);
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-card,
+  html[data-cut-instagram-shell="active"] .card {
+    border-radius: 16px;
+  }
+}
+
+@media (min-width: 992px) {
+  .cut-instagram-mobile-actions {
+    display: none !important;
+  }
+}
