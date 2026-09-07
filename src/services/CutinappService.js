@@ -1,5 +1,5 @@
 import appApiClient from "./AppApiClient";
-import { createIdempotencyAttemptManager, shouldKeepIdempotencyAttempt } from "../utils/idempotencyAttempts";
+import { createIdempotencyAttemptManager, createMutationRequestKey, shouldKeepIdempotencyAttempt } from "../utils/idempotencyAttempts";
 import { cachedPublicGet, invalidatePublicRequestCache } from "../utils/publicRequestCache";
 
 const unwrap = (value) => Array.isArray(value) ? value : Array.isArray(value?.data) ? value.data : [];
@@ -14,6 +14,12 @@ const pendingProductionCreates = new Map();
 const productionCreateAttempts = createIdempotencyAttemptManager({
   storagePrefix: "cutinapp_production_create_attempt_",
   keyPrefix: "production",
+});
+
+const pendingContractSigns = new Map();
+const contractSignAttempts = createIdempotencyAttemptManager({
+  storagePrefix: "cutinapp_contract_sign_attempt_",
+  keyPrefix: "contract-sign",
 });
 
 const pendingCourtesyClaims = new Map();
@@ -78,6 +84,29 @@ const createProduction = (payload) => {
   });
 
   pendingProductionCreates.set(requestKey, request);
+  return request;
+};
+
+const signProducerContract = (organizationId, payload = {}) => {
+  const normalizedOrganizationId = Number(organizationId);
+  const requestKey = `${normalizedOrganizationId}:${createMutationRequestKey(payload)}`;
+  const pending = pendingContractSigns.get(requestKey);
+  if (pending) return pending;
+
+  const idempotencyKey = contractSignAttempts.keyFor(requestKey);
+  const request = appApiClient.post(`/organizations/${normalizedOrganizationId}/agreement/sign`, payload, {
+    headers: { "Idempotency-Key": idempotencyKey },
+  }).then((response) => {
+    contractSignAttempts.clear(requestKey);
+    return response.data;
+  }).catch((error) => {
+    if (!shouldKeepIdempotencyAttempt(error)) contractSignAttempts.clear(requestKey);
+    throw error;
+  }).finally(() => {
+    if (pendingContractSigns.get(requestKey) === request) pendingContractSigns.delete(requestKey);
+  });
+
+  pendingContractSigns.set(requestKey, request);
   return request;
 };
 
@@ -196,7 +225,7 @@ const cutinappService = {
     const data = (await appApiClient.get(`/organizations/${organizationId}/agreement`)).data;
     return data?.agreement ?? data?.contract ?? null;
   },
-  signProducerContract: async (organizationId, payload) => (await appApiClient.post(`/organizations/${organizationId}/agreement/sign`, payload)).data,
+  signProducerContract,
   resendProducerContract: async (organizationId) => (await appApiClient.post(`/organizations/${organizationId}/agreement/resend`)).data,
   downloadProducerContract: async (organizationId) => (await appApiClient.get(`/organizations/${organizationId}/agreement/pdf`, { responseType: "blob" })).data,
 
