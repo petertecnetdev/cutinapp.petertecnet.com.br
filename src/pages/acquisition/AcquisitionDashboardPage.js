@@ -183,7 +183,7 @@ export default function AcquisitionDashboardPage() {
                 <div className="acq-grid acq-grid--3">
                   <label><span>Nome da produção</span><input required value={form.production.name} onChange={(e) => setProduction("name", e.target.value)} /></label>
                   <label><span>Nome fantasia</span><input value={form.production.fantasy} onChange={(e) => setProduction("fantasy", e.target.value)} /></label>
-                  <label><span>CNPJ</span><input value={form.production.cnpj} onChange={(e) => setProduction("knpj", e.target.value)} /></label>
+                  <label><span>CNPJ</span><input value={form.production.cnpj} onChange={(e) => setProduction("cnpj", e.target.value)} /></label>
                   <label><span>Telefone</span><input value={form.production.phone} onChange={(e) => setProduction("phone", e.target.value)} /></label>
                   <label><span>Cidade</span><input value={form.production.city} onChange={(e) => setProduction("city", e.target.value)} /></label>
                   <label><span>UF</span><input maxLength={2} value={form.production.uf} onChange={(e) => setProduction("uf", e.target.value.toUpperCase())} /></label>
