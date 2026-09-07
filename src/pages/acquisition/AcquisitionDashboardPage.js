@@ -3,6 +3,7 @@ import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import acquisitionService from "../../services/AcquisitionService";
 import { commissionDealPreview } from "../../utils/commissionDealPreview";
+import { commissionPortfolioEconomics } from "../../utils/commissionPortfolioEconomics";
 import "./AcquisitionDashboardPage.css";
 import "./CommissionDealPreview.css";
 
@@ -70,6 +71,11 @@ export default function AcquisitionDashboardPage() {
   const commissionEconomics = dashboard?.commission_economics || {};
   const retainedMargin = Math.max(0, Number(commissionEconomics.minimum_retained_margin_percentage || 0));
   const processingReserve = Math.max(0, Number(commissionEconomics.processing_reserve_percentage || 0));
+  const portfolioEconomics = commissionPortfolioEconomics({
+    grossSales: metrics.gross_sales,
+    commissionAmount: metrics.commission_amount,
+    minimumRetainedMarginPercentage: retainedMargin,
+  });
   const conversion = Number(metrics.conversion_rate || 0);
   const funnelWidth = useMemo(() => `${Math.max(0, Math.min(100, conversion))}%`, [conversion]);
 
@@ -163,6 +169,7 @@ export default function AcquisitionDashboardPage() {
           <article><span>Eventos</span><strong>{metrics.events_total || 0}</strong><small>com comissão configurada</small></article>
           <article><span>Vendas pagas</span><strong>{money(metrics.gross_sales)}</strong><small>{metrics.paid_orders || 0} pedidos confirmados</small></article>
           <article className="acq-metric--accent"><span>Sua comissão</span><strong>{money(metrics.commission_amount)}</strong><small>estimada sobre vendas pagas</small></article>
+          <article><span>Eficiência da comissão</span><strong>{portfolioEconomics.gmvPerCommissionReal ? `${portfolioEconomics.gmvPerCommissionReal.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}×` : "—"}</strong><small>{portfolioEconomics.gmvPerCommissionReal ? `GMV por R$ 1 de comissão · piso Peter ${money(portfolioEconomics.protectedPeterRevenueFloor)}` : "aparece após vendas com comissão"}</small></article>
         </section>
 
         <section className="acq-layout">
@@ -271,14 +278,20 @@ export default function AcquisitionDashboardPage() {
               <div className="acq-panel__head"><div><span className="acq-kicker">Comissões</span><h2>Por evento</h2><small>Teto atual: {commissionMax.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}% do GMV, já descontando reservas econômicas da plataforma.</small></div></div>
               <div className="acq-commission-list">
                 {(dashboard?.commissions || []).length === 0 && <div className="acq-empty">As comissões aparecerão após o primeiro onboarding.</div>}
-                {(dashboard?.commissions || []).map((row) => (
-                  <article key={row.id}>
+                {(dashboard?.commissions || []).map((row) => {
+                  const rowEconomics = commissionPortfolioEconomics({
+                    grossSales: row.gross_sales,
+                    commissionAmount: row.commission_amount,
+                    minimumRetainedMarginPercentage: retainedMargin,
+                  });
+                  return <article key={row.id}>
                     <div className="acq-commission-title"><strong>{row.event?.title || `Evento #${row.event_id}`}</strong><small>{row.event?.production?.name}</small></div>
                     <div className="acq-commission-numbers"><span>{money(row.gross_sales)} vendidos</span><strong>{money(row.commission_amount)}</strong></div>
+                    {rowEconomics.gmvPerCommissionReal && <small className="acq-commission-lock-note">Eficiência: {rowEconomics.gmvPerCommissionReal.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}× GMV por R$ 1 de comissão · piso econômico Peter Tecnet {money(rowEconomics.protectedPeterRevenueFloor)}.</small>}
                     <div className={`acq-commission-edit${row.commission_locked ? " acq-commission-edit--locked" : ""}`}><input type="number" min="0" max={commissionMax} step="0.01" value={commissionDrafts[row.event_id] ?? row.percentage} disabled={row.commission_locked} aria-label={`Comissão de ${row.event?.title || `evento ${row.event_id}`}`} onChange={(e) => setCommissionDrafts((current) => ({ ...current, [row.event_id]: e.target.value }))} /><span>%</span><button type="button" disabled={row.commission_locked} onClick={() => saveCommission(row.event_id)}>{row.commission_locked ? "Bloqueada" : "Salvar"}</button></div>
                     {row.commission_locked && <small className="acq-commission-lock-note">Percentual protegido após a primeira venda paga.</small>}
-                  </article>
-                ))}
+                  </article>;
+                })}
               </div>
             </section>
           </aside>
