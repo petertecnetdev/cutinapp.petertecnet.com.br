@@ -66,9 +66,18 @@ export const addOnMarginGuard = ({ incrementalGmv = 0, incrementalNetRevenue = 0
   };
 };
 
+export const confidenceAdjustedAddOnNetRevenue = ({ incrementalNetRevenue = 0, evidenceFactor = 1 } = {}) => {
+  const netRevenue = Math.max(0, Number(incrementalNetRevenue || 0));
+  const confidence = Math.max(0, Math.min(1, Number.isFinite(Number(evidenceFactor)) ? Number(evidenceFactor) : 1));
+  return netRevenue * confidence;
+};
+
 export const compareAddOnOpportunities = (a = {}, b = {}) => {
   const profitabilityDelta = Number(Boolean(b.addOnProfitable)) - Number(Boolean(a.addOnProfitable));
   if (profitabilityDelta !== 0) return profitabilityDelta;
+
+  const confidenceAdjustedRevenueDelta = confidenceAdjustedAddOnNetRevenue(b) - confidenceAdjustedAddOnNetRevenue(a);
+  if (confidenceAdjustedRevenueDelta !== 0) return confidenceAdjustedRevenueDelta;
 
   const netRevenueDelta = Math.max(0, Number(b.incrementalNetRevenue || 0)) - Math.max(0, Number(a.incrementalNetRevenue || 0));
   if (netRevenueDelta !== 0) return netRevenueDelta;

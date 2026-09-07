@@ -1,4 +1,4 @@
-import { addOnMarginGuard, addOnMonetizationEfficiency, compareAddOnOpportunities, estimateAddOnAttachmentOpportunity, suggestedAddOnStock, weightedAverageAddOnUnitPrice } from "./addOnOpportunity";
+import { addOnMarginGuard, addOnMonetizationEfficiency, compareAddOnOpportunities, confidenceAdjustedAddOnNetRevenue, estimateAddOnAttachmentOpportunity, suggestedAddOnStock, weightedAverageAddOnUnitPrice } from "./addOnOpportunity";
 
 test("uses production benchmark for events without add-on history", () => {
   expect(estimateAddOnAttachmentOpportunity({ paidCount: 50, addOnOrders: 0, averageAddOnValue: 0, benchmarkAddOnValue: 20, takeRate: 8 }))
@@ -88,16 +88,31 @@ test("requires projected net revenue to justify producer attention", () => {
   expect(strongOpportunity.netMargin).toBeCloseTo(3.5, 8);
 });
 
-test("ranks profitable add-on opportunities before larger but low-quality GMV", () => {
+test("discounts projected net revenue when evidence is still thin", () => {
+  expect(confidenceAdjustedAddOnNetRevenue({ incrementalNetRevenue: 80, evidenceFactor: 0.25 })).toBe(20);
+  expect(confidenceAdjustedAddOnNetRevenue({ incrementalNetRevenue: 80, evidenceFactor: 1 })).toBe(80);
+  expect(confidenceAdjustedAddOnNetRevenue({ incrementalNetRevenue: 80, evidenceFactor: 2 })).toBe(80);
+});
+
+test("ranks profitable add-on opportunities by confidence-adjusted net revenue", () => {
   const opportunities = [
-    { id: "low-margin", addOnProfitable: false, incrementalNetRevenue: 100, netPlatformRevenue: 500 },
-    { id: "profitable", addOnProfitable: true, incrementalNetRevenue: 25, netPlatformRevenue: 100 },
-    { id: "best-profitable", addOnProfitable: true, incrementalNetRevenue: 40, netPlatformRevenue: 80 },
+    { id: "thin-evidence", addOnProfitable: true, incrementalNetRevenue: 80, evidenceFactor: 0.25, netPlatformRevenue: 500 },
+    { id: "proven", addOnProfitable: true, incrementalNetRevenue: 30, evidenceFactor: 1, netPlatformRevenue: 100 },
+    { id: "low-margin", addOnProfitable: false, incrementalNetRevenue: 100, evidenceFactor: 1, netPlatformRevenue: 500 },
   ];
 
   expect(opportunities.sort(compareAddOnOpportunities).map(({ id }) => id)).toEqual([
-    "best-profitable",
-    "profitable",
+    "proven",
+    "thin-evidence",
     "low-margin",
   ]);
+});
+
+test("preserves raw net revenue as tie-breaker after confidence adjustment", () => {
+  const opportunities = [
+    { id: "higher-raw", addOnProfitable: true, incrementalNetRevenue: 40, evidenceFactor: 0.5, netPlatformRevenue: 80 },
+    { id: "lower-raw", addOnProfitable: true, incrementalNetRevenue: 20, evidenceFactor: 1, netPlatformRevenue: 200 },
+  ];
+
+  expect(opportunities.sort(compareAddOnOpportunities).map(({ id }) => id)).toEqual(["higher-raw", "lower-raw"]);
 });
