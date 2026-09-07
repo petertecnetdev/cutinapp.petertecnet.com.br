@@ -166,7 +166,9 @@ async function renderFlyer({ data, production, formatKey, themeKey, generatedBac
   ctx.fillStyle = theme.accent;
   ctx.fillRect(margin, margin, Math.round(width * 0.11), Math.max(10, Math.round(height * 0.007)));
 
-  const producer = (data.productionName && data.productionName !== "Selecione") ? data.productionName : "CUTINAPP";
+  const producer = (data.productionName && data.productionName !== "Selecione")
+    ? data.productionName
+    : (production?.name || production?.title || "CUTINAPP");
   ctx.fillStyle = "rgba(255,255,255,.82)";
   ctx.font = `700 ${Math.max(24, Math.round(width * 0.022))}px Inter, Arial, sans-serif`;
   ctx.fillText(producer.toUpperCase(), margin, margin + Math.round(height * 0.07));
@@ -228,8 +230,10 @@ export default function EventFlyerAssistant() {
   const [context, setContext] = useState(readFormContext);
   const [production, setProduction] = useState(null);
   const [preview, setPreview] = useState("");
+  const [generatedFile, setGeneratedFile] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [aiError, setAiError] = useState("");
   const [generationSource, setGenerationSource] = useState("");
 
   const pathname = window.location.pathname.replace(/\/+$/, "") || "/";
@@ -243,7 +247,10 @@ export default function EventFlyerAssistant() {
     setContext(data);
     setOpen(true);
     setError("");
+    setAiError("");
     setGenerationSource("");
+    setPreview("");
+    setGeneratedFile(null);
     setProduction(null);
     if (data.productionId) {
       try { setProduction(await cutinappService.getProduction(data.productionId)); } catch (_) {
@@ -263,39 +270,48 @@ export default function EventFlyerAssistant() {
   const generate = async () => {
     setBusy(true);
     setError("");
+    setAiError("");
+    setGeneratedFile(null);
     try {
       const data = readFormContext();
       setContext(data);
-      let generatedBackground = "";
+      if (!data.title) throw new Error("Preencha o nome do evento antes de gerar a capa.");
 
-      if (data.title) {
-        try {
-          const aiResult = await creativeService.generateEventFlyerBackground({
-            title: data.title,
-            description: data.description,
-            style: themeKey,
-            productionName: data.productionName,
-            venue: data.venue,
-            city: data.city,
-            uf: data.uf,
-            format: formatKey,
-          });
-          generatedBackground = aiResult?.image?.data_uri || "";
-          setGenerationSource(generatedBackground ? "cloudflare" : "local");
-        } catch (_) {
-          setGenerationSource("local");
+      let generatedBackground = "";
+      try {
+        const aiResult = await creativeService.generateEventFlyerBackground({
+          title: data.title,
+          description: data.description,
+          style: themeKey,
+          productionName: data.productionName,
+          venue: data.venue,
+          city: data.city,
+          uf: data.uf,
+          format: formatKey,
+        });
+        const candidate = String(aiResult?.image?.data_uri || "");
+        if (!/^data:image\/(?:jpeg|jpg|png|webp)(?:;charset=[^;]+)?;base64,/i.test(candidate) || candidate.length < 2048) {
+          throw new Error("A IA respondeu sem uma imagem utilizável.");
         }
-      } else {
+        generatedBackground = candidate;
+        setGenerationSource("cloudflare");
+      } catch (err) {
+        const message = err?.response?.data?.message || err?.message || "O serviço de IA não respondeu corretamente.";
+        setAiError(message);
         setGenerationSource("local");
       }
 
       const canvas = await renderFlyer({ data, production, formatKey, themeKey, generatedBackground });
       const file = await canvasToFile(canvas, `flyer-${(data.title || "evento").toLowerCase().replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") || "evento"}-${formatKey}.jpg`);
+      if (!file?.size || file.size < 4096) throw new Error("A composição final da capa ficou inválida. Gere novamente.");
+
       const url = URL.createObjectURL(file);
       if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
       setPreview(url);
+      setGeneratedFile(file);
       return file;
     } catch (err) {
+      setGeneratedFile(null);
       setError(err?.message || "Não foi possível gerar o flyer.");
       return null;
     } finally {
@@ -304,7 +320,7 @@ export default function EventFlyerAssistant() {
   };
 
   const useAsCover = async () => {
-    const file = await generate();
+    const file = generatedFile || await generate();
     if (!file) return;
 
     // React owns the event form state. A DOM-only assignment to input.files can
@@ -358,20 +374,21 @@ export default function EventFlyerAssistant() {
         </div>
 
         <div className="cut-flyer-controls">
-          <Form.Group><Form.Label>Formato</Form.Label><div className="cut-flyer-options">{Object.entries(formats).map(([key, item]) => <Button key={key} type="button" variant={formatKey === key ? "primary" : "outline-light"} onClick={() => setFormatKey(key)}><strong>{item.ratio}</strong><span>{item.label}</span></Button>)}</div></Form.Group>
-          <Form.Group><Form.Label>Estilo</Form.Label><div className="cut-flyer-options cut-flyer-options--themes">{Object.entries(themes).map(([key, item]) => <Button key={key} type="button" variant={themeKey === key ? "primary" : "outline-light"} onClick={() => setThemeKey(key)}><span className="cut-flyer-theme-dot" style={{ background: `linear-gradient(135deg, ${item.accent}, ${item.secondary})` }} />{item.label}</Button>)}</div></Form.Group>
+          <Form.Group><Form.Label>Formato</Form.Label><div className="cut-flyer-options">{Object.entries(formats).map(([key, item]) => <Button key={key} type="button" variant={formatKey === key ? "primary" : "outline-light"} onClick={() => { setFormatKey(key); setGeneratedFile(null); setPreview(""); setAiError(""); }}><strong>{item.ratio}</strong><span>{item.label}</span></Button>)}</div></Form.Group>
+          <Form.Group><Form.Label>Estilo</Form.Label><div className="cut-flyer-options cut-flyer-options--themes">{Object.entries(themes).map(([key, item]) => <Button key={key} type="button" variant={themeKey === key ? "primary" : "outline-light"} onClick={() => { setThemeKey(key); setGeneratedFile(null); setPreview(""); setAiError(""); }}><span className="cut-flyer-theme-dot" style={{ background: `linear-gradient(135deg, ${item.accent}, ${item.secondary})` }} />{item.label}</Button>)}</div></Form.Group>
         </div>
 
         {error && <div className="alert alert-danger py-2">{error}</div>}
+        {aiError && <div className="alert alert-warning py-2"><strong>A IA não gerou o fundo:</strong> {aiError} A Cutinapp montou uma capa local completa com os dados do evento para você não ficar sem arte.</div>}
         <div className="cut-flyer-preview" style={previewStyle}>
           {preview ? <img src={preview} alt="Prévia do flyer gerado" /> : <div><i className="fa-regular fa-image" /><strong>Gere uma prévia</strong><span>A IA cria a arte de fundo e a Cutinapp aplica os dados corretos por cima.</span></div>}
         </div>
 
-        {generationSource && <small className="cut-flyer-note d-block mb-2">{generationSource === "cloudflare" ? "Fundo criado com Cloudflare Workers AI · FLUX" : "Modo local usado automaticamente para preservar a disponibilidade."}</small>}
+        {generationSource && <small className="cut-flyer-note d-block mb-2">{generationSource === "cloudflare" ? "Fundo criado com Cloudflare Workers AI · FLUX" : "Modo local usado com nome, data, horário e local do evento preservados na arte."}</small>}
 
         <div className="cut-flyer-actions">
           <Button type="button" variant="outline-light" onClick={generate} disabled={busy}>{busy ? <><Spinner size="sm" className="me-2" />Gerando com IA...</> : "Gerar com IA"}</Button>
-          <Button type="button" onClick={useAsCover} disabled={busy}>{busy ? "Preparando..." : "Usar como capa do evento"}</Button>
+          <Button type="button" onClick={useAsCover} disabled={busy}>{busy ? "Preparando..." : (generatedFile ? "Usar esta prévia como capa" : "Gerar e usar como capa")}</Button>
         </div>
         <small className="cut-flyer-note">A IA não escreve o flyer. Nome, data, horário e local são desenhados pela Cutinapp a partir dos campos do evento, evitando alterações nos dados oficiais.</small>
       </Modal.Body>
