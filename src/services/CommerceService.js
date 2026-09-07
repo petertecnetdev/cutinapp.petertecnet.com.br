@@ -5,6 +5,7 @@ import { trackTelemetry } from "../utils/telemetry";
 import { shouldKeepCheckoutAttempt } from "../utils/checkoutRetryPolicy";
 import { clearPaymentRecoveryAttribution, readPaymentRecoveryAttribution } from "../utils/paymentRecoveryAttribution";
 import { createIdempotentMutation, createMutationRequestKey } from "../utils/idempotencyAttempts";
+import { isBrowserOffline, waitForOnline } from "../utils/checkoutConnectivity";
 
 const pendingCheckouts = new Map();
 const fallbackAttempts = new Map();
@@ -14,6 +15,7 @@ const CATALOG_CACHE_TTL_MS = 15000;
 const AUTO_RETRY_CHECKOUT_STATUSES = new Set([502, 503, 504]);
 const DEFAULT_CHECKOUT_RETRY_DELAY_MS = 350;
 const MAX_CHECKOUT_RETRY_DELAY_MS = 1500;
+const OFFLINE_CHECKOUT_RETRY_WAIT_MS = 8000;
 
 const checkoutRequestKey = (payload = {}) => JSON.stringify({
   event_id: Number(payload.event_id || 0),
@@ -91,6 +93,27 @@ const wait = (milliseconds) => new Promise((resolve) => {
   window.setTimeout(resolve, milliseconds);
 });
 
+const waitForCheckoutRetry = async (error) => {
+  const retryDelayMs = checkoutRetryDelay(error);
+  if (!isNetworkFailure(error) || !isBrowserOffline()) {
+    await wait(retryDelayMs);
+    return {
+      retryDelayMs,
+      waitedForConnectivity: false,
+      connectivityRestored: null,
+    };
+  }
+
+  const startedAt = Date.now();
+  const connectivity = await waitForOnline({ timeoutMs: OFFLINE_CHECKOUT_RETRY_WAIT_MS });
+
+  return {
+    retryDelayMs: Math.max(0, Date.now() - startedAt),
+    waitedForConnectivity: connectivity.waited,
+    connectivityRestored: connectivity.restored,
+  };
+};
+
 const checkout = (payload) => {
   const requestKey = checkoutRequestKey(payload);
   const pending = pendingCheckouts.get(requestKey);
@@ -101,9 +124,9 @@ const checkout = (payload) => {
     .post("/commerce/checkout", payload, {
       headers: { "Idempotency-Key": idempotencyKey },
     })
-    .catch((error) => {
+    .catch(async (error) => {
       if (attempt === 0 && shouldAutoRetryCheckout(error)) {
-        const retryDelayMs = checkoutRetryDelay(error);
+        const retryPlan = await waitForCheckoutRetry(error);
         trackTelemetry("checkout_transient_retry", {
           label: "Checkout repetido automaticamente após falha transitória",
           target: String(payload?.event_id || "checkout"),
@@ -111,10 +134,12 @@ const checkout = (payload) => {
             payment_method: String(payload?.payment_method || "unknown"),
             status: Number(error?.status || error?.response?.status || 0),
             retry_attempt: 1,
-            retry_delay_ms: retryDelayMs,
+            retry_delay_ms: retryPlan.retryDelayMs,
+            waited_for_connectivity: retryPlan.waitedForConnectivity,
+            connectivity_restored: retryPlan.connectivityRestored,
           },
         });
-        return wait(retryDelayMs).then(() => postCheckout(1));
+        return postCheckout(1);
       }
       throw error;
     });
