@@ -200,7 +200,7 @@ describe("CommerceService", () => {
       .mockRejectedValueOnce({ status: 422, message: "Dados inválidos" })
       .mockResolvedValueOnce({ data: { order: { public_id: "order-1" } } });
 
-    await expect(commerceService.checkout(payload)).rejects.toMatchObject({ status: 422 });
+    await expect(commerceService.checkout(payload)).rejects.toMatchObject({ status: 400, serverStatus: 422 });
     const rejectedKey = idempotencyKeyAt(0);
 
     await commerceService.checkout(payload);
