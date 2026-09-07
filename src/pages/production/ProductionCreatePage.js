@@ -64,7 +64,6 @@ export default function ProductionCreatePage() {
 
   const cnpjDigits = normalizeCnpj(form.cnpj);
   const cnpjInvalid = submitted && cnpjDigits !== "" && cnpjDigits.length !== 14;
-  const locationInvalid = submitted && Boolean((form.city || form.uf) && !form.city_id);
   const canSubmit = useMemo(() => form.name.trim().length >= 2 && !loading, [form.name, loading]);
 
   const change = (event) => {
