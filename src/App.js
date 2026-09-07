@@ -133,7 +133,7 @@ function AppRoutes() {
       <Suspense fallback={<ProcessingIndicatorComponent label="Carregando página" />}>
         <SeoManager />
         <Routes>
-          <Route path="/" element={user ? <Navigate to="/feed" replace /> : <HomePage />} />
+          <Route path="/" element={user ? <Navigate to="/event" replace /> : <HomePage />} />
           <Route path="/login" element={guestRoute(<LoginPage />)} />
           <Route path="/register" element={guestRoute(<RegisterPage />)} />
           <Route path="/password-email" element={guestRoute(<PasswordEmailPage />)} />
@@ -190,7 +190,7 @@ function AppRoutes() {
           <Route path="/passes" element={protectedRoute(<MyPassesPage />)} />
           <Route path="/passes/:id" element={protectedRoute(<PassDetailPage />)} />
           <Route path="/checkin" element={protectedRoute(<CheckinPage />)} />
-          <Route path="*" element={<Navigate to={user ? "/feed" : "/"} replace />} />
+          <Route path="*" element={<Navigate to={user ? "/event" : "/"} replace />} />
         </Routes>
         {user && <EventFlyerAssistant />}
         {user && <EventSeriesLauncher />}
