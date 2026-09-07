@@ -73,7 +73,7 @@ const idempotencyKeyFor = (requestKey) => {
 
 const shouldAutoRetryCheckout = (error) => {
   const status = Number(error?.status || error?.response?.status || 0);
-  return AUTO_RETRY_CHECKOUT_STATUSES.has(status);
+  return isNetworkFailure(error) || AUTO_RETRY_CHECKOUT_STATUSES.has(status);
 };
 
 const checkout = (payload) => {
