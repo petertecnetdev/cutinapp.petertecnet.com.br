@@ -1,4 +1,4 @@
-import { addOnMonetizationEfficiency, estimateAddOnAttachmentOpportunity, suggestedAddOnStock, weightedAverageAddOnUnitPrice } from "./addOnOpportunity";
+import { addOnMarginGuard, addOnMonetizationEfficiency, estimateAddOnAttachmentOpportunity, suggestedAddOnStock, weightedAverageAddOnUnitPrice } from "./addOnOpportunity";
 
 test("uses production benchmark for events without add-on history", () => {
   expect(estimateAddOnAttachmentOpportunity({ paidCount: 50, addOnOrders: 0, averageAddOnValue: 0, benchmarkAddOnValue: 20, takeRate: 8 }))
@@ -45,4 +45,11 @@ test("keeps monetization efficiency finite when projected incremental orders are
     netRevenuePerAttachmentPoint: 10,
     netRevenuePerIncrementalOrder: 0,
   });
+});
+
+
+test("only prioritizes add-on upside with positive net platform contribution", () => {
+  expect(addOnMarginGuard({ incrementalGmv: 200, incrementalNetRevenue: 18 })).toEqual({ profitable: true, netMargin: 9 });
+  expect(addOnMarginGuard({ incrementalGmv: 200, incrementalNetRevenue: 0 })).toEqual({ profitable: false, netMargin: 0 });
+  expect(addOnMarginGuard({ incrementalGmv: 0, incrementalNetRevenue: 20 })).toEqual({ profitable: false, netMargin: 0 });
 });
