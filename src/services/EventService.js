@@ -26,7 +26,7 @@ const normalizePublicEventResponse = (response) => {
   const event = response?.event;
   if (!event) return response;
 
-  const production = event.production || event.establishment || null;
+  const production = event.production || event.establishment || event.organization || null;
   const whatsappPhone = resolveWhatsappPhone(
     production,
     event.establishment,
@@ -34,7 +34,7 @@ const normalizePublicEventResponse = (response) => {
     event
   );
 
-  if (!production || !whatsappPhone || production.phone === whatsappPhone) return response;
+  if (!production || !whatsappPhone) return response;
 
   return {
     ...response,
@@ -46,6 +46,38 @@ const normalizePublicEventResponse = (response) => {
       },
     },
   };
+};
+
+const enrichPublicEventProductionContact = async (response) => {
+  const normalized = normalizePublicEventResponse(response);
+  const event = normalized?.event;
+  const currentPhone = resolveWhatsappPhone(event?.production, event?.establishment, event?.organization, event);
+  if (!event || currentPhone) return normalized;
+
+  const production = event.production || event.establishment || event.organization || null;
+  const productionSlug = production?.slug || event.production_slug || event.organization_slug || event.establishment_slug;
+  if (!productionSlug) return normalized;
+
+  try {
+    const productionResponse = (await appApiClient.get(`/organizations/public/${productionSlug}`)).data;
+    const publicProduction = productionResponse?.organization || productionResponse?.production || null;
+    const whatsappPhone = resolveWhatsappPhone(publicProduction);
+    if (!publicProduction || !whatsappPhone) return normalized;
+
+    return {
+      ...normalized,
+      event: {
+        ...event,
+        production: {
+          ...(production || {}),
+          ...publicProduction,
+          phone: whatsappPhone,
+        },
+      },
+    };
+  } catch (_) {
+    return normalized;
+  }
 };
 
 const pendingEventCreates = new Map();
@@ -146,7 +178,7 @@ const search = async (params = {}) => {
 const eventService = {
   search,
   list: async (params = {}) => unwrap((await appApiClient.get("/events", { params })).data.events),
-  view: async (slug) => normalizePublicEventResponse((await appApiClient.get(`/events/public/${slug}`)).data),
+  view: async (slug) => enrichPublicEventProductionContact((await appApiClient.get(`/events/public/${slug}`)).data),
   store: createEvent,
   update: async (eventId, formData) => (await appApiClient.patch(`/events/${eventId}`, formData)).data,
   show: async (eventId) => (await appApiClient.get(`/events/${eventId}/manage`)).data.event,
