@@ -25,6 +25,11 @@ export default function EventUpdatePage() {
   const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const addOnParams = new URLSearchParams(location.search);
+  const suggestedAddOnPrice = Number(addOnParams.get("addonSuggested") || 0);
+  const requestedAddOnSource = addOnParams.get("addonSource");
+  const suggestedAddOnSource = ["event", "production"].includes(requestedAddOnSource) ? requestedAddOnSource : "";
+  const hasSuggestedAddOnPrice = Number.isFinite(suggestedAddOnPrice) && suggestedAddOnPrice > 0 && Boolean(suggestedAddOnSource);
   const [form, setForm] = useState(null);
   const [eventData, setEventData] = useState(null);
   const [image, setImage] = useState(null);
@@ -35,7 +40,7 @@ export default function EventUpdatePage() {
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const [eventItems, setEventItems] = useState([]);
-  const [itemForm, setItemForm] = useState({ name: "", description: "", price: "", quantity: "" });
+  const [itemForm, setItemForm] = useState({ name: "", description: "", price: hasSuggestedAddOnPrice ? suggestedAddOnPrice.toFixed(2) : "", quantity: "" });
   const [itemLoading, setItemLoading] = useState(false);
   const [itemSaving, setItemSaving] = useState(false);
   const [itemBusyId, setItemBusyId] = useState(null);
@@ -201,7 +206,15 @@ export default function EventUpdatePage() {
         window.PeterTecnetTelemetry?.track?.("producer_event_addon_created", {
           label: "Adicional criado no evento",
           target: String(id),
-          metadata: { event_id: Number(id), price, quantity, gross_potential: Number((price * quantity).toFixed(2)) },
+          metadata: {
+            event_id: Number(id),
+            price,
+            quantity,
+            gross_potential: Number((price * quantity).toFixed(2)),
+            suggested_price: hasSuggestedAddOnPrice ? suggestedAddOnPrice : null,
+            suggestion_source: hasSuggestedAddOnPrice ? suggestedAddOnSource : null,
+            accepted_suggested_price: hasSuggestedAddOnPrice ? Math.abs(price - suggestedAddOnPrice) < 0.01 : null,
+          },
         });
       } catch (_) { /* Telemetria nunca bloqueia monetização. */ }
     } catch (err) {
@@ -274,6 +287,7 @@ export default function EventUpdatePage() {
               <div><span className="cut-eyebrow">Monetização do evento</span><h2 className="cut-section-title mt-2">Adicionais e pré-venda</h2><p className="text-secondary mb-0">Venda itens e serviços junto do ingresso para aumentar o ticket médio. O valor entra no mesmo checkout e segue as taxas vigentes, sem cobrança escondida.</p></div>
               <Badge bg={eventItems.length ? "success" : "secondary"}>{eventItems.length} adicional(is) ativo(s)</Badge>
             </div>
+            {hasSuggestedAddOnPrice && <Alert variant="info" className="mb-3"><strong>Sugestão de preço baseada em vendas reais: {suggestedAddOnPrice.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}.</strong> {suggestedAddOnSource === "event" ? "Usamos o valor médio dos adicionais já vendidos neste evento." : "Usamos o valor médio dos adicionais vendidos nos outros eventos desta produção."} O preço foi apenas pré-preenchido para reduzir trabalho: revise livremente antes de adicionar o item.</Alert>}
             <Row className="g-3 align-items-end">
               <Col md={5}><Form.Group><Form.Label>Nome do adicional *</Form.Label><Form.Control value={itemForm.name} maxLength={140} onChange={(e) => setItemForm((current) => ({ ...current, name: e.target.value }))} placeholder="Ex.: estacionamento, combo, camiseta" /></Form.Group></Col>
               <Col md={3}><Form.Group><Form.Label>Preço real *</Form.Label><Form.Control type="number" min="0.01" step="0.01" value={itemForm.price} onChange={(e) => setItemForm((current) => ({ ...current, price: e.target.value }))} placeholder="0,00" /></Form.Group></Col>
