@@ -12,10 +12,11 @@ const payoutAttempts = createIdempotencyAttemptManager({
 });
 
 const requestPayout = (organizationId, amount) => {
-  const payload = { amount };
+  const normalizedAmount = Number(amount);
+  const payload = { amount: normalizedAmount };
   const requestKey = createMutationRequestKey({
     organization_id: String(organizationId),
-    amount: Number(amount),
+    amount: normalizedAmount,
   });
   const pending = pendingPayoutRequests.get(requestKey);
   if (pending) return pending;
