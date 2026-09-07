@@ -148,7 +148,7 @@ const cutinappService = {
   artists: async (params = {}) => cachedPublicGet(appApiClient, "/artists", { params, ttlMs: 30000, staleMs: 180000 }),
   publicArtist: async (slug) => cachedPublicGet(appApiClient, `/artists/${slug}`, { ttlMs: 30000, staleMs: 180000 }),
   publicArtistMembers: async (slug) => (await appApiClient.get(`/artists/${slug}/members`)).data.members || [],
-  publicEventArtists: async (slug) => (await appApiClient.get(`/events/public/${slug}/artists`)).data.artists || [],
+  publicEventArtists: async (slug) => (await cachedPublicGet(appApiClient, `/events/public/${slug}/artists`, { ttlMs: 30000, staleMs: 300000 })).artists || [],
   eventCommunity: async (slug, params = {}) => (await appApiClient.get(`/events/public/${slug}/community`, { params })).data,
   createEventPost: async (eventId, payload) => (await appApiClient.post(`/events/${eventId}/community`, payload)).data,
   createFeedPost: async (payload) => (await appApiClient.post("/events/0/community", payload)).data,
