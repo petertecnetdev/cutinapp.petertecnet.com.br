@@ -6,6 +6,7 @@ import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorCo
 import { AuthContext } from "../../context/AuthContext";
 import commerceService from "../../services/CommerceService";
 import { clearCheckoutRecovery, readCheckoutRecovery, writeCheckoutRecovery } from "../../utils/checkoutRecovery";
+import { copyText } from "../../utils/clipboard";
 import { resolveCheckoutPaymentMethod } from "../../utils/paymentMethod";
 import { rankCheckoutAddOns, summarizeCheckoutAddOnOffer } from "../../utils/checkoutAddOns";
 import { getPaymentSyncDelay } from "../../utils/paymentSyncSchedule";
@@ -463,23 +464,10 @@ export default function CheckoutPage() {
     const pixCode = result?.payment?.qr_code;
     if (!pixCode) return;
 
-    try {
-      await navigator.clipboard.writeText(pixCode);
-      setPixCopyStatus("copied");
-      setError("");
-      trackCheckout("pix_code_copied", {
-        label: "Código PIX copiado",
-        target: slug,
-        metadata: {
-          event_id: Number(catalog?.event?.id || 0),
-          amount: Number(result?.order?.total || total || 0),
-          payment_method: "pix",
-        },
-      });
-      window.setTimeout(() => setPixCopyStatus("idle"), 2500);
-    } catch (_) {
+    const copied = await copyText(pixCode);
+    if (!copied) {
       setPixCopyStatus("error");
-      setError("Não foi possível copiar automaticamente. Toque e segure o código PIX acima para copiar.");
+      setError("Não foi possível copiar automaticamente neste navegador. Toque e segure o código PIX acima para selecionar e copiar.");
       trackCheckout("pix_code_copy_failed", {
         label: "Falha ao copiar código PIX",
         target: slug,
@@ -490,7 +478,22 @@ export default function CheckoutPage() {
           outcome: "error",
         },
       });
+      return;
     }
+
+    setPixCopyStatus("copied");
+    setError("");
+    trackCheckout("pix_code_copied", {
+      label: "Código PIX copiado",
+      target: slug,
+      metadata: {
+        event_id: Number(catalog?.event?.id || 0),
+        amount: Number(result?.order?.total || total || 0),
+        payment_method: "pix",
+        outcome: "success",
+      },
+    });
+    window.setTimeout(() => setPixCopyStatus("idle"), 2500);
   };
 
   if (loading) return <ProcessingIndicatorComponent label="Preparando checkout seguro" />;
