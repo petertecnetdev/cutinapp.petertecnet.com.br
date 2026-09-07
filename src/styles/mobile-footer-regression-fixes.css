@@ -1,0 +1,184 @@
+@media (max-width: 991.98px) {
+  :root {
+    --cut-mobile-bottom-nav-height: calc(var(--cut-instagram-bottombar-height, 64px) + env(safe-area-inset-bottom, 0px));
+    --cut-mobile-floating-gap: 14px;
+    --cut-mobile-fab-size: 56px;
+  }
+
+  html,
+  body,
+  #root {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html[data-cut-instagram-shell="active"] body.cut-has-mobile-bottom-nav {
+    padding-bottom: calc(var(--cut-mobile-bottom-nav-height) + 12px) !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-mobile-bottom-nav {
+    position: fixed !important;
+    inset-inline: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    transform: none !important;
+    overflow: visible !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-mobile-bottom-nav > a,
+  html[data-cut-instagram-shell="active"] .cut-mobile-bottom-nav > button {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-app-page,
+  html[data-cut-instagram-shell="active"] main,
+  html[data-cut-instagram-shell="active"] .cut-page-shell,
+  html[data-cut-instagram-shell="active"] .cut-page-container,
+  html[data-cut-instagram-shell="active"] .container,
+  html[data-cut-instagram-shell="active"] .container-fluid,
+  html[data-cut-instagram-shell="active"] .row,
+  html[data-cut-instagram-shell="active"] [class*="col-"] {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-page-container,
+  html[data-cut-instagram-shell="active"] .container,
+  html[data-cut-instagram-shell="active"] .container-fluid {
+    width: 100% !important;
+    padding-left: max(14px, env(safe-area-inset-left, 0px)) !important;
+    padding-right: max(14px, env(safe-area-inset-right, 0px)) !important;
+  }
+
+  html[data-cut-instagram-shell="active"] img,
+  html[data-cut-instagram-shell="active"] video,
+  html[data-cut-instagram-shell="active"] iframe,
+  html[data-cut-instagram-shell="active"] canvas,
+  html[data-cut-instagram-shell="active"] svg {
+    max-width: 100%;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-card-actions,
+  html[data-cut-instagram-shell="active"] .cut-owner-actions,
+  html[data-cut-instagram-shell="active"] .cut-production-inline,
+  html[data-cut-instagram-shell="active"] .d-flex.flex-wrap {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-card-actions > *,
+  html[data-cut-instagram-shell="active"] .cut-owner-actions > * {
+    min-width: 0;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-whatsapp-fab {
+    right: max(14px, env(safe-area-inset-right, 0px)) !important;
+    bottom: calc(var(--cut-mobile-bottom-nav-height) + var(--cut-mobile-floating-gap)) !important;
+    width: var(--cut-mobile-fab-size) !important;
+    height: var(--cut-mobile-fab-size) !important;
+    min-height: var(--cut-mobile-fab-size) !important;
+    z-index: 1034 !important;
+  }
+
+  html[data-cut-instagram-shell="active"] button[title="Compartilhar este evento"] {
+    right: max(14px, env(safe-area-inset-right, 0px)) !important;
+    bottom: calc(var(--cut-mobile-bottom-nav-height) + var(--cut-mobile-floating-gap) + var(--cut-mobile-fab-size) + 10px) !important;
+    width: var(--cut-mobile-fab-size) !important;
+    height: var(--cut-mobile-fab-size) !important;
+    z-index: 1034 !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-capability-nav .cut-navbar__inner {
+    grid-template-columns: minmax(0, 1fr) auto auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding-left: max(10px, env(safe-area-inset-left, 0px)) !important;
+    padding-right: max(10px, env(safe-area-inset-right, 0px)) !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-capability-nav .cut-navbar__brand {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-capability-nav .cut-navbar__brand > div {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-capability-nav .cut-navbar__brand strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-instagram-mobile-actions {
+    min-width: 0;
+    flex: 0 0 auto;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-event-hero__content,
+  html[data-cut-instagram-shell="active"] .cut-event-hero__content h1,
+  html[data-cut-instagram-shell="active"] .cut-section-title,
+  html[data-cut-instagram-shell="active"] .cut-body-copy,
+  html[data-cut-instagram-shell="active"] p,
+  html[data-cut-instagram-shell="active"] strong,
+  html[data-cut-instagram-shell="active"] span {
+    overflow-wrap: anywhere;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-ticket-purchase-panel {
+    position: static !important;
+    top: auto !important;
+  }
+}
+
+@media (max-width: 575.98px) {
+  html[data-cut-instagram-shell="active"] .cut-capability-nav .cut-navbar__brand strong {
+    font-size: 0.98rem !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-instagram-mobile-action,
+  html[data-cut-instagram-shell="active"] .cut-capability-nav .navbar-toggler {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-card-actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-card-actions > .btn,
+  html[data-cut-instagram-shell="active"] .cut-owner-actions > .btn {
+    width: 100%;
+    min-height: 44px;
+    white-space: normal;
+  }
+}
+
+@media (max-width: 359.98px) {
+  html[data-cut-instagram-shell="active"] .cut-capability-nav .cut-navbar__brand strong {
+    display: none !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-card-actions {
+    grid-template-columns: 1fr;
+  }
+}
