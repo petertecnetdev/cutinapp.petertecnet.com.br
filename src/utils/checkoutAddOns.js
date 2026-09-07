@@ -5,7 +5,9 @@ const numericPriority = (item) => {
 
 const isAvailableForCheckout = (item) => {
   if (!item || item.available === false || item.expired) return false;
-  const remaining = Number(item.remaining ?? item.quantity ?? 0);
+  const stock = item.remaining ?? item.quantity;
+  if (stock == null || stock === "") return true;
+  const remaining = Number(stock);
   return Number.isFinite(remaining) ? remaining > 0 : true;
 };
 
