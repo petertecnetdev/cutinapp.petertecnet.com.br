@@ -39,6 +39,7 @@ const ApplicationAdminUsersPage = lazy(() => import("./pages/admin/ApplicationAd
 const ApplicationAdminProductionsPage = lazy(() => import("./pages/admin/ApplicationAdminProductionsPage"));
 const ApplicationAdminOrdersPage = lazy(() => import("./pages/admin/ApplicationAdminOrdersPage"));
 const ApplicationAdminFinancePage = lazy(() => import("./pages/admin/ApplicationAdminFinancePage"));
+const ApplicationAdminCheckinsPage = lazy(() => import("./pages/admin/ApplicationAdminCheckinsPage"));
 const UserEditPage = lazy(() => import("./pages/user/UserEditPage"));
 const UserProfilePage = lazy(() => import("./pages/user/UserProfilePage"));
 const ProductionListPage = lazyWithPreload(() => import("./pages/production/ProductionListPage"));
@@ -149,6 +150,8 @@ function AppRoutes() {
           <Route path="/admin/tickets" element={adminRoute(<ApplicationAdminTicketsPage />)} />
           <Route path="/admin/orders" element={adminRoute(<ApplicationAdminOrdersPage />)} />
           <Route path="/admin/finance" element={adminRoute(<ApplicationAdminFinancePage />)} />
+          <Route path="/admin/checkins" element={adminRoute(<ApplicationAdminCheckinsPage />)} />
+          <Route path="/admin/moderation" element={adminRoute(<ReportModerationPage />)} />
           <Route path="/feed" element={protectedRoute(<FeedPage />)} />
           <Route path="/notifications" element={protectedRoute(<NotificationsPage />)} />
           <Route path="/moderation/reports" element={protectedRoute(<ReportModerationPage />)} />
