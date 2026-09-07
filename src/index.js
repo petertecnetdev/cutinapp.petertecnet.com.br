@@ -21,6 +21,7 @@ import "./styles/peter-navbar-standard.css";
 import "./styles/cutinapp-mobile-final.css";
 import "./styles/advanced-navbar.css";
 import "./styles/peter-branding-bridge.css";
+import "./styles/instagram-mobile-shell.css";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import PeterAccountGateway from "./components/PeterAccountGateway";
@@ -31,6 +32,7 @@ import { installPasswordFieldEnhancer } from "./utils/passwordFieldEnhancer";
 import { installClipboardFallback } from "./utils/clipboard";
 import { installPeterWhatsappFallback } from "./utils/peterWhatsappFallback";
 import { installGlobalImagePerformance } from "./utils/imagePerformance";
+import { installInstagramMobileShell } from "./utils/instagramMobileShell";
 import { trackTelemetry } from "./utils/telemetry";
 
 installGlobalImageFallbacks();
@@ -38,6 +40,7 @@ installPasswordFieldEnhancer();
 installClipboardFallback();
 installPeterWhatsappFallback();
 installGlobalImagePerformance();
+installInstagramMobileShell();
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
