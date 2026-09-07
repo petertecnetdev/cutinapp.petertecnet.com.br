@@ -20,6 +20,7 @@ import { hasContextRole } from "./utils/applicationRoles";
 
 const HomePage = lazy(() => import("./pages/LandingPageV2"));
 const FeedPage = lazy(() => import("./pages/FeedPage"));
+const MessagesPage = lazy(() => import("./pages/MessagesPage"));
 const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
 const ReportModerationPage = lazy(() => import("./pages/moderation/ReportModerationPage"));
 const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
@@ -115,6 +116,7 @@ function AppRoutes() {
           <Route path="/agent" element={acquisitionRoute(<AcquisitionDashboardPage />)} />
           <Route path="/admin/events" element={protectedRoute(<ApplicationAdminEventsPage />)} />
           <Route path="/feed" element={protectedRoute(<FeedPage />)} />
+          <Route path="/messages" element={protectedRoute(<MessagesPage />)} />
           <Route path="/notifications" element={protectedRoute(<NotificationsPage />)} />
           <Route path="/moderation/reports" element={protectedRoute(<ReportModerationPage />)} />
           <Route path="/profile" element={protectedRoute(<UserProfilePage />)} />
