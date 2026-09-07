@@ -1,4 +1,4 @@
-export const estimateAddOnAttachmentOpportunity = ({ paidCount, addOnOrders, averageAddOnValue, benchmarkAddOnValue = 0, takeRate, upliftPoints = 10, fullEvidencePaidOrders = 20 }) => {
+export const estimateAddOnAttachmentOpportunity = ({ paidCount, addOnOrders, averageAddOnValue, benchmarkAddOnValue = 0, takeRate, upliftPoints = 10, fullEvidencePaidOrders = 20, minimumActionableOrders = 1 }) => {
   const paid = Math.max(0, Number(paidCount || 0));
   const attached = Math.max(0, Number(addOnOrders || 0));
   const observedAverage = Math.max(0, Number(averageAddOnValue || 0));
@@ -8,9 +8,11 @@ export const estimateAddOnAttachmentOpportunity = ({ paidCount, addOnOrders, ave
   const availableOrders = Math.max(0, paid - attached);
   const evidenceTarget = Math.max(1, Number(fullEvidencePaidOrders || 20));
   const evidenceFactor = Math.min(1, paid / evidenceTarget);
-  const incrementalOrders = Math.min(availableOrders, paid * (Math.max(0, Number(upliftPoints || 0)) / 100) * evidenceFactor);
+  const projectedOrders = Math.min(availableOrders, paid * (Math.max(0, Number(upliftPoints || 0)) / 100) * evidenceFactor);
+  const actionableFloor = Math.max(0, Number(minimumActionableOrders || 0));
+  const incrementalOrders = projectedOrders >= actionableFloor ? projectedOrders : 0;
   const incrementalGmv = incrementalOrders * average;
-  return { incrementalOrders, incrementalGmv, incrementalPlatformRevenue: incrementalGmv * (rate / 100), benchmarkUsed: observedAverage <= 0 && benchmarkAverage > 0, evidenceFactor };
+  return { incrementalOrders, incrementalGmv, incrementalPlatformRevenue: incrementalGmv * (rate / 100), benchmarkUsed: observedAverage <= 0 && benchmarkAverage > 0, evidenceFactor, projectedOrders, minimumActionableOrders: actionableFloor };
 };
 
 export const suggestedAddOnStock = (incrementalOrders, maxStock = 100, demandBufferPercentage = 20) => {
