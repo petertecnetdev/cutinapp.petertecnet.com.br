@@ -1,0 +1,149 @@
+/* Mobile event view cleanup.
+ * Keep the event page readable and prevent action labels from collapsing into
+ * one-character-per-line columns on narrow screens.
+ */
+
+@media (max-width: 991.98px) {
+  html[data-cut-instagram-shell="active"] .cut-event-hero {
+    min-height: auto;
+    padding: 34px 0 28px;
+    align-items: flex-end;
+    background-position: center top;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-event-hero--premium {
+    min-height: 520px;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-event-hero__content {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-event-hero__content h1 {
+    max-width: 100%;
+    margin: 8px 0 12px;
+    font-size: clamp(2.15rem, 10vw, 3.4rem) !important;
+    line-height: .98 !important;
+    letter-spacing: -.045em !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+    hyphens: none;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-event-hero__date,
+  html[data-cut-instagram-shell="active"] .cut-event-hero__content > span,
+  html[data-cut-instagram-shell="active"] .cut-inline-profile-link {
+    max-width: 100%;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-card-actions .btn,
+  html[data-cut-instagram-shell="active"] .cut-card-actions a.btn,
+  html[data-cut-instagram-shell="active"] .cut-owner-actions .btn {
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+    hyphens: none !important;
+    white-space: normal;
+    line-height: 1.15;
+  }
+
+  /* The share control is intentionally floating on mobile. Make it a real FAB
+     instead of squeezing the word "Compartilhar" into a 56px column. */
+  html[data-cut-instagram-shell="active"] button[title="Compartilhar este evento"] {
+    display: grid !important;
+    place-items: center !important;
+    padding: 0 !important;
+    border-radius: 999px !important;
+    font-size: 0 !important;
+    line-height: 0 !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+  }
+
+  html[data-cut-instagram-shell="active"] button[title="Compartilhar este evento"] i {
+    margin: 0 !important;
+    font-size: 1.05rem !important;
+    line-height: 1 !important;
+  }
+
+  /* Keep secondary actions from turning the hero into a wall of buttons. */
+  html[data-cut-instagram-shell="active"] .cut-event-hero .cut-card-actions a[href="#comunidade"] {
+    display: none !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-event-hero .cut-card-actions {
+    align-items: stretch;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-event-hero .cut-card-actions > .btn {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* The temporal status is useful, but on mobile it should be compact rather
+     than occupy another large text block immediately below the hero. */
+  html[data-cut-instagram-shell="active"] .cut-event-hero + .cut-page-container > .alert:first-child {
+    padding: 12px 14px;
+    gap: 10px !important;
+    border-radius: 16px;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-event-hero + .cut-page-container > .alert:first-child strong {
+    margin-bottom: 0 !important;
+    font-size: .92rem;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-event-hero + .cut-page-container > .alert:first-child span {
+    display: none;
+  }
+}
+
+@media (max-width: 575.98px) {
+  html[data-cut-instagram-shell="active"] .cut-event-hero {
+    padding-top: 26px;
+    padding-bottom: 22px;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-event-hero--premium {
+    min-height: 470px;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-event-hero__content h1 {
+    font-size: clamp(2rem, 11vw, 3rem) !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-event-hero .cut-card-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 9px !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-event-hero .cut-card-actions > .btn,
+  html[data-cut-instagram-shell="active"] .cut-event-hero .cut-card-actions > a.btn {
+    min-height: 48px !important;
+    padding: 10px 12px !important;
+    font-size: .9rem;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-event-hero .cut-card-actions > .btn:first-child,
+  html[data-cut-instagram-shell="active"] .cut-event-hero .cut-card-actions > a.btn:first-child {
+    grid-column: 1 / -1;
+  }
+
+  html[data-cut-instagram-shell="active"] button[title="Compartilhar este evento"] {
+    padding: 0 !important;
+    font-size: 0 !important;
+  }
+}
+
+@media (max-width: 359.98px) {
+  html[data-cut-instagram-shell="active"] .cut-event-hero .cut-card-actions {
+    grid-template-columns: 1fr !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-event-hero__content h1 {
+    font-size: 2rem !important;
+  }
+}
