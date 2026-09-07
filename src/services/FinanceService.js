@@ -1,41 +1,23 @@
 import appApiClient from "./AppApiClient";
-import {
-  createIdempotencyAttemptManager,
-  createMutationRequestKey,
-  shouldKeepIdempotencyAttempt,
-} from "../utils/idempotencyAttempts";
+import { createIdempotentMutation, createMutationRequestKey } from "../utils/idempotencyAttempts";
 
-const pendingPayoutRequests = new Map();
-const payoutAttempts = createIdempotencyAttemptManager({
+const requestPayoutIdempotently = createIdempotentMutation({
   storagePrefix: "cutinapp_finance_payout_attempt_",
   keyPrefix: "finance-payout",
+  requestKeyFor: (organizationId, payload) => createMutationRequestKey({
+    organization_id: String(organizationId),
+    amount: payload.amount,
+  }),
+  mutate: async ({ idempotencyKey }, organizationId, payload) => (
+    await appApiClient.post(`/organizations/${organizationId}/finance/payouts`, payload, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    })
+  ).data,
 });
 
 const requestPayout = (organizationId, amount) => {
-  const normalizedAmount = Number(amount);
-  const payload = { amount: normalizedAmount };
-  const requestKey = createMutationRequestKey({
-    organization_id: String(organizationId),
-    amount: normalizedAmount,
-  });
-  const pending = pendingPayoutRequests.get(requestKey);
-  if (pending) return pending;
-
-  const idempotencyKey = payoutAttempts.keyFor(requestKey);
-  const request = appApiClient.post(`/organizations/${organizationId}/finance/payouts`, payload, {
-    headers: { "Idempotency-Key": idempotencyKey },
-  }).then((response) => {
-    payoutAttempts.clear(requestKey);
-    return response.data;
-  }).catch((error) => {
-    if (!shouldKeepIdempotencyAttempt(error)) payoutAttempts.clear(requestKey);
-    throw error;
-  }).finally(() => {
-    if (pendingPayoutRequests.get(requestKey) === request) pendingPayoutRequests.delete(requestKey);
-  });
-
-  pendingPayoutRequests.set(requestKey, request);
-  return request;
+  const payload = { amount: Number(amount) };
+  return requestPayoutIdempotently(organizationId, payload);
 };
 
 const financeService = {
