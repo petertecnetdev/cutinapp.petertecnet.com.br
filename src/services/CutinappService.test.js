@@ -129,3 +129,61 @@ describe("CutinappService courtesy claim idempotency", () => {
     await expect(first).resolves.toEqual({ pass: { id: 34 } });
   });
 });
+
+describe("CutinappService pass transfer idempotency", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    sessionStorage.clear();
+  });
+
+  test("sends an idempotency key and normalizes the recipient email", async () => {
+    appApiClient.post.mockResolvedValueOnce({ data: { pass: { id: 51 } } });
+
+    await expect(cutinappService.transferPass(50, " User@Example.COM ")).resolves.toEqual({ pass: { id: 51 } });
+
+    expect(appApiClient.post).toHaveBeenCalledWith(
+      "/passes/50/transfer",
+      { recipient_email: "user@example.com" },
+      { headers: { "Idempotency-Key": expect.any(String) } }
+    );
+  });
+
+  test("reuses the same key after an uncertain network failure", async () => {
+    appApiClient.post
+      .mockRejectedValueOnce({ code: "ERR_NETWORK", message: "Network Error" })
+      .mockResolvedValueOnce({ data: { pass: { id: 52 } } });
+
+    await expect(cutinappService.transferPass(51, "user@example.com")).rejects.toMatchObject({ code: "ERR_NETWORK" });
+    const firstKey = idempotencyKeyAt(0);
+
+    await expect(cutinappService.transferPass(51, "USER@example.com")).resolves.toEqual({ pass: { id: 52 } });
+    expect(idempotencyKeyAt(1)).toBe(firstKey);
+  });
+
+  test("uses a fresh key after a definitive transfer failure", async () => {
+    appApiClient.post
+      .mockRejectedValueOnce({ response: { status: 422 } })
+      .mockResolvedValueOnce({ data: { pass: { id: 53 } } });
+
+    await expect(cutinappService.transferPass(52, "user@example.com")).rejects.toMatchObject({ response: { status: 422 } });
+    const rejectedKey = idempotencyKeyAt(0);
+
+    await cutinappService.transferPass(52, "user@example.com");
+    expect(idempotencyKeyAt(1)).toBeTruthy();
+    expect(idempotencyKeyAt(1)).not.toBe(rejectedKey);
+  });
+
+  test("deduplicates equivalent concurrent transfers", async () => {
+    let resolveTransfer;
+    appApiClient.post.mockImplementationOnce(() => new Promise((resolve) => { resolveTransfer = resolve; }));
+
+    const first = cutinappService.transferPass(53, "user@example.com");
+    const second = cutinappService.transferPass(53, " USER@example.com ");
+
+    expect(first).toBe(second);
+    expect(appApiClient.post).toHaveBeenCalledTimes(1);
+
+    resolveTransfer({ data: { pass: { id: 54 } } });
+    await expect(first).resolves.toEqual({ pass: { id: 54 } });
+  });
+});
