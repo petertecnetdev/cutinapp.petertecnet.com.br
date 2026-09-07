@@ -135,6 +135,44 @@ export default function CheckoutPage() {
     const selectedIds = new Set((selection.items || []).map((item) => Number(item.id)));
     return rankCheckoutAddOns(catalog.items || [], selectedIds, 3);
   }, [catalog, selection]);
+  useEffect(() => {
+    if (!catalog || !selection || result) return;
+
+    const reconcile = (chosenItems = [], currentItems = [], limit = 20) => chosenItems
+      .map((chosen) => {
+        const current = currentItems.find((entry) => Number(entry.id) === Number(chosen.id));
+        if (!current || current.available === false || current.expired) return null;
+        const remaining = Number(current.remaining ?? current.quantity ?? 0);
+        if (remaining <= 0) return null;
+        const quantity = Math.min(Math.max(1, Number(chosen.quantity || 1)), remaining, limit);
+        return { id: Number(chosen.id), quantity };
+      })
+      .filter(Boolean);
+
+    const tickets = reconcile(selection.tickets || [], catalog.tickets || [], 20);
+    const items = reconcile(selection.items || [], catalog.items || [], 10);
+    const previous = JSON.stringify({ tickets: selection.tickets || [], items: selection.items || [] });
+    const nextComparable = JSON.stringify({ tickets, items });
+    if (previous === nextComparable) return;
+
+    const nextSelection = { ...selection, tickets, items };
+    setSelection(nextSelection);
+    safeSetSessionJson(checkoutStorageKey, nextSelection);
+    writeCheckoutRecovery(slug, { selection: nextSelection, orderPublicId: null });
+    setError("Sua seleção foi atualizada para a disponibilidade atual do evento. Revise o resumo antes de pagar.");
+    trackCheckout("checkout_selection_reconciled", {
+      label: "Seleção ajustada à disponibilidade atual",
+      target: slug,
+      metadata: {
+        event_id: Number(catalog?.event?.id || 0),
+        previous_ticket_quantity: (selection.tickets || []).reduce((sum, item) => sum + Number(item.quantity || 0), 0),
+        ticket_quantity: tickets.reduce((sum, item) => sum + Number(item.quantity || 0), 0),
+        previous_item_quantity: (selection.items || []).reduce((sum, item) => sum + Number(item.quantity || 0), 0),
+        item_quantity: items.reduce((sum, item) => sum + Number(item.quantity || 0), 0),
+      },
+    });
+  }, [catalog, checkoutStorageKey, result, selection, slug]);
+
   const paymentAvailable = Boolean(catalog?.payment_config?.available);
   const methods = Array.isArray(catalog?.payment_config?.methods) ? catalog.payment_config.methods : [];
   const pixAvailable = paymentAvailable && methods.includes("pix");
