@@ -1,4 +1,4 @@
-const DEFAULT_DELAYS_MS = [5000, 5000, 8000, 10000, 15000, 30000, 60000];
+const DEFAULT_DELAYS_MS = [2500, 4000, 6000, 10000, 15000, 30000, 60000];
 const RATE_LIMIT_DELAY_MS = 30000;
 
 export function getPaymentSyncDelay(attempt = 0, { rateLimited = false, random = Math.random } = {}) {
