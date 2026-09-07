@@ -33,6 +33,7 @@ export const actorNavigation = [
       item("my-productions", "Minhas produções", "fa-solid fa-building", "/production/mine"),
       item("manage-events", "Meus eventos", "fa-solid fa-calendar-check", "/event/manage"),
       item("create-event", "Criar evento", "fa-solid fa-calendar-plus", "/event/create"),
+      item("campaigns", "Campanhas e promoções", "fa-solid fa-bullhorn", "/producer/campaigns"),
       item("create-ticket", "Ingressos e cortesias", "fa-solid fa-ticket", "/ticket/create"),
       item("sales", "Vendas", "fa-solid fa-chart-line", "/producer/sales"),
       item("finance", "Financeiro", "fa-solid fa-wallet", "/producer/finance"),
@@ -41,6 +42,7 @@ export const actorNavigation = [
     ],
     quick: [
       item("quick-create-event", "Criar evento", "fa-solid fa-calendar-plus", "/event/create", { requirement: "producer" }),
+      item("quick-campaign", "Criar campanha", "fa-solid fa-bullhorn", "/producer/campaigns", { requirement: "producer" }),
       item("quick-create-ticket", "Criar ingresso", "fa-solid fa-ticket", "/ticket/create", { requirement: "producer" }),
       item("quick-checkin", "Abrir check-in", "fa-solid fa-qrcode", "/checkin", { requirement: "producer" }),
       item("quick-sales", "Ver vendas", "fa-solid fa-chart-line", "/producer/sales", { requirement: "producer" }),
@@ -91,6 +93,7 @@ export const actorNavigation = [
       item("admin-center", "Admin Center", "fa-solid fa-shield-halved", "/admin"),
       item("admin-users", "Usuários", "fa-solid fa-users-gear", "/admin/users"),
       item("admin-events", "Eventos", "fa-solid fa-calendar-days", "/admin/events"),
+      item("admin-campaigns", "Campanhas", "fa-solid fa-bullhorn", "/producer/campaigns"),
       item("moderation", "Moderação", "fa-solid fa-user-shield", "/moderation/reports"),
     ],
     quick: [item("quick-admin", "Abrir Admin Center", "fa-solid fa-shield-halved", "/admin", { requirement: "admin" })],
@@ -112,6 +115,7 @@ export const contextualNavigation = (pathname = "", capabilities = {}) => {
       items: [
         item("event-view", "Ver evento", "fa-regular fa-eye", `/event/${eventRef}`),
         item("event-edit", "Editar evento", "fa-solid fa-pen", `/event/edit/${eventRef}`),
+        item("event-campaigns", "Campanhas", "fa-solid fa-bullhorn", `/event/${eventRef}/campaigns?eventId=${eventRef}`),
         item("event-courtesies", "Cortesias", "fa-solid fa-gift", `/event/${eventRef}/courtesies`),
         item("event-participants", "Participantes", "fa-solid fa-users", `/event/${eventRef}/participants`),
         item("event-lineup", "Line-up", "fa-solid fa-music", `/event/${eventRef}/lineup`),
@@ -130,6 +134,7 @@ export const contextualNavigation = (pathname = "", capabilities = {}) => {
         item("production-edit", "Editar produção", "fa-solid fa-pen", `/production/edit/${id}`),
         item("production-agenda", "Agenda", "fa-regular fa-calendar", `/production/${id}/agenda`),
         item("production-new-event", "Novo evento", "fa-solid fa-calendar-plus", "/event/create"),
+        item("production-campaigns", "Campanhas", "fa-solid fa-bullhorn", "/producer/campaigns"),
         item("production-sales", "Vendas", "fa-solid fa-chart-line", "/producer/sales"),
       ],
     };

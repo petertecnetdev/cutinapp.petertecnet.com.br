@@ -4,6 +4,7 @@ import { Alert, Button, Form } from "react-bootstrap";
 import { useLocation, useNavigate } from "react-router-dom";
 import commerceService from "../../services/CommerceService";
 import { safeRemoveSessionItem, safeSetSessionJson } from "../../utils/safeStorage";
+import EventCampaignsPanel from "./EventCampaignsPanel";
 
 const money = (value) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
 const dateLabel = (value) => {
@@ -78,6 +79,13 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
   const activeEventId = Number(catalog?.event?.id || eventId);
   const activeSlug = catalog?.event?.slug || slug;
   const availableDates = catalog?.available_dates || [];
+
+  const campaignSurface = <EventCampaignsPanel
+    eventId={activeEventId}
+    eventSlug={activeSlug}
+    user={user}
+    onLoginRequired={onLoginRequired}
+  />;
 
   const setQuantity = (kind, id, value, availableMax = null) => {
     const configuredMax = kind === "ticket" ? 20 : 50;
@@ -174,44 +182,47 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
     navigate(checkoutPath, { state: { checkout, from: `${location.pathname}${location.search}` } });
   };
 
-  if (loading) return <p className="text-secondary mb-0">Carregando opções de compra...</p>;
-  if (salesClosed) return <Alert variant="secondary" className="mt-4 mb-0"><strong>Vendas encerradas.</strong><span className="d-block mt-1">Ingressos e itens antecipados não podem mais ser adquiridos para esta edição.</span></Alert>;
-  if (!(catalog.tickets || []).length && !(catalog.items || []).length && availableDates.length <= 1) return null;
+  if (loading) return <>{campaignSurface}<p className="text-secondary mb-0">Carregando opções de compra...</p></>;
+  if (salesClosed) return <>{campaignSurface}<Alert variant="secondary" className="mt-4 mb-0"><strong>Vendas encerradas.</strong><span className="d-block mt-1">Ingressos e itens antecipados não podem mais ser adquiridos para esta edição.</span></Alert></>;
+  if (!(catalog.tickets || []).length && !(catalog.items || []).length && availableDates.length <= 1) return campaignSurface;
 
-  return <div className="cut-commerce-panel mt-4">
-    <span className="cut-eyebrow">Comprar</span>
-    <h3 className="cut-section-title mt-2">Ingressos e itens antecipados</h3>
-    <p className="text-secondary small">Escolha a data, seus ingressos e, se quiser, itens do estabelecimento para retirar no evento por QR Code.</p>
-    {error && <Alert variant="danger">{error}</Alert>}
-    {!checkoutAvailable && <Alert variant="warning">Pagamentos temporariamente indisponíveis para esta data.</Alert>}
+  return <>
+    {campaignSurface}
+    <div id="compra-evento" className="cut-commerce-panel mt-4" style={{ scrollMarginTop: "calc(var(--cut-navbar-height) + 18px)" }}>
+      <span className="cut-eyebrow">Comprar</span>
+      <h3 className="cut-section-title mt-2">Ingressos e itens antecipados</h3>
+      <p className="text-secondary small">Escolha a data, seus ingressos e, se quiser, itens do estabelecimento para retirar no evento por QR Code.</p>
+      {error && <Alert variant="danger">{error}</Alert>}
+      {!checkoutAvailable && <Alert variant="warning">Pagamentos temporariamente indisponíveis para esta data.</Alert>}
 
-    {availableDates.length > 1 && <div className="mb-3">
-      <Form.Label className="fw-semibold">Para qual data você quer comprar?</Form.Label>
-      <Form.Select value={activeSlug} onChange={(event) => handleDateChange(event.target.value)} aria-label="Escolha a data do evento">
-        {availableDates.map((date) => <option key={date.event_id} value={date.slug}>{dateLabel(date.date || date.start_date)}</option>)}
-      </Form.Select>
-      <small className="text-secondary d-block mt-1">Ingressos e estoque abaixo são exclusivos da data selecionada.</small>
-    </div>}
+      {availableDates.length > 1 && <div className="mb-3">
+        <Form.Label className="fw-semibold">Para qual data você quer comprar?</Form.Label>
+        <Form.Select value={activeSlug} onChange={(event) => handleDateChange(event.target.value)} aria-label="Escolha a data do evento">
+          {availableDates.map((date) => <option key={date.event_id} value={date.slug}>{dateLabel(date.date || date.start_date)}</option>)}
+        </Form.Select>
+        <small className="text-secondary d-block mt-1">Ingressos e estoque abaixo são exclusivos da data selecionada.</small>
+      </div>}
 
-    {(catalog.tickets || []).map((ticket) => {
-      const remaining = Math.max(0, Number(ticket.remaining ?? ticket.quantity ?? 0));
-      const expired = Boolean(ticket.expired);
-      const soldOut = ticket.available === false || remaining <= 0 || expired;
-      const maxQuantity = Math.min(20, remaining);
-      return <div className={`cut-ticket-option ${soldOut ? "opacity-50" : ""}`} key={`paid-ticket-${ticket.id}`} aria-disabled={soldOut}><div><span className="cut-ticket-kicker">Ingresso · {dateLabel(catalog?.event?.start_date)}</span><strong>{ticket.name}</strong><span>{money(ticket.price)}</span><small className={soldOut ? "text-secondary" : "text-success"}>{expired ? "Venda encerrada" : soldOut ? "Esgotado" : `${remaining} disponível${remaining === 1 ? "" : "is"}`}</small></div>{soldOut ? <Button variant="secondary" disabled>Esgotado</Button> : <QuantityStepper kind="ticket" id={ticket.id} value={Number(quantities[`ticket:${ticket.id}`] || 0)} max={maxQuantity} label={ticket.name} />}</div>;
-    })}
+      {(catalog.tickets || []).map((ticket) => {
+        const remaining = Math.max(0, Number(ticket.remaining ?? ticket.quantity ?? 0));
+        const expired = Boolean(ticket.expired);
+        const soldOut = ticket.available === false || remaining <= 0 || expired;
+        const maxQuantity = Math.min(20, remaining);
+        return <div className={`cut-ticket-option ${soldOut ? "opacity-50" : ""}`} key={`paid-ticket-${ticket.id}`} aria-disabled={soldOut}><div><span className="cut-ticket-kicker">Ingresso · {dateLabel(catalog?.event?.start_date)}</span><strong>{ticket.name}</strong><span>{money(ticket.price)}</span><small className={soldOut ? "text-secondary" : "text-success"}>{expired ? "Venda encerrada" : soldOut ? "Esgotado" : `${remaining} disponível${remaining === 1 ? "" : "is"}`}</small></div>{soldOut ? <Button variant="secondary" disabled>Esgotado</Button> : <QuantityStepper kind="ticket" id={ticket.id} value={Number(quantities[`ticket:${ticket.id}`] || 0)} max={maxQuantity} label={ticket.name} />}</div>;
+      })}
 
-    {(catalog.items || []).map((item) => {
-      const remaining = Math.max(0, Number(item.remaining ?? item.quantity ?? 0));
-      const soldOut = item.available === false || remaining <= 0;
-      const maxQuantity = Math.min(50, remaining);
-      return <div className={`cut-ticket-option ${soldOut ? "opacity-50" : ""}`} key={`event-item-${item.id}`} aria-disabled={soldOut}><div><span className="cut-ticket-kicker">Retirada no evento</span><strong>{item.name}</strong><span>{money(item.price)}</span>{item.description && <small>{item.description}</small>}<small className={soldOut ? "text-secondary" : "text-success"}>{soldOut ? "Esgotado" : `${remaining} disponível${remaining === 1 ? "" : "is"}`}</small></div>{soldOut ? <Button variant="secondary" disabled>Esgotado</Button> : <QuantityStepper kind="item" id={item.id} value={Number(quantities[`item:${item.id}`] || 0)} max={maxQuantity} label={item.name} />}</div>;
-    })}
+      {(catalog.items || []).map((item) => {
+        const remaining = Math.max(0, Number(item.remaining ?? item.quantity ?? 0));
+        const soldOut = item.available === false || remaining <= 0;
+        const maxQuantity = Math.min(50, remaining);
+        return <div className={`cut-ticket-option ${soldOut ? "opacity-50" : ""}`} key={`event-item-${item.id}`} aria-disabled={soldOut}><div><span className="cut-ticket-kicker">Retirada no evento</span><strong>{item.name}</strong><span>{money(item.price)}</span>{item.description && <small>{item.description}</small>}<small className={soldOut ? "text-secondary" : "text-success"}>{soldOut ? "Esgotado" : `${remaining} disponível${remaining === 1 ? "" : "is"}`}</small></div>{soldOut ? <Button variant="secondary" disabled>Esgotado</Button> : <QuantityStepper kind="item" id={item.id} value={Number(quantities[`item:${item.id}`] || 0)} max={maxQuantity} label={item.name} />}</div>;
+      })}
 
-    <div className="d-flex align-items-center justify-content-between mt-3"><strong>{selectedQuantity > 0 ? `${selectedQuantity} selecionado${selectedQuantity === 1 ? "" : "s"}` : "Total"}</strong><strong>{money(total)}</strong></div>
-    <Button className="w-100 mt-3" onClick={continueToCheckout} disabled={total <= 0 || !checkoutAvailable}><i className="fa-solid fa-lock me-2" />{user ? `Continuar · ${money(total)}` : "Entrar para comprar"}</Button>
-    <small className="d-block text-secondary mt-2 text-center"><i className="fa-solid fa-shield-halved me-1" />Ingressos usam QR de entrada; itens antecipados usam QR de retirada.</small>
-  </div>;
+      <div className="d-flex align-items-center justify-content-between mt-3"><strong>{selectedQuantity > 0 ? `${selectedQuantity} selecionado${selectedQuantity === 1 ? "" : "s"}` : "Total"}</strong><strong>{money(total)}</strong></div>
+      <Button className="w-100 mt-3" onClick={continueToCheckout} disabled={total <= 0 || !checkoutAvailable}><i className="fa-solid fa-lock me-2" />{user ? `Continuar · ${money(total)}` : "Entrar para comprar"}</Button>
+      <small className="d-block text-secondary mt-2 text-center"><i className="fa-solid fa-shield-halved me-1" />Ingressos usam QR de entrada; itens antecipados usam QR de retirada.</small>
+    </div>
+  </>;
 }
 
 EventCommercePanel.propTypes = {

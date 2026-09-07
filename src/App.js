@@ -56,6 +56,7 @@ const EventUpdatePage = lazy(() => import("./pages/event/EventUpdatePage"));
 const EventLineupPage = lazy(() => import("./pages/event/EventLineupPage"));
 const EventArtistClaimsPage = lazy(() => import("./pages/event/EventArtistClaimsPage"));
 const EventViewPage = lazy(() => import("./pages/event/EventViewPage"));
+const CampaignManagerPage = lazy(() => import("./pages/campaign/CampaignManagerPage"));
 const CheckoutPage = lazy(() => import("./pages/checkout/CheckoutPage"));
 const PurchasesPage = lazy(() => import("./pages/commerce/PurchasesPage"));
 const PurchaseDetailPage = lazy(() => import("./pages/commerce/PurchaseDetailPage"));
@@ -141,6 +142,7 @@ function AppRoutes() {
           <Route path="/producer/contracts" element={protectedRoute(<ProducerContractsPage />)} />
           <Route path="/producer/finance" element={protectedRoute(<ProductionFinancePage />)} />
           <Route path="/producer/sales" element={protectedRoute(<ProducerSalesPage />)} />
+          <Route path="/producer/campaigns" element={protectedRoute(<CampaignManagerPage />)} />
           <Route path="/producer/sales/:productionId/:publicId" element={protectedRoute(<ProducerSaleDetailPage />)} />
           <Route path="/production/:productionId/agenda" element={protectedRoute(<ProductionAgendaManager />)} />
           <Route path="/production/:productionId/agenda/new" element={protectedRoute(<ProductionAgendaFormPage />)} />
@@ -156,6 +158,7 @@ function AppRoutes() {
           <Route path="/event/:eventId/artist-claims" element={protectedRoute(<EventArtistClaimsPage />)} />
           <Route path="/event/:eventId/courtesies" element={protectedRoute(<CourtesyManagePage />)} />
           <Route path="/event/:eventId/participants" element={protectedRoute(<ParticipantsPage />)} />
+          <Route path="/event/:eventId/campaigns" element={protectedRoute(<CampaignManagerPage />)} />
           <Route path="/event/:slug" element={<EventViewPage />} />
           <Route path="/checkout/:slug" element={protectedRoute(<CheckoutPage />)} />
           <Route path="/ticket/create" element={protectedRoute(<TicketCreatePage />)} />

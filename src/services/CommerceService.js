@@ -10,12 +10,37 @@ const fallbackAttempts = new Map();
 const catalogCache = new Map();
 const CHECKOUT_ATTEMPT_PREFIX = "cutinapp_checkout_attempt_";
 const CATALOG_CACHE_TTL_MS = 15000;
+const CAMPAIGN_ATTRIBUTION_TTL_MS = 24 * 60 * 60 * 1000;
 const AUTO_RETRY_CHECKOUT_STATUSES = new Set([502, 503, 504]);
-const DEFAULT_CHECKOUT_RETRY_DELAY_MS = 350;
-const MAX_CHECKOUT_RETRY_DELAY_MS = 1500;
+
+const campaignContextFor = (eventId) => {
+  const id = Number(eventId || 0);
+  if (!id) return null;
+  const context = safeGetSessionJson(`cutinapp_campaign_context_${id}`);
+  if (!context?.uuid || Number(context.eventId || 0) !== id) return null;
+  const capturedAt = Number(context.capturedAt || 0);
+  if (capturedAt > 0 && Date.now() - capturedAt > CAMPAIGN_ATTRIBUTION_TTL_MS) {
+    safeRemoveSessionItem(`cutinapp_campaign_context_${id}`);
+    return null;
+  }
+  return context;
+};
+
+const withCampaignAttribution = (payload = {}) => {
+  const context = campaignContextFor(payload.event_id);
+  if (!context?.uuid) return payload;
+
+  const attributed = { ...payload, campaign_uuid: String(context.uuid) };
+  if (context.rewardCode && ["coupon", "discount"].includes(String(context.rewardKind || ""))) {
+    attributed.reward_code = String(context.rewardCode);
+  }
+  return attributed;
+};
 
 const checkoutRequestKey = (payload = {}) => JSON.stringify({
   event_id: Number(payload.event_id || 0),
+  campaign_uuid: String(payload.campaign_uuid || ""),
+  reward_code: String(payload.reward_code || ""),
   payment_method: String(payload.payment_method || ""),
   payment_method_id: String(payload.payment_method_id || ""),
   issuer_id: String(payload.issuer_id || ""),
@@ -75,45 +100,34 @@ const idempotencyKeyFor = (requestKey) => {
 
 const shouldAutoRetryCheckout = (error) => {
   const status = Number(error?.status || error?.response?.status || 0);
-  return isNetworkFailure(error) || AUTO_RETRY_CHECKOUT_STATUSES.has(status);
+  return AUTO_RETRY_CHECKOUT_STATUSES.has(status);
 };
-
-const checkoutRetryDelay = (error) => {
-  const retryAfter = Number(error?.response?.headers?.["retry-after"] || error?.headers?.["retry-after"] || 0);
-  if (Number.isFinite(retryAfter) && retryAfter > 0) {
-    return Math.min(Math.round(retryAfter * 1000), MAX_CHECKOUT_RETRY_DELAY_MS);
-  }
-  return DEFAULT_CHECKOUT_RETRY_DELAY_MS;
-};
-
-const wait = (milliseconds) => new Promise((resolve) => {
-  window.setTimeout(resolve, milliseconds);
-});
 
 const checkout = (payload) => {
-  const requestKey = checkoutRequestKey(payload);
+  const attributedPayload = withCampaignAttribution(payload);
+  const requestKey = checkoutRequestKey(attributedPayload);
   const pending = pendingCheckouts.get(requestKey);
   if (pending) return pending;
 
   const idempotencyKey = idempotencyKeyFor(requestKey);
   const postCheckout = (attempt = 0) => appApiClient
-    .post("/commerce/checkout", payload, {
+    .post("/commerce/checkout", attributedPayload, {
       headers: { "Idempotency-Key": idempotencyKey },
     })
     .catch((error) => {
       if (attempt === 0 && shouldAutoRetryCheckout(error)) {
-        const retryDelayMs = checkoutRetryDelay(error);
         trackTelemetry("checkout_transient_retry", {
           label: "Checkout repetido automaticamente após falha transitória",
-          target: String(payload?.event_id || "checkout"),
+          target: String(attributedPayload?.event_id || "checkout"),
           metadata: {
-            payment_method: String(payload?.payment_method || "unknown"),
+            payment_method: String(attributedPayload?.payment_method || "unknown"),
+            campaign_uuid: attributedPayload?.campaign_uuid || null,
+            reward_code: attributedPayload?.reward_code ? "present" : null,
             status: Number(error?.status || error?.response?.status || 0),
             retry_attempt: 1,
-            retry_delay_ms: retryDelayMs,
           },
         });
-        return wait(retryDelayMs).then(() => postCheckout(1));
+        return postCheckout(1);
       }
       throw error;
     });
@@ -185,6 +199,7 @@ const syncPayment = async (publicId) => {
 const commerceService = {
   catalog,
   checkout,
+  campaignContext: campaignContextFor,
   pendingCheckout: async () => (await appApiClient.get("/commerce/checkout/pending")).data,
   recoverPendingCheckout: async (orderId) => (
     await appApiClient.post("/commerce/checkout/pending/recover", { order_id: Number(orderId) })
