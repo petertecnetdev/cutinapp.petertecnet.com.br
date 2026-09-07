@@ -21,6 +21,7 @@ import lazyWithPreload from "./utils/lazyWithPreload";
 
 const HomePage = lazyWithPreload(() => import("./pages/LandingPageV2"));
 const FeedPage = lazyWithPreload(() => import("./pages/FeedPage"));
+const MessagesPage = lazy(() => import("./pages/MessagesPage"));
 const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
 const ReportModerationPage = lazy(() => import("./pages/moderation/ReportModerationPage"));
 const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
@@ -153,6 +154,7 @@ function AppRoutes() {
           <Route path="/admin/checkins" element={adminRoute(<ApplicationAdminCheckinsPage />)} />
           <Route path="/admin/moderation" element={adminRoute(<ReportModerationPage />)} />
           <Route path="/feed" element={protectedRoute(<FeedPage />)} />
+          <Route path="/messages" element={protectedRoute(<MessagesPage />)} />
           <Route path="/notifications" element={protectedRoute(<NotificationsPage />)} />
           <Route path="/moderation/reports" element={protectedRoute(<ReportModerationPage />)} />
           <Route path="/profile" element={protectedRoute(<UserProfilePage />)} />
