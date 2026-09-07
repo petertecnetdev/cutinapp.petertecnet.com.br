@@ -89,3 +89,78 @@ describe("EventService event creation idempotency", () => {
     await expect(first).resolves.toMatchObject({ event: { id: 24 } });
   });
 });
+
+describe("EventService derived event mutation idempotency", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    sessionStorage.clear();
+  });
+
+  test("protects event duplication with an idempotency key", async () => {
+    appApiClient.post.mockResolvedValueOnce({ data: { event: { id: 31 } } });
+
+    await expect(eventService.duplicate(12, "2026-11-20")).resolves.toMatchObject({ event: { id: 31 } });
+
+    expect(appApiClient.post).toHaveBeenCalledWith(
+      "/events/12/duplicate",
+      { date: "2026-11-20" },
+      { headers: { "Idempotency-Key": expect.any(String) } }
+    );
+  });
+
+  test("reuses the duplicate key after an uncertain failure", async () => {
+    appApiClient.post
+      .mockRejectedValueOnce({ code: "ERR_NETWORK", message: "Network Error" })
+      .mockResolvedValueOnce({ data: { event: { id: 32 } } });
+
+    await expect(eventService.duplicate(12, "2026-11-21")).rejects.toMatchObject({ code: "ERR_NETWORK" });
+    const firstKey = idempotencyKeyAt(0);
+
+    await expect(eventService.duplicate(12, "2026-11-21")).resolves.toMatchObject({ event: { id: 32 } });
+    expect(idempotencyKeyAt(1)).toBe(firstKey);
+  });
+
+  test("deduplicates concurrent equivalent series submissions", async () => {
+    let resolveRequest;
+    const pendingResponse = new Promise((resolve) => {
+      resolveRequest = resolve;
+    });
+    appApiClient.post.mockReturnValueOnce(pendingResponse);
+    const payload = { frequency: "weekly", weekdays: [5], until: "2026-12-31" };
+
+    const first = eventService.series(15, payload);
+    const second = eventService.series(15, { ...payload });
+
+    expect(appApiClient.post).toHaveBeenCalledTimes(1);
+    expect(second).toBe(first);
+
+    resolveRequest({ data: { events: [{ id: 41 }, { id: 42 }] } });
+    await expect(first).resolves.toMatchObject({ events: [{ id: 41 }, { id: 42 }] });
+  });
+
+  test("keeps series retries stable after server uncertainty", async () => {
+    const payload = { frequency: "monthly", until: "2027-02-01" };
+    appApiClient.post
+      .mockRejectedValueOnce({ response: { status: 503 } })
+      .mockResolvedValueOnce({ data: { events: [{ id: 43 }] } });
+
+    await expect(eventService.series(15, payload)).rejects.toMatchObject({ response: { status: 503 } });
+    const firstKey = idempotencyKeyAt(0);
+
+    await eventService.series(15, { ...payload });
+    expect(idempotencyKeyAt(1)).toBe(firstKey);
+  });
+
+  test("rotates the series key after a definitive validation error", async () => {
+    const payload = { frequency: "weekly", until: "2026-01-01" };
+    appApiClient.post
+      .mockRejectedValueOnce({ response: { status: 422 } })
+      .mockResolvedValueOnce({ data: { events: [{ id: 44 }] } });
+
+    await expect(eventService.series(16, payload)).rejects.toMatchObject({ response: { status: 422 } });
+    const rejectedKey = idempotencyKeyAt(0);
+
+    await eventService.series(16, { ...payload });
+    expect(idempotencyKeyAt(1)).not.toBe(rejectedKey);
+  });
+});
