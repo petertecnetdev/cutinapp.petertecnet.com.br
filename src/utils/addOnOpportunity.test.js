@@ -1,4 +1,4 @@
-import { addOnMarginGuard, addOnMonetizationEfficiency, estimateAddOnAttachmentOpportunity, suggestedAddOnStock, weightedAverageAddOnUnitPrice } from "./addOnOpportunity";
+import { addOnMarginGuard, addOnMonetizationEfficiency, compareAddOnOpportunities, estimateAddOnAttachmentOpportunity, suggestedAddOnStock, weightedAverageAddOnUnitPrice } from "./addOnOpportunity";
 
 test("uses production benchmark for events without add-on history", () => {
   expect(estimateAddOnAttachmentOpportunity({ paidCount: 50, addOnOrders: 0, averageAddOnValue: 0, benchmarkAddOnValue: 20, takeRate: 8 }))
@@ -86,4 +86,18 @@ test("requires projected net revenue to justify producer attention", () => {
   const strongOpportunity = addOnMarginGuard({ incrementalGmv: 1000, incrementalNetRevenue: 35, minimumNetRevenue: 30 });
   expect(strongOpportunity).toMatchObject({ profitable: true, minimumNetRevenue: 30 });
   expect(strongOpportunity.netMargin).toBeCloseTo(3.5, 8);
+});
+
+test("ranks profitable add-on opportunities before larger but low-quality GMV", () => {
+  const opportunities = [
+    { id: "low-margin", addOnProfitable: false, incrementalNetRevenue: 100, netPlatformRevenue: 500 },
+    { id: "profitable", addOnProfitable: true, incrementalNetRevenue: 25, netPlatformRevenue: 100 },
+    { id: "best-profitable", addOnProfitable: true, incrementalNetRevenue: 40, netPlatformRevenue: 80 },
+  ];
+
+  expect(opportunities.sort(compareAddOnOpportunities).map(({ id }) => id)).toEqual([
+    "best-profitable",
+    "profitable",
+    "low-margin",
+  ]);
 });
