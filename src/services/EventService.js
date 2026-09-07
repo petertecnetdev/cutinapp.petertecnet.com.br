@@ -6,6 +6,48 @@ const HOME_DISCOVERY_KEYS = new Set(["lat", "lng", "radius_km", "city", "uf", "p
 
 const unwrap = (value) => Array.isArray(value) ? value : Array.isArray(value?.data) ? value.data : [];
 
+const resolveWhatsappPhone = (...sources) => {
+  for (const source of sources) {
+    if (!source || typeof source !== "object") continue;
+    const value = source.whatsapp_phone
+      || source.whatsapp_number
+      || source.whatsapp
+      || source.contact_whatsapp
+      || source.phone
+      || source.phone_number
+      || source.contact_phone
+      || source.mobile;
+    if (value) return value;
+  }
+  return "";
+};
+
+const normalizePublicEventResponse = (response) => {
+  const event = response?.event;
+  if (!event) return response;
+
+  const production = event.production || event.establishment || null;
+  const whatsappPhone = resolveWhatsappPhone(
+    production,
+    event.establishment,
+    event.organization,
+    event
+  );
+
+  if (!production || !whatsappPhone || production.phone === whatsappPhone) return response;
+
+  return {
+    ...response,
+    event: {
+      ...event,
+      production: {
+        ...production,
+        phone: whatsappPhone,
+      },
+    },
+  };
+};
+
 const pendingEventCreates = new Map();
 const eventCreateAttempts = createIdempotencyAttemptManager({
   storagePrefix: "cutinapp_event_create_attempt_",
@@ -104,7 +146,7 @@ const search = async (params = {}) => {
 const eventService = {
   search,
   list: async (params = {}) => unwrap((await appApiClient.get("/events", { params })).data.events),
-  view: async (slug) => (await appApiClient.get(`/events/public/${slug}`)).data,
+  view: async (slug) => normalizePublicEventResponse((await appApiClient.get(`/events/public/${slug}`)).data),
   store: createEvent,
   update: async (eventId, formData) => (await appApiClient.patch(`/events/${eventId}`, formData)).data,
   show: async (eventId) => (await appApiClient.get(`/events/${eventId}/manage`)).data.event,
