@@ -274,3 +274,76 @@ describe("EventService agenda creation idempotency", () => {
     expect(idempotencyKeyAt(0)).not.toBe(idempotencyKeyAt(1));
   });
 });
+
+describe("EventService agenda generation idempotency", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    sessionStorage.clear();
+  });
+
+  test("protects a single agenda item generation with an idempotency key", async () => {
+    appApiClient.post.mockResolvedValueOnce({ data: { generated: true, event: { id: 71 } } });
+
+    await expect(eventService.generateAgendaItem(61)).resolves.toMatchObject({ generated: true });
+
+    expect(appApiClient.post).toHaveBeenCalledWith(
+      "/event-agenda/items/61/generate",
+      undefined,
+      { headers: { "Idempotency-Key": expect.any(String) } }
+    );
+  });
+
+  test("reuses the generation key after an uncertain failure", async () => {
+    appApiClient.post
+      .mockRejectedValueOnce({ response: { status: 503 } })
+      .mockResolvedValueOnce({ data: { generated: true } });
+
+    await expect(eventService.generateAgendaUpcoming(42)).rejects.toMatchObject({ response: { status: 503 } });
+    const firstKey = idempotencyKeyAt(0);
+
+    await eventService.generateAgendaUpcoming(42);
+
+    expect(idempotencyKeyAt(1)).toBe(firstKey);
+  });
+
+  test("rotates generation key after a definitive validation failure", async () => {
+    appApiClient.post
+      .mockRejectedValueOnce({ response: { status: 422 } })
+      .mockResolvedValueOnce({ data: { generated: true } });
+
+    await expect(eventService.generateAgendaItem(62)).rejects.toMatchObject({ response: { status: 422 } });
+    const rejectedKey = idempotencyKeyAt(0);
+
+    await eventService.generateAgendaItem(62);
+
+    expect(idempotencyKeyAt(1)).not.toBe(rejectedKey);
+  });
+
+  test("deduplicates concurrent generation requests for the same resource", async () => {
+    let resolveRequest;
+    appApiClient.post.mockReturnValueOnce(new Promise((resolve) => { resolveRequest = resolve; }));
+
+    const first = eventService.generateAgendaUpcoming(43);
+    const second = eventService.generateAgendaUpcoming(43);
+
+    expect(second).toBe(first);
+    expect(appApiClient.post).toHaveBeenCalledTimes(1);
+
+    resolveRequest({ data: { generated: true } });
+    await expect(first).resolves.toMatchObject({ generated: true });
+  });
+
+  test("keeps generation requests isolated between different resources", async () => {
+    appApiClient.post
+      .mockResolvedValueOnce({ data: { generated: true } })
+      .mockResolvedValueOnce({ data: { generated: true } });
+
+    await Promise.all([
+      eventService.generateAgendaItem(63),
+      eventService.generateAgendaItem(64),
+    ]);
+
+    expect(appApiClient.post).toHaveBeenCalledTimes(2);
+    expect(idempotencyKeyAt(0)).not.toBe(idempotencyKeyAt(1));
+  });
+});
