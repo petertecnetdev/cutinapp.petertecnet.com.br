@@ -46,7 +46,15 @@ export default function AcquisitionDashboardPage() {
   const refresh = useCallback(async () => {
     try {
       const data = await acquisitionService.dashboard();
+      const commissionMax = Math.max(0, Number(data?.commission_max_percentage || 0));
       setDashboard(data);
+      setForm((current) => ({
+        ...current,
+        events: current.events.map((event) => ({
+          ...event,
+          commission_percentage: Math.min(Math.max(0, Number(event.commission_percentage || 0)), commissionMax),
+        })),
+      }));
       setCommissionDrafts(Object.fromEntries((data?.commissions || []).map((row) => [row.event_id, String(row.percentage)])));
     } finally {
       setLoading(false);
@@ -56,6 +64,7 @@ export default function AcquisitionDashboardPage() {
   useEffect(() => { refresh().catch((error) => setFeedback({ type: "error", text: errorMessage(error) })); }, [refresh]);
 
   const metrics = dashboard?.metrics || {};
+  const commissionMax = Math.max(0, Number(dashboard?.commission_max_percentage || 0));
   const conversion = Number(metrics.conversion_rate || 0);
   const funnelWidth = useMemo(() => `${Math.max(0, Math.min(100, conversion))}%`, [conversion]);
 
@@ -188,7 +197,7 @@ export default function AcquisitionDashboardPage() {
                     </div>
                     <div className="acq-grid acq-grid--3">
                       <label className="acq-span-2"><span>Título</span><input required value={eventItem.title} onChange={(e) => setEvent(eventIndex, "title", e.target.value)} /></label>
-                      <label><span>Comissão do agente (%)</span><input required type="number" min="0" max="100" step="0.01" value={eventItem.commission_percentage} onChange={(e) => setEvent(eventIndex, "commission_percentage", e.target.value)} /></label>
+                      <label><span>Comissão do agente (%)</span><input required type="number" min="0" max={commissionMax} step="0.01" value={eventItem.commission_percentage} onChange={(e) => setEvent(eventIndex, "commission_percentage", e.target.value)} /><small>Máximo {commissionMax.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}% para a comissão sobre GMV não superar a taxa da plataforma.</small></label>
                       <label><span>Início</span><input required type="datetime-local" value={eventItem.start_date} onChange={(e) => setEvent(eventIndex, "start_date", e.target.value)} /></label>
                       <label><span>Fim</span><input required type="datetime-local" value={eventItem.end_date} onChange={(e) => setEvent(eventIndex, "end_date", e.target.value)} /></label>
                       <label><span>Formato</span><select value={eventItem.event_format} onChange={(e) => setEvent(eventIndex, "event_format", e.target.value)}><option value="in_person">Presencial</option><option value="online">Online</option><option value="hybrid">Híbrido</option></select></label>
@@ -244,7 +253,7 @@ export default function AcquisitionDashboardPage() {
                   <article key={row.id}>
                     <div className="acq-commission-title"><strong>{row.event?.title || `Evento #${row.event_id}`}</strong><small>{row.event?.production?.name}</small></div>
                     <div className="acq-commission-numbers"><span>{money(row.gross_sales)} vendidos</span><strong>{money(row.commission_amount)}</strong></div>
-                    <div className={`acq-commission-edit${row.commission_locked ? " acq-commission-edit--locked" : ""}`}><input type="number" min="0" max="100" step="0.01" value={commissionDrafts[row.event_id] ?? row.percentage} disabled={row.commission_locked} aria-label={`Comissão de ${row.event?.title || `evento ${row.event_id}`}`} onChange={(e) => setCommissionDrafts((current) => ({ ...current, [row.event_id]: e.target.value }))} /><span>%</span><button type="button" disabled={row.commission_locked} onClick={() => saveCommission(row.event_id)}>{row.commission_locked ? "Bloqueada" : "Salvar"}</button></div>
+                    <div className={`acq-commission-edit${row.commission_locked ? " acq-commission-edit--locked" : ""}`}><input type="number" min="0" max={commissionMax} step="0.01" value={commissionDrafts[row.event_id] ?? row.percentage} disabled={row.commission_locked} aria-label={`Comissão de ${row.event?.title || `evento ${row.event_id}`}`} onChange={(e) => setCommissionDrafts((current) => ({ ...current, [row.event_id]: e.target.value }))} /><span>%</span><button type="button" disabled={row.commission_locked} onClick={() => saveCommission(row.event_id)}>{row.commission_locked ? "Bloqueada" : "Salvar"}</button></div>
                     {row.commission_locked && <small className="acq-commission-lock-note">Percentual protegido após a primeira venda paga.</small>}
                   </article>
                 ))}
