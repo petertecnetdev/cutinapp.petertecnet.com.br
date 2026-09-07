@@ -1,17 +1,16 @@
 import appApiClient from "./AppApiClient";
-import {
-  createIdempotencyAttemptManager,
-  createMutationRequestKey,
-  shouldKeepIdempotencyAttempt,
-} from "../utils/idempotencyAttempts";
+import { createIdempotentMutation, createMutationRequestKey } from "../utils/idempotencyAttempts";
 
-const pendingSeriesCreates = new Map();
-const seriesCreateAttempts = createIdempotencyAttemptManager({
+const createSeriesIdempotently = createIdempotentMutation({
   storagePrefix: "cutinapp_event_series_create_attempt_",
   keyPrefix: "event-series",
+  requestKeyFor: (eventId, payload) => `${Number(eventId)}:${createMutationRequestKey(payload)}`,
+  mutate: async ({ idempotencyKey }, eventId, payload) => (
+    await appApiClient.post(`/admin/events/${eventId}/series`, payload, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    })
+  ).data,
 });
-
-const requestKeyFor = (eventId, payload) => `${Number(eventId)}:${createMutationRequestKey(payload)}`;
 
 const create = (eventId, payload) => {
   const normalizedEventId = Number(eventId);
@@ -19,25 +18,7 @@ const create = (eventId, payload) => {
     return Promise.reject(new Error("Evento inválido para criação da agenda."));
   }
 
-  const requestKey = requestKeyFor(normalizedEventId, payload);
-  const pending = pendingSeriesCreates.get(requestKey);
-  if (pending) return pending;
-
-  const idempotencyKey = seriesCreateAttempts.keyFor(requestKey);
-  const request = appApiClient.post(`/admin/events/${normalizedEventId}/series`, payload, {
-    headers: { "Idempotency-Key": idempotencyKey },
-  }).then((response) => {
-    seriesCreateAttempts.clear(requestKey);
-    return response.data;
-  }).catch((error) => {
-    if (!shouldKeepIdempotencyAttempt(error)) seriesCreateAttempts.clear(requestKey);
-    throw error;
-  }).finally(() => {
-    if (pendingSeriesCreates.get(requestKey) === request) pendingSeriesCreates.delete(requestKey);
-  });
-
-  pendingSeriesCreates.set(requestKey, request);
-  return request;
+  return createSeriesIdempotently(normalizedEventId, payload);
 };
 
 const eventSeriesService = { create };

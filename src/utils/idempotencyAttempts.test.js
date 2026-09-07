@@ -1,4 +1,4 @@
-import { createIdempotencyAttemptManager, createOpaqueRequestKey } from "./idempotencyAttempts";
+import { createIdempotencyAttemptManager, createIdempotentMutation, createOpaqueRequestKey } from "./idempotencyAttempts";
 
 describe("idempotencyAttempts privacy", () => {
   beforeEach(() => {
@@ -48,5 +48,52 @@ describe("idempotencyAttempts privacy", () => {
     manager.clear(requestKey);
 
     expect(sessionStorage.length).toBe(0);
+  });
+});
+
+describe("createIdempotentMutation", () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+  });
+
+  test("invokes immediately and deduplicates equivalent concurrent mutations", async () => {
+    let resolveMutation;
+    const mutate = jest.fn(() => new Promise((resolve) => { resolveMutation = resolve; }));
+    const mutation = createIdempotentMutation({
+      storagePrefix: "mutation_test_",
+      keyPrefix: "mutation-test",
+      requestKeyFor: (payload) => JSON.stringify(payload),
+      mutate,
+    });
+
+    const first = mutation({ id: 7 });
+    const second = mutation({ id: 7 });
+
+    expect(mutate).toHaveBeenCalledTimes(1);
+    expect(second).toBe(first);
+
+    resolveMutation({ ok: true });
+    await expect(first).resolves.toEqual({ ok: true });
+  });
+
+  test("reuses the idempotency key after an uncertain server failure", async () => {
+    const keys = [];
+    const mutate = jest.fn(({ idempotencyKey }) => {
+      keys.push(idempotencyKey);
+      if (keys.length === 1) return Promise.reject({ response: { status: 503 } });
+      return Promise.resolve({ ok: true });
+    });
+    const mutation = createIdempotentMutation({
+      storagePrefix: "retry_test_",
+      keyPrefix: "retry-test",
+      requestKeyFor: () => "same-request",
+      mutate,
+    });
+
+    await expect(mutation()).rejects.toMatchObject({ response: { status: 503 } });
+    await expect(mutation()).resolves.toEqual({ ok: true });
+
+    expect(keys).toHaveLength(2);
+    expect(keys[1]).toBe(keys[0]);
   });
 });

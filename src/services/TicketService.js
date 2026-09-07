@@ -1,15 +1,5 @@
 import appApiClient from "./AppApiClient";
-import {
-  createIdempotencyAttemptManager,
-  createMutationRequestKey,
-  shouldKeepIdempotencyAttempt,
-} from "../utils/idempotencyAttempts";
-
-const pendingTicketCreates = new Map();
-const ticketCreateAttempts = createIdempotencyAttemptManager({
-  storagePrefix: "cutinapp_ticket_create_attempt_",
-  keyPrefix: "ticket",
-});
+import { createIdempotentMutation, createMutationRequestKey } from "../utils/idempotencyAttempts";
 
 const normalizePayload = (payload = {}) => ({
   event_id: payload.event_id,
@@ -21,28 +11,18 @@ const normalizePayload = (payload = {}) => ({
   ticket_type: payload.ticket_type || (Number(payload.price || 0) > 0 ? "standard" : "courtesy"),
 });
 
-const store = (payload) => {
-  const requestPayload = normalizePayload(payload);
-  const requestKey = createMutationRequestKey(requestPayload);
-  const pending = pendingTicketCreates.get(requestKey);
-  if (pending) return pending;
+const storeIdempotently = createIdempotentMutation({
+  storagePrefix: "cutinapp_ticket_create_attempt_",
+  keyPrefix: "ticket",
+  requestKeyFor: (requestPayload) => createMutationRequestKey(requestPayload),
+  mutate: async ({ idempotencyKey }, requestPayload) => (
+    await appApiClient.post("/tickets", requestPayload, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    })
+  ).data,
+});
 
-  const idempotencyKey = ticketCreateAttempts.keyFor(requestKey);
-  const request = appApiClient.post("/tickets", requestPayload, {
-    headers: { "Idempotency-Key": idempotencyKey },
-  }).then((response) => {
-    ticketCreateAttempts.clear(requestKey);
-    return response.data;
-  }).catch((error) => {
-    if (!shouldKeepIdempotencyAttempt(error)) ticketCreateAttempts.clear(requestKey);
-    throw error;
-  }).finally(() => {
-    if (pendingTicketCreates.get(requestKey) === request) pendingTicketCreates.delete(requestKey);
-  });
-
-  pendingTicketCreates.set(requestKey, request);
-  return request;
-};
+const store = (payload) => storeIdempotently(normalizePayload(payload));
 
 const ticketService = { store };
 
