@@ -187,3 +187,74 @@ describe("CutinappService pass transfer idempotency", () => {
     await expect(first).resolves.toEqual({ pass: { id: 54 } });
   });
 });
+
+describe("CutinappService check-in idempotency", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    sessionStorage.clear();
+  });
+
+  test("sends an idempotency key and normalizes scanner input", async () => {
+    appApiClient.post.mockResolvedValueOnce({ data: { pass: { id: 71, checked_in_at: "2026-09-07T10:00:00Z" } } });
+
+    await expect(cutinappService.checkIn("  qr-token-71  ", "42")).resolves.toMatchObject({ pass: { id: 71 } });
+
+    expect(appApiClient.post).toHaveBeenCalledWith(
+      "/checkin",
+      { token: "qr-token-71", event_id: 42 },
+      { headers: { "Idempotency-Key": expect.any(String) } }
+    );
+  });
+
+  test("reuses the same key after an uncertain network failure", async () => {
+    appApiClient.post
+      .mockRejectedValueOnce({ code: "ERR_NETWORK", message: "Network Error" })
+      .mockResolvedValueOnce({ data: { pass: { id: 72 } } });
+
+    await expect(cutinappService.checkIn("qr-token-72", 42)).rejects.toMatchObject({ code: "ERR_NETWORK" });
+    const firstKey = idempotencyKeyAt(0);
+
+    await expect(cutinappService.checkIn(" qr-token-72 ", "42")).resolves.toEqual({ pass: { id: 72 } });
+    expect(idempotencyKeyAt(1)).toBe(firstKey);
+  });
+
+  test("uses a fresh key after a definitive validation failure", async () => {
+    appApiClient.post
+      .mockRejectedValueOnce({ response: { status: 422 } })
+      .mockResolvedValueOnce({ data: { pass: { id: 73 } } });
+
+    await expect(cutinappService.checkIn("qr-token-73", 42)).rejects.toMatchObject({ response: { status: 422 } });
+    const rejectedKey = idempotencyKeyAt(0);
+
+    await cutinappService.checkIn("qr-token-73", 42);
+    expect(idempotencyKeyAt(1)).toBeTruthy();
+    expect(idempotencyKeyAt(1)).not.toBe(rejectedKey);
+  });
+
+  test("deduplicates concurrent scans for the same event and token", async () => {
+    let resolveCheckIn;
+    appApiClient.post.mockImplementationOnce(() => new Promise((resolve) => { resolveCheckIn = resolve; }));
+
+    const first = cutinappService.checkIn("qr-token-74", 42);
+    const second = cutinappService.checkIn(" qr-token-74 ", "42");
+
+    expect(first).toBe(second);
+    expect(appApiClient.post).toHaveBeenCalledTimes(1);
+
+    resolveCheckIn({ data: { pass: { id: 74 } } });
+    await expect(first).resolves.toEqual({ pass: { id: 74 } });
+  });
+
+  test("keeps separate attempts for the same token on different events", async () => {
+    appApiClient.post
+      .mockResolvedValueOnce({ data: { pass: { id: 75 } } })
+      .mockResolvedValueOnce({ data: { pass: { id: 76 } } });
+
+    await cutinappService.checkIn("shared-token", 42);
+    await cutinappService.checkIn("shared-token", 43);
+
+    expect(idempotencyKeyAt(0)).toBeTruthy();
+    expect(idempotencyKeyAt(1)).toBeTruthy();
+    expect(idempotencyKeyAt(1)).not.toBe(idempotencyKeyAt(0));
+  });
+});
