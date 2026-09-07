@@ -90,6 +90,36 @@ describe("EventService event creation idempotency", () => {
   });
 });
 
+describe("EventService event update uploads", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test("uses multipart POST with PATCH method spoof so event images reach Laravel", async () => {
+    appApiClient.post.mockResolvedValueOnce({ data: { event: { id: 77, image: "images/events/cover.webp" } } });
+    const payload = new FormData();
+    payload.append("title", "Evento atualizado");
+    payload.append("image", new File(["fake-image"], "flyer.jpg", { type: "image/jpeg" }));
+
+    const result = await eventService.update(77, payload);
+
+    expect(appApiClient.patch).not.toHaveBeenCalled();
+    expect(appApiClient.post).toHaveBeenCalledWith("/events/77", payload);
+    expect(payload.get("_method")).toBe("PATCH");
+    expect(payload.get("image")).toBeInstanceOf(File);
+    expect(result.event.image).toBe("images/events/cover.webp");
+  });
+
+  test("keeps normal PATCH for non-multipart updates", async () => {
+    appApiClient.patch.mockResolvedValueOnce({ data: { event: { id: 78 } } });
+
+    await eventService.update(78, { title: "Sem arquivo" });
+
+    expect(appApiClient.patch).toHaveBeenCalledWith("/events/78", { title: "Sem arquivo" });
+    expect(appApiClient.post).not.toHaveBeenCalled();
+  });
+});
+
 describe("EventService derived event mutation idempotency", () => {
   beforeEach(() => {
     jest.clearAllMocks();

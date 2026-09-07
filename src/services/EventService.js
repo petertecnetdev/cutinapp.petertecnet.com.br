@@ -272,7 +272,18 @@ const eventService = {
   list: async (params = {}) => unwrap((await appApiClient.get("/events", { params })).data.events),
   view: async (slug) => enrichPublicEventProductionContact((await appApiClient.get(`/events/public/${slug}`)).data),
   store: createEvent,
-  update: async (eventId, formData) => (await appApiClient.patch(`/events/${eventId}`, formData)).data,
+  update: async (eventId, payload) => {
+    // PHP only populates uploaded files reliably for multipart POST requests.
+    // When editing an event with a generated/uploaded cover, send POST and
+    // spoof PATCH so Laravel routes it to the update action while preserving
+    // the file in Request::file()/hasFile().
+    if (typeof FormData !== "undefined" && payload instanceof FormData) {
+      if (typeof payload.set === "function") payload.set("_method", "PATCH");
+      else payload.append("_method", "PATCH");
+      return (await appApiClient.post(`/events/${eventId}`, payload)).data;
+    }
+    return (await appApiClient.patch(`/events/${eventId}`, payload)).data;
+  },
   show: async (eventId) => (await appApiClient.get(`/events/${eventId}/manage`)).data.event,
   myEvents: async (params = {}) => unwrap((await appApiClient.get("/events/mine", { params: { per_page: 100, ...params } })).data.events),
   duplicate: (eventId, date) => duplicateEvent(eventId, { date }),
