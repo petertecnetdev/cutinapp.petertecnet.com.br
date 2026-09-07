@@ -19,6 +19,8 @@ describe("prepareCheckoutFailureForRecovery", () => {
     "Não há quantidade suficiente no lote Lote 1.",
     "Não há quantidade suficiente de Camiseta.",
     "O lote Promocional não está mais disponível.",
+    "Estoque esgotado para este adicional.",
+    "Estoque insuficiente para concluir a compra.",
   ])("keeps inventory 422 eligible for catalog reconciliation: %s", (message) => {
     const error = { status: 422, message };
     prepareCheckoutFailureForRecovery(error);
@@ -31,11 +33,20 @@ describe("prepareCheckoutFailureForRecovery", () => {
     "Esta forma de pagamento não está disponível para esta organização.",
     "Este evento não está disponível para venda.",
     "Cortesias gratuitas não entram no checkout pago.",
-  ])("preserves actionable non-inventory 422 instead of triggering stock recovery: %s", (message) => {
+    "Pagamento recusado pelo provedor. Use outro cartão.",
+    "Não foi possível validar os dados do pagamento.",
+  ])("preserves non-inventory 422 instead of triggering false stock recovery: %s", (message) => {
     const error = { status: 422, message };
     prepareCheckoutFailureForRecovery(error);
     expect(error.status).toBe(400);
     expect(error.serverStatus).toBe(422);
     expect(error.message).toBe(message);
+  });
+
+  test("routes a 422 without a message away from inventory recovery", () => {
+    const error = { status: 422 };
+    prepareCheckoutFailureForRecovery(error);
+    expect(error.status).toBe(400);
+    expect(error.serverStatus).toBe(422);
   });
 });
