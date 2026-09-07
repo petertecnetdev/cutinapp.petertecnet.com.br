@@ -12,6 +12,8 @@ const CHECKOUT_ATTEMPT_PREFIX = "cutinapp_checkout_attempt_";
 const CATALOG_CACHE_TTL_MS = 15000;
 const CAMPAIGN_ATTRIBUTION_TTL_MS = 24 * 60 * 60 * 1000;
 const AUTO_RETRY_CHECKOUT_STATUSES = new Set([502, 503, 504]);
+const DEFAULT_CHECKOUT_RETRY_DELAY_MS = 350;
+const MAX_CHECKOUT_RETRY_DELAY_MS = 1500;
 
 const campaignContextFor = (eventId) => {
   const id = Number(eventId || 0);
@@ -100,8 +102,20 @@ const idempotencyKeyFor = (requestKey) => {
 
 const shouldAutoRetryCheckout = (error) => {
   const status = Number(error?.status || error?.response?.status || 0);
-  return AUTO_RETRY_CHECKOUT_STATUSES.has(status);
+  return isNetworkFailure(error) || AUTO_RETRY_CHECKOUT_STATUSES.has(status);
 };
+
+const checkoutRetryDelay = (error) => {
+  const retryAfter = Number(error?.response?.headers?.["retry-after"] || error?.headers?.["retry-after"] || 0);
+  if (Number.isFinite(retryAfter) && retryAfter > 0) {
+    return Math.min(Math.round(retryAfter * 1000), MAX_CHECKOUT_RETRY_DELAY_MS);
+  }
+  return DEFAULT_CHECKOUT_RETRY_DELAY_MS;
+};
+
+const wait = (milliseconds) => new Promise((resolve) => {
+  window.setTimeout(resolve, milliseconds);
+});
 
 const checkout = (payload) => {
   const attributedPayload = withCampaignAttribution(payload);
@@ -116,6 +130,7 @@ const checkout = (payload) => {
     })
     .catch((error) => {
       if (attempt === 0 && shouldAutoRetryCheckout(error)) {
+        const retryDelayMs = checkoutRetryDelay(error);
         trackTelemetry("checkout_transient_retry", {
           label: "Checkout repetido automaticamente após falha transitória",
           target: String(attributedPayload?.event_id || "checkout"),
@@ -125,9 +140,10 @@ const checkout = (payload) => {
             reward_code: attributedPayload?.reward_code ? "present" : null,
             status: Number(error?.status || error?.response?.status || 0),
             retry_attempt: 1,
+            retry_delay_ms: retryDelayMs,
           },
         });
-        return postCheckout(1);
+        return wait(retryDelayMs).then(() => postCheckout(1));
       }
       throw error;
     });
