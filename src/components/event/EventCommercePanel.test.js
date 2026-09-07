@@ -1,4 +1,4 @@
-import { reconcileStoredSelection } from "./EventCommercePanel";
+import { reconcileStoredSelection } from "../../utils/checkoutSelectionRecovery";
 
 describe("reconcileStoredSelection", () => {
   const catalog = {
