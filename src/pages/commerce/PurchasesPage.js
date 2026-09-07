@@ -1,17 +1,20 @@
 import React, { useEffect, useState } from "react";
 import { Alert, Badge, Button, Card, Container, Spinner } from "react-bootstrap";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import commerceService from "../../services/CommerceService";
+import { checkoutSelectionFromOrder, latestPendingPaymentFromOrder } from "../../utils/orderRecovery";
 import "./CommerceHistory.css";
 
 const money = (value) => Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const statusLabel = { paid: "Pago", pending: "Aguardando pagamento", cancelled: "Cancelado", refunded: "Reembolsado", charged_back: "Contestada" };
 
 export default function PurchasesPage() {
+  const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [recoveringOrderId, setRecoveringOrderId] = useState(null);
 
   useEffect(() => {
     let active = true;
@@ -21,6 +24,46 @@ export default function PurchasesPage() {
       .finally(() => active && setLoading(false));
     return () => { active = false; };
   }, []);
+
+  const resumePendingPix = async (order) => {
+    const orderId = Number(order?.id || 0);
+    const slug = String(order?.event?.slug || "").trim();
+    if (!orderId || !slug) return;
+
+    setRecoveringOrderId(orderId);
+    setError("");
+    try {
+      const response = await commerceService.recoverPendingCheckout(orderId);
+      const recoveredOrder = response?.order;
+      const selection = checkoutSelectionFromOrder(recoveredOrder);
+      const payment = latestPendingPaymentFromOrder(recoveredOrder);
+
+      try {
+        window.PeterTecnetTelemetry?.track?.("checkout_recovery_resumed", {
+          label: "PIX pendente retomado em Minhas compras",
+          target: slug,
+          metadata: {
+            order_id: orderId,
+            amount: Number(recoveredOrder?.total || 0),
+            payment_method: "pix",
+            seconds_remaining: Number(response?.payment_recovery_seconds_remaining || 0),
+          },
+        });
+      } catch (_) {
+        // Telemetry must never block payment recovery.
+      }
+
+      navigate(`/checkout/${encodeURIComponent(slug)}`, {
+        state: { checkout: selection, recoveredPayment: { order: recoveredOrder, payment } },
+      });
+    } catch (err) {
+      setError(err?.status === 409
+        ? "Esse PIX não está mais disponível. Abra o evento para iniciar uma nova compra, se ainda houver vendas."
+        : err?.message || "Não foi possível retomar esse pagamento agora.");
+    } finally {
+      setRecoveringOrderId(null);
+    }
+  };
 
   return <>
     <NavlogComponent />
@@ -37,6 +80,11 @@ export default function PurchasesPage() {
       <div className="cut-commerce-list">
         {(data?.data || []).map((order) => {
           const payment = order.payments?.[0];
+          const expiresAt = Date.parse(order?.expires_at || "");
+          const canResumePix = order.status === "pending"
+            && String(order.payment_method || payment?.method || "").toLowerCase() === "pix"
+            && Number.isFinite(expiresAt)
+            && expiresAt > Date.now();
           return <Card className="cut-commerce-card" key={order.public_id}>
             <Card.Body>
               <div className="cut-commerce-order-top">
@@ -48,7 +96,7 @@ export default function PurchasesPage() {
                 <span><strong>{String(order.payment_method || payment?.method || "-").toUpperCase()}</strong><small>Pagamento</small></span>
                 <span><strong>{order.items?.reduce((sum, item) => sum + Number(item.quantity || 0), 0) || 0}</strong><small>Itens</small></span>
               </div>
-              <div className="cut-commerce-actions"><Button as={Link} to={`/purchases/${order.public_id}`}>Ver compra e recibo</Button>{order.status === "paid" && <Button as={Link} to="/passes" variant="outline-light">Ver ingressos</Button>}</div>
+              <div className="cut-commerce-actions"><Button as={Link} to={`/purchases/${order.public_id}`}>Ver compra e recibo</Button>{canResumePix && <Button variant="success" onClick={() => resumePendingPix(order)} disabled={recoveringOrderId === Number(order.id)}>{recoveringOrderId === Number(order.id) ? "Retomando PIX..." : "Retomar PIX"}</Button>}{order.status === "paid" && <Button as={Link} to="/passes" variant="outline-light">Ver ingressos</Button>}</div>
             </Card.Body>
           </Card>;
         })}
