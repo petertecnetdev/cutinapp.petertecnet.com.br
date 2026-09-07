@@ -419,6 +419,29 @@ export default function CheckoutPage() {
     return false;
   };
 
+  const refreshAvailabilityAfterCheckoutConflict = async (err, paymentMethod) => {
+    const status = Number(err?.status || err?.response?.status || 0);
+    if (![409, 422].includes(status)) return false;
+    try {
+      const freshCatalog = await commerceService.catalog(slug, { force: true });
+      setCatalog(freshCatalog);
+      setError("A disponibilidade mudou enquanto você finalizava a compra. Atualizamos sua seleção; revise o resumo e confirme o pagamento novamente.");
+      trackCheckout("checkout_inventory_conflict_reconciled", {
+        label: "Disponibilidade atualizada após conflito no checkout",
+        target: slug,
+        metadata: {
+          event_id: Number(freshCatalog?.event?.id || catalog?.event?.id || 0),
+          amount: Number(total.toFixed(2)),
+          payment_method: paymentMethod,
+          status,
+        },
+      });
+      return true;
+    } catch (_) {
+      return false;
+    }
+  };
+
   const chooseMethod = (nextMethod) => {
     if (nextMethod === method) return;
     if (paymentPending) {
@@ -458,8 +481,9 @@ export default function CheckoutPage() {
       setResult(checkoutResult);
       safeSetSessionJson(paymentStorageKey, checkoutResult);
     } catch (err) {
-      trackCheckout("payment_attempt_failed", { label: "Falha ao iniciar PIX", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(total.toFixed(2)), payment_method: "pix", outcome: "error", status: Number(err?.status || 0) } });
-      setError(err?.message || "Não foi possível gerar o PIX.");
+      const reconciled = await refreshAvailabilityAfterCheckoutConflict(err, "pix");
+      trackCheckout("payment_attempt_failed", { label: "Falha ao iniciar PIX", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(total.toFixed(2)), payment_method: "pix", outcome: "error", status: Number(err?.status || err?.response?.status || 0), inventory_reconciled: reconciled } });
+      if (!reconciled) setError(err?.message || "Não foi possível gerar o PIX.");
     }
     finally { setPaying(false); }
   };
@@ -473,8 +497,9 @@ export default function CheckoutPage() {
       setResult(checkoutResult);
       safeSetSessionJson(paymentStorageKey, checkoutResult);
     } catch (err) {
-      trackCheckout("payment_attempt_failed", { label: "Falha ao processar cartão", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(total.toFixed(2)), payment_method: "card", outcome: "error", status: Number(err?.status || 0) } });
-      setError(err?.message || "Não foi possível processar o cartão.");
+      const reconciled = await refreshAvailabilityAfterCheckoutConflict(err, "card");
+      trackCheckout("payment_attempt_failed", { label: "Falha ao processar cartão", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(total.toFixed(2)), payment_method: "card", outcome: "error", status: Number(err?.status || err?.response?.status || 0), inventory_reconciled: reconciled } });
+      if (!reconciled) setError(err?.message || "Não foi possível processar o cartão.");
     }
     finally { setPaying(false); }
   };

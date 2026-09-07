@@ -135,9 +135,10 @@ const checkout = (payload) => {
   return request;
 };
 
-const catalog = (slug) => {
+const catalog = (slug, { force = false } = {}) => {
   const key = String(slug || "").trim();
   const now = Date.now();
+  if (force) catalogCache.delete(key);
   const cached = catalogCache.get(key);
 
   if (cached?.data && cached.expiresAt > now) return Promise.resolve(cached.data);
