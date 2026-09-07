@@ -8,6 +8,62 @@ const HOME_EVENTS_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 const unwrap = (value) => Array.isArray(value) ? value : Array.isArray(value?.data) ? value.data : [];
 
+const normalizeEventTitle = (value) => (
+  typeof value === "string" ? value.toLocaleUpperCase("pt-BR") : value
+);
+
+const normalizeEvent = (event) => {
+  if (!event || typeof event !== "object") return event;
+  return {
+    ...event,
+    title: normalizeEventTitle(event.title),
+  };
+};
+
+const normalizeEventCollection = (events) => (
+  Array.isArray(events) ? events.map(normalizeEvent) : events
+);
+
+const normalizeEventResponse = (response) => {
+  if (!response || typeof response !== "object") return response;
+
+  const normalized = { ...response };
+
+  if (response.event) normalized.event = normalizeEvent(response.event);
+
+  if (Array.isArray(response.events)) {
+    normalized.events = normalizeEventCollection(response.events);
+  } else if (response.events && typeof response.events === "object") {
+    normalized.events = {
+      ...response.events,
+      data: normalizeEventCollection(response.events.data),
+    };
+  }
+
+  return normalized;
+};
+
+const normalizeEventPayload = (payload) => {
+  if (!payload) return payload;
+
+  if (typeof FormData !== "undefined" && payload instanceof FormData) {
+    if (payload.has("title")) {
+      const title = payload.get("title");
+      if (typeof title === "string") payload.set("title", normalizeEventTitle(title));
+    }
+    return payload;
+  }
+
+  if (typeof payload === "object" && Object.prototype.hasOwnProperty.call(payload, "title")) {
+    return {
+      ...payload,
+      title: normalizeEventTitle(payload.title),
+    };
+  }
+
+  return payload;
+};
+
 const resolveWhatsappPhone = (...sources) => {
   for (const source of sources) {
     if (!source || typeof source !== "object") continue;
@@ -25,8 +81,9 @@ const resolveWhatsappPhone = (...sources) => {
 };
 
 const normalizePublicEventResponse = (response) => {
-  const event = response?.event;
-  if (!event) return response;
+  const normalizedResponse = normalizeEventResponse(response);
+  const event = normalizedResponse?.event;
+  if (!event) return normalizedResponse;
 
   const production = event.production || event.establishment || event.organization || null;
   const whatsappPhone = resolveWhatsappPhone(
@@ -36,10 +93,10 @@ const normalizePublicEventResponse = (response) => {
     event
   );
 
-  if (!production || !whatsappPhone) return response;
+  if (!production || !whatsappPhone) return normalizedResponse;
 
   return {
-    ...response,
+    ...normalizedResponse,
     event: {
       ...event,
       production: {
@@ -85,23 +142,23 @@ const enrichPublicEventProductionContact = async (response) => {
 const createEvent = createIdempotentMutation({
   storagePrefix: "cutinapp_event_create_attempt_",
   keyPrefix: "event",
-  requestKeyFor: (payload) => createMutationRequestKey(payload),
-  mutate: async ({ idempotencyKey }, payload) => (
-    await appApiClient.post("/events", payload, {
+  requestKeyFor: (payload) => createMutationRequestKey(normalizeEventPayload(payload)),
+  mutate: async ({ idempotencyKey }, payload) => normalizeEventResponse((
+    await appApiClient.post("/events", normalizeEventPayload(payload), {
       headers: { "Idempotency-Key": idempotencyKey },
     })
-  ).data,
+  ).data),
 });
 
 const createIdempotentEventPost = ({ storagePrefix, keyPrefix, pathFor }) => createIdempotentMutation({
   storagePrefix,
   keyPrefix,
-  requestKeyFor: (eventId, payload = {}) => `${Number(eventId)}:${createMutationRequestKey(payload)}`,
-  mutate: async ({ idempotencyKey }, eventId, payload = {}) => (
-    await appApiClient.post(pathFor(Number(eventId)), payload, {
+  requestKeyFor: (eventId, payload = {}) => `${Number(eventId)}:${createMutationRequestKey(normalizeEventPayload(payload))}`,
+  mutate: async ({ idempotencyKey }, eventId, payload = {}) => normalizeEventResponse((
+    await appApiClient.post(pathFor(Number(eventId)), normalizeEventPayload(payload), {
       headers: { "Idempotency-Key": idempotencyKey },
     })
-  ).data,
+  ).data),
 });
 
 const duplicateEvent = createIdempotentEventPost({
@@ -119,9 +176,9 @@ const createEventSeries = createIdempotentEventPost({
 const createAgendaItem = createIdempotentMutation({
   storagePrefix: "cutinapp_event_agenda_create_attempt_",
   keyPrefix: "event-agenda",
-  requestKeyFor: (productionId, formData) => `${Number(productionId)}:${createMutationRequestKey(formData)}`,
+  requestKeyFor: (productionId, formData) => `${Number(productionId)}:${createMutationRequestKey(normalizeEventPayload(formData))}`,
   mutate: async ({ idempotencyKey }, productionId, formData) => (
-    await appApiClient.post(`/event-agenda/productions/${Number(productionId)}/items`, formData, {
+    await appApiClient.post(`/event-agenda/productions/${Number(productionId)}/items`, normalizeEventPayload(formData), {
       headers: { "Idempotency-Key": idempotencyKey },
     })
   ).data,
@@ -174,7 +231,7 @@ const readCachedHomeEvents = () => {
     const cached = JSON.parse(window.localStorage.getItem(HOME_EVENTS_CACHE_KEY) || "null");
     const cachedAt = Number(cached?.cached_at || 0);
     if (!cachedAt || Date.now() - cachedAt > HOME_EVENTS_CACHE_MAX_AGE_MS) return [];
-    return Array.isArray(cached?.events) ? cached.events : [];
+    return normalizeEventCollection(Array.isArray(cached?.events) ? cached.events : []);
   } catch (_) {
     return [];
   }
@@ -186,7 +243,7 @@ const cacheHomeEvents = (events) => {
   try {
     window.localStorage.setItem(HOME_EVENTS_CACHE_KEY, JSON.stringify({
       cached_at: Date.now(),
-      events: events.slice(0, 12),
+      events: normalizeEventCollection(events).slice(0, 12),
     }));
   } catch (_) {
     // Cache local é apenas uma proteção contra uma falha transitória da API.
@@ -197,11 +254,13 @@ const withHomeEvents = (response, events) => ({
   ...(response || {}),
   events: {
     ...(response?.events || {}),
-    data: mergeUniqueEvents(events).slice(0, 12),
+    data: normalizeEventCollection(mergeUniqueEvents(events)).slice(0, 12),
   },
 });
 
-const rawSearch = async (params = {}, options = {}) => (await appApiClient.get("/events", { params, signal: options.signal })).data;
+const rawSearch = async (params = {}, options = {}) => normalizeEventResponse(
+  (await appApiClient.get("/events", { params, signal: options.signal })).data
+);
 
 const search = async (params = {}, options = {}) => {
   if (!isHomeDiscoverySearch(params)) return rawSearch(params, options);
@@ -269,34 +328,36 @@ const search = async (params = {}, options = {}) => {
 
 const eventService = {
   search,
-  list: async (params = {}) => unwrap((await appApiClient.get("/events", { params })).data.events),
+  list: async (params = {}) => normalizeEventCollection(unwrap((await appApiClient.get("/events", { params })).data.events)),
   view: async (slug) => enrichPublicEventProductionContact((await appApiClient.get(`/events/public/${slug}`)).data),
   store: createEvent,
   update: async (eventId, payload) => {
+    const normalizedPayload = normalizeEventPayload(payload);
+
     // PHP only populates uploaded files reliably for multipart POST requests.
     // When editing an event with a generated/uploaded cover, send POST and
     // spoof PATCH so Laravel routes it to the update action while preserving
     // the file in Request::file()/hasFile().
-    if (typeof FormData !== "undefined" && payload instanceof FormData) {
-      if (typeof payload.set === "function") payload.set("_method", "PATCH");
-      else payload.append("_method", "PATCH");
-      return (await appApiClient.post(`/events/${eventId}`, payload)).data;
+    if (typeof FormData !== "undefined" && normalizedPayload instanceof FormData) {
+      if (typeof normalizedPayload.set === "function") normalizedPayload.set("_method", "PATCH");
+      else normalizedPayload.append("_method", "PATCH");
+      return normalizeEventResponse((await appApiClient.post(`/events/${eventId}`, normalizedPayload)).data);
     }
-    return (await appApiClient.patch(`/events/${eventId}`, payload)).data;
+    return normalizeEventResponse((await appApiClient.patch(`/events/${eventId}`, normalizedPayload)).data);
   },
-  show: async (eventId) => (await appApiClient.get(`/events/${eventId}/manage`)).data.event,
-  myEvents: async (params = {}) => unwrap((await appApiClient.get("/events/mine", { params: { per_page: 100, ...params } })).data.events),
+  show: async (eventId) => normalizeEvent((await appApiClient.get(`/events/${eventId}/manage`)).data.event),
+  myEvents: async (params = {}) => normalizeEventCollection(unwrap((await appApiClient.get("/events/mine", { params: { per_page: 100, ...params } })).data.events)),
   duplicate: (eventId, date) => duplicateEvent(eventId, { date }),
   series: (eventId, payload) => createEventSeries(eventId, payload),
 
   agenda: async (productionId) => (await appApiClient.get(`/event-agenda/productions/${productionId}`)).data,
   setAgendaStatus: async (productionId, isActive) => (await appApiClient.patch(`/event-agenda/productions/${productionId}/status`, { is_active: isActive })).data,
   createAgendaItem,
-  updateAgendaItem: async (scheduleId, formData) => (await appApiClient.post(`/event-agenda/items/${scheduleId}`, formData)).data,
+  updateAgendaItem: async (scheduleId, formData) => (await appApiClient.post(`/event-agenda/items/${scheduleId}`, normalizeEventPayload(formData))).data,
   setAgendaItemStatus: async (scheduleId, isActive) => (await appApiClient.patch(`/event-agenda/items/${scheduleId}/status`, { is_active: isActive })).data,
   deleteAgendaItem: async (scheduleId) => (await appApiClient.delete(`/event-agenda/items/${scheduleId}`)).data,
-  generateAgendaItem: async (scheduleId) => (await appApiClient.post(`/event-agenda/items/${scheduleId}/generate`)).data,
-  generateAgendaUpcoming: async (productionId) => (await appApiClient.post(`/event-agenda/productions/${productionId}/generate-upcoming`)).data,
+  generateAgendaItem: async (scheduleId) => normalizeEventResponse((await appApiClient.post(`/event-agenda/items/${scheduleId}/generate`)).data),
+  generateAgendaUpcoming: async (productionId) => normalizeEventResponse((await appApiClient.post(`/event-agenda/productions/${productionId}/generate-upcoming`)).data),
 };
 
 export default eventService;
