@@ -109,6 +109,21 @@ describe("CommerceService", () => {
     expect(appApiClient.get).toHaveBeenCalledWith("/commerce/orders/order-uuid/pickup-credential");
   });
 
+  test("loads and resumes a server-side pending checkout without creating a new charge", async () => {
+    appApiClient.get.mockResolvedValueOnce({
+      data: { recoverable: true, payment_recovery_eligible: true, order: { id: 77 } },
+    });
+    appApiClient.post.mockResolvedValueOnce({
+      data: { recovery_started: true, order: { id: 77, status: "pending" } },
+    });
+
+    await expect(commerceService.pendingCheckout()).resolves.toMatchObject({ recoverable: true });
+    await expect(commerceService.recoverPendingCheckout(77)).resolves.toMatchObject({ recovery_started: true });
+
+    expect(appApiClient.get).toHaveBeenCalledWith("/commerce/checkout/pending");
+    expect(appApiClient.post).toHaveBeenCalledWith("/commerce/checkout/pending/recover", { order_id: 77 });
+  });
+
   test("redeems event items against the selected event", async () => {
     appApiClient.post.mockResolvedValue({ data: { status: "redeemed" } });
 
