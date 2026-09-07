@@ -5,6 +5,7 @@ import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import ticketService from "../../services/TicketService";
 import eventService from "../../services/EventService";
+import { nextProducerActivationRoute } from "../../utils/producerActivationRoute";
 
 const pad = (value) => String(value).padStart(2, "0");
 const toLocalInput = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
@@ -158,7 +159,7 @@ export default function TicketCreatePage() {
           target: String(eventId),
           metadata: {
             activation_stage: "ticket_created",
-            next_step: "publish_event",
+            next_step: kind === "paid" ? "publish_event" : "configure_courtesy",
             ticket_type: kind,
             quantity: Number(quantity),
             unit_price: normalizedPrice,
@@ -168,7 +169,7 @@ export default function TicketCreatePage() {
       } catch (_) {
         // Telemetry must never interrupt producer onboarding.
       }
-      navigate(`/event/${eventId}/courtesies?created=${ticketId}&activation=first-ticket`, { replace: true });
+      navigate(nextProducerActivationRoute({ eventId, ticketId, ticketType: kind }), { replace: true });
     } catch (err) {
       setFieldErrors(err?.errors || {});
       setError(err?.message || "Não foi possível criar o ingresso.");
@@ -204,7 +205,7 @@ export default function TicketCreatePage() {
                 <Col xs={12}><Form.Group><Form.Label>Descrição</Form.Label><Form.Control as="textarea" rows={4} value={description} onChange={(event) => setDescription(event.target.value)} /></Form.Group></Col>
               </Row>
               <div className="cut-info-box mt-4"><strong>{kind === "paid" ? (priceInvalid ? "Defina o preço para continuar" : `Preço: R$ ${normalizedPrice.toFixed(2).replace(".", ",")} · potencial bruto do lote: R$ ${projectedGross.toFixed(2).replace(".", ",")}`) : "Preço: R$ 0,00"}</strong><span>{kind === "paid" ? "A quantidade usa a capacidade do evento como sugestão quando ela está cadastrada. Revise preço e quantidade antes de salvar; nenhuma taxa extra é adicionada nesta tela." : "Cada participante recebe um ingresso gratuito com token e QR Code únicos."}</span></div>
-              <div className="cut-form-actions mt-4"><Button type="button" variant="outline-light" disabled={loading} onClick={() => navigate(eventId ? `/event/edit/${eventId}` : "/event/manage")}>Cancelar</Button><Button type="submit" disabled={loading}>{loading ? "Criando..." : "Salvar ingresso"}</Button></div>
+              <div className="cut-form-actions mt-4"><Button type="button" variant="outline-light" disabled={loading} onClick={() => navigate(eventId ? `/event/edit/${eventId}` : "/event/manage")}>Cancelar</Button><Button type="submit" disabled={loading}>{loading ? "Criando..." : kind === "paid" ? "Salvar e revisar publicação" : "Salvar cortesia"}</Button></div>
             </Form>
           </Card.Body></Card></Col></Row>
         )}
