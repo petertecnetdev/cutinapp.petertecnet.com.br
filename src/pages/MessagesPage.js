@@ -1,4 +1,5 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import PropTypes from "prop-types";
 import { AuthContext } from "../context/AuthContext";
 import NavlogComponent from "../components/NavlogComponent";
 import messagingService from "../services/MessagingService";
@@ -17,6 +18,15 @@ function Avatar({ user, size = "md" }) {
   if (user?.avatar) return <img className={`cut-chat-avatar cut-chat-avatar--${size}`} src={user.avatar} alt="" />;
   return <span className={`cut-chat-avatar cut-chat-avatar--${size} cut-chat-avatar--fallback`}>{initials(user?.name || user?.user_name)}</span>;
 }
+
+Avatar.propTypes = {
+  user: PropTypes.shape({
+    avatar: PropTypes.string,
+    name: PropTypes.string,
+    user_name: PropTypes.string,
+  }),
+  size: PropTypes.string,
+};
 
 export default function MessagesPage() {
   const { user } = useContext(AuthContext);
