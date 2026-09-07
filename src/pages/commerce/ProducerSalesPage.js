@@ -5,7 +5,7 @@ import NavlogComponent from "../../components/NavlogComponent";
 import CollapsibleFilterPanel from "../../components/CollapsibleFilterPanel";
 import commerceService from "../../services/CommerceService";
 import cutinappService from "../../services/CutinappService";
-import { estimateAddOnAttachmentOpportunity, suggestedAddOnStock } from "../../utils/addOnOpportunity";
+import { estimateAddOnAttachmentOpportunity, suggestedAddOnStock, weightedAverageAddOnUnitPrice } from "../../utils/addOnOpportunity";
 import { estimatePendingRevenueOpportunity } from "../../utils/pendingRevenueOpportunity";
 import { estimateNetRevenueEconomics, processorFeesBorneByPlatformForOrder } from "../../utils/netRevenueEconomics";
 import "./CommerceHistory.css";
@@ -93,6 +93,9 @@ export default function ProducerSalesPage() {
         .reduce((itemSum, item) => itemSum + Number(item.subtotal || (Number(item.unit_price || 0) * Number(item.quantity || 0))), 0)
     ), 0);
     const averageAddOnValue = ordersWithAddOns.length > 0 ? addOnGmv / ordersWithAddOns.length : 0;
+    const averageAddOnUnitPrice = weightedAverageAddOnUnitPrice(
+      paidOrders.flatMap((order) => (order.items || []).filter((item) => item.type !== "ticket"))
+    );
     const opportunity = estimateAddOnAttachmentOpportunity({
       paidCount: paidOrders.length,
       addOnOrders: ordersWithAddOns.length,
@@ -105,6 +108,7 @@ export default function ProducerSalesPage() {
       attachmentRate: paidOrders.length > 0 ? (ordersWithAddOns.length / paidOrders.length) * 100 : 0,
       addOnGmv,
       averageAddOnValue,
+      averageAddOnUnitPrice,
       estimatedPlatformRevenue: addOnGmv * (economicMetrics.takeRate / 100),
       estimatedNetPlatformRevenue: addOnGmv * (economicMetrics.takeRate / 100) * economicMetrics.contributionRatio,
       incrementalNetRevenue: opportunity.incrementalPlatformRevenue * economicMetrics.contributionRatio,
@@ -115,6 +119,7 @@ export default function ProducerSalesPage() {
   const eventEconomics = useMemo(() => {
     const grouped = new Map();
     const benchmarkAddOnValue = addOnEconomics.averageAddOnValue;
+    const benchmarkAddOnUnitPrice = addOnEconomics.averageAddOnUnitPrice;
 
     orders.filter((order) => order.status === "paid").forEach((order) => {
       const editableId = order.event?.id || order.event_id || null;
@@ -130,6 +135,8 @@ export default function ProducerSalesPage() {
         processorFeesBorneByPlatform: 0,
         addOnOrders: 0,
         addOnGmv: 0,
+        addOnUnits: 0,
+        addOnUnitRevenue: 0,
       };
 
       const orderAddOnGmv = (order.items || [])
@@ -141,8 +148,11 @@ export default function ProducerSalesPage() {
       current.platformRevenue += Number(order.platform_fee || 0);
       current.producerNet += Number(order.producer_net || 0);
       current.processorFeesBorneByPlatform += processorFeesBorneByPlatformForOrder({ processorFee: order.processor_fee, settlementMode: order.metadata?.settlement_mode });
+      const orderAddOnItems = (order.items || []).filter((item) => item.type !== "ticket");
       current.addOnOrders += orderAddOnGmv > 0 ? 1 : 0;
       current.addOnGmv += orderAddOnGmv;
+      current.addOnUnits += orderAddOnItems.reduce((sum, item) => sum + Math.max(0, Number(item.quantity || 0)), 0);
+      current.addOnUnitRevenue += orderAddOnItems.reduce((sum, item) => sum + (Math.max(0, Number(item.unit_price || 0)) * Math.max(0, Number(item.quantity || 0))), 0);
       grouped.set(eventId, current);
     });
 
@@ -150,6 +160,7 @@ export default function ProducerSalesPage() {
       .map((event) => {
         const takeRate = event.gmv > 0 ? (event.platformRevenue / event.gmv) * 100 : 0;
         const averageAddOnValue = event.addOnOrders > 0 ? event.addOnGmv / event.addOnOrders : 0;
+        const averageAddOnUnitPrice = event.addOnUnits > 0 ? event.addOnUnitRevenue / event.addOnUnits : 0;
         const opportunity = estimateAddOnAttachmentOpportunity({
           paidCount: event.paidCount,
           addOnOrders: event.addOnOrders,
@@ -178,16 +189,17 @@ export default function ProducerSalesPage() {
           producerShare: event.gmv > 0 ? (event.producerNet / event.gmv) * 100 : 0,
           addOnAttachmentRate: event.paidCount > 0 ? (event.addOnOrders / event.paidCount) * 100 : 0,
           averageAddOnValue,
-          suggestedAddOnPrice: Number((averageAddOnValue > 0 ? averageAddOnValue : benchmarkAddOnValue).toFixed(2)),
+          averageAddOnUnitPrice,
+          suggestedAddOnPrice: Number((averageAddOnUnitPrice > 0 ? averageAddOnUnitPrice : benchmarkAddOnUnitPrice).toFixed(2)),
           suggestedAddOnStock: suggestedAddOnStock(opportunity.incrementalOrders),
-          suggestedAddOnSource: averageAddOnValue > 0 ? "event" : (benchmarkAddOnValue > 0 ? "production" : ""),
+          suggestedAddOnSource: averageAddOnUnitPrice > 0 ? "event" : (benchmarkAddOnUnitPrice > 0 ? "production" : ""),
           estimatedAddOnPlatformRevenue: event.gmv > 0 ? event.addOnGmv * (event.platformRevenue / event.gmv) : 0,
           ...opportunity,
         };
       })
       .sort((a, b) => b.incrementalNetRevenue - a.incrementalNetRevenue || b.netPlatformRevenue - a.netPlatformRevenue)
       .slice(0, 5);
-  }, [addOnEconomics.averageAddOnValue, orders]);
+  }, [addOnEconomics.averageAddOnUnitPrice, addOnEconomics.averageAddOnValue, orders]);
 
   const clearFilters = () => setFilters({ q: "", status: "" });
 

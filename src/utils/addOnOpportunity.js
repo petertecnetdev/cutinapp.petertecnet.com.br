@@ -17,3 +17,16 @@ export const suggestedAddOnStock = (incrementalOrders, maxStock = 100) => {
   const boundedMax = Math.max(1, Math.floor(Number(maxStock || 100)));
   return Math.min(boundedMax, Math.max(1, Math.ceil(projected)));
 };
+
+export const weightedAverageAddOnUnitPrice = (items = []) => {
+  const totals = (Array.isArray(items) ? items : []).reduce((acc, item) => {
+    const quantity = Math.max(0, Number(item?.quantity || 0));
+    const unitPrice = Math.max(0, Number(item?.unit_price || 0));
+    if (quantity <= 0 || unitPrice <= 0) return acc;
+    acc.units += quantity;
+    acc.revenue += quantity * unitPrice;
+    return acc;
+  }, { units: 0, revenue: 0 });
+
+  return totals.units > 0 ? totals.revenue / totals.units : 0;
+};
