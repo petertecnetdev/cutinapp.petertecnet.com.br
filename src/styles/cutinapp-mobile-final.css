@@ -73,7 +73,7 @@ iframe {
 
   .cut-navbar__brand {
     min-width: 0 !important;
-    max-width: calc(100% - 54px) !important;
+    max-width: calc(100% - 118px) !important;
     flex: 1 1 auto !important;
     margin: 0 !important;
     overflow: hidden;
@@ -101,7 +101,9 @@ iframe {
     white-space: nowrap;
   }
 
-  /* The toggler must always remain above the fullscreen menu. */
+  /* Reserve a dedicated action lane for the Cutinapp hamburger. The Peter
+   * Tecnet ecosystem launcher is injected independently at the top-right,
+   * so the local menu must never occupy the same hit area on mobile. */
   .cut-navbar .navbar-toggler {
     position: relative !important;
     z-index: 2100 !important;
@@ -109,7 +111,7 @@ iframe {
     width: 44px !important;
     min-width: 44px !important;
     height: 44px !important;
-    margin: 0 !important;
+    margin: 0 64px 0 0 !important;
     padding: 0 !important;
     display: inline-flex !important;
     align-items: center !important;
@@ -181,7 +183,8 @@ iframe {
   .cut-navbar:has(.navbar-collapse.collapsing) .navbar-toggler {
     position: fixed !important;
     top: calc(10px + env(safe-area-inset-top, 0px));
-    right: max(10px, env(safe-area-inset-right, 0px));
+    right: calc(max(10px, env(safe-area-inset-right, 0px)) + 64px);
+    margin: 0 !important;
     z-index: 2200 !important;
   }
 
@@ -370,10 +373,11 @@ iframe {
     width: 42px !important;
     min-width: 42px !important;
     height: 42px !important;
+    margin-right: 60px !important;
   }
 
   .cut-navbar__brand {
-    max-width: calc(100% - 50px) !important;
+    max-width: calc(100% - 112px) !important;
   }
 }
 
