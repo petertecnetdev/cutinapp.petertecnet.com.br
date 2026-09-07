@@ -1,11 +1,13 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useContext, useEffect, useMemo, useState } from "react";
 import { Alert, Button, Card, Col, Container, Form, Row } from "react-bootstrap";
 import { useLocation, useNavigate } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import ticketService from "../../services/TicketService";
 import eventService from "../../services/EventService";
+import { AuthContext } from "../../context/AuthContext";
 import { nextProducerActivationRoute } from "../../utils/producerActivationRoute";
+import { clearTicketCreationDraft, readTicketCreationDraft, writeTicketCreationDraft } from "../../utils/ticketCreationDraft";
 
 const pad = (value) => String(value).padStart(2, "0");
 const toLocalInput = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
@@ -40,6 +42,7 @@ const firstError = (errors, field) => {
 export default function TicketCreatePage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useContext(AuthContext);
   const requestedEventId = new URLSearchParams(location.search).get("eventId") || "";
   const [eventId, setEventId] = useState(requestedEventId);
   const [events, setEvents] = useState([]);
@@ -55,6 +58,32 @@ export default function TicketCreatePage() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [optionalDetailsOpen, setOptionalDetailsOpen] = useState(false);
+  const [draftRestored, setDraftRestored] = useState(false);
+  const draftOwnerId = Number(user?.id || 0);
+
+  const applySavedDraft = (selected) => {
+    if (!selected) return false;
+    const draft = readTicketCreationDraft(draftOwnerId, selected.id);
+    if (!draft) return false;
+    setKind(draft.kind);
+    setName(draft.name || (draft.kind === "free" ? "Cortesia" : "1º Lote"));
+    setPrice(draft.price);
+    setQuantity(draft.quantity);
+    setLimitDate(draft.limitDate || suggestedLimitDate(selected));
+    setDescription(draft.description || (draft.kind === "free" ? "Entrada gratuita mediante apresentação do QR Code individual." : "Ingresso para acesso ao evento mediante QR Code individual."));
+    setOptionalDetailsOpen(Boolean(draft.optionalDetailsOpen));
+    setDraftRestored(true);
+    try {
+      window.PeterTecnetTelemetry?.track?.("producer_first_ticket_draft_restored", {
+        label: "Rascunho do primeiro lote recuperado",
+        target: String(selected.id),
+        metadata: { activation_stage: "ticket_setup", next_step: "ticket_created", event_id: Number(selected.id) },
+      });
+    } catch (_) {
+      // Telemetry must never interrupt producer onboarding.
+    }
+    return true;
+  };
 
   useEffect(() => {
     let active = true;
@@ -73,9 +102,11 @@ export default function TicketCreatePage() {
           || (!requestedEventId && eligibleEvents.length === 1 ? eligibleEvents[0] : null);
         if (selected) {
           setEventId(String(selected.id));
-          setLimitDate(suggestedLimitDate(selected));
-          const capacity = Number(selected.max_attendees || 0);
-          if (Number.isInteger(capacity) && capacity > 0) setQuantity(Math.min(capacity, 100000));
+          if (!applySavedDraft(selected)) {
+            setLimitDate(suggestedLimitDate(selected));
+            const capacity = Number(selected.max_attendees || 0);
+            if (Number.isInteger(capacity) && capacity > 0) setQuantity(Math.min(capacity, 100000));
+          }
           if (!requestedEventId && eligibleEvents.length === 1) {
             try {
               window.PeterTecnetTelemetry?.track?.("producer_first_ticket_event_auto_selected", {
@@ -92,7 +123,23 @@ export default function TicketCreatePage() {
       .catch((err) => active && setError(err?.message || "Não foi possível carregar seus eventos."))
       .finally(() => active && setInitialLoading(false));
     return () => { active = false; };
-  }, [requestedEventId]);
+  }, [requestedEventId, draftOwnerId]);
+
+  useEffect(() => {
+    if (!draftOwnerId || !eventId || initialLoading || loading) return undefined;
+    const timer = window.setTimeout(() => {
+      writeTicketCreationDraft(draftOwnerId, eventId, {
+        kind,
+        name,
+        price,
+        quantity,
+        limitDate,
+        description,
+        optionalDetailsOpen,
+      });
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [draftOwnerId, eventId, kind, name, price, quantity, limitDate, description, optionalDetailsOpen, initialLoading, loading]);
 
   const selectedEvent = useMemo(() => events.find((item) => String(item.id) === String(eventId)) || null, [events, eventId]);
   const minimumLimit = useMemo(() => toLocalInput(minimumWithdrawalDate()), [eventId]);
@@ -121,10 +168,20 @@ export default function TicketCreatePage() {
   const changeEvent = (event) => {
     const value = event.target.value;
     setEventId(value);
+    setDraftRestored(false);
     const selected = events.find((item) => String(item.id) === String(value));
+    if (selected && applySavedDraft(selected)) {
+      setFieldErrors((current) => ({ ...current, event_id: undefined, limit_date: undefined }));
+      return;
+    }
+    setKind("paid");
+    setName("1º Lote");
+    setPrice("");
+    setDescription("Ingresso para acesso ao evento mediante QR Code individual.");
+    setOptionalDetailsOpen(false);
     setLimitDate(selected ? suggestedLimitDate(selected) : "");
     const capacity = Number(selected?.max_attendees || 0);
-    if (Number.isInteger(capacity) && capacity > 0) setQuantity(Math.min(capacity, 100000));
+    setQuantity(Number.isInteger(capacity) && capacity > 0 ? Math.min(capacity, 100000) : 100);
     setFieldErrors((current) => ({ ...current, event_id: undefined, limit_date: undefined }));
   };
 
@@ -181,6 +238,7 @@ export default function TicketCreatePage() {
       if (!ticketId) throw new Error("A API informou sucesso, mas não retornou o ingresso criado.");
       if (Number(response?.ticket?.event_id) !== Number(eventId)) throw new Error("A API vinculou o ingresso a um evento diferente do selecionado.");
       if (Math.abs(Number(response?.ticket?.price) - normalizedPrice) > 0.0001) throw new Error("A API retornou um preço diferente do informado.");
+      clearTicketCreationDraft(draftOwnerId, eventId);
       try {
         window.PeterTecnetTelemetry?.track?.("producer_first_ticket_created", {
           label: kind === "paid" ? "Primeiro lote pago criado" : "Primeira cortesia criada",
@@ -217,6 +275,7 @@ export default function TicketCreatePage() {
       <Container className="cut-page-container py-4 py-lg-5">
         <div className="cut-page-heading"><div><span className="cut-eyebrow">Ativação do produtor</span><h1>Configure o primeiro lote</h1><p>Defina o preço real e a quantidade que você pretende vender. Depois disso, o evento já estará pronto para publicação.</p></div></div>
         {error && <Alert variant="danger">{error}</Alert>}
+        {draftRestored && <Alert variant="info" dismissible onClose={() => setDraftRestored(false)}>Recuperamos o lote que você estava configurando neste evento. Revise os dados e continue de onde parou.</Alert>}
 
         {!initialLoading && events.length === 0 ? (
           <Card className="cut-empty-state"><Card.Body><h2>Você ainda não tem eventos</h2><p>Crie um evento antes de configurar os ingressos.</p><Button onClick={() => navigate("/event/create")}>Criar evento</Button></Card.Body></Card>
