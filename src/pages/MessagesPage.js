@@ -1,0 +1,194 @@
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { AuthContext } from "../context/AuthContext";
+import NavlogComponent from "../components/NavlogComponent";
+import messagingService from "../services/MessagingService";
+import "./MessagesPage.css";
+
+const POLL_MS = 5000;
+const initials = (name = "U") => String(name || "U").trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
+const messageTime = (value) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" }).format(date);
+};
+
+function Avatar({ user, size = "md" }) {
+  if (user?.avatar) return <img className={`cut-chat-avatar cut-chat-avatar--${size}`} src={user.avatar} alt="" />;
+  return <span className={`cut-chat-avatar cut-chat-avatar--${size} cut-chat-avatar--fallback`}>{initials(user?.name || user?.user_name)}</span>;
+}
+
+export default function MessagesPage() {
+  const { user } = useContext(AuthContext);
+  const [conversations, setConversations] = useState([]);
+  const [active, setActive] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [conversationQuery, setConversationQuery] = useState("");
+  const [peopleQuery, setPeopleQuery] = useState("");
+  const [people, setPeople] = useState([]);
+  const [composer, setComposer] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [threadLoading, setThreadLoading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+  const [newChatOpen, setNewChatOpen] = useState(false);
+  const bottomRef = useRef(null);
+
+  const loadConversations = useCallback(async (query = conversationQuery) => {
+    try {
+      const response = await messagingService.conversations(query ? { q: query } : {});
+      setConversations(response?.data || []);
+    } catch (requestError) {
+      setError(requestError?.response?.data?.message || "Não foi possível carregar suas conversas.");
+    } finally {
+      setLoading(false);
+    }
+  }, [conversationQuery]);
+
+  const loadThread = useCallback(async (conversationId, { quiet = false } = {}) => {
+    if (!conversationId) return;
+    if (!quiet) setThreadLoading(true);
+    try {
+      const response = await messagingService.messages(conversationId);
+      setMessages(response?.data || []);
+      messagingService.markRead(conversationId).catch(() => undefined);
+    } catch (requestError) {
+      if (!quiet) setError(requestError?.response?.data?.message || "Não foi possível abrir a conversa.");
+    } finally {
+      if (!quiet) setThreadLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadConversations(); }, [loadConversations]);
+  useEffect(() => {
+    if (!active?.id) return undefined;
+    loadThread(active.id);
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === "visible") loadThread(active.id, { quiet: true });
+    }, POLL_MS);
+    return () => window.clearInterval(timer);
+  }, [active?.id, loadThread]);
+  useEffect(() => { bottomRef.current?.scrollIntoView({ block: "end" }); }, [messages, active?.id]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => loadConversations(conversationQuery), 250);
+    return () => window.clearTimeout(timeout);
+  }, [conversationQuery, loadConversations]);
+
+  useEffect(() => {
+    if (!newChatOpen || peopleQuery.trim().length < 2) {
+      setPeople([]);
+      return undefined;
+    }
+    let cancelled = false;
+    const timeout = window.setTimeout(async () => {
+      try {
+        const response = await messagingService.searchPeople(peopleQuery.trim());
+        if (!cancelled) setPeople(response?.data || []);
+      } catch (_) {
+        if (!cancelled) setPeople([]);
+      }
+    }, 250);
+    return () => { cancelled = true; window.clearTimeout(timeout); };
+  }, [newChatOpen, peopleQuery]);
+
+  const orderedMessages = useMemo(() => messages, [messages]);
+
+  const openConversation = async (conversation) => {
+    setActive(conversation);
+    setError("");
+    setConversations((current) => current.map((item) => item.id === conversation.id ? { ...item, unread_count: 0 } : item));
+  };
+
+  const startChat = async (person) => {
+    try {
+      const response = await messagingService.openDirect(person.id);
+      const conversation = { ...response?.data, user: response?.data?.user || person, unread_count: 0 };
+      setNewChatOpen(false);
+      setPeopleQuery("");
+      await loadConversations("");
+      setActive(conversation);
+    } catch (requestError) {
+      setError(requestError?.response?.data?.message || "Não foi possível iniciar a conversa.");
+    }
+  };
+
+  const send = async (event) => {
+    event.preventDefault();
+    const body = composer.trim();
+    if (!body || !active?.id || sending) return;
+
+    setComposer("");
+    setSending(true);
+    setError("");
+    const optimisticId = `local-${Date.now()}`;
+    const optimistic = { id: optimisticId, sender_user_id: user?.id, body, created_at: new Date().toISOString(), pending: true };
+    setMessages((current) => [...current, optimistic]);
+
+    try {
+      const response = await messagingService.send(active.id, body);
+      setMessages((current) => current.map((item) => item.id === optimisticId ? response.data : item));
+      loadConversations("");
+    } catch (requestError) {
+      setMessages((current) => current.map((item) => item.id === optimisticId ? { ...item, pending: false, failed: true } : item));
+      setComposer(body);
+      setError(requestError?.response?.data?.message || "Mensagem não enviada. Tente novamente.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return <div className="cut-chat-page">
+    <NavlogComponent />
+    <main className={`cut-chat-shell ${active ? "has-thread" : ""}`}>
+      <aside className="cut-chat-inbox">
+        <header className="cut-chat-inbox__header">
+          <div><span className="cut-chat-eyebrow">Direct</span><h1>Mensagens</h1></div>
+          <button type="button" className="cut-chat-icon-button" onClick={() => setNewChatOpen(true)} aria-label="Nova mensagem"><i className="fa-regular fa-pen-to-square" /></button>
+        </header>
+        <label className="cut-chat-search"><i className="fa-solid fa-magnifying-glass" /><input value={conversationQuery} onChange={(event) => setConversationQuery(event.target.value)} placeholder="Pesquisar conversas" /></label>
+        <div className="cut-chat-list">
+          {loading && <div className="cut-chat-state">Carregando conversas…</div>}
+          {!loading && conversations.length === 0 && <div className="cut-chat-state"><i className="fa-regular fa-paper-plane" /><strong>Comece uma conversa</strong><span>Envie uma mensagem para alguém da Cutinapp.</span><button type="button" onClick={() => setNewChatOpen(true)}>Nova mensagem</button></div>}
+          {conversations.map((conversation) => <button type="button" key={conversation.id} className={`cut-chat-row ${active?.id === conversation.id ? "is-active" : ""}`} onClick={() => openConversation(conversation)}>
+            <Avatar user={conversation.user} />
+            <span className="cut-chat-row__copy"><span className="cut-chat-row__name">{conversation.user?.name || conversation.user?.user_name}</span><span className="cut-chat-row__preview">{conversation.last_message?.body || "Conversa iniciada"}</span></span>
+            <span className="cut-chat-row__meta"><time>{messageTime(conversation.updated_at)}</time>{conversation.unread_count > 0 && <b>{conversation.unread_count > 99 ? "99+" : conversation.unread_count}</b>}</span>
+          </button>)}
+        </div>
+      </aside>
+
+      <section className="cut-chat-thread">
+        {!active ? <div className="cut-chat-empty"><span className="cut-chat-empty__icon"><i className="fa-regular fa-paper-plane" /></span><h2>Suas mensagens</h2><p>Converse com participantes, produtores, artistas e promoters em um só lugar.</p><button type="button" onClick={() => setNewChatOpen(true)}>Enviar mensagem</button></div> : <>
+          <header className="cut-chat-thread__header">
+            <button type="button" className="cut-chat-back" onClick={() => setActive(null)} aria-label="Voltar"><i className="fa-solid fa-arrow-left" /></button>
+            <Avatar user={active.user} size="sm" />
+            <div><strong>{active.user?.name || active.user?.user_name}</strong><small>@{active.user?.user_name || "usuario"}</small></div>
+          </header>
+          <div className="cut-chat-messages">
+            {threadLoading ? <div className="cut-chat-state">Abrindo conversa…</div> : orderedMessages.map((message) => {
+              const mine = Number(message.sender_user_id) === Number(user?.id);
+              return <div key={message.id} className={`cut-chat-bubble-wrap ${mine ? "is-mine" : ""}`}><div className={`cut-chat-bubble ${message.failed ? "is-failed" : ""}`}><span>{message.body}</span><small>{message.pending ? "Enviando…" : message.failed ? "Falhou" : messageTime(message.created_at)}</small></div></div>;
+            })}
+            <div ref={bottomRef} />
+          </div>
+          {error && <div className="cut-chat-error">{error}</div>}
+          <form className="cut-chat-composer" onSubmit={send}>
+            <textarea rows="1" value={composer} onChange={(event) => setComposer(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} placeholder="Mensagem…" maxLength={5000} />
+            <button type="submit" disabled={!composer.trim() || sending} aria-label="Enviar"><i className="fa-solid fa-paper-plane" /></button>
+          </form>
+        </>}
+      </section>
+    </main>
+
+    {newChatOpen && <div className="cut-chat-modal-backdrop" role="presentation" onMouseDown={() => setNewChatOpen(false)}><section className="cut-chat-modal" role="dialog" aria-modal="true" aria-label="Nova mensagem" onMouseDown={(event) => event.stopPropagation()}>
+      <header><button type="button" onClick={() => setNewChatOpen(false)} aria-label="Fechar"><i className="fa-solid fa-xmark" /></button><strong>Nova mensagem</strong><span /></header>
+      <label><span>Para:</span><input autoFocus value={peopleQuery} onChange={(event) => setPeopleQuery(event.target.value)} placeholder="Pesquise pelo nome ou @usuário" /></label>
+      <div className="cut-chat-people">
+        {peopleQuery.trim().length < 2 && <div className="cut-chat-state">Digite pelo menos 2 caracteres.</div>}
+        {people.map((person) => <button type="button" key={person.id} onClick={() => startChat(person)}><Avatar user={person} /><span><strong>{person.name}</strong><small>@{person.user_name}</small></span></button>)}
+        {peopleQuery.trim().length >= 2 && people.length === 0 && <div className="cut-chat-state">Nenhuma pessoa encontrada.</div>}
+      </div>
+    </section></div>}
+  </div>;
+}
