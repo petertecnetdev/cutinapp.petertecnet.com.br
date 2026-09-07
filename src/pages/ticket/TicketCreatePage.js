@@ -54,6 +54,7 @@ export default function TicketCreatePage() {
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
+  const [optionalDetailsOpen, setOptionalDetailsOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -140,6 +141,19 @@ export default function TicketCreatePage() {
     }
   };
 
+  const openOptionalDetails = () => {
+    setOptionalDetailsOpen(true);
+    try {
+      window.PeterTecnetTelemetry?.track?.("producer_first_ticket_optional_details_opened", {
+        label: "Produtor abriu opções avançadas do primeiro lote",
+        target: String(eventId || "ticket_setup"),
+        metadata: { activation_stage: "ticket_setup", next_step: "ticket_created", event_id: Number(eventId || 0) },
+      });
+    } catch (_) {
+      // Telemetry must never interrupt producer onboarding.
+    }
+  };
+
   const submit = async (event) => {
     event.preventDefault();
     setSubmitted(true);
@@ -185,7 +199,9 @@ export default function TicketCreatePage() {
       }
       navigate(nextProducerActivationRoute({ eventId, ticketId, ticketType: kind }), { replace: true });
     } catch (err) {
-      setFieldErrors(err?.errors || {});
+      const errors = err?.errors || {};
+      setFieldErrors(errors);
+      if (errors?.limit_date || errors?.description) setOptionalDetailsOpen(true);
       setError(err?.message || "Não foi possível criar o ingresso.");
     } finally {
       setLoading(false);
@@ -215,8 +231,20 @@ export default function TicketCreatePage() {
                 <Col md={kind === "paid" ? 5 : 7}><Form.Group><Form.Label>Nome do lote *</Form.Label><Form.Control value={name} onChange={(event) => setName(event.target.value)} isInvalid={invalid("name", submitted && !name.trim())} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "name") || "Informe o nome do ingresso."}</Form.Control.Feedback></Form.Group></Col>
                 {kind === "paid" && <Col md={2}><Form.Group><Form.Label>Preço real *</Form.Label><Form.Control type="number" min="0.01" step="0.01" value={price} placeholder="Ex.: 50,00" onChange={(event) => setPrice(event.target.value)} isInvalid={invalid("price", submitted && priceInvalid)} /><Form.Text>Informe o valor que será cobrado do comprador.</Form.Text><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "price") || "Defina um preço a partir de R$ 0,01."}</Form.Control.Feedback></Form.Group></Col>}
                 <Col md={5}><Form.Group><Form.Label>Quantidade *</Form.Label><Form.Control type="number" min={1} max={100000} value={quantity} onChange={(event) => setQuantity(event.target.value)} isInvalid={invalid("quantity", submitted && (Number(quantity) < 1 || Number(quantity) > 100000))} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "quantity") || "Informe de 1 a 100.000 ingressos."}</Form.Control.Feedback></Form.Group></Col>
-                <Col xs={12}><Form.Group><Form.Label>Disponível até</Form.Label><Form.Control type="datetime-local" min={minimumLimit} max={maximumLimit || undefined} value={limitDate} onChange={(event) => setLimitDate(event.target.value)} isInvalid={invalid("limit_date", submitted && limitDateInvalid)} /><Form.Text>O prazo não pode ultrapassar o início do evento.</Form.Text><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "limit_date") || "Informe um prazo válido."}</Form.Control.Feedback></Form.Group></Col>
-                <Col xs={12}><Form.Group><Form.Label>Descrição</Form.Label><Form.Control as="textarea" rows={4} value={description} onChange={(event) => setDescription(event.target.value)} /></Form.Group></Col>
+                <Col xs={12}>
+                  <div className="cut-info-box">
+                    <strong>Configuração rápida</strong>
+                    <span>Nome, quantidade e prazo já foram sugeridos para acelerar seu primeiro lote. Revise o preço e salve; você pode alterar os detalhes abaixo quando precisar.</span>
+                  </div>
+                  {!optionalDetailsOpen ? (
+                    <Button type="button" variant="link" className="px-0 mt-2" onClick={openOptionalDetails}>Alterar prazo ou descrição</Button>
+                  ) : (
+                    <Row className="g-3 mt-1">
+                      <Col xs={12}><Form.Group><Form.Label>Disponível até</Form.Label><Form.Control type="datetime-local" min={minimumLimit} max={maximumLimit || undefined} value={limitDate} onChange={(event) => setLimitDate(event.target.value)} isInvalid={invalid("limit_date", submitted && limitDateInvalid)} /><Form.Text>O prazo não pode ultrapassar o início do evento.</Form.Text><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "limit_date") || "Informe um prazo válido."}</Form.Control.Feedback></Form.Group></Col>
+                      <Col xs={12}><Form.Group><Form.Label>Descrição</Form.Label><Form.Control as="textarea" rows={3} value={description} onChange={(event) => setDescription(event.target.value)} /></Form.Group></Col>
+                    </Row>
+                  )}
+                </Col>
               </Row>
               <div className="cut-info-box mt-4"><strong>{kind === "paid" ? (priceInvalid ? "Defina o preço para continuar" : `Preço: R$ ${normalizedPrice.toFixed(2).replace(".", ",")} · potencial bruto do lote: R$ ${projectedGross.toFixed(2).replace(".", ",")}`) : "Preço: R$ 0,00"}</strong><span>{kind === "paid" ? "A quantidade usa a capacidade do evento como sugestão quando ela está cadastrada. Revise preço e quantidade antes de salvar; nenhuma taxa extra é adicionada nesta tela." : "Cada participante recebe um ingresso gratuito com token e QR Code únicos."}</span></div>
               <div className="cut-form-actions mt-4"><Button type="button" variant="outline-light" disabled={loading} onClick={() => navigate(eventId ? `/event/edit/${eventId}` : "/event/manage")}>Cancelar</Button><Button type="submit" disabled={loading}>{loading ? "Criando..." : kind === "paid" ? "Salvar e revisar publicação" : "Salvar cortesia"}</Button></div>
