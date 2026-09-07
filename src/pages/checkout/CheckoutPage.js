@@ -8,6 +8,7 @@ import commerceService from "../../services/CommerceService";
 import { clearCheckoutRecovery, readCheckoutRecovery, writeCheckoutRecovery } from "../../utils/checkoutRecovery";
 import { copyText } from "../../utils/clipboard";
 import { resolveCheckoutPaymentMethod } from "../../utils/paymentMethod";
+import { paymentFailureGuidance } from "../../utils/paymentFailureGuidance";
 import { rankCheckoutAddOns, summarizeCheckoutAddOnOffer } from "../../utils/checkoutAddOns";
 import { getPaymentSyncDelay } from "../../utils/paymentSyncSchedule";
 import { createKeyedSingleFlight } from "../../utils/singleFlight";
@@ -184,15 +185,11 @@ export default function CheckoutPage() {
   const fulfilled = approved && fulfillmentStatus === "completed";
   const failed = failedStatuses.includes(orderStatus);
   const paymentPending = Boolean(result && !failed && !approved);
-  const failedPaymentGuidance = method === "card"
-    ? {
-        title: "O cartão não concluiu o pagamento",
-        message: "Você pode revisar os dados e tentar novamente ou usar PIX para concluir sem refazer sua seleção.",
-      }
-    : {
-        title: "O PIX não foi concluído",
-        message: "Gere um novo PIX para esta mesma compra. Sua seleção continua preservada.",
-      };
+  const failedPaymentGuidance = paymentFailureGuidance({
+    payment: result?.payment || {},
+    method,
+    pixAvailable,
+  });
 
   useEffect(() => {
     if (!catalog?.event?.id || !selection || !lines.length || checkoutViewedRef.current) return;
@@ -515,6 +512,7 @@ export default function CheckoutPage() {
         previous_payment_method: method,
         payment_method: nextMethod,
         previous_status: orderStatus || "failed",
+        failure_reason: failedPaymentGuidance.reason,
       },
     });
     setMethod(nextMethod);
