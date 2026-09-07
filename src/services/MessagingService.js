@@ -1,6 +1,21 @@
 import appApiClient from "./AppApiClient";
 import { createIdempotentMutation, createMutationRequestKey } from "../utils/idempotencyAttempts";
 
+const openDirectIdempotently = createIdempotentMutation({
+  storagePrefix: "cutinapp_messaging_direct_attempt_",
+  keyPrefix: "direct",
+  requestKeyFor: (userId) => createMutationRequestKey({
+    user_id: Number(userId),
+  }),
+  mutate: async ({ idempotencyKey }, userId) => (
+    await appApiClient.post("/messaging/direct", {
+      user_id: Number(userId),
+    }, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    })
+  ).data,
+});
+
 const sendMessageIdempotently = createIdempotentMutation({
   storagePrefix: "cutinapp_messaging_send_attempt_",
   keyPrefix: "message",
@@ -22,7 +37,7 @@ const sendMessageIdempotently = createIdempotentMutation({
 const messagingService = {
   conversations: async (params = {}) => (await appApiClient.get("/messaging/conversations", { params })).data,
   searchPeople: async (query) => (await appApiClient.get("/messaging/people", { params: { q: query } })).data,
-  openDirect: async (userId) => (await appApiClient.post("/messaging/direct", { user_id: Number(userId) })).data,
+  openDirect: (userId) => openDirectIdempotently(userId),
   conversation: async (conversationId) => (await appApiClient.get(`/messaging/conversations/${Number(conversationId)}`)).data,
   messages: async (conversationId, params = {}) => (await appApiClient.get(`/messaging/conversations/${Number(conversationId)}/messages`, { params })).data,
   send: (conversationId, body, replyToId = null) => sendMessageIdempotently(conversationId, body, replyToId),
