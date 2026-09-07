@@ -120,6 +120,50 @@ const createEventCommunityPost = createIdempotentMutation({
   )).data,
 });
 
+const createArtist = createIdempotentMutation({
+  storagePrefix: "cutinapp_artist_create_attempt_",
+  keyPrefix: "artist-create",
+  requestKeyFor: (payload = {}) => createMutationRequestKey(payload),
+  mutate: async ({ idempotencyKey }, payload = {}) => (await appApiClient.post(
+    "/artists/provisional",
+    payload,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
+const createArtistMember = createIdempotentMutation({
+  storagePrefix: "cutinapp_artist_member_create_attempt_",
+  keyPrefix: "artist-member-create",
+  requestKeyFor: (artistId, payload = {}) => `${Number(artistId)}:${createMutationRequestKey(payload)}`,
+  mutate: async ({ idempotencyKey }, artistId, payload = {}) => (await appApiClient.post(
+    `/artists/${Number(artistId)}/members`,
+    payload,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
+const claimArtistEvent = createIdempotentMutation({
+  storagePrefix: "cutinapp_artist_claim_attempt_",
+  keyPrefix: "artist-claim",
+  requestKeyFor: (eventId, artistId, payload = {}) => `${Number(eventId)}:${Number(artistId)}:${createMutationRequestKey(payload)}`,
+  mutate: async ({ idempotencyKey }, eventId, artistId, payload = {}) => (await appApiClient.post(
+    `/events/${Number(eventId)}/artists/${Number(artistId)}/claim`,
+    payload,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
+const attachArtist = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_artist_attach_attempt_",
+  keyPrefix: "event-artist-attach",
+  requestKeyFor: (eventId, payload = {}) => `${Number(eventId)}:${createMutationRequestKey(payload)}`,
+  mutate: async ({ idempotencyKey }, eventId, payload = {}) => (await appApiClient.post(
+    `/events/${Number(eventId)}/artists`,
+    payload,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
 // Product UI facade. Every request below consumes a reusable capability from
 // /api/v1/apps/{application}; product-specific backend URLs are intentionally
 // absent. Small response aliases keep the current UI stable during vocabulary
@@ -183,20 +227,20 @@ const cutinappService = {
   moderationReports: async (params = {}) => (await appApiClient.get("/moderation/reports", { params })).data,
   updateModerationReport: async (reportId, payload) => (await appApiClient.put(`/moderation/reports/${reportId}`, payload)).data,
   myArtists: async () => unwrap((await appApiClient.get("/artists/manageable", { params: { per_page: 100 } })).data.artists),
-  createArtist: async (payload) => (await appApiClient.post("/artists/provisional", payload)).data,
+  createArtist,
   updateArtist: async (id, payload) => (await appApiClient.patch(`/artists/${id}/managed`, payload)).data,
   updateArtistType: async (id, artistType) => (await appApiClient.put(`/artists/${id}/type`, { artist_type: artistType })).data,
   artistMembers: async (id) => (await appApiClient.get(`/artists/${id}/members`)).data.members || [],
-  createArtistMember: async (id, payload) => (await appApiClient.post(`/artists/${id}/members`, payload)).data,
+  createArtistMember,
   updateArtistMember: async (id, memberId, payload) => (await appApiClient.patch(`/artists/${id}/members/${memberId}`, payload)).data,
   deleteArtistMember: async (id, memberId) => (await appApiClient.delete(`/artists/${id}/members/${memberId}`)).data,
   artistClaimability: async (eventId, artistId) => (await appApiClient.get(`/events/${eventId}/artists/${artistId}/claim`)).data,
-  claimArtistEvent: async (eventId, artistId, payload = {}) => (await appApiClient.post(`/events/${eventId}/artists/${artistId}/claim`, payload)).data,
+  claimArtistEvent,
   myArtistClaims: async () => (await appApiClient.get("/artist-claims/mine")).data,
   eventArtistClaims: async (eventId) => (await appApiClient.get(`/events/${eventId}/artist-claims`)).data,
   reviewArtistClaim: async (eventId, claimId, payload) => (await appApiClient.put(`/events/${eventId}/artist-claims/${claimId}`, payload)).data,
   eventArtists: async (eventId) => (await appApiClient.get(`/events/${eventId}/artists`)).data,
-  attachArtist: async (eventId, payload) => (await appApiClient.post(`/events/${eventId}/artists`, payload)).data,
+  attachArtist,
   detachArtist: async (eventId, artistId) => (await appApiClient.delete(`/events/${eventId}/artists/${artistId}`)).data,
   follow: async (targetType, targetId) => (await appApiClient.post("/social/follow", { target_type: targetType, target_id: targetId })).data,
   unfollow: async (targetType, targetId) => (await appApiClient.delete("/social/follow", { data: { target_type: targetType, target_id: targetId } })).data,
