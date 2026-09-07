@@ -103,12 +103,23 @@ export default function EventUpdatePage() {
 
   const loadEvent = async () => applyEvent(await eventService.show(id));
   const loadEventItems = async () => {
-    if (!eventData?.is_published || !eventData?.slug) return;
+    if (!eventData?.is_published || eventData?.is_private || eventData?.is_cancelled || !eventData?.slug) {
+      setEventItems([]);
+      return;
+    }
+
     setItemLoading(true);
     try {
       const catalog = await commerceService.catalog(eventData.slug, { force: true });
       setEventItems(Array.isArray(catalog?.items) ? catalog.items : []);
     } catch (err) {
+      // O catálogo público é um recurso auxiliar da edição. Quando o evento
+      // ainda não está disponível publicamente, um 404 não pode transformar
+      // a tela inteira de edição em estado de erro.
+      if (Number(err?.status || 0) === 404) {
+        setEventItems([]);
+        return;
+      }
       setError(err?.message || "Não foi possível carregar os adicionais deste evento.");
     } finally {
       setItemLoading(false);
@@ -126,8 +137,8 @@ export default function EventUpdatePage() {
   }, [id]);
 
   useEffect(() => {
-    if (eventData?.is_published && eventData?.slug) loadEventItems();
-  }, [eventData?.is_published, eventData?.slug]);
+    if (eventData?.id) loadEventItems();
+  }, [eventData?.id, eventData?.is_published, eventData?.is_private, eventData?.is_cancelled, eventData?.slug]);
 
   useEffect(() => {
     const productionId = Number(eventData?.production_id || form?.production_id || 0);
