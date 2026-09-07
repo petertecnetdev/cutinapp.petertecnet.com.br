@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import eventService from "../../services/EventService";
+import eventBulkService from "../../services/EventBulkService";
 import cutinappService from "../../services/CutinappService";
 import "./EventManagePage.css";
 
@@ -173,6 +174,8 @@ export default function EventManagePage() {
   const [bulkPublishing, setBulkPublishing] = useState(false);
   const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0, current: "" });
   const [bulkResult, setBulkResult] = useState(null);
+  const [deleteAllOpen, setDeleteAllOpen] = useState(false);
+  const [deleteAllConfirmation, setDeleteAllConfirmation] = useState("");
 
   const load = async () => setEvents(await eventService.myEvents());
 
@@ -317,6 +320,49 @@ export default function EventManagePage() {
     }
   };
 
+  const openDeleteAll = () => {
+    if (!events.length || bulkPublishing || busyId) return;
+    setDeleteAllConfirmation("");
+    setError("");
+    setSuccess("");
+    setDeleteAllOpen(true);
+  };
+
+  const closeDeleteAll = () => {
+    if (busyId === "delete-all") return;
+    setDeleteAllOpen(false);
+    setDeleteAllConfirmation("");
+  };
+
+  const deleteAllEvents = async () => {
+    if (deleteAllConfirmation.trim().toUpperCase() !== "EXCLUIR" || busyId === "delete-all") return;
+
+    setBusyId("delete-all");
+    setError("");
+    setSuccess("");
+
+    try {
+      const response = await eventBulkService.deleteMine();
+      setEvents([]);
+      setSearchTerm("");
+      setStatusFilter("all");
+      setDeleteAllOpen(false);
+      setDeleteAllConfirmation("");
+      setSuccess(response?.message || "Todos os eventos foram excluídos com sucesso.");
+    } catch (err) {
+      setDeleteAllOpen(false);
+      setDeleteAllConfirmation("");
+      setError(err?.message || "Não foi possível excluir todos os eventos.");
+      try {
+        await load();
+      } catch (_) {
+        // Mantém a mensagem original da exclusão; uma falha de refresh não deve ocultá-la.
+      }
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const stats = useMemo(() => ({
     total: events.length,
     published: events.filter((event) => event.is_published && !event.is_cancelled).length,
@@ -451,13 +497,16 @@ export default function EventManagePage() {
   };
 
   const duplicating = String(busyId).startsWith("duplicate-");
+  const deletingAll = busyId === "delete-all";
   const processingLabel = loading
     ? "Carregando eventos"
-    : bulkPublishing
-      ? `Publicando ${bulkProgress.done} de ${bulkProgress.total} eventos`
-      : duplicating
-        ? "Duplicando evento"
-        : "Atualizando evento";
+    : deletingAll
+      ? "Excluindo todos os eventos"
+      : bulkPublishing
+        ? `Publicando ${bulkProgress.done} de ${bulkProgress.total} eventos`
+        : duplicating
+          ? "Duplicando evento"
+          : "Atualizando evento";
 
   const bulkProgressPercent = bulkProgress.total
     ? Math.round((bulkProgress.done / bulkProgress.total) * 100)
@@ -486,7 +535,17 @@ export default function EventManagePage() {
                 <i className="fa-solid fa-rocket me-2" />Publicar todos ({bulkCandidates.length})
               </Button>
             )}
-            <Button className="cut-event-manager-new" onClick={() => navigate("/event/create")} disabled={bulkPublishing}>
+            {events.length > 0 && (
+              <Button
+                variant="outline-danger"
+                className="cut-event-manager-new"
+                onClick={openDeleteAll}
+                disabled={Boolean(busyId) || bulkPublishing}
+              >
+                <i className="fa-solid fa-trash-can me-2" />Excluir todos
+              </Button>
+            )}
+            <Button className="cut-event-manager-new" onClick={() => navigate("/event/create")} disabled={bulkPublishing || deletingAll}>
               <i className="fa-solid fa-plus me-2" />Novo evento
             </Button>
           </div>
@@ -610,7 +669,7 @@ export default function EventManagePage() {
                                     size="sm"
                                     variant={readiness.mode === "whatsapp" ? "success" : "light"}
                                     onClick={() => runPrimaryAction(event, readiness)}
-                                    disabled={busyId === event.id || bulkPublishing}
+                                    disabled={busyId === event.id || bulkPublishing || deletingAll}
                                   >
                                     <i className={`${readiness.icon} me-2`} />{readiness.action}
                                   </Button>
@@ -619,11 +678,11 @@ export default function EventManagePage() {
                             </td>
                             <td className="cut-event-admin-table__actions">
                               <div className="cut-event-admin-actions">
-                                <Button size="sm" variant="outline-light" onClick={() => navigate(`/event/edit/${event.id}`)} title="Editar evento" aria-label={`Editar ${event.title}`} disabled={bulkPublishing}>
+                                <Button size="sm" variant="outline-light" onClick={() => navigate(`/event/edit/${event.id}`)} title="Editar evento" aria-label={`Editar ${event.title}`} disabled={bulkPublishing || deletingAll}>
                                   <i className="fa-solid fa-pen" />
                                 </Button>
                                 <Dropdown align="end" className="cut-event-manager-more">
-                                  <Dropdown.Toggle size="sm" variant="outline-light" aria-label={`Mais ações para ${event.title}`} disabled={bulkPublishing}>
+                                  <Dropdown.Toggle size="sm" variant="outline-light" aria-label={`Mais ações para ${event.title}`} disabled={bulkPublishing || deletingAll}>
                                     <i className="fa-solid fa-ellipsis" />
                                   </Dropdown.Toggle>
                                   <Dropdown.Menu>
@@ -662,6 +721,40 @@ export default function EventManagePage() {
           </>
         )}
       </Container>
+
+      <Modal show={deleteAllOpen} onHide={closeDeleteAll} centered backdrop={deletingAll ? "static" : true} keyboard={!deletingAll}>
+        <Modal.Header closeButton={!deletingAll}>
+          <Modal.Title>Excluir todos os eventos</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Alert variant="danger">
+            Esta ação excluirá de uma vez os <strong>{events.length} evento(s)</strong> das produções que pertencem à sua conta. Ela não pode ser desfeita.
+          </Alert>
+          <p className="text-secondary">
+            Se existir qualquer evento com ingresso já emitido, a exclusão inteira será bloqueada e nenhum evento será apagado.
+          </p>
+          <Form.Group>
+            <Form.Label>Digite <strong>EXCLUIR</strong> para confirmar</Form.Label>
+            <Form.Control
+              value={deleteAllConfirmation}
+              onChange={(event) => setDeleteAllConfirmation(event.target.value)}
+              placeholder="EXCLUIR"
+              autoComplete="off"
+              disabled={deletingAll}
+            />
+          </Form.Group>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="outline-secondary" onClick={closeDeleteAll} disabled={deletingAll}>Cancelar</Button>
+          <Button
+            variant="danger"
+            onClick={deleteAllEvents}
+            disabled={deletingAll || deleteAllConfirmation.trim().toUpperCase() !== "EXCLUIR"}
+          >
+            <i className="fa-solid fa-trash-can me-2" />Excluir todos
+          </Button>
+        </Modal.Footer>
+      </Modal>
 
       <Modal show={bulkPublishOpen} onHide={closeBulkPublish} centered backdrop={bulkPublishing ? "static" : true} keyboard={!bulkPublishing}>
         <Modal.Header closeButton={!bulkPublishing}>
