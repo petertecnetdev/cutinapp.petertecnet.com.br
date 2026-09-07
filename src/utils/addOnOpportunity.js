@@ -30,3 +30,18 @@ export const weightedAverageAddOnUnitPrice = (items = []) => {
 
   return totals.units > 0 ? totals.revenue / totals.units : 0;
 };
+
+export const addOnMonetizationEfficiency = ({
+  incrementalNetRevenue = 0,
+  incrementalOrders = 0,
+  attachmentUpliftPoints = 10,
+} = {}) => {
+  const netRevenue = Math.max(0, Number(incrementalNetRevenue || 0));
+  const orders = Math.max(0, Number(incrementalOrders || 0));
+  const upliftPoints = Math.max(0, Number(attachmentUpliftPoints || 0));
+
+  return {
+    netRevenuePerAttachmentPoint: upliftPoints > 0 ? netRevenue / upliftPoints : 0,
+    netRevenuePerIncrementalOrder: orders > 0 ? netRevenue / orders : 0,
+  };
+};

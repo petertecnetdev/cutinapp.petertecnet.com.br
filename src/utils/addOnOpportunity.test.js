@@ -1,4 +1,4 @@
-import { estimateAddOnAttachmentOpportunity, suggestedAddOnStock, weightedAverageAddOnUnitPrice } from "./addOnOpportunity";
+import { addOnMonetizationEfficiency, estimateAddOnAttachmentOpportunity, suggestedAddOnStock, weightedAverageAddOnUnitPrice } from "./addOnOpportunity";
 
 test("uses production benchmark for events without add-on history", () => {
   expect(estimateAddOnAttachmentOpportunity({ paidCount: 50, addOnOrders: 0, averageAddOnValue: 0, benchmarkAddOnValue: 20, takeRate: 8 }))
@@ -31,4 +31,18 @@ test("ignores invalid add-on units when calculating suggested price", () => {
     { unit_price: 15, quantity: 0 },
     { unit_price: 12, quantity: 3 },
   ])).toBe(12);
+});
+
+test("translates add-on upside into net revenue per attachment point and incremental order", () => {
+  expect(addOnMonetizationEfficiency({ incrementalNetRevenue: 120, incrementalOrders: 6, attachmentUpliftPoints: 10 })).toEqual({
+    netRevenuePerAttachmentPoint: 12,
+    netRevenuePerIncrementalOrder: 20,
+  });
+});
+
+test("keeps monetization efficiency finite when projected incremental orders are zero", () => {
+  expect(addOnMonetizationEfficiency({ incrementalNetRevenue: 100 })).toEqual({
+    netRevenuePerAttachmentPoint: 10,
+    netRevenuePerIncrementalOrder: 0,
+  });
 });
