@@ -1,4 +1,5 @@
 import appApiClient from "./AppApiClient";
+import { createIdempotencyAttemptManager, shouldKeepIdempotencyAttempt } from "../utils/idempotencyAttempts";
 
 const unwrap = (value) => Array.isArray(value) ? value : Array.isArray(value?.data) ? value.data : [];
 const rename = (data, from, to) => {
@@ -6,6 +7,59 @@ const rename = (data, from, to) => {
   const result = { ...data, [to]: data[from] };
   delete result[from];
   return result;
+};
+
+const pendingProductionCreates = new Map();
+const productionCreateAttempts = createIdempotencyAttemptManager({
+  storagePrefix: "cutinapp_production_create_attempt_",
+  keyPrefix: "production",
+});
+
+const productionValueSignature = (value) => {
+  if (typeof value === "string") return value;
+  if (!value || typeof value !== "object") return String(value ?? "");
+  return {
+    name: String(value.name || ""),
+    size: Number(value.size || 0),
+    type: String(value.type || ""),
+    lastModified: Number(value.lastModified || 0),
+  };
+};
+
+const productionRequestKey = (payload) => {
+  if (payload && typeof payload.entries === "function") {
+    return JSON.stringify(Array.from(payload.entries())
+      .map(([key, value]) => [String(key), productionValueSignature(value)])
+      .sort(([left], [right]) => left.localeCompare(right)));
+  }
+
+  if (payload && typeof payload === "object") {
+    return JSON.stringify(Object.keys(payload).sort().map((key) => [key, productionValueSignature(payload[key])]));
+  }
+
+  return JSON.stringify(payload ?? null);
+};
+
+const createProduction = (payload) => {
+  const requestKey = productionRequestKey(payload);
+  const pending = pendingProductionCreates.get(requestKey);
+  if (pending) return pending;
+
+  const idempotencyKey = productionCreateAttempts.keyFor(requestKey);
+  const request = appApiClient.post("/organizations", payload, {
+    headers: { "Idempotency-Key": idempotencyKey },
+  }).then((response) => {
+    productionCreateAttempts.clear(requestKey);
+    return rename(response.data, "organization", "production");
+  }).catch((error) => {
+    if (!shouldKeepIdempotencyAttempt(error)) productionCreateAttempts.clear(requestKey);
+    throw error;
+  }).finally(() => {
+    if (pendingProductionCreates.get(requestKey) === request) pendingProductionCreates.delete(requestKey);
+  });
+
+  pendingProductionCreates.set(requestKey, request);
+  return request;
 };
 
 // Product UI facade. Every request below consumes a reusable capability from
@@ -44,7 +98,7 @@ const cutinappService = {
   uploadProductionMedia: async (organizationId, formData) => (await appApiClient.post(`/organizations/${organizationId}/media`, formData)).data,
   deleteProductionMedia: async (organizationId, mediaId) => (await appApiClient.delete(`/organizations/${organizationId}/media/${mediaId}`)).data,
   publicProduction: async (slug) => rename((await appApiClient.get(`/organizations/public/${slug}`)).data, "organization", "production"),
-  createProduction: async (formData) => rename((await appApiClient.post("/organizations", formData)).data, "organization", "production"),
+  createProduction,
   updateProduction: async (id, formData) => rename((await appApiClient.patch(`/organizations/${id}`, formData)).data, "organization", "production"),
   deleteProduction: async (id) => (await appApiClient.delete(`/organizations/${id}`)).data,
   producerContract: async (organizationId) => {
