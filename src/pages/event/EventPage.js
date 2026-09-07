@@ -8,6 +8,7 @@ import eventService from "../../services/EventService";
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
 import { PERIOD_OPTIONS, paramsFromSearch, periodLabel, readDiscoveryPreference, readRecentCities, saveDiscoveryPreference } from "../../utils/discoveryFilters";
+import "./EventPage.css";
 
 const formatDate = (value) => value
   ? new Intl.DateTimeFormat("pt-BR", {
@@ -132,9 +133,10 @@ export default function EventPage() {
 
   const activeFilterCount = activeChips.length + (filters.date ? 1 : 0) + (filters.sort && filters.sort !== "soonest" ? 1 : 0);
   const cityValue = filters.city ? `${filters.city}|${filters.uf || ""}` : "";
+  const resultTotal = Number(pagination?.total ?? events.length);
 
   return (
-    <div className="cut-app-page">
+    <div className="cut-app-page cut-event-discovery-page">
       <NavlogComponent />
       {loading && <ProcessingIndicatorComponent label="Buscando eventos" />}
       <Container className="cut-page-container py-4 py-lg-5">
@@ -144,7 +146,9 @@ export default function EventPage() {
             <h1>{filters.city ? `Eventos em ${filters.city}` : "Encontre seu próximo evento"}</h1>
             <p>Busque pela cidade, pelo dia, pelo artista ou pela produção. Os filtros ficam na URL para você compartilhar a descoberta.</p>
           </div>
-          <Button variant="outline-light" onClick={() => navigate("/passes")}>Minha carteira</Button>
+          <Button variant="outline-light" onClick={() => navigate("/passes")}>
+            <i className="fa-solid fa-ticket me-2" />Minha carteira
+          </Button>
         </div>
 
         {error && <Alert variant="danger">{error}</Alert>}
@@ -208,27 +212,39 @@ export default function EventPage() {
             </div>
           </Card.Body></Card>
         ) : (
-          <Row className="g-4">
-            {events.map((event) => <Col md={6} xl={4} key={event.id}>
-              <Card className="cut-event-card h-100" role="button" tabIndex={0} aria-label={`Abrir evento ${event.title}`} onClick={() => navigate(`/event/${event.slug}`)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/event/${event.slug}`); } }}>
-                <div className="cut-event-card__media">
-                  {event.image ? <img src={`${storageUrl}${String(event.image).replace(/^\//, "")}`} alt={event.title} loading="lazy" decoding="async" /> : <div className="cut-event-card__placeholder"><i className="fa-regular fa-calendar" /></div>}
-                  {event.category && <Badge bg="dark" className="cut-event-card__category">{event.category}</Badge>}
-                  {event.free_ticket_lots_count > 0 && <Badge bg="success" className="cut-event-card__badge">Gratuito</Badge>}
+          <>
+            {!loading && (
+              <div className="cut-event-discovery-results" aria-live="polite">
+                <div className="cut-event-discovery-results__title">
+                  <strong>{resultTotal} {resultTotal === 1 ? "evento encontrado" : "eventos encontrados"}</strong>
+                  <span>{filters.city ? `Mostrando oportunidades em ${filters.city}` : "Explore os próximos eventos disponíveis na Cutinapp"}</span>
                 </div>
-                <Card.Body className="p-4">
-                  <span className="cut-eyebrow">{event.production?.name || "Cutinapp"}</span>
-                  <h2>{event.title}</h2>
-                  <div className="cut-event-card__meta">
-                    <span><i className="fa-regular fa-calendar" />{formatDate(event.start_date)}</span>
-                    <span><i className="fa-solid fa-location-dot" />{formatEventLocation(event)}</span>
-                    {event.artists?.length > 0 && <span><i className="fa-solid fa-music" />{event.artists.slice(0, 3).map((a) => a.stage_name).join(" · ")}</span>}
-                    {event.distance_km != null && <span><i className="fa-solid fa-route" />{Number(event.distance_km).toFixed(1)} km de você</span>}
+                <span className="cut-event-discovery-results__hint"><i className="fa-solid fa-arrow-pointer" />Clique em um evento para ver detalhes e ingressos</span>
+              </div>
+            )}
+
+            <Row className="cut-event-discovery-grid">
+              {events.map((event) => <Col xs={12} md={6} xl={4} key={event.id}>
+                <Card className="cut-event-card h-100" role="button" tabIndex={0} aria-label={`Abrir evento ${event.title}`} onClick={() => navigate(`/event/${event.slug}`)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/event/${event.slug}`); } }}>
+                  <div className="cut-event-card__media">
+                    {event.image ? <img src={`${storageUrl}${String(event.image).replace(/^\//, "")}`} alt={event.title} loading="lazy" decoding="async" /> : <div className="cut-event-card__placeholder"><i className="fa-regular fa-calendar" /></div>}
+                    {event.category && <Badge bg="dark" className="cut-event-card__category">{event.category}</Badge>}
+                    {event.free_ticket_lots_count > 0 && <Badge bg="success" className="cut-event-card__badge">Gratuito</Badge>}
                   </div>
-                </Card.Body>
-              </Card>
-            </Col>)}
-          </Row>
+                  <Card.Body>
+                    <span className="cut-eyebrow">{event.production?.name || "Cutinapp"}</span>
+                    <h2>{event.title}</h2>
+                    <div className="cut-event-card__meta">
+                      <span><i className="fa-regular fa-calendar" />{formatDate(event.start_date)}</span>
+                      <span><i className="fa-solid fa-location-dot" />{formatEventLocation(event)}</span>
+                      {event.artists?.length > 0 && <span><i className="fa-solid fa-music" />{event.artists.slice(0, 3).map((a) => a.stage_name).join(" · ")}</span>}
+                      {event.distance_km != null && <span><i className="fa-solid fa-route" />{Number(event.distance_km).toFixed(1)} km de você</span>}
+                    </div>
+                  </Card.Body>
+                </Card>
+              </Col>)}
+            </Row>
+          </>
         )}
 
         {pagination?.last_page > 1 && <div className="cut-pagination mt-4">
