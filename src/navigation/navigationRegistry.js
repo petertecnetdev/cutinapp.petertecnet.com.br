@@ -1,137 +1,152 @@
-import {
-  hasContextRole,
-  isArtistActor,
-  isPeterTecnetRoot,
-  isProductionManager,
-  isPromoterActor,
-} from "../utils/applicationRoles";
+import { canNavigate } from "./capabilityResolver";
 
-export const NAV_MODE_STORAGE_KEY = "cutinapp:navigation-mode";
 export const PRODUCTION_STORAGE_KEY = "cutinapp:navigation-production";
+export const NAV_USAGE_STORAGE_KEY = "cutinapp:navigation-usage";
 
 const item = (id, label, icon, to, extras = {}) => ({ id, label, icon, to, ...extras });
 
-export const navigationModesFor = (user) => {
-  const root = isPeterTecnetRoot(user);
-  const modes = [{ id: "participant", label: "Participante", icon: "fa-regular fa-user", description: "Descobrir, interagir e comprar" }];
-  if (root || isProductionManager(user)) modes.push({ id: "manager", label: "Gerência", icon: "fa-solid fa-briefcase", description: "Produção, eventos e vendas" });
-  if (root || isArtistActor(user)) modes.push({ id: "artist", label: "Artista", icon: "fa-solid fa-music", description: "Agenda, presença e público" });
-  if (root || isPromoterActor(user)) modes.push({ id: "promoter", label: "Promoter", icon: "fa-solid fa-bullhorn", description: "Divulgação, vendas e comissão" });
-  if (hasContextRole(user, "acquisition_agent")) modes.push({ id: "agent", label: "Agente", icon: "fa-solid fa-user-tie", description: "Aquisição e relacionamento" });
-  if (root) modes.push({ id: "admin", label: "Administração", icon: "fa-solid fa-shield-halved", description: "Operação da Cutinapp" });
-  return modes;
-};
+export const commonNavigation = [
+  item("feed", "Feed", "fa-solid fa-bolt", "/feed"),
+  item("events", "Eventos", "fa-regular fa-calendar-days", "/event"),
+  item("productions", "Produções", "fa-solid fa-building", "/productions"),
+  item("artists", "Artistas", "fa-solid fa-music", "/artists"),
+];
 
-const registry = {
-  participant: {
-    primary: [
-      item("feed", "Feed", "fa-solid fa-bolt", "/feed"),
-      item("events", "Eventos", "fa-regular fa-calendar-days", "/event"),
-      item("tickets", "Ingressos", "fa-solid fa-ticket", "/passes"),
-      item("profile", "Perfil", "fa-regular fa-user", "/profile"),
-    ],
-    secondary: [
-      item("productions", "Produções", "fa-solid fa-building", "/productions"),
-      item("artists", "Artistas", "fa-solid fa-music", "/artists"),
-      item("purchases", "Compras", "fa-solid fa-receipt", "/purchases"),
-    ],
-    quick: [
-      item("discover", "Explorar eventos", "fa-solid fa-compass", "/event"),
-      item("post", "Publicar no feed", "fa-regular fa-pen-to-square", "/feed"),
-    ],
-  },
-  manager: {
-    primary: [
-      item("manager-home", "Produções", "fa-solid fa-building", "/production/mine"),
-      item("events-manage", "Eventos", "fa-solid fa-calendar-check", "/event/manage"),
+export const accountNavigation = [
+  item("profile", "Meu perfil", "fa-regular fa-user", "/profile"),
+  item("passes", "Meus ingressos", "fa-solid fa-ticket", "/passes"),
+  item("purchases", "Minhas compras", "fa-solid fa-receipt", "/purchases"),
+  item("notifications", "Notificações", "fa-regular fa-bell", "/notifications"),
+  item("dashboard", "Meu painel", "fa-solid fa-gauge-high", "/dashboard"),
+  item("account-settings", "Editar conta", "fa-solid fa-gear", "/user/edit"),
+  item("password", "Alterar senha", "fa-solid fa-key", "/password"),
+];
+
+export const actorNavigation = [
+  {
+    id: "producer",
+    label: "Produção",
+    icon: "fa-solid fa-briefcase",
+    requirement: "producer",
+    description: "Produções, eventos, ingressos e operação",
+    items: [
+      item("my-productions", "Minhas produções", "fa-solid fa-building", "/production/mine"),
+      item("manage-events", "Meus eventos", "fa-solid fa-calendar-check", "/event/manage"),
+      item("create-event", "Criar evento", "fa-solid fa-calendar-plus", "/event/create"),
+      item("create-ticket", "Ingressos e cortesias", "fa-solid fa-ticket", "/ticket/create"),
       item("sales", "Vendas", "fa-solid fa-chart-line", "/producer/sales"),
-      item("checkin", "Check-in", "fa-solid fa-qrcode", "/checkin"),
-    ],
-    secondary: [
       item("finance", "Financeiro", "fa-solid fa-wallet", "/producer/finance"),
+      item("checkin", "Portaria / check-in", "fa-solid fa-qrcode", "/checkin"),
       item("contracts", "Contratos", "fa-solid fa-file-signature", "/producer/contracts"),
-      item("participant-view", "Ver como participante", "fa-regular fa-eye", "/feed"),
     ],
     quick: [
-      item("create-event", "Criar evento", "fa-solid fa-calendar-plus", "/event/create"),
-      item("create-ticket", "Criar ingresso", "fa-solid fa-ticket", "/ticket/create"),
-      item("create-production", "Criar produção", "fa-solid fa-building-circle-arrow-right", "/production/create"),
+      item("quick-create-event", "Criar evento", "fa-solid fa-calendar-plus", "/event/create", { requirement: "producer" }),
+      item("quick-create-ticket", "Criar ingresso", "fa-solid fa-ticket", "/ticket/create", { requirement: "producer" }),
+      item("quick-checkin", "Abrir check-in", "fa-solid fa-qrcode", "/checkin", { requirement: "producer" }),
+      item("quick-sales", "Ver vendas", "fa-solid fa-chart-line", "/producer/sales", { requirement: "producer" }),
     ],
   },
-  artist: {
-    primary: [
-      item("artist-area", "Área do artista", "fa-solid fa-music", "/artist/manage"),
-      item("events", "Eventos", "fa-regular fa-calendar-days", "/event"),
-      item("feed", "Feed", "fa-solid fa-bolt", "/feed"),
-      item("profile", "Perfil", "fa-regular fa-user", "/profile"),
+  {
+    id: "artist",
+    label: "Artista",
+    icon: "fa-solid fa-music",
+    requirement: "artist",
+    description: "Carreira, agenda e presença nos eventos",
+    items: [
+      item("artist-area", "Área do artista", "fa-solid fa-microphone-lines", "/artist/manage"),
+      item("artist-events", "Explorar eventos", "fa-regular fa-calendar-days", "/event"),
+      item("artist-discovery", "Explorar artistas", "fa-solid fa-users", "/artists"),
     ],
-    secondary: [item("artists", "Explorar artistas", "fa-solid fa-users", "/artists")],
-    quick: [item("artist-manage", "Gerenciar carreira", "fa-solid fa-wand-magic-sparkles", "/artist/manage")],
+    quick: [item("quick-artist", "Gerenciar carreira", "fa-solid fa-wand-magic-sparkles", "/artist/manage", { requirement: "artist" })],
   },
-  promoter: {
-    primary: [
-      item("promoter-sales", "Vendas", "fa-solid fa-chart-line", "/producer/sales"),
-      item("events", "Eventos", "fa-regular fa-calendar-days", "/event"),
-      item("feed", "Feed", "fa-solid fa-bolt", "/feed"),
-      item("profile", "Perfil", "fa-regular fa-user", "/profile"),
+  {
+    id: "promoter",
+    label: "Promoter",
+    icon: "fa-solid fa-bullhorn",
+    requirement: "promoter",
+    description: "Divulgação, atribuição e vendas",
+    items: [
+      item("promoter-events", "Eventos para divulgar", "fa-regular fa-calendar-days", "/event"),
+      item("promoter-sales", "Vendas atribuídas", "fa-solid fa-chart-line", "/producer/sales"),
+      item("promoter-feed", "Feed", "fa-solid fa-bolt", "/feed"),
     ],
-    secondary: [item("purchases", "Compras", "fa-solid fa-receipt", "/purchases")],
-    quick: [item("promote", "Encontrar evento para divulgar", "fa-solid fa-bullhorn", "/event")],
+    quick: [item("quick-promoter", "Encontrar evento", "fa-solid fa-bullhorn", "/event", { requirement: "promoter" })],
   },
-  agent: {
-    primary: [
-      item("agent", "Painel do agente", "fa-solid fa-user-tie", "/agent"),
-      item("events", "Eventos", "fa-regular fa-calendar-days", "/event"),
-      item("feed", "Feed", "fa-solid fa-bolt", "/feed"),
-    ],
-    secondary: [item("profile", "Perfil", "fa-regular fa-user", "/profile")],
-    quick: [item("agent-home", "Abrir painel", "fa-solid fa-arrow-up-right-from-square", "/agent")],
+  {
+    id: "agent",
+    label: "Agente",
+    icon: "fa-solid fa-user-tie",
+    requirement: "agent",
+    description: "Aquisição e relacionamento",
+    items: [item("agent-dashboard", "Painel do agente", "fa-solid fa-gauge", "/agent")],
+    quick: [item("quick-agent", "Abrir painel", "fa-solid fa-user-tie", "/agent", { requirement: "agent" })],
   },
-  admin: {
-    primary: [
-      item("admin", "Admin Center", "fa-solid fa-shield-halved", "/admin"),
-      item("events-manage", "Eventos", "fa-solid fa-calendar-check", "/event/manage"),
-      item("sales", "Vendas", "fa-solid fa-chart-line", "/producer/sales"),
-      item("feed", "Feed", "fa-solid fa-bolt", "/feed"),
-    ],
-    secondary: [
+  {
+    id: "admin",
+    label: "Administração",
+    icon: "fa-solid fa-shield-halved",
+    requirement: "admin",
+    description: "Operação e governança da Cutinapp",
+    items: [
+      item("admin-center", "Admin Center", "fa-solid fa-shield-halved", "/admin"),
+      item("admin-users", "Usuários", "fa-solid fa-users-gear", "/admin/users"),
+      item("admin-events", "Eventos", "fa-solid fa-calendar-days", "/admin/events"),
       item("moderation", "Moderação", "fa-solid fa-user-shield", "/moderation/reports"),
-      item("checkin", "Check-in", "fa-solid fa-qrcode", "/checkin"),
     ],
-    quick: [
-      item("admin-open", "Abrir Admin Center", "fa-solid fa-shield-halved", "/admin"),
-      item("create-event", "Criar evento", "fa-solid fa-calendar-plus", "/event/create"),
-    ],
+    quick: [item("quick-admin", "Abrir Admin Center", "fa-solid fa-shield-halved", "/admin", { requirement: "admin" })],
   },
-};
+];
 
-export const navigationForMode = (mode) => registry[mode] || registry.participant;
+export const actorMenusFor = (capabilities) => actorNavigation.filter((area) => canNavigate(capabilities, area.requirement));
 
-export const contextualNavigation = (pathname = "", mode = "participant") => {
+export const quickActionsFor = (capabilities) => actorMenusFor(capabilities)
+  .flatMap((area) => area.quick || [])
+  .filter((entry, index, all) => canNavigate(capabilities, entry.requirement) && all.findIndex((candidate) => candidate.to === entry.to) === index);
+
+export const contextualNavigation = (pathname = "", capabilities = {}) => {
   const eventMatch = pathname.match(/^\/event\/(?!create|manage)([^/]+)/);
-  if (eventMatch && ["manager", "admin"].includes(mode)) {
+  if (eventMatch && capabilities.producer) {
+    const eventRef = eventMatch[1];
     return {
       label: "Evento atual",
       items: [
-        item("event-view", "Ver evento", "fa-regular fa-eye", pathname),
-        item("event-sales", "Vendas", "fa-solid fa-chart-line", "/producer/sales"),
+        item("event-view", "Ver evento", "fa-regular fa-eye", `/event/${eventRef}`),
+        item("event-edit", "Editar evento", "fa-solid fa-pen", `/event/edit/${eventRef}`),
+        item("event-courtesies", "Cortesias", "fa-solid fa-gift", `/event/${eventRef}/courtesies`),
+        item("event-participants", "Participantes", "fa-solid fa-users", `/event/${eventRef}/participants`),
+        item("event-lineup", "Line-up", "fa-solid fa-music", `/event/${eventRef}/lineup`),
         item("event-checkin", "Check-in", "fa-solid fa-qrcode", "/checkin"),
       ],
     };
   }
 
   const productionMatch = pathname.match(/^\/production\/(\d+)/);
-  if (productionMatch && ["manager", "admin"].includes(mode)) {
+  if (productionMatch && capabilities.producer) {
     const id = productionMatch[1];
     return {
       label: "Produção atual",
       items: [
         item("production-view", "Visão geral", "fa-solid fa-building", `/production/${id}`),
+        item("production-edit", "Editar produção", "fa-solid fa-pen", `/production/edit/${id}`),
         item("production-agenda", "Agenda", "fa-regular fa-calendar", `/production/${id}/agenda`),
-        item("create-event", "Novo evento", "fa-solid fa-calendar-plus", "/event/create"),
+        item("production-new-event", "Novo evento", "fa-solid fa-calendar-plus", "/event/create"),
+        item("production-sales", "Vendas", "fa-solid fa-chart-line", "/producer/sales"),
       ],
     };
   }
-
   return null;
 };
+
+export const readNavigationUsage = (raw) => {
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch (_) { return {}; }
+};
+
+export const rankQuickActions = (actions, usage = {}) => [...actions].sort((a, b) => {
+  const score = Number(usage[b.id] || 0) - Number(usage[a.id] || 0);
+  if (score !== 0) return score;
+  return actions.indexOf(a) - actions.indexOf(b);
+});
