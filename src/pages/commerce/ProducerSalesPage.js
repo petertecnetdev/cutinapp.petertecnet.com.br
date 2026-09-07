@@ -51,16 +51,32 @@ export default function ProducerSalesPage() {
   const summary = result?.summary || {};
   const orders = result?.orders?.data || [];
   const economicMetrics = useMemo(() => {
-    const grossPaid = Number(summary.gross_paid || 0);
-    const paidCount = Number(summary.paid_count || 0);
-    const platformFees = Number(summary.platform_fees || 0);
+    const paidOrders = orders.filter((order) => order.status === "paid");
+    const grossPaid = paidOrders.reduce((sum, order) => sum + Number(order.total || 0), 0);
+    const platformFees = paidOrders.reduce((sum, order) => sum + Number(order.platform_fee || 0), 0);
+    const processorFeesBorneByPlatform = paidOrders.reduce((sum, order) => (
+      sum + processorFeesBorneByPlatformForOrder({ processorFee: order.processor_fee, settlementMode: order.metadata?.settlement_mode })
+    ), 0);
+    const netEconomics = estimateNetRevenueEconomics({
+      grossRevenue: grossPaid,
+      platformRevenue: platformFees,
+      processorFees: processorFeesBorneByPlatform,
+      processorFeesBorneByPlatform,
+      paidOrders: paidOrders.length,
+    });
 
     return {
-      averageTicket: paidCount > 0 ? grossPaid / paidCount : 0,
-      platformRevenuePerSale: paidCount > 0 ? platformFees / paidCount : 0,
+      averageTicket: paidOrders.length > 0 ? grossPaid / paidOrders.length : 0,
+      platformRevenuePerSale: paidOrders.length > 0 ? platformFees / paidOrders.length : 0,
       takeRate: grossPaid > 0 ? (platformFees / grossPaid) * 100 : 0,
+      netPlatformRevenue: netEconomics.netRevenue,
+      netRevenuePerSale: netEconomics.netRevenuePerPaidOrder,
+      netTakeRate: netEconomics.netTakeRate,
+      contributionRatio: netEconomics.contributionRatio,
+      contributionMargin: netEconomics.contributionRatio * 100,
+      processorFeesBorneByPlatform,
     };
-  }, [summary.gross_paid, summary.paid_count, summary.platform_fees]);
+  }, [orders]);
 
   const pendingRevenue = useMemo(() => estimatePendingRevenueOpportunity({
     orders,
@@ -89,9 +105,11 @@ export default function ProducerSalesPage() {
       addOnGmv,
       averageAddOnValue,
       estimatedPlatformRevenue: addOnGmv * (economicMetrics.takeRate / 100),
+      estimatedNetPlatformRevenue: addOnGmv * (economicMetrics.takeRate / 100) * economicMetrics.contributionRatio,
+      incrementalNetRevenue: opportunity.incrementalPlatformRevenue * economicMetrics.contributionRatio,
       ...opportunity,
     };
-  }, [economicMetrics.takeRate, orders]);
+  }, [economicMetrics.contributionRatio, economicMetrics.takeRate, orders]);
 
   const eventEconomics = useMemo(() => {
     const grouped = new Map();
@@ -193,20 +211,22 @@ export default function ProducerSalesPage() {
           <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Vendas pagas</small><strong>{summary.paid_count || 0}</strong></div></Col>
           <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>GMV pago</small><strong>{money(summary.gross_paid)}</strong></div></Col>
           <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Ticket médio</small><strong>{money(economicMetrics.averageTicket)}</strong></div></Col>
-          <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Receita Cutinapp</small><strong>{money(summary.platform_fees)}</strong></div></Col>
-          <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Receita Cutinapp / venda</small><strong>{money(economicMetrics.platformRevenuePerSale)}</strong></div></Col>
-          <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Take rate efetivo</small><strong>{percent(economicMetrics.takeRate)}</strong></div></Col>
+          <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Receita Cutinapp</small><strong>{money(summary.platform_fees)}</strong><span>taxas brutas registradas</span></div></Col>
+          <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Receita líquida Peter Tecnet</small><strong>{money(economicMetrics.netPlatformRevenue)}</strong><span>após processamento suportado pela plataforma nos pedidos carregados</span></div></Col>
+          <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Receita líquida / venda</small><strong>{money(economicMetrics.netRevenuePerSale)}</strong><span>margem de contribuição {percent(economicMetrics.contributionMargin)}</span></div></Col>
+          <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Take rate líquido</small><strong>{percent(economicMetrics.netTakeRate)}</strong><span>take rate bruto {percent(economicMetrics.takeRate)}</span></div></Col>
+          <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Processamento Peter Tecnet</small><strong>{money(economicMetrics.processorFeesBorneByPlatform)}</strong><span>somente custo suportado pela plataforma</span></div></Col>
           <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Líquido do produtor</small><strong>{money(summary.organization_net ?? summary.producer_net)}</strong></div></Col>
           <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>GMV de adicionais</small><strong>{money(addOnEconomics.addOnGmv)}</strong></div></Col>
           <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Vendas com adicional</small><strong>{percent(addOnEconomics.attachmentRate)}</strong></div></Col>
           <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Adicional médio</small><strong>{money(addOnEconomics.averageAddOnValue)}</strong></div></Col>
-          <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Receita Cutinapp estimada em adicionais</small><strong>{money(addOnEconomics.estimatedPlatformRevenue)}</strong></div></Col>
-          <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Oportunidade +10 p.p. em adicionais</small><strong>+{money(addOnEconomics.incrementalGmv)} GMV</strong><span>+{money(addOnEconomics.incrementalPlatformRevenue)} receita Cutinapp estimada</span></div></Col>
+          <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Receita líquida estimada em adicionais</small><strong>{money(addOnEconomics.estimatedNetPlatformRevenue)}</strong><span>{money(addOnEconomics.estimatedPlatformRevenue)} antes do processamento suportado</span></div></Col>
+          <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Oportunidade +10 p.p. em adicionais</small><strong>+{money(addOnEconomics.incrementalNetRevenue)} receita líquida</strong><span>+{money(addOnEconomics.incrementalGmv)} GMV · +{money(addOnEconomics.incrementalPlatformRevenue)} receita bruta estimada</span></div></Col>
           <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>GMV pendente recuperável</small><strong>{money(pendingRevenue.pendingGmv)}</strong><span>{pendingRevenue.pendingCount} pedido(s) aguardando pagamento</span></div></Col>
           <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Receita Cutinapp em pendências</small><strong>{money(pendingRevenue.estimatedPlatformRevenue)}</strong><span>estimativa pelo fee do pedido ou take rate efetivo</span></div></Col>
         </Row>
         <Alert variant="info" className="mb-3">
-          O GMV considera as vendas pagas. A receita Cutinapp corresponde às taxas da plataforma já registradas nas vendas. A receita por venda mostra quanto cada pedido pago gera, em média, para a plataforma, e o take rate efetivo mostra quanto dessa receita representa sobre o GMV. Os indicadores de adicionais consideram itens não classificados como ingresso. A oportunidade de +10 p.p. simula somente mais vendas aderindo a adicionais pelo valor médio já observado, pelo take rate efetivo e pela margem de contribuição após processamento do próprio evento. As pendências mostram receita potencial já iniciada no checkout; usam a taxa registrada no pedido quando disponível e, como fallback analítico, o take rate efetivo da produção. Nenhuma projeção altera preços, taxas ou regras de pagamento e nenhuma delas representa garantia de receita.
+          O GMV considera as vendas pagas. A receita Cutinapp corresponde às taxas brutas registradas; receita líquida, receita líquida por venda e take rate líquido descontam somente o processamento que a Peter Tecnet efetivamente suporta nos pedidos carregados, respeitando o settlement registrado. Os indicadores de adicionais consideram itens não classificados como ingresso e agora priorizam a contribuição líquida estimada, não apenas receita bruta. A oportunidade de +10 p.p. simula somente mais vendas aderindo a adicionais pelo valor médio já observado e pela margem de contribuição após processamento. As pendências mostram receita potencial já iniciada no checkout; usam a taxa registrada no pedido quando disponível e, como fallback analítico, o take rate efetivo da produção. Nenhuma projeção altera preços, taxas ou regras de pagamento e nenhuma delas representa garantia de receita.
         </Alert>
         {!!pendingRevenue.events.length && <Card className="cut-commerce-card mb-3">
           <Card.Body>
