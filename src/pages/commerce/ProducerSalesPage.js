@@ -97,9 +97,11 @@ export default function ProducerSalesPage() {
     const benchmarkAddOnValue = addOnEconomics.averageAddOnValue;
 
     orders.filter((order) => order.status === "paid").forEach((order) => {
-      const eventId = String(order.event?.id || order.event_id || order.event?.title || "evento");
+      const editableId = order.event?.id || order.event_id || null;
+      const eventId = String(editableId || order.event?.title || "evento");
       const current = grouped.get(eventId) || {
         id: eventId,
+        editableId,
         title: order.event?.title || "Evento",
         paidCount: 0,
         gmv: 0,
@@ -216,7 +218,7 @@ export default function ProducerSalesPage() {
               <div>
                 <small>Monetização por evento</small>
                 <h2>Onde há mais receita incremental disponível</h2>
-                <p>Os eventos são priorizados pela oportunidade estimada de elevar em 10 pontos percentuais a adesão aos adicionais, usando somente o valor médio real dos adicionais já vendidos e o take rate observado.</p>
+                <p>Os eventos são priorizados pela oportunidade estimada de elevar em 10 pontos percentuais a adesão aos adicionais, usando somente o valor médio real dos adicionais já vendidos e o take rate observado. Use a ação de cada evento para transformar a oportunidade em configuração de cross-sell.</p>
               </div>
             </div>
             <Row className="g-3">
@@ -229,6 +231,7 @@ export default function ProducerSalesPage() {
                   <span>Receita Cutinapp / venda {money(event.platformRevenuePerSale)} · Take rate {percent(event.takeRate)}</span>
                   <span>Ticket médio {money(event.averageTicket)} · Líquido do produtor {money(event.producerNet)}</span>
                   <span>Adicionais: {money(event.addOnGmv)} GMV · {percent(event.addOnAttachmentRate)} das vendas · médio {money(event.averageAddOnValue)}</span>
+                  {event.editableId && event.incrementalGmv > 0 && <Button as={Link} to={`/event/edit/${event.editableId}`} variant="outline-light" size="sm" className="mt-2 align-self-start">{event.addOnOrders > 0 ? "Otimizar adicionais" : "Ativar adicionais"}</Button>}
                 </div>
               </Col>)}
             </Row>
