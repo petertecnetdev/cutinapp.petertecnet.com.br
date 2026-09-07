@@ -212,6 +212,24 @@ export default function EventUpdatePage() {
     }
   };
 
+  const publishFromActivation = () => {
+    try {
+      window.PeterTecnetTelemetry?.track?.("producer_fast_publish_started", {
+        label: "Produtor iniciou publicação direta após criar o primeiro lote",
+        target: String(eventData?.id || id),
+        metadata: {
+          event_id: Number(eventData?.id || id),
+          activation_stage: "publish_event",
+          next_step: "first_sale",
+          ticket_lots: Number(eventData?.tickets_count || 0),
+        },
+      });
+    } catch (_) {
+      // Telemetry must never interrupt producer activation.
+    }
+    togglePublication();
+  };
+
   const shareForFirstSale = () => {
     const url = buildFirstSaleShareUrl(eventData);
     if (!url) {
@@ -316,6 +334,43 @@ export default function EventUpdatePage() {
 
         {error && <Alert variant="danger">{error}</Alert>}
         {success && <Alert variant="success">{success}</Alert>}
+
+        {isFirstTicketActivation && eventData && (
+          <Card className="cut-panel mb-4">
+            <Card.Body className="p-4 p-lg-5">
+              <div className="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-4">
+                <div>
+                  <span className="cut-eyebrow">Próximo passo</span>
+                  <h2 className="cut-section-title mt-2 mb-2">{eventData.is_published ? "Seu evento já está à venda" : "Seu primeiro lote está pronto"}</h2>
+                  <p className="text-secondary mb-0">
+                    {eventData.is_published
+                      ? "A página pública está liberada. Agora compartilhe o evento para acelerar a primeira venda."
+                      : "Publique agora para liberar a página de vendas. Você pode continuar ajustando os detalhes do evento depois."}
+                  </p>
+                </div>
+                <div className="d-grid gap-2" style={{ minWidth: 250 }}>
+                  {!eventData.is_published ? (
+                    <Button
+                      type="button"
+                      size="lg"
+                      onClick={publishFromActivation}
+                      disabled={publishing || eventData.is_cancelled || Number(eventData.tickets_count || 0) <= 0}
+                    >
+                      <i className="fa-solid fa-rocket me-2" />Publicar e começar a vender
+                    </Button>
+                  ) : eventData.slug ? (
+                    <>
+                      <Button type="button" size="lg" variant="success" onClick={shareForFirstSale}>
+                        <i className="fa-brands fa-whatsapp me-2" />Compartilhar e buscar a primeira venda
+                      </Button>
+                      <Button type="button" variant="outline-light" onClick={() => navigate(`/event/${eventData.slug}`)}>Abrir página de vendas</Button>
+                    </>
+                  ) : null}
+                </div>
+              </div>
+            </Card.Body>
+          </Card>
+        )}
 
         {form && <Form onSubmit={submit} noValidate>
           <input type="hidden" name="production_id" value={form.production_id || ""} />
