@@ -89,7 +89,7 @@ function assertBuildHeadroom() {
 
 function runReactBuild(buildPath) {
   const command = process.platform === 'win32' ? 'react-scripts.cmd' : 'react-scripts';
-  const env = { ...process.env };
+  const env = { ...process.env, GENERATE_SOURCEMAP: "false", INLINE_RUNTIME_CHUNK: "false", IMAGE_INLINE_SIZE_LIMIT: "4096" };
 
   if (buildPath) {
     env.BUILD_PATH = buildPath;

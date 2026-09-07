@@ -1,5 +1,6 @@
 import appApiClient from "./AppApiClient";
 import { createIdempotencyAttemptManager, shouldKeepIdempotencyAttempt } from "../utils/idempotencyAttempts";
+import { cachedPublicGet, invalidatePublicRequestCache } from "../utils/publicRequestCache";
 
 const unwrap = (value) => Array.isArray(value) ? value : Array.isArray(value?.data) ? value.data : [];
 const rename = (data, from, to) => {
@@ -132,8 +133,8 @@ const cutinappService = {
       app_id: data?.application?.id || null,
     };
   },
-  publicEvents: async (params = {}) => (await appApiClient.get("/events", { params })).data,
-  discoveryFacets: async () => (await appApiClient.get("/events/facets")).data,
+  publicEvents: async (params = {}) => cachedPublicGet(appApiClient, "/events", { params, ttlMs: 15000, staleMs: 120000 }),
+  discoveryFacets: async () => cachedPublicGet(appApiClient, "/events/facets", { ttlMs: 60000, staleMs: 600000 }),
   locationStates: async () => (await appApiClient.get("/locations/states")).data.states || [],
   locationCities: async (uf, q = "") => (await appApiClient.get("/locations/cities", { params: { uf, q } })).data.cities || [],
   lookupCep: async (cep) => (await appApiClient.get(`/locations/cep/${String(cep).replace(/\D/g, "")}`)).data.address,
@@ -141,7 +142,7 @@ const cutinappService = {
   profileOverview: async () => (await appApiClient.get("/profile/overview")).data,
   publicProfile: async (userId) => (await appApiClient.get(`/profiles/${Number(userId)}`)).data,
   myProductions: async () => unwrap((await appApiClient.get("/organizations/mine")).data.organizations),
-  publicProductions: async (params = {}) => rename((await appApiClient.get("/organizations/public", { params })).data, "organizations", "productions"),
+  publicProductions: async (params = {}) => rename(await cachedPublicGet(appApiClient, "/organizations/public", { params, ttlMs: 30000, staleMs: 180000 }), "organizations", "productions"),
   getProduction: async (id) => (await appApiClient.get(`/organizations/${id}`)).data.organization,
   productionItems: async (id) => unwrap((await appApiClient.get(`/establishments/${id}/items`)).data.data),
   productionWorkspace: async (id) => (await appApiClient.get(`/organizations/${id}/workspace`)).data,
@@ -154,7 +155,7 @@ const cutinappService = {
   unlikeProductionPost: async (postId) => (await appApiClient.delete(`/organization-community/${postId}/like`)).data,
   uploadProductionMedia: async (organizationId, formData) => (await appApiClient.post(`/organizations/${organizationId}/media`, formData)).data,
   deleteProductionMedia: async (organizationId, mediaId) => (await appApiClient.delete(`/organizations/${organizationId}/media/${mediaId}`)).data,
-  publicProduction: async (slug) => rename((await appApiClient.get(`/organizations/public/${slug}`)).data, "organization", "production"),
+  publicProduction: async (slug) => rename(await cachedPublicGet(appApiClient, `/organizations/public/${slug}`, { ttlMs: 30000, staleMs: 180000 }), "organization", "production"),
   createProduction,
   updateProduction: async (id, formData) => rename((await appApiClient.patch(`/organizations/${id}`, formData)).data, "organization", "production"),
   deleteProduction: async (id) => (await appApiClient.delete(`/organizations/${id}`)).data,
@@ -166,8 +167,8 @@ const cutinappService = {
   resendProducerContract: async (organizationId) => (await appApiClient.post(`/organizations/${organizationId}/agreement/resend`)).data,
   downloadProducerContract: async (organizationId) => (await appApiClient.get(`/organizations/${organizationId}/agreement/pdf`, { responseType: "blob" })).data,
 
-  artists: async (params = {}) => (await appApiClient.get("/artists", { params })).data,
-  publicArtist: async (slug) => (await appApiClient.get(`/artists/${slug}`)).data,
+  artists: async (params = {}) => cachedPublicGet(appApiClient, "/artists", { params, ttlMs: 30000, staleMs: 180000 }),
+  publicArtist: async (slug) => cachedPublicGet(appApiClient, `/artists/${slug}`, { ttlMs: 30000, staleMs: 180000 }),
   publicArtistMembers: async (slug) => (await appApiClient.get(`/artists/${slug}/members`)).data.members || [],
   publicEventArtists: async (slug) => (await appApiClient.get(`/events/public/${slug}/artists`)).data.artists || [],
   eventCommunity: async (slug, params = {}) => (await appApiClient.get(`/events/public/${slug}/community`, { params })).data,
@@ -206,8 +207,8 @@ const cutinappService = {
   notifications: async (params = {}) => (await appApiClient.get("/notifications", { params })).data,
   markNotificationRead: async (notificationId) => (await appApiClient.patch(`/notifications/${notificationId}/read`)).data,
   markAllNotificationsRead: async () => (await appApiClient.patch("/notifications/read-all")).data,
-  publishEvent: async (eventId) => (await appApiClient.post(`/events/${eventId}/publish`)).data,
-  unpublishEvent: async (eventId) => (await appApiClient.post(`/events/${eventId}/unpublish`)).data,
+  publishEvent: async (eventId) => { const data = (await appApiClient.post(`/events/${eventId}/publish`)).data; invalidatePublicRequestCache("/events"); return data; },
+  unpublishEvent: async (eventId) => { const data = (await appApiClient.post(`/events/${eventId}/unpublish`)).data; invalidatePublicRequestCache("/events"); return data; },
 
   eventCourtesies: async (eventId) => (await appApiClient.get(`/events/${eventId}/tickets`)).data,
   updateCourtesy: async (ticketId, payload) => (await appApiClient.patch(`/tickets/${ticketId}`, payload)).data,

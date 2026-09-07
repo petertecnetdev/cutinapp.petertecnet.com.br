@@ -148,10 +148,10 @@ const mergeUniqueEvents = (...collections) => {
   });
 };
 
-const rawSearch = async (params = {}) => (await appApiClient.get("/events", { params })).data;
+const rawSearch = async (params = {}, options = {}) => (await appApiClient.get("/events", { params, signal: options.signal })).data;
 
-const search = async (params = {}) => {
-  const response = await rawSearch(params);
+const search = async (params = {}, options = {}) => {
+  const response = await rawSearch(params, options);
 
   if (!isHomeDiscoverySearch(params)) return response;
 
@@ -159,7 +159,7 @@ const search = async (params = {}) => {
   if (hasLocationFilter(params) && localEvents.length === 0) return response;
 
   try {
-    const todayResponse = await rawSearch({ date: dateKeyInTimeZone(), per_page: 12 });
+    const todayResponse = await rawSearch({ date: dateKeyInTimeZone(), per_page: 12 }, options);
     const todayEvents = todayResponse?.events?.data || [];
     if (todayEvents.length === 0 || !response?.events) return response;
 

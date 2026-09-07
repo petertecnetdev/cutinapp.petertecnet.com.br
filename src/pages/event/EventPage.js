@@ -60,17 +60,22 @@ export default function EventPage() {
     }
 
     let active = true;
+    const controller = new AbortController();
     setLoading(true);
     setError("");
-    eventService.search({ ...current, per_page: 24 })
+    eventService.search({ ...current, view: "compact", per_page: 18 }, { signal: controller.signal })
       .then((response) => {
         if (!active) return;
         setEvents(response.events?.data || []);
         setPagination(response.events || null);
       })
-      .catch((err) => active && setError(err?.message || "Não foi possível buscar eventos agora."))
+      .catch((err) => {
+        if (active && err?.code !== "ERR_CANCELED" && err?.name !== "CanceledError") {
+          setError(err?.message || "Não foi possível buscar eventos agora.");
+        }
+      })
       .finally(() => active && setLoading(false));
-    return () => { active = false; };
+    return () => { active = false; controller.abort(); };
   }, [searchParams, setSearchParams]);
 
   const update = (changes) => {

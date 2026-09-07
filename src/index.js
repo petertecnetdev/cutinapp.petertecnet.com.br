@@ -30,11 +30,14 @@ import { installGlobalImageFallbacks } from "./utils/imageFallback";
 import { installPasswordFieldEnhancer } from "./utils/passwordFieldEnhancer";
 import { installClipboardFallback } from "./utils/clipboard";
 import { installPeterWhatsappFallback } from "./utils/peterWhatsappFallback";
+import { installGlobalImagePerformance } from "./utils/imagePerformance";
+import { trackTelemetry } from "./utils/telemetry";
 
 installGlobalImageFallbacks();
 installPasswordFieldEnhancer();
 installClipboardFallback();
 installPeterWhatsappFallback();
+installGlobalImagePerformance();
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
@@ -47,4 +50,4 @@ root.render(
   </React.StrictMode>
 );
 
-reportWebVitals();
+reportWebVitals((metric) => trackTelemetry("web_vital", { name: metric.name, value: Math.round(metric.value * 100) / 100, rating: metric.rating || null }));

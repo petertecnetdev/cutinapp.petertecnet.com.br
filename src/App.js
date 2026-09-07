@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useContext } from "react";
+import React, { lazy, Suspense, useContext, useEffect } from "react";
 import {
   BrowserRouter as Router,
   Navigate,
@@ -17,9 +17,10 @@ import ProcessingIndicatorComponent from "./components/ProcessingIndicatorCompon
 import SeoManager from "./components/SeoManager";
 import authService from "./services/AuthService";
 import { hasContextRole, isPeterTecnetRoot } from "./utils/applicationRoles";
+import lazyWithPreload from "./utils/lazyWithPreload";
 
-const HomePage = lazy(() => import("./pages/LandingPageV2"));
-const FeedPage = lazy(() => import("./pages/FeedPage"));
+const HomePage = lazyWithPreload(() => import("./pages/LandingPageV2"));
+const FeedPage = lazyWithPreload(() => import("./pages/FeedPage"));
 const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
 const ReportModerationPage = lazy(() => import("./pages/moderation/ReportModerationPage"));
 const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
@@ -36,7 +37,7 @@ const ApplicationAdminEventsPage = lazy(() => import("./pages/admin/ApplicationA
 const ApplicationAdminUsersPage = lazy(() => import("./pages/admin/ApplicationAdminUsersPage"));
 const UserEditPage = lazy(() => import("./pages/user/UserEditPage"));
 const UserProfilePage = lazy(() => import("./pages/user/UserProfilePage"));
-const ProductionListPage = lazy(() => import("./pages/production/ProductionListPage"));
+const ProductionListPage = lazyWithPreload(() => import("./pages/production/ProductionListPage"));
 const ProductionCreatePage = lazy(() => import("./pages/production/ProductionCreatePage"));
 const ProductionMinePage = lazy(() => import("./pages/production/ProductionMinePage"));
 const ProductionViewPage = lazy(() => import("./pages/production/ProductionViewPage"));
@@ -49,7 +50,7 @@ const ProductionAgendaFormPage = lazy(() => import("./pages/production/Productio
 const ArtistListPage = lazy(() => import("./pages/artist/ArtistListPage"));
 const ArtistViewPage = lazy(() => import("./pages/artist/ArtistViewPage"));
 const ArtistManagePage = lazy(() => import("./pages/artist/ArtistManagePage"));
-const EventPage = lazy(() => import("./pages/event/EventPage"));
+const EventPage = lazyWithPreload(() => import("./pages/event/EventPage"));
 const EventCreatePage = lazy(() => import("./pages/event/EventCreatePage"));
 const EventManagePage = lazy(() => import("./pages/event/EventManagePage"));
 const EventUpdatePage = lazy(() => import("./pages/event/EventUpdatePage"));
@@ -63,7 +64,7 @@ const ProducerSalesPage = lazy(() => import("./pages/commerce/ProducerSalesPage"
 const ProducerSaleDetailPage = lazy(() => import("./pages/commerce/ProducerSaleDetailPage"));
 const TicketCreatePage = lazy(() => import("./pages/ticket/TicketCreatePage"));
 const CourtesyManagePage = lazy(() => import("./pages/ticket/CourtesyManagePage"));
-const MyPassesPage = lazy(() => import("./pages/ticket/MyPassesPage"));
+const MyPassesPage = lazyWithPreload(() => import("./pages/ticket/MyPassesPage"));
 const PassDetailPage = lazy(() => import("./pages/ticket/PassDetailPage"));
 const ParticipantsPage = lazy(() => import("./pages/ticket/ParticipantsPage"));
 const CheckinPage = lazy(() => import("./pages/ticket/CheckinPage"));
@@ -71,6 +72,22 @@ const CheckinPage = lazy(() => import("./pages/ticket/CheckinPage"));
 function AppRoutes() {
   const { user, loading } = useContext(AuthContext);
   const location = useLocation();
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    const run = () => {
+      EventPage.preload();
+      ProductionListPage.preload();
+      if (user) {
+        FeedPage.preload();
+        MyPassesPage.preload();
+      } else {
+        HomePage.preload();
+      }
+    };
+    const idle = window.requestIdleCallback ? window.requestIdleCallback(run, { timeout: 1600 }) : window.setTimeout(run, 350);
+    return () => window.cancelIdleCallback ? window.cancelIdleCallback(idle) : window.clearTimeout(idle);
+  }, [user]);
 
   if (loading) return <ProcessingIndicatorComponent label="Preparando Cutinapp" />;
 
