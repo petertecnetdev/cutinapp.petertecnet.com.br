@@ -61,17 +61,31 @@ export default function TicketCreatePage() {
       .then((items) => {
         if (!active) return;
         setEvents(items);
+        const eligibleEvents = items.filter((item) => !item.is_cancelled);
         const exists = items.some((item) => String(item.id) === String(requestedEventId));
         if (!exists && requestedEventId) {
           setEventId("");
           setError("O evento informado não pertence às suas produções Cutinapp. Selecione um evento válido.");
           return;
         }
-        const selected = items.find((item) => String(item.id) === String(requestedEventId));
+        const selected = items.find((item) => String(item.id) === String(requestedEventId))
+          || (!requestedEventId && eligibleEvents.length === 1 ? eligibleEvents[0] : null);
         if (selected) {
+          setEventId(String(selected.id));
           setLimitDate(suggestedLimitDate(selected));
           const capacity = Number(selected.max_attendees || 0);
           if (Number.isInteger(capacity) && capacity > 0) setQuantity(Math.min(capacity, 100000));
+          if (!requestedEventId && eligibleEvents.length === 1) {
+            try {
+              window.PeterTecnetTelemetry?.track?.("producer_first_ticket_event_auto_selected", {
+                label: "Único evento selecionado automaticamente para o primeiro lote",
+                target: String(selected.id),
+                metadata: { activation_stage: "ticket_setup", next_step: "ticket_created", event_id: Number(selected.id) },
+              });
+            } catch (_) {
+              // Telemetry must never interrupt producer onboarding.
+            }
+          }
         }
       })
       .catch((err) => active && setError(err?.message || "Não foi possível carregar seus eventos."))
