@@ -24,7 +24,9 @@ const writeSession = (key, entry) => {
   if (typeof window === "undefined") return;
   try {
     window.sessionStorage.setItem(`${SESSION_PREFIX}${key}`, JSON.stringify(entry));
-  } catch (_) {}
+  } catch (_) {
+    // sessionStorage pode estar indisponível; cache em memória continua funcionando.
+  }
 };
 
 export const invalidatePublicRequestCache = (prefix = "") => {
@@ -37,7 +39,9 @@ export const invalidatePublicRequestCache = (prefix = "") => {
       const requestKey = storageKey.slice(SESSION_PREFIX.length);
       if (!prefix || requestKey.startsWith(prefix)) window.sessionStorage.removeItem(storageKey);
     }
-  } catch (_) {}
+  } catch (_) {
+    // Falha ao limpar sessionStorage não deve bloquear a invalidação em memória.
+  }
 };
 
 export const cachedPublicGet = async (client, url, { params = {}, ttlMs = 15000, staleMs = 120000 } = {}) => {
