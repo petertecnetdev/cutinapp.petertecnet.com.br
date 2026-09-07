@@ -58,9 +58,9 @@ test("keeps monetization efficiency finite when projected incremental orders are
 });
 
 test("only prioritizes add-on upside with positive net platform contribution", () => {
-  expect(addOnMarginGuard({ incrementalGmv: 200, incrementalNetRevenue: 18 })).toMatchObject({ profitable: true, netMargin: 9, minimumNetRevenue: 0 });
-  expect(addOnMarginGuard({ incrementalGmv: 200, incrementalNetRevenue: 0 })).toMatchObject({ profitable: false, netMargin: 0, minimumNetRevenue: 0 });
-  expect(addOnMarginGuard({ incrementalGmv: 0, incrementalNetRevenue: 20 })).toMatchObject({ profitable: false, netMargin: 0, minimumNetRevenue: 0 });
+  expect(addOnMarginGuard({ incrementalGmv: 200, incrementalNetRevenue: 18 })).toMatchObject({ profitable: true, netMargin: 9, minimumNetRevenue: 5 });
+  expect(addOnMarginGuard({ incrementalGmv: 200, incrementalNetRevenue: 0 })).toMatchObject({ profitable: false, netMargin: 0, minimumNetRevenue: 5 });
+  expect(addOnMarginGuard({ incrementalGmv: 0, incrementalNetRevenue: 20 })).toMatchObject({ profitable: false, netMargin: 0, minimumNetRevenue: 5 });
 });
 
 test("requires a minimum net margin before recommending add-on expansion", () => {
@@ -70,6 +70,10 @@ test("requires a minimum net margin before recommending add-on expansion", () =>
 });
 
 test("requires projected net revenue to justify producer attention", () => {
+  expect(addOnMarginGuard({ incrementalGmv: 100, incrementalNetRevenue: 4.99 }))
+    .toMatchObject({ profitable: false, netMargin: 4.99, minimumNetRevenue: 5 });
+  expect(addOnMarginGuard({ incrementalGmv: 100, incrementalNetRevenue: 5 }))
+    .toMatchObject({ profitable: true, netMargin: 5, minimumNetRevenue: 5 });
   expect(addOnMarginGuard({ incrementalGmv: 1000, incrementalNetRevenue: 25, minimumNetRevenue: 30 }))
     .toMatchObject({ profitable: false, netMargin: 2.5, minimumNetRevenue: 30 });
   expect(addOnMarginGuard({ incrementalGmv: 1000, incrementalNetRevenue: 35, minimumNetRevenue: 30 }))
