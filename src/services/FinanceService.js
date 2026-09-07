@@ -1,6 +1,29 @@
 import appApiClient from "./AppApiClient";
 import { createIdempotentMutation, createMutationRequestKey } from "../utils/idempotencyAttempts";
 
+const uploadIdentityDocumentIdempotently = createIdempotentMutation({
+  storagePrefix: "cutinapp_finance_identity_document_attempt_",
+  keyPrefix: "finance-identity-document",
+  requestKeyFor: (organizationId, front, back = null) => createMutationRequestKey({
+    organization_id: String(organizationId),
+    front,
+    back,
+    consent: "1",
+  }),
+  mutate: async ({ idempotencyKey }, organizationId, front, back = null) => {
+    const body = new FormData();
+    body.append("front", front);
+    if (back) body.append("back", back);
+    body.append("consent", "1");
+
+    return (
+      await appApiClient.post(`/organizations/${organizationId}/finance/identity/document`, body, {
+        headers: { "Idempotency-Key": idempotencyKey },
+      })
+    ).data;
+  },
+});
+
 const requestPayoutIdempotently = createIdempotentMutation({
   storagePrefix: "cutinapp_finance_payout_attempt_",
   keyPrefix: "finance-payout",
@@ -29,15 +52,7 @@ const financeService = {
     await appApiClient.put(`/organizations/${organizationId}/finance/identity`, payload)
   ).data,
 
-  uploadDocument: async (organizationId, front, back = null) => {
-    const body = new FormData();
-    body.append("front", front);
-    if (back) body.append("back", back);
-    body.append("consent", "1");
-    return (
-      await appApiClient.post(`/organizations/${organizationId}/finance/identity/document`, body)
-    ).data;
-  },
+  uploadDocument: uploadIdentityDocumentIdempotently,
 
   startLiveness: async (organizationId) => (
     await appApiClient.post(`/organizations/${organizationId}/finance/identity/liveness-session`)
