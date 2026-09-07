@@ -65,6 +65,9 @@ export default function AcquisitionDashboardPage() {
 
   const metrics = dashboard?.metrics || {};
   const commissionMax = Math.max(0, Number(dashboard?.commission_max_percentage || 0));
+  const commissionEconomics = dashboard?.commission_economics || {};
+  const retainedMargin = Math.max(0, Number(commissionEconomics.minimum_retained_margin_percentage || 0));
+  const processingReserve = Math.max(0, Number(commissionEconomics.processing_reserve_percentage || 0));
   const conversion = Number(metrics.conversion_rate || 0);
   const funnelWidth = useMemo(() => `${Math.max(0, Math.min(100, conversion))}%`, [conversion]);
 
@@ -197,7 +200,7 @@ export default function AcquisitionDashboardPage() {
                     </div>
                     <div className="acq-grid acq-grid--3">
                       <label className="acq-span-2"><span>Título</span><input required value={eventItem.title} onChange={(e) => setEvent(eventIndex, "title", e.target.value)} /></label>
-                      <label><span>Comissão do agente (%)</span><input required type="number" min="0" max={commissionMax} step="0.01" value={eventItem.commission_percentage} onChange={(e) => setEvent(eventIndex, "commission_percentage", e.target.value)} /><small>Máximo {commissionMax.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}% para a comissão sobre GMV não superar a taxa da plataforma.</small></label>
+                      <label><span>Comissão do agente (%)</span><input required type="number" min="0" max={commissionMax} step="0.01" value={eventItem.commission_percentage} onChange={(e) => setEvent(eventIndex, "commission_percentage", e.target.value)} /><small>Máximo econômico {commissionMax.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}% do GMV. O limite preserva {retainedMargin.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}% para a Peter Tecnet{processingReserve > 0 ? ` e ${processingReserve.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}% de processamento observado` : ""}.</small></label>
                       <label><span>Início</span><input required type="datetime-local" value={eventItem.start_date} onChange={(e) => setEvent(eventIndex, "start_date", e.target.value)} /></label>
                       <label><span>Fim</span><input required type="datetime-local" value={eventItem.end_date} onChange={(e) => setEvent(eventIndex, "end_date", e.target.value)} /></label>
                       <label><span>Formato</span><select value={eventItem.event_format} onChange={(e) => setEvent(eventIndex, "event_format", e.target.value)}><option value="in_person">Presencial</option><option value="online">Online</option><option value="hybrid">Híbrido</option></select></label>
@@ -246,7 +249,7 @@ export default function AcquisitionDashboardPage() {
             </section>
 
             <section className="acq-panel">
-              <div className="acq-panel__head"><div><span className="acq-kicker">Comissões</span><h2>Por evento</h2></div></div>
+              <div className="acq-panel__head"><div><span className="acq-kicker">Comissões</span><h2>Por evento</h2><small>Teto atual: {commissionMax.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}% do GMV, já descontando reservas econômicas da plataforma.</small></div></div>
               <div className="acq-commission-list">
                 {(dashboard?.commissions || []).length === 0 && <div className="acq-empty">As comissões aparecerão após o primeiro onboarding.</div>}
                 {(dashboard?.commissions || []).map((row) => (
