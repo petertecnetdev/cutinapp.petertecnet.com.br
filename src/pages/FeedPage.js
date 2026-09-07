@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useContext, useEffect, useState } from "react";
 import { Alert, Badge, Button, Card, Col, Container, Form, Row } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
@@ -6,6 +6,7 @@ import NavlogComponent from "../components/NavlogComponent";
 import SkeletonCard from "../components/SkeletonCard";
 import cutinappService from "../services/CutinappService";
 import { storageUrl } from "../config";
+import "./FeedPage.css";
 
 const fmt = (value) => value ? new Intl.DateTimeFormat("pt-BR", { weekday: "short", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" }).format(new Date(value)) : "";
 const imageUrl = (value) => !value ? "" : /^https?:/.test(value) ? value : `${storageUrl}${String(value).replace(/^\//, "")}`;
@@ -24,9 +25,6 @@ export default function FeedPage() {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
   const [events, setEvents] = useState([]);
-  const [publishEvents, setPublishEvents] = useState([]);
-  const [publishEventsLoading, setPublishEventsLoading] = useState(false);
-  const [publishEventsLoaded, setPublishEventsLoaded] = useState(false);
   const [communityActivity, setCommunityActivity] = useState([]);
   const [context, setContext] = useState({});
   const [page, setPage] = useState(1);
@@ -38,7 +36,6 @@ export default function FeedPage() {
   const [followedProductions, setFollowedProductions] = useState(() => new Set());
   const [followBusy, setFollowBusy] = useState(null);
   const [postBody, setPostBody] = useState("");
-  const [postEventId, setPostEventId] = useState("");
   const [publishing, setPublishing] = useState(false);
 
   const load = useCallback(async (nextPage = 1) => {
@@ -69,40 +66,7 @@ export default function FeedPage() {
     }
   }, []);
 
-  const loadPublishEvents = useCallback(async () => {
-    if (publishEventsLoaded || publishEventsLoading) return;
-    setPublishEventsLoading(true);
-    try {
-      const response = await cutinappService.publicEvents({ sort: "newest", per_page: 50 });
-      setPublishEvents(Array.isArray(response.events?.data) ? response.events.data : []);
-    } catch {
-      // The feed events below remain a safe fallback for the composer. A failure
-      // here must never hide the publishing UI again.
-      setPublishEvents([]);
-    } finally {
-      setPublishEventsLoading(false);
-      setPublishEventsLoaded(true);
-    }
-  }, [publishEventsLoaded, publishEventsLoading]);
-
   useEffect(() => { load(1); }, [load]);
-
-  const composerEvents = useMemo(() => {
-    const seen = new Set();
-    return [...publishEvents, ...events].filter((event) => {
-      const id = String(event?.id || "");
-      if (!id || seen.has(id)) return false;
-      seen.add(id);
-      return true;
-    });
-  }, [publishEvents, events]);
-
-  useEffect(() => {
-    setPostEventId((current) => {
-      if (current && composerEvents.some((event) => String(event.id) === String(current))) return current;
-      return composerEvents[0]?.id ? String(composerEvents[0].id) : "";
-    });
-  }, [composerEvents]);
 
   const publishPost = async (event) => {
     event.preventDefault();
@@ -119,16 +83,12 @@ export default function FeedPage() {
       setError("Escreva pelo menos 2 caracteres para publicar.");
       return;
     }
-    if (!postEventId) {
-      setError("Escolha o evento relacionado à publicação.");
-      return;
-    }
 
     setPublishing(true);
     try {
-      await cutinappService.createEventPost(Number(postEventId), { body });
+      await cutinappService.createFeedPost({ body });
       setPostBody("");
-      setSuccess("Publicação enviada para a timeline.");
+      setSuccess("Publicado na timeline.");
       await load(1);
     } catch (err) {
       setError(err?.response?.data?.message || err?.message || "Não foi possível publicar agora.");
@@ -154,32 +114,42 @@ export default function FeedPage() {
     }
   };
 
+  const composerAvatar = imageUrl(user?.avatar);
+  const composerInitial = String(user?.first_name || user?.name || "U").trim().slice(0, 1).toUpperCase() || "U";
+  const composerPlaceholder = user?.first_name
+    ? `No que você está pensando, ${user.first_name}?`
+    : "No que você está pensando?";
+
   return <div className="cut-app-page"><NavlogComponent />
     <Container className="cut-page-container py-4 py-lg-5">
       <div className="cut-page-heading"><div><span className="cut-eyebrow">Timeline</span><h1>Feed Cutinapp</h1><p>Publique, acompanhe a comunidade e descubra os eventos, produções e artistas que fazem sentido para você.</p>{context.preferred_city && <span className="cut-feed-context"><i className="fa-solid fa-location-dot" /> Sua preferência: {context.preferred_city}{context.preferred_uf ? ` - ${context.preferred_uf}` : ""}</span>}</div><div className="cut-card-actions"><Button onClick={() => navigate("/event")}>Explorar eventos</Button></div></div>
       {error && <Alert variant="danger" dismissible onClose={() => setError("")}>{error}</Alert>}
       {success && <Alert variant="success" dismissible onClose={() => setSuccess("")}>{success}</Alert>}
 
-      {!loading && <Card className="cut-feed-card mb-4">
-        <Card.Body className="p-4">
-          <div className="cut-section-heading mb-3"><div><span className="cut-eyebrow">Comunidade</span><h2>Compartilhe com a timeline</h2></div></div>
+      {!loading && <Card className="cut-feed-composer mb-4">
+        <Card.Body>
           <Form onSubmit={publishPost}>
-            <Form.Group className="mb-3" controlId="timeline-event">
-              <Form.Label>Evento relacionado</Form.Label>
-              <Form.Select value={postEventId} onChange={(event) => setPostEventId(event.target.value)} onFocus={loadPublishEvents} onPointerDown={loadPublishEvents} disabled={publishing || composerEvents.length === 0}>
-                {publishEventsLoading && composerEvents.length === 0 && <option value="">Carregando eventos publicados...</option>}
-                {!publishEventsLoading && composerEvents.length === 0 && <option value="">Nenhum evento público disponível</option>}
-                {composerEvents.map((event) => <option value={event.id} key={event.id}>{event.title}</option>)}
-              </Form.Select>
-              {!publishEventsLoading && composerEvents.length === 0 && <Form.Text>Quando um evento for publicado, ele ficará disponível aqui para receber posts.</Form.Text>}
-            </Form.Group>
-            <Form.Group className="mb-3" controlId="timeline-post">
-              <Form.Label>O que você quer compartilhar?</Form.Label>
-              <Form.Control as="textarea" rows={3} maxLength={3000} value={postBody} onChange={(event) => setPostBody(event.target.value)} placeholder="Conte algo sobre o evento, combine com a galera ou compartilhe sua expectativa..." disabled={publishing} />
-              <Form.Text>{postBody.length}/3000</Form.Text>
-            </Form.Group>
-            <div className="cut-card-actions justify-content-end">
-              <Button type="submit" disabled={publishing || postBody.trim().length < 2 || !postEventId}>{publishing ? "Publicando..." : "Publicar na timeline"}</Button>
+            <div className="cut-feed-composer__main">
+              <div className="cut-feed-composer__avatar" aria-hidden="true">
+                {composerAvatar ? <img src={composerAvatar} alt="" /> : <span>{composerInitial}</span>}
+              </div>
+              <Form.Control
+                as="textarea"
+                rows={2}
+                maxLength={3000}
+                value={postBody}
+                onChange={(event) => setPostBody(event.target.value)}
+                placeholder={composerPlaceholder}
+                aria-label="Criar publicação na timeline"
+                disabled={publishing}
+              />
+            </div>
+            <div className="cut-feed-composer__footer">
+              <span className="cut-feed-composer__visibility"><i className="fa-solid fa-earth-americas" /> Público na Cutinapp</span>
+              <div className="cut-feed-composer__actions">
+                {postBody.length > 0 && <small>{postBody.length}/3000</small>}
+                <Button type="submit" size="sm" disabled={publishing || postBody.trim().length < 2}>{publishing ? "Publicando..." : "Publicar"}</Button>
+              </div>
             </div>
           </Form>
         </Card.Body>
@@ -193,10 +163,10 @@ export default function FeedPage() {
               <Card.Body className="p-4">
                 <div className="d-flex align-items-center gap-3 mb-3">
                   {post.avatar ? <img src={imageUrl(post.avatar)} alt="" width="44" height="44" className="rounded-circle object-fit-cover" /> : <div className="cut-empty-icon" style={{ width: 44, height: 44, margin: 0 }}><i className="fa-regular fa-user" /></div>}
-                  <div><strong>{authorName(post)}</strong><div><small>{fmt(post.created_at)}</small></div></div>
+                  <div><strong>{authorName(post)}</strong><div><small>{fmt(post.created_at)}{!post.event_slug ? " · Público" : ""}</small></div></div>
                 </div>
                 <p className="mb-3" style={{ whiteSpace: "pre-wrap" }}>{post.body}</p>
-                <Button variant="outline-light" size="sm" onClick={() => navigate(`/event/${post.event_slug}#comunidade`)}>{post.event_title || "Ver evento"}</Button>
+                {post.event_slug && <Button variant="outline-light" size="sm" onClick={() => navigate(`/event/${post.event_slug}#comunidade`)}>{post.event_title || "Ver evento"}</Button>}
               </Card.Body>
             </Card>
           </Col>)}</Row>
