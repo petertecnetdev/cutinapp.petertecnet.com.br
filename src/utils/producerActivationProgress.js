@@ -15,10 +15,10 @@ export const producerActivationNextStep = ({ productions, events } = {}) => {
 
   if (productionRows.length === 0) {
     return {
-      stage: "production",
-      label: "Criar produção",
-      description: "Comece com o nome da produção e siga direto para o primeiro evento.",
-      route: "/production/create",
+      stage: "event",
+      label: "Criar primeiro evento",
+      description: "Comece pelo evento. Se ainda não tiver produção, crie o nome dela sem sair do cadastro e siga direto para o primeiro lote.",
+      route: "/event/create",
     };
   }
 
