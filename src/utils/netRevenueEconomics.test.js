@@ -42,3 +42,23 @@ test("stays safe with empty or malformed values", () => {
     estimatedNetRevenueAtRisk: 0,
   });
 });
+
+test("uses settlement-aware platform contribution when API provides it", () => {
+  expect(estimateNetRevenueEconomics({
+    grossRevenue: 10000,
+    platformRevenue: 1000,
+    processorFees: 300,
+    processorFeesBorneByPlatform: 80,
+    platformContributionAfterProcessing: 920,
+    paidOrders: 40,
+    recoveredPlatformRevenue: 100,
+    recoveredPlatformContributionAfterProcessing: 92,
+  })).toMatchObject({
+    netRevenue: 920,
+    netTakeRate: 9.2,
+    processingShareOfPlatformRevenue: 8,
+    netRevenuePerPaidOrder: 23,
+    estimatedRecoveredNetRevenue: 92,
+    contributionRatio: 0.92,
+  });
+});
