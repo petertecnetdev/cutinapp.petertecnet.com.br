@@ -57,3 +57,9 @@ test("only prioritizes add-on upside with positive net platform contribution", (
   expect(addOnMarginGuard({ incrementalGmv: 200, incrementalNetRevenue: 0 })).toEqual({ profitable: false, netMargin: 0 });
   expect(addOnMarginGuard({ incrementalGmv: 0, incrementalNetRevenue: 20 })).toEqual({ profitable: false, netMargin: 0 });
 });
+
+test("requires a minimum net margin before recommending add-on expansion", () => {
+  expect(addOnMarginGuard({ incrementalGmv: 1000, incrementalNetRevenue: 15 })).toEqual({ profitable: false, netMargin: 1.5 });
+  expect(addOnMarginGuard({ incrementalGmv: 1000, incrementalNetRevenue: 25 })).toEqual({ profitable: true, netMargin: 2.5 });
+  expect(addOnMarginGuard({ incrementalGmv: 1000, incrementalNetRevenue: 15, minimumNetMargin: 1 })).toEqual({ profitable: true, netMargin: 1.5 });
+});
