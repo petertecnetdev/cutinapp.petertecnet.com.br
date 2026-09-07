@@ -62,6 +62,7 @@ export const producerActivationNextStep = ({ productions, events } = {}) => {
       description: `${published.title || "Seu evento"} já está no ar. Compartilhe a página de vendas para buscar a primeira compra.`,
       route: `/event/edit/${eventIdFor(published)}?activation=first-ticket&eventId=${eventIdFor(published)}`,
       eventId: eventIdFor(published),
+      eventSlug: String(published.slug || "").trim() || null,
     };
   }
 
