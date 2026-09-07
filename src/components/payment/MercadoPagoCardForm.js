@@ -33,6 +33,18 @@ const money = (value) => new Intl.NumberFormat("pt-BR", {
   currency: "BRL",
 }).format(Number(value || 0));
 
+const trackCardCheckout = (type, metadata = {}) => {
+  try {
+    window.PeterTecnetTelemetry?.track?.(type, {
+      label: type === "card_sdk_retry_clicked" ? "Tentar carregar cartão novamente" : "Falha ao carregar ambiente do cartão",
+      target: "checkout-card",
+      metadata,
+    });
+  } catch (_) {
+    // Telemetry must never interrupt checkout.
+  }
+};
+
 export default function MercadoPagoCardForm({ publicKey, amount, email, disabled, onSubmit }) {
   const submitRef = useRef(onSubmit);
   const disabledRef = useRef(disabled);
@@ -42,6 +54,8 @@ export default function MercadoPagoCardForm({ publicKey, amount, email, disabled
   const [ready, setReady] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [sdkAttempt, setSdkAttempt] = useState(0);
 
   submitRef.current = onSubmit;
   disabledRef.current = disabled;
@@ -54,6 +68,7 @@ export default function MercadoPagoCardForm({ publicKey, amount, email, disabled
     setSubmitting(false);
     setReady(false);
     setError("");
+    setLoadFailed(false);
 
     if (!publicKey || Number(amount) <= 0) return undefined;
 
@@ -80,9 +95,12 @@ export default function MercadoPagoCardForm({ publicKey, amount, email, disabled
             onFormMounted: (formError) => {
               if (!active) return;
               if (formError) {
+                setLoadFailed(true);
                 setError("Não foi possível preparar o formulário seguro do cartão.");
+                trackCardCheckout("card_sdk_load_failed", { stage: "form_mount", attempt: sdkAttempt + 1, amount: Number(amount || 0) });
                 return;
               }
+              setLoadFailed(false);
               setReady(true);
             },
             onSubmit: async (event) => {
@@ -123,7 +141,12 @@ export default function MercadoPagoCardForm({ publicKey, amount, email, disabled
         });
         cardFormRef.current = localCardForm;
       })
-      .catch((err) => active && setError(err?.message || "Não foi possível carregar o Mercado Pago."));
+      .catch((err) => {
+        if (!active) return;
+        setLoadFailed(true);
+        setError(err?.message || "Não foi possível carregar o Mercado Pago.");
+        trackCardCheckout("card_sdk_load_failed", { stage: "sdk_load", attempt: sdkAttempt + 1, amount: Number(amount || 0) });
+      });
 
     return () => {
       active = false;
@@ -131,7 +154,15 @@ export default function MercadoPagoCardForm({ publicKey, amount, email, disabled
       if (cardFormRef.current === localCardForm) cardFormRef.current = null;
       if (typeof localCardForm?.unmount === "function") localCardForm.unmount();
     };
-  }, [publicKey, amount]);
+  }, [publicKey, amount, sdkAttempt]);
+
+  const retrySecureCardEnvironment = () => {
+    if (disabled || submitting) return;
+    trackCardCheckout("card_sdk_retry_clicked", { attempt: sdkAttempt + 2, amount: Number(amount || 0) });
+    setError("");
+    setLoadFailed(false);
+    setSdkAttempt((current) => current + 1);
+  };
 
   const paymentBusy = disabled || submitting;
 
@@ -148,7 +179,12 @@ export default function MercadoPagoCardForm({ publicKey, amount, email, disabled
     </div>
 
     <form id="cut-mp-card-form" className="cut-payment-card-form">
-      {error && <Alert variant="danger" role="alert" aria-live="assertive">{error}</Alert>}
+      {error && <Alert variant="danger" role="alert" aria-live="assertive">
+        <div>{error}</div>
+        {loadFailed && <Button type="button" variant="light" className="w-100 mt-3" onClick={retrySecureCardEnvironment} disabled={paymentBusy}>
+          <i className="fa-solid fa-rotate-right me-2" />Tentar carregar cartão novamente
+        </Button>}
+      </Alert>}
 
       <label className="cut-payment-label" htmlFor="cut-mp-card-number">Número do cartão</label>
       <div className="cut-payment-secure-field" id="cut-mp-card-number" style={secureFieldStyle} />
@@ -198,7 +234,7 @@ export default function MercadoPagoCardForm({ publicKey, amount, email, disabled
 
       <Button id="cut-mp-card-submit" type="submit" className="w-100 cut-payment-submit" disabled={paymentBusy || !ready} aria-busy={paymentBusy || !ready}>
         <i className="fa-solid fa-lock me-2" />
-        {paymentBusy ? "Processando pagamento..." : ready ? `Pagar ${money(amount)} com cartão` : "Preparando ambiente seguro..."}
+        {paymentBusy ? "Processando pagamento..." : ready ? `Pagar ${money(amount)} com cartão` : loadFailed ? "Ambiente do cartão indisponível" : "Preparando ambiente seguro..."}
       </Button>
     </form>
 
