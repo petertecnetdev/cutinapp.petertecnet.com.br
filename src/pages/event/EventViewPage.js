@@ -183,6 +183,24 @@ export default function EventViewPage() {
   }, [event, isPastEvent]);
 
   useEffect(() => {
+    if (!event?.id || isOwner) return;
+    try {
+      window.PeterTecnetTelemetry?.track?.("producer_acquisition_event_page_cta_viewed", {
+        label: "CTA de produtor exibido em página pública de evento",
+        target: String(event.id),
+        metadata: {
+          source_event_id: Number(event.id),
+          acquisition_surface: "public_event",
+          authenticated: Boolean(user),
+          next_step: "event_creation",
+        },
+      });
+    } catch (_) {
+      // Telemetria nunca bloqueia a página pública.
+    }
+  }, [event?.id, isOwner, user]);
+
+  useEffect(() => {
     if (!event?.id || !user?.id) {
       setFavorite(false);
       setInterested(false);
@@ -292,6 +310,35 @@ export default function EventViewPage() {
     }
   };
 
+  const startProducerActivation = () => {
+    try {
+      window.PeterTecnetTelemetry?.track?.("producer_acquisition_event_page_cta_clicked", {
+        label: "Visitante iniciou criação de evento a partir de uma página pública",
+        target: String(event?.id || slug || "public_event"),
+        metadata: {
+          source_event_id: Number(event?.id || 0),
+          acquisition_surface: "public_event",
+          authenticated: Boolean(user),
+          next_step: "event_creation",
+        },
+      });
+    } catch (_) {
+      // Telemetria nunca bloqueia aquisição de produtores.
+    }
+
+    if (user) {
+      navigate("/event/create", { state: { acquisitionSource: "public_event" } });
+      return;
+    }
+
+    navigate("/register", {
+      state: {
+        from: "/event/create",
+        acquisitionSource: "public_event",
+      },
+    });
+  };
+
   const setEngagement = async (kind) => {
     if (kind === "interested" && !canMarkInterested) {
       setError("Este evento já terminou e não aceita novas marcações de interesse.");
@@ -364,6 +411,8 @@ export default function EventViewPage() {
           <EventCommercePanel slug={slug} eventId={event.id} user={user} onLoginRequired={(returnTo = `${location.pathname}${location.search}`) => navigate("/login", { state: { from: returnTo } })} /></>}
           {isOwner && <div className="cut-owner-actions mt-4"><Button variant="outline-light" onClick={() => navigate(`/event/edit/${event.id}`)}>Gerenciar</Button><Button variant="outline-light" onClick={() => navigate(`/event/${event.id}/lineup`)}>Line-up</Button><Button variant="outline-light" onClick={() => navigate(`/event/${event.id}/artist-claims`)}>Reivindicações</Button>{!isPastEvent && <Button variant="outline-light" onClick={() => navigate(`/checkin?eventId=${event.id}`)}>Portaria</Button>}</div>}
         </Card.Body></Card></Col></Row>
+
+        {!isOwner && <Card className="cut-panel mt-4 mb-4"><Card.Body className="p-4 p-lg-5"><div className="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4"><div><span className="cut-eyebrow">Você também produz eventos?</span><h2 className="cut-section-title mt-2 mb-2">Crie seu primeiro evento na Cutinapp</h2><p className="text-secondary mb-0">Comece pelo evento. Se ainda não tiver uma produção, você cria o nome dela no mesmo fluxo e segue direto para o primeiro lote e a publicação.</p></div><Button size="lg" onClick={startProducerActivation} className="flex-shrink-0"><i className="fa-solid fa-bolt me-2" />{user ? "Criar meu evento" : "Começar como produtor"}</Button></div></Card.Body></Card>}
 
         <EventCommunitySection event={event} isOwner={isOwner} />
       </Container>
