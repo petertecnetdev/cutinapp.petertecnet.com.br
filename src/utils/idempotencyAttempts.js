@@ -98,3 +98,46 @@ export const createIdempotencyAttemptManager = ({ storagePrefix, keyPrefix = "mu
     },
   };
 };
+
+export const createIdempotentMutation = ({
+  storagePrefix,
+  keyPrefix = "mutation",
+  requestKeyFor = (...args) => createMutationRequestKey(args.length <= 1 ? args[0] : args),
+  mutate,
+}) => {
+  if (typeof mutate !== "function") throw new TypeError("mutate must be a function");
+
+  const pendingRequests = new Map();
+  const attempts = createIdempotencyAttemptManager({ storagePrefix, keyPrefix });
+
+  return (...args) => {
+    const requestKey = String(requestKeyFor(...args));
+    const pending = pendingRequests.get(requestKey);
+    if (pending) return pending;
+
+    const idempotencyKey = attempts.keyFor(requestKey);
+    let mutationResult;
+    try {
+      mutationResult = mutate({ idempotencyKey, requestKey }, ...args);
+    } catch (error) {
+      if (!shouldKeepIdempotencyAttempt(error)) attempts.clear(requestKey);
+      return Promise.reject(error);
+    }
+
+    const request = Promise.resolve(mutationResult)
+      .then((result) => {
+        attempts.clear(requestKey);
+        return result;
+      })
+      .catch((error) => {
+        if (!shouldKeepIdempotencyAttempt(error)) attempts.clear(requestKey);
+        throw error;
+      })
+      .finally(() => {
+        if (pendingRequests.get(requestKey) === request) pendingRequests.delete(requestKey);
+      });
+
+    pendingRequests.set(requestKey, request);
+    return request;
+  };
+};
