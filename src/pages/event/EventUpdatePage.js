@@ -41,9 +41,11 @@ export default function EventUpdatePage() {
   const suggestedAddOnPrice = Number(queryParams.get("addonSuggested") || 0);
   const suggestedAddOnStock = Number(queryParams.get("addonStock") || 0);
   const requestedAddOnSource = queryParams.get("addonSource");
+  const suggestedAddOnNetMargin = Number(queryParams.get("addonNetMargin") || 0);
   const suggestedAddOnSource = ["event", "production"].includes(requestedAddOnSource) ? requestedAddOnSource : "";
   const hasSuggestedAddOnPrice = Number.isFinite(suggestedAddOnPrice) && suggestedAddOnPrice > 0 && Boolean(suggestedAddOnSource);
   const hasSuggestedAddOnStock = Number.isInteger(suggestedAddOnStock) && suggestedAddOnStock > 0 && suggestedAddOnStock <= 100;
+  const boundedSuggestedAddOnNetMargin = Number.isFinite(suggestedAddOnNetMargin) ? Math.max(0, Math.min(100, suggestedAddOnNetMargin)) : 0;
   const [form, setForm] = useState(null);
   const [eventData, setEventData] = useState(null);
   const [image, setImage] = useState(null);
@@ -293,6 +295,8 @@ export default function EventUpdatePage() {
             price,
             quantity,
             gross_potential: Number((price * quantity).toFixed(2)),
+            estimated_net_platform_revenue: boundedSuggestedAddOnNetMargin > 0 ? Number((price * quantity * (boundedSuggestedAddOnNetMargin / 100)).toFixed(2)) : null,
+            estimated_net_margin_percentage: boundedSuggestedAddOnNetMargin > 0 ? boundedSuggestedAddOnNetMargin : null,
             suggested_price: hasSuggestedAddOnPrice ? suggestedAddOnPrice : null,
             suggestion_source: hasSuggestedAddOnPrice ? suggestedAddOnSource : null,
             accepted_suggested_price: hasSuggestedAddOnPrice ? Math.abs(price - suggestedAddOnPrice) < 0.01 : null,
@@ -380,7 +384,7 @@ export default function EventUpdatePage() {
               <Col md={2}><Button type="button" className="w-100" onClick={saveAddOn} disabled={itemSaving}>{itemSaving ? "Salvando..." : "Adicionar"}</Button></Col>
               <Col xs={12}><Form.Group><Form.Label>Descrição</Form.Label><Form.Control as="textarea" rows={2} maxLength={2000} value={itemForm.description} onChange={(e) => setItemForm((current) => ({ ...current, description: e.target.value }))} placeholder="Explique o que o comprador recebe e como retirar/usar no evento." /></Form.Group></Col>
             </Row>
-            {Number(itemForm.price) > 0 && Number(itemForm.quantity) >= 0 && <div className="cut-info-box mt-3"><strong>Potencial bruto deste estoque: {(Number(itemForm.price) * Number(itemForm.quantity || 0)).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong><span>É apenas uma referência de GMV se todo o estoque for vendido; não é garantia de receita e não altera o take rate.</span></div>}
+            {Number(itemForm.price) > 0 && Number(itemForm.quantity) >= 0 && <div className="cut-info-box mt-3"><strong>Potencial bruto deste estoque: {(Number(itemForm.price) * Number(itemForm.quantity || 0)).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong>{boundedSuggestedAddOnNetMargin > 0 && <span>Receita líquida Peter Tecnet estimada: {(Number(itemForm.price) * Number(itemForm.quantity || 0) * (boundedSuggestedAddOnNetMargin / 100)).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} · margem líquida observada {boundedSuggestedAddOnNetMargin.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%.</span>}<span>É apenas uma projeção se todo o estoque for vendido, usando a margem líquida observada no painel quando disponível; não é garantia de receita, não cria taxa e não altera o take rate.</span></div>}
             <div className="mt-4">
               {itemLoading ? <div className="text-secondary">Carregando adicionais...</div> : eventItems.length === 0 ? <Alert variant="info" className="mb-0">Nenhum adicional ativo. Você pode começar com itens de conveniência, alimentação, estacionamento, merchandising ou experiências relacionadas ao evento.</Alert> : <Row className="g-3">{eventItems.map((item) => <Col md={6} key={item.id}><div className="cut-info-box h-100"><div className="d-flex justify-content-between gap-3"><div><strong>{item.name}</strong><span>{Number(item.price || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} · estoque {Number(item.quantity || 0)}</span>{item.description && <small className="d-block text-secondary mt-1">{item.description}</small>}</div><Button type="button" size="sm" variant="outline-danger" disabled={itemBusyId === item.id} onClick={() => removeAddOn(item)}>{itemBusyId === item.id ? "Removendo..." : "Remover"}</Button></div></div></Col>)}</Row>}
             </div>
