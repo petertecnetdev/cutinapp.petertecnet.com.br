@@ -171,11 +171,11 @@ const cutinappService = {
   engagement: async (eventId, payload) => (await appApiClient.put(`/events/${eventId}/engagement`, payload)).data,
   feed: async (params = {}) => (await appApiClient.get("/feed", { params })).data,
 
-  notifications: async (params = {}) => (await appApiClient.get("/notifications", { params }).data,
+  notifications: async (params = {}) => (await appApiClient.get("/notifications", { params })).data,
   markNotificationRead: async (notificationId) => (await appApiClient.patch(`/notifications/${notificationId}/read`)).data,
   markAllNotificationsRead: async () => (await appApiClient.patch("/notifications/read-all")).data,
   publishEvent: async (eventId) => { const data = (await appApiClient.post(`/events/${eventId}/publish`)).data; invalidatePublicRequestCache("/events"); return data; },
-  unpublishEvent: async (eventId) => { const data = (await appApiClient.post(`/events/${eventId}/unpublh`)).data; invalidatePublicRequestCache("/events"); return data; },
+  unpublishEvent: async (eventId) => { const data = (await appApiClient.post(`/events/${eventId}/unpublish`)).data; invalidatePublicRequestCache("/events"); return data; },
 
   eventCourtesies: async (eventId) => (await appApiClient.get(`/events/${eventId}/tickets`)).data,
   updateCourtesy: async (ticketId, payload) => (await appApiClient.patch(`/tickets/${ticketId}`, payload)).data,
