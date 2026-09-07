@@ -36,6 +36,9 @@ const AdminCenterPage = lazy(() => import("./pages/admin/AdminCenterPage"));
 const ApplicationAdminEventsPage = lazy(() => import("./pages/admin/ApplicationAdminEventsPage"));
 const ApplicationAdminTicketsPage = lazy(() => import("./pages/admin/ApplicationAdminTicketsPage"));
 const ApplicationAdminUsersPage = lazy(() => import("./pages/admin/ApplicationAdminUsersPage"));
+const ApplicationAdminProductionsPage = lazy(() => import("./pages/admin/ApplicationAdminProductionsPage"));
+const ApplicationAdminOrdersPage = lazy(() => import("./pages/admin/ApplicationAdminOrdersPage"));
+const ApplicationAdminFinancePage = lazy(() => import("./pages/admin/ApplicationAdminFinancePage"));
 const UserEditPage = lazy(() => import("./pages/user/UserEditPage"));
 const UserProfilePage = lazy(() => import("./pages/user/UserProfilePage"));
 const ProductionListPage = lazyWithPreload(() => import("./pages/production/ProductionListPage"));
@@ -141,8 +144,11 @@ function AppRoutes() {
           <Route path="/agent" element={acquisitionRoute(<AcquisitionDashboardPage />)} />
           <Route path="/admin" element={adminRoute(<AdminCenterPage />)} />
           <Route path="/admin/users" element={adminRoute(<ApplicationAdminUsersPage />)} />
+          <Route path="/admin/productions" element={adminRoute(<ApplicationAdminProductionsPage />)} />
           <Route path="/admin/events" element={adminRoute(<ApplicationAdminEventsPage />)} />
           <Route path="/admin/tickets" element={adminRoute(<ApplicationAdminTicketsPage />)} />
+          <Route path="/admin/orders" element={adminRoute(<ApplicationAdminOrdersPage />)} />
+          <Route path="/admin/finance" element={adminRoute(<ApplicationAdminFinancePage />)} />
           <Route path="/feed" element={protectedRoute(<FeedPage />)} />
           <Route path="/notifications" element={protectedRoute(<NotificationsPage />)} />
           <Route path="/moderation/reports" element={protectedRoute(<ReportModerationPage />)} />
