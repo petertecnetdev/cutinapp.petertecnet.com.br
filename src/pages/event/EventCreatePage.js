@@ -9,17 +9,15 @@ import cutinappService from "../../services/CutinappService";
 const pad = (value) => String(value).padStart(2, "0");
 const toLocalInput = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 
-const tomorrowStart = () => {
-  const date = new Date();
-  date.setDate(date.getDate() + 1);
-  date.setHours(0, 0, 0, 0);
+const minimumEventStart = () => {
+  const date = new Date(Date.now() + 5 * 60 * 1000);
+  date.setSeconds(0, 0);
   return date;
 };
 
 const defaultStart = () => {
-  const now = new Date();
-  const date = tomorrowStart();
-  date.setHours(now.getHours(), 0, 0, 0);
+  const date = new Date(Date.now() + 60 * 60 * 1000);
+  date.setMinutes(Math.ceil(date.getMinutes() / 15) * 15, 0, 0);
   return toLocalInput(date);
 };
 
@@ -95,7 +93,7 @@ export default function EventCreatePage() {
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
-  const minStart = useMemo(() => toLocalInput(tomorrowStart()), []);
+  const minStart = useMemo(() => toLocalInput(minimumEventStart()), []);
 
   useEffect(() => {
     let active = true;
@@ -185,7 +183,7 @@ export default function EventCreatePage() {
 
   const startDate = form.start_date ? new Date(form.start_date) : null;
   const endDate = form.end_date ? new Date(form.end_date) : null;
-  const minimumStartDate = new Date(minStart);
+  const minimumStartDate = minimumEventStart();
   const startTooSoonInvalid = submitted && startDate && startDate.getTime() < minimumStartDate.getTime();
   const dateInvalid = submitted && startDate && endDate && endDate.getTime() <= startDate.getTime();
   const ufInvalid = submitted && form.uf.trim().length !== 2;
@@ -348,7 +346,7 @@ export default function EventCreatePage() {
     setFieldErrors({});
 
     if (!canSubmit || dateInvalid || startTooSoonInvalid || ufInvalid || capacityInvalid) {
-      if (startTooSoonInvalid) setError("O evento precisa ser criado com pelo menos um dia de antecedência. Escolha uma data a partir de amanhã.");
+      if (startTooSoonInvalid) setError("Escolha um horário futuro para o início do evento.");
       else if (dateInvalid) setError("O término do evento precisa ser posterior ao início.");
       else setError("Revise os campos destacados antes de continuar.");
       return;
@@ -431,7 +429,7 @@ export default function EventCreatePage() {
 
                 <Col xs={12}><Form.Group><Form.Label>Nome do evento *</Form.Label><Form.Control name="title" value={form.title} onChange={change} placeholder="Ex.: Noite de Lançamento" isInvalid={invalid("title", requiredInvalid.title)} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "title") || "Informe o nome do evento."}</Form.Control.Feedback></Form.Group></Col>
                 <Col xs={12}><Form.Group><Form.Label>Descrição *</Form.Label><Form.Control as="textarea" rows={5} name="description" value={form.description} onChange={change} isInvalid={invalid("description", requiredInvalid.description)} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "description") || "Descreva o evento."}</Form.Control.Feedback></Form.Group></Col>
-                <Col md={6}><Form.Group><Form.Label>Início *</Form.Label><Form.Control type="datetime-local" min={minStart} name="start_date" value={form.start_date} onChange={change} isInvalid={invalid("start_date", requiredInvalid.start_date)} /><Form.Text>Horário de Brasília · mínimo: amanhã.</Form.Text><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "start_date") || (startTooSoonInvalid ? "Escolha uma data a partir de amanhã." : "Informe quando o evento começa.")}</Form.Control.Feedback></Form.Group></Col>
+                <Col md={6}><Form.Group><Form.Label>Início *</Form.Label><Form.Control type="datetime-local" min={minStart} name="start_date" value={form.start_date} onChange={change} isInvalid={invalid("start_date", requiredInvalid.start_date)} /><Form.Text>Eventos de hoje são permitidos. Escolha um horário futuro.</Form.Text><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "start_date") || (startTooSoonInvalid ? "Escolha um horário futuro." : "Informe quando o evento começa.")}</Form.Control.Feedback></Form.Group></Col>
                 <Col md={6}><Form.Group><Form.Label>Término *</Form.Label><Form.Control type="datetime-local" min={form.start_date || minStart} name="end_date" value={form.end_date} onChange={change} isInvalid={invalid("end_date", requiredInvalid.end_date)} /><Form.Text>É sugerido automaticamente 2 horas após o início.</Form.Text><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "end_date") || (dateInvalid ? "O término precisa ser posterior ao início." : "Informe quando o evento termina.")}</Form.Control.Feedback></Form.Group></Col>
                 <Col md={5}><Form.Group><Form.Label>Local</Form.Label><Form.Control name="venue" value={form.venue} onChange={change} placeholder="Nome do espaço" isInvalid={invalid("venue")} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "venue")}</Form.Control.Feedback></Form.Group></Col>
                 <Col md={7}><Form.Group><Form.Label>Endereço *</Form.Label><Form.Control name="address" value={form.address} onChange={change} placeholder="Rua, número e complemento" isInvalid={invalid("address", requiredInvalid.address)} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "address") || "Informe o endereço do evento."}</Form.Control.Feedback></Form.Group></Col>
@@ -445,10 +443,10 @@ export default function EventCreatePage() {
                 {form.production_id && <Col xs={12}><div className="cut-info-box"><div className="d-flex align-items-start justify-content-between gap-3 flex-wrap"><div><strong>Itens da produção</strong><span>{loadingProductionItems ? "Consultando os itens cadastrados..." : productionItems.length > 0 ? `${productionItems.length} item(ns) ativo(s) estão disponíveis. Você pode usar os mesmos itens neste evento sem cadastrá-los novamente.` : "Esta produção ainda não possui itens ativos para reaproveitar."}</span></div><Form.Check type="switch" id="use-production-items" label="Usar os mesmos itens" checked={useProductionItems} disabled={loadingProductionItems || productionItems.length === 0} onChange={(event) => setUseProductionItems(event.target.checked)} /></div>{itemLoadError && <div className="text-warning small mt-2">{itemLoadError}</div>}{useProductionItems && productionItems.length > 0 && <div className="d-flex flex-wrap gap-2 mt-3">{productionItems.slice(0, 8).map((item) => <span key={item.id} className="badge rounded-pill text-bg-dark">{item.name}{item.price !== null && item.price !== undefined ? ` · ${priceLabel(item.price)}` : ""}</span>)}{productionItems.length > 8 && <span className="badge rounded-pill text-bg-dark">+{productionItems.length - 8} itens</span>}</div>}</div></Col>}
               </Row></Card.Body></Card></Col>
 
-              <Col lg={4}><Card className="cut-panel h-100"><Card.Body className="p-4"><h2 className="cut-section-title">Imagem do evento</h2>{preview ? <img src={preview} alt="Prévia do evento" className="cut-upload-preview cut-upload-preview--event" /> : <div className="cut-upload-placeholder"><i className="fa-regular fa-image" /><span>Adicione uma capa 16:9</span></div>}<Form.Control className="mt-3" type="file" accept="image/png,image/jpeg,image/webp" onChange={chooseImage} isInvalid={invalid("image")} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "image")}</Form.Control.Feedback><Form.Text>JPG, PNG ou WebP, até 5 MB.</Form.Text><div className="cut-info-box mt-4"><strong>Próxima etapa</strong><span>Depois de salvar, você configura a quantidade de cortesias. A publicação será uma ação separada.</span></div></Card.Body></Card></Col>
+              <Col lg={4}><Card className="cut-panel h-100"><Card.Body className="p-4"><h2 className="cut-section-title">Imagem do evento</h2>{preview ? <img src={preview} alt="Prévia do evento" className="cut-upload-preview cut-upload-preview--event" /> : <div className="cut-upload-placeholder"><i className="fa-regular fa-image" /><span>Adicione uma capa 16:9</span></div>}<Form.Control className="mt-3" type="file" accept="image/png,image/jpeg,image/webp" onChange={chooseImage} isInvalid={invalid("image")} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "image")}</Form.Control.Feedback><Form.Text>JPG, PNG ou WebP, até 5 MB.</Form.Text><div className="cut-info-box mt-4"><strong>Próxima etapa</strong><span>Depois de salvar, você configura o primeiro lote de ingressos e segue direto para a publicação.</span></div></Card.Body></Card></Col>
             </Row>
 
-            <div className="cut-form-actions mt-4"><Button type="button" variant="outline-light" disabled={loading} onClick={() => navigate("/event/manage")}>Cancelar</Button><Button type="submit" disabled={loading}>{loading ? "Criando..." : "Criar rascunho e configurar cortesia"}</Button></div>
+            <div className="cut-form-actions mt-4"><Button type="button" variant="outline-light" disabled={loading} onClick={() => navigate("/event/manage")}>Cancelar</Button><Button type="submit" disabled={loading}>{loading ? "Criando..." : "Criar rascunho e configurar primeiro lote"}</Button></div>
           </Form>
         )}
       </Container>
