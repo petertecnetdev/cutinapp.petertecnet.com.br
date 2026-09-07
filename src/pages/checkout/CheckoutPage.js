@@ -381,7 +381,8 @@ export default function CheckoutPage() {
 
   const updateItemQuantity = (item, nextQuantity) => {
     if (result || !item?.id) return;
-    const quantity = Math.max(0, Math.min(10, Number(nextQuantity || 0)));
+    const remaining = Math.max(0, Number(item.remaining ?? item.quantity ?? 0));
+    const quantity = Math.max(0, Math.min(10, remaining, Number(nextQuantity || 0)));
     const currentItems = selection?.items || [];
     const nextItems = quantity === 0
       ? currentItems.filter((entry) => Number(entry.id) !== Number(item.id))
