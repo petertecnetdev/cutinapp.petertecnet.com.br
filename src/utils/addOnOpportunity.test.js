@@ -76,6 +76,7 @@ test("requires projected net revenue to justify producer attention", () => {
     .toMatchObject({ profitable: true, netMargin: 5, minimumNetRevenue: 5 });
   expect(addOnMarginGuard({ incrementalGmv: 1000, incrementalNetRevenue: 25, minimumNetRevenue: 30 }))
     .toMatchObject({ profitable: false, netMargin: 2.5, minimumNetRevenue: 30 });
-  expect(addOnMarginGuard({ incrementalGmv: 1000, incrementalNetRevenue: 35, minimumNetRevenue: 30 }))
-    .toMatchObject({ profitable: true, netMargin: 3.5, minimumNetRevenue: 30 });
+  const strongOpportunity = addOnMarginGuard({ incrementalGmv: 1000, incrementalNetRevenue: 35, minimumNetRevenue: 30 });
+  expect(strongOpportunity).toMatchObject({ profitable: true, minimumNetRevenue: 30 });
+  expect(strongOpportunity.netMargin).toBeCloseTo(3.5, 8);
 });
