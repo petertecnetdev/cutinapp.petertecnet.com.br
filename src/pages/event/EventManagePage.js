@@ -48,6 +48,25 @@ const buildProducerShareUrl = (event, channel) => {
   return url.toString();
 };
 
+const writeClipboard = async (text) => {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  document.body.appendChild(textarea);
+  textarea.select();
+  const copied = document.execCommand("copy");
+  document.body.removeChild(textarea);
+
+  if (!copied) throw new Error("Clipboard indisponível");
+};
+
 const trackProducerActivation = (type, event, metadata = {}) => {
   try {
     window.PeterTecnetTelemetry?.track?.(type, {
@@ -138,6 +157,7 @@ export default function EventManagePage() {
   const [duplicateDate, setDuplicateDate] = useState("");
   const [duplicateError, setDuplicateError] = useState("");
   const [publishedEvent, setPublishedEvent] = useState(null);
+  const [copiedEventId, setCopiedEventId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortMode, setSortMode] = useState("date-asc");
@@ -180,6 +200,7 @@ export default function EventManagePage() {
       await load();
       if (!event.is_published) {
         trackProducerActivation("producer_event_published", event, { activation_stage: "published" });
+        setCopiedEventId(null);
         setPublishedEvent({ ...event, is_published: true, slug: response?.event?.slug || event.slug });
       }
       setSuccess(event.is_published ? (response.message || "Evento retirado da publicação.") : "Evento publicado. Agora compartilhe a página pública para buscar a primeira venda.");
@@ -187,6 +208,21 @@ export default function EventManagePage() {
       setError(err?.message || "Não foi possível alterar a publicação do evento.");
     } finally {
       setBusyId(null);
+    }
+  };
+
+  const copyLink = async (event) => {
+    if (!event?.is_published || !event?.slug) return;
+    setError("");
+
+    try {
+      const url = buildProducerShareUrl(event, "clipboard");
+      await writeClipboard(url);
+      trackProducerActivation("producer_event_shared", event, { channel: "clipboard", activation_stage: "distribution", campaign: "first_sale" });
+      setCopiedEventId(event.id);
+      setSuccess("Link de venda rastreável copiado.");
+    } catch (_) {
+      setError("Não foi possível copiar o link neste navegador.");
     }
   };
 
@@ -199,8 +235,9 @@ export default function EventManagePage() {
         trackProducerActivation("producer_event_shared", event, { channel: "native_share", activation_stage: "distribution", campaign: "first_sale" });
       } else {
         const url = buildProducerShareUrl(event, "clipboard");
-        await navigator.clipboard.writeText(url);
+        await writeClipboard(url);
         trackProducerActivation("producer_event_shared", event, { channel: "clipboard", activation_stage: "distribution", campaign: "first_sale" });
+        setCopiedEventId(event.id);
         setSuccess("Link de venda rastreável copiado.");
       }
     } catch (err) {
@@ -476,7 +513,8 @@ export default function EventManagePage() {
                                     {event.is_published && !event.is_cancelled && <Dropdown.Divider />}
                                     {event.is_published && !event.is_cancelled && <Dropdown.Item onClick={() => navigate(`/checkin?eventId=${event.id}`)}><i className="fa-solid fa-qrcode" />Portaria / check-in</Dropdown.Item>}
                                     {event.is_published && !event.is_cancelled && <Dropdown.Item onClick={() => navigate(`/event/${event.slug}`)}><i className="fa-solid fa-arrow-up-right-from-square" />Página pública</Dropdown.Item>}
-                                    {event.is_published && !event.is_cancelled && <Dropdown.Item onClick={() => share(event)}><i className="fa-solid fa-share-nodes" />Compartilhar link</Dropdown.Item>}
+                                    {event.is_published && !event.is_cancelled && <Dropdown.Item onClick={() => copyLink(event)}><i className="fa-regular fa-copy" />Copiar link</Dropdown.Item>}
+                                    {event.is_published && !event.is_cancelled && <Dropdown.Item onClick={() => share(event)}><i className="fa-solid fa-share-nodes" />Compartilhar</Dropdown.Item>}
                                     {!event.is_cancelled && <Dropdown.Divider />}
                                     {!event.is_cancelled && (
                                       <Dropdown.Item className={event.is_published ? "text-warning" : "text-success"} onClick={() => publication(event)} disabled={busyId === event.id}>
@@ -535,7 +573,14 @@ export default function EventManagePage() {
         </Modal.Footer>
       </Modal>
 
-      <Modal show={Boolean(publishedEvent)} onHide={() => setPublishedEvent(null)} centered>
+      <Modal
+        show={Boolean(publishedEvent)}
+        onHide={() => {
+          setPublishedEvent(null);
+          setCopiedEventId(null);
+        }}
+        centered
+      >
         <Modal.Header closeButton><Modal.Title>Evento publicado</Modal.Title></Modal.Header>
         <Modal.Body>
           <p className="mb-2"><strong>{publishedEvent?.title}</strong> já está disponível para venda.</p>
@@ -543,6 +588,14 @@ export default function EventManagePage() {
         </Modal.Body>
         <Modal.Footer className="d-flex flex-wrap justify-content-start gap-2">
           <Button onClick={() => publishedEvent && shareWhatsApp(publishedEvent)}><i className="fa-brands fa-whatsapp me-2" />Compartilhar no WhatsApp</Button>
+          <Button
+            variant={copiedEventId === publishedEvent?.id ? "success" : "outline-light"}
+            onClick={() => publishedEvent && copyLink(publishedEvent)}
+            disabled={!publishedEvent?.slug}
+          >
+            <i className={`${copiedEventId === publishedEvent?.id ? "fa-solid fa-check" : "fa-regular fa-copy"} me-2`} />
+            {copiedEventId === publishedEvent?.id ? "Link copiado" : "Copiar link"}
+          </Button>
           <Button variant="outline-light" onClick={() => publishedEvent && share(publishedEvent)}><i className="fa-solid fa-share-nodes me-2" />Compartilhar</Button>
           <Button
             variant="outline-secondary"
@@ -551,6 +604,7 @@ export default function EventManagePage() {
               trackProducerActivation("producer_public_event_opened", publishedEvent, { activation_stage: "distribution" });
               navigate(`/event/${publishedEvent.slug}`);
               setPublishedEvent(null);
+              setCopiedEventId(null);
             }}
             disabled={!publishedEvent?.slug}
           >
