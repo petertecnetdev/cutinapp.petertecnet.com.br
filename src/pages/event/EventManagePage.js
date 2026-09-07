@@ -30,6 +30,16 @@ const suggestedDuplicateDate = (event) => {
   return toDateInput(candidate);
 };
 
+const buildProducerShareUrl = (event, channel) => {
+  if (!event?.slug) return "";
+  const url = new URL(`/event/${event.slug}`, window.location.origin);
+  url.searchParams.set("utm_source", "cutinapp_producer");
+  url.searchParams.set("utm_medium", String(channel || "share"));
+  url.searchParams.set("utm_campaign", "first_sale");
+  url.searchParams.set("utm_content", String(event.id || event.slug));
+  return url.toString();
+};
+
 const trackProducerActivation = (type, event, metadata = {}) => {
   try {
     window.PeterTecnetTelemetry?.track?.(type, {
@@ -138,15 +148,16 @@ export default function EventManagePage() {
 
   const share = async (event) => {
     if (!event.is_published || !event.slug) return;
-    const url = `${window.location.origin}/event/${event.slug}`;
     try {
       if (navigator.share) {
+        const url = buildProducerShareUrl(event, "native_share");
         await navigator.share({ title: event.title, url });
-        trackProducerActivation("producer_event_shared", event, { channel: "native_share", activation_stage: "distribution" });
+        trackProducerActivation("producer_event_shared", event, { channel: "native_share", activation_stage: "distribution", campaign: "first_sale" });
       } else {
+        const url = buildProducerShareUrl(event, "clipboard");
         await navigator.clipboard.writeText(url);
-        trackProducerActivation("producer_event_shared", event, { channel: "clipboard", activation_stage: "distribution" });
-        setSuccess("Link público copiado.");
+        trackProducerActivation("producer_event_shared", event, { channel: "clipboard", activation_stage: "distribution", campaign: "first_sale" });
+        setSuccess("Link de venda rastreável copiado.");
       }
     } catch (err) {
       if (err?.name !== "AbortError") setError("Não foi possível compartilhar o link deste navegador.");
@@ -155,9 +166,12 @@ export default function EventManagePage() {
 
   const shareWhatsApp = (event) => {
     if (!event.is_published || !event.slug) return;
-    const url = `${window.location.origin}/event/${event.slug}`;
-    const message = `Confira ${event.title} na Cutinapp: ${url}`;
-    trackProducerActivation("producer_event_shared", event, { channel: "whatsapp", activation_stage: "distribution" });
+    const url = buildProducerShareUrl(event, "whatsapp");
+    const when = event.start_date ? formatDate(event.start_date) : "";
+    const place = event.venue || event.city || "";
+    const details = [when, place].filter(Boolean).join(" · ");
+    const message = `🎟️ ${event.title}${details ? `\n${details}` : ""}\nIngressos disponíveis na Cutinapp: ${url}`;
+    trackProducerActivation("producer_event_shared", event, { channel: "whatsapp", activation_stage: "distribution", campaign: "first_sale" });
     window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
   };
 
@@ -246,7 +260,7 @@ export default function EventManagePage() {
 
               {event.is_published && !event.is_cancelled && <div className="cut-info-box mt-3">
                 <strong>Próxima meta: primeira venda</strong>
-                <span>Seu evento já está no ar. Compartilhe a página pública para transformar divulgação em ingressos vendidos.</span>
+                <span>Seu evento já está no ar. Compartilhe um link identificado por canal para transformar divulgação em visitas e ingressos vendidos.</span>
                 <div className="d-flex flex-wrap gap-2 mt-3">
                   <Button size="sm" onClick={() => shareWhatsApp(event)}><i className="fa-brands fa-whatsapp me-2" />Compartilhar no WhatsApp</Button>
                   <Button size="sm" variant="outline-light" onClick={() => { trackProducerActivation("producer_sales_monitor_opened", event, { activation_stage: "first_sale" }); navigate("/producer/sales"); }}><i className="fa-solid fa-chart-line me-2" />Acompanhar primeira venda</Button>
@@ -310,7 +324,7 @@ export default function EventManagePage() {
         </Modal.Header>
         <Modal.Body>
           <p className="mb-2"><strong>{publishedEvent?.title}</strong> já está disponível para venda.</p>
-          <p className="text-secondary mb-0">Compartilhe agora enquanto o evento está fresco para acelerar a primeira venda.</p>
+          <p className="text-secondary mb-0">Compartilhe agora com um link identificado por canal para acelerar e medir o caminho até a primeira venda.</p>
         </Modal.Body>
         <Modal.Footer className="d-flex flex-wrap justify-content-start gap-2">
           <Button onClick={() => publishedEvent && shareWhatsApp(publishedEvent)}>
