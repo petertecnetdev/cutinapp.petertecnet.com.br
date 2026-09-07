@@ -67,3 +67,14 @@ export const summarizeCheckoutAddOnOffer = (items = []) => {
     min_addon_price: offered.length ? Math.min(...offered.map((item) => item.price)) : 0,
   };
 };
+
+export const resolveCheckoutQuantity = (item, requestedQuantity, limit = 10) => {
+  if (!item || item.available === false || item.expired) return 0;
+  const requested = Math.max(0, Number(requestedQuantity || 0));
+  const normalizedLimit = Math.max(0, Number(limit) || 0);
+  const stock = item.remaining ?? item.quantity;
+  if (stock == null || stock === "") return Math.min(requested, normalizedLimit);
+  const remaining = Number(stock);
+  if (!Number.isFinite(remaining)) return Math.min(requested, normalizedLimit);
+  return Math.max(0, Math.min(requested, normalizedLimit, remaining));
+};
