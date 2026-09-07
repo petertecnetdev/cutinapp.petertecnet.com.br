@@ -114,7 +114,7 @@ export default function ApplicationAdminTicketsPage() {
   };
 
   const remove = async (ticket) => {
-    if (!window.confirm(`Excluir definitivamente o lote \"${ticket.name}\"? Esta ação só é permitida quando não existem emissões vinculadas.`)) return;
+    if (!window.confirm(`Excluir definitivamente o lote "${ticket.name}"? Esta ação só é permitida quando não existem emissões vinculadas.`)) return;
     setBusy(true);
     setError("");
     try {
