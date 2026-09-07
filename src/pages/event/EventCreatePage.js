@@ -1,10 +1,12 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useContext, useEffect, useMemo, useState } from "react";
 import { Alert, Button, Card, Col, Container, Form, Row } from "react-bootstrap";
 import { useLocation, useNavigate } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import eventService from "../../services/EventService";
 import cutinappService from "../../services/CutinappService";
+import { AuthContext } from "../../context/AuthContext";
+import { clearEventCreationDraft, readEventCreationDraft, writeEventCreationDraft } from "../../utils/eventCreationDraft";
 
 const pad = (value) => String(value).padStart(2, "0");
 const toLocalInput = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
@@ -77,6 +79,7 @@ const priceLabel = (value) => {
 export default function EventCreatePage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useContext(AuthContext);
   const [form, setForm] = useState(createInitialForm);
   const [productions, setProductions] = useState([]);
   const [productionItems, setProductionItems] = useState([]);
@@ -94,7 +97,41 @@ export default function EventCreatePage() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [optionalDetailsOpen, setOptionalDetailsOpen] = useState(false);
+  const [draftRestored, setDraftRestored] = useState(false);
   const minStart = useMemo(() => toLocalInput(minimumEventStart()), []);
+  const draftOwnerId = Number(user?.id || 0);
+
+  useEffect(() => {
+    if (!draftOwnerId) return;
+    const draft = readEventCreationDraft(draftOwnerId);
+    if (!draft?.form) return;
+
+    setForm((current) => ({ ...current, ...draft.form, image: null }));
+    setUseProductionItems(Boolean(draft.useProductionItems));
+    setDraftRestored(true);
+    try {
+      window.PeterTecnetTelemetry?.track?.("producer_event_draft_restored", {
+        label: "Rascunho de criação de evento recuperado",
+        target: String(draft.form.production_id || "event_creation"),
+        metadata: { activation_stage: "event_creation", next_step: "create_ticket" },
+      });
+    } catch (_) {
+      // Telemetry must never interrupt producer onboarding.
+    }
+  }, [draftOwnerId]);
+
+  useEffect(() => {
+    if (!draftOwnerId || loading) return;
+    const hasMeaningfulInput = Boolean(
+      form.production_id || form.title.trim() || form.description.trim() || form.address.trim() || form.city.trim()
+    );
+    if (!hasMeaningfulInput) return;
+
+    const timer = window.setTimeout(() => {
+      writeEventCreationDraft(draftOwnerId, { form, useProductionItems });
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [draftOwnerId, form, useProductionItems, loading]);
 
   useEffect(() => {
     let active = true;
@@ -425,6 +462,7 @@ export default function EventCreatePage() {
       const eventId = Number(response?.event?.id || 0);
       if (!eventId) throw new Error("A API informou sucesso, mas não retornou o evento criado.");
       if (response?.event?.is_published !== false) throw new Error("O evento deveria ter sido criado como rascunho, mas a API retornou outro estado.");
+      if (draftOwnerId) clearEventCreationDraft(draftOwnerId);
       navigate(`/ticket/create?eventId=${eventId}`, { replace: true });
     } catch (err) {
       const errors = err?.errors || {};
@@ -449,6 +487,7 @@ export default function EventCreatePage() {
       <Container className="cut-page-container py-4 py-lg-5">
         <div className="cut-page-heading"><div><span className="cut-eyebrow">Área do produtor</span><h1>Novo evento</h1><p>Escolha a produção e reaproveite os dados que já estão cadastrados. Depois, altere somente o que for diferente neste evento.</p></div></div>
         {error && <Alert variant="danger">{error}</Alert>}
+        {draftRestored && <Alert variant="info" dismissible onClose={() => setDraftRestored(false)}>Recuperamos o preenchimento deste evento para você continuar de onde parou.</Alert>}
 
         {!loadingProductions && productions.length === 0 ? (
           <Card className="cut-panel mx-auto" style={{ maxWidth: 720 }}>
