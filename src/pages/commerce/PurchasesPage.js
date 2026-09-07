@@ -3,7 +3,9 @@ import { Alert, Badge, Button, Card, Container, Spinner } from "react-bootstrap"
 import { Link, useNavigate } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import commerceService from "../../services/CommerceService";
+import { writeCheckoutRecovery } from "../../utils/checkoutRecovery";
 import { checkoutSelectionFromOrder, latestPendingPaymentFromOrder } from "../../utils/orderRecovery";
+import { safeSetSessionJson } from "../../utils/safeStorage";
 import "./CommerceHistory.css";
 
 const money = (value) => Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -37,6 +39,11 @@ export default function PurchasesPage() {
       const recoveredOrder = response?.order;
       const selection = checkoutSelectionFromOrder(recoveredOrder);
       const payment = latestPendingPaymentFromOrder(recoveredOrder);
+      const recoveredPayment = { order: recoveredOrder, payment };
+
+      safeSetSessionJson(`cutinapp_checkout_${slug}`, selection);
+      safeSetSessionJson(`cutinapp_payment_${slug}`, recoveredPayment);
+      writeCheckoutRecovery(slug, { selection, orderPublicId: recoveredOrder?.public_id || null });
 
       try {
         window.PeterTecnetTelemetry?.track?.("checkout_recovery_resumed", {
@@ -53,9 +60,7 @@ export default function PurchasesPage() {
         // Telemetry must never block payment recovery.
       }
 
-      navigate(`/checkout/${encodeURIComponent(slug)}`, {
-        state: { checkout: selection, recoveredPayment: { order: recoveredOrder, payment } },
-      });
+      navigate(`/checkout/${encodeURIComponent(slug)}`);
     } catch (err) {
       setError(err?.status === 409
         ? "Esse PIX não está mais disponível. Abra o evento para iniciar uma nova compra, se ainda houver vendas."
