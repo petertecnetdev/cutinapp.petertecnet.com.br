@@ -65,3 +65,13 @@ export const addOnMarginGuard = ({ incrementalGmv = 0, incrementalNetRevenue = 0
     minimumNetRevenue: minimumRevenue,
   };
 };
+
+export const compareAddOnOpportunities = (a = {}, b = {}) => {
+  const profitabilityDelta = Number(Boolean(b.addOnProfitable)) - Number(Boolean(a.addOnProfitable));
+  if (profitabilityDelta !== 0) return profitabilityDelta;
+
+  const netRevenueDelta = Math.max(0, Number(b.incrementalNetRevenue || 0)) - Math.max(0, Number(a.incrementalNetRevenue || 0));
+  if (netRevenueDelta !== 0) return netRevenueDelta;
+
+  return Math.max(0, Number(b.netPlatformRevenue || 0)) - Math.max(0, Number(a.netPlatformRevenue || 0));
+};
