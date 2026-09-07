@@ -1,5 +1,5 @@
 import appApiClient from "./AppApiClient";
-import { createIdempotencyAttemptManager, createMutationRequestKey, shouldKeepIdempotencyAttempt } from "../utils/idempotencyAttempts";
+import { createIdempotentMutation, createMutationRequestKey } from "../utils/idempotencyAttempts";
 
 const CUTINAPP_TIME_ZONE = "America/Sao_Paulo";
 const HOME_DISCOVERY_KEYS = new Set(["lat", "lng", "radius_km", "city", "uf", "per_page", "sort"]);
@@ -80,62 +80,27 @@ const enrichPublicEventProductionContact = async (response) => {
   }
 };
 
-const pendingEventCreates = new Map();
-const eventCreateAttempts = createIdempotencyAttemptManager({
+const createEvent = createIdempotentMutation({
   storagePrefix: "cutinapp_event_create_attempt_",
   keyPrefix: "event",
+  requestKeyFor: (payload) => createMutationRequestKey(payload),
+  mutate: async ({ idempotencyKey }, payload) => (
+    await appApiClient.post("/events", payload, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    })
+  ).data,
 });
 
-const createEvent = (payload) => {
-  const requestKey = createMutationRequestKey(payload);
-  const pending = pendingEventCreates.get(requestKey);
-  if (pending) return pending;
-
-  const idempotencyKey = eventCreateAttempts.keyFor(requestKey);
-  const request = appApiClient.post("/events", payload, {
-    headers: { "Idempotency-Key": idempotencyKey },
-  }).then((response) => {
-    eventCreateAttempts.clear(requestKey);
-    return response.data;
-  }).catch((error) => {
-    if (!shouldKeepIdempotencyAttempt(error)) eventCreateAttempts.clear(requestKey);
-    throw error;
-  }).finally(() => {
-    if (pendingEventCreates.get(requestKey) === request) pendingEventCreates.delete(requestKey);
-  });
-
-  pendingEventCreates.set(requestKey, request);
-  return request;
-};
-
-const createIdempotentEventPost = ({ storagePrefix, keyPrefix, pathFor }) => {
-  const pendingRequests = new Map();
-  const attempts = createIdempotencyAttemptManager({ storagePrefix, keyPrefix });
-
-  return (eventId, payload = {}) => {
-    const normalizedEventId = Number(eventId);
-    const payloadKey = createMutationRequestKey(payload);
-    const requestKey = `${normalizedEventId}:${payloadKey}`;
-    const pending = pendingRequests.get(requestKey);
-    if (pending) return pending;
-
-    const idempotencyKey = attempts.keyFor(requestKey);
-    const request = appApiClient.post(pathFor(normalizedEventId), payload, {
+const createIdempotentEventPost = ({ storagePrefix, keyPrefix, pathFor }) => createIdempotentMutation({
+  storagePrefix,
+  keyPrefix,
+  requestKeyFor: (eventId, payload = {}) => `${Number(eventId)}:${createMutationRequestKey(payload)}`,
+  mutate: async ({ idempotencyKey }, eventId, payload = {}) => (
+    await appApiClient.post(pathFor(Number(eventId)), payload, {
       headers: { "Idempotency-Key": idempotencyKey },
-    }).then((response) => {
-      attempts.clear(requestKey);
-      return response.data;
-    }).catch((error) => {
-      if (!shouldKeepIdempotencyAttempt(error)) attempts.clear(requestKey);
-      throw error;
-    }).finally(() => {
-      if (pendingRequests.get(requestKey) === request) pendingRequests.delete(requestKey);
-    });
-
-    pendingRequests.set(requestKey, request);
-    return request;
-  };
-};
+    })
+  ).data,
+});
 
 const duplicateEvent = createIdempotentEventPost({
   storagePrefix: "cutinapp_event_duplicate_attempt_",
@@ -147,6 +112,17 @@ const createEventSeries = createIdempotentEventPost({
   storagePrefix: "cutinapp_event_series_attempt_",
   keyPrefix: "event-series",
   pathFor: (eventId) => `/events/${eventId}/series`,
+});
+
+const createAgendaItem = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_agenda_create_attempt_",
+  keyPrefix: "event-agenda",
+  requestKeyFor: (productionId, formData) => `${Number(productionId)}:${createMutationRequestKey(formData)}`,
+  mutate: async ({ idempotencyKey }, productionId, formData) => (
+    await appApiClient.post(`/event-agenda/productions/${Number(productionId)}/items`, formData, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    })
+  ).data,
 });
 
 const dateKeyInTimeZone = (value = new Date()) => {
@@ -229,7 +205,7 @@ const eventService = {
 
   agenda: async (productionId) => (await appApiClient.get(`/event-agenda/productions/${productionId}`)).data,
   setAgendaStatus: async (productionId, isActive) => (await appApiClient.patch(`/event-agenda/productions/${productionId}/status`, { is_active: isActive })).data,
-  createAgendaItem: async (productionId, formData) => (await appApiClient.post(`/event-agenda/productions/${productionId}/items`, formData)).data,
+  createAgendaItem,
   updateAgendaItem: async (scheduleId, formData) => (await appApiClient.post(`/event-agenda/items/${scheduleId}`, formData)).data,
   setAgendaItemStatus: async (scheduleId, isActive) => (await appApiClient.patch(`/event-agenda/items/${scheduleId}/status`, { is_active: isActive })).data,
   deleteAgendaItem: async (scheduleId) => (await appApiClient.delete(`/event-agenda/items/${scheduleId}`)).data,
