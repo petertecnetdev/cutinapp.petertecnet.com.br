@@ -1,7 +1,7 @@
 import { safeGetLocalJson, safeRemoveLocalItem, safeSetLocalJson } from "./safeStorage";
 
 const CHECKOUT_RECOVERY_PREFIX = "cutinapp_checkout_recovery_";
-export const CHECKOUT_RECOVERY_TTL_MS = 48 * 60 * 60 * 1000;
+export const CHECKOUT_RECOVERY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 const storageKey = (slug) => `${CHECKOUT_RECOVERY_PREFIX}${String(slug || "").trim()}`;
 
