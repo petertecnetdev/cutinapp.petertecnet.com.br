@@ -5,6 +5,7 @@ import NavlogComponent from "../../components/NavlogComponent";
 import commerceService from "../../services/CommerceService";
 import { writeCheckoutRecovery } from "../../utils/checkoutRecovery";
 import { checkoutSelectionFromOrder, latestPendingPaymentFromOrder } from "../../utils/orderRecovery";
+import { writePaymentRecoveryAttribution } from "../../utils/paymentRecoveryAttribution";
 import { safeSetSessionJson } from "../../utils/safeStorage";
 import "./CommerceHistory.css";
 
@@ -44,6 +45,10 @@ export default function PurchasesPage() {
       safeSetSessionJson(`cutinapp_checkout_${slug}`, selection);
       safeSetSessionJson(`cutinapp_payment_${slug}`, recoveredPayment);
       writeCheckoutRecovery(slug, { selection, orderPublicId: recoveredOrder?.public_id || null });
+      writePaymentRecoveryAttribution({
+        orderPublicId: recoveredOrder?.public_id || "",
+        amount: Number(recoveredOrder?.total || 0),
+      });
 
       try {
         window.PeterTecnetTelemetry?.track?.("checkout_recovery_resumed", {
@@ -51,6 +56,7 @@ export default function PurchasesPage() {
           target: slug,
           metadata: {
             order_id: orderId,
+            order_public_id: recoveredOrder?.public_id || null,
             amount: Number(recoveredOrder?.total || 0),
             payment_method: "pix",
             seconds_remaining: Number(response?.payment_recovery_seconds_remaining || 0),

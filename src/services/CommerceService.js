@@ -3,6 +3,7 @@ import { isNetworkFailure } from "../utils/networkStatus";
 import { safeGetSessionJson, safeRemoveSessionItem, safeSetSessionJson } from "../utils/safeStorage";
 import { trackTelemetry } from "../utils/telemetry";
 import { shouldKeepCheckoutAttempt } from "../utils/checkoutRetryPolicy";
+import { clearPaymentRecoveryAttribution, readPaymentRecoveryAttribution } from "../utils/paymentRecoveryAttribution";
 
 const pendingCheckouts = new Map();
 const fallbackAttempts = new Map();
@@ -121,6 +122,27 @@ const catalog = (slug) => {
 
 const invalidateCatalogCache = () => catalogCache.clear();
 
+const syncPayment = async (publicId) => {
+  const order = (await appApiClient.post(`/commerce/orders/${publicId}/sync-payment`)).data.order;
+  const recoveryAttribution = readPaymentRecoveryAttribution(order?.public_id || publicId);
+  if (order?.status === "paid" && recoveryAttribution) {
+    trackTelemetry("checkout_recovery_paid", {
+      label: "PIX recuperado convertido em pagamento",
+      target: String(order?.event?.slug || order?.event_id || "checkout"),
+      metadata: {
+        event_id: Number(order?.event?.id || order?.event_id || 0),
+        order_public_id: order?.public_id || publicId,
+        recovered_gmv: Number(order?.total || recoveryAttribution.amount || 0),
+        payment_method: String(order?.payment_method || "pix").toLowerCase(),
+        recovery_started_at: new Date(recoveryAttribution.startedAt).toISOString(),
+        outcome: "success",
+      },
+    });
+    clearPaymentRecoveryAttribution(order?.public_id || publicId);
+  }
+  return order;
+};
+
 const commerceService = {
   catalog,
   checkout,
@@ -130,7 +152,7 @@ const commerceService = {
   ).data,
   myOrders: async (params = {}) => (await appApiClient.get("/commerce/orders/mine", { params })).data,
   order: async (publicId) => (await appApiClient.get(`/commerce/orders/${publicId}`)).data.order,
-  syncPayment: async (publicId) => (await appApiClient.post(`/commerce/orders/${publicId}/sync-payment`)).data.order,
+  syncPayment,
   pickupCredential: async (publicId) => (await appApiClient.get(`/commerce/orders/${publicId}/pickup-credential`)).data.credential,
   redeemEventItems: async (token, eventId) => (await appApiClient.post("/commerce/item-redemptions/redeem", {
     token,
