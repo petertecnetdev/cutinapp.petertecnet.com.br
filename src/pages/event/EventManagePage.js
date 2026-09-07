@@ -681,6 +681,16 @@ export default function EventManagePage() {
                                 <Button size="sm" variant="outline-light" onClick={() => navigate(`/event/edit/${event.id}`)} title="Editar evento" aria-label={`Editar ${event.title}`} disabled={bulkPublishing || deletingAll}>
                                   <i className="fa-solid fa-pen" />
                                 </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline-info"
+                                  onClick={() => openDuplicate(event)}
+                                  title="Copiar evento"
+                                  aria-label={`Copiar ${event.title}`}
+                                  disabled={Boolean(busyId) || bulkPublishing || deletingAll}
+                                >
+                                  <i className="fa-regular fa-copy" />
+                                </Button>
                                 <Dropdown align="end" className="cut-event-manager-more">
                                   <Dropdown.Toggle size="sm" variant="outline-light" aria-label={`Mais ações para ${event.title}`} disabled={bulkPublishing || deletingAll}>
                                     <i className="fa-solid fa-ellipsis" />
