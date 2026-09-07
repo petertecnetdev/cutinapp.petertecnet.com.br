@@ -124,6 +124,10 @@ const invalidateCatalogCache = () => catalogCache.clear();
 const commerceService = {
   catalog,
   checkout,
+  pendingCheckout: async () => (await appApiClient.get("/commerce/checkout/pending")).data,
+  recoverPendingCheckout: async (orderId) => (
+    await appApiClient.post("/commerce/checkout/pending/recover", { order_id: Number(orderId) })
+  ).data,
   myOrders: async (params = {}) => (await appApiClient.get("/commerce/orders/mine", { params })).data,
   order: async (publicId) => (await appApiClient.get(`/commerce/orders/${publicId}`)).data.order,
   syncPayment: async (publicId) => (await appApiClient.post(`/commerce/orders/${publicId}/sync-payment`)).data.order,
