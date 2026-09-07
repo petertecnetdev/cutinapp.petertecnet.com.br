@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Alert, Button, Card, Col, Collapse, Container, Form, Row } from "react-bootstrap";
+import { Alert, Button, Card, Col, Collapse, Container, Form, Modal, Row } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
@@ -31,6 +31,10 @@ const initialForm = {
 };
 
 const normalizeCnpj = (value) => String(value || "").replace(/\D/g, "");
+const normalizeText = (value) => String(value || "").trim().toLocaleLowerCase("pt-BR").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+const cityId = (city) => city?.ibge_code ?? city?.city_id ?? city?.id ?? city?.code ?? "";
+const cityName = (city) => city?.name ?? city?.city ?? city?.nome ?? "";
+const cityUf = (city) => city?.uf ?? city?.state_code ?? city?.state?.uf ?? "";
 
 const trackProducerActivation = (type, production, metadata = {}) => {
   try {
@@ -81,24 +85,74 @@ export default function ProductionCreatePage() {
     setter(file ? URL.createObjectURL(file) : "");
   };
 
+  const resolveTypedCity = async (currentForm) => {
+    if (!currentForm.city || currentForm.city_id) return currentForm;
+
+    const cities = await cutinappService.locationCities(currentForm.uf || "", currentForm.city.trim());
+    const cityQuery = normalizeText(currentForm.city);
+    const ufQuery = String(currentForm.uf || "").trim().toUpperCase();
+    const matches = (Array.isArray(cities) ? cities : []).filter((candidate) => {
+      if (!cityId(candidate) || normalizeText(cityName(candidate)) !== cityQuery) return false;
+      return !ufQuery || String(cityUf(candidate) || "").toUpperCase() === ufQuery;
+    });
+
+    const selected = matches.length === 1 ? matches[0] : null;
+    if (!selected) return currentForm;
+
+    const resolved = {
+      ...currentForm,
+      city: cityName(selected),
+      city_id: String(cityId(selected)),
+      uf: cityUf(selected) || currentForm.uf,
+    };
+    setForm(resolved);
+    return resolved;
+  };
+
+  const showFormError = (message, errors = {}) => {
+    setFieldErrors(errors);
+    setError(message || "Não foi possível criar a produção.");
+  };
+
   const submit = async (event) => {
     event.preventDefault();
     setSubmitted(true);
     setError("");
     setFieldErrors({});
 
-    if (!canSubmit || cnpjInvalid || locationInvalid) {
-      setError(locationInvalid
-        ? "Selecione a cidade pela lista oficial antes de continuar."
-        : "Revise os campos destacados antes de continuar.");
-      if (cnpjInvalid || locationInvalid) setShowOptionalDetails(true);
+    const nameInvalid = form.name.trim().length < 2;
+    const cnpjInvalidNow = cnpjDigits !== "" && cnpjDigits.length !== 14;
+    if (nameInvalid || cnpjInvalidNow) {
+      const errors = {};
+      if (nameInvalid) errors.name = ["Informe um nome com pelo menos 2 caracteres."];
+      if (cnpjInvalidNow) errors.cnpj = ["Informe 14 dígitos ou deixe o CNPJ vazio."];
+      if (cnpjInvalidNow) setShowOptionalDetails(true);
+      showFormError("Revise os campos destacados antes de continuar.", errors);
       return;
     }
 
     setLoading(true);
     try {
+      let resolvedForm = form;
+      if (form.city && !form.city_id) {
+        try {
+          resolvedForm = await resolveTypedCity(form);
+        } catch (_) {
+          throw Object.assign(new Error("Não foi possível consultar a cidade informada. Tente novamente ou selecione a cidade pela lista."), {
+            errors: { city: ["Não conseguimos validar a cidade neste momento."] },
+          });
+        }
+      }
+
+      if ((resolvedForm.city || resolvedForm.uf) && !resolvedForm.city_id) {
+        setShowOptionalDetails(true);
+        throw Object.assign(new Error("Não conseguimos confirmar a cidade. Selecione a opção correta na lista de cidades para continuar."), {
+          errors: { city: ["Selecione uma cidade válida da lista oficial."] },
+        });
+      }
+
       const payload = new FormData();
-      Object.entries(form).forEach(([key, value]) => {
+      Object.entries(resolvedForm).forEach(([key, value]) => {
         if (value !== null && String(value).trim() !== "") payload.append(key, value);
       });
 
@@ -108,23 +162,23 @@ export default function ProductionCreatePage() {
       if (!id) throw new Error("A produção foi criada, mas não conseguimos abrir seus dados.");
 
       const experiencePayload = {
-        type: form.type,
-        city_id: form.city_id || null,
-        city: form.city || null,
-        uf: form.uf || null,
-        cep: form.cep || null,
-        address: form.address || null,
-        address_number: form.address_number || null,
-        neighborhood: form.neighborhood || null,
-        address_complement: form.address_complement || null,
-        address_reference: form.address_reference || null,
-        location_public: Boolean(form.location_public),
+        type: resolvedForm.type,
+        city_id: resolvedForm.city_id || null,
+        city: resolvedForm.city || null,
+        uf: resolvedForm.uf || null,
+        cep: resolvedForm.cep || null,
+        address: resolvedForm.address || null,
+        address_number: resolvedForm.address_number || null,
+        neighborhood: resolvedForm.neighborhood || null,
+        address_complement: resolvedForm.address_complement || null,
+        address_reference: resolvedForm.address_reference || null,
+        location_public: Boolean(resolvedForm.location_public),
       };
 
       const experienceSynced = await runBestEffort(
         () => cutinappService.updateProductionExperience(id, experiencePayload),
         (syncError) => {
-          trackProducerActivation("producer_production_experience_sync_failed", { ...production, id, name: production?.name || form.name }, {
+          trackProducerActivation("producer_production_experience_sync_failed", { ...production, id, name: production?.name || resolvedForm.name }, {
             activation_stage: "production_created",
             next_step: "event_create",
             status: Number(syncError?.status || syncError?.response?.status || 0) || null,
@@ -133,13 +187,13 @@ export default function ProductionCreatePage() {
       );
 
       const usedQuickPath = !showOptionalDetails;
-      trackProducerActivation("producer_production_created", { ...production, id, name: production?.name || form.name }, {
+      trackProducerActivation("producer_production_created", { ...production, id, name: production?.name || resolvedForm.name }, {
         activation_stage: "production_created",
         next_step: "event_create",
         onboarding_path: usedQuickPath ? "quick" : "detailed",
       });
       if (usedQuickPath) {
-        trackProducerActivation("producer_quick_production_created", { ...production, id, name: production?.name || form.name }, {
+        trackProducerActivation("producer_quick_production_created", { ...production, id, name: production?.name || resolvedForm.name }, {
           activation_stage: "production_created",
           next_step: "event_create",
         });
@@ -150,9 +204,10 @@ export default function ProductionCreatePage() {
         state: { productionCreated: true, productionExperienceSynced: experienceSynced },
       });
     } catch (err) {
-      setFieldErrors(err?.errors || {});
-      setError(err?.message || "Não foi possível criar a produção.");
-      if (Object.keys(err?.errors || {}).some((field) => field !== "name" && field !== "type")) {
+      const errors = err?.errors || err?.response?.data?.errors || {};
+      const message = err?.message || err?.response?.data?.message || "Não foi possível criar a produção.";
+      showFormError(message, errors);
+      if (Object.keys(errors).some((field) => field !== "name" && field !== "type")) {
         setShowOptionalDetails(true);
       }
     } finally {
@@ -160,10 +215,30 @@ export default function ProductionCreatePage() {
     }
   };
 
+  const modalMessages = Object.values(fieldErrors).flat().filter(Boolean);
+
   return (
     <div className="cut-app-page">
       <NavlogComponent />
       {loading && <ProcessingIndicatorComponent label="Criando produção" />}
+
+      <Modal show={Boolean(error)} onHide={() => setError("")} centered backdrop="static">
+        <Modal.Header closeButton>
+          <Modal.Title>Não foi possível criar a produção</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p className="mb-2">{error}</p>
+          {modalMessages.length > 0 && (
+            <div className="alert alert-warning mb-0" role="alert">
+              {modalMessages.map((message, index) => <div key={`${message}-${index}`}>{message}</div>)}
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="primary" onClick={() => setError("")}>Entendi, vou corrigir</Button>
+        </Modal.Footer>
+      </Modal>
+
       <Container className="cut-page-container py-4 py-lg-5">
         <div className="cut-page-heading">
           <div>
@@ -172,8 +247,6 @@ export default function ProductionCreatePage() {
             <p>Para criar o primeiro evento, informe apenas o nome da produção. Os demais dados podem ser completados agora ou depois.</p>
           </div>
         </div>
-
-        {error && <Alert variant="danger">{error}</Alert>}
 
         <Form onSubmit={submit} noValidate>
           <Row className="g-4">
