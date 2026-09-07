@@ -298,7 +298,7 @@ export default function ProducerSalesPage() {
                   <span>Ticket médio {money(event.averageTicket)} · Líquido do produtor {money(event.producerNet)}</span>
                   <span>Adicionais: {money(event.addOnGmv)} GMV · {percent(event.addOnAttachmentRate)} das vendas · médio {money(event.averageAddOnValue)}</span>
                   {event.incrementalGmv > 0 && <span>Margem líquida incremental Peter Tecnet: {percent(event.incrementalNetMargin)}</span>}
-                  {event.editableId && event.incrementalGmv > 0 && event.addOnProfitable && <Button as={Link} to={`/event/edit/${event.editableId}${event.suggestedAddOnPrice > 0 ? `?addonSuggested=${encodeURIComponent(event.suggestedAddOnPrice.toFixed(2))}&addonStock=${encodeURIComponent(String(event.suggestedAddOnStock || ""))}&addonSource=${event.suggestedAddOnSource}` : ""}`} variant="outline-light" size="sm" className="mt-2 align-self-start">{event.addOnOrders > 0 ? "Otimizar adicionais" : "Ativar adicionais"}</Button>}
+                  {event.editableId && event.incrementalGmv > 0 && event.addOnProfitable && <Button as={Link} to={`/event/edit/${event.editableId}${event.suggestedAddOnPrice > 0 ? `?addonSuggested=${encodeURIComponent(event.suggestedAddOnPrice.toFixed(2))}&addonStock=${encodeURIComponent(String(event.suggestedAddOnStock || ""))}&addonSource=${event.suggestedAddOnSource}&addonNetMargin=${encodeURIComponent(event.incrementalNetMargin.toFixed(4))}` : ""}`} variant="outline-light" size="sm" className="mt-2 align-self-start">{event.addOnOrders > 0 ? "Otimizar adicionais" : "Ativar adicionais"}</Button>}
                 </div>
               </Col>)}
             </Row>
