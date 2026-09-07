@@ -2,7 +2,9 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import acquisitionService from "../../services/AcquisitionService";
+import { commissionDealPreview } from "../../utils/commissionDealPreview";
 import "./AcquisitionDashboardPage.css";
+import "./CommissionDealPreview.css";
 
 const emptyTicket = () => ({ name: "Ingresso padrão", quantity: 100, price: 0, ticket_type: "standard", description: "" });
 const emptyEvent = () => ({
@@ -220,6 +222,23 @@ export default function AcquisitionDashboardPage() {
                           {eventItem.tickets.length > 1 && <button type="button" className="acq-icon-button" title="Remover ingresso" onClick={() => removeTicket(eventIndex, ticketIndex)}>×</button>}
                         </div>
                       ))}
+                      {(() => {
+                        const preview = commissionDealPreview({
+                          tickets: eventItem.tickets,
+                          commissionPercentage: eventItem.commission_percentage,
+                          minimumRetainedMarginPercentage: retainedMargin,
+                          processingReservePercentage: processingReserve,
+                        });
+                        if (preview.selloutGmv <= 0) return null;
+                        return <div className="acq-deal-preview">
+                          <strong>Prévia econômica se os ingressos pagos esgotarem</strong>
+                          <span>{money(preview.selloutGmv)} GMV · ticket médio {money(preview.averagePaidTicket)}</span>
+                          <span>Comissão do agente: {money(preview.agentCommissionAtSellout)}</span>
+                          <span>Margem mínima protegida Peter Tecnet: {money(preview.minimumPeterRetainedAtSellout)}</span>
+                          {preview.processingReserveAtSellout > 0 && <span>Reserva de processamento considerada no teto: {money(preview.processingReserveAtSellout)}</span>}
+                          <small>Projeção pelo estoque e preços informados. Não cria cobrança, não altera o preço e não garante venda.</small>
+                        </div>;
+                      })()}
                     </div>
                   </fieldset>
                 ))}
