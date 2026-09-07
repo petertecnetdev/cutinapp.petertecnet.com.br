@@ -15,6 +15,12 @@ const productionCreateAttempts = createIdempotencyAttemptManager({
   keyPrefix: "production",
 });
 
+const pendingCourtesyClaims = new Map();
+const courtesyClaimAttempts = createIdempotencyAttemptManager({
+  storagePrefix: "cutinapp_courtesy_claim_attempt_",
+  keyPrefix: "courtesy-claim",
+});
+
 const productionValueSignature = (value) => {
   if (typeof value === "string") return value;
   if (!value || typeof value !== "object") return String(value ?? "");
@@ -59,6 +65,28 @@ const createProduction = (payload) => {
   });
 
   pendingProductionCreates.set(requestKey, request);
+  return request;
+};
+
+const claimCourtesy = (ticketId) => {
+  const requestKey = String(ticketId);
+  const pending = pendingCourtesyClaims.get(requestKey);
+  if (pending) return pending;
+
+  const idempotencyKey = courtesyClaimAttempts.keyFor(requestKey);
+  const request = appApiClient.post(`/passes/claim/${ticketId}`, undefined, {
+    headers: { "Idempotency-Key": idempotencyKey },
+  }).then((response) => {
+    courtesyClaimAttempts.clear(requestKey);
+    return response.data;
+  }).catch((error) => {
+    if (!shouldKeepIdempotencyAttempt(error)) courtesyClaimAttempts.clear(requestKey);
+    throw error;
+  }).finally(() => {
+    if (pendingCourtesyClaims.get(requestKey) === request) pendingCourtesyClaims.delete(requestKey);
+  });
+
+  pendingCourtesyClaims.set(requestKey, request);
   return request;
 };
 
@@ -155,7 +183,7 @@ const cutinappService = {
   eventCourtesies: async (eventId) => (await appApiClient.get(`/events/${eventId}/tickets`)).data,
   updateCourtesy: async (ticketId, payload) => (await appApiClient.patch(`/tickets/${ticketId}`, payload)).data,
   deleteCourtesy: async (ticketId) => (await appApiClient.delete(`/tickets/${ticketId}`)).data,
-  claimCourtesy: async (ticketId) => (await appApiClient.post(`/passes/claim/${ticketId}`)).data,
+  claimCourtesy,
   myPasses: async () => unwrap((await appApiClient.get("/passes/mine")).data.passes),
   getPass: async (passId) => (await appApiClient.get(`/passes/${passId}`)).data.pass,
   transferPass: async (passId, recipientEmail) => (await appApiClient.post(`/passes/${passId}/transfer`, { recipient_email: recipientEmail })).data,
