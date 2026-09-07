@@ -53,6 +53,16 @@ describe("rankCheckoutAddOns", () => {
 
     expect(rankCheckoutAddOns(items, new Set(), 3).map((item) => item.id)).toEqual([4]);
   });
+
+  test("keeps valid add-ons that do not use explicit stock tracking", () => {
+    const items = [
+      { id: 1, price: 15, available: true },
+      { id: 2, price: 30, quantity: null },
+      { id: 3, price: 45, remaining: 0 },
+    ];
+
+    expect(rankCheckoutAddOns(items, new Set(), 3).map((item) => item.id)).toEqual([1, 2]);
+  });
 });
 
 describe("summarizeCheckoutAddOnOffer", () => {
