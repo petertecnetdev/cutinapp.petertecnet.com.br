@@ -11,3 +11,8 @@ yarn-error.log*
 .DS_Store
 .vscode/
 .idea/
+*.bak.*
+/.worktrees/
+/.activation-worktree/
+/.tmp-ticket-cta/
+/build.prev-*/

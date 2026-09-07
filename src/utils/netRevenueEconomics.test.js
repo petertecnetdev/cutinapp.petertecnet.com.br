@@ -1,4 +1,4 @@
-import { estimateNetRevenueEconomics } from "./netRevenueEconomics";
+import { estimateNetRevenueEconomics, processorFeesBorneByPlatformForOrder } from "./netRevenueEconomics";
 
 test("calculates net take rate and net revenue per paid order", () => {
   expect(estimateNetRevenueEconomics({
@@ -60,5 +60,14 @@ test("uses settlement-aware platform contribution when API provides it", () => {
     netRevenuePerPaidOrder: 23,
     estimatedRecoveredNetRevenue: 92,
     contributionRatio: 0.92,
+  });
+});
+
+
+describe("processorFeesBorneByPlatformForOrder", () => {
+  test("atribui custo de processamento à plataforma somente em platform_collection", () => {
+    expect(processorFeesBorneByPlatformForOrder({ processorFee: 3.25, settlementMode: "platform_collection" })).toBe(3.25);
+    expect(processorFeesBorneByPlatformForOrder({ processorFee: 3.25, settlementMode: "automatic_split" })).toBe(0);
+    expect(processorFeesBorneByPlatformForOrder({ processorFee: 3.25, settlementMode: "unknown" })).toBe(0);
   });
 });

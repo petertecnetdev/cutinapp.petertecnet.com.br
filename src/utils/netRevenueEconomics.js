@@ -3,6 +3,11 @@ const finiteNumber = (value) => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
+export const processorFeesBorneByPlatformForOrder = ({ processorFee = 0, settlementMode = "unknown" } = {}) => {
+  const fee = Math.max(0, finiteNumber(processorFee));
+  return String(settlementMode || "unknown").trim() === "platform_collection" ? fee : 0;
+};
+
 export const estimateNetRevenueEconomics = ({
   grossRevenue = 0,
   platformRevenue = 0,
