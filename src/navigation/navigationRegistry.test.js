@@ -1,25 +1,49 @@
-import { contextualNavigation, navigationForMode, navigationModesFor } from "./navigationRegistry";
+import { resolveNavigationCapabilities } from "./capabilityResolver";
+import { accountNavigation, actorMenusFor, commonNavigation, contextualNavigation, quickActionsFor, rankQuickActions } from "./navigationRegistry";
 
 const app = (role, roles = []) => ({ slug: "cutinapp", pivot: { status: "active", role, metadata: JSON.stringify({ roles }) } });
 
-describe("advanced navigation registry", () => {
-  test("participant receives only participant mode by default", () => {
-    expect(navigationModesFor({ applications: [] }).map((mode) => mode.id)).toEqual(["participant"]);
+describe("capability based navigation", () => {
+  test("participant account items stay out of the desktop common navigation", () => {
+    expect(commonNavigation.map((entry) => entry.id)).toEqual(["feed", "events", "productions", "artists"]);
+    expect(accountNavigation.map((entry) => entry.id)).toEqual(expect.arrayContaining(["profile", "passes", "purchases", "notifications", "account-settings"]));
   });
-  test("multi-role user receives manager artist and promoter modes", () => {
-    const user = { applications: [app("producer", ["artist", "promoter"])] };
-    expect(navigationModesFor(user).map((mode) => mode.id)).toEqual(expect.arrayContaining(["participant", "manager", "artist", "promoter"]));
+
+  test("roles are cumulative instead of exclusive", () => {
+    const capabilities = resolveNavigationCapabilities({ applications: [app("producer", ["artist", "promoter"])] });
+    expect(actorMenusFor(capabilities).map((area) => area.id)).toEqual(expect.arrayContaining(["producer", "artist", "promoter"]));
   });
-  test("Peter Tecnet root receives administration without losing actor modes", () => {
-    const ids = navigationModesFor({ email: "petertecnet@gmail.com" }).map((mode) => mode.id);
-    expect(ids).toEqual(expect.arrayContaining(["participant", "manager", "artist", "promoter", "admin"]));
+
+  test("owned production evidence grants producer navigation when legacy membership is missing", () => {
+    const capabilities = resolveNavigationCapabilities({ id: 77, applications: [] }, { hasProductions: true });
+    expect(capabilities.producer).toBe(true);
+    expect(actorMenusFor(capabilities).some((area) => area.id === "producer")).toBe(true);
   });
-  test("manager primary navigation prioritizes production events sales and checkin", () => {
-    expect(navigationForMode("manager").primary.map((item) => item.id)).toEqual(["manager-home", "events-manage", "sales", "checkin"]);
+
+  test("root keeps every actor area and administration", () => {
+    const capabilities = resolveNavigationCapabilities({ email: "petertecnet@gmail.com" });
+    expect(actorMenusFor(capabilities).map((area) => area.id)).toEqual(expect.arrayContaining(["producer", "artist", "promoter", "admin"]));
   });
-  test("event and production routes expose contextual management actions", () => {
-    expect(contextualNavigation("/event/abc", "manager")?.label).toBe("Evento atual");
-    expect(contextualNavigation("/production/42", "admin")?.items.some((item) => item.to === "/production/42/agenda")).toBe(true);
-    expect(contextualNavigation("/event/abc", "participant")).toBeNull();
+
+  test("producer menu exposes management revenue tickets and checkin", () => {
+    const capabilities = resolveNavigationCapabilities({}, { hasProductions: true });
+    const producer = actorMenusFor(capabilities).find((area) => area.id === "producer");
+    expect(producer.items.map((entry) => entry.id)).toEqual(expect.arrayContaining(["my-productions", "manage-events", "create-ticket", "sales", "finance", "checkin"]));
+  });
+
+  test("context actions appear without changing actor privileges", () => {
+    const capabilities = resolveNavigationCapabilities({}, { hasProductions: true });
+    expect(contextualNavigation("/production/42", capabilities)?.label).toBe("Produção atual");
+    expect(contextualNavigation("/event/88", capabilities)?.items.some((entry) => entry.id === "event-courtesies")).toBe(true);
+    expect(contextualNavigation("/event/88", resolveNavigationCapabilities({})) ).toBeNull();
+  });
+
+  test("quick actions union all allowed actor areas and can be personalized without moving primary navigation", () => {
+    const capabilities = resolveNavigationCapabilities({ applications: [app("producer", ["artist"])] });
+    const actions = quickActionsFor(capabilities);
+    expect(actions.some((entry) => entry.id === "quick-create-event")).toBe(true);
+    expect(actions.some((entry) => entry.id === "quick-artist")).toBe(true);
+    expect(rankQuickActions(actions, { "quick-artist": 8 })[0].id).toBe("quick-artist");
+    expect(commonNavigation[0].id).toBe("feed");
   });
 });
