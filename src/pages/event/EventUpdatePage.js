@@ -25,9 +25,11 @@ export default function EventUpdatePage() {
   const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const addOnParams = new URLSearchParams(location.search);
-  const suggestedAddOnPrice = Number(addOnParams.get("addonSuggested") || 0);
-  const requestedAddOnSource = addOnParams.get("addonSource");
+  const queryParams = new URLSearchParams(location.search);
+  const activation = queryParams.get("activation") || "";
+  const isFirstTicketActivation = activation === "first-ticket";
+  const suggestedAddOnPrice = Number(queryParams.get("addonSuggested") || 0);
+  const requestedAddOnSource = queryParams.get("addonSource");
   const suggestedAddOnSource = ["event", "production"].includes(requestedAddOnSource) ? requestedAddOnSource : "";
   const hasSuggestedAddOnPrice = Number.isFinite(suggestedAddOnPrice) && suggestedAddOnPrice > 0 && Boolean(suggestedAddOnSource);
   const [form, setForm] = useState(null);
@@ -45,9 +47,11 @@ export default function EventUpdatePage() {
   const [itemSaving, setItemSaving] = useState(false);
   const [itemBusyId, setItemBusyId] = useState(null);
   const [success, setSuccess] = useState(
-    new URLSearchParams(location.search).get("courtesyCreated") === "1"
-      ? "Cortesia criada. Revise o evento e publique quando estiver pronto."
-      : ""
+    isFirstTicketActivation
+      ? "Primeiro lote criado. Seu próximo passo é publicar o evento para liberar a página de vendas."
+      : queryParams.get("courtesyCreated") === "1"
+        ? "Cortesia criada. Revise o evento e publique quando estiver pronto."
+        : ""
   );
 
   const applyEvent = (item) => {
@@ -97,6 +101,22 @@ export default function EventUpdatePage() {
   useEffect(() => {
     if (eventData?.is_published && eventData?.slug) loadEventItems();
   }, [eventData?.is_published, eventData?.slug]);
+
+  useEffect(() => {
+    if (!isFirstTicketActivation || !eventData?.id) return;
+    try {
+      window.PeterTecnetTelemetry?.track?.("producer_publication_step_opened", {
+        label: "Produtor chegou à publicação após criar o primeiro lote",
+        target: String(eventData.id),
+        metadata: {
+          event_id: Number(eventData.id),
+          activation_stage: "publish_event",
+          next_step: eventData.is_published ? "first_sale" : "publish_event",
+          ticket_lots: Number(eventData.tickets_count || 0),
+        },
+      });
+    } catch (_) { /* Telemetria nunca bloqueia ativação. */ }
+  }, [isFirstTicketActivation, eventData?.id, eventData?.is_published, eventData?.tickets_count]);
 
   useEffect(() => () => {
     if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
@@ -252,7 +272,7 @@ export default function EventUpdatePage() {
       <NavlogComponent />
       {(saving || publishing) && <ProcessingIndicatorComponent label={publishing ? "Atualizando publicação" : "Salvando evento"} />}
       <Container className="cut-page-container py-4 py-lg-5">
-        <div className="cut-page-heading"><div><span className="cut-eyebrow">Gestão do evento</span><h1>Editar evento</h1><p>Revise agenda, localização, mapa, cortesias e publicação antes de colocar o evento no ar.</p></div><div className="cut-card-actions"><Button variant="outline-light" onClick={() => navigate("/event/manage")}>Voltar</Button>{eventData?.is_published && eventData?.slug && <Button variant="outline-light" onClick={() => navigate(`/event/${eventData.slug}`)}>Página pública</Button>}</div></div>
+        <div className="cut-page-heading"><div><span className="cut-eyebrow">Gestão do evento</span><h1>Editar evento</h1><p>Revise agenda, localização, mapa, ingressos e publicação antes de colocar o evento no ar.</p></div><div className="cut-card-actions"><Button variant="outline-light" onClick={() => navigate("/event/manage")}>Voltar</Button>{eventData?.is_published && eventData?.slug && <Button variant="outline-light" onClick={() => navigate(`/event/${eventData.slug}`)}>Página pública</Button>}</div></div>
 
         {error && <Alert variant="danger">{error}</Alert>}
         {success && <Alert variant="success">{success}</Alert>}
@@ -278,7 +298,7 @@ export default function EventUpdatePage() {
               <Button type="submit" disabled={!canSave}>Salvar alterações</Button>
             </div></Card.Body></Card>
 
-              <Card className="cut-panel"><Card.Body className="p-4"><div className="d-flex justify-content-between gap-3 align-items-start"><div><span className="cut-eyebrow">Publicação</span><h2 className="cut-section-title mt-2">{eventData?.is_published ? "Evento no ar" : "Evento em rascunho"}</h2></div><Badge bg={eventData?.is_published ? "success" : "secondary"}>{eventData?.is_published ? "Publicado" : "Rascunho"}</Badge></div><div className="cut-info-box mt-3"><strong>{eventData?.tickets_count || 0} lote(s) configurado(s)</strong><span>Para publicar, o evento precisa estar no futuro e possuir ao menos uma cortesia gratuita disponível.</span></div><div className="d-grid gap-2 mt-3"><Button variant="outline-light" onClick={() => navigate(`/event/${id}/courtesies`)}>Gerenciar cortesias</Button><Button variant="outline-light" onClick={() => navigate(`/ticket/create?eventId=${id}`)}>Criar nova cortesia</Button><Button onClick={togglePublication} disabled={publishing || eventData?.is_cancelled}>{eventData?.is_published ? "Retirar da publicação" : "Publicar evento"}</Button>{eventData?.is_published && <Button variant="outline-light" onClick={() => navigate(`/checkin?eventId=${id}`)}>Abrir portaria deste evento</Button>}</div></Card.Body></Card>
+              <Card className="cut-panel"><Card.Body className="p-4"><div className="d-flex justify-content-between gap-3 align-items-start"><div><span className="cut-eyebrow">Publicação</span><h2 className="cut-section-title mt-2">{eventData?.is_published ? "Evento no ar" : isFirstTicketActivation ? "Seu lote está pronto. Coloque o evento à venda." : "Evento em rascunho"}</h2></div><Badge bg={eventData?.is_published ? "success" : "secondary"}>{eventData?.is_published ? "Publicado" : "Rascunho"}</Badge></div><div className="cut-info-box mt-3"><strong>{eventData?.tickets_count || 0} lote(s) configurado(s)</strong><span>{Number(eventData?.tickets_count || 0) > 0 ? "Você já tem ingresso configurado. Para publicar, mantenha o evento no futuro e revise os dados obrigatórios acima." : "Crie pelo menos um lote de ingresso, pago ou gratuito, antes de publicar."}</span></div>{isFirstTicketActivation && !eventData?.is_published && Number(eventData?.tickets_count || 0) > 0 && <Alert variant="success" className="mt-3 mb-0"><strong>Pronto para a próxima etapa.</strong> Publique agora para liberar a página de vendas e reduzir o tempo até a primeira venda.</Alert>}<div className="d-grid gap-2 mt-3"><Button variant="outline-light" onClick={() => navigate(`/event/${id}/courtesies`)}>Gerenciar ingressos</Button><Button variant="outline-light" onClick={() => navigate(`/ticket/create?eventId=${id}`)}>Criar novo lote</Button><Button onClick={togglePublication} disabled={publishing || eventData?.is_cancelled || (!eventData?.is_published && Number(eventData?.tickets_count || 0) <= 0)}>{eventData?.is_published ? "Retirar da publicação" : isFirstTicketActivation ? "Publicar e começar a vender" : "Publicar evento"}</Button>{eventData?.is_published && eventData?.slug && <Button variant={isFirstTicketActivation ? "success" : "outline-light"} onClick={() => navigate(`/event/${eventData.slug}`)}>Abrir página de vendas</Button>}{eventData?.is_published && <Button variant="outline-light" onClick={() => navigate(`/checkin?eventId=${id}`)}>Abrir portaria deste evento</Button>}</div></Card.Body></Card>
             </Col>
           </Row>
 
