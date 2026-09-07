@@ -166,15 +166,7 @@ export default function EventViewPage() {
   const isPastEvent = temporalState === "past";
   const hasTickets = Number(event?.tickets_count || 0) > 0 || tickets.length > 0;
   const canMarkInterested = event?.allowed_actions?.mark_interested ?? !isPastEvent;
-  const heroStyle = useMemo(() => {
-    if (!flyerUrl) return undefined;
-    const overlay = temporalState === "past"
-      ? "linear-gradient(180deg,rgba(20,24,28,.48),rgba(3,10,16,.98))"
-      : temporalState === "ongoing"
-        ? "linear-gradient(180deg,rgba(0,70,48,.12),rgba(3,10,16,.98))"
-        : "linear-gradient(180deg,rgba(3,10,16,.08),rgba(3,10,16,.98))";
-    return { backgroundImage: `${overlay},url(${flyerUrl})` };
-  }, [flyerUrl, temporalState]);
+  const showPersistentBuyCta = !isPastEvent && hasTickets;
 
   useEffect(() => {
     if (!event || isPastEvent) return undefined;
@@ -382,10 +374,38 @@ export default function EventViewPage() {
   const attendanceCheckedIn = Number(ownerResults?.attendance?.checked_in || 0);
   const attendanceRate = attendanceIssued > 0 ? Math.round((attendanceCheckedIn / attendanceIssued) * 100) : 0;
 
-  return <div className="cut-app-page"><NavlogComponent />{(loading || claimingId || artistClaimingId || duplicating) && <ProcessingIndicatorComponent label={claimingId ? "Emitindo ingresso" : artistClaimingId ? "Enviando reivindicação" : duplicating ? "Criando próxima edição" : "Carregando evento"} />}
+  return <div className={`cut-app-page cut-event-view-page ${showPersistentBuyCta ? "cut-event-view-page--buyable" : ""}`}><NavlogComponent />{(loading || claimingId || artistClaimingId || duplicating) && <ProcessingIndicatorComponent label={claimingId ? "Emitindo ingresso" : artistClaimingId ? "Enviando reivindicação" : duplicating ? "Criando próxima edição" : "Carregando evento"} />}
     {!loading && event && <>
-      <section className="cut-event-hero cut-event-hero--premium" style={heroStyle}>
-        <Container className="cut-page-container"><div className="cut-event-hero__content"><div className="d-flex flex-wrap gap-2 mb-3">{event.category && <Badge bg="dark">{event.category}</Badge>}<Badge bg={temporal.badgeVariant}>{temporal.badge}</Badge>{!isPastEvent && hasTickets && <Badge bg="info" text="dark">Ingressos disponíveis</Badge>}</div><h1>{event.title}</h1><p className="cut-event-hero__date">{formatDate(event.start_date)}</p><span>{event.venue || event.address}{event.city ? ` · ${event.city}${event.uf ? ` - ${event.uf}` : ""}` : ""}</span>{event.production?.name && <button className="cut-inline-profile-link" onClick={() => navigate(`/production/${event.production.slug}/public`)}>Por {event.production.name} <i className="fa-solid fa-arrow-up-right-from-square" /></button>}<div className="cut-card-actions mt-4">{!isPastEvent && hasTickets && <Button as="a" href="#ingressos" className="fw-bold px-4" aria-label={`Ver ingressos para ${event.title}`}><i className="fa-solid fa-ticket me-2" />Ingressos</Button>}{isOwner && <Button variant="light" onClick={() => navigate(`/event/edit/${event.id}`)} aria-label={`Editar ${event.title}`} title="Editar evento"><i className="fa-solid fa-pen-to-square me-2" />Editar evento</Button>}<Button variant="outline-light" onClick={share} aria-label={`Compartilhar ${event.title}`} title="Compartilhar este evento"><i className="fa-solid fa-share-nodes me-2" />Compartilhar</Button>{flyerUrl && <Button variant="outline-light" onClick={() => setFlyerOpen(true)}><i className="fa-regular fa-image me-2" />Ver Flyer</Button>}{canMarkInterested && <Button variant={interested ? "info" : "outline-light"} onClick={() => setEngagement("interested")} disabled={socialBusy || engagementLoading}><i className="fa-regular fa-star me-2" />Tenho interesse</Button>}<Button variant={favorite ? "danger" : "outline-light"} onClick={() => setEngagement("favorite")} disabled={socialBusy || engagementLoading}><i className={`${favorite ? "fa-solid" : "fa-regular"} fa-heart me-2`} />{favorite ? "Salvo" : "Salvar"}</Button><Button variant="outline-light" href="#comunidade"><i className="fa-regular fa-comments me-2" />Conversa</Button>{event.google_maps_url && <Button variant="outline-light" as="a" href={event.google_maps_url} target="_blank" rel="noreferrer"><i className="fa-solid fa-location-arrow me-2" />Maps</Button>}</div></div></Container>
+      <section className="cut-event-banner-stage" aria-label={`Imagem do evento ${event.title}`}>
+        <Container className="cut-page-container">
+          {flyerUrl ? <div className="cut-event-banner-frame"><img src={flyerUrl} alt={`Banner do evento ${event.title}`} /></div> : <div className="cut-event-banner-placeholder"><i className="fa-regular fa-image" aria-hidden="true" /></div>}
+        </Container>
+      </section>
+
+      <section className="cut-event-summary-strip">
+        <Container className="cut-page-container">
+          <div className="cut-event-summary-card">
+            <div className="cut-event-summary-card__content">
+              <div className="d-flex flex-wrap gap-2 mb-3">{event.category && <Badge bg="dark">{event.category}</Badge>}<Badge bg={temporal.badgeVariant}>{temporal.badge}</Badge>{!isPastEvent && hasTickets && <Badge bg="info" text="dark">Ingressos disponíveis</Badge>}</div>
+              <h1>{event.title}</h1>
+              <div className="cut-event-summary-card__meta">
+                <span><i className="fa-regular fa-calendar" aria-hidden="true" />{formatDate(event.start_date)}</span>
+                <span><i className="fa-solid fa-location-dot" aria-hidden="true" />{event.venue || event.address}{event.city ? ` · ${event.city}${event.uf ? ` - ${event.uf}` : ""}` : ""}</span>
+              </div>
+              {event.production?.name && <button className="cut-inline-profile-link mt-3" onClick={() => navigate(`/production/${event.production.slug}/public`)}>Por {event.production.name} <i className="fa-solid fa-arrow-up-right-from-square" /></button>}
+            </div>
+            <div className="cut-card-actions cut-event-summary-card__actions">
+              {showPersistentBuyCta && <Button as="a" href="#ingressos" size="lg" className="fw-bold" aria-label={`Comprar ingresso para ${event.title}`}><i className="fa-solid fa-ticket me-2" />Comprar ingresso</Button>}
+              {isOwner && <Button variant="light" onClick={() => navigate(`/event/edit/${event.id}`)} aria-label={`Editar ${event.title}`} title="Editar evento"><i className="fa-solid fa-pen-to-square me-2" />Editar evento</Button>}
+              <Button variant="outline-light" onClick={share} aria-label={`Compartilhar ${event.title}`}><i className="fa-solid fa-share-nodes me-2" />Compartilhar</Button>
+              {flyerUrl && <Button variant="outline-light" onClick={() => setFlyerOpen(true)}><i className="fa-regular fa-image me-2" />Ver imagem</Button>}
+              {canMarkInterested && <Button variant={interested ? "info" : "outline-light"} onClick={() => setEngagement("interested")} disabled={socialBusy || engagementLoading}><i className="fa-regular fa-star me-2" />Tenho interesse</Button>}
+              <Button variant={favorite ? "danger" : "outline-light"} onClick={() => setEngagement("favorite")} disabled={socialBusy || engagementLoading}><i className={`${favorite ? "fa-solid" : "fa-regular"} fa-heart me-2`} />{favorite ? "Salvo" : "Salvar"}</Button>
+              <Button variant="outline-light" href="#comunidade"><i className="fa-regular fa-comments me-2" />Conversa</Button>
+              {event.google_maps_url && <Button variant="outline-light" as="a" href={event.google_maps_url} target="_blank" rel="noreferrer"><i className="fa-solid fa-location-arrow me-2" />Maps</Button>}
+            </div>
+          </div>
+        </Container>
       </section>
 
       <Container className="cut-page-container py-4 py-lg-5">
@@ -417,25 +437,11 @@ export default function EventViewPage() {
         <EventCommunitySection event={event} isOwner={isOwner} />
       </Container>
 
-      <Button
-        type="button"
-        variant="light"
-        className="d-flex d-lg-none align-items-center justify-content-center rounded-circle shadow"
-        onClick={share}
-        aria-label={`Compartilhar ${event.title}`}
-        title="Compartilhar este evento"
-        style={{
-          position: "fixed",
-          right: "18px",
-          bottom: "92px",
-          width: "56px",
-          height: "56px",
-          padding: 0,
-          zIndex: 1045,
-        }}
-      >
-        <i className="fa-solid fa-share-nodes" aria-hidden="true" />
-      </Button>
+      {showPersistentBuyCta && <a className="cut-event-buy-cta-fixed" href="#ingressos" aria-label={`Comprar ingresso para ${event.title}`}>
+        <i className="fa-solid fa-ticket" aria-hidden="true" />
+        <span><strong>Comprar ingresso</strong><small>Ver opções disponíveis</small></span>
+        <i className="fa-solid fa-chevron-down" aria-hidden="true" />
+      </a>}
 
       <WhatsAppFloatingButton
         phone={event.production?.phone || event.phone}
