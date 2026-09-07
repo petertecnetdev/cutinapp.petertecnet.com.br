@@ -31,27 +31,27 @@ export const paymentFailureGuidance = ({ payment = {}, method = "", pixAvailable
   const guidance = {
     insufficient_funds: {
       title: "O cartão não conseguiu concluir o pagamento",
-      message: `O provedor indicou saldo ou limite insuficiente. Tente outro cartão.${pixRecommended}`,
+      message: `O provedor indicou saldo ou limite insuficiente. Não repita a mesma tentativa sem liberar limite; use outro cartão ou aguarde a atualização do limite.${pixRecommended}`,
     },
     card_disabled: {
       title: "O cartão está bloqueado para esta compra",
-      message: `O provedor indicou que o cartão está desabilitado para este tipo de pagamento. Habilite compras online no seu banco ou use outro cartão.${pixRecommended}`,
+      message: `O provedor indicou que o cartão está desabilitado para este tipo de pagamento. Habilite compras online no seu banco antes de tentar novamente ou use outro cartão.${pixRecommended}`,
     },
     card_type_not_allowed: {
       title: "Este tipo de cartão não é aceito nesta compra",
-      message: `O provedor recusou esta modalidade de cartão. Use outro cartão elegível.${pixRecommended}`,
+      message: `O provedor recusou esta modalidade de cartão. Não repita este cartão; use outro cartão elegível.${pixRecommended}`,
     },
     card_data: {
       title: "Revise os dados do cartão",
-      message: `O provedor indicou que algum dado do cartão precisa ser corrigido. Revise os campos e tente novamente.${pixAlternative}`,
+      message: `O provedor indicou que algum dado do cartão precisa ser corrigido. Revise os campos antes de tentar novamente.${pixAlternative}`,
     },
     expired_card: {
       title: "Este cartão não pôde ser usado",
-      message: `O provedor indicou cartão vencido. Use outro cartão.${pixRecommended}`,
+      message: `O provedor indicou cartão vencido. Não tente novamente com este cartão; use outro cartão válido.${pixRecommended}`,
     },
     issuer_authorization: {
       title: "O banco precisa autorizar a compra",
-      message: `O emissor pediu autorização para esta compra. Autorize no seu banco e tente novamente.${pixRecommended}`,
+      message: `O emissor pediu autorização para esta compra. Autorize no seu banco primeiro e só então tente novamente.${pixRecommended}`,
     },
     security_review: {
       title: "O pagamento não foi autorizado",
@@ -59,7 +59,7 @@ export const paymentFailureGuidance = ({ payment = {}, method = "", pixAvailable
     },
     attempt_limit: {
       title: "Não foi possível repetir esta tentativa",
-      message: `O provedor bloqueou novas tentativas iguais. Use outro cartão ou outra forma de pagamento.${pixRecommended}`,
+      message: `O provedor bloqueou novas tentativas iguais. Não repita os mesmos dados; use outro cartão ou outra forma de pagamento.${pixRecommended}`,
     },
     card_rejected: {
       title: "O cartão não concluiu o pagamento",
