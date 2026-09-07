@@ -123,17 +123,21 @@ export default function ProductionFinancePage() {
   const grossRevenue = Number(revenueFunnel?.gross_revenue || 0);
   const platformRevenue = Number(revenueFunnel?.platform_revenue || 0);
   const processorFees = Number(revenueFunnel?.processor_fees || 0);
-  const platformNetAfterProcessing = platformRevenue - processorFees;
+  const platformProcessorFees = Number(revenueFunnel?.processor_fees_borne_by_platform ?? processorFees);
+  const organizationProcessorFees = Number(revenueFunnel?.processor_fees_borne_by_organization || 0);
+  const platformNetAfterProcessing = Number(revenueFunnel?.platform_contribution_after_processing ?? (platformRevenue - platformProcessorFees));
   const effectiveTakeRate = grossRevenue > 0 ? (platformRevenue / grossRevenue) * 100 : 0;
-  const contributionMargin = platformRevenue > 0 ? (platformNetAfterProcessing / platformRevenue) * 100 : 0;
   const netEconomics = useMemo(() => estimateNetRevenueEconomics({
     grossRevenue,
     platformRevenue,
     processorFees,
+    processorFeesBorneByPlatform: platformProcessorFees,
+    platformContributionAfterProcessing: revenueFunnel?.platform_contribution_after_processing,
     paidOrders: Number(revenueFunnel?.orders_paid || 0),
     platformRevenueAtRisk: Number(revenueFunnel?.platform_revenue_at_risk || 0),
     recoveredPlatformRevenue: Number(revenueFunnel?.recovered_platform_revenue || 0),
-  }), [grossRevenue, platformRevenue, processorFees, revenueFunnel?.orders_paid, revenueFunnel?.platform_revenue_at_risk, revenueFunnel?.recovered_platform_revenue]);
+    recoveredPlatformContributionAfterProcessing: revenueFunnel?.recovered_platform_contribution_after_processing,
+  }), [grossRevenue, platformRevenue, processorFees, platformProcessorFees, revenueFunnel?.platform_contribution_after_processing, revenueFunnel?.orders_paid, revenueFunnel?.platform_revenue_at_risk, revenueFunnel?.recovered_platform_revenue, revenueFunnel?.recovered_platform_contribution_after_processing]);
 
   const run = async (task, successMessage) => {
     setWorking(true); setError(""); setSuccess("");
@@ -288,9 +292,9 @@ export default function ProductionFinancePage() {
             <Col md={4} xl={3}><RevenueMetric label="Conversão checkout" value={percent(revenueFunnel.checkout_conversion_rate)} detail={`${revenueFunnel.orders_created || 0} checkouts criados`} /></Col>
             <Col md={4} xl={3}><RevenueMetric label="Abandono" value={percent(revenueFunnel.abandonment_rate)} detail={money(revenueFunnel.gross_revenue_lost_to_abandonment) + " de GMV perdido"} /></Col>
             <Col md={4} xl={3}><RevenueMetric label="Receita plataforma" value={money(platformRevenue)} detail={`Take rate efetivo ${percent(effectiveTakeRate)}`} /></Col>
-            <Col md={4} xl={3}><RevenueMetric label="Processamento" value={money(processorFees)} detail="Custo registrado nos pedidos pagos" /></Col>
-            <Col md={4} xl={3}><RevenueMetric label="Após processamento" value={money(platformNetAfterProcessing)} detail={`Margem de contribuição ${percent(contributionMargin)}`} /></Col>
-            <Col md={4} xl={3}><RevenueMetric label="Take rate líquido" value={percent(netEconomics.netTakeRate)} detail={`Processamento consome ${percent(netEconomics.processingShareOfPlatformRevenue)} da receita da plataforma`} /></Col>
+            <Col md={4} xl={3}><RevenueMetric label="Processamento total" value={money(processorFees)} detail={`Peter Tecnet suporta ${money(platformProcessorFees)} • produtor ${money(organizationProcessorFees)}`} /></Col>
+            <Col md={4} xl={3}><RevenueMetric label="Receita líquida Peter Tecnet" value={money(platformNetAfterProcessing)} detail={`Margem sobre GMV ${percent(revenueFunnel.platform_contribution_margin ?? netEconomics.netTakeRate)}`} /></Col>
+            <Col md={4} xl={3}><RevenueMetric label="Take rate líquido" value={percent(netEconomics.netTakeRate)} detail={`Processamento suportado pela plataforma consome ${percent(netEconomics.processingShareOfPlatformRevenue)} da receita`} /></Col>
             <Col md={4} xl={3}><RevenueMetric label="Receita líquida / venda" value={money(netEconomics.netRevenuePerPaidOrder)} detail="Após custo de processamento registrado" /></Col>
             <Col md={4} xl={3}><RevenueMetric label="Líquido do produtor" value={money(revenueFunnel.producer_net)} detail={`Descontos: ${money(revenueFunnel.discounts)}`} /></Col>
           </Row>
@@ -303,7 +307,7 @@ export default function ProductionFinancePage() {
             Recuperação de checkout converteu <strong>{percent(revenueFunnel.checkout_recovery_conversion_rate)}</strong> das tentativas e recuperou <strong>{money(revenueFunnel.recovered_gross_revenue)}</strong> em GMV / <strong>{money(revenueFunnel.recovered_platform_revenue)}</strong> em receita de plataforma, equivalente a aproximadamente <strong>{money(netEconomics.estimatedRecoveredNetRevenue)}</strong> de receita líquida após processamento pela margem observada.
           </Alert>}
 
-          {(revenueFunnel.payment_methods || []).length > 0 && <div className="table-responsive mt-4"><Table variant="dark" hover className="align-middle mb-0"><thead><tr><th>Pagamento</th><th>Checkouts</th><th>Pagos</th><th>Conversão</th><th>GMV</th><th>Receita plataforma</th><th>GMV em risco</th></tr></thead><tbody>{revenueFunnel.payment_methods.map((row) => <tr key={row.payment_method}><td>{paymentMethodLabel[row.payment_method] || row.payment_method}</td><td>{row.orders_created}</td><td>{row.orders_paid}</td><td>{percent(row.conversion_rate)}</td><td>{money(row.gross_revenue)}</td><td>{money(row.platform_revenue)}</td><td>{money(row.gross_at_risk)}</td></tr>)}</tbody></Table></div>}
+          {(revenueFunnel.payment_methods || []).length > 0 && <div className="table-responsive mt-4"><Table variant="dark" hover className="align-middle mb-0"><thead><tr><th>Pagamento</th><th>Checkouts</th><th>Pagos</th><th>Conversão</th><th>GMV</th><th>Receita plataforma</th><th>Receita líquida</th><th>Margem/GMV</th><th>GMV em risco</th></tr></thead><tbody>{revenueFunnel.payment_methods.map((row) => <tr key={row.payment_method}><td>{paymentMethodLabel[row.payment_method] || row.payment_method}</td><td>{row.orders_created}</td><td>{row.orders_paid}</td><td>{percent(row.conversion_rate)}</td><td>{money(row.gross_revenue)}</td><td>{money(row.platform_revenue)}</td><td>{money(row.platform_contribution_after_processing ?? (Number(row.platform_revenue || 0) - Number((row.processor_fees_borne_by_platform ?? row.processor_fees) || 0)))}</td><td>{percent(row.platform_contribution_margin)}</td><td>{money(row.gross_at_risk)}</td></tr>)}</tbody></Table></div>}
         </Card.Body></Card>}
 
         {!identityVerified && <Card className="cut-production-card mt-4"><Card.Body className="p-4">
