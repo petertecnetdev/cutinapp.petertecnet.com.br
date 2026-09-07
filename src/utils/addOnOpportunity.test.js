@@ -2,7 +2,7 @@ import { addOnMarginGuard, addOnMonetizationEfficiency, estimateAddOnAttachmentO
 
 test("uses production benchmark for events without add-on history", () => {
   expect(estimateAddOnAttachmentOpportunity({ paidCount: 50, addOnOrders: 0, averageAddOnValue: 0, benchmarkAddOnValue: 20, takeRate: 8 }))
-    .toMatchObject({ incrementalOrders: 5, incrementalGmv: 100, incrementalPlatformRevenue: 8, benchmarkUsed: true, evidenceFactor: 1 });
+    .toMatchObject({ incrementalOrders: 5, incrementalGmv: 100, incrementalPlatformRevenue: 8, benchmarkUsed: true, evidenceFactor: 1, projectedOrders: 5, minimumActionableOrders: 1 });
 });
 
 test("prefers observed event value when available", () => {
@@ -10,11 +10,18 @@ test("prefers observed event value when available", () => {
     .toMatchObject({ incrementalGmv: 300, incrementalPlatformRevenue: 30, benchmarkUsed: false, evidenceFactor: 1 });
 });
 
-test("reduces monetization projection while paid-order evidence is still thin", () => {
+test("waits for at least one actionable projected add-on order while evidence is thin", () => {
   expect(estimateAddOnAttachmentOpportunity({ paidCount: 5, addOnOrders: 0, averageAddOnValue: 20, takeRate: 10 }))
-    .toMatchObject({ incrementalOrders: 0.125, incrementalGmv: 2.5, incrementalPlatformRevenue: 0.25, evidenceFactor: 0.25 });
+    .toMatchObject({ incrementalOrders: 0, incrementalGmv: 0, incrementalPlatformRevenue: 0, evidenceFactor: 0.25, projectedOrders: 0.125, minimumActionableOrders: 1 });
   expect(estimateAddOnAttachmentOpportunity({ paidCount: 10, addOnOrders: 0, averageAddOnValue: 20, takeRate: 10, fullEvidencePaidOrders: 10 }))
-    .toMatchObject({ incrementalOrders: 1, evidenceFactor: 1 });
+    .toMatchObject({ incrementalOrders: 1, evidenceFactor: 1, projectedOrders: 1 });
+});
+
+test("allows calibrating the minimum actionable add-on demand", () => {
+  expect(estimateAddOnAttachmentOpportunity({ paidCount: 10, addOnOrders: 0, averageAddOnValue: 50, takeRate: 10, fullEvidencePaidOrders: 20, minimumActionableOrders: 0.5 }))
+    .toMatchObject({ incrementalOrders: 0.5, incrementalGmv: 25, incrementalPlatformRevenue: 2.5, projectedOrders: 0.5, minimumActionableOrders: 0.5 });
+  expect(estimateAddOnAttachmentOpportunity({ paidCount: 10, addOnOrders: 0, averageAddOnValue: 50, takeRate: 10, fullEvidencePaidOrders: 20, minimumActionableOrders: 2 }))
+    .toMatchObject({ incrementalOrders: 0, incrementalGmv: 0, incrementalPlatformRevenue: 0, projectedOrders: 0.5, minimumActionableOrders: 2 });
 });
 
 test("suggests editable stock with a bounded demand buffer", () => {
