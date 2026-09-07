@@ -12,6 +12,7 @@ import eventService from "../../services/EventService";
 import cutinappService from "../../services/CutinappService";
 import commerceService from "../../services/CommerceService";
 import { storageUrl } from "../../config";
+import { isPeterTecnetRoot } from "../../utils/applicationRoles";
 
 const formatDate = (value) => value
   ? new Intl.DateTimeFormat("pt-BR", {
@@ -158,6 +159,7 @@ export default function EventViewPage() {
   const tickets = useMemo(() => (data?.tickets || []).filter((ticket) => Number(ticket.price) === 0), [data]);
   const claimableArtists = useMemo(() => artists.filter((artist) => !artist.claimed_at), [artists]);
   const isOwner = Boolean(event?.production?.user_id && Number(event.production.user_id) === Number(user?.id));
+  const canManageEvent = isOwner || isPeterTecnetRoot(user);
   const productionId = Number(event?.production_id || event?.production?.id || 0);
   const mapEmbedUrl = useMemo(() => buildMapEmbedUrl(event), [event]);
   const flyerUrl = useMemo(() => resolveImageUrl(event?.image), [event?.image]);
@@ -396,7 +398,7 @@ export default function EventViewPage() {
             </div>
             <div className="cut-card-actions cut-event-summary-card__actions">
               {showPersistentBuyCta && <Button as="a" href="#ingressos" size="lg" className="fw-bold" aria-label={`Comprar ingresso para ${event.title}`}><i className="fa-solid fa-ticket me-2" />Comprar ingresso</Button>}
-              {isOwner && <Button variant="light" onClick={() => navigate(`/event/edit/${event.id}`)} aria-label={`Editar ${event.title}`} title="Editar evento"><i className="fa-solid fa-pen-to-square me-2" />Editar evento</Button>}
+              {canManageEvent && <Button variant="light" onClick={() => navigate(`/event/edit/${event.id}`)} aria-label={`Editar ${event.title}`} title="Editar evento"><i className="fa-solid fa-pen-to-square me-2" />Editar evento</Button>}
               <Button variant="outline-light" onClick={share} aria-label={`Compartilhar ${event.title}`}><i className="fa-solid fa-share-nodes me-2" />Compartilhar</Button>
               {flyerUrl && <Button variant="outline-light" onClick={() => setFlyerOpen(true)}><i className="fa-regular fa-image me-2" />Ver imagem</Button>}
               {canMarkInterested && <Button variant={interested ? "info" : "outline-light"} onClick={() => setEngagement("interested")} disabled={socialBusy || engagementLoading}><i className="fa-regular fa-star me-2" />Tenho interesse</Button>}
