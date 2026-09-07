@@ -21,6 +21,12 @@ const courtesyClaimAttempts = createIdempotencyAttemptManager({
   keyPrefix: "courtesy-claim",
 });
 
+const pendingPassTransfers = new Map();
+const passTransferAttempts = createIdempotencyAttemptManager({
+  storagePrefix: "cutinapp_pass_transfer_attempt_",
+  keyPrefix: "pass-transfer",
+});
+
 const productionValueSignature = (value) => {
   if (typeof value === "string") return value;
   if (!value || typeof value !== "object") return String(value ?? "");
@@ -87,6 +93,29 @@ const claimCourtesy = (ticketId) => {
   });
 
   pendingCourtesyClaims.set(requestKey, request);
+  return request;
+};
+
+const transferPass = (passId, recipientEmail) => {
+  const normalizedEmail = String(recipientEmail || "").trim().toLowerCase();
+  const requestKey = `${String(passId)}:${normalizedEmail}`;
+  const pending = pendingPassTransfers.get(requestKey);
+  if (pending) return pending;
+
+  const idempotencyKey = passTransferAttempts.keyFor(requestKey);
+  const request = appApiClient.post(`/passes/${passId}/transfer`, { recipient_email: normalizedEmail }, {
+    headers: { "Idempotency-Key": idempotencyKey },
+  }).then((response) => {
+    passTransferAttempts.clear(requestKey);
+    return response.data;
+  }).catch((error) => {
+    if (!shouldKeepIdempotencyAttempt(error)) passTransferAttempts.clear(requestKey);
+    throw error;
+  }).finally(() => {
+    if (pendingPassTransfers.get(requestKey) === request) pendingPassTransfers.delete(requestKey);
+  });
+
+  pendingPassTransfers.set(requestKey, request);
   return request;
 };
 
@@ -186,7 +215,7 @@ const cutinappService = {
   claimCourtesy,
   myPasses: async () => unwrap((await appApiClient.get("/passes/mine")).data.passes),
   getPass: async (passId) => (await appApiClient.get(`/passes/${passId}`)).data.pass,
-  transferPass: async (passId, recipientEmail) => (await appApiClient.post(`/passes/${passId}/transfer`, { recipient_email: recipientEmail })).data,
+  transferPass,
   eventParticipants: async (eventId) => (await appApiClient.get(`/events/${eventId}/participants`)).data,
   checkIn: async (token, eventId) => (await appApiClient.post("/checkin", { token, event_id: Number(eventId) })).data,
   checkInStats: async (eventId) => (await appApiClient.get(`/checkin/events/${eventId}/stats`)).data,
