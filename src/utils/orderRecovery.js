@@ -1,0 +1,25 @@
+export const checkoutSelectionFromOrder = (order = {}) => {
+  const tickets = [];
+  const items = [];
+
+  for (const line of Array.isArray(order?.items) ? order.items : []) {
+    const quantity = Math.max(1, Number(line?.quantity || 1));
+    if (line?.type === "ticket" && Number(line?.ticket_id || 0) > 0) {
+      tickets.push({ id: Number(line.ticket_id), quantity });
+      continue;
+    }
+    if (Number(line?.event_item_id || 0) > 0) {
+      items.push({ id: Number(line.event_item_id), quantity });
+    }
+  }
+
+  return { tickets, items };
+};
+
+export const latestPendingPaymentFromOrder = (order = {}) => {
+  const payments = Array.isArray(order?.payments) ? order.payments : [];
+  if (!payments.length) return null;
+  return payments.reduce((latest, payment) => (
+    Number(payment?.id || 0) > Number(latest?.id || 0) ? payment : latest
+  ), payments[0]);
+};
