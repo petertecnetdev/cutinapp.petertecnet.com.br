@@ -10,6 +10,7 @@ const fallbackAttempts = new Map();
 const catalogCache = new Map();
 const CHECKOUT_ATTEMPT_PREFIX = "cutinapp_checkout_attempt_";
 const CATALOG_CACHE_TTL_MS = 15000;
+const AUTO_RETRY_CHECKOUT_STATUSES = new Set([502, 503, 504]);
 
 const checkoutRequestKey = (payload = {}) => JSON.stringify({
   event_id: Number(payload.event_id || 0),
@@ -70,16 +71,38 @@ const idempotencyKeyFor = (requestKey) => {
   return created;
 };
 
+const shouldAutoRetryCheckout = (error) => {
+  const status = Number(error?.status || error?.response?.status || 0);
+  return AUTO_RETRY_CHECKOUT_STATUSES.has(status);
+};
+
 const checkout = (payload) => {
   const requestKey = checkoutRequestKey(payload);
   const pending = pendingCheckouts.get(requestKey);
   if (pending) return pending;
 
   const idempotencyKey = idempotencyKeyFor(requestKey);
-  const request = appApiClient
+  const postCheckout = (attempt = 0) => appApiClient
     .post("/commerce/checkout", payload, {
       headers: { "Idempotency-Key": idempotencyKey },
     })
+    .catch((error) => {
+      if (attempt === 0 && shouldAutoRetryCheckout(error)) {
+        trackTelemetry("checkout_transient_retry", {
+          label: "Checkout repetido automaticamente após falha transitória",
+          target: String(payload?.event_id || "checkout"),
+          metadata: {
+            payment_method: String(payload?.payment_method || "unknown"),
+            status: Number(error?.status || error?.response?.status || 0),
+            retry_attempt: 1,
+          },
+        });
+        return postCheckout(1);
+      }
+      throw error;
+    });
+
+  const request = postCheckout()
     .then((response) => {
       clearAttempt(requestKey);
       return response.data;
