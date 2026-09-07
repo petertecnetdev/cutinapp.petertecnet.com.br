@@ -203,6 +203,7 @@ const cutinappService = {
   savePreferences: async (payload) => (await appApiClient.put("/social/preferences", payload)).data,
   engagement: async (eventId, payload) => (await appApiClient.put(`/events/${eventId}/engagement`, payload)).data,
   feed: async (params = {}) => (await appApiClient.get("/feed", { params })).data,
+  createFeedPost: async (payload) => (await appApiClient.post("/feed/posts", payload)).data,
 
   notifications: async (params = {}) => (await appApiClient.get("/notifications", { params })).data,
   markNotificationRead: async (notificationId) => (await appApiClient.patch(`/notifications/${notificationId}/read`)).data,
