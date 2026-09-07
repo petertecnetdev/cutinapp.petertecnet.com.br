@@ -55,6 +55,17 @@ const signProducerContract = createIdempotentMutation({
   )).data,
 });
 
+const resendProducerContract = createIdempotentMutation({
+  storagePrefix: "cutinapp_contract_resend_attempt_",
+  keyPrefix: "contract-resend",
+  requestKeyFor: (organizationId) => String(Number(organizationId)),
+  mutate: async ({ idempotencyKey }, organizationId) => (await appApiClient.post(
+    `/organizations/${Number(organizationId)}/agreement/resend`,
+    undefined,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
 const claimCourtesy = createIdempotentMutation({
   storagePrefix: "cutinapp_courtesy_claim_attempt_",
   keyPrefix: "courtesy-claim",
@@ -131,7 +142,7 @@ const cutinappService = {
     return data?.agreement ?? data?.contract ?? null;
   },
   signProducerContract,
-  resendProducerContract: async (organizationId) => (await appApiClient.post(`/organizations/${organizationId}/agreement/resend`)).data,
+  resendProducerContract,
   downloadProducerContract: async (organizationId) => (await appApiClient.get(`/organizations/${organizationId}/agreement/pdf`, { responseType: "blob" })).data,
 
   artists: async (params = {}) => cachedPublicGet(appApiClient, "/artists", { params, ttlMs: 30000, staleMs: 180000 }),
