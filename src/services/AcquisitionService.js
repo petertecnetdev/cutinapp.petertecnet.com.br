@@ -1,47 +1,48 @@
 import appApiClient from "./AppApiClient";
-import {
-  createIdempotencyAttemptManager,
-  createMutationRequestKey,
-  shouldKeepIdempotencyAttempt,
-} from "../utils/idempotencyAttempts";
+import { createIdempotentMutation, createMutationRequestKey } from "../utils/idempotencyAttempts";
 
-const pendingOnboardings = new Map();
-const onboardingAttempts = createIdempotencyAttemptManager({
+const onboard = createIdempotentMutation({
   storagePrefix: "cutinapp_acquisition_onboarding_attempt_",
   keyPrefix: "acquisition-onboarding",
+  requestKeyFor: (payload = {}) => createMutationRequestKey(payload),
+  mutate: async ({ idempotencyKey }, payload = {}) => (
+    await appApiClient.post("/acquisition/onboardings", payload, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    })
+  ).data,
 });
 
-const onboard = (payload = {}) => {
-  const requestKey = createMutationRequestKey(payload);
-  const pending = pendingOnboardings.get(requestKey);
-  if (pending) return pending;
+const resend = createIdempotentMutation({
+  storagePrefix: "cutinapp_acquisition_resend_attempt_",
+  keyPrefix: "acquisition-resend",
+  requestKeyFor: (referralId) => String(referralId),
+  mutate: async ({ idempotencyKey }, referralId) => (
+    await appApiClient.post(`/acquisition/referrals/${referralId}/resend`, undefined, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    })
+  ).data,
+});
 
-  const idempotencyKey = onboardingAttempts.keyFor(requestKey);
-  const request = appApiClient.post("/acquisition/onboardings", payload, {
-    headers: { "Idempotency-Key": idempotencyKey },
-  }).then((response) => {
-    onboardingAttempts.clear(requestKey);
-    return response.data;
-  }).catch((error) => {
-    if (!shouldKeepIdempotencyAttempt(error)) onboardingAttempts.clear(requestKey);
-    throw error;
-  }).finally(() => {
-    if (pendingOnboardings.get(requestKey) === request) pendingOnboardings.delete(requestKey);
-  });
-
-  pendingOnboardings.set(requestKey, request);
-  return request;
-};
+const activate = createIdempotentMutation({
+  storagePrefix: "cutinapp_acquisition_activation_attempt_",
+  keyPrefix: "acquisition-activation",
+  requestKeyFor: (payload = {}) => createMutationRequestKey(payload),
+  mutate: async ({ idempotencyKey }, payload = {}) => (
+    await appApiClient.post("/acquisition/referrals/activate", payload, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    })
+  ).data,
+});
 
 const acquisitionService = {
   context: async () => (await appApiClient.get("/acquisition/context")).data,
   dashboard: async () => (await appApiClient.get("/acquisition/dashboard")).data,
   referrals: async (params = {}) => (await appApiClient.get("/acquisition/referrals", { params })).data,
   onboard,
-  resend: async (referralId) => (await appApiClient.post(`/acquisition/referrals/${referralId}/resend`)).data,
+  resend,
   updateCommission: async (eventId, percentage) => (await appApiClient.put(`/acquisition/events/${eventId}/commission`, { percentage })).data,
   publicReferral: async (token) => (await appApiClient.get(`/acquisition/referrals/public/${encodeURIComponent(token)}`)).data,
-  activate: async (payload) => (await appApiClient.post("/acquisition/referrals/activate", payload)).data,
+  activate,
 };
 
 export default acquisitionService;
