@@ -98,6 +98,28 @@ const checkIn = createIdempotentMutation({
   })).data,
 });
 
+const createProductionCommunityPost = createIdempotentMutation({
+  storagePrefix: "cutinapp_production_community_post_attempt_",
+  keyPrefix: "production-community-post",
+  requestKeyFor: (organizationId, payload = {}) => `${Number(organizationId)}:${createMutationRequestKey(payload)}`,
+  mutate: async ({ idempotencyKey }, organizationId, payload = {}) => (await appApiClient.post(
+    `/organizations/${Number(organizationId)}/community`,
+    payload,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
+const createEventCommunityPost = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_community_post_attempt_",
+  keyPrefix: "event-community-post",
+  requestKeyFor: (eventId, payload = {}) => `${Number(eventId)}:${createMutationRequestKey(payload)}`,
+  mutate: async ({ idempotencyKey }, eventId, payload = {}) => (await appApiClient.post(
+    `/events/${Number(eventId)}/community`,
+    payload,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
 // Product UI facade. Every request below consumes a reusable capability from
 // /api/v1/apps/{application}; product-specific backend URLs are intentionally
 // absent. Small response aliases keep the current UI stable during vocabulary
@@ -127,7 +149,7 @@ const cutinappService = {
   productionExperience: async (slug) => (await appApiClient.get(`/organizations/public/${slug}/experience`)).data,
   updateProductionExperience: async (id, payload) => (await appApiClient.patch(`/organizations/${id}/experience-profile`, payload)).data,
   productionCommunity: async (slug, params = {}) => (await appApiClient.get(`/organizations/public/${slug}/community`, { params })).data,
-  createProductionPost: async (organizationId, payload) => (await appApiClient.post(`/organizations/${organizationId}/community`, payload)).data,
+  createProductionPost: (organizationId, payload) => createProductionCommunityPost(organizationId, payload),
   deleteProductionPost: async (postId) => (await appApiClient.delete(`/organization-community/${postId}`)).data,
   likeProductionPost: async (postId) => (await appApiClient.post(`/organization-community/${postId}/like`)).data,
   unlikeProductionPost: async (postId) => (await appApiClient.delete(`/organization-community/${postId}/like`)).data,
@@ -150,8 +172,8 @@ const cutinappService = {
   publicArtistMembers: async (slug) => (await appApiClient.get(`/artists/${slug}/members`)).data.members || [],
   publicEventArtists: async (slug) => (await appApiClient.get(`/events/public/${slug}/artists`)).data.artists || [],
   eventCommunity: async (slug, params = {}) => (await appApiClient.get(`/events/public/${slug}/community`, { params })).data,
-  createEventPost: async (eventId, payload) => (await appApiClient.post(`/events/${eventId}/community`, payload)).data,
-  createFeedPost: async (payload) => (await appApiClient.post("/events/0/community", payload)).data,
+  createEventPost: (eventId, payload) => createEventCommunityPost(eventId, payload),
+  createFeedPost: (payload) => createEventCommunityPost(0, payload),
   deleteEventPost: async (postId) => (await appApiClient.delete(`/community/${postId}`)).data,
   likeEventPost: async (postId) => (await appApiClient.post(`/community/${postId}/like`)).data,
   unlikeEventPost: async (postId) => (await appApiClient.delete(`/community/${postId}/like`)).data,
