@@ -1,4 +1,4 @@
-import { rankCheckoutAddOns, summarizeCheckoutAddOnOffer } from "./checkoutAddOns";
+import { rankCheckoutAddOns, resolveCheckoutQuantity, summarizeCheckoutAddOnOffer } from "./checkoutAddOns";
 
 describe("rankCheckoutAddOns", () => {
   test("prioritizes explicit merchandising priority before the automatic value ladder", () => {
@@ -92,5 +92,19 @@ describe("summarizeCheckoutAddOnOffer", () => {
       offered_value: 15,
       min_addon_price: 15,
     });
+  });
+});
+
+describe("resolveCheckoutQuantity", () => {
+  test("keeps unmanaged-stock items selectable up to the checkout limit", () => {
+    expect(resolveCheckoutQuantity({ id: 1, available: true }, 3, 10)).toBe(3);
+    expect(resolveCheckoutQuantity({ id: 1, quantity: null }, 12, 10)).toBe(10);
+  });
+
+  test("still respects explicit stock and availability", () => {
+    expect(resolveCheckoutQuantity({ id: 1, remaining: 2 }, 5, 10)).toBe(2);
+    expect(resolveCheckoutQuantity({ id: 1, remaining: 0 }, 1, 10)).toBe(0);
+    expect(resolveCheckoutQuantity({ id: 1, available: false }, 1, 10)).toBe(0);
+    expect(resolveCheckoutQuantity({ id: 1, expired: true }, 1, 10)).toBe(0);
   });
 });
