@@ -9,12 +9,35 @@ describe("paymentFailureGuidance", () => {
     });
     expect(result.reason).toBe("insufficient_funds");
     expect(result.message).toContain("saldo ou limite insuficiente");
-    expect(result.message).toContain("PIX");
+    expect(result.message).toContain("Recomendado: tente PIX");
   });
 
   test("guides correction when provider reports invalid card data", () => {
     const result = classifyPaymentFailure({ provider_payload: { status_detail: "cc_rejected_bad_filled_security_code" } }, "card");
     expect(result.reason).toBe("card_data");
+  });
+
+  test("explains disabled cards and recommends PIX without losing the selection", () => {
+    const result = paymentFailureGuidance({
+      method: "card",
+      pixAvailable: true,
+      payment: { provider_payload: { status_detail: "cc_rejected_card_disabled" } },
+    });
+    expect(result.reason).toBe("card_disabled");
+    expect(result.title).toContain("bloqueado");
+    expect(result.message).toContain("compras online");
+    expect(result.message).toContain("sem refazer sua seleção");
+  });
+
+  test("does not recommend repeating identical data after a security rejection", () => {
+    const result = paymentFailureGuidance({
+      method: "card",
+      pixAvailable: true,
+      payment: { provider_payload: { status_detail: "cc_rejected_high_risk" } },
+    });
+    expect(result.reason).toBe("security_review");
+    expect(result.message).toContain("Não repita os mesmos dados");
+    expect(result.message).toContain("Recomendado: tente PIX");
   });
 
   test("falls back safely when provider does not return a specific reason", () => {
