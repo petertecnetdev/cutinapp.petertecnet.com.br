@@ -108,6 +108,47 @@ const createEvent = (payload) => {
   return request;
 };
 
+const createIdempotentEventPost = ({ storagePrefix, keyPrefix, pathFor }) => {
+  const pendingRequests = new Map();
+  const attempts = createIdempotencyAttemptManager({ storagePrefix, keyPrefix });
+
+  return (eventId, payload = {}) => {
+    const normalizedEventId = Number(eventId);
+    const payloadKey = createMutationRequestKey(payload);
+    const requestKey = `${normalizedEventId}:${payloadKey}`;
+    const pending = pendingRequests.get(requestKey);
+    if (pending) return pending;
+
+    const idempotencyKey = attempts.keyFor(requestKey);
+    const request = appApiClient.post(pathFor(normalizedEventId), payload, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    }).then((response) => {
+      attempts.clear(requestKey);
+      return response.data;
+    }).catch((error) => {
+      if (!shouldKeepIdempotencyAttempt(error)) attempts.clear(requestKey);
+      throw error;
+    }).finally(() => {
+      if (pendingRequests.get(requestKey) === request) pendingRequests.delete(requestKey);
+    });
+
+    pendingRequests.set(requestKey, request);
+    return request;
+  };
+};
+
+const duplicateEvent = createIdempotentEventPost({
+  storagePrefix: "cutinapp_event_duplicate_attempt_",
+  keyPrefix: "event-duplicate",
+  pathFor: (eventId) => `/events/${eventId}/duplicate`,
+});
+
+const createEventSeries = createIdempotentEventPost({
+  storagePrefix: "cutinapp_event_series_attempt_",
+  keyPrefix: "event-series",
+  pathFor: (eventId) => `/events/${eventId}/series`,
+});
+
 const dateKeyInTimeZone = (value = new Date()) => {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: CUTINAPP_TIME_ZONE,
@@ -183,8 +224,8 @@ const eventService = {
   update: async (eventId, formData) => (await appApiClient.patch(`/events/${eventId}`, formData)).data,
   show: async (eventId) => (await appApiClient.get(`/events/${eventId}/manage`)).data.event,
   myEvents: async (params = {}) => unwrap((await appApiClient.get("/events/mine", { params: { per_page: 100, ...params } })).data.events),
-  duplicate: async (eventId, date) => (await appApiClient.post(`/events/${eventId}/duplicate`, { date })).data,
-  series: async (eventId, payload) => (await appApiClient.post(`/events/${eventId}/series`, payload)).data,
+  duplicate: (eventId, date) => duplicateEvent(eventId, { date }),
+  series: (eventId, payload) => createEventSeries(eventId, payload),
 
   agenda: async (productionId) => (await appApiClient.get(`/event-agenda/productions/${productionId}`)).data,
   setAgendaStatus: async (productionId, isActive) => (await appApiClient.patch(`/event-agenda/productions/${productionId}/status`, { is_active: isActive })).data,
