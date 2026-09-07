@@ -57,10 +57,29 @@ export default function MercadoPagoCardForm({ publicKey, amount, email, disabled
   const [error, setError] = useState("");
   const [loadFailed, setLoadFailed] = useState(false);
   const [sdkAttempt, setSdkAttempt] = useState(0);
+  const [online, setOnline] = useState(() => typeof navigator === "undefined" || navigator.onLine !== false);
 
   submitRef.current = onSubmit;
   disabledRef.current = disabled;
   emailRef.current = email;
+
+  useEffect(() => {
+    const handleOnline = () => {
+      setOnline(true);
+      trackCardCheckout("card_connectivity_restored", { amount: Number(amount || 0) });
+    };
+    const handleOffline = () => {
+      setOnline(false);
+      trackCardCheckout("card_connectivity_offline", { amount: Number(amount || 0) });
+    };
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, [amount]);
 
   useEffect(() => {
     let active = true;
@@ -74,6 +93,12 @@ export default function MercadoPagoCardForm({ publicKey, amount, email, disabled
     setLoadFailed(false);
 
     if (!publicKey || Number(amount) <= 0) return undefined;
+
+    if (!online) {
+      setLoadFailed(true);
+      setError("Você está sem conexão. Assim que a internet voltar, o formulário seguro do cartão será carregado novamente sem perder sua seleção.");
+      return undefined;
+    }
 
     const clearFormMountTimer = () => {
       if (formMountTimer) window.clearTimeout(formMountTimer);
@@ -180,7 +205,7 @@ export default function MercadoPagoCardForm({ publicKey, amount, email, disabled
       if (cardFormRef.current === localCardForm) cardFormRef.current = null;
       if (typeof localCardForm?.unmount === "function") localCardForm.unmount();
     };
-  }, [publicKey, amount, sdkAttempt]);
+  }, [publicKey, amount, sdkAttempt, online]);
 
   const retrySecureCardEnvironment = () => {
     if (disabled || submitting) return;
@@ -207,7 +232,7 @@ export default function MercadoPagoCardForm({ publicKey, amount, email, disabled
     <form id="cut-mp-card-form" className="cut-payment-card-form">
       {error && <Alert variant="danger" role="alert" aria-live="assertive">
         <div>{error}</div>
-        {loadFailed && <Button type="button" variant="light" className="w-100 mt-3" onClick={retrySecureCardEnvironment} disabled={paymentBusy}>
+        {loadFailed && online && <Button type="button" variant="light" className="w-100 mt-3" onClick={retrySecureCardEnvironment} disabled={paymentBusy}>
           <i className="fa-solid fa-rotate-right me-2" />Tentar carregar cartão novamente
         </Button>}
       </Alert>}
@@ -260,7 +285,7 @@ export default function MercadoPagoCardForm({ publicKey, amount, email, disabled
 
       <Button id="cut-mp-card-submit" type="submit" className="w-100 cut-payment-submit" disabled={paymentBusy || !ready} aria-busy={paymentBusy || !ready}>
         <i className="fa-solid fa-lock me-2" />
-        {paymentBusy ? "Processando pagamento..." : ready ? `Pagar ${money(amount)} com cartão` : loadFailed ? "Ambiente do cartão indisponível" : "Preparando ambiente seguro..."}
+        {paymentBusy ? "Processando pagamento..." : ready ? `Pagar ${money(amount)} com cartão` : !online ? "Aguardando conexão..." : loadFailed ? "Ambiente do cartão indisponível" : "Preparando ambiente seguro..."}
       </Button>
     </form>
 
