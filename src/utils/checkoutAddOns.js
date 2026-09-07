@@ -3,6 +3,12 @@ const numericPriority = (item) => {
   return Number.isFinite(explicit) ? explicit : null;
 };
 
+const isAvailableForCheckout = (item) => {
+  if (!item || item.available === false || item.expired) return false;
+  const remaining = Number(item.remaining ?? item.quantity ?? 0);
+  return Number.isFinite(remaining) ? remaining > 0 : true;
+};
+
 const spreadByPrice = (entries = [], slots = 0) => {
   const available = [...entries].sort((a, b) => a.price - b.price || a.index - b.index);
   const count = Math.min(available.length, Math.max(0, Number(slots) || 0));
@@ -25,7 +31,10 @@ const spreadByPrice = (entries = [], slots = 0) => {
 
 export const rankCheckoutAddOns = (items = [], selectedIds = new Set(), limit = 3) => {
   const eligible = (Array.isArray(items) ? items : [])
-    .filter((item) => item?.id != null && !selectedIds.has(Number(item.id)) && Number(item.price || 0) > 0)
+    .filter((item) => item?.id != null
+      && !selectedIds.has(Number(item.id))
+      && Number(item.price || 0) > 0
+      && isAvailableForCheckout(item))
     .map((item, index) => ({ item, index, priority: numericPriority(item), price: Number(item.price || 0) }));
 
   const normalizedLimit = Math.max(0, Number(limit) || 0);
