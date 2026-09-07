@@ -87,6 +87,18 @@ function assertBuildHeadroom() {
   }
 }
 
+function lowerBuildCpuPriority() {
+  if (process.platform === 'win32' || typeof os.setPriority !== 'function') return;
+  try {
+    // Frontend compilation is maintenance work. Keep web/API/payment traffic
+    // ahead of webpack/terser on the single-vCPU production host.
+    os.setPriority(0, 15);
+    console.log('Cutinapp build CPU priority lowered to preserve production responsiveness.');
+  } catch (error) {
+    console.warn(`Could not lower build CPU priority: ${error?.message || error}`);
+  }
+}
+
 function runReactBuild(buildPath) {
   const command = process.platform === 'win32' ? 'react-scripts.cmd' : 'react-scripts';
   const env = { ...process.env, GENERATE_SOURCEMAP: "false", INLINE_RUNTIME_CHUNK: "false", IMAGE_INLINE_SIZE_LIMIT: "4096" };
@@ -125,6 +137,7 @@ function publishWithoutDowntime(stagingPath) {
   fs.renameSync(temporaryIndex, path.join(liveBuildPath, 'index.html'));
 }
 
+lowerBuildCpuPriority();
 const releaseBuildLock = acquireBuildLock();
 try {
   assertBuildHeadroom();
