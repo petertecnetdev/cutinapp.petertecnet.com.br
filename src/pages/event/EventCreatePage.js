@@ -241,6 +241,62 @@ export default function EventCreatePage() {
       delete next[name];
       return next;
     });
+
+    if (name === "production_id" && normalized) {
+      void autoApplyProductionData(normalized);
+    }
+  };
+
+  const autoApplyProductionData = async (productionId) => {
+    if (!productionId) return;
+
+    setLoadingProductionData(true);
+    setError("");
+    try {
+      const fallback = productions.find((item) => String(item.id) === String(productionId));
+      let production = fallback;
+      try {
+        production = await cutinappService.getProduction(productionId);
+      } catch (fetchError) {
+        if (!fallback) throw fetchError;
+      }
+
+      setForm((current) => {
+        if (String(current.production_id) !== String(productionId)) return current;
+        return {
+          ...current,
+          title: current.title || production?.name || "",
+          description: current.description || production?.description || "",
+          venue: current.venue || production?.fantasy || production?.name || "",
+          address: current.address || productionAddress(production),
+          google_maps_url: current.google_maps_url || production?.google_maps_url || "",
+          city: current.city || production?.city || "",
+          uf: current.uf || String(production?.uf || "").toUpperCase().slice(0, 2),
+          max_attendees: current.max_attendees || production?.capacity || "",
+          contact_email: current.contact_email || production?.contact_email || production?.email || "",
+          contact_phone: current.contact_phone || production?.contact_phone || production?.phone || "",
+        };
+      });
+
+      setProductionTemplateApplied(true);
+      try {
+        window.PeterTecnetTelemetry?.track?.("producer_event_template_auto_applied", {
+          label: "Dados da produção aplicados automaticamente",
+          target: String(productionId),
+          metadata: {
+            activation_stage: "event_creation",
+            next_step: "create_ticket",
+            template_source: "production_selection",
+          },
+        });
+      } catch (_) {
+        // Telemetry must never interrupt producer onboarding.
+      }
+    } catch (_) {
+      // Automatic prefill is a convenience; manual entry must remain available.
+    } finally {
+      setLoadingProductionData(false);
+    }
   };
 
   const applyProductionData = async () => {
