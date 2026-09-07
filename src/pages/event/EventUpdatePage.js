@@ -21,6 +21,16 @@ const minNow = () => {
   return toLocalInput(date);
 };
 
+const buildFirstSaleShareUrl = (event) => {
+  if (!event?.slug) return "";
+  const url = new URL(`/event/${event.slug}`, window.location.origin);
+  url.searchParams.set("utm_source", "cutinapp_producer");
+  url.searchParams.set("utm_medium", "whatsapp");
+  url.searchParams.set("utm_campaign", "first_sale");
+  url.searchParams.set("utm_content", String(event.id || event.slug));
+  return url.toString();
+};
+
 export default function EventUpdatePage() {
   const { id } = useParams();
   const location = useLocation();
@@ -202,6 +212,32 @@ export default function EventUpdatePage() {
     }
   };
 
+  const shareForFirstSale = () => {
+    const url = buildFirstSaleShareUrl(eventData);
+    if (!url) {
+      setError("Publique o evento antes de compartilhar a página de vendas.");
+      return;
+    }
+
+    const message = `${eventData?.title || "Meu evento"} já está na Cutinapp. Garanta seu ingresso: ${url}`;
+    try {
+      window.PeterTecnetTelemetry?.track?.("producer_first_sale_share_started", {
+        label: "Produtor iniciou divulgação após publicar o primeiro evento",
+        target: eventData?.slug || String(eventData?.id || id),
+        metadata: {
+          event_id: Number(eventData?.id || id),
+          activation_stage: "first_sale",
+          next_step: "first_sale",
+          channel: "whatsapp",
+        },
+      });
+    } catch (_) {
+      // Telemetry must never interrupt producer activation.
+    }
+
+    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
+  };
+
   const saveAddOn = async () => {
     const price = Number(itemForm.price);
     const quantity = Number(itemForm.quantity);
@@ -302,7 +338,7 @@ export default function EventUpdatePage() {
               <Button type="submit" disabled={!canSave}>Salvar alterações</Button>
             </div></Card.Body></Card>
 
-              <Card className="cut-panel"><Card.Body className="p-4"><div className="d-flex justify-content-between gap-3 align-items-start"><div><span className="cut-eyebrow">Publicação</span><h2 className="cut-section-title mt-2">{eventData?.is_published ? "Evento no ar" : isFirstTicketActivation ? "Seu lote está pronto. Coloque o evento à venda." : "Evento em rascunho"}</h2></div><Badge bg={eventData?.is_published ? "success" : "secondary"}>{eventData?.is_published ? "Publicado" : "Rascunho"}</Badge></div><div className="cut-info-box mt-3"><strong>{eventData?.tickets_count || 0} lote(s) configurado(s)</strong><span>{Number(eventData?.tickets_count || 0) > 0 ? "Você já tem ingresso configurado. Para publicar, mantenha o evento no futuro e revise os dados obrigatórios acima." : "Crie pelo menos um lote de ingresso, pago ou gratuito, antes de publicar."}</span></div>{isFirstTicketActivation && !eventData?.is_published && Number(eventData?.tickets_count || 0) > 0 && <Alert variant="success" className="mt-3 mb-0"><strong>Pronto para a próxima etapa.</strong> Publique agora para liberar a página de vendas e reduzir o tempo até a primeira venda.</Alert>}<div className="d-grid gap-2 mt-3"><Button variant="outline-light" onClick={() => navigate(`/event/${id}/courtesies`)}>Gerenciar ingressos</Button><Button variant="outline-light" onClick={() => navigate(`/ticket/create?eventId=${id}`)}>Criar novo lote</Button><Button onClick={togglePublication} disabled={publishing || eventData?.is_cancelled || (!eventData?.is_published && Number(eventData?.tickets_count || 0) <= 0)}>{eventData?.is_published ? "Retirar da publicação" : isFirstTicketActivation ? "Publicar e começar a vender" : "Publicar evento"}</Button>{eventData?.is_published && eventData?.slug && <Button variant={isFirstTicketActivation ? "success" : "outline-light"} onClick={() => navigate(`/event/${eventData.slug}`)}>Abrir página de vendas</Button>}{eventData?.is_published && <Button variant="outline-light" onClick={() => navigate(`/checkin?eventId=${id}`)}>Abrir portaria deste evento</Button>}</div></Card.Body></Card>
+              <Card className="cut-panel"><Card.Body className="p-4"><div className="d-flex justify-content-between gap-3 align-items-start"><div><span className="cut-eyebrow">Publicação</span><h2 className="cut-section-title mt-2">{eventData?.is_published ? "Evento no ar" : isFirstTicketActivation ? "Seu lote está pronto. Coloque o evento à venda." : "Evento em rascunho"}</h2></div><Badge bg={eventData?.is_published ? "success" : "secondary"}>{eventData?.is_published ? "Publicado" : "Rascunho"}</Badge></div><div className="cut-info-box mt-3"><strong>{eventData?.tickets_count || 0} lote(s) configurado(s)</strong><span>{Number(eventData?.tickets_count || 0) > 0 ? "Você já tem ingresso configurado. Para publicar, mantenha o evento no futuro e revise os dados obrigatórios acima." : "Crie pelo menos um lote de ingresso, pago ou gratuito, antes de publicar."}</span></div>{isFirstTicketActivation && !eventData?.is_published && Number(eventData?.tickets_count || 0) > 0 && <Alert variant="success" className="mt-3 mb-0"><strong>Pronto para a próxima etapa.</strong> Publique agora para liberar a página de vendas e reduzir o tempo até a primeira venda.</Alert>}{isFirstTicketActivation && eventData?.is_published && eventData?.slug && <Alert variant="success" className="mt-3 mb-0"><strong>Evento publicado.</strong> Compartilhe agora com seu público para buscar a primeira venda enquanto a configuração ainda está fresca.</Alert>}<div className="d-grid gap-2 mt-3"><Button variant="outline-light" onClick={() => navigate(`/event/${id}/courtesies`)}>Gerenciar ingressos</Button><Button variant="outline-light" onClick={() => navigate(`/ticket/create?eventId=${id}`)}>Criar novo lote</Button><Button onClick={togglePublication} disabled={publishing || eventData?.is_cancelled || (!eventData?.is_published && Number(eventData?.tickets_count || 0) <= 0)}>{eventData?.is_published ? "Retirar da publicação" : isFirstTicketActivation ? "Publicar e começar a vender" : "Publicar evento"}</Button>{isFirstTicketActivation && eventData?.is_published && eventData?.slug && <Button variant="success" type="button" onClick={shareForFirstSale}><i className="fa-brands fa-whatsapp me-2" />Compartilhar e buscar a primeira venda</Button>}{eventData?.is_published && eventData?.slug && <Button variant="outline-light" onClick={() => navigate(`/event/${eventData.slug}`)}>Abrir página de vendas</Button>}{eventData?.is_published && <Button variant="outline-light" onClick={() => navigate(`/checkin?eventId=${id}`)}>Abrir portaria deste evento</Button>}</div></Card.Body></Card>
             </Col>
           </Row>
 
