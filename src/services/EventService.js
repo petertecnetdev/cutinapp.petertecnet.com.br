@@ -1,5 +1,6 @@
 import appApiClient from "./AppApiClient";
 import { createIdempotentMutation, createMutationRequestKey } from "../utils/idempotencyAttempts";
+import { cachedPublicGet } from "../utils/publicRequestCache";
 
 const CUTINAPP_TIME_ZONE = "America/Sao_Paulo";
 const HOME_DISCOVERY_KEYS = new Set(["lat", "lng", "radius_km", "city", "uf", "per_page", "sort"]);
@@ -48,38 +49,6 @@ const normalizePublicEventResponse = (response) => {
       },
     },
   };
-};
-
-const enrichPublicEventProductionContact = async (response) => {
-  const normalized = normalizePublicEventResponse(response);
-  const event = normalized?.event;
-  const currentPhone = resolveWhatsappPhone(event?.production, event?.establishment, event?.organization, event);
-  if (!event || currentPhone) return normalized;
-
-  const production = event.production || event.establishment || event.organization || null;
-  const productionSlug = production?.slug || event.production_slug || event.organization_slug || event.establishment_slug;
-  if (!productionSlug) return normalized;
-
-  try {
-    const productionResponse = (await appApiClient.get(`/organizations/public/${productionSlug}`)).data;
-    const publicProduction = productionResponse?.organization || productionResponse?.production || null;
-    const whatsappPhone = resolveWhatsappPhone(publicProduction);
-    if (!publicProduction || !whatsappPhone) return normalized;
-
-    return {
-      ...normalized,
-      event: {
-        ...event,
-        production: {
-          ...(production || {}),
-          ...publicProduction,
-          phone: whatsappPhone,
-        },
-      },
-    };
-  } catch (_) {
-    return normalized;
-  }
 };
 
 const createEvent = createIdempotentMutation({
@@ -270,7 +239,7 @@ const search = async (params = {}, options = {}) => {
 const eventService = {
   search,
   list: async (params = {}) => unwrap((await appApiClient.get("/events", { params })).data.events),
-  view: async (slug) => enrichPublicEventProductionContact((await appApiClient.get(`/events/public/${slug}`)).data),
+  view: async (slug) => normalizePublicEventResponse(await cachedPublicGet(appApiClient, `/events/public/${slug}`, { ttlMs: 30000, staleMs: 300000 })),
   store: createEvent,
   update: async (eventId, payload) => {
     // PHP only populates uploaded files reliably for multipart POST requests.
