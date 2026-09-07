@@ -33,7 +33,7 @@ describe("FinanceService payout idempotency", () => {
     expect(idempotencyKeyAt(0)).toBeTruthy();
   });
 
-  test("reuses the same key after an uncertain network failure", async () => {
+  test("reuses the same key and normalized payload after an uncertain network failure", async () => {
     appApiClient.post
       .mockRejectedValueOnce({ code: "ERR_NETWORK", message: "Network Error" })
       .mockResolvedValueOnce({ data: { payout: { id: 92 } } });
@@ -41,8 +41,9 @@ describe("FinanceService payout idempotency", () => {
     await expect(financeService.requestPayout(12, 250)).rejects.toMatchObject({ code: "ERR_NETWORK" });
     const firstKey = idempotencyKeyAt(0);
 
-    await expect(financeService.requestPayout(12, 250)).resolves.toEqual({ payout: { id: 92 } });
+    await expect(financeService.requestPayout(12, "250.00")).resolves.toEqual({ payout: { id: 92 } });
     expect(idempotencyKeyAt(1)).toBe(firstKey);
+    expect(appApiClient.post.mock.calls[1][1]).toEqual({ amount: 250 });
   });
 
   test("uses a fresh key after a definitive validation failure", async () => {
