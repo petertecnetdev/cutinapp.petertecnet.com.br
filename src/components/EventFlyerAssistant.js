@@ -151,7 +151,9 @@ async function renderFlyer({ data, production, formatKey, themeKey, generatedBac
       ctx.globalAlpha = generatedBackground ? 0.9 : 0.48;
       drawCoverImage(ctx, img, width, height);
       ctx.restore();
-    } catch (_) {}
+    } catch (_) {
+      // Optional visual fallback must not block flyer rendering.
+    }
   }
 
   const overlay = ctx.createLinearGradient(0, 0, 0, height);
@@ -244,7 +246,9 @@ export default function EventFlyerAssistant() {
     setGenerationSource("");
     setProduction(null);
     if (data.productionId) {
-      try { setProduction(await cutinappService.getProduction(data.productionId)); } catch (_) {}
+      try { setProduction(await cutinappService.getProduction(data.productionId)); } catch (_) {
+        // Production identity is optional for opening the flyer studio.
+      }
     }
   };
 
@@ -328,7 +332,9 @@ export default function EventFlyerAssistant() {
           source: generationSource === "cloudflare" ? "cloudflare_workers_ai" : (productionImage(production) ? "production_identity" : "cutinapp_theme"),
         },
       });
-    } catch (_) {}
+    } catch (_) {
+      // Telemetry must never interrupt flyer generation.
+    }
     setOpen(false);
   };
 
