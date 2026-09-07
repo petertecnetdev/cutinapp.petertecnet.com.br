@@ -1,9 +1,38 @@
 import appApiClient from "./AppApiClient";
+import { createIdempotencyAttemptManager, createMutationRequestKey, shouldKeepIdempotencyAttempt } from "../utils/idempotencyAttempts";
 
 const CUTINAPP_TIME_ZONE = "America/Sao_Paulo";
 const HOME_DISCOVERY_KEYS = new Set(["lat", "lng", "radius_km", "city", "uf", "per_page", "sort"]);
 
 const unwrap = (value) => Array.isArray(value) ? value : Array.isArray(value?.data) ? value.data : [];
+
+const pendingEventCreates = new Map();
+const eventCreateAttempts = createIdempotencyAttemptManager({
+  storagePrefix: "cutinapp_event_create_attempt_",
+  keyPrefix: "event",
+});
+
+const createEvent = (payload) => {
+  const requestKey = createMutationRequestKey(payload);
+  const pending = pendingEventCreates.get(requestKey);
+  if (pending) return pending;
+
+  const idempotencyKey = eventCreateAttempts.keyFor(requestKey);
+  const request = appApiClient.post("/events", payload, {
+    headers: { "Idempotency-Key": idempotencyKey },
+  }).then((response) => {
+    eventCreateAttempts.clear(requestKey);
+    return response.data;
+  }).catch((error) => {
+    if (!shouldKeepIdempotencyAttempt(error)) eventCreateAttempts.clear(requestKey);
+    throw error;
+  }).finally(() => {
+    if (pendingEventCreates.get(requestKey) === request) pendingEventCreates.delete(requestKey);
+  });
+
+  pendingEventCreates.set(requestKey, request);
+  return request;
+};
 
 const dateKeyInTimeZone = (value = new Date()) => {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -76,7 +105,7 @@ const eventService = {
   search,
   list: async (params = {}) => unwrap((await appApiClient.get("/events", { params })).data.events),
   view: async (slug) => (await appApiClient.get(`/events/public/${slug}`)).data,
-  store: async (formData) => (await appApiClient.post("/events", formData)).data,
+  store: createEvent,
   update: async (eventId, formData) => (await appApiClient.patch(`/events/${eventId}`, formData)).data,
   show: async (eventId) => (await appApiClient.get(`/events/${eventId}/manage`)).data.event,
   myEvents: async (params = {}) => unwrap((await appApiClient.get("/events/mine", { params: { per_page: 100, ...params } })).data.events),
