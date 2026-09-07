@@ -4,6 +4,7 @@ import { safeGetSessionJson, safeRemoveSessionItem, safeSetSessionJson } from ".
 import { trackTelemetry } from "../utils/telemetry";
 import { shouldKeepCheckoutAttempt } from "../utils/checkoutRetryPolicy";
 import { clearPaymentRecoveryAttribution, readPaymentRecoveryAttribution } from "../utils/paymentRecoveryAttribution";
+import { readTimelineAttribution } from "../utils/timelineAttribution";
 
 const pendingCheckouts = new Map();
 const fallbackAttempts = new Map();
@@ -11,6 +12,20 @@ const catalogCache = new Map();
 const CHECKOUT_ATTEMPT_PREFIX = "cutinapp_checkout_attempt_";
 const CATALOG_CACHE_TTL_MS = 15000;
 const AUTO_RETRY_CHECKOUT_STATUSES = new Set([502, 503, 504]);
+
+const withTimelineAttribution = (payload = {}) => {
+  const eventId = Number(payload?.event_id || 0);
+  const attribution = readTimelineAttribution(eventId);
+  if (!attribution || Number(attribution.event_id) !== eventId) return payload;
+
+  return {
+    ...payload,
+    social_post_id: Number(attribution.post_id),
+    source: String(attribution.source || "timeline"),
+    campaign: attribution.campaign || undefined,
+    promoter_id: attribution.promoter_id ? Number(attribution.promoter_id) : undefined,
+  };
+};
 
 const checkoutRequestKey = (payload = {}) => JSON.stringify({
   event_id: Number(payload.event_id || 0),
@@ -21,6 +36,10 @@ const checkoutRequestKey = (payload = {}) => JSON.stringify({
   payer_email: String(payload.payer_email || "").trim().toLowerCase(),
   payer_identification_type: String(payload.payer_identification_type || ""),
   payer_identification_number: String(payload.payer_identification_number || "").replace(/\D+/g, ""),
+  social_post_id: Number(payload.social_post_id || 0),
+  source: String(payload.source || ""),
+  campaign: String(payload.campaign || ""),
+  promoter_id: Number(payload.promoter_id || 0),
   tickets: (Array.isArray(payload.tickets) ? payload.tickets : []).map((item) => ({
     id: Number(item?.id || 0),
     quantity: Number(item?.quantity || 0),
@@ -77,22 +96,23 @@ const shouldAutoRetryCheckout = (error) => {
 };
 
 const checkout = (payload) => {
-  const requestKey = checkoutRequestKey(payload);
+  const attributedPayload = withTimelineAttribution(payload);
+  const requestKey = checkoutRequestKey(attributedPayload);
   const pending = pendingCheckouts.get(requestKey);
   if (pending) return pending;
 
   const idempotencyKey = idempotencyKeyFor(requestKey);
   const postCheckout = (attempt = 0) => appApiClient
-    .post("/commerce/checkout", payload, {
+    .post("/commerce/checkout", attributedPayload, {
       headers: { "Idempotency-Key": idempotencyKey },
     })
     .catch((error) => {
       if (attempt === 0 && shouldAutoRetryCheckout(error)) {
         trackTelemetry("checkout_transient_retry", {
           label: "Checkout repetido automaticamente após falha transitória",
-          target: String(payload?.event_id || "checkout"),
+          target: String(attributedPayload?.event_id || "checkout"),
           metadata: {
-            payment_method: String(payload?.payment_method || "unknown"),
+            payment_method: String(attributedPayload?.payment_method || "unknown"),
             status: Number(error?.status || error?.response?.status || 0),
             retry_attempt: 1,
           },
