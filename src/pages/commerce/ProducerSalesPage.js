@@ -81,7 +81,8 @@ export default function ProducerSalesPage() {
   const pendingRevenue = useMemo(() => estimatePendingRevenueOpportunity({
     orders,
     fallbackTakeRate: economicMetrics.takeRate,
-  }), [economicMetrics.takeRate, orders]);
+    fallbackContributionRatio: economicMetrics.contributionRatio,
+  }), [economicMetrics.contributionRatio, economicMetrics.takeRate, orders]);
 
   const addOnEconomics = useMemo(() => {
     const paidOrders = orders.filter((order) => order.status === "paid");
@@ -223,27 +224,27 @@ export default function ProducerSalesPage() {
           <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Receita líquida estimada em adicionais</small><strong>{money(addOnEconomics.estimatedNetPlatformRevenue)}</strong><span>{money(addOnEconomics.estimatedPlatformRevenue)} antes do processamento suportado</span></div></Col>
           <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Oportunidade +10 p.p. em adicionais</small><strong>+{money(addOnEconomics.incrementalNetRevenue)} receita líquida</strong><span>+{money(addOnEconomics.incrementalGmv)} GMV · +{money(addOnEconomics.incrementalPlatformRevenue)} receita bruta estimada</span></div></Col>
           <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>GMV pendente recuperável</small><strong>{money(pendingRevenue.pendingGmv)}</strong><span>{pendingRevenue.pendingCount} pedido(s) aguardando pagamento</span></div></Col>
-          <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Receita Cutinapp em pendências</small><strong>{money(pendingRevenue.estimatedPlatformRevenue)}</strong><span>estimativa pelo fee do pedido ou take rate efetivo</span></div></Col>
+          <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Receita líquida recuperável</small><strong>{money(pendingRevenue.estimatedNetPlatformRevenue)}</strong><span>{money(pendingRevenue.estimatedPlatformRevenue)} de receita bruta potencial · margem observada {percent(pendingRevenue.contributionRatio * 100)}</span></div></Col>
         </Row>
         <Alert variant="info" className="mb-3">
-          O GMV considera as vendas pagas. A receita Cutinapp corresponde às taxas brutas registradas; receita líquida, receita líquida por venda e take rate líquido descontam somente o processamento que a Peter Tecnet efetivamente suporta nos pedidos carregados, respeitando o settlement registrado. Os indicadores de adicionais consideram itens não classificados como ingresso e agora priorizam a contribuição líquida estimada, não apenas receita bruta. A oportunidade de +10 p.p. simula somente mais vendas aderindo a adicionais pelo valor médio já observado e pela margem de contribuição após processamento. As pendências mostram receita potencial já iniciada no checkout; usam a taxa registrada no pedido quando disponível e, como fallback analítico, o take rate efetivo da produção. Nenhuma projeção altera preços, taxas ou regras de pagamento e nenhuma delas representa garantia de receita.
+          O GMV considera as vendas pagas. A receita Cutinapp corresponde às taxas brutas registradas; receita líquida, receita líquida por venda e take rate líquido descontam somente o processamento que a Peter Tecnet efetivamente suporta nos pedidos carregados, respeitando o settlement registrado. Os indicadores de adicionais consideram itens não classificados como ingresso e agora priorizam a contribuição líquida estimada, não apenas receita bruta. A oportunidade de +10 p.p. simula somente mais vendas aderindo a adicionais pelo valor médio já observado e pela margem de contribuição após processamento. As pendências mostram receita potencial já iniciada no checkout; usam a taxa registrada no pedido quando disponível e, como fallback analítico, o take rate efetivo da produção. A receita líquida recuperável aplica a margem de contribuição observada nas vendas pagas para priorizar recuperação por valor econômico, sem presumir novos preços ou taxas. Nenhuma projeção altera preços, taxas ou regras de pagamento e nenhuma delas representa garantia de receita.
         </Alert>
         {!!pendingRevenue.events.length && <Card className="cut-commerce-card mb-3">
           <Card.Body>
             <div className="cut-commerce-order-top mb-3">
               <div>
                 <small>Receita em recuperação</small>
-                <h2>Eventos com mais GMV aguardando pagamento</h2>
-                <p>Prioriza pedidos já iniciados e ainda pendentes. É uma leitura econômica para orientar recuperação de checkout; não cria cobrança, desconto ou contato automático.</p>
+                <h2>Eventos com mais receita líquida aguardando pagamento</h2>
+                <p>Prioriza pedidos ainda válidos pela contribuição líquida estimada, usando a margem já observada na produção. É uma leitura econômica para orientar recuperação de checkout; não cria cobrança, desconto ou contato automático.</p>
               </div>
             </div>
             <Row className="g-3">
               {pendingRevenue.events.slice(0, 5).map((event, index) => <Col lg={6} key={event.id}>
                 <div className="cut-commerce-stat h-100">
                   <small>#{index + 1} · {event.title}</small>
-                  <strong>{money(event.pendingGmv)} GMV pendente</strong>
-                  <span>{event.pendingCount} pedido(s) aguardando pagamento</span>
-                  <span>{money(event.estimatedPlatformRevenue)} de receita Cutinapp potencial associada</span>
+                  <strong>{money(event.estimatedNetPlatformRevenue)} receita líquida potencial</strong>
+                  <span>{money(event.pendingGmv)} GMV · {event.pendingCount} pedido(s) aguardando pagamento</span>
+                  <span>{money(event.estimatedPlatformRevenue)} de receita bruta Cutinapp potencial associada</span>
                 </div>
               </Col>)}
             </Row>
