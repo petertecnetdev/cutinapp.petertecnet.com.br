@@ -69,8 +69,8 @@ const getSalesReadiness = (event) => {
     return {
       completed,
       label: "Crie pelo menos um lote de ingresso para começar a vender",
-      action: "Configurar ingressos",
-      route: `/event/${event.id}/courtesies`,
+      action: "Criar primeiro lote pago",
+      route: `/ticket/create?eventId=${event.id}`,
     };
   }
 
@@ -78,8 +78,9 @@ const getSalesReadiness = (event) => {
     return {
       completed,
       label: "Tudo pronto para publicar e liberar as vendas",
-      action: "Revisar antes de publicar",
-      route: `/event/edit/${event.id}`,
+      action: "Publicar e começar a vender",
+      mode: "publish",
+      route: null,
     };
   }
 
@@ -223,7 +224,7 @@ export default function EventManagePage() {
             return <Col lg={6} key={event.id}><Card className="cut-panel h-100"><Card.Body className="p-4">
               <div className="d-flex justify-content-between gap-3 align-items-start"><div><span className="cut-eyebrow">{event.production?.name || "Produção"}</span><h2 className="cut-section-title mt-2 mb-1">{event.title}</h2></div><Badge bg={event.is_cancelled ? "danger" : event.is_published ? "success" : "secondary"}>{event.is_cancelled ? "Cancelado" : event.is_published ? "Publicado" : "Rascunho"}</Badge></div>
               <p className="mb-1">{formatDate(event.start_date)}</p><p className="text-secondary">{event.venue || event.address}</p>
-              <div className="cut-info-box mt-3"><strong>{event.tickets_count || 0} lote(s) de ingresso</strong><span>{event.is_published ? "Página pública disponível para retirada de cortesias." : "Finalize a cortesia antes de publicar."}</span></div>
+              <div className="cut-info-box mt-3"><strong>{event.tickets_count || 0} lote(s) de ingresso</strong><span>{event.is_published ? "Página pública disponível para venda de ingressos." : "Complete os dados do evento e crie um lote para publicar."}</span></div>
 
               {!event.is_cancelled && <div className="cut-info-box mt-3">
                 <div className="d-flex justify-content-between gap-3 align-items-center mb-2">
@@ -236,7 +237,7 @@ export default function EventManagePage() {
                   <Badge bg={Number(event.tickets_count || 0) > 0 ? "success" : "secondary"}>2. Ingressos</Badge>
                   <Badge bg={event.is_published ? "success" : "secondary"}>3. Publicação</Badge>
                 </div>
-                <Button className="mt-3" size="sm" variant={readiness.completed === 3 ? "outline-light" : "light"} onClick={() => navigate(readiness.route)}>{readiness.action}</Button>
+                <Button className="mt-3" size="sm" variant={readiness.completed === 3 ? "outline-light" : "light"} onClick={() => readiness.mode === "publish" ? publication(event) : navigate(readiness.route)} disabled={busyId === event.id}>{readiness.action}</Button>
               </div>}
 
               {event.is_published && !event.is_cancelled && <div className="cut-info-box mt-3">
@@ -251,7 +252,8 @@ export default function EventManagePage() {
               <div className="cut-card-actions mt-4">
                 <Button onClick={() => navigate(`/event/edit/${event.id}`)}>Editar</Button>
                 <Button variant="outline-light" onClick={() => openDuplicate(event)} disabled={Boolean(busyId)}><i className="fa-regular fa-copy me-2" />Duplicar</Button>
-                <Button variant="outline-light" onClick={() => navigate(`/event/${event.id}/courtesies`)}>Ingressos</Button>
+                <Button variant="outline-light" onClick={() => navigate(`/ticket/create?eventId=${event.id}`)}>Novo lote</Button>
+                <Button variant="outline-light" onClick={() => navigate(`/event/${event.id}/courtesies`)}>Cortesias</Button>
                 <Button variant="outline-light" onClick={() => navigate(`/event/${event.id}/participants`)}>Participantes</Button>
                 {!event.is_cancelled && <Button variant={event.is_published ? "outline-warning" : "outline-success"} onClick={() => publication(event)} disabled={busyId === event.id}>{event.is_published ? "Despublicar" : "Publicar"}</Button>}
                 {event.is_published && !event.is_cancelled && <><Button variant="outline-light" onClick={() => navigate(`/checkin?eventId=${event.id}`)}>Portaria</Button><Button variant="outline-light" onClick={() => navigate(`/event/${event.slug}`)}>Página pública</Button><Button variant="outline-light" onClick={() => share(event)}>Compartilhar</Button></>}
