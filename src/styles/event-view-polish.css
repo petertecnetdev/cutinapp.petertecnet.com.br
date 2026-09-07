@@ -1,0 +1,373 @@
+/* Public event view polish
+ * Keeps the flyer unobstructed, improves hierarchy and prevents the event
+ * summary from becoming an oversized wall of text/actions on desktop/mobile.
+ */
+
+.cut-event-view-page {
+  --cut-event-surface: rgba(9, 21, 31, 0.94);
+  --cut-event-surface-soft: rgba(13, 28, 40, 0.78);
+  --cut-event-border: rgba(145, 177, 202, 0.16);
+  --cut-event-muted: rgba(231, 239, 247, 0.72);
+  --cut-event-accent: #c043ff;
+  --cut-event-accent-2: #3fc7f4;
+}
+
+.cut-event-view-page.cut-event-view-page--buyable {
+  padding-bottom: 104px;
+}
+
+/* Flyer first: no text on top, no giant empty black sidebars around portrait art. */
+.cut-event-view-page .cut-event-banner-stage {
+  padding: 26px 0 16px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(85, 51, 154, 0.14), transparent 38%),
+    transparent;
+}
+
+.cut-event-view-page .cut-event-banner-frame {
+  width: fit-content;
+  max-width: min(100%, 1120px);
+  margin: 0 auto;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 28px;
+  background: #05070a;
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.28);
+}
+
+.cut-event-view-page .cut-event-banner-frame img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: min(76vh, 780px);
+  margin: 0 auto;
+  object-fit: contain;
+}
+
+.cut-event-view-page .cut-event-banner-placeholder {
+  min-height: 360px;
+  border-radius: 28px;
+}
+
+/* Main event identity block. */
+.cut-event-view-page .cut-event-summary-strip {
+  padding: 4px 0 28px;
+  background: transparent;
+}
+
+.cut-event-view-page .cut-event-summary-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+  align-items: center;
+  gap: clamp(28px, 4vw, 56px);
+  padding: clamp(28px, 3.3vw, 46px);
+  border: 1px solid var(--cut-event-border);
+  border-radius: 28px;
+  background:
+    linear-gradient(135deg, rgba(17, 35, 48, 0.96), rgba(7, 17, 26, 0.96));
+  box-shadow: 0 24px 66px rgba(0, 0, 0, 0.24);
+}
+
+.cut-event-view-page .cut-event-summary-card__content {
+  min-width: 0;
+}
+
+.cut-event-view-page .cut-event-summary-card__content > .d-flex:first-child {
+  margin-bottom: 18px !important;
+  gap: 8px !important;
+}
+
+.cut-event-view-page .cut-event-summary-card__content .badge {
+  padding: 7px 11px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  box-shadow: none;
+}
+
+.cut-event-view-page .cut-event-summary-card h1 {
+  max-width: 900px;
+  margin: 0 0 24px;
+  font-size: clamp(2.25rem, 3.35vw, 3.85rem) !important;
+  line-height: 1.01 !important;
+  letter-spacing: -0.048em !important;
+  text-wrap: balance;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+  hyphens: none;
+}
+
+.cut-event-view-page .cut-event-summary-card__meta {
+  display: grid;
+  gap: 10px;
+  color: var(--cut-event-muted);
+}
+
+.cut-event-view-page .cut-event-summary-card__meta > span {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  min-width: 0;
+  font-size: 0.98rem;
+  line-height: 1.45;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.cut-event-view-page .cut-event-summary-card__meta i {
+  width: 18px;
+  flex: 0 0 18px;
+  margin-top: 3px;
+  color: #bd4cff;
+  text-align: center;
+}
+
+.cut-event-view-page .cut-inline-profile-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #bfefff;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.cut-event-view-page .cut-inline-profile-link:hover,
+.cut-event-view-page .cut-inline-profile-link:focus-visible {
+  color: #ffffff;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+/* Actions are secondary to the event identity and stay visually organized. */
+.cut-event-view-page .cut-event-summary-card__actions {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: center;
+  gap: 10px !important;
+  width: 100%;
+  max-width: 360px;
+  margin-left: auto;
+}
+
+.cut-event-view-page .cut-event-summary-card__actions > .btn,
+.cut-event-view-page .cut-event-summary-card__actions > a.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0 !important;
+  min-height: 48px;
+  padding: 11px 13px;
+  border-radius: 14px;
+  font-size: 0.9rem;
+  font-weight: 750;
+  line-height: 1.15;
+  white-space: normal;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+  hyphens: none !important;
+}
+
+.cut-event-view-page .cut-event-summary-card__actions > .btn-light {
+  grid-column: 1 / -1;
+  min-height: 50px;
+}
+
+/* The persistent purchase control already fulfills the primary CTA role. */
+@media (min-width: 992px) {
+  .cut-event-view-page--buyable .cut-event-summary-card__actions > a[href="#ingressos"] {
+    display: none !important;
+  }
+}
+
+/* Compact persistent purchase CTA: always visible without covering half the event. */
+.cut-event-view-page .cut-event-buy-cta-fixed {
+  left: 50%;
+  right: auto;
+  bottom: 22px;
+  width: min(360px, calc(100vw - 36px));
+  min-height: 58px;
+  padding: 10px 16px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 18px;
+  background: linear-gradient(100deg, #b23cff 0%, #6d78ff 52%, #38c5e8 100%);
+  box-shadow: 0 18px 45px rgba(66, 102, 235, 0.34);
+}
+
+.cut-event-view-page .cut-event-buy-cta-fixed span {
+  min-width: 0;
+}
+
+.cut-event-view-page .cut-event-buy-cta-fixed strong {
+  font-size: 0.96rem;
+  line-height: 1.15;
+}
+
+.cut-event-view-page .cut-event-buy-cta-fixed small {
+  margin-top: 2px;
+  font-size: 0.7rem;
+  opacity: 0.72;
+}
+
+/* Make the temporal notice supportive instead of another dominant card. */
+.cut-event-view-page .cut-event-summary-strip + .cut-page-container > .alert:first-child {
+  border-radius: 18px;
+  border-width: 1px;
+  box-shadow: none;
+}
+
+@media (max-width: 1199.98px) {
+  .cut-event-view-page .cut-event-summary-card {
+    grid-template-columns: minmax(0, 1fr) minmax(270px, 320px);
+    gap: 28px;
+  }
+
+  .cut-event-view-page .cut-event-summary-card h1 {
+    font-size: clamp(2.2rem, 4.5vw, 3.35rem) !important;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .cut-event-view-page.cut-event-view-page--buyable {
+    padding-bottom: calc(164px + env(safe-area-inset-bottom));
+  }
+
+  .cut-event-view-page .cut-event-banner-stage {
+    padding: 14px 0 12px;
+  }
+
+  .cut-event-view-page .cut-event-banner-frame {
+    max-width: 100%;
+    border-radius: 22px;
+  }
+
+  .cut-event-view-page .cut-event-banner-frame img {
+    max-height: 68svh;
+  }
+
+  .cut-event-view-page .cut-event-summary-strip {
+    padding: 0 0 20px;
+  }
+
+  .cut-event-view-page .cut-event-summary-card {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    gap: 24px;
+    padding: 26px;
+    border-radius: 24px;
+  }
+
+  .cut-event-view-page .cut-event-summary-card h1 {
+    max-width: 760px;
+    margin-bottom: 20px;
+    font-size: clamp(2.05rem, 7.4vw, 3.2rem) !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card__actions {
+    max-width: none;
+    margin-left: 0;
+  }
+
+  .cut-event-view-page .cut-event-summary-card__actions > a[href="#ingressos"] {
+    grid-column: 1 / -1;
+  }
+
+  .cut-event-view-page .cut-event-buy-cta-fixed {
+    left: 14px;
+    right: 14px;
+    bottom: calc(82px + env(safe-area-inset-bottom));
+    width: auto;
+    min-height: 56px;
+    transform: none;
+    border-radius: 17px;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .cut-event-view-page .cut-event-banner-stage .cut-page-container,
+  .cut-event-view-page .cut-event-summary-strip .cut-page-container {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .cut-event-view-page .cut-event-banner-frame {
+    border-radius: 18px;
+  }
+
+  .cut-event-view-page .cut-event-banner-frame img {
+    max-height: 62svh;
+  }
+
+  .cut-event-view-page .cut-event-summary-card {
+    gap: 21px;
+    padding: 21px 18px;
+    border-radius: 20px;
+  }
+
+  .cut-event-view-page .cut-event-summary-card__content > .d-flex:first-child {
+    margin-bottom: 14px !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card__content .badge {
+    padding: 6px 9px;
+    font-size: 0.66rem;
+  }
+
+  .cut-event-view-page .cut-event-summary-card h1 {
+    margin-bottom: 18px;
+    font-size: clamp(1.95rem, 9.7vw, 2.7rem) !important;
+    line-height: 1.03 !important;
+    letter-spacing: -0.04em !important;
+    text-wrap: pretty;
+  }
+
+  .cut-event-view-page .cut-event-summary-card__meta {
+    gap: 9px;
+  }
+
+  .cut-event-view-page .cut-event-summary-card__meta > span {
+    font-size: 0.9rem;
+  }
+
+  .cut-event-view-page .cut-event-summary-card__actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 9px !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card__actions > .btn,
+  .cut-event-view-page .cut-event-summary-card__actions > a.btn {
+    min-height: 46px !important;
+    padding: 9px 10px !important;
+    border-radius: 13px;
+    font-size: 0.83rem;
+  }
+
+  .cut-event-view-page .cut-event-summary-card__actions > .btn-light,
+  .cut-event-view-page .cut-event-summary-card__actions > a[href="#ingressos"] {
+    grid-column: 1 / -1;
+  }
+
+  .cut-event-view-page .cut-event-buy-cta-fixed small {
+    display: none;
+  }
+}
+
+@media (max-width: 359.98px) {
+  .cut-event-view-page .cut-event-summary-card__actions {
+    grid-template-columns: 1fr !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card__actions > .btn-light,
+  .cut-event-view-page .cut-event-summary-card__actions > a[href="#ingressos"] {
+    grid-column: auto;
+  }
+
+  .cut-event-view-page .cut-event-summary-card h1 {
+    font-size: 1.85rem !important;
+  }
+}
