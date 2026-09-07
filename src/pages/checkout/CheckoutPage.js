@@ -57,7 +57,17 @@ export default function CheckoutPage() {
 
     if (fromState) {
       safeSetSessionJson(checkoutStorageKey, fromState);
+      safeRemoveSessionItem(paymentStorageKey);
       writeCheckoutRecovery(slug, { selection: fromState, orderPublicId: null });
+      trackCheckout("checkout_fresh_selection_started", {
+        label: "Nova seleção substituiu pagamento anterior da sessão",
+        target: slug,
+        metadata: {
+          event_id: Number(fromState?.eventId || 0),
+          ticket_quantity: (fromState?.tickets || []).reduce((sum, item) => sum + Number(item?.quantity || 0), 0),
+          item_quantity: (fromState?.items || []).reduce((sum, item) => sum + Number(item?.quantity || 0), 0),
+        },
+      });
     }
 
     let stored = fromState;
@@ -68,7 +78,7 @@ export default function CheckoutPage() {
     setSelection(stored);
 
     let hasSessionPayment = false;
-    const storedPayment = safeGetSessionJson(paymentStorageKey);
+    const storedPayment = fromState ? null : safeGetSessionJson(paymentStorageKey);
     if (storedPayment?.order?.public_id) {
       hasSessionPayment = true;
       setMethod(resolveCheckoutPaymentMethod(storedPayment));
@@ -611,9 +621,9 @@ export default function CheckoutPage() {
             </section>
           </>}
 
-          <div className="cut-checkout-trustbar"><div><i className="fa-solid fa-lock" /><span><strong>Conexão segura</strong>Dados criptografados</span></div><div><i className="fa-solid fa-shield-halved" /><span><strong>Mercado Pago</strong>Processamento protegido</span></div><div><i className="fa-solid fa-ticket" /><span><strong>Liberação automática</strong>Ingresso após aprovação</span></div></div>
+          <div className="cut-checkout-trustbar"><div><i className="fa-solid fa-lock" /><span><strong>Conexão segura</strong>Dados criptografados</span></div><div><i className="fa-solid fa-shield-halved" /><span><strong>Mercado Pago </strong>Processamento protegido</span></div><div><i className="fa-solid fa-ticket" /><span><strong>Liberação automática</strong>Ingresso após aprovação</span></div></div>
         </main>
-        <aside className="cut-checkout-summary"><span className="cut-eyebrow">Resumo do pedido</span><h2>Sua compra</h2><div className="cut-checkout-summary__event"><i className="fa-regular fa-calendar-check" /><div><strong>{catalog?.event?.title}</strong><span>Compra pela Cutinapp</span></div></div><div className="cut-checkout-summary__lines">{lines.map((line) => <div key={`${line.kind}-${line.id}`}><div><small>{line.kind === "ticket" ? "Ingresso" : "Item"}</small><strong>{line.name}</strong>{!result && line.kind === "item" ? <div className="d-flex flex-row align-items-center gap-2 mt-2" aria-label={`Quantidade de ${line.name}`}><Button type="button" variant="outline-light" size="sm" onClick={() => updateItemQuantity(line, line.quantity - 1)} aria-label={`Diminuir quantidade de ${line.name}`}><i className="fa-solid fa-minus" /></Button><span aria-live="polite">{line.quantity}</span><Button type="button" variant="outline-light" size="sm" onClick={() => updateItemQuantity(line, line.quantity + 1)} disabled={line.quantity >= 10} aria-label={`Aumentar quantidade de ${line.name}`}><i className="fa-solid fa-plus" /></Button></div> : <span>Qtd. {line.quantity}</span>}</div><strong>{money(Number(line.price) * line.quantity)}</strong></div>)}</div><div className="cut-checkout-summary__total"><span>Total</span><strong>{money(total)}</strong></div><div className="cut-checkout-summary__security"><i className="fa-solid fa-shield-halved" /><span>Pagamento processado com segurança pelo Mercado Pago.</span></div></aside>
+        <aside className="cut-checkout-summary"><span className="cut-eyebrow">Resumo do pedido</span><h2>Sua compra</h2><div className="cut-checkout-summary__event"><i className="fa-regular fa-calendar-check" /><div><strong>{catalog?.event?.title}</strong><span>Compra pela Cutinapp</span></div></div><div className="cut-checkout-summary__lines">{lines.map((line) => <div key={`${line.kind}-${line.id}`}><div><small>{line.kind === "ticket" ? "Ingresso" : "Item"}</small><strong>{line.name}</strong>{result && line.kind === "item" ? <div className="d-flex flex-row align-items-center gap-2 mt-2" aria-label={`Quantidade de ${line.name}`}><Button type="button" variant="outline-light" size="sm" onClick={() => updateItemQuantity(line, line.quantity - 1)} aria-label={`Diminuir quantidade de ${line.name}`}><i className="fa-solid fa-minus" /></Button><span aria-live="polite">{line.quantity}</span><Button type="button" variant="outline-light" size="sm" onClick={() => updateItemQuantity(line, line.quantity + 1)} disabled={line.quantity >= 10} aria-label={`Aumentar quantidade de ${line.name}`}><i className="fa-solid fa-plus" /></Button></div> : <span>Qtd. {line.quantity}</span>}</div><strong>{money(Number(line.price) * line.quantity)}</strong></div>)}</div><div className="cut-checkout-summary__total"><span>Total</span><strong>{money(total)}</strong></div><div className="cut-checkout-summary__security"><i className="fa-solid fa-shield-halved" /><span>Pagamento processado com segurança pelo Mercado Pago.</span></div></aside>
       </div>
     </Container>
   </div>;
