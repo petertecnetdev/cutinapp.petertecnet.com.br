@@ -1,0 +1,43 @@
+name: Fix flyer lint build blocker
+
+on:
+  push:
+    branches:
+      - automation/revenue-addon-net-preview-run5-gh
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: automation/revenue-addon-net-preview-run5-gh
+          fetch-depth: 0
+      - name: Replace empty catch blocks without changing behavior
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('src/components/EventFlyerAssistant.js')
+          text = path.read_text()
+          replacements = [
+            ('    } catch (_) {}\n', '    } catch (_) { /* Background fallback is intentionally best-effort. */ }\n'),
+            ('      try { setProduction(await cutinappService.getProduction(data.productionId)); } catch (_) {}\n', '      try { setProduction(await cutinappService.getProduction(data.productionId)); } catch (_) { /* Production identity is optional for flyer generation. */ }\n'),
+            ('    } catch (_) {}\n    setOpen(false);\n', '    } catch (_) { /* Telemetry must never block using the generated cover. */ }\n    setOpen(false);\n'),
+          ]
+          for old, new in replacements:
+            if old not in text:
+              raise SystemExit(f'anchor not found: {old!r}')
+            text = text.replace(old, new, 1)
+          path.write_text(text)
+          PY
+          rm .github/workflows/automation-fix-flyer-lint-run5.yml
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/EventFlyerAssistant.js .github/workflows/automation-fix-flyer-lint-run5.yml
+          git commit -m "fix(events): satisfy flyer assistant lint"
+          git push origin HEAD:automation/revenue-addon-net-preview-run5-gh
