@@ -22,6 +22,7 @@ import "./styles/cutinapp-mobile-final.css";
 import "./styles/advanced-navbar.css";
 import "./styles/peter-branding-bridge.css";
 import "./styles/instagram-mobile-shell.css";
+import "./styles/mobile-footer-regression-fixes.css";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import PeterAccountGateway from "./components/PeterAccountGateway";
