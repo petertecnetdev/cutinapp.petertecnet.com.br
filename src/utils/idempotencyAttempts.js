@@ -3,7 +3,7 @@ import { safeGetSessionJson, safeRemoveSessionItem, safeSetSessionJson } from ".
 
 const uncertainStatuses = new Set([408, 409, 425, 429]);
 
-const requestKeyHash = (value) => {
+export const createOpaqueRequestKey = (value) => {
   let hash = 2166136261;
   for (let index = 0; index < value.length; index += 1) {
     hash ^= value.charCodeAt(index);
@@ -60,7 +60,7 @@ export const shouldKeepIdempotencyAttempt = (error) => {
 
 export const createIdempotencyAttemptManager = ({ storagePrefix, keyPrefix = "mutation" }) => {
   const fallbackAttempts = new Map();
-  const storageFor = (requestKey) => `${storagePrefix}${requestKeyHash(requestKey)}`;
+  const storageFor = (requestKey) => `${storagePrefix}${createOpaqueRequestKey(requestKey)}`;
 
   const createKey = () => {
     if (typeof globalThis.crypto?.randomUUID === "function") return globalThis.crypto.randomUUID();
@@ -68,14 +68,20 @@ export const createIdempotencyAttemptManager = ({ storagePrefix, keyPrefix = "mu
   };
 
   const read = (requestKey) => {
+    const requestKeyHash = createOpaqueRequestKey(requestKey);
     const stored = safeGetSessionJson(storageFor(requestKey));
-    if (stored?.requestKey === requestKey && stored?.idempotencyKey) return stored.idempotencyKey;
+    const matchesCurrentFormat = stored?.requestKeyHash === requestKeyHash;
+    const matchesLegacyFormat = stored?.requestKey === requestKey;
+    if ((matchesCurrentFormat || matchesLegacyFormat) && stored?.idempotencyKey) return stored.idempotencyKey;
     return fallbackAttempts.get(requestKey) || null;
   };
 
   const save = (requestKey, idempotencyKey) => {
     fallbackAttempts.set(requestKey, idempotencyKey);
-    safeSetSessionJson(storageFor(requestKey), { requestKey, idempotencyKey });
+    safeSetSessionJson(storageFor(requestKey), {
+      requestKeyHash: createOpaqueRequestKey(requestKey),
+      idempotencyKey,
+    });
   };
 
   return {
