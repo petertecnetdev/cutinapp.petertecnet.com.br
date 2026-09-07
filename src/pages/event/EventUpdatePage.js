@@ -21,6 +21,8 @@ const minNow = () => {
   return toLocalInput(date);
 };
 
+const money = (value) => Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
 const buildFirstSaleShareUrl = (event) => {
   if (!event?.slug) return "";
   const url = new URL(`/event/${event.slug}`, window.location.origin);
@@ -49,6 +51,7 @@ export default function EventUpdatePage() {
     ? Math.min(100, Math.max(0, requestedAddOnNetMargin))
     : 0;
   const hasSuggestedAddOnNetMargin = suggestedAddOnNetMargin > 0;
+
   const [form, setForm] = useState(null);
   const [eventData, setEventData] = useState(null);
   const [image, setImage] = useState(null);
@@ -59,7 +62,14 @@ export default function EventUpdatePage() {
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const [eventItems, setEventItems] = useState([]);
-  const [itemForm, setItemForm] = useState({ name: "", description: "", price: hasSuggestedAddOnPrice ? suggestedAddOnPrice.toFixed(2) : "", quantity: hasSuggestedAddOnStock ? String(suggestedAddOnStock) : "" });
+  const [productionItems, setProductionItems] = useState([]);
+  const [productionItemsLoading, setProductionItemsLoading] = useState(false);
+  const [productionItemsError, setProductionItemsError] = useState("");
+  const [itemForm, setItemForm] = useState({
+    source_item_id: "",
+    price: hasSuggestedAddOnPrice ? suggestedAddOnPrice.toFixed(2) : "",
+    quantity: hasSuggestedAddOnStock ? String(suggestedAddOnStock) : "",
+  });
   const [itemLoading, setItemLoading] = useState(false);
   const [itemSaving, setItemSaving] = useState(false);
   const [itemBusyId, setItemBusyId] = useState(null);
@@ -96,7 +106,7 @@ export default function EventUpdatePage() {
     if (!eventData?.is_published || !eventData?.slug) return;
     setItemLoading(true);
     try {
-      const catalog = await commerceService.catalog(eventData.slug);
+      const catalog = await commerceService.catalog(eventData.slug, { force: true });
       setEventItems(Array.isArray(catalog?.items) ? catalog.items : []);
     } catch (err) {
       setError(err?.message || "Não foi possível carregar os adicionais deste evento.");
@@ -120,6 +130,34 @@ export default function EventUpdatePage() {
   }, [eventData?.is_published, eventData?.slug]);
 
   useEffect(() => {
+    const productionId = Number(eventData?.production_id || form?.production_id || 0);
+    if (!productionId) {
+      setProductionItems([]);
+      setProductionItemsError("");
+      return undefined;
+    }
+
+    let active = true;
+    setProductionItemsLoading(true);
+    setProductionItemsError("");
+    cutinappService.productionItems(productionId)
+      .then((items) => {
+        if (!active) return;
+        setProductionItems((Array.isArray(items) ? items : [])
+          .filter((item) => item?.status === undefined || Boolean(item.status))
+          .sort((left, right) => String(left?.name || "").localeCompare(String(right?.name || ""), "pt-BR")));
+      })
+      .catch((err) => {
+        if (!active) return;
+        setProductionItems([]);
+        setProductionItemsError(err?.message || "Não foi possível carregar o catálogo desta produção.");
+      })
+      .finally(() => active && setProductionItemsLoading(false));
+
+    return () => { active = false; };
+  }, [eventData?.production_id, form?.production_id]);
+
+  useEffect(() => {
     if (!isFirstTicketActivation || !eventData?.id) return;
     try {
       window.PeterTecnetTelemetry?.track?.("producer_publication_step_opened", {
@@ -138,6 +176,11 @@ export default function EventUpdatePage() {
   useEffect(() => () => {
     if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
   }, [preview]);
+
+  const selectedProductionItem = useMemo(
+    () => productionItems.find((item) => String(item.id) === String(itemForm.source_item_id)) || null,
+    [productionItems, itemForm.source_item_id]
+  );
 
   const dateInvalid = Boolean(form?.start_date && form?.end_date && new Date(form.end_date) <= new Date(form.start_date));
   const capacityInvalid = Boolean(form?.max_attendees !== "" && Number(form?.max_attendees) < 1);
@@ -285,34 +328,59 @@ export default function EventUpdatePage() {
     window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
   };
 
+  const selectProductionItem = (value) => {
+    const selected = productionItems.find((item) => String(item.id) === String(value));
+    setItemForm((current) => {
+      if (!selected) return { ...current, source_item_id: value };
+      const catalogPrice = Number(selected.price);
+      const catalogStock = Number(selected.stock);
+      return {
+        source_item_id: value,
+        price: current.price || (Number.isFinite(catalogPrice) && catalogPrice > 0 ? catalogPrice.toFixed(2) : ""),
+        quantity: current.quantity || (Number.isInteger(catalogStock) && catalogStock >= 0 ? String(catalogStock) : ""),
+      };
+    });
+  };
+
   const saveAddOn = async () => {
     const price = Number(itemForm.price);
     const quantity = Number(itemForm.quantity);
-    if (!itemForm.name.trim() || !Number.isFinite(price) || price < 0.01 || !Number.isInteger(quantity) || quantity < 0) {
-      setError("Informe nome, preço válido e estoque inteiro para o adicional.");
+    if (!selectedProductionItem) {
+      setError("Selecione um item já cadastrado no catálogo da produção.");
       return;
     }
+    if (!Number.isFinite(price) || price < 0.01 || !Number.isInteger(quantity) || quantity < 0) {
+      setError("Informe preço válido e estoque inteiro para o item selecionado.");
+      return;
+    }
+    if (eventItems.some((item) => String(item.name || "").trim().toLowerCase() === String(selectedProductionItem.name || "").trim().toLowerCase())) {
+      setError("Este item já está disponível neste evento.");
+      return;
+    }
+
     setItemSaving(true);
     setError("");
     setSuccess("");
     try {
       const response = await commerceService.saveEventItem(id, {
-        name: itemForm.name.trim(),
-        description: itemForm.description.trim() || null,
+        source_item_id: Number(selectedProductionItem.id),
+        name: selectedProductionItem.name,
+        description: selectedProductionItem.description || null,
         price,
         quantity,
         is_active: true,
       });
-      setItemForm({ name: "", description: "", price: "", quantity: "" });
+      setItemForm({ source_item_id: "", price: "", quantity: "" });
       if (eventData?.is_published && eventData?.slug) await loadEventItems();
       else if (response?.item) setEventItems((current) => [...current.filter((item) => item.id !== response.item.id), response.item]);
-      setSuccess("Adicional disponível para venda neste evento.");
+      setSuccess("Item do catálogo disponível para pré-venda neste evento.");
       try {
         window.PeterTecnetTelemetry?.track?.("producer_event_addon_created", {
-          label: "Adicional criado no evento",
+          label: "Item do catálogo vinculado ao evento",
           target: String(id),
           metadata: {
             event_id: Number(id),
+            source_item_id: Number(selectedProductionItem.id),
             price,
             quantity,
             gross_potential: Number((price * quantity).toFixed(2)),
@@ -329,7 +397,7 @@ export default function EventUpdatePage() {
         });
       } catch { /* Telemetria nunca bloqueia monetização. */ }
     } catch (err) {
-      setError(err?.message || "Não foi possível salvar o adicional.");
+      setError(err?.message || "Não foi possível disponibilizar o item neste evento.");
     } finally {
       setItemSaving(false);
     }
@@ -343,9 +411,9 @@ export default function EventUpdatePage() {
       await commerceService.deleteEventItem(id, item.id);
       setEventItems((current) => current.filter((entry) => entry.id !== item.id));
       if (eventData?.is_published && eventData?.slug) await loadEventItems();
-      setSuccess("Adicional removido das novas vendas.");
+      setSuccess("Item removido das novas vendas deste evento.");
     } catch (err) {
-      setError(err?.message || "Não foi possível remover o adicional.");
+      setError(err?.message || "Não foi possível remover o item do evento.");
     } finally {
       setItemBusyId(null);
     }
@@ -433,20 +501,73 @@ export default function EventUpdatePage() {
 
           <Card className="cut-panel mt-4"><Card.Body className="p-4 p-lg-5">
             <div className="d-flex flex-column flex-lg-row justify-content-between gap-3 align-items-lg-start mb-4">
-              <div><span className="cut-eyebrow">Monetização do evento</span><h2 className="cut-section-title mt-2">Adicionais e pré-venda</h2><p className="text-secondary mb-0">Venda itens e serviços junto do ingresso para aumentar o ticket médio. O valor entra no mesmo checkout e segue as taxas vigentes, sem cobrança escondida.</p></div>
+              <div>
+                <span className="cut-eyebrow">Monetização do evento</span>
+                <h2 className="cut-section-title mt-2">Adicionais e pré-venda</h2>
+                <p className="text-secondary mb-0">Selecione itens e serviços já cadastrados na produção para vendê-los junto do ingresso. O valor entra no mesmo checkout e segue as taxas vigentes, sem cobrança escondida.</p>
+              </div>
               <Badge bg={eventItems.length ? "success" : "secondary"}>{eventItems.length} adicional(is) ativo(s)</Badge>
             </div>
-            {hasSuggestedAddOnPrice && <Alert variant="info" className="mb-3"><strong>Sugestão baseada em vendas reais: {suggestedAddOnPrice.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}{hasSuggestedAddOnStock ? ` com estoque inicial de ${suggestedAddOnStock}` : ""}.</strong> {suggestedAddOnSource === "event" ? "Usamos o valor médio dos adicionais já vendidos neste evento." : "Usamos o valor médio dos adicionais vendidos nos outros eventos desta produção."} {hasSuggestedAddOnStock ? "O estoque sugerido usa a oportunidade incremental estimada no painel e é limitado a 100 unidades." : ""} Preço e estoque são apenas pré-preenchidos para reduzir trabalho: revise livremente antes de adicionar o item.</Alert>}
-            <Row className="g-3 align-items-end">
-              <Col md={5}><Form.Group><Form.Label>Nome do adicional *</Form.Label><Form.Control value={itemForm.name} maxLength={140} onChange={(e) => setItemForm((current) => ({ ...current, name: e.target.value }))} placeholder="Ex.: estacionamento, combo, camiseta" /></Form.Group></Col>
-              <Col md={3}><Form.Group><Form.Label>Preço real *</Form.Label><Form.Control type="number" min="0.01" step="0.01" value={itemForm.price} onChange={(e) => setItemForm((current) => ({ ...current, price: e.target.value }))} placeholder="0,00" /></Form.Group></Col>
-              <Col md={2}><Form.Group><Form.Label>Estoque *</Form.Label><Form.Control type="number" min="0" step="1" value={itemForm.quantity} onChange={(e) => setItemForm((current) => ({ ...current, quantity: e.target.value }))} placeholder="0" /></Form.Group></Col>
-              <Col md={2}><Button type="button" className="w-100" onClick={saveAddOn} disabled={itemSaving}>{itemSaving ? "Salvando..." : "Adicionar"}</Button></Col>
-              <Col xs={12}><Form.Group><Form.Label>Descrição</Form.Label><Form.Control as="textarea" rows={2} maxLength={2000} value={itemForm.description} onChange={(e) => setItemForm((current) => ({ ...current, description: e.target.value }))} placeholder="Explique o que o comprador recebe e como retirar/usar no evento." /></Form.Group></Col>
-            </Row>
-            {Number(itemForm.price) > 0 && Number(itemForm.quantity) >= 0 && <div className="cut-info-box mt-3"><strong>Potencial bruto deste estoque: {(Number(itemForm.price) * Number(itemForm.quantity || 0)).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong>{hasSuggestedAddOnNetMargin && <span>Receita líquida Peter Tecnet estimada: {(Number(itemForm.price) * Number(itemForm.quantity || 0) * (suggestedAddOnNetMargin / 100)).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} · margem líquida observada {suggestedAddOnNetMargin.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%.</span>}<span>É apenas uma referência econômica se todo o estoque for vendido; usa a margem observada no painel quando disponível, não é garantia de receita e não altera preço, taxa ou take rate.</span></div>}
+
+            {hasSuggestedAddOnPrice && <Alert variant="info" className="mb-3"><strong>Sugestão baseada em vendas reais: {money(suggestedAddOnPrice)}{hasSuggestedAddOnStock ? ` com estoque inicial de ${suggestedAddOnStock}` : ""}.</strong> {suggestedAddOnSource === "event" ? "Usamos o valor médio dos adicionais já vendidos neste evento." : "Usamos o valor médio dos adicionais vendidos nos outros eventos desta produção."} {hasSuggestedAddOnStock ? "O estoque sugerido usa a oportunidade incremental estimada no painel e é limitado a 100 unidades." : ""} Preço e estoque são apenas pré-preenchidos: revise livremente antes de vincular o item.</Alert>}
+
+            {productionItemsError && <Alert variant="danger">{productionItemsError}</Alert>}
+            {productionItemsLoading ? (
+              <div className="text-secondary">Carregando catálogo da produção...</div>
+            ) : productionItems.length === 0 ? (
+              <Alert variant="warning" className="mb-0">
+                <strong>Nenhum item cadastrado na produção.</strong> Cadastre itens no catálogo da produção antes de disponibilizá-los neste evento. A criação de itens não é feita pela tela do evento.
+              </Alert>
+            ) : (
+              <>
+                <Row className="g-3 align-items-end">
+                  <Col lg={5} md={6}>
+                    <Form.Group>
+                      <Form.Label>Item da produção *</Form.Label>
+                      <Form.Select value={itemForm.source_item_id} onChange={(e) => selectProductionItem(e.target.value)}>
+                        <option value="">Selecione um item do catálogo</option>
+                        {productionItems.map((item) => {
+                          const alreadyAdded = eventItems.some((eventItem) => String(eventItem.name || "").trim().toLowerCase() === String(item.name || "").trim().toLowerCase());
+                          return <option key={item.id} value={item.id} disabled={alreadyAdded}>{item.name}{alreadyAdded ? " — já adicionado" : ""}</option>;
+                        })}
+                      </Form.Select>
+                      <Form.Text>Somente itens ativos e pertencentes a esta produção podem ser vinculados.</Form.Text>
+                    </Form.Group>
+                  </Col>
+                  <Col lg={3} md={3}>
+                    <Form.Group>
+                      <Form.Label>Preço no evento *</Form.Label>
+                      <Form.Control type="number" min="0.01" step="0.01" value={itemForm.price} onChange={(e) => setItemForm((current) => ({ ...current, price: e.target.value }))} placeholder="0,00" />
+                    </Form.Group>
+                  </Col>
+                  <Col lg={2} md={3}>
+                    <Form.Group>
+                      <Form.Label>Estoque no evento *</Form.Label>
+                      <Form.Control type="number" min="0" step="1" value={itemForm.quantity} onChange={(e) => setItemForm((current) => ({ ...current, quantity: e.target.value }))} placeholder="0" />
+                    </Form.Group>
+                  </Col>
+                  <Col lg={2} xs={12}>
+                    <Button type="button" className="w-100" onClick={saveAddOn} disabled={itemSaving || !selectedProductionItem}>
+                      {itemSaving ? "Adicionando..." : "Adicionar ao evento"}
+                    </Button>
+                  </Col>
+                </Row>
+
+                {selectedProductionItem && (
+                  <div className="cut-info-box mt-3">
+                    <strong>{selectedProductionItem.name}</strong>
+                    <span>Catálogo da produção: {money(selectedProductionItem.price)}{selectedProductionItem.stock !== null && selectedProductionItem.stock !== undefined ? ` · estoque ${Number(selectedProductionItem.stock || 0)}` : ""}</span>
+                    {selectedProductionItem.description && <small className="d-block text-secondary mt-1">{selectedProductionItem.description}</small>}
+                    <small className="d-block text-secondary mt-2">Nome e descrição vêm do catálogo da produção. Alterar preço ou estoque aqui afeta apenas a oferta deste evento e não modifica o item original.</small>
+                  </div>
+                )}
+
+                {Number(itemForm.price) > 0 && Number(itemForm.quantity) >= 0 && <div className="cut-info-box mt-3"><strong>Potencial bruto deste estoque: {money(Number(itemForm.price) * Number(itemForm.quantity || 0))}</strong>{hasSuggestedAddOnNetMargin && <span>Receita líquida Peter Tecnet estimada: {money(Number(itemForm.price) * Number(itemForm.quantity || 0) * (suggestedAddOnNetMargin / 100))} · margem líquida observada {suggestedAddOnNetMargin.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%.</span>}<span>É apenas uma referência econômica se todo o estoque for vendido; usa a margem observada no painel quando disponível, não é garantia de receita e não altera preço, taxa ou take rate.</span></div>}
+              </>
+            )}
+
             <div className="mt-4">
-              {itemLoading ? <div className="text-secondary">Carregando adicionais...</div> : eventItems.length === 0 ? <Alert variant="info" className="mb-0">Nenhum adicional ativo. Você pode começar com itens de conveniência, alimentação, estacionamento, merchandising ou experiências relacionadas ao evento.</Alert> : <Row className="g-3">{eventItems.map((item) => <Col md={6} key={item.id}><div className="cut-info-box h-100"><div className="d-flex justify-content-between gap-3"><div><strong>{item.name}</strong><span>{Number(item.price || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} · estoque {Number(item.quantity || 0)}</span>{item.description && <small className="d-block text-secondary mt-1">{item.description}</small>}</div><Button type="button" size="sm" variant="outline-danger" disabled={itemBusyId === item.id} onClick={() => removeAddOn(item)}>{itemBusyId === item.id ? "Removendo..." : "Remover"}</Button></div></div></Col>)}</Row>}
+              {itemLoading ? <div className="text-secondary">Carregando adicionais...</div> : eventItems.length === 0 ? <Alert variant="info" className="mb-0">Nenhum adicional ativo neste evento. Selecione acima um item já cadastrado na produção para começar a pré-venda.</Alert> : <Row className="g-3">{eventItems.map((item) => <Col md={6} key={item.id}><div className="cut-info-box h-100"><div className="d-flex justify-content-between gap-3"><div><strong>{item.name}</strong><span>{money(item.price)} · estoque {Number(item.quantity || 0)}</span>{item.description && <small className="d-block text-secondary mt-1">{item.description}</small>}</div><Button type="button" size="sm" variant="outline-danger" disabled={itemBusyId === item.id} onClick={() => removeAddOn(item)}>{itemBusyId === item.id ? "Removendo..." : "Remover"}</Button></div></div></Col>)}</Row>}
             </div>
           </Card.Body></Card>
         </Form>}
