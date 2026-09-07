@@ -28,7 +28,6 @@ test("suggests editable stock with a bounded demand buffer", () => {
   expect(suggestedAddOnStock(10, 100, 500)).toBe(20);
 });
 
-
 test("calculates weighted unit price instead of add-on basket value", () => {
   expect(weightedAverageAddOnUnitPrice([
     { unit_price: 20, quantity: 2 },
@@ -58,15 +57,26 @@ test("keeps monetization efficiency finite when projected incremental orders are
   });
 });
 
-
 test("only prioritizes add-on upside with positive net platform contribution", () => {
-  expect(addOnMarginGuard({ incrementalGmv: 200, incrementalNetRevenue: 18 })).toEqual({ profitable: true, netMargin: 9 });
-  expect(addOnMarginGuard({ incrementalGmv: 200, incrementalNetRevenue: 0 })).toEqual({ profitable: false, netMargin: 0 });
-  expect(addOnMarginGuard({ incrementalGmv: 0, incrementalNetRevenue: 20 })).toEqual({ profitable: false, netMargin: 0 });
+  expect(addOnMarginGuard({ incrementalGmv: 200, incrementalNetRevenue: 18 })).toMatchObject({ profitable: true, netMargin: 9, minimumNetRevenue: 5 });
+  expect(addOnMarginGuard({ incrementalGmv: 200, incrementalNetRevenue: 0 })).toMatchObject({ profitable: false, netMargin: 0, minimumNetRevenue: 5 });
+  expect(addOnMarginGuard({ incrementalGmv: 0, incrementalNetRevenue: 20 })).toMatchObject({ profitable: false, netMargin: 0, minimumNetRevenue: 5 });
 });
 
 test("requires a minimum net margin before recommending add-on expansion", () => {
-  expect(addOnMarginGuard({ incrementalGmv: 1000, incrementalNetRevenue: 15 })).toEqual({ profitable: false, netMargin: 1.5 });
-  expect(addOnMarginGuard({ incrementalGmv: 1000, incrementalNetRevenue: 25 })).toEqual({ profitable: true, netMargin: 2.5 });
-  expect(addOnMarginGuard({ incrementalGmv: 1000, incrementalNetRevenue: 15, minimumNetMargin: 1 })).toEqual({ profitable: true, netMargin: 1.5 });
+  expect(addOnMarginGuard({ incrementalGmv: 1000, incrementalNetRevenue: 15 })).toMatchObject({ profitable: false, netMargin: 1.5 });
+  expect(addOnMarginGuard({ incrementalGmv: 1000, incrementalNetRevenue: 25 })).toMatchObject({ profitable: true, netMargin: 2.5 });
+  expect(addOnMarginGuard({ incrementalGmv: 1000, incrementalNetRevenue: 15, minimumNetMargin: 1 })).toMatchObject({ profitable: true, netMargin: 1.5 });
+});
+
+test("requires projected net revenue to justify producer attention", () => {
+  expect(addOnMarginGuard({ incrementalGmv: 100, incrementalNetRevenue: 4.99 }))
+    .toMatchObject({ profitable: false, netMargin: 4.99, minimumNetRevenue: 5 });
+  expect(addOnMarginGuard({ incrementalGmv: 100, incrementalNetRevenue: 5 }))
+    .toMatchObject({ profitable: true, netMargin: 5, minimumNetRevenue: 5 });
+  expect(addOnMarginGuard({ incrementalGmv: 1000, incrementalNetRevenue: 25, minimumNetRevenue: 30 }))
+    .toMatchObject({ profitable: false, netMargin: 2.5, minimumNetRevenue: 30 });
+  const strongOpportunity = addOnMarginGuard({ incrementalGmv: 1000, incrementalNetRevenue: 35, minimumNetRevenue: 30 });
+  expect(strongOpportunity).toMatchObject({ profitable: true, minimumNetRevenue: 30 });
+  expect(strongOpportunity.netMargin).toBeCloseTo(3.5, 8);
 });

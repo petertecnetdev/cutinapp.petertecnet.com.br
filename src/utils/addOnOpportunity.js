@@ -50,14 +50,16 @@ export const addOnMonetizationEfficiency = ({
   };
 };
 
-export const addOnMarginGuard = ({ incrementalGmv = 0, incrementalNetRevenue = 0, minimumNetMargin = 2 } = {}) => {
+export const addOnMarginGuard = ({ incrementalGmv = 0, incrementalNetRevenue = 0, minimumNetMargin = 2, minimumNetRevenue = 5 } = {}) => {
   const gmv = Math.max(0, Number(incrementalGmv || 0));
   const netRevenue = Math.max(0, Number(incrementalNetRevenue || 0));
   const minimumMargin = Math.max(0, Math.min(100, Number(minimumNetMargin || 0)));
+  const minimumRevenue = Math.max(0, Number(minimumNetRevenue || 0));
   const netMargin = gmv > 0 ? (netRevenue / gmv) * 100 : 0;
 
   return {
-    profitable: gmv > 0 && netRevenue > 0 && netMargin >= minimumMargin,
+    profitable: gmv > 0 && netRevenue > 0 && netMargin >= minimumMargin && netRevenue >= minimumRevenue,
     netMargin,
+    minimumNetRevenue: minimumRevenue,
   };
 };
