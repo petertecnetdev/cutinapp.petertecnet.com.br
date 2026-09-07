@@ -10,6 +10,7 @@ import { AuthContext } from "./context/AuthContext";
 import AppErrorBoundary from "./components/AppErrorBoundary";
 import ConnectionStatus from "./components/ConnectionStatus";
 import CutinappVisualEffects from "./components/CutinappVisualEffects";
+import EventFlyerAssistant from "./components/EventFlyerAssistant";
 import EventSeriesLauncher from "./components/EventSeriesLauncher";
 import PeterTecnetSignature from "./components/PeterTecnetSignature";
 import ProcessingIndicatorComponent from "./components/ProcessingIndicatorComponent";
@@ -153,6 +154,7 @@ function AppRoutes() {
           <Route path="/checkin" element={protectedRoute(<CheckinPage />)} />
           <Route path="*" element={<Navigate to={user ? "/feed" : "/"} replace />} />
         </Routes>
+        {user && <EventFlyerAssistant />}
         {user && <EventSeriesLauncher />}
         {!shellOwnsSignature && <PeterTecnetSignature />}
       </Suspense>
