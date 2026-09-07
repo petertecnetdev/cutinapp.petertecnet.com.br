@@ -48,13 +48,13 @@ export default function EventSeriesLauncher() {
   return <>
     <Button
       type="button"
+      className="cut-event-series-launcher"
       onClick={() => { setShow(true); setMessage(""); }}
-      style={{ position: "fixed", right: 20, bottom: 84, zIndex: 1030, borderRadius: 999, boxShadow: "0 12px 36px rgba(0,0,0,.35)" }}
     >
       <i className="fa-solid fa-calendar-plus me-2" />Criar agenda em lote
     </Button>
 
-    {message && <Alert variant="success" dismissible onClose={() => setMessage("")} style={{ position: "fixed", right: 20, bottom: 140, zIndex: 1030, maxWidth: 420 }}>{message}</Alert>}
+    {message && <Alert variant="success" dismissible onClose={() => setMessage("")} className="cut-event-series-alert">{message}</Alert>}
 
     <Modal show={show} onHide={() => !busy && setShow(false)} centered size="lg">
       <Modal.Header closeButton={!busy}><Modal.Title>Criar várias edições</Modal.Title></Modal.Header>
