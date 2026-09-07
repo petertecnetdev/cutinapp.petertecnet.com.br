@@ -44,10 +44,22 @@ describe("producerActivationNextStep", () => {
     })).toMatchObject({ stage: "event" });
   });
 
-  test("falls back to event management after publication", () => {
+  test("routes a published event with tickets to first-sale sharing", () => {
     expect(producerActivationNextStep({
       productions: [{ id: 9 }],
-      events: [{ id: 22, tickets_count: 2, is_published: true }],
-    })).toMatchObject({ stage: "selling", route: "/event/manage" });
+      events: [{ id: 22, title: "Festival", tickets_count: 2, is_published: true, start_date: "2026-09-21T20:00:00" }],
+    })).toMatchObject({
+      stage: "first_sale",
+      label: "Divulgar para a primeira venda",
+      route: "/event/edit/22?activation=first-ticket&eventId=22",
+      eventId: 22,
+    });
+  });
+
+  test("falls back to event management when no sellable published event exists", () => {
+    expect(producerActivationNextStep({
+      productions: [{ id: 9 }],
+      events: [{ id: 22, tickets_count: 0, is_published: true }],
+    })).toMatchObject({ stage: "ticket", route: "/ticket/create?eventId=22" });
   });
 });
