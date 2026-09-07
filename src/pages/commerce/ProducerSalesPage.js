@@ -5,7 +5,7 @@ import NavlogComponent from "../../components/NavlogComponent";
 import CollapsibleFilterPanel from "../../components/CollapsibleFilterPanel";
 import commerceService from "../../services/CommerceService";
 import cutinappService from "../../services/CutinappService";
-import { estimateAddOnAttachmentOpportunity } from "../../utils/addOnOpportunity";
+import { estimateAddOnAttachmentOpportunity, suggestedAddOnStock } from "../../utils/addOnOpportunity";
 import { estimatePendingRevenueOpportunity } from "../../utils/pendingRevenueOpportunity";
 import { estimateNetRevenueEconomics, processorFeesBorneByPlatformForOrder } from "../../utils/netRevenueEconomics";
 import "./CommerceHistory.css";
@@ -179,6 +179,7 @@ export default function ProducerSalesPage() {
           addOnAttachmentRate: event.paidCount > 0 ? (event.addOnOrders / event.paidCount) * 100 : 0,
           averageAddOnValue,
           suggestedAddOnPrice: Number((averageAddOnValue > 0 ? averageAddOnValue : benchmarkAddOnValue).toFixed(2)),
+          suggestedAddOnStock: suggestedAddOnStock(opportunity.incrementalOrders),
           suggestedAddOnSource: averageAddOnValue > 0 ? "event" : (benchmarkAddOnValue > 0 ? "production" : ""),
           estimatedAddOnPlatformRevenue: event.gmv > 0 ? event.addOnGmv * (event.platformRevenue / event.gmv) : 0,
           ...opportunity,
@@ -270,7 +271,7 @@ export default function ProducerSalesPage() {
                   <span>Receita Cutinapp / venda {money(event.platformRevenuePerSale)} · Take rate bruto {percent(event.takeRate)}</span>
                   <span>Ticket médio {money(event.averageTicket)} · Líquido do produtor {money(event.producerNet)}</span>
                   <span>Adicionais: {money(event.addOnGmv)} GMV · {percent(event.addOnAttachmentRate)} das vendas · médio {money(event.averageAddOnValue)}</span>
-                  {event.editableId && event.incrementalGmv > 0 && <Button as={Link} to={`/event/edit/${event.editableId}${event.suggestedAddOnPrice > 0 ? `?addonSuggested=${encodeURIComponent(event.suggestedAddOnPrice.toFixed(2))}&addonSource=${event.suggestedAddOnSource}` : ""}`} variant="outline-light" size="sm" className="mt-2 align-self-start">{event.addOnOrders > 0 ? "Otimizar adicionais" : "Ativar adicionais"}</Button>}
+                  {event.editableId && event.incrementalGmv > 0 && <Button as={Link} to={`/event/edit/${event.editableId}${event.suggestedAddOnPrice > 0 ? `?addonSuggested=${encodeURIComponent(event.suggestedAddOnPrice.toFixed(2))}&addonStock=${encodeURIComponent(String(event.suggestedAddOnStock || ""))}&addonSource=${event.suggestedAddOnSource}` : ""}`} variant="outline-light" size="sm" className="mt-2 align-self-start">{event.addOnOrders > 0 ? "Otimizar adicionais" : "Ativar adicionais"}</Button>}
                 </div>
               </Col>)}
             </Row>
