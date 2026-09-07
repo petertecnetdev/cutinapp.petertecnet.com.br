@@ -10,7 +10,14 @@ import { storageUrl } from "../../config";
 import { PERIOD_OPTIONS, paramsFromSearch, periodLabel, readDiscoveryPreference, readRecentCities, saveDiscoveryPreference } from "../../utils/discoveryFilters";
 
 const formatDate = (value) => value
-  ? new Intl.DateTimeFormat("pt-BR", { weekday: "short", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(value))
+  ? new Intl.DateTimeFormat("pt-BR", {
+    weekday: "long",
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "America/Sao_Paulo",
+  }).format(new Date(value))
   : "Data não informada";
 
 const formatEventLocation = (event) => {
@@ -161,7 +168,7 @@ export default function EventPage() {
             </form>
 
             <div className="cut-filter-shortcuts">
-              {[['today','Hoje'],['tomorrow','Amanhã'],['weekend','Fim de semana'],['saturday','Sábado'],['next7','7 dias']].map(([key, label]) =>
+              {[["today","Hoje"],["tomorrow","Amanhã"],["weekend","Fim de semana"],["saturday","Sábado"],["next7","7 dias"]].map(([key, label]) =>
                 <button type="button" key={key} className={filters.period === key ? "active" : ""} onClick={() => update({ period: filters.period === key ? "" : key, date: "", from: "", to: "" })}>{label}</button>
               )}
               <button type="button" className={filters.free ? "active" : ""} onClick={() => update({ free: filters.free ? "" : 1 })}>Gratuitos</button>
