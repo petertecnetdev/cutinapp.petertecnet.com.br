@@ -3,9 +3,11 @@ import PropTypes from "prop-types";
 import { AuthContext } from "../context/AuthContext";
 import NavlogComponent from "../components/NavlogComponent";
 import messagingService from "../services/MessagingService";
+import { reconcileMessageSnapshot } from "../utils/messageReconciliation";
 import "./MessagesPage.css";
 
 const POLL_MS = 5000;
+const CONVERSATION_POLL_MS = 15000;
 const initials = (name = "U") => String(name || "U").trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
 const messageTime = (value) => {
   if (!value) return "";
@@ -39,34 +41,41 @@ export default function MessagesPage() {
   const [error, setError] = useState("");
   const [newChatOpen, setNewChatOpen] = useState(false);
   const bottomRef = useRef(null);
+  const threadRequestSequence = useRef(0);
 
-  const loadConversations = useCallback(async (query = conversationQuery) => {
+  const loadConversations = useCallback(async (query = "", { quiet = false } = {}) => {
     try {
       const response = await messagingService.conversations(query ? { q: query } : {});
       setConversations(response?.data || []);
     } catch (requestError) {
-      setError(requestError?.response?.data?.message || "Não foi possível carregar suas conversas.");
+      if (!quiet) setError(requestError?.response?.data?.message || "Não foi possível carregar suas conversas.");
     } finally {
-      setLoading(false);
-    }
-  }, [conversationQuery]);
-
-  const loadThread = useCallback(async (conversationId, { quiet = false } = {}) => {
-    if (!conversationId) return;
-    if (!quiet) setThreadLoading(true);
-    try {
-      const response = await messagingService.messages(conversationId);
-      setMessages(response?.data || []);
-      messagingService.markRead(conversationId).catch(() => undefined);
-    } catch (requestError) {
-      if (!quiet) setError(requestError?.response?.data?.message || "Não foi possível abrir a conversa.");
-    } finally {
-      if (!quiet) setThreadLoading(false);
+      if (!quiet) setLoading(false);
     }
   }, []);
 
-  useEffect(() => { loadConversations(); }, [loadConversations]);
+  const loadThread = useCallback(async (conversationId, { quiet = false } = {}) => {
+    if (!conversationId) return;
+    const requestSequence = ++threadRequestSequence.current;
+    if (!quiet) setThreadLoading(true);
+    try {
+      const response = await messagingService.messages(conversationId);
+      if (requestSequence !== threadRequestSequence.current) return;
+      setMessages((current) => reconcileMessageSnapshot(current, response?.data || []));
+      messagingService.markRead(conversationId).catch(() => undefined);
+    } catch (requestError) {
+      if (!quiet && requestSequence === threadRequestSequence.current) {
+        setError(requestError?.response?.data?.message || "Não foi possível abrir a conversa.");
+      }
+    } finally {
+      if (!quiet && requestSequence === threadRequestSequence.current) setThreadLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadConversations(""); }, [loadConversations]);
   useEffect(() => {
+    threadRequestSequence.current += 1;
+    setMessages([]);
     if (!active?.id) return undefined;
     loadThread(active.id);
     const timer = window.setInterval(() => {
@@ -78,6 +87,12 @@ export default function MessagesPage() {
   useEffect(() => {
     const timeout = window.setTimeout(() => loadConversations(conversationQuery), 250);
     return () => window.clearTimeout(timeout);
+  }, [conversationQuery, loadConversations]);
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === "visible") loadConversations(conversationQuery, { quiet: true });
+    }, CONVERSATION_POLL_MS);
+    return () => window.clearInterval(timer);
   }, [conversationQuery, loadConversations]);
   useEffect(() => {
     if (!newChatOpen || peopleQuery.trim().length < 2) { setPeople([]); return undefined; }
@@ -110,11 +125,14 @@ export default function MessagesPage() {
     setComposer(""); setSending(true); setError("");
     const optimisticId = `local-${Date.now()}`;
     const optimistic = { id: optimisticId, sender_user_id: user?.id, body, created_at: new Date().toISOString(), pending: true };
-    setMessages((current) => [...current, optimistic]);
+    setMessages((current) => reconcileMessageSnapshot(current, [optimistic]));
     try {
       const response = await messagingService.send(active.id, body);
-      setMessages((current) => current.map((item) => item.id === optimisticId ? response.data : item));
-      loadConversations("");
+      setMessages((current) => reconcileMessageSnapshot(
+        current.filter((item) => item.id !== optimisticId),
+        response?.data ? [response.data] : [],
+      ));
+      loadConversations("", { quiet: true });
     } catch (requestError) {
       setMessages((current) => current.map((item) => item.id === optimisticId ? { ...item, pending: false, failed: true } : item));
       setComposer(body); setError(requestError?.response?.data?.message || "Mensagem não enviada. Tente novamente.");
@@ -137,8 +155,8 @@ export default function MessagesPage() {
         {!active ? <div className="cut-chat-empty"><span className="cut-chat-empty__icon"><i className="fa-regular fa-paper-plane" /></span><h2>Suas mensagens</h2><p>Converse com participantes, produtores, artistas e promoters em um só lugar.</p><button type="button" onClick={() => setNewChatOpen(true)}>Enviar mensagem</button></div> : <>
           <header className="cut-chat-thread__header"><button type="button" className="cut-chat-back" onClick={() => setActive(null)} aria-label="Voltar"><i className="fa-solid fa-arrow-left" /></button><Avatar user={active.user} size="sm" /><div><strong>{active.user?.name || active.user?.user_name}</strong><small>@{active.user?.user_name || "usuario"}</small></div></header>
           <div className="cut-chat-messages">{threadLoading ? <div className="cut-chat-state">Abrindo conversa…</div> : orderedMessages.map((message) => { const mine = Number(message.sender_user_id) === Number(user?.id); return <div key={message.id} className={`cut-chat-bubble-wrap ${mine ? "is-mine" : ""}`}><div className={`cut-chat-bubble ${message.failed ? "is-failed" : ""}`}><span>{message.body}</span><small>{message.pending ? "Enviando…" : message.failed ? "Falhou" : messageTime(message.created_at)}</small></div></div>; })}<div ref={bottomRef} /></div>
-          {error && <div className="cut-chat-error">{error}</div>}
-          <form className="cut-chat-composer" onSubmit={send}><textarea rows="1" value={composer} onChange={(event) => setComposer(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} placeholder="Mensagem…" maxLength={5000} /><button type="submit" disabled={!composer.trim() || sending} aria-label="Enviar"><i className="fa-solid fa-paper-plane" /></button></form>
+          {error && <div className="cut-chat-error" role="alert" aria-live="polite">{error}</div>}
+          <form className="cut-chat-composer" onSubmit={send}><textarea rows="1" value={composer} onChange={(event) => setComposer(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} placeholder="Mensagem…" maxLength={5000} aria-label="Mensagem" /><button type="submit" disabled={!composer.trim() || sending} aria-label="Enviar"><i className="fa-solid fa-paper-plane" /></button></form>
         </>}
       </section>
     </main>
