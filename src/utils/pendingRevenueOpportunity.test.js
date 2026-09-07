@@ -26,32 +26,6 @@ describe("estimatePendingRevenueOpportunity", () => {
     expect(result.events[0]).toMatchObject({ id: "1", pendingGmv: 200, estimatedPlatformRevenue: 20, totalPendingGmv: 200 });
   });
 
-  test("estima contribuição líquida recuperável sem alterar a receita bruta projetada", () => {
-    const result = estimatePendingRevenueOpportunity({
-      fallbackTakeRate: 10,
-      fallbackContributionRatio: 0.72,
-      now,
-      orders: [
-        { status: "pending", total: 200, created_at: "2026-09-06T22:00:00Z", event: { id: 1, title: "Evento A" } },
-        { status: "pending", total: 100, platform_fee: 15, created_at: "2026-09-06T22:10:00Z", event: { id: 2, title: "Evento B" } },
-      ],
-    });
-
-    expect(result.estimatedPlatformRevenue).toBe(35);
-    expect(result.estimatedNetPlatformRevenue).toBeCloseTo(25.2);
-    expect(result.totalEstimatedNetPlatformRevenue).toBeCloseTo(25.2);
-    expect(result.contributionRatio).toBe(0.72);
-    expect(result.events[0]).toMatchObject({ id: "1", estimatedPlatformRevenue: 20 });
-    expect(result.events[0].estimatedNetPlatformRevenue).toBeCloseTo(14.4);
-  });
-
-  test("limita margem estimada ao intervalo seguro entre zero e cem por cento", () => {
-    const baseOrder = { status: "pending", total: 100, platform_fee: 10, created_at: "2026-09-06T22:00:00Z", event_id: 1 };
-
-    expect(estimatePendingRevenueOpportunity({ orders: [baseOrder], fallbackContributionRatio: 5, now }).estimatedNetPlatformRevenue).toBe(10);
-    expect(estimatePendingRevenueOpportunity({ orders: [baseOrder], fallbackContributionRatio: -1, now }).estimatedNetPlatformRevenue).toBe(0);
-  });
-
   test("usa expiração real futura mesmo quando o pedido é mais antigo que a heurística", () => {
     const result = estimatePendingRevenueOpportunity({
       fallbackTakeRate: 10,
@@ -107,7 +81,6 @@ describe("estimatePendingRevenueOpportunity", () => {
   test("ignora valores inválidos e nunca projeta receita negativa", () => {
     const result = estimatePendingRevenueOpportunity({
       fallbackTakeRate: -4,
-      fallbackContributionRatio: -2,
       now,
       orders: [
         { status: "pending", total: -10, created_at: "2026-09-06T22:00:00Z", event_id: 1 },
@@ -118,7 +91,6 @@ describe("estimatePendingRevenueOpportunity", () => {
     expect(result.pendingCount).toBe(0);
     expect(result.pendingGmv).toBe(0);
     expect(result.estimatedPlatformRevenue).toBe(0);
-    expect(result.estimatedNetPlatformRevenue).toBe(0);
     expect(result.totalPendingGmv).toBe(0);
     expect(result.events).toEqual([]);
   });
