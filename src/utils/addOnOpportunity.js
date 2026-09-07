@@ -50,7 +50,7 @@ export const addOnMonetizationEfficiency = ({
   };
 };
 
-export const addOnMarginGuard = ({ incrementalGmv = 0, incrementalNetRevenue = 0, minimumNetMargin = 2, minimumNetRevenue = 0 } = {}) => {
+export const addOnMarginGuard = ({ incrementalGmv = 0, incrementalNetRevenue = 0, minimumNetMargin = 2, minimumNetRevenue = 5 } = {}) => {
   const gmv = Math.max(0, Number(incrementalGmv || 0));
   const netRevenue = Math.max(0, Number(incrementalNetRevenue || 0));
   const minimumMargin = Math.max(0, Math.min(100, Number(minimumNetMargin || 0)));
