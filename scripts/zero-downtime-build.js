@@ -7,6 +7,8 @@ const appRoot = path.resolve(__dirname, '..');
 const liveBuildPath = path.join(appRoot, 'build');
 const productionRoot = '/var/www/cutinapp.petertecnet.com.br';
 const externallyManagedBuildPath = process.env.BUILD_PATH;
+const deployWorktreePrefix = path.join(os.tmpdir(), 'petertecnet-build-cutinapp.petertecnet.com.br-');
+const isIsolatedDeployWorktree = appRoot.startsWith(deployWorktreePrefix);
 const buildLockPath = path.join(os.tmpdir(), 'cutinapp-frontend-build.lock');
 const lockWaitMs = Number(process.env.CUTINAPP_BUILD_LOCK_WAIT_MS || 30 * 60 * 1000);
 const staleLockMs = Number(process.env.CUTINAPP_BUILD_LOCK_STALE_MS || 60 * 60 * 1000);
@@ -125,11 +127,14 @@ function publishWithoutDowntime(stagingPath) {
   fs.renameSync(temporaryIndex, path.join(liveBuildPath, 'index.html'));
 }
 
-const releaseBuildLock = acquireBuildLock();
+const releaseBuildLock = isIsolatedDeployWorktree ? () => {} : acquireBuildLock();
 try {
   assertBuildHeadroom();
 
   if (appRoot !== productionRoot || externallyManagedBuildPath) {
+    if (isIsolatedDeployWorktree) {
+      console.log('Building isolated deploy worktree without the shared Cutinapp build lock.');
+    }
     runReactBuild(externallyManagedBuildPath);
   } else {
     const stagingPath = fs.mkdtempSync(path.join(os.tmpdir(), 'cutinapp-build-'));
