@@ -45,3 +45,14 @@ export const addOnMonetizationEfficiency = ({
     netRevenuePerIncrementalOrder: orders > 0 ? netRevenue / orders : 0,
   };
 };
+
+export const addOnMarginGuard = ({ incrementalGmv = 0, incrementalNetRevenue = 0 } = {}) => {
+  const gmv = Math.max(0, Number(incrementalGmv || 0));
+  const netRevenue = Math.max(0, Number(incrementalNetRevenue || 0));
+  const netMargin = gmv > 0 ? (netRevenue / gmv) * 100 : 0;
+
+  return {
+    profitable: gmv > 0 && netRevenue > 0 && netMargin > 0,
+    netMargin,
+  };
+};

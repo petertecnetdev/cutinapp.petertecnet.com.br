@@ -5,7 +5,7 @@ import NavlogComponent from "../../components/NavlogComponent";
 import CollapsibleFilterPanel from "../../components/CollapsibleFilterPanel";
 import commerceService from "../../services/CommerceService";
 import cutinappService from "../../services/CutinappService";
-import { addOnMonetizationEfficiency, estimateAddOnAttachmentOpportunity, suggestedAddOnStock, weightedAverageAddOnUnitPrice } from "../../utils/addOnOpportunity";
+import { addOnMarginGuard, addOnMonetizationEfficiency, estimateAddOnAttachmentOpportunity, suggestedAddOnStock, weightedAverageAddOnUnitPrice } from "../../utils/addOnOpportunity";
 import { estimatePendingRevenueOpportunity } from "../../utils/pendingRevenueOpportunity";
 import { estimateNetRevenueEconomics, processorFeesBorneByPlatformForOrder } from "../../utils/netRevenueEconomics";
 import "./CommerceHistory.css";
@@ -184,6 +184,7 @@ export default function ProducerSalesPage() {
           incrementalNetRevenue,
           incrementalOrders: opportunity.incrementalOrders,
         });
+        const marginGuard = addOnMarginGuard({ incrementalGmv: opportunity.incrementalGmv, incrementalNetRevenue });
 
         return {
           ...event,
@@ -195,6 +196,8 @@ export default function ProducerSalesPage() {
           contributionMargin: netEconomics.contributionRatio * 100,
           incrementalNetRevenue,
           ...efficiency,
+          addOnProfitable: marginGuard.profitable,
+          incrementalNetMargin: marginGuard.netMargin,
           producerShare: event.gmv > 0 ? (event.producerNet / event.gmv) * 100 : 0,
           addOnAttachmentRate: event.paidCount > 0 ? (event.addOnOrders / event.paidCount) * 100 : 0,
           averageAddOnValue,
@@ -286,7 +289,7 @@ export default function ProducerSalesPage() {
               {eventEconomics.map((event, index) => <Col lg={6} key={event.id}>
                 <div className="cut-commerce-stat h-100">
                   <small>#{index + 1} · {event.title}</small>
-                  <strong>+{money(event.incrementalNetRevenue)} receita líquida estimada</strong>
+                  <strong>{event.addOnProfitable ? `+${money(event.incrementalNetRevenue)} receita líquida estimada` : "Sem contribuição líquida para priorizar"}</strong>
                   <span>+1 p.p. de adesão ≈ +{money(event.netRevenuePerAttachmentPoint)} líquidos · {money(event.netRevenuePerIncrementalOrder)} líquidos por nova venda com adicional</span>
                   <span>Oportunidade: +{money(event.incrementalGmv)} GMV · +{money(event.incrementalPlatformRevenue)} receita bruta Cutinapp com até {event.incrementalOrders.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} venda(s) adicional(is) aderindo ao cross-sell</span>
                   <span>Atual: {money(event.netPlatformRevenue)} receita líquida · {money(event.platformRevenue)} receita bruta · {money(event.processorFeesBorneByPlatform)} processamento suportado pela Cutinapp</span>
@@ -294,7 +297,8 @@ export default function ProducerSalesPage() {
                   <span>Receita Cutinapp / venda {money(event.platformRevenuePerSale)} · Take rate bruto {percent(event.takeRate)}</span>
                   <span>Ticket médio {money(event.averageTicket)} · Líquido do produtor {money(event.producerNet)}</span>
                   <span>Adicionais: {money(event.addOnGmv)} GMV · {percent(event.addOnAttachmentRate)} das vendas · médio {money(event.averageAddOnValue)}</span>
-                  {event.editableId && event.incrementalGmv > 0 && <Button as={Link} to={`/event/edit/${event.editableId}${event.suggestedAddOnPrice > 0 ? `?addonSuggested=${encodeURIComponent(event.suggestedAddOnPrice.toFixed(2))}&addonStock=${encodeURIComponent(String(event.suggestedAddOnStock || ""))}&addonSource=${event.suggestedAddOnSource}` : ""}`} variant="outline-light" size="sm" className="mt-2 align-self-start">{event.addOnOrders > 0 ? "Otimizar adicionais" : "Ativar adicionais"}</Button>}
+                  {event.incrementalGmv > 0 && <span>Margem líquida incremental Peter Tecnet: {percent(event.incrementalNetMargin)}</span>}
+                  {event.editableId && event.incrementalGmv > 0 && event.addOnProfitable && <Button as={Link} to={`/event/edit/${event.editableId}${event.suggestedAddOnPrice > 0 ? `?addonSuggested=${encodeURIComponent(event.suggestedAddOnPrice.toFixed(2))}&addonStock=${encodeURIComponent(String(event.suggestedAddOnStock || ""))}&addonSource=${event.suggestedAddOnSource}` : ""}`} variant="outline-light" size="sm" className="mt-2 align-self-start">{event.addOnOrders > 0 ? "Otimizar adicionais" : "Ativar adicionais"}</Button>}
                 </div>
               </Col>)}
             </Row>
