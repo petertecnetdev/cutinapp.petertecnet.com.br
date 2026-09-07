@@ -128,10 +128,11 @@ describe("CommerceService", () => {
     appApiClient.post.mockResolvedValue({ data: { status: "redeemed" } });
 
     await expect(commerceService.redeemEventItems("ITEM-order.signature", "42")).resolves.toEqual({ status: "redeemed" });
-    expect(appApiClient.post).toHaveBeenCalledWith("/commerce/item-redemptions/redeem", {
-      token: "ITEM-order.signature",
-      event_id: 42,
-    });
+    expect(appApiClient.post).toHaveBeenCalledWith(
+      "/commerce/item-redemptions/redeem",
+      { token: "ITEM-order.signature", event_id: 42 },
+      { headers: { "Idempotency-Key": expect.any(String) } },
+    );
   });
 
   test("coalesces identical checkout submissions while the request is pending", async () => {
