@@ -120,6 +120,17 @@ const createEventCommunityPost = createIdempotentMutation({
   )).data,
 });
 
+const uploadProductionMedia = createIdempotentMutation({
+  storagePrefix: "cutinapp_production_media_upload_attempt_",
+  keyPrefix: "production-media-upload",
+  requestKeyFor: (organizationId, formData) => `${Number(organizationId)}:${createMutationRequestKey(formData)}`,
+  mutate: async ({ idempotencyKey }, organizationId, formData) => (await appApiClient.post(
+    `/organizations/${Number(organizationId)}/media`,
+    formData,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
 const createArtist = createIdempotentMutation({
   storagePrefix: "cutinapp_artist_create_attempt_",
   keyPrefix: "artist-create",
@@ -197,7 +208,7 @@ const cutinappService = {
   deleteProductionPost: async (postId) => (await appApiClient.delete(`/organization-community/${postId}`)).data,
   likeProductionPost: async (postId) => (await appApiClient.post(`/organization-community/${postId}/like`)).data,
   unlikeProductionPost: async (postId) => (await appApiClient.delete(`/organization-community/${postId}/like`)).data,
-  uploadProductionMedia: async (organizationId, formData) => (await appApiClient.post(`/organizations/${organizationId}/media`, formData)).data,
+  uploadProductionMedia,
   deleteProductionMedia: async (organizationId, mediaId) => (await appApiClient.delete(`/organizations/${organizationId}/media/${mediaId}`)).data,
   publicProduction: async (slug) => rename(await cachedPublicGet(appApiClient, `/organizations/public/${slug}`, { ttlMs: 30000, staleMs: 180000 }), "organization", "production"),
   createProduction,
