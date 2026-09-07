@@ -57,6 +57,5 @@ export const addOnMarginGuard = ({ incrementalGmv = 0, incrementalNetRevenue = 0
   return {
     profitable: gmv > 0 && netRevenue > 0 && netMargin >= minimumMargin,
     netMargin,
-    minimumNetMargin: minimumMargin,
   };
 };
