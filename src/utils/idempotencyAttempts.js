@@ -3,7 +3,7 @@ import { safeGetSessionJson, safeRemoveSessionItem, safeSetSessionJson } from ".
 
 const uncertainStatuses = new Set([408, 409, 425, 429]);
 
-const requestKeyHash = (value) => {
+export const createOpaqueRequestKey = (value) => {
   let hash = 2166136261;
   for (let index = 0; index < value.length; index += 1) {
     hash ^= value.charCodeAt(index);
@@ -60,7 +60,7 @@ export const shouldKeepIdempotencyAttempt = (error) => {
 
 export const createIdempotencyAttemptManager = ({ storagePrefix, keyPrefix = "mutation" }) => {
   const fallbackAttempts = new Map();
-  const storageFor = (requestKey) => `${storagePrefix}${requestKeyHash(requestKey)}`;
+  const storageFor = (requestKey) => `${storagePrefix}${createOpaqueRequestKey(requestKey)}`;
 
   const createKey = () => {
     if (typeof globalThis.crypto?.randomUUID === "function") return globalThis.crypto.randomUUID();
