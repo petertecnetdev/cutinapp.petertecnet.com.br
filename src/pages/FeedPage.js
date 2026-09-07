@@ -76,8 +76,8 @@ export default function FeedPage() {
       const response = await cutinappService.publicEvents({ sort: "newest", per_page: 50 });
       setPublishEvents(Array.isArray(response.events?.data) ? response.events.data : []);
     } catch {
-      // The feed events below remain a safe fallback for the composer. A failure
-      // here must never hide the publishing UI again.
+      // Linking an event is optional. A discovery failure must never block a
+      // standalone publication in the social timeline.
       setPublishEvents([]);
     } finally {
       setPublishEventsLoading(false);
@@ -97,13 +97,6 @@ export default function FeedPage() {
     });
   }, [publishEvents, events]);
 
-  useEffect(() => {
-    setPostEventId((current) => {
-      if (current && composerEvents.some((event) => String(event.id) === String(current))) return current;
-      return composerEvents[0]?.id ? String(composerEvents[0].id) : "";
-    });
-  }, [composerEvents]);
-
   const publishPost = async (event) => {
     event.preventDefault();
     setError("");
@@ -119,15 +112,15 @@ export default function FeedPage() {
       setError("Escreva pelo menos 2 caracteres para publicar.");
       return;
     }
-    if (!postEventId) {
-      setError("Escolha o evento relacionado à publicação.");
-      return;
-    }
 
     setPublishing(true);
     try {
-      await cutinappService.createEventPost(Number(postEventId), { body });
+      await cutinappService.createFeedPost({
+        body,
+        event_id: postEventId ? Number(postEventId) : null,
+      });
       setPostBody("");
+      setPostEventId("");
       setSuccess("Publicação enviada para a timeline.");
       await load(1);
     } catch (err) {
@@ -164,22 +157,23 @@ export default function FeedPage() {
         <Card.Body className="p-4">
           <div className="cut-section-heading mb-3"><div><span className="cut-eyebrow">Comunidade</span><h2>Compartilhe com a timeline</h2></div></div>
           <Form onSubmit={publishPost}>
-            <Form.Group className="mb-3" controlId="timeline-event">
-              <Form.Label>Evento relacionado</Form.Label>
-              <Form.Select value={postEventId} onChange={(event) => setPostEventId(event.target.value)} onFocus={loadPublishEvents} onPointerDown={loadPublishEvents} disabled={publishing || composerEvents.length === 0}>
-                {publishEventsLoading && composerEvents.length === 0 && <option value="">Carregando eventos publicados...</option>}
-                {!publishEventsLoading && composerEvents.length === 0 && <option value="">Nenhum evento público disponível</option>}
-                {composerEvents.map((event) => <option value={event.id} key={event.id}>{event.title}</option>)}
-              </Form.Select>
-              {!publishEventsLoading && composerEvents.length === 0 && <Form.Text>Quando um evento for publicado, ele ficará disponível aqui para receber posts.</Form.Text>}
-            </Form.Group>
             <Form.Group className="mb-3" controlId="timeline-post">
               <Form.Label>O que você quer compartilhar?</Form.Label>
-              <Form.Control as="textarea" rows={3} maxLength={3000} value={postBody} onChange={(event) => setPostBody(event.target.value)} placeholder="Conte algo sobre o evento, combine com a galera ou compartilhe sua expectativa..." disabled={publishing} />
+              <Form.Control as="textarea" rows={3} maxLength={3000} value={postBody} onChange={(event) => setPostBody(event.target.value)} placeholder="Compartilhe uma novidade, expectativa, opinião ou combine algo com a galera..." disabled={publishing} />
               <Form.Text>{postBody.length}/3000</Form.Text>
             </Form.Group>
+            <Form.Group className="mb-3" controlId="timeline-event">
+              <Form.Label>Vincular a um evento <span className="fw-normal opacity-75">(opcional)</span></Form.Label>
+              <Form.Select value={postEventId} onChange={(event) => setPostEventId(event.target.value)} onFocus={loadPublishEvents} onPointerDown={loadPublishEvents} disabled={publishing}>
+                <option value="">Publicação geral — sem evento</option>
+                {publishEventsLoading && composerEvents.length === 0 && <option value="" disabled>Carregando eventos publicados...</option>}
+                {!publishEventsLoading && publishEventsLoaded && composerEvents.length === 0 && <option value="" disabled>Nenhum evento público disponível para vincular</option>}
+                {composerEvents.map((event) => <option value={event.id} key={event.id}>{event.title}</option>)}
+              </Form.Select>
+              <Form.Text>Você pode publicar normalmente sem escolher nenhum evento. Use este campo apenas quando o post for sobre um evento específico.</Form.Text>
+            </Form.Group>
             <div className="cut-card-actions justify-content-end">
-              <Button type="submit" disabled={publishing || postBody.trim().length < 2 || !postEventId}>{publishing ? "Publicando..." : "Publicar na timeline"}</Button>
+              <Button type="submit" disabled={publishing || postBody.trim().length < 2}>{publishing ? "Publicando..." : "Publicar na timeline"}</Button>
             </div>
           </Form>
         </Card.Body>
@@ -188,7 +182,7 @@ export default function FeedPage() {
       {loading ? <Row className="g-4" aria-busy="true">{Array.from({ length: 6 }).map((_, index) => <Col md={6} xl={4} key={index}><SkeletonCard /></Col>)}</Row> : <>
         {communityActivity.length > 0 && <section className="mb-5">
           <div className="cut-section-heading"><div><span className="cut-eyebrow">Comunidade</span><h2>Publicações recentes</h2></div></div>
-          <Row className="g-4">{communityActivity.map((post) => <Col lg={6} key={post.id}>
+          <Row className="g-4">{communityActivity.map((post) => <Col lg={6} key={`${post.source_type || "event_post"}-${post.id}`}>
             <Card className="cut-feed-card h-100">
               <Card.Body className="p-4">
                 <div className="d-flex align-items-center gap-3 mb-3">
@@ -196,7 +190,7 @@ export default function FeedPage() {
                   <div><strong>{authorName(post)}</strong><div><small>{fmt(post.created_at)}</small></div></div>
                 </div>
                 <p className="mb-3" style={{ whiteSpace: "pre-wrap" }}>{post.body}</p>
-                <Button variant="outline-light" size="sm" onClick={() => navigate(`/event/${post.event_slug}#comunidade`)}>{post.event_title || "Ver evento"}</Button>
+                {post.event_slug ? <Button variant="outline-light" size="sm" onClick={() => navigate(`/event/${post.event_slug}#comunidade`)}>{post.event_title || "Ver evento"}</Button> : <Badge bg="secondary">Publicação geral</Badge>}
               </Card.Body>
             </Card>
           </Col>)}</Row>
