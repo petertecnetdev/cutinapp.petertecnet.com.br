@@ -10,11 +10,15 @@ test("prefers observed event value when available", () => {
     .toMatchObject({ incrementalGmv: 300, incrementalPlatformRevenue: 30, benchmarkUsed: false });
 });
 
-test("suggests conservative editable stock from projected incremental orders", () => {
+test("suggests editable stock with a bounded demand buffer", () => {
   expect(suggestedAddOnStock(0)).toBe(0);
   expect(suggestedAddOnStock(0.2)).toBe(1);
   expect(suggestedAddOnStock(4.1)).toBe(5);
+  expect(suggestedAddOnStock(5)).toBe(6);
   expect(suggestedAddOnStock(250)).toBe(100);
+  expect(suggestedAddOnStock(10, 100, 0)).toBe(10);
+  expect(suggestedAddOnStock(10, 100, 50)).toBe(15);
+  expect(suggestedAddOnStock(10, 100, 500)).toBe(20);
 });
 
 
