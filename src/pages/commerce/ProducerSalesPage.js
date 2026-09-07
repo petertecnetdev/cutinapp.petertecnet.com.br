@@ -5,7 +5,7 @@ import NavlogComponent from "../../components/NavlogComponent";
 import CollapsibleFilterPanel from "../../components/CollapsibleFilterPanel";
 import commerceService from "../../services/CommerceService";
 import cutinappService from "../../services/CutinappService";
-import { estimateAddOnAttachmentOpportunity, suggestedAddOnStock, weightedAverageAddOnUnitPrice } from "../../utils/addOnOpportunity";
+import { addOnMonetizationEfficiency, estimateAddOnAttachmentOpportunity, suggestedAddOnStock, weightedAverageAddOnUnitPrice } from "../../utils/addOnOpportunity";
 import { estimatePendingRevenueOpportunity } from "../../utils/pendingRevenueOpportunity";
 import { estimateNetRevenueEconomics, processorFeesBorneByPlatformForOrder } from "../../utils/netRevenueEconomics";
 import "./CommerceHistory.css";
@@ -112,6 +112,10 @@ export default function ProducerSalesPage() {
       estimatedPlatformRevenue: addOnGmv * (economicMetrics.takeRate / 100),
       estimatedNetPlatformRevenue: addOnGmv * (economicMetrics.takeRate / 100) * economicMetrics.contributionRatio,
       incrementalNetRevenue: opportunity.incrementalPlatformRevenue * economicMetrics.contributionRatio,
+      ...addOnMonetizationEfficiency({
+        incrementalNetRevenue: opportunity.incrementalPlatformRevenue * economicMetrics.contributionRatio,
+        incrementalOrders: opportunity.incrementalOrders,
+      }),
       ...opportunity,
     };
   }, [economicMetrics.contributionRatio, economicMetrics.takeRate, orders]);
@@ -176,6 +180,10 @@ export default function ProducerSalesPage() {
           paidOrders: event.paidCount,
         });
         const incrementalNetRevenue = Math.max(0, opportunity.incrementalPlatformRevenue * netEconomics.contributionRatio);
+        const efficiency = addOnMonetizationEfficiency({
+          incrementalNetRevenue,
+          incrementalOrders: opportunity.incrementalOrders,
+        });
 
         return {
           ...event,
@@ -186,6 +194,7 @@ export default function ProducerSalesPage() {
           netTakeRate: netEconomics.netTakeRate,
           contributionMargin: netEconomics.contributionRatio * 100,
           incrementalNetRevenue,
+          ...efficiency,
           producerShare: event.gmv > 0 ? (event.producerNet / event.gmv) * 100 : 0,
           addOnAttachmentRate: event.paidCount > 0 ? (event.addOnOrders / event.paidCount) * 100 : 0,
           averageAddOnValue,
@@ -236,6 +245,7 @@ export default function ProducerSalesPage() {
           <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Adicional médio</small><strong>{money(addOnEconomics.averageAddOnValue)}</strong></div></Col>
           <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Receita líquida estimada em adicionais</small><strong>{money(addOnEconomics.estimatedNetPlatformRevenue)}</strong><span>{money(addOnEconomics.estimatedPlatformRevenue)} antes do processamento suportado</span></div></Col>
           <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Oportunidade +10 p.p. em adicionais</small><strong>+{money(addOnEconomics.incrementalNetRevenue)} receita líquida</strong><span>+{money(addOnEconomics.incrementalGmv)} GMV · +{money(addOnEconomics.incrementalPlatformRevenue)} receita bruta estimada</span></div></Col>
+          <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Valor de +1 p.p. de adesão</small><strong>+{money(addOnEconomics.netRevenuePerAttachmentPoint)}</strong><span>{money(addOnEconomics.netRevenuePerIncrementalOrder)} líquidos por nova venda com adicional</span></div></Col>
           <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>GMV pendente recuperável</small><strong>{money(pendingRevenue.pendingGmv)}</strong><span>{pendingRevenue.pendingCount} pedido(s) aguardando pagamento</span></div></Col>
           <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Receita líquida recuperável</small><strong>{money(pendingRevenue.estimatedNetPlatformRevenue)}</strong><span>{money(pendingRevenue.estimatedPlatformRevenue)} de receita bruta potencial · margem observada {percent(pendingRevenue.contributionRatio * 100)}</span></div></Col>
         </Row>
@@ -277,6 +287,7 @@ export default function ProducerSalesPage() {
                 <div className="cut-commerce-stat h-100">
                   <small>#{index + 1} · {event.title}</small>
                   <strong>+{money(event.incrementalNetRevenue)} receita líquida estimada</strong>
+                  <span>+1 p.p. de adesão ≈ +{money(event.netRevenuePerAttachmentPoint)} líquidos · {money(event.netRevenuePerIncrementalOrder)} líquidos por nova venda com adicional</span>
                   <span>Oportunidade: +{money(event.incrementalGmv)} GMV · +{money(event.incrementalPlatformRevenue)} receita bruta Cutinapp com até {event.incrementalOrders.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} venda(s) adicional(is) aderindo ao cross-sell</span>
                   <span>Atual: {money(event.netPlatformRevenue)} receita líquida · {money(event.platformRevenue)} receita bruta · {money(event.processorFeesBorneByPlatform)} processamento suportado pela Cutinapp</span>
                   <span>Take rate líquido {percent(event.netTakeRate)} · Margem de contribuição {percent(event.contributionMargin)} · {money(event.gmv)} GMV · {event.paidCount} venda(s)</span>
