@@ -5,7 +5,7 @@ import NavlogComponent from "../../components/NavlogComponent";
 import CollapsibleFilterPanel from "../../components/CollapsibleFilterPanel";
 import commerceService from "../../services/CommerceService";
 import cutinappService from "../../services/CutinappService";
-import { addOnMarginGuard, addOnMonetizationEfficiency, estimateAddOnAttachmentOpportunity, suggestedAddOnStock, weightedAverageAddOnUnitPrice } from "../../utils/addOnOpportunity";
+import { addOnMarginGuard, addOnMonetizationEfficiency, compareAddOnOpportunities, estimateAddOnAttachmentOpportunity, suggestedAddOnStock, weightedAverageAddOnUnitPrice } from "../../utils/addOnOpportunity";
 import { estimatePendingRevenueOpportunity } from "../../utils/pendingRevenueOpportunity";
 import { estimateNetRevenueEconomics, processorFeesBorneByPlatformForOrder } from "../../utils/netRevenueEconomics";
 import "./CommerceHistory.css";
@@ -209,7 +209,7 @@ export default function ProducerSalesPage() {
           ...opportunity,
         };
       })
-      .sort((a, b) => b.incrementalNetRevenue - a.incrementalNetRevenue || b.netPlatformRevenue - a.netPlatformRevenue)
+      .sort(compareAddOnOpportunities)
       .slice(0, 5);
   }, [addOnEconomics.averageAddOnUnitPrice, addOnEconomics.averageAddOnValue, orders]);
 
