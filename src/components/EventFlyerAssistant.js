@@ -232,7 +232,8 @@ export default function EventFlyerAssistant() {
   const [error, setError] = useState("");
   const [generationSource, setGenerationSource] = useState("");
 
-  const canOpen = window.location.pathname === "/event/create";
+  const pathname = window.location.pathname.replace(/\/+$/, "") || "/";
+  const canOpen = pathname === "/event/create" || /^\/event\/edit\/[^/]+$/.test(pathname);
   const format = formats[formatKey];
 
   useEffect(() => () => { if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview); }, [preview]);
