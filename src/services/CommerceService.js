@@ -4,6 +4,7 @@ import { safeGetSessionJson, safeRemoveSessionItem, safeSetSessionJson } from ".
 import { trackTelemetry } from "../utils/telemetry";
 import { shouldKeepCheckoutAttempt } from "../utils/checkoutRetryPolicy";
 import { clearPaymentRecoveryAttribution, readPaymentRecoveryAttribution } from "../utils/paymentRecoveryAttribution";
+import { createIdempotentMutation, createMutationRequestKey } from "../utils/idempotencyAttempts";
 
 const pendingCheckouts = new Map();
 const fallbackAttempts = new Map();
@@ -162,6 +163,23 @@ const catalog = (slug, { force = false } = {}) => {
 
 const invalidateCatalogCache = () => catalogCache.clear();
 
+const redeemEventItemsIdempotently = createIdempotentMutation({
+  storagePrefix: "cutinapp_commerce_item_redemption_attempt_",
+  keyPrefix: "item-redemption",
+  requestKeyFor: (token, eventId) => createMutationRequestKey({
+    token: String(token || "").trim(),
+    event_id: Number(eventId),
+  }),
+  mutate: async ({ idempotencyKey }, token, eventId) => (
+    await appApiClient.post("/commerce/item-redemptions/redeem", {
+      token: String(token || "").trim(),
+      event_id: Number(eventId),
+    }, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    })
+  ).data,
+});
+
 const syncPayment = async (publicId) => {
   const order = (await appApiClient.post(`/commerce/orders/${publicId}/sync-payment`)).data.order;
   const recoveryAttribution = readPaymentRecoveryAttribution(order?.public_id || publicId);
@@ -194,10 +212,7 @@ const commerceService = {
   order: async (publicId) => (await appApiClient.get(`/commerce/orders/${publicId}`)).data.order,
   syncPayment,
   pickupCredential: async (publicId) => (await appApiClient.get(`/commerce/orders/${publicId}/pickup-credential`)).data.credential,
-  redeemEventItems: async (token, eventId) => (await appApiClient.post("/commerce/item-redemptions/redeem", {
-    token,
-    event_id: Number(eventId),
-  })).data,
+  redeemEventItems: (token, eventId) => redeemEventItemsIdempotently(token, eventId),
 
   purchases: async (params = {}) => (await appApiClient.get("/commerce/purchases", { params })).data,
   purchase: async (publicId) => (await appApiClient.get(`/commerce/purchases/${publicId}`)).data.order,
