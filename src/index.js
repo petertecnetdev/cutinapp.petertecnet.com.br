@@ -24,6 +24,7 @@ import "./styles/peter-branding-bridge.css";
 import "./styles/instagram-mobile-shell.css";
 import "./styles/mobile-footer-regression-fixes.css";
 import "./styles/event-view-mobile-cleanup.css";
+import "./styles/mobile-navigation-v2.css";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import PeterAccountGateway from "./components/PeterAccountGateway";
