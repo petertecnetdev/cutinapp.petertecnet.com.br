@@ -140,6 +140,7 @@ const cutinappService = {
   publicEventArtists: async (slug) => (await appApiClient.get(`/events/public/${slug}/artists`)).data.artists || [],
   eventCommunity: async (slug, params = {}) => (await appApiClient.get(`/events/public/${slug}/community`, { params })).data,
   createEventPost: async (eventId, payload) => (await appApiClient.post(`/events/${eventId}/community`, payload)).data,
+  createFeedPost: async (payload) => (await appApiClient.post("/events/0/community", payload)).data,
   deleteEventPost: async (postId) => (await appApiClient.delete(`/community/${postId}`)).data,
   likeEventPost: async (postId) => (await appApiClient.post(`/community/${postId}/like`)).data,
   unlikeEventPost: async (postId) => (await appApiClient.delete(`/community/${postId}/like`)).data,
