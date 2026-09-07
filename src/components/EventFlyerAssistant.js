@@ -151,7 +151,9 @@ async function renderFlyer({ data, production, formatKey, themeKey, generatedBac
       ctx.globalAlpha = generatedBackground ? 0.9 : 0.48;
       drawCoverImage(ctx, img, width, height);
       ctx.restore();
-    } catch (_) {}
+    } catch (_) {
+      // Remote/production image is optional; gradient fallback remains valid.
+    }
   }
 
   const overlay = ctx.createLinearGradient(0, 0, 0, height);
@@ -244,7 +246,9 @@ export default function EventFlyerAssistant() {
     setGenerationSource("");
     setProduction(null);
     if (data.productionId) {
-      try { setProduction(await cutinappService.getProduction(data.productionId)); } catch (_) {}
+      try { setProduction(await cutinappService.getProduction(data.productionId)); } catch (_) {
+        // Production visual is optional for flyer generation.
+      }
     }
   };
 
@@ -328,7 +332,9 @@ export default function EventFlyerAssistant() {
           source: generationSource === "cloudflare" ? "cloudflare_workers_ai" : (productionImage(production) ? "production_identity" : "cutinapp_theme"),
         },
       });
-    } catch (_) {}
+    } catch (_) {
+      // Remote/production image is optional; gradient fallback remains valid.
+    }
     setOpen(false);
   };
 

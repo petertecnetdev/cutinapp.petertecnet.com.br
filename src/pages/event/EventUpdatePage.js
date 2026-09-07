@@ -165,6 +165,30 @@ export default function EventUpdatePage() {
     if (file) setPreview(URL.createObjectURL(file));
   };
 
+  useEffect(() => {
+    const handleGeneratedCover = (event) => {
+      const file = event?.detail?.file;
+      if (!(file instanceof File)) return;
+      if (file.size > 5 * 1024 * 1024) {
+        setFieldErrors((current) => ({ ...current, image: ["A imagem do evento deve ter no máximo 5 MB."] }));
+        return;
+      }
+      setImage(file);
+      setFieldErrors((current) => {
+        if (!current.image) return current;
+        const next = { ...current };
+        delete next.image;
+        return next;
+      });
+      setPreview((current) => {
+        if (current?.startsWith("blob:")) URL.revokeObjectURL(current);
+        return URL.createObjectURL(file);
+      });
+    };
+    window.addEventListener("cutinapp:event-cover-selected", handleGeneratedCover);
+    return () => window.removeEventListener("cutinapp:event-cover-selected", handleGeneratedCover);
+  }, []);
+
   const submit = async (event) => {
     event.preventDefault();
     setError("");
@@ -323,7 +347,7 @@ export default function EventUpdatePage() {
             <Col lg={8}><Card className="cut-panel"><Card.Body className="p-4 p-lg-5"><span className="cut-eyebrow">Apresentação</span><h2 className="cut-section-title mt-2">Informações principais</h2><Row className="g-3">
               <Col xs={12}><Form.Group><Form.Label>Nome do evento *</Form.Label><Form.Control name="title" value={form.title} onChange={change} isInvalid={Boolean(fieldError("title"))} /><Form.Control.Feedback type="invalid">{fieldError("title")}</Form.Control.Feedback></Form.Group></Col>
               <Col xs={12}><Form.Group><Form.Label>Descrição *</Form.Label><Form.Control as="textarea" rows={7} name="description" value={form.description} onChange={change} isInvalid={Boolean(fieldError("description"))} /><Form.Control.Feedback type="invalid">{fieldError("description")}</Form.Control.Feedback></Form.Group></Col>
-              <Col xs={12}><Form.Group><div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2"><Form.Label className="mb-0">Imagem/capa</Form.Label><Button type="button" size="sm" variant="outline-info" onClick={() => window.dispatchEvent(new CustomEvent("cutinapp:open-event-flyer"))}><i className="fa-solid fa-wand-magic-sparkles me-2" />Gerar nova capa com IA</Button></div>{preview && <img src={preview} className="cut-upload-preview cut-upload-preview--event" alt="Prévia" />}<Form.Control type="file" accept="image/png,image/jpeg,image/webp" onChange={chooseImage} isInvalid={Boolean(fieldError("image"))} /><Form.Control.Feedback type="invalid">{fieldError("image")}</Form.Control.Feedback><Form.Text>Você pode enviar uma imagem ou gerar uma nova capa automaticamente com IA usando os dados atuais do evento.</Form.Text></Form.Group></Col>
+              <Col xs={12}><Form.Group><div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2"><Form.Label className="mb-0">Imagem/capa</Form.Label><Button type="button" size="sm" variant="outline-info" onClick={() => window.dispatchEvent(new CustomEvent("cutinapp:open-event-flyer"))}><i className="fa-solid fa-wand-magic-sparkles me-2" />Gerar nova capa com IA</Button></div>{preview && <img src={preview} className="cut-upload-preview cut-upload-preview--event" alt="Prévia" />}<Form.Control name="image" data-event-image-input="true" type="file" accept="image/png,image/jpeg,image/webp" onChange={chooseImage} isInvalid={Boolean(fieldError("image"))} /><Form.Control.Feedback type="invalid">{fieldError("image")}</Form.Control.Feedback><Form.Text>Você pode enviar uma imagem ou gerar uma nova capa automaticamente com IA usando os dados atuais do evento.</Form.Text></Form.Group></Col>
               <Col md={6}><Form.Group><Form.Label>E-mail de contato</Form.Label><Form.Control type="email" name="contact_email" value={form.contact_email} onChange={change} isInvalid={Boolean(fieldError("contact_email"))} /><Form.Control.Feedback type="invalid">{fieldError("contact_email")}</Form.Control.Feedback></Form.Group></Col>
               <Col md={6}><Form.Group><Form.Label>Telefone de contato</Form.Label><Form.Control name="contact_phone" value={form.contact_phone} onChange={change} /></Form.Group></Col>
             </Row></Card.Body></Card></Col>

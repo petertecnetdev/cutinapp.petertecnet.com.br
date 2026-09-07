@@ -437,6 +437,30 @@ export default function EventCreatePage() {
     setPreview(file ? URL.createObjectURL(file) : "");
   };
 
+  useEffect(() => {
+    const handleGeneratedCover = (event) => {
+      const file = event?.detail?.file;
+      if (!(file instanceof File)) return;
+      if (file.size > 5 * 1024 * 1024) {
+        setFieldErrors((current) => ({ ...current, image: ["A imagem do evento deve ter no máximo 5 MB."] }));
+        return;
+      }
+      setForm((current) => ({ ...current, image: file }));
+      setFieldErrors((current) => {
+        if (!current.image) return current;
+        const next = { ...current };
+        delete next.image;
+        return next;
+      });
+      setPreview((current) => {
+        if (current?.startsWith("blob:")) URL.revokeObjectURL(current);
+        return URL.createObjectURL(file);
+      });
+    };
+    window.addEventListener("cutinapp:event-cover-selected", handleGeneratedCover);
+    return () => window.removeEventListener("cutinapp:event-cover-selected", handleGeneratedCover);
+  }, []);
+
   const submit = async (event) => {
     event.preventDefault();
     setSubmitted(true);
@@ -581,7 +605,7 @@ export default function EventCreatePage() {
                 </>}
               </Row></Card.Body></Card></Col>
 
-              <Col lg={4}><Card className="cut-panel h-100"><Card.Body className="p-4"><h2 className="cut-section-title">Imagem do evento</h2>{preview ? <img src={preview} alt="Prévia do evento" className="cut-upload-preview cut-upload-preview--event" /> : <div className="cut-upload-placeholder"><i className="fa-regular fa-image" /><span>Adicione uma capa 16:9</span></div>}<Form.Control className="mt-3" type="file" accept="image/png,image/jpeg,image/webp" onChange={chooseImage} isInvalid={invalid("image")} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "image")}</Form.Control.Feedback><Form.Text>JPG, PNG ou WebP, até 5 MB.</Form.Text><div className="cut-info-box mt-4"><strong>Próxima etapa</strong><span>Depois de salvar, você configura o primeiro lote de ingressos e segue direto para a publicação.</span></div></Card.Body></Card></Col>
+              <Col lg={4}><Card className="cut-panel h-100"><Card.Body className="p-4"><h2 className="cut-section-title">Imagem do evento</h2>{preview ? <img src={preview} alt="Prévia do evento" className="cut-upload-preview cut-upload-preview--event" /> : <div className="cut-upload-placeholder"><i className="fa-regular fa-image" /><span>Adicione uma capa 16:9</span></div>}<Form.Control className="mt-3" name="image" data-event-image-input="true" type="file" accept="image/png,image/jpeg,image/webp" onChange={chooseImage} isInvalid={invalid("image")} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "image")}</Form.Control.Feedback><Form.Text>JPG, PNG ou WebP, até 5 MB.</Form.Text><div className="cut-info-box mt-4"><strong>Próxima etapa</strong><span>Depois de salvar, você configura o primeiro lote de ingressos e segue direto para a publicação.</span></div></Card.Body></Card></Col>
             </Row>
 
             <div className="cut-form-actions mt-4"><Button type="button" variant="outline-light" disabled={loading} onClick={() => navigate("/event/manage")}>Cancelar</Button><Button type="submit" disabled={loading}>{loading ? "Criando..." : "Criar rascunho e configurar primeiro lote"}</Button></div>
