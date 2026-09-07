@@ -1,0 +1,148 @@
+@media (max-width: 991.98px) {
+  :root {
+    --cut-nav-v2-top-expanded: 64px;
+    --cut-nav-v2-top-compact: 54px;
+    --cut-nav-v2-bottom: 74px;
+    --cut-nav-v2-surface: rgba(11, 8, 25, .92);
+    --cut-nav-v2-surface-strong: rgba(14, 9, 31, .975);
+    --cut-nav-v2-border: rgba(255,255,255,.14);
+    --cut-nav-v2-text: #fbfaff;
+    --cut-nav-v2-muted: #aaa5bc;
+    --cut-nav-v2-pink: #cf4dff;
+    --cut-nav-v2-violet: #7442ff;
+    --cut-nav-v2-blue: #2fc5ff;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-capability-nav {
+    min-height: var(--cut-nav-v2-top-expanded) !important;
+    color: var(--cut-nav-v2-text) !important;
+    transition: min-height .2s ease, transform .22s ease, background .2s ease, box-shadow .2s ease !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-capability-nav.cut-mobile-nav--compact {
+    min-height: var(--cut-nav-v2-top-compact) !important;
+    background: var(--cut-nav-v2-surface-strong) !important;
+    box-shadow: 0 8px 28px rgba(3,2,12,.36) !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-capability-nav.cut-mobile-nav--compact .cut-navbar__inner {
+    min-height: var(--cut-nav-v2-top-compact) !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-capability-nav.cut-mobile-nav--compact .cut-navbar__brand img {
+    width: 33px !important;
+    height: 33px !important;
+    flex-basis: 33px !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-capability-nav.cut-mobile-nav--compact .cut-navbar__brand strong {
+    font-size: 1rem !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-capability-nav.cut-mobile-nav--hidden {
+    transform: translateY(-105%) !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-instagram-mobile-action,
+  html[data-cut-instagram-shell="active"] .cut-capability-nav .navbar-toggler {
+    outline: none !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-instagram-mobile-action:focus-visible,
+  html[data-cut-instagram-shell="active"] .cut-capability-nav .navbar-toggler:focus-visible,
+  html[data-cut-instagram-shell="active"] .cut-mobile-bottom-nav > a:focus-visible,
+  html[data-cut-instagram-shell="active"] .cut-mobile-bottom-nav > button:focus-visible {
+    outline: 2px solid var(--cut-nav-v2-blue) !important;
+    outline-offset: 2px !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-mobile-bottom-nav {
+    background:
+      radial-gradient(circle at 50% 120%, rgba(116,66,255,.27), transparent 48%),
+      linear-gradient(116deg, rgba(10,7,24,.975), rgba(25,12,48,.965)) !important;
+    border-top-color: var(--cut-nav-v2-border) !important;
+    box-shadow: 0 -12px 34px rgba(3,2,12,.38), inset 0 1px 0 rgba(255,255,255,.05) !important;
+    transition: transform .22s ease, opacity .18s ease !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-mobile-bottom-nav > a,
+  html[data-cut-instagram-shell="active"] .cut-mobile-bottom-nav > button {
+    min-width: 44px !important;
+    min-height: 56px !important;
+    color: var(--cut-nav-v2-muted) !important;
+    touch-action: manipulation;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-mobile-bottom-nav > .active {
+    color: var(--cut-nav-v2-text) !important;
+    background: linear-gradient(145deg, rgba(207,77,255,.2), rgba(116,66,255,.14)) !important;
+    border-color: rgba(207,77,255,.3) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.09), 0 6px 20px rgba(116,66,255,.16) !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-mobile-bottom-nav > .active i {
+    filter: drop-shadow(0 0 9px rgba(207,77,255,.65)) !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-mobile-bottom-nav > .active::after {
+    background: linear-gradient(90deg, var(--cut-nav-v2-pink), var(--cut-nav-v2-blue)) !important;
+    box-shadow: 0 0 10px rgba(207,77,255,.62) !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-mobile-bottom-nav__primary::before {
+    background: linear-gradient(135deg, var(--cut-nav-v2-pink), var(--cut-nav-v2-violet) 58%, var(--cut-nav-v2-blue)) !important;
+    box-shadow: 0 8px 24px rgba(116,66,255,.4), 0 0 24px rgba(207,77,255,.2) !important;
+  }
+
+  html[data-cut-instagram-shell="active"] body.cut-mobile-keyboard-open .cut-mobile-bottom-nav {
+    transform: translateY(115%) !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  html[data-cut-instagram-shell="active"] body.cut-mobile-keyboard-open.cut-has-mobile-bottom-nav {
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+  }
+
+  html[data-cut-instagram-shell="active"] body.cut-mobile-focus-mode .cut-capability-nav {
+    transform: translateY(-105%) !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-mobile-bottom-nav > a > span,
+  html[data-cut-instagram-shell="active"] .cut-mobile-bottom-nav > button > span {
+    transition: opacity .16s ease, transform .16s ease, max-width .16s ease !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-mobile-bottom-nav > :not(.active):not(.cut-mobile-bottom-nav__primary) > span {
+    opacity: .68 !important;
+  }
+
+  @media (max-width: 390px) {
+    html[data-cut-instagram-shell="active"] .cut-mobile-bottom-nav > :not(.active):not(.cut-mobile-bottom-nav__primary) > span {
+      position: absolute !important;
+      width: 1px !important;
+      height: 1px !important;
+      overflow: hidden !important;
+      clip: rect(0,0,0,0) !important;
+      white-space: nowrap !important;
+    }
+
+    html[data-cut-instagram-shell="active"] .cut-mobile-bottom-nav > .active > span,
+    html[data-cut-instagram-shell="active"] .cut-mobile-bottom-nav > .cut-mobile-bottom-nav__primary > span {
+      display: block !important;
+      opacity: 1 !important;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cut-capability-nav,
+  .cut-mobile-bottom-nav,
+  .cut-mobile-bottom-nav *,
+  .cut-instagram-mobile-action,
+  .cut-instagram-mobile-action * {
+    transition-duration: .01ms !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
