@@ -3,6 +3,8 @@ import { createIdempotentMutation, createMutationRequestKey } from "../utils/ide
 
 const CUTINAPP_TIME_ZONE = "America/Sao_Paulo";
 const HOME_DISCOVERY_KEYS = new Set(["lat", "lng", "radius_km", "city", "uf", "per_page", "sort"]);
+const HOME_EVENTS_CACHE_KEY = "cutinapp.homeEvents.v1";
+const HOME_EVENTS_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 const unwrap = (value) => Array.isArray(value) ? value : Array.isArray(value?.data) ? value.data : [];
 
@@ -165,31 +167,104 @@ const mergeUniqueEvents = (...collections) => {
   });
 };
 
+const readCachedHomeEvents = () => {
+  if (typeof window === "undefined") return [];
+
+  try {
+    const cached = JSON.parse(window.localStorage.getItem(HOME_EVENTS_CACHE_KEY) || "null");
+    const cachedAt = Number(cached?.cached_at || 0);
+    if (!cachedAt || Date.now() - cachedAt > HOME_EVENTS_CACHE_MAX_AGE_MS) return [];
+    return Array.isArray(cached?.events) ? cached.events : [];
+  } catch (_) {
+    return [];
+  }
+};
+
+const cacheHomeEvents = (events) => {
+  if (typeof window === "undefined" || !Array.isArray(events) || events.length === 0) return;
+
+  try {
+    window.localStorage.setItem(HOME_EVENTS_CACHE_KEY, JSON.stringify({
+      cached_at: Date.now(),
+      events: events.slice(0, 12),
+    }));
+  } catch (_) {
+    // Cache local é apenas uma proteção contra uma falha transitória da API.
+  }
+};
+
+const withHomeEvents = (response, events) => ({
+  ...(response || {}),
+  events: {
+    ...(response?.events || {}),
+    data: mergeUniqueEvents(events).slice(0, 12),
+  },
+});
+
 const rawSearch = async (params = {}, options = {}) => (await appApiClient.get("/events", { params, signal: options.signal })).data;
 
 const search = async (params = {}, options = {}) => {
-  const response = await rawSearch(params, options);
+  if (!isHomeDiscoverySearch(params)) return rawSearch(params, options);
 
-  if (!isHomeDiscoverySearch(params)) return response;
-
-  const localEvents = response?.events?.data || [];
-  if (hasLocationFilter(params) && localEvents.length === 0) return response;
+  let response = null;
+  let primaryError = null;
 
   try {
-    const todayResponse = await rawSearch({ date: dateKeyInTimeZone(), per_page: 12 }, options);
-    const todayEvents = todayResponse?.events?.data || [];
-    if (todayEvents.length === 0 || !response?.events) return response;
+    response = await rawSearch(params, options);
+  } catch (error) {
+    primaryError = error;
+  }
 
-    return {
-      ...response,
-      events: {
-        ...response.events,
-        data: mergeUniqueEvents(todayEvents, localEvents).slice(0, 12),
-      },
-    };
-  } catch (_) {
+  const localEvents = response?.events?.data || [];
+
+  // A HomePage já trata ausência por localização buscando o catálogo global.
+  // Mantemos esse comportamento para não misturar outra cidade sob um título local.
+  if (hasLocationFilter(params) && localEvents.length === 0) {
+    if (primaryError) throw primaryError;
     return response;
   }
+
+  let homeEvents = localEvents;
+  const fallbackQueries = [
+    { date: dateKeyInTimeZone(), per_page: 12 },
+  ];
+
+  // Se não há próximos eventos, ainda mostramos eventos reais do catálogo.
+  // "newest" e "popular" são ordenações públicas já suportadas pela página de eventos.
+  if (homeEvents.length === 0) {
+    fallbackQueries.push(
+      { per_page: 12, sort: "newest" },
+      { per_page: 12, sort: "popular" }
+    );
+  }
+
+  for (const fallbackParams of fallbackQueries) {
+    try {
+      const fallbackResponse = await rawSearch(fallbackParams, options);
+      const fallbackEvents = fallbackResponse?.events?.data || [];
+      if (fallbackEvents.length === 0) continue;
+
+      response = response || fallbackResponse;
+      homeEvents = mergeUniqueEvents(fallbackEvents, homeEvents).slice(0, 12);
+
+      // Quando a busca principal veio vazia, o primeiro fallback útil já resolve
+      // e evita chamadas extras sem necessidade.
+      if (localEvents.length === 0) break;
+    } catch (_) {
+      // Tenta a próxima estratégia antes de recorrer ao cache local.
+    }
+  }
+
+  if (homeEvents.length > 0) {
+    cacheHomeEvents(homeEvents);
+    return withHomeEvents(response, homeEvents);
+  }
+
+  const cachedEvents = readCachedHomeEvents();
+  if (cachedEvents.length > 0) return withHomeEvents(response, cachedEvents);
+
+  if (primaryError) throw primaryError;
+  return response;
 };
 
 const eventService = {
