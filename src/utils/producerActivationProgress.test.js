@@ -1,10 +1,11 @@
 import { producerActivationNextStep } from "./producerActivationProgress";
 
 describe("producerActivationNextStep", () => {
-  test("starts with production when the producer has none", () => {
+  test("starts directly with event creation when the producer has no production yet", () => {
     expect(producerActivationNextStep({ productions: [], events: [] })).toMatchObject({
-      stage: "production",
-      route: "/production/create",
+      stage: "event",
+      label: "Criar primeiro evento",
+      route: "/event/create",
     });
   });
 
