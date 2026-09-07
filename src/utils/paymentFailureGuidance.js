@@ -14,6 +14,7 @@ export const classifyPaymentFailure = (payment = {}, method = "") => {
   if (paymentMethod !== "card") return { reason: "pix_not_completed", detail };
   if (detail.includes("insufficient_amount")) return { reason: "insufficient_funds", detail };
   if (detail.includes("card_disabled")) return { reason: "card_disabled", detail };
+  if (detail.includes("card_type_not_allowed")) return { reason: "card_type_not_allowed", detail };
   if (detail.includes("bad_filled") || detail.includes("invalid") || detail.includes("form")) return { reason: "card_data", detail };
   if (detail.includes("expired")) return { reason: "expired_card", detail };
   if (detail.includes("call_for_authorize")) return { reason: "issuer_authorization", detail };
@@ -35,6 +36,10 @@ export const paymentFailureGuidance = ({ payment = {}, method = "", pixAvailable
     card_disabled: {
       title: "O cartão está bloqueado para esta compra",
       message: `O provedor indicou que o cartão está desabilitado para este tipo de pagamento. Habilite compras online no seu banco ou use outro cartão.${pixRecommended}`,
+    },
+    card_type_not_allowed: {
+      title: "Este tipo de cartão não é aceito nesta compra",
+      message: `O provedor recusou esta modalidade de cartão. Use outro cartão elegível.${pixRecommended}`,
     },
     card_data: {
       title: "Revise os dados do cartão",
