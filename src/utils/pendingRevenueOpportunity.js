@@ -22,6 +22,8 @@ export function estimatePendingRevenueOpportunity({ orders = [], fallbackTakeRat
   let stalePendingGmv = 0;
   let stalePendingCount = 0;
   let unknownAgeCount = 0;
+  let realExpiryPendingCount = 0;
+  let expiredPaymentCount = 0;
 
   orders.filter((order) => order?.status === "pending").forEach((order) => {
     const total = amount(order.total);
@@ -30,9 +32,11 @@ export function estimatePendingRevenueOpportunity({ orders = [], fallbackTakeRat
     const explicitFee = amount(order.platform_fee);
     const estimatedFee = explicitFee > 0 ? explicitFee : total * (normalizedTakeRate / 100);
     const createdAt = timestamp(order.created_at || order.createdAt);
+    const expiresAt = timestamp(order.expires_at || order.expiresAt || order.payment_expires_at);
     const ageMs = createdAt === null ? null : Math.max(0, normalizedNow - createdAt);
-    const isFresh = ageMs !== null && ageMs <= freshWindowMs;
-    const isStale = ageMs !== null && ageMs > freshWindowMs;
+    const hasRealExpiry = expiresAt !== null;
+    const isFresh = hasRealExpiry ? expiresAt > normalizedNow : ageMs !== null && ageMs <= freshWindowMs;
+    const isStale = hasRealExpiry ? expiresAt <= normalizedNow : ageMs !== null && ageMs > freshWindowMs;
     const eventId = String(order.event?.id || order.event_id || order.event?.title || "evento");
     const current = grouped.get(eventId) || {
       id: eventId,
@@ -46,6 +50,8 @@ export function estimatePendingRevenueOpportunity({ orders = [], fallbackTakeRat
       stalePendingCount: 0,
       stalePendingGmv: 0,
       unknownAgeCount: 0,
+      realExpiryPendingCount: 0,
+      expiredPaymentCount: 0,
     };
 
     totalPendingCount += 1;
@@ -62,11 +68,19 @@ export function estimatePendingRevenueOpportunity({ orders = [], fallbackTakeRat
       current.freshPendingCount += 1;
       current.freshPendingGmv += total;
       current.freshEstimatedPlatformRevenue += estimatedFee;
+      if (hasRealExpiry) {
+        realExpiryPendingCount += 1;
+        current.realExpiryPendingCount += 1;
+      }
     } else if (isStale) {
       stalePendingCount += 1;
       stalePendingGmv += total;
       current.stalePendingCount += 1;
       current.stalePendingGmv += total;
+      if (hasRealExpiry) {
+        expiredPaymentCount += 1;
+        current.expiredPaymentCount += 1;
+      }
     } else {
       unknownAgeCount += 1;
       current.unknownAgeCount += 1;
@@ -99,6 +113,8 @@ export function estimatePendingRevenueOpportunity({ orders = [], fallbackTakeRat
     stalePendingCount,
     stalePendingGmv,
     unknownAgeCount,
+    realExpiryPendingCount,
+    expiredPaymentCount,
     events,
   };
 }

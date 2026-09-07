@@ -26,6 +26,45 @@ describe("estimatePendingRevenueOpportunity", () => {
     expect(result.events[0]).toMatchObject({ id: "1", pendingGmv: 200, estimatedPlatformRevenue: 20, totalPendingGmv: 200 });
   });
 
+  test("usa expiração real futura mesmo quando o pedido é mais antigo que a heurística", () => {
+    const result = estimatePendingRevenueOpportunity({
+      fallbackTakeRate: 10,
+      now,
+      orders: [{
+        status: "pending",
+        total: 300,
+        created_at: "2026-09-04T20:00:00Z",
+        expires_at: "2026-09-07T00:00:00Z",
+        event: { id: 3, title: "Evento C" },
+      }],
+    });
+
+    expect(result.pendingCount).toBe(1);
+    expect(result.pendingGmv).toBe(300);
+    expect(result.realExpiryPendingCount).toBe(1);
+    expect(result.stalePendingCount).toBe(0);
+  });
+
+  test("não promove cobrança expirada mesmo quando foi criada recentemente", () => {
+    const result = estimatePendingRevenueOpportunity({
+      fallbackTakeRate: 10,
+      now,
+      orders: [{
+        status: "pending",
+        total: 180,
+        created_at: "2026-09-06T22:30:00Z",
+        expires_at: "2026-09-06T22:59:00Z",
+        event: { id: 4, title: "Evento D" },
+      }],
+    });
+
+    expect(result.pendingCount).toBe(0);
+    expect(result.pendingGmv).toBe(0);
+    expect(result.stalePendingCount).toBe(1);
+    expect(result.expiredPaymentCount).toBe(1);
+    expect(result.events).toEqual([]);
+  });
+
   test("mantém pedidos sem data no total sem promovê-los para recuperação recente", () => {
     const result = estimatePendingRevenueOpportunity({
       fallbackTakeRate: 8,
