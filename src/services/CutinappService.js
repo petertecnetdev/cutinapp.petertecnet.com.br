@@ -1,5 +1,5 @@
 import appApiClient from "./AppApiClient";
-import { createIdempotencyAttemptManager, createMutationRequestKey, shouldKeepIdempotencyAttempt } from "../utils/idempotencyAttempts";
+import { createIdempotentMutation, createMutationRequestKey } from "../utils/idempotencyAttempts";
 import { cachedPublicGet, invalidatePublicRequestCache } from "../utils/publicRequestCache";
 
 const unwrap = (value) => Array.isArray(value) ? value : Array.isArray(value?.data) ? value.data : [];
@@ -9,36 +9,6 @@ const rename = (data, from, to) => {
   delete result[from];
   return result;
 };
-
-const pendingProductionCreates = new Map();
-const productionCreateAttempts = createIdempotencyAttemptManager({
-  storagePrefix: "cutinapp_production_create_attempt_",
-  keyPrefix: "production",
-});
-
-const pendingContractSigns = new Map();
-const contractSignAttempts = createIdempotencyAttemptManager({
-  storagePrefix: "cutinapp_contract_sign_attempt_",
-  keyPrefix: "contract-sign",
-});
-
-const pendingCourtesyClaims = new Map();
-const courtesyClaimAttempts = createIdempotencyAttemptManager({
-  storagePrefix: "cutinapp_courtesy_claim_attempt_",
-  keyPrefix: "courtesy-claim",
-});
-
-const pendingPassTransfers = new Map();
-const passTransferAttempts = createIdempotencyAttemptManager({
-  storagePrefix: "cutinapp_pass_transfer_attempt_",
-  keyPrefix: "pass-transfer",
-});
-
-const pendingCheckIns = new Map();
-const checkInAttempts = createIdempotencyAttemptManager({
-  storagePrefix: "cutinapp_checkin_attempt_",
-  keyPrefix: "checkin",
-});
 
 const productionValueSignature = (value) => {
   if (typeof value === "string") return value;
@@ -65,122 +35,57 @@ const productionRequestKey = (payload) => {
   return JSON.stringify(payload ?? null);
 };
 
-const createProduction = (payload) => {
-  const requestKey = productionRequestKey(payload);
-  const pending = pendingProductionCreates.get(requestKey);
-  if (pending) return pending;
-
-  const idempotencyKey = productionCreateAttempts.keyFor(requestKey);
-  const request = appApiClient.post("/organizations", payload, {
+const createProduction = createIdempotentMutation({
+  storagePrefix: "cutinapp_production_create_attempt_",
+  keyPrefix: "production",
+  requestKeyFor: productionRequestKey,
+  mutate: async ({ idempotencyKey }, payload) => rename((await appApiClient.post("/organizations", payload, {
     headers: { "Idempotency-Key": idempotencyKey },
-  }).then((response) => {
-    productionCreateAttempts.clear(requestKey);
-    return rename(response.data, "organization", "production");
-  }).catch((error) => {
-    if (!shouldKeepIdempotencyAttempt(error)) productionCreateAttempts.clear(requestKey);
-    throw error;
-  }).finally(() => {
-    if (pendingProductionCreates.get(requestKey) === request) pendingProductionCreates.delete(requestKey);
-  });
+  })).data, "organization", "production"),
+});
 
-  pendingProductionCreates.set(requestKey, request);
-  return request;
-};
+const signProducerContract = createIdempotentMutation({
+  storagePrefix: "cutinapp_contract_sign_attempt_",
+  keyPrefix: "contract-sign",
+  requestKeyFor: (organizationId, payload = {}) => `${Number(organizationId)}:${createMutationRequestKey(payload)}`,
+  mutate: async ({ idempotencyKey }, organizationId, payload = {}) => (await appApiClient.post(
+    `/organizations/${Number(organizationId)}/agreement/sign`,
+    payload,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
 
-const signProducerContract = (organizationId, payload = {}) => {
-  const normalizedOrganizationId = Number(organizationId);
-  const requestKey = `${normalizedOrganizationId}:${createMutationRequestKey(payload)}`;
-  const pending = pendingContractSigns.get(requestKey);
-  if (pending) return pending;
-
-  const idempotencyKey = contractSignAttempts.keyFor(requestKey);
-  const request = appApiClient.post(`/organizations/${normalizedOrganizationId}/agreement/sign`, payload, {
+const claimCourtesy = createIdempotentMutation({
+  storagePrefix: "cutinapp_courtesy_claim_attempt_",
+  keyPrefix: "courtesy-claim",
+  requestKeyFor: (ticketId) => String(ticketId),
+  mutate: async ({ idempotencyKey }, ticketId) => (await appApiClient.post(`/passes/claim/${ticketId}`, undefined, {
     headers: { "Idempotency-Key": idempotencyKey },
-  }).then((response) => {
-    contractSignAttempts.clear(requestKey);
-    return response.data;
-  }).catch((error) => {
-    if (!shouldKeepIdempotencyAttempt(error)) contractSignAttempts.clear(requestKey);
-    throw error;
-  }).finally(() => {
-    if (pendingContractSigns.get(requestKey) === request) pendingContractSigns.delete(requestKey);
-  });
+  })).data,
+});
 
-  pendingContractSigns.set(requestKey, request);
-  return request;
-};
-
-const claimCourtesy = (ticketId) => {
-  const requestKey = String(ticketId);
-  const pending = pendingCourtesyClaims.get(requestKey);
-  if (pending) return pending;
-
-  const idempotencyKey = courtesyClaimAttempts.keyFor(requestKey);
-  const request = appApiClient.post(`/passes/claim/${ticketId}`, undefined, {
-    headers: { "Idempotency-Key": idempotencyKey },
-  }).then((response) => {
-    courtesyClaimAttempts.clear(requestKey);
-    return response.data;
-  }).catch((error) => {
-    if (!shouldKeepIdempotencyAttempt(error)) courtesyClaimAttempts.clear(requestKey);
-    throw error;
-  }).finally(() => {
-    if (pendingCourtesyClaims.get(requestKey) === request) pendingCourtesyClaims.delete(requestKey);
-  });
-
-  pendingCourtesyClaims.set(requestKey, request);
-  return request;
-};
-
-const transferPass = (passId, recipientEmail) => {
-  const normalizedEmail = String(recipientEmail || "").trim().toLowerCase();
-  const requestKey = `${String(passId)}:${normalizedEmail}`;
-  const pending = pendingPassTransfers.get(requestKey);
-  if (pending) return pending;
-
-  const idempotencyKey = passTransferAttempts.keyFor(requestKey);
-  const request = appApiClient.post(`/passes/${passId}/transfer`, { recipient_email: normalizedEmail }, {
-    headers: { "Idempotency-Key": idempotencyKey },
-  }).then((response) => {
-    passTransferAttempts.clear(requestKey);
-    return response.data;
-  }).catch((error) => {
-    if (!shouldKeepIdempotencyAttempt(error)) passTransferAttempts.clear(requestKey);
-    throw error;
-  }).finally(() => {
-    if (pendingPassTransfers.get(requestKey) === request) pendingPassTransfers.delete(requestKey);
-  });
-
-  pendingPassTransfers.set(requestKey, request);
-  return request;
-};
-
-const checkIn = (token, eventId) => {
-  const normalizedToken = String(token || "").trim();
-  const normalizedEventId = Number(eventId);
-  const requestKey = `${normalizedEventId}:${normalizedToken}`;
-  const pending = pendingCheckIns.get(requestKey);
-  if (pending) return pending;
-
-  const idempotencyKey = checkInAttempts.keyFor(requestKey);
-  const request = appApiClient.post("/checkin", {
-    token: normalizedToken,
-    event_id: normalizedEventId,
+const transferPass = createIdempotentMutation({
+  storagePrefix: "cutinapp_pass_transfer_attempt_",
+  keyPrefix: "pass-transfer",
+  requestKeyFor: (passId, recipientEmail) => `${String(passId)}:${String(recipientEmail || "").trim().toLowerCase()}`,
+  mutate: async ({ idempotencyKey }, passId, recipientEmail) => (await appApiClient.post(`/passes/${passId}/transfer`, {
+    recipient_email: String(recipientEmail || "").trim().toLowerCase(),
   }, {
     headers: { "Idempotency-Key": idempotencyKey },
-  }).then((response) => {
-    checkInAttempts.clear(requestKey);
-    return response.data;
-  }).catch((error) => {
-    if (!shouldKeepIdempotencyAttempt(error)) checkInAttempts.clear(requestKey);
-    throw error;
-  }).finally(() => {
-    if (pendingCheckIns.get(requestKey) === request) pendingCheckIns.delete(requestKey);
-  });
+  })).data,
+});
 
-  pendingCheckIns.set(requestKey, request);
-  return request;
-};
+const checkIn = createIdempotentMutation({
+  storagePrefix: "cutinapp_checkin_attempt_",
+  keyPrefix: "checkin",
+  requestKeyFor: (token, eventId) => `${Number(eventId)}:${String(token || "").trim()}`,
+  mutate: async ({ idempotencyKey }, token, eventId) => (await appApiClient.post("/checkin", {
+    token: String(token || "").trim(),
+    event_id: Number(eventId),
+  }, {
+    headers: { "Idempotency-Key": idempotencyKey },
+  })).data,
+});
 
 // Product UI facade. Every request below consumes a reusable capability from
 // /api/v1/apps/{application}; product-specific backend URLs are intentionally
@@ -266,11 +171,11 @@ const cutinappService = {
   engagement: async (eventId, payload) => (await appApiClient.put(`/events/${eventId}/engagement`, payload)).data,
   feed: async (params = {}) => (await appApiClient.get("/feed", { params })).data,
 
-  notifications: async (params = {}) => (await appApiClient.get("/notifications", { params })).data,
+  notifications: async (params = {}) => (await appApiClient.get("/notifications", { params }).data,
   markNotificationRead: async (notificationId) => (await appApiClient.patch(`/notifications/${notificationId}/read`)).data,
   markAllNotificationsRead: async () => (await appApiClient.patch("/notifications/read-all")).data,
   publishEvent: async (eventId) => { const data = (await appApiClient.post(`/events/${eventId}/publish`)).data; invalidatePublicRequestCache("/events"); return data; },
-  unpublishEvent: async (eventId) => { const data = (await appApiClient.post(`/events/${eventId}/unpublish`)).data; invalidatePublicRequestCache("/events"); return data; },
+  unpublishEvent: async (eventId) => { const data = (await appApiClient.post(`/events/${eventId}/unpublh`)).data; invalidatePublicRequestCache("/events"); return data; },
 
   eventCourtesies: async (eventId) => (await appApiClient.get(`/events/${eventId}/tickets`)).data,
   updateCourtesy: async (ticketId, payload) => (await appApiClient.patch(`/tickets/${ticketId}`, payload)).data,
