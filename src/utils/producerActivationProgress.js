@@ -54,6 +54,17 @@ export const producerActivationNextStep = ({ productions, events } = {}) => {
     };
   }
 
+  const published = firstByDate(eventRows.filter((event) => event?.is_published && Number(event?.tickets_count || 0) > 0));
+  if (published && eventIdFor(published)) {
+    return {
+      stage: "first_sale",
+      label: "Divulgar para a primeira venda",
+      description: `${published.title || "Seu evento"} já está no ar. Compartilhe a página de vendas para buscar a primeira compra.`,
+      route: `/event/edit/${eventIdFor(published)}?activation=first-ticket&eventId=${eventIdFor(published)}`,
+      eventId: eventIdFor(published),
+    };
+  }
+
   return {
     stage: "selling",
     label: "Gerenciar eventos",
