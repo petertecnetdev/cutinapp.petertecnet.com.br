@@ -250,6 +250,14 @@ export default function EventFlyerAssistant() {
     }
   };
 
+  useEffect(() => {
+    const handleOpenRequest = () => {
+      if (canOpen) openStudio();
+    };
+    window.addEventListener("cutinapp:open-event-flyer", handleOpenRequest);
+    return () => window.removeEventListener("cutinapp:open-event-flyer", handleOpenRequest);
+  });
+
   const generate = async () => {
     setBusy(true);
     setError("");
