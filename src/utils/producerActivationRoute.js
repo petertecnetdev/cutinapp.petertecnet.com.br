@@ -8,7 +8,7 @@ export const nextProducerActivationRoute = ({ eventId, ticketId, ticketType }) =
   if (normalizedTicketId) params.set("created", String(normalizedTicketId));
 
   if (ticketType === "paid") {
-    return `/event/manage?${params.toString()}`;
+    return `/event/edit/${normalizedEventId}?${params.toString()}`;
   }
 
   return `/event/${normalizedEventId}/courtesies?${params.toString()}`;
