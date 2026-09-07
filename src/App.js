@@ -16,7 +16,7 @@ import PeterTecnetSignature from "./components/PeterTecnetSignature";
 import ProcessingIndicatorComponent from "./components/ProcessingIndicatorComponent";
 import SeoManager from "./components/SeoManager";
 import authService from "./services/AuthService";
-import { hasContextRole } from "./utils/applicationRoles";
+import { hasContextRole, isPeterTecnetRoot } from "./utils/applicationRoles";
 
 const HomePage = lazy(() => import("./pages/LandingPageV2"));
 const FeedPage = lazy(() => import("./pages/FeedPage"));
@@ -31,7 +31,9 @@ const PasswordPage = lazy(() => import("./pages/auth/PasswordPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const AcquisitionDashboardPage = lazy(() => import("./pages/acquisition/AcquisitionDashboardPage"));
 const AcquisitionActivationPage = lazy(() => import("./pages/acquisition/AcquisitionActivationPage"));
+const AdminCenterPage = lazy(() => import("./pages/admin/AdminCenterPage"));
 const ApplicationAdminEventsPage = lazy(() => import("./pages/admin/ApplicationAdminEventsPage"));
+const ApplicationAdminUsersPage = lazy(() => import("./pages/admin/ApplicationAdminUsersPage"));
 const UserEditPage = lazy(() => import("./pages/user/UserEditPage"));
 const UserProfilePage = lazy(() => import("./pages/user/UserProfilePage"));
 const ProductionListPage = lazy(() => import("./pages/production/ProductionListPage"));
@@ -87,6 +89,12 @@ function AppRoutes() {
     return hasContextRole(user, "acquisition_agent") ? element : <Navigate to="/dashboard" replace />;
   };
 
+  const adminRoute = (element) => {
+    if (!user) return <Navigate to="/login" state={{ from: currentRoute() }} replace />;
+    if (!user.email_verified_at && !canUseDeferredVerificationSession()) return <Navigate to="/email-verify" state={{ from: currentRoute() }} replace />;
+    return isPeterTecnetRoot(user) ? element : <Navigate to="/dashboard" replace />;
+  };
+
   const verifyRoute = (element) => {
     if (!user) return <Navigate to="/login" replace />;
     return !user.email_verified_at ? element : <Navigate to="/dashboard" replace />;
@@ -113,7 +121,9 @@ function AppRoutes() {
           <Route path="/agent/activate" element={<AcquisitionActivationPage />} />
           <Route path="/dashboard" element={protectedRoute(<DashboardPage />)} />
           <Route path="/agent" element={acquisitionRoute(<AcquisitionDashboardPage />)} />
-          <Route path="/admin/events" element={protectedRoute(<ApplicationAdminEventsPage />)} />
+          <Route path="/admin" element={adminRoute(<AdminCenterPage />)} />
+          <Route path="/admin/users" element={adminRoute(<ApplicationAdminUsersPage />)} />
+          <Route path="/admin/events" element={adminRoute(<ApplicationAdminEventsPage />)} />
           <Route path="/feed" element={protectedRoute(<FeedPage />)} />
           <Route path="/notifications" element={protectedRoute(<NotificationsPage />)} />
           <Route path="/moderation/reports" element={protectedRoute(<ReportModerationPage />)} />

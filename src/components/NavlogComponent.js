@@ -4,7 +4,14 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import cutinappService from "../services/CutinappService";
 import { subscribeToUserNotifications } from "../services/RealtimeNotificationService";
-import { hasContextRole } from "../utils/applicationRoles";
+import {
+  hasActorArea,
+  hasContextRole,
+  isArtistActor,
+  isPeterTecnetRoot,
+  isProductionManager,
+  isPromoterActor,
+} from "../utils/applicationRoles";
 import { safeNavigationTarget } from "../utils/safeUrl";
 import { notificationTelemetryAttrs } from "../utils/notificationTelemetry";
 import NotificationPermissionControl from "./NotificationPermissionControl";
@@ -48,6 +55,11 @@ export default function NavlogComponent() {
   const closeMenu = () => setOpen(false);
   const isAdmin = user?.profile?.name === "Administrador" || user?.profile_name === "Administrador";
   const isAcquisitionAgent = hasContextRole(user, "acquisition_agent");
+  const peterAdmin = isPeterTecnetRoot(user);
+  const manager = peterAdmin || isProductionManager(user);
+  const artist = peterAdmin || isArtistActor(user);
+  const promoter = peterAdmin || isPromoterActor(user);
+  const actors = peterAdmin || hasActorArea(user);
 
   useEffect(() => {
     setOpen(false);
@@ -193,13 +205,40 @@ export default function NavlogComponent() {
         <Navbar.Toggle aria-controls="cut-navbar" aria-label={open ? "Fechar menu" : "Abrir menu"} />
         <Navbar.Collapse id="cut-navbar">
           <Nav className="cut-navbar__links mx-auto">
-            <Nav.Link as={Link} to="/feed" className={active("/feed") ? "active" : ""}><i className="fa-solid fa-bolt" /> Feed</Nav.Link>
-            <Nav.Link as={Link} to="/event" className={active("/event") && !active("/event/manage") ? "active" : ""}><i className="fa-regular fa-calendar-days" /> Eventos</Nav.Link>
-            <Nav.Link as={Link} to="/productions" className={active("/productions") ? "active" : ""}><i className="fa-solid fa-building" /> Produções</Nav.Link>
-            <Nav.Link as={Link} to="/artists" className={active("/artist") ? "active" : ""}><i className="fa-solid fa-music" /> Artistas</Nav.Link>
-            <Nav.Link as={Link} to="/passes" className={active("/passes") ? "active" : ""}><i className="fa-solid fa-ticket" /> Ingressos</Nav.Link>
-            <Nav.Link as={Link} to="/purchases" className={active("/purchases") ? "active" : ""}><i className="fa-solid fa-receipt" /> Compras</Nav.Link>
-            {isAcquisitionAgent && <Nav.Link as={Link} to="/agent" className={active("/agent") ? "active" : ""}><i className="fa-solid fa-user-tie" /> Agente</Nav.Link>}
+            <NavDropdown title={<span><i className="fa-regular fa-user" /> Usuário</span>} id="cut-user-area-menu" className={active("/feed") || active("/passes") || active("/purchases") ? "active" : ""}>
+              <NavDropdown.Item as={Link} to="/feed"><i className="fa-solid fa-bolt me-2" />Feed</NavDropdown.Item>
+              <NavDropdown.Item as={Link} to="/event"><i className="fa-regular fa-calendar-days me-2" />Eventos</NavDropdown.Item>
+              <NavDropdown.Item as={Link} to="/productions"><i className="fa-solid fa-building me-2" />Produções</NavDropdown.Item>
+              <NavDropdown.Item as={Link} to="/artists"><i className="fa-solid fa-music me-2" />Artistas</NavDropdown.Item>
+              <NavDropdown.Divider />
+              <NavDropdown.Item as={Link} to="/passes"><i className="fa-solid fa-ticket me-2" />Meus ingressos</NavDropdown.Item>
+              <NavDropdown.Item as={Link} to="/purchases"><i className="fa-solid fa-receipt me-2" />Minhas compras</NavDropdown.Item>
+              <NavDropdown.Item as={Link} to="/profile"><i className="fa-regular fa-id-card me-2" />Meu perfil</NavDropdown.Item>
+            </NavDropdown>
+
+            {manager && <NavDropdown title={<span><i className="fa-solid fa-briefcase" /> Gerência</span>} id="cut-management-menu" className={active("/producer") || active("/production/") || active("/event/manage") ? "active" : ""}>
+              <NavDropdown.Item as={Link} to="/production/mine">Minhas produções</NavDropdown.Item>
+              <NavDropdown.Item as={Link} to="/production/create"><i className="fa-solid fa-plus me-2" />Cadastrar produção</NavDropdown.Item>
+              <NavDropdown.Divider />
+              <NavDropdown.Item as={Link} to="/event/manage">Meus eventos</NavDropdown.Item>
+              <NavDropdown.Item as={Link} to="/event/create"><i className="fa-solid fa-calendar-plus me-2" />Cadastrar evento</NavDropdown.Item>
+              <NavDropdown.Item as={Link} to="/ticket/create"><i className="fa-solid fa-ticket me-2" />Cadastrar ingresso/cortesia</NavDropdown.Item>
+              <NavDropdown.Divider />
+              <NavDropdown.Item as={Link} to="/producer/sales"><i className="fa-solid fa-chart-line me-2" />Vendas</NavDropdown.Item>
+              <NavDropdown.Item as={Link} to="/producer/finance"><i className="fa-solid fa-wallet me-2" />Financeiro</NavDropdown.Item>
+              <NavDropdown.Item as={Link} to="/producer/contracts"><i className="fa-solid fa-file-signature me-2" />Contratos</NavDropdown.Item>
+              <NavDropdown.Item as={Link} to="/checkin"><i className="fa-solid fa-qrcode me-2" />Portaria / check-in</NavDropdown.Item>
+            </NavDropdown>}
+
+            {actors && <NavDropdown title={<span><i className="fa-solid fa-people-group" /> Atores</span>} id="cut-actors-menu" className={active("/artist/manage") || isAcquisitionAgent ? "active" : ""}>
+              {artist && <NavDropdown.Item as={Link} to="/artist/manage"><i className="fa-solid fa-music me-2" />Área do artista</NavDropdown.Item>}
+              {promoter && <NavDropdown.Item as={Link} to="/producer/sales"><i className="fa-solid fa-bullhorn me-2" />Área do promoter</NavDropdown.Item>}
+              {isAcquisitionAgent && <NavDropdown.Item as={Link} to="/agent"><i className="fa-solid fa-user-tie me-2" />Área do agente</NavDropdown.Item>}
+              <NavDropdown.Item as={Link} to="/artists">Explorar artistas</NavDropdown.Item>
+            </NavDropdown>}
+
+            {peterAdmin && <Nav.Link as={Link} to="/admin" className={active("/admin") ? "active" : ""}><i className="fa-solid fa-shield-halved" /> Admin Center</Nav.Link>}
+
             <NavDropdown align="end" title={notificationToggle} id="cut-notifications-menu" className={`cut-nav-notification-menu ${active("/notifications") ? "active" : ""}`}>
               <div className="cut-notification-popover">
                 <div className="cut-notification-popover__head"><strong>Notificações</strong>{unreadNotifications > 0 && <span>{unreadNotifications} nova{unreadNotifications === 1 ? "" : "s"}</span>}</div>
@@ -210,24 +249,12 @@ export default function NavlogComponent() {
                 <button type="button" className="cut-notification-popover__footer" onClick={() => navigate("/notifications")}>Ver todas as notificações</button>
               </div>
             </NavDropdown>
-            <NavDropdown title={<span><i className="fa-solid fa-bullhorn" /> Produzir</span>} id="cut-producer-menu">
-              <NavDropdown.Item as={Link} to="/production/mine">Minhas produções</NavDropdown.Item>
-              <NavDropdown.Item as={Link} to="/producer/contracts"><i className="fa-solid fa-file-signature me-2" />Contratos</NavDropdown.Item>
-              <NavDropdown.Item as={Link} to="/event/manage">Meus eventos</NavDropdown.Item>
-              <NavDropdown.Item as={Link} to="/producer/sales"><i className="fa-solid fa-chart-line me-2" />Vendas</NavDropdown.Item>
-              <NavDropdown.Item as={Link} to="/producer/finance"><i className="fa-solid fa-wallet me-2" />Financeiro</NavDropdown.Item>
-              <NavDropdown.Item as={Link} to="/artist/manage">Artistas</NavDropdown.Item>
-              <NavDropdown.Divider />
-              <NavDropdown.Item as={Link} to="/production/create">Nova produção</NavDropdown.Item>
-              <NavDropdown.Item as={Link} to="/event/create">Novo evento</NavDropdown.Item>
-              <NavDropdown.Item as={Link} to="/ticket/create">Nova cortesia</NavDropdown.Item>
-              <NavDropdown.Item as={Link} to="/checkin">Abrir portaria</NavDropdown.Item>
-            </NavDropdown>
           </Nav>
           <Nav className="cut-navbar__account">
             <NavDropdown align="end" title={<span className="cut-navbar__user"><span className="cut-navbar__avatar">{String(user.first_name || "C").slice(0, 2).toUpperCase()}</span><span><strong>{user.first_name || "Minha conta"}</strong><small>{user.email}</small></span></span>} id="cut-account-menu">
               <NavDropdown.Item as={Link} to="/profile"><i className="fa-regular fa-user me-2" />Meu perfil</NavDropdown.Item>
               <NavDropdown.Item as={Link} to="/dashboard">Painel</NavDropdown.Item>
+              {peterAdmin && <NavDropdown.Item as={Link} to="/admin"><i className="fa-solid fa-shield-halved me-2" />Admin Center</NavDropdown.Item>}
               {isAcquisitionAgent && <NavDropdown.Item as={Link} to="/agent"><i className="fa-solid fa-user-tie me-2" />Painel do agente</NavDropdown.Item>}
               <NavDropdown.Item as={Link} to="/purchases"><i className="fa-solid fa-receipt me-2" />Minhas compras</NavDropdown.Item>
               <NavDropdown.Item as={Link} to="/user/edit">Editar conta</NavDropdown.Item>
