@@ -4,7 +4,7 @@ import { Alert, Button, Form } from "react-bootstrap";
 import { useLocation, useNavigate } from "react-router-dom";
 import commerceService from "../../services/CommerceService";
 import { resolveCheckoutQuantity } from "../../utils/checkoutAddOns";
-import { safeRemoveSessionItem, safeSetSessionJson } from "../../utils/safeStorage";
+import { safeGetSessionJson, safeRemoveSessionItem, safeSetSessionJson } from "../../utils/safeStorage";
 
 const money = (value) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
 const dateLabel = (value) => {
@@ -30,6 +30,29 @@ const stockLabel = (item, soldOut, limit) => {
   return `${remaining} disponível${remaining === 1 ? "" : "is"}`;
 };
 
+const checkoutStorageKey = (slug) => `cutinapp_checkout_${slug}`;
+
+export const reconcileStoredSelection = (catalog, storedCheckout, fallbackEventId = 0) => {
+  const eventId = Number(catalog?.event?.id || fallbackEventId || 0);
+  if (!storedCheckout || Number(storedCheckout?.eventId || 0) !== eventId) return {};
+
+  const restored = {};
+  const reconcile = (kind, catalogItems, storedItems, limit) => {
+    const availableById = new Map((catalogItems || []).map((item) => [String(item.id), item]));
+    (storedItems || []).forEach((entry) => {
+      const item = availableById.get(String(entry?.id));
+      if (!item) return;
+      const max = resolveCheckoutQuantity(item, limit, limit);
+      const quantity = Math.max(0, Math.min(max, Number(entry?.quantity || 0)));
+      if (quantity > 0) restored[`${kind}:${item.id}`] = quantity;
+    });
+  };
+
+  reconcile("ticket", catalog?.tickets, storedCheckout?.tickets, 20);
+  reconcile("item", catalog?.items, storedCheckout?.items, 50);
+  return restored;
+};
+
 export default function EventCommercePanel({ slug, eventId, user, onLoginRequired }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -38,13 +61,35 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const applyCatalog = (response, targetSlug) => {
+    const nextCatalog = response || { tickets: [], items: [], available_dates: [] };
+    const restored = reconcileStoredSelection(
+      nextCatalog,
+      safeGetSessionJson(checkoutStorageKey(targetSlug)),
+      eventId,
+    );
+    setCatalog(nextCatalog);
+    setQuantities(restored);
+
+    const restoredQuantity = Object.values(restored).reduce((sum, quantity) => sum + Number(quantity || 0), 0);
+    if (restoredQuantity > 0) {
+      trackCommerce("event_purchase_selection_restored", {
+        label: "Seleção válida restaurada no evento",
+        target: targetSlug,
+        metadata: {
+          event_id: Number(nextCatalog?.event?.id || eventId),
+          quantity: restoredQuantity,
+        },
+      });
+    }
+  };
+
   const loadCatalog = async (targetSlug) => {
     setLoading(true);
     setError("");
     try {
       const response = await commerceService.catalog(targetSlug);
-      setCatalog(response || { tickets: [], items: [], available_dates: [] });
-      setQuantities({});
+      applyCatalog(response, targetSlug);
     } catch (err) {
       setError(err?.message || "Não foi possível carregar as opções de compra.");
     } finally {
@@ -58,8 +103,7 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
     commerceService.catalog(slug)
       .then((response) => {
         if (!active) return;
-        setCatalog(response || { tickets: [], items: [], available_dates: [] });
-        setQuantities({});
+        applyCatalog(response, slug);
       })
       .catch((err) => active && setError(err?.message || "Não foi possível carregar as opções de compra."))
       .finally(() => active && setLoading(false));
@@ -89,12 +133,37 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
   const activeSlug = catalog?.event?.slug || slug;
   const availableDates = catalog?.available_dates || [];
 
+  const persistSelection = (nextQuantities) => {
+    const tickets = (catalog.tickets || [])
+      .map((item) => ({ id: item.id, quantity: Number(nextQuantities[`ticket:${item.id}`] || 0) }))
+      .filter((item) => item.quantity > 0);
+    const items = (catalog.items || [])
+      .map((item) => ({ id: item.id, quantity: Number(nextQuantities[`item:${item.id}`] || 0) }))
+      .filter((item) => item.quantity > 0);
+
+    if (!tickets.length && !items.length) {
+      safeRemoveSessionItem(checkoutStorageKey(activeSlug));
+      return;
+    }
+
+    safeSetSessionJson(checkoutStorageKey(activeSlug), {
+      eventId: activeEventId,
+      eventDate: catalog?.event?.start_date || null,
+      tickets,
+      items,
+    });
+  };
+
   const setQuantity = (kind, id, value, availableMax = null) => {
     const configuredMax = kind === "ticket" ? 20 : 50;
     const max = availableMax === null ? configuredMax : Math.max(0, Math.min(configuredMax, Number(availableMax || 0)));
     const parsed = Math.max(0, Math.min(max, Number(value || 0)));
     const key = `${kind}:${id}`;
-    setQuantities((current) => ({ ...current, [key]: parsed }));
+    setQuantities((current) => {
+      const next = { ...current, [key]: parsed };
+      persistSelection(next);
+      return next;
+    });
     trackCommerce("event_purchase_quantity_changed", {
       label: kind === "ticket" ? "Quantidade de ingresso alterada" : "Quantidade de item alterada",
       target: activeSlug,
@@ -153,7 +222,7 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
     const checkoutPath = `/checkout/${activeSlug}`;
 
     safeRemoveSessionItem(`cutinapp_payment_${activeSlug}`);
-    safeSetSessionJson(`cutinapp_checkout_${activeSlug}`, checkout);
+    safeSetSessionJson(checkoutStorageKey(activeSlug), checkout);
 
     if (!user) {
       trackCommerce("event_purchase_login_required", {
@@ -216,6 +285,7 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
     })}
 
     <div className="d-flex align-items-center justify-content-between mt-3"><strong>{selectedQuantity > 0 ? `${selectedQuantity} selecionado${selectedQuantity === 1 ? "" : "s"}` : "Total"}</strong><strong>{money(total)}</strong></div>
+    {selectedQuantity > 0 && <small className="d-block text-success mt-2 text-center"><i className="fa-solid fa-clock-rotate-left me-1" />Sua seleção fica salva neste navegador e será revalidada ao retornar.</small>}
     <Button className="w-100 mt-3" onClick={continueToCheckout} disabled={total <= 0 || !checkoutAvailable}><i className="fa-solid fa-lock me-2" />{user ? `Continuar · ${money(total)}` : "Entrar para comprar"}</Button>
     <small className="d-block text-secondary mt-2 text-center"><i className="fa-solid fa-shield-halved me-1" />Ingressos usam QR de entrada; itens antecipados usam QR de retirada.</small>
   </div>;
