@@ -54,4 +54,12 @@ describe("reconcileStoredSelection", () => {
       items: [],
     }, 77)).toEqual({ "ticket:1": 2 });
   });
+
+  it("ignores zero and negative quantities from stale session data", () => {
+    expect(reconcileStoredSelection(catalog, {
+      eventId: 77,
+      tickets: [{ id: 1, quantity: 0 }, { id: 4, quantity: -2 }],
+      items: [{ id: 12, quantity: -1 }],
+    })).toEqual({});
+  });
 });
