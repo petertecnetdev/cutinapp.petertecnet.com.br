@@ -1,5 +1,5 @@
 import appApiClient from "./AppApiClient";
-import { createIdempotencyAttemptManager, shouldKeepIdempotencyAttempt } from "../utils/idempotencyAttempts";
+import { createIdempotencyAttemptManager, createOpaqueRequestKey, shouldKeepIdempotencyAttempt } from "../utils/idempotencyAttempts";
 import { cachedPublicGet, invalidatePublicRequestCache } from "../utils/publicRequestCache";
 
 const unwrap = (value) => Array.isArray(value) ? value : Array.isArray(value?.data) ? value.data : [];
@@ -26,6 +26,12 @@ const pendingPassTransfers = new Map();
 const passTransferAttempts = createIdempotencyAttemptManager({
   storagePrefix: "cutinapp_pass_transfer_attempt_",
   keyPrefix: "pass-transfer",
+});
+
+const pendingCheckIns = new Map();
+const checkInAttempts = createIdempotencyAttemptManager({
+  storagePrefix: "cutinapp_checkin_attempt_",
+  keyPrefix: "checkin",
 });
 
 const productionValueSignature = (value) => {
@@ -117,6 +123,30 @@ const transferPass = (passId, recipientEmail) => {
   });
 
   pendingPassTransfers.set(requestKey, request);
+  return request;
+};
+
+const checkIn = (token, eventId) => {
+  const normalizedToken = String(token || "").trim();
+  const normalizedEventId = Number(eventId);
+  const requestKey = `${normalizedEventId}:${createOpaqueRequestKey(normalizedToken)}`;
+  const pending = pendingCheckIns.get(requestKey);
+  if (pending) return pending;
+
+  const idempotencyKey = checkInAttempts.keyFor(requestKey);
+  const request = appApiClient.post("/checkin", { token: normalizedToken, event_id: normalizedEventId }, {
+    headers: { "Idempotency-Key": idempotencyKey },
+  }).then((response) => {
+    checkInAttempts.clear(requestKey);
+    return response.data;
+  }).catch((error) => {
+    if (!shouldKeepIdempotencyAttempt(error)) checkInAttempts.clear(requestKey);
+    throw error;
+  }).finally(() => {
+    if (pendingCheckIns.get(requestKey) === request) pendingCheckIns.delete(requestKey);
+  });
+
+  pendingCheckIns.set(requestKey, request);
   return request;
 };
 
@@ -218,7 +248,7 @@ const cutinappService = {
   getPass: async (passId) => (await appApiClient.get(`/passes/${passId}`)).data.pass,
   transferPass,
   eventParticipants: async (eventId) => (await appApiClient.get(`/events/${eventId}/participants`)).data,
-  checkIn: async (token, eventId) => (await appApiClient.post("/checkin", { token, event_id: Number(eventId) })).data,
+  checkIn,
   checkInStats: async (eventId) => (await appApiClient.get(`/checkin/events/${eventId}/stats`)).data,
 };
 
