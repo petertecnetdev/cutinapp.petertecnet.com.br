@@ -12,6 +12,43 @@ const requestKeyHash = (value) => {
   return (hash >>> 0).toString(16).padStart(8, "0");
 };
 
+const requestValueSignature = (value) => {
+  if (typeof value === "string") return value;
+  if (!value || typeof value !== "object") return String(value ?? "");
+
+  if (typeof File !== "undefined" && value instanceof File) {
+    return {
+      name: String(value.name || ""),
+      size: Number(value.size || 0),
+      type: String(value.type || ""),
+      lastModified: Number(value.lastModified || 0),
+    };
+  }
+
+  if (typeof Blob !== "undefined" && value instanceof Blob) {
+    return {
+      size: Number(value.size || 0),
+      type: String(value.type || ""),
+    };
+  }
+
+  return value;
+};
+
+export const createMutationRequestKey = (payload) => {
+  if (payload && typeof payload.entries === "function") {
+    return JSON.stringify(Array.from(payload.entries())
+      .map(([key, value]) => [String(key), requestValueSignature(value)])
+      .sort(([left], [right]) => left.localeCompare(right)));
+  }
+
+  if (payload && typeof payload === "object") {
+    return JSON.stringify(Object.keys(payload).sort().map((key) => [key, requestValueSignature(payload[key])]));
+  }
+
+  return JSON.stringify(payload ?? null);
+};
+
 export const shouldKeepIdempotencyAttempt = (error) => {
   if (isNetworkFailure(error)) return true;
 
