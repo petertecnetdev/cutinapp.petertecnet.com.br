@@ -32,6 +32,12 @@ const rank = (node) => {
   return 20;
 };
 
+const haptic = (duration = 8) => {
+  try {
+    if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") navigator.vibrate(duration);
+  } catch (_) { /* vibration is progressive enhancement only */ }
+};
+
 const prepareBottomNav = () => {
   const nav = document.querySelector(".cut-mobile-bottom-nav");
   if (!nav) return;
@@ -51,6 +57,10 @@ const prepareBottomNav = () => {
     if (icon && icon.className !== desiredIcon) icon.className = desiredIcon;
     if (!node.getAttribute("aria-label") && label) node.setAttribute("aria-label", label);
     if (node.getAttribute("title") !== (label || "Navegação")) node.setAttribute("title", label || "Navegação");
+    if (node.dataset.cutNavInteraction !== "true") {
+      node.dataset.cutNavInteraction = "true";
+      node.addEventListener("pointerdown", () => haptic(rank(node) === 3 ? 12 : 7), { passive: true });
+    }
   });
 };
 
@@ -75,11 +85,23 @@ const ensureTopActions = () => {
     navbar.insertBefore(actions, toggle || null);
   }
 
+  navbar.querySelectorAll(".cut-instagram-mobile-action").forEach((action) => {
+    if (action.dataset.cutNavInteraction === "true") return;
+    action.dataset.cutNavInteraction = "true";
+    action.addEventListener("pointerdown", () => haptic(7), { passive: true });
+  });
+
   const brand = navbar.querySelector(".cut-navbar__brand");
   if (brand) {
     if (brand.getAttribute("href") !== "/event") brand.setAttribute("href", "/event");
     if (brand.getAttribute("aria-label") !== "Cutinapp — Eventos") brand.setAttribute("aria-label", "Cutinapp — Eventos");
   }
+};
+
+const syncNavbarScrollState = () => {
+  const navbar = document.querySelector(".cut-capability-nav");
+  if (!navbar) return;
+  navbar.classList.toggle("cut-mobile-nav--scrolled", window.scrollY > 10);
 };
 
 const focusComposer = () => {
@@ -95,11 +117,13 @@ const focusComposer = () => {
 const prepareShell = () => {
   if (!isMobile()) {
     document.documentElement.removeAttribute(SHELL_MARK);
+    document.querySelector(".cut-capability-nav")?.classList.remove("cut-mobile-nav--scrolled");
     return;
   }
   document.documentElement.setAttribute(SHELL_MARK, "active");
   prepareBottomNav();
   ensureTopActions();
+  syncNavbarScrollState();
   focusComposer();
 };
 
@@ -107,6 +131,7 @@ export const installInstagramMobileShell = () => {
   if (typeof window === "undefined" || typeof document === "undefined") return () => {};
 
   let queued = false;
+  let scrollQueued = false;
   const queue = () => {
     if (queued) return;
     queued = true;
@@ -116,16 +141,27 @@ export const installInstagramMobileShell = () => {
     });
   };
 
+  const onScroll = () => {
+    if (!isMobile() || scrollQueued) return;
+    scrollQueued = true;
+    window.requestAnimationFrame(() => {
+      scrollQueued = false;
+      syncNavbarScrollState();
+    });
+  };
+
   queue();
   const observer = new MutationObserver(queue);
   observer.observe(document.documentElement, { childList: true, subtree: true });
   window.addEventListener("resize", queue, { passive: true });
+  window.addEventListener("scroll", onScroll, { passive: true });
   window.addEventListener("popstate", queue);
   window.addEventListener("hashchange", queue);
 
   return () => {
     observer.disconnect();
     window.removeEventListener("resize", queue);
+    window.removeEventListener("scroll", onScroll);
     window.removeEventListener("popstate", queue);
     window.removeEventListener("hashchange", queue);
   };
