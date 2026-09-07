@@ -24,6 +24,7 @@ export default function RegisterPage() {
   const returnTo = location.state?.from || "/dashboard";
 
   const contextMessage = useMemo(() => {
+    if (returnTo.startsWith("/event/create")) return "Depois de confirmar seu e-mail, você continua direto para criar seu primeiro evento. Se ainda não tiver produção, pode criar o nome dela ali mesmo e seguir para o primeiro lote.";
     if (returnTo.startsWith("/production/create")) return "Depois de confirmar seu e-mail, você continua direto para o cadastro da sua produção.";
     if (returnTo.startsWith("/artist/manage")) return "Depois de confirmar seu e-mail, você continua direto para criar sua presença como artista.";
     if (returnTo.startsWith("/feed")) return "Depois de confirmar seu e-mail, você entra direto na rede da Cutinapp.";

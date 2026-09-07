@@ -365,7 +365,7 @@ export default function HomePage() {
                     {audience.benefits.map((benefit) => <li key={benefit}><i className="fa-solid fa-check" /> {benefit}</li>)}
                   </ul>
                   {audience.key === "publico" && <Link to={browseLink}>Encontrar eventos <i className="fa-solid fa-arrow-right" /></Link>}
-                  {audience.key === "produtor" && <Link to="/register" state={{ from: "/production/create" }}>Começar a produzir <i className="fa-solid fa-arrow-right" /></Link>}
+                  {audience.key === "produtor" && <Link to="/register" state={{ from: "/event/create" }}>Criar meu primeiro evento <i className="fa-solid fa-arrow-right" /></Link>}
                   {audience.key === "artista" && <Link to="/register" state={{ from: "/artist/manage" }}>Criar presença na Cutinapp <i className="fa-solid fa-arrow-right" /></Link>}
                   {audience.key === "promoter" && <Link to="/register" state={{ from: "/feed" }}>Entrar para a rede <i className="fa-solid fa-arrow-right" /></Link>}
                 </article>
