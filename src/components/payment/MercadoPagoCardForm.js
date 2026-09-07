@@ -5,6 +5,7 @@ import { loadExternalScript } from "../../utils/loadExternalScript";
 
 const MERCADO_PAGO_SDK_SRC = "https://sdk.mercadopago.com/js/v2";
 const MERCADO_PAGO_SDK_TIMEOUT_MS = 15000;
+const MERCADO_PAGO_FORM_MOUNT_TIMEOUT_MS = 12000;
 
 const loadMercadoPago = () => loadExternalScript({
   src: MERCADO_PAGO_SDK_SRC,
@@ -64,6 +65,8 @@ export default function MercadoPagoCardForm({ publicKey, amount, email, disabled
   useEffect(() => {
     let active = true;
     let localCardForm = null;
+    let formMountTimer = null;
+    let formMountTimedOut = false;
     submittingRef.current = false;
     setSubmitting(false);
     setReady(false);
@@ -72,10 +75,30 @@ export default function MercadoPagoCardForm({ publicKey, amount, email, disabled
 
     if (!publicKey || Number(amount) <= 0) return undefined;
 
+    const clearFormMountTimer = () => {
+      if (formMountTimer) window.clearTimeout(formMountTimer);
+      formMountTimer = null;
+    };
+
     loadMercadoPago()
       .then((MercadoPago) => {
         if (!active) return;
         const mp = new MercadoPago(publicKey, { locale: "pt-BR" });
+
+        formMountTimer = window.setTimeout(() => {
+          if (!active) return;
+          formMountTimedOut = true;
+          setReady(false);
+          setLoadFailed(true);
+          setError("O formulário seguro do cartão demorou mais que o esperado para carregar. Tente novamente sem perder sua seleção.");
+          trackCardCheckout("card_sdk_load_failed", {
+            stage: "form_mount_timeout",
+            attempt: sdkAttempt + 1,
+            amount: Number(amount || 0),
+            timeout_ms: MERCADO_PAGO_FORM_MOUNT_TIMEOUT_MS,
+          });
+        }, MERCADO_PAGO_FORM_MOUNT_TIMEOUT_MS);
+
         localCardForm = mp.cardForm({
           amount: Number(amount).toFixed(2),
           iframe: true,
@@ -93,7 +116,8 @@ export default function MercadoPagoCardForm({ publicKey, amount, email, disabled
           },
           callbacks: {
             onFormMounted: (formError) => {
-              if (!active) return;
+              clearFormMountTimer();
+              if (!active || formMountTimedOut) return;
               if (formError) {
                 setLoadFailed(true);
                 setError("Não foi possível preparar o formulário seguro do cartão.");
@@ -135,13 +159,14 @@ export default function MercadoPagoCardForm({ publicKey, amount, email, disabled
             },
             onFetching: () => {
               setReady(false);
-              return () => active && setReady(true);
+              return () => active && !formMountTimedOut && setReady(true);
             },
           },
         });
         cardFormRef.current = localCardForm;
       })
       .catch((err) => {
+        clearFormMountTimer();
         if (!active) return;
         setLoadFailed(true);
         setError(err?.message || "Não foi possível carregar o Mercado Pago.");
@@ -150,6 +175,7 @@ export default function MercadoPagoCardForm({ publicKey, amount, email, disabled
 
     return () => {
       active = false;
+      clearFormMountTimer();
       submittingRef.current = false;
       if (cardFormRef.current === localCardForm) cardFormRef.current = null;
       if (typeof localCardForm?.unmount === "function") localCardForm.unmount();
