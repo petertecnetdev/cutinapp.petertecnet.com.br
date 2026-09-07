@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Button, Form, Modal, Spinner } from "react-bootstrap";
 import { storageUrl } from "../config";
 import cutinappService from "../services/CutinappService";
+import creativeService from "../services/CreativeService";
 import "./event-flyer-assistant.css";
 
 const formats = {
@@ -19,7 +20,7 @@ const themes = {
 
 const imageUrl = (path) => {
   if (!path) return "";
-  if (/^https?:\/\//i.test(path)) return path;
+  if (/^https?:\/\//i.test(path) || /^data:image\//i.test(path)) return path;
   return `${storageUrl}${String(path).replace(/^\/?storage\//, "").replace(/^\//, "")}`;
 };
 
@@ -41,7 +42,20 @@ const readFormContext = () => ({
 const roundedRect = (ctx, x, y, width, height, radius) => {
   const r = Math.min(radius, width / 2, height / 2);
   ctx.beginPath();
-  ctx.roundRect(x, y, width, height, r);
+  if (typeof ctx.roundRect === "function") {
+    ctx.roundRect(x, y, width, height, r);
+    return;
+  }
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + width - r, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+  ctx.lineTo(x + width, y + height - r);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+  ctx.lineTo(x + r, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
 };
 
 const fitText = (ctx, text, maxWidth, startSize, minSize, weight = 800) => {
@@ -58,20 +72,31 @@ const wrapText = (ctx, text, maxWidth, maxLines = 3) => {
   const words = String(text || "").split(/\s+/).filter(Boolean);
   const lines = [];
   let current = "";
-  words.forEach((word) => {
+  let truncated = false;
+
+  for (let index = 0; index < words.length; index += 1) {
+    const word = words[index];
     const candidate = current ? `${current} ${word}` : word;
-    if (ctx.measureText(candidate).width <= maxWidth || !current) current = candidate;
-    else if (lines.length < maxLines - 1) {
+    if (ctx.measureText(candidate).width <= maxWidth || !current) {
+      current = candidate;
+      continue;
+    }
+    if (lines.length < maxLines - 1) {
       lines.push(current);
       current = word;
+      continue;
     }
-  });
+    truncated = true;
+    break;
+  }
+
   if (current && lines.length < maxLines) lines.push(current);
-  if (words.length && lines.length === maxLines) {
-    while (ctx.measureText(`${lines[maxLines - 1]}…`).width > maxWidth && lines[maxLines - 1].length > 4) {
-      lines[maxLines - 1] = lines[maxLines - 1].slice(0, -1);
+  if (truncated && lines.length) {
+    const last = lines.length - 1;
+    while (ctx.measureText(`${lines[last]}…`).width > maxWidth && lines[last].length > 4) {
+      lines[last] = lines[last].slice(0, -1);
     }
-    lines[maxLines - 1] = `${lines[maxLines - 1].replace(/[.,;:]$/, "")}…`;
+    lines[last] = `${lines[last].replace(/[.,;:]$/, "")}…`;
   }
   return lines;
 };
@@ -79,7 +104,7 @@ const wrapText = (ctx, text, maxWidth, maxLines = 3) => {
 const loadImage = (src) => new Promise((resolve, reject) => {
   if (!src) return reject(new Error("no-image"));
   const img = new Image();
-  img.crossOrigin = "anonymous";
+  if (!/^data:image\//i.test(src)) img.crossOrigin = "anonymous";
   img.onload = () => resolve(img);
   img.onerror = reject;
   img.src = src;
@@ -102,7 +127,7 @@ const formatDate = (value) => {
   };
 };
 
-async function renderFlyer({ data, production, formatKey, themeKey }) {
+async function renderFlyer({ data, production, formatKey, themeKey, generatedBackground = "" }) {
   const format = formats[formatKey];
   const theme = themes[themeKey];
   const canvas = document.createElement("canvas");
@@ -118,16 +143,16 @@ async function renderFlyer({ data, production, formatKey, themeKey }) {
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, width, height);
 
-  const ref = productionImage(production);
+  const ref = generatedBackground || productionImage(production);
   if (ref) {
     try {
       const img = await loadImage(imageUrl(ref));
       ctx.save();
-      ctx.globalAlpha = 0.48;
+      ctx.globalAlpha = generatedBackground ? 0.9 : 0.48;
       drawCoverImage(ctx, img, width, height);
       ctx.restore();
     } catch (_) {
-      // The flyer remains fully usable when an external reference image blocks canvas access.
+      // Gradient fallback keeps flyer generation available if a remote image cannot be drawn.
     }
   }
 
@@ -205,6 +230,7 @@ export default function EventFlyerAssistant() {
   const [preview, setPreview] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [generationSource, setGenerationSource] = useState("");
 
   const canOpen = window.location.pathname === "/event/create";
   const format = formats[formatKey];
@@ -216,6 +242,7 @@ export default function EventFlyerAssistant() {
     setContext(data);
     setOpen(true);
     setError("");
+    setGenerationSource("");
     setProduction(null);
     if (data.productionId) {
       try { setProduction(await cutinappService.getProduction(data.productionId)); } catch (_) { /* optional reference */ }
@@ -228,7 +255,30 @@ export default function EventFlyerAssistant() {
     try {
       const data = readFormContext();
       setContext(data);
-      const canvas = await renderFlyer({ data, production, formatKey, themeKey });
+      let generatedBackground = "";
+
+      if (data.title) {
+        try {
+          const aiResult = await creativeService.generateEventFlyerBackground({
+            title: data.title,
+            description: data.description,
+            style: themeKey,
+            productionName: data.productionName,
+            venue: data.venue,
+            city: data.city,
+            uf: data.uf,
+            format: formatKey,
+          });
+          generatedBackground = aiResult?.image?.data_uri || "";
+          setGenerationSource(generatedBackground ? "cloudflare" : "local");
+        } catch (_) {
+          setGenerationSource("local");
+        }
+      } else {
+        setGenerationSource("local");
+      }
+
+      const canvas = await renderFlyer({ data, production, formatKey, themeKey, generatedBackground });
       const file = await canvasToFile(canvas, `flyer-${(data.title || "evento").toLowerCase().replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") || "evento"}-${formatKey}.jpg`);
       const url = URL.createObjectURL(file);
       if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
@@ -258,7 +308,11 @@ export default function EventFlyerAssistant() {
       window.PeterTecnetTelemetry?.track?.("producer_event_flyer_generated", {
         label: context.title || "Evento",
         target: context.productionId || null,
-        metadata: { format: formatKey, theme: themeKey, source: productionImage(production) ? "production_identity" : "cutinapp_theme" },
+        metadata: {
+          format: formatKey,
+          theme: themeKey,
+          source: generationSource === "cloudflare" ? "cloudflare_workers_ai" : (productionImage(production) ? "production_identity" : "cutinapp_theme"),
+        },
       });
     } catch (_) { /* telemetry cannot block the flow */ }
     setOpen(false);
@@ -279,8 +333,8 @@ export default function EventFlyerAssistant() {
       </Modal.Header>
       <Modal.Body>
         <div className="cut-flyer-intro">
-          <div><strong>{context.title || "Seu evento"}</strong><span>A Cutinapp monta a arte com os dados reais do cadastro e tenta aproveitar a identidade visual da produção.</span></div>
-          <span className="cut-flyer-beta">BETA</span>
+          <div><strong>{context.title || "Seu evento"}</strong><span>A Cutinapp cria o fundo com IA e finaliza a arte com os dados reais do cadastro.</span></div>
+          <span className="cut-flyer-beta">IA</span>
         </div>
 
         <div className="cut-flyer-controls">
@@ -290,14 +344,16 @@ export default function EventFlyerAssistant() {
 
         {error && <div className="alert alert-danger py-2">{error}</div>}
         <div className="cut-flyer-preview" style={previewStyle}>
-          {preview ? <img src={preview} alt="Prévia do flyer gerado" /> : <div><i className="fa-regular fa-image" /><strong>Gere uma prévia</strong><span>Nome, data, horário, local e identidade visual entram automaticamente.</span></div>}
+          {preview ? <img src={preview} alt="Prévia do flyer gerado" /> : <div><i className="fa-regular fa-image" /><strong>Gere uma prévia</strong><span>A IA cria a arte de fundo e a Cutinapp aplica os dados corretos por cima.</span></div>}
         </div>
 
+        {generationSource && <small className="cut-flyer-note d-block mb-2">{generationSource === "cloudflare" ? "Fundo criado com Cloudflare Workers AI · FLUX" : "Modo local usado automaticamente para preservar a disponibilidade."}</small>}
+
         <div className="cut-flyer-actions">
-          <Button type="button" variant="outline-light" onClick={generate} disabled={busy}>{busy ? <><Spinner size="sm" className="me-2" />Gerando...</> : "Gerar prévia"}</Button>
+          <Button type="button" variant="outline-light" onClick={generate} disabled={busy}>{busy ? <><Spinner size="sm" className="me-2" />Gerando com IA...</> : "Gerar com IA"}</Button>
           <Button type="button" onClick={useAsCover} disabled={busy}>{busy ? "Preparando..." : "Usar como capa do evento"}</Button>
         </div>
-        <small className="cut-flyer-note">Os textos são desenhados pela Cutinapp a partir dos campos do evento, evitando que uma IA altere nome, data, horário ou local.</small>
+        <small className="cut-flyer-note">A IA não escreve o flyer. Nome, data, horário e local são desenhados pela Cutinapp a partir dos campos do evento, evitando alterações nos dados oficiais.</small>
       </Modal.Body>
     </Modal>
   </>;
