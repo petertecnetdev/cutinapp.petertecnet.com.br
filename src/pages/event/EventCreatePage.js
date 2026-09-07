@@ -107,12 +107,12 @@ export default function EventCreatePage() {
         const fallback = requested || (items.length === 1 ? String(items[0].id) : "");
         setForm((current) => ({ ...current, production_id: fallback }));
 
-        if (!requested) return;
+        if (!fallback) return;
 
-        const fallbackProduction = items.find((item) => String(item.id) === requested);
+        const fallbackProduction = items.find((item) => String(item.id) === fallback);
         let production = fallbackProduction;
         try {
-          production = await cutinappService.getProduction(requested);
+          production = await cutinappService.getProduction(fallback);
         } catch (fetchError) {
           if (!fallbackProduction) throw fetchError;
         }
@@ -120,7 +120,7 @@ export default function EventCreatePage() {
 
         setForm((current) => ({
           ...current,
-          production_id: requested,
+          production_id: fallback,
           title: current.title || production?.name || "",
           description: current.description || production?.description || "",
           venue: current.venue || production?.fantasy || production?.name || "",
@@ -136,8 +136,12 @@ export default function EventCreatePage() {
         try {
           window.PeterTecnetTelemetry?.track?.("producer_event_template_auto_applied", {
             label: "Dados da produção aplicados automaticamente",
-            target: requested,
-            metadata: { activation_stage: "event_creation", next_step: "create_ticket" },
+            target: fallback,
+            metadata: {
+              activation_stage: "event_creation",
+              next_step: "create_ticket",
+              template_source: requested ? "requested_production" : "single_production",
+            },
           });
         } catch (_) {
           // Telemetry must never interrupt producer onboarding.
