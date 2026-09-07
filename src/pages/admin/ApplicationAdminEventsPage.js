@@ -3,6 +3,7 @@ import { Alert, Badge, Button, Card, Col, Container, Form, Modal, Row, Spinner }
 import NavlogComponent from "../../components/NavlogComponent";
 import EventSeriesForm from "../../components/EventSeriesForm";
 import appApiClient from "../../services/AppApiClient";
+import eventSeriesService from "../../services/EventSeriesService";
 
 const unwrap = (payload) => Array.isArray(payload) ? payload : Array.isArray(payload?.data) ? payload.data : [];
 
@@ -47,10 +48,12 @@ export default function ApplicationAdminEventsPage() {
     setError("");
     setSuccess("");
     try {
-      const response = await appApiClient.post(`/admin/events/${selected.id}/series`, payload);
+      const response = await eventSeriesService.create(selected.id, payload);
       await loadEvents();
-      setSuccess(response.data?.message || "Agenda criada com sucesso.");
+      setSuccess(response?.message || "Agenda criada com sucesso.");
       setSelected(null);
+    } catch (err) {
+      setError(err?.response?.data?.message || err?.message || "Não foi possível criar a agenda. Tente novamente sem alterar os dados para retomar a mesma tentativa com segurança.");
     } finally {
       setBusy(false);
     }
@@ -64,12 +67,12 @@ export default function ApplicationAdminEventsPage() {
         {context?.profile?.name && <Badge bg="info" text="dark">{context.profile.name}</Badge>}
       </div>
 
-      {error && <Alert variant="danger">{error}</Alert>}
-      {success && <Alert variant="success" dismissible onClose={() => setSuccess("")}>{success}</Alert>}
+      {error && <Alert variant="danger" role="alert">{error}</Alert>}
+      {success && <Alert variant="success" role="status" dismissible onClose={() => setSuccess("")}>{success}</Alert>}
 
-      <Card className="cut-panel mb-4"><Card.Body><Form.Control type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar evento, produção ou cidade" /></Card.Body></Card>
+      <Card className="cut-panel mb-4"><Card.Body><Form.Control type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar evento, produção ou cidade" aria-label="Buscar evento, produção ou cidade" /></Card.Body></Card>
 
-      {loading ? <div className="text-center py-5"><Spinner /><p className="mt-2">Carregando eventos administrativos...</p></div> : <Row className="g-3">
+      {loading ? <div className="text-center py-5" role="status" aria-live="polite"><Spinner /><p className="mt-2">Carregando eventos administrativos...</p></div> : <Row className="g-3">
         {filtered.map((event) => <Col lg={6} key={event.id}><Card className="cut-panel h-100"><Card.Body>
           <div className="d-flex justify-content-between gap-3"><div><span className="cut-eyebrow">{event.production?.name || "Produção"}</span><h2 className="cut-section-title mt-2">{event.title}</h2></div><Badge bg={event.is_published ? "success" : "secondary"}>{event.is_published ? "Publicado" : "Rascunho"}</Badge></div>
           <p className="text-secondary">{event.start_date ? new Date(event.start_date).toLocaleString("pt-BR") : "Sem data"} · {event.city || event.venue || "Local não informado"}</p>
