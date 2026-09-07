@@ -165,19 +165,20 @@ describe("CommerceService", () => {
     expect(idempotencyKeyAt(1)).not.toBe(idempotencyKeyAt(0));
   });
 
-  test("reuses the same key after an ambiguous network failure", async () => {
+  test("retries one ambiguous network failure with the same idempotency key", async () => {
     const networkError = Object.assign(new Error("Network Error"), { code: "ERR_NETWORK" });
     appApiClient.post
       .mockRejectedValueOnce(networkError)
       .mockResolvedValueOnce({ data: { order: { public_id: "order-1" } } });
 
-    await expect(commerceService.checkout(payload)).rejects.toThrow("Network Error");
-    const firstKey = idempotencyKeyAt(0);
-
     await expect(commerceService.checkout(payload)).resolves.toEqual({ order: { public_id: "order-1" } });
 
-    expect(firstKey).toBeTruthy();
-    expect(idempotencyKeyAt(1)).toBe(firstKey);
+    expect(appApiClient.post).toHaveBeenCalledTimes(2);
+    expect(idempotencyKeyAt(0)).toBeTruthy();
+    expect(idempotencyKeyAt(1)).toBe(idempotencyKeyAt(0));
+    expect(trackTelemetry).toHaveBeenCalledWith("checkout_transient_retry", expect.objectContaining({
+      metadata: expect.objectContaining({ status: 0, retry_attempt: 1 }),
+    }));
   });
 
   test("keeps the same key while the server reports the operation is still processing", async () => {
