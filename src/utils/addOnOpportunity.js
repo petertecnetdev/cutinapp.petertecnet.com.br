@@ -10,3 +10,10 @@ export const estimateAddOnAttachmentOpportunity = ({ paidCount, addOnOrders, ave
   const incrementalGmv = incrementalOrders * average;
   return { incrementalOrders, incrementalGmv, incrementalPlatformRevenue: incrementalGmv * (rate / 100), benchmarkUsed: observedAverage <= 0 && benchmarkAverage > 0 };
 };
+
+export const suggestedAddOnStock = (incrementalOrders, maxStock = 100) => {
+  const projected = Math.max(0, Number(incrementalOrders || 0));
+  if (projected <= 0) return 0;
+  const boundedMax = Math.max(1, Math.floor(Number(maxStock || 100)));
+  return Math.min(boundedMax, Math.max(1, Math.ceil(projected)));
+};
