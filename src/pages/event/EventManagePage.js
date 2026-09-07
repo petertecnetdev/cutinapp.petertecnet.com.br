@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Alert, Badge, Button, Card, Container, Dropdown, Form, Modal, Table } from "react-bootstrap";
+import { Alert, Badge, Button, Card, Container, Dropdown, Form, Modal, ProgressBar, Table } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
@@ -68,6 +68,14 @@ const hasEventBasics = (event) => Boolean(
   String(event?.title || "").trim()
   && event?.start_date
   && String(event?.venue || event?.address || "").trim()
+);
+
+const isBulkPublishable = (event) => Boolean(
+  event
+  && !event.is_cancelled
+  && !event.is_published
+  && hasEventBasics(event)
+  && Number(event?.tickets_count || 0) > 0
 );
 
 const getSalesReadiness = (event) => {
@@ -141,6 +149,10 @@ export default function EventManagePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortMode, setSortMode] = useState("date-asc");
+  const [bulkPublishOpen, setBulkPublishOpen] = useState(false);
+  const [bulkPublishing, setBulkPublishing] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0, current: "" });
+  const [bulkResult, setBulkResult] = useState(null);
 
   const load = async () => setEvents(await eventService.myEvents());
 
@@ -182,7 +194,9 @@ export default function EventManagePage() {
         trackProducerActivation("producer_event_published", event, { activation_stage: "published" });
         setPublishedEvent({ ...event, is_published: true, slug: response?.event?.slug || event.slug });
       }
-      setSuccess(event.is_published ? (response.message || "Evento retirado da publicação.") : "Evento publicado. Agora compartilhe a página pública para buscar a primeira venda.");
+      setSuccess(event.is_published
+        ? (response.message || "Evento retirado da publicação.")
+        : "Evento publicado. Agora compartilhe a página pública para buscar a primeira venda.");
     } catch (err) {
       setError(err?.message || "Não foi possível alterar a publicação do evento.");
     } finally {
@@ -274,6 +288,16 @@ export default function EventManagePage() {
     cancelled: events.filter((event) => event.is_cancelled).length,
   }), [events]);
 
+  const bulkCandidates = useMemo(
+    () => events.filter(isBulkPublishable),
+    [events],
+  );
+
+  const bulkBlockedDrafts = useMemo(
+    () => events.filter((event) => !event.is_cancelled && !event.is_published && !isBulkPublishable(event)),
+    [events],
+  );
+
   const visibleEvents = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLocaleLowerCase("pt-BR");
     const filtered = events.filter((event) => {
@@ -302,6 +326,81 @@ export default function EventManagePage() {
     });
   }, [events, searchTerm, sortMode, statusFilter]);
 
+  const openBulkPublish = () => {
+    if (!bulkCandidates.length || bulkPublishing) return;
+    setBulkResult(null);
+    setBulkProgress({ done: 0, total: bulkCandidates.length, current: "" });
+    setError("");
+    setSuccess("");
+    setBulkPublishOpen(true);
+  };
+
+  const closeBulkPublish = () => {
+    if (bulkPublishing) return;
+    setBulkPublishOpen(false);
+    setBulkResult(null);
+    setBulkProgress({ done: 0, total: 0, current: "" });
+  };
+
+  const publishAll = async () => {
+    if (bulkPublishing) return;
+
+    const targets = events.filter(isBulkPublishable);
+    if (!targets.length) {
+      setBulkResult({ published: [], failed: [] });
+      return;
+    }
+
+    setBulkPublishing(true);
+    setBulkResult(null);
+    setBulkProgress({ done: 0, total: targets.length, current: targets[0]?.title || "" });
+    setError("");
+    setSuccess("");
+
+    const published = [];
+    const failed = [];
+
+    for (let index = 0; index < targets.length; index += 1) {
+      const event = targets[index];
+      setBulkProgress({ done: index, total: targets.length, current: event.title || `Evento ${event.id}` });
+
+      try {
+        await cutinappService.publishEvent(event.id);
+        published.push(event);
+        trackProducerActivation("producer_event_published", event, {
+          activation_stage: "published",
+          publication_mode: "bulk",
+          bulk_total: targets.length,
+        });
+      } catch (err) {
+        failed.push({
+          id: event.id,
+          title: event.title || `Evento ${event.id}`,
+          message: err?.message || "Não foi possível publicar este evento.",
+        });
+      }
+
+      setBulkProgress({ done: index + 1, total: targets.length, current: event.title || `Evento ${event.id}` });
+    }
+
+    try {
+      await load();
+    } catch (err) {
+      setError(err?.message || "Os eventos foram processados, mas não foi possível atualizar a lista.");
+    }
+
+    setBulkResult({ published, failed });
+    setBulkPublishing(false);
+
+    if (published.length && failed.length === 0) {
+      setSuccess(`${published.length} evento(s) publicado(s) com sucesso.`);
+    } else if (published.length) {
+      setSuccess(`${published.length} evento(s) publicado(s). ${failed.length} não puderam ser publicados.`);
+    } else if (failed.length) {
+      setError("Nenhum evento pôde ser publicado. Confira os detalhes da publicação em massa.");
+    }
+  };
+
   const runPrimaryAction = (event, readiness) => {
     if (readiness.mode === "publish") {
       publication(event);
@@ -315,12 +414,22 @@ export default function EventManagePage() {
   };
 
   const duplicating = String(busyId).startsWith("duplicate-");
-  const processingLabel = loading ? "Carregando eventos" : duplicating ? "Duplicando evento" : "Atualizando evento";
+  const processingLabel = loading
+    ? "Carregando eventos"
+    : bulkPublishing
+      ? `Publicando ${bulkProgress.done} de ${bulkProgress.total} eventos`
+      : duplicating
+        ? "Duplicando evento"
+        : "Atualizando evento";
+
+  const bulkProgressPercent = bulkProgress.total
+    ? Math.round((bulkProgress.done / bulkProgress.total) * 100)
+    : 0;
 
   return (
     <div className="cut-app-page cut-event-manager-page">
       <NavlogComponent />
-      {(loading || busyId) && <ProcessingIndicatorComponent label={processingLabel} />}
+      {(loading || busyId || bulkPublishing) && <ProcessingIndicatorComponent label={processingLabel} />}
 
       <Container className="cut-page-container py-4 py-lg-5">
         <header className="cut-event-manager-hero">
@@ -329,9 +438,21 @@ export default function EventManagePage() {
             <h1>Meus eventos</h1>
             <p>Gerencie seus eventos em uma visão única, rápida e operacional.</p>
           </div>
-          <Button className="cut-event-manager-new" onClick={() => navigate("/event/create")}>
-            <i className="fa-solid fa-plus me-2" />Novo evento
-          </Button>
+          <div className="d-flex flex-wrap gap-2 justify-content-end">
+            {bulkCandidates.length > 0 && (
+              <Button
+                variant="success"
+                className="cut-event-manager-new"
+                onClick={openBulkPublish}
+                disabled={Boolean(busyId) || bulkPublishing}
+              >
+                <i className="fa-solid fa-rocket me-2" />Publicar todos ({bulkCandidates.length})
+              </Button>
+            )}
+            <Button className="cut-event-manager-new" onClick={() => navigate("/event/create")} disabled={bulkPublishing}>
+              <i className="fa-solid fa-plus me-2" />Novo evento
+            </Button>
+          </div>
         </header>
 
         {error && <Alert variant="danger">{error}</Alert>}
@@ -452,7 +573,7 @@ export default function EventManagePage() {
                                     size="sm"
                                     variant={readiness.mode === "whatsapp" ? "success" : "light"}
                                     onClick={() => runPrimaryAction(event, readiness)}
-                                    disabled={busyId === event.id}
+                                    disabled={busyId === event.id || bulkPublishing}
                                   >
                                     <i className={`${readiness.icon} me-2`} />{readiness.action}
                                   </Button>
@@ -461,11 +582,11 @@ export default function EventManagePage() {
                             </td>
                             <td className="cut-event-admin-table__actions">
                               <div className="cut-event-admin-actions">
-                                <Button size="sm" variant="outline-light" onClick={() => navigate(`/event/edit/${event.id}`)} title="Editar evento" aria-label={`Editar ${event.title}`}>
+                                <Button size="sm" variant="outline-light" onClick={() => navigate(`/event/edit/${event.id}`)} title="Editar evento" aria-label={`Editar ${event.title}`} disabled={bulkPublishing}>
                                   <i className="fa-solid fa-pen" />
                                 </Button>
                                 <Dropdown align="end" className="cut-event-manager-more">
-                                  <Dropdown.Toggle size="sm" variant="outline-light" aria-label={`Mais ações para ${event.title}`}>
+                                  <Dropdown.Toggle size="sm" variant="outline-light" aria-label={`Mais ações para ${event.title}`} disabled={bulkPublishing}>
                                     <i className="fa-solid fa-ellipsis" />
                                   </Dropdown.Toggle>
                                   <Dropdown.Menu>
@@ -503,6 +624,76 @@ export default function EventManagePage() {
           </>
         )}
       </Container>
+
+      <Modal show={bulkPublishOpen} onHide={closeBulkPublish} centered backdrop={bulkPublishing ? "static" : true} keyboard={!bulkPublishing}>
+        <Modal.Header closeButton={!bulkPublishing}>
+          <Modal.Title>Publicar todos os eventos</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {!bulkResult ? (
+            <>
+              <p className="mb-3">
+                A Cutinapp publicará <strong>{bulkCandidates.length} evento(s)</strong> que já possuem dados básicos e pelo menos um lote de ingresso.
+              </p>
+
+              {bulkBlockedDrafts.length > 0 && (
+                <Alert variant="warning">
+                  <strong>{bulkBlockedDrafts.length} rascunho(s)</strong> ainda não estão prontos e serão mantidos como rascunho. Complete os dados ou crie o primeiro lote antes de publicá-los.
+                </Alert>
+              )}
+
+              {bulkPublishing && (
+                <div className="mt-3">
+                  <div className="d-flex justify-content-between gap-3 mb-2">
+                    <strong>{bulkProgress.done} de {bulkProgress.total}</strong>
+                    <span>{bulkProgressPercent}%</span>
+                  </div>
+                  <ProgressBar now={bulkProgressPercent} animated={bulkProgress.done < bulkProgress.total} />
+                  <div className="text-secondary mt-2 small text-truncate" title={bulkProgress.current}>
+                    {bulkProgress.done < bulkProgress.total ? `Publicando: ${bulkProgress.current}` : "Finalizando publicação..."}
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              {bulkResult.published.length > 0 && (
+                <Alert variant="success">
+                  <strong>{bulkResult.published.length} evento(s)</strong> publicado(s) com sucesso.
+                </Alert>
+              )}
+
+              {bulkResult.failed.length > 0 && (
+                <Alert variant="danger" className="mb-0">
+                  <strong>{bulkResult.failed.length} evento(s)</strong> não puderam ser publicados.
+                  <ul className="mb-0 mt-2 ps-3">
+                    {bulkResult.failed.map((item) => (
+                      <li key={item.id}><strong>{item.title}:</strong> {item.message}</li>
+                    ))}
+                  </ul>
+                </Alert>
+              )}
+
+              {bulkResult.published.length === 0 && bulkResult.failed.length === 0 && (
+                <Alert variant="info" className="mb-0">Não há novos eventos aptos para publicação.</Alert>
+              )}
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          {!bulkResult ? (
+            <>
+              <Button variant="outline-secondary" onClick={closeBulkPublish} disabled={bulkPublishing}>Cancelar</Button>
+              <Button variant="success" onClick={publishAll} disabled={bulkPublishing || bulkCandidates.length === 0}>
+                <i className="fa-solid fa-rocket me-2" />
+                {bulkPublishing ? `Publicando ${bulkProgress.done}/${bulkProgress.total}` : `Publicar ${bulkCandidates.length} evento(s)`}
+              </Button>
+            </>
+          ) : (
+            <Button onClick={closeBulkPublish}>Concluir</Button>
+          )}
+        </Modal.Footer>
+      </Modal>
 
       <Modal show={Boolean(eventToDuplicate)} onHide={closeDuplicate} centered>
         <Modal.Header closeButton={!duplicating}>
