@@ -1,4 +1,41 @@
 import appApiClient from "./AppApiClient";
+import {
+  createIdempotencyAttemptManager,
+  createMutationRequestKey,
+  shouldKeepIdempotencyAttempt,
+} from "../utils/idempotencyAttempts";
+
+const pendingPayoutRequests = new Map();
+const payoutAttempts = createIdempotencyAttemptManager({
+  storagePrefix: "cutinapp_finance_payout_attempt_",
+  keyPrefix: "finance-payout",
+});
+
+const requestPayout = (organizationId, amount) => {
+  const payload = { amount };
+  const requestKey = createMutationRequestKey({
+    organization_id: String(organizationId),
+    amount: Number(amount),
+  });
+  const pending = pendingPayoutRequests.get(requestKey);
+  if (pending) return pending;
+
+  const idempotencyKey = payoutAttempts.keyFor(requestKey);
+  const request = appApiClient.post(`/organizations/${organizationId}/finance/payouts`, payload, {
+    headers: { "Idempotency-Key": idempotencyKey },
+  }).then((response) => {
+    payoutAttempts.clear(requestKey);
+    return response.data;
+  }).catch((error) => {
+    if (!shouldKeepIdempotencyAttempt(error)) payoutAttempts.clear(requestKey);
+    throw error;
+  }).finally(() => {
+    if (pendingPayoutRequests.get(requestKey) === request) pendingPayoutRequests.delete(requestKey);
+  });
+
+  pendingPayoutRequests.set(requestKey, request);
+  return request;
+};
 
 const financeService = {
   overview: async (organizationId) => (
@@ -36,9 +73,7 @@ const financeService = {
     })
   ).data,
 
-  requestPayout: async (organizationId, amount) => (
-    await appApiClient.post(`/organizations/${organizationId}/finance/payouts`, { amount })
-  ).data,
+  requestPayout,
 };
 
 export default financeService;
