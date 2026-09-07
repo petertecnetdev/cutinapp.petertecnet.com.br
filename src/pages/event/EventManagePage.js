@@ -102,6 +102,7 @@ export default function EventManagePage() {
   const [eventToDuplicate, setEventToDuplicate] = useState(null);
   const [duplicateDate, setDuplicateDate] = useState("");
   const [duplicateError, setDuplicateError] = useState("");
+  const [publishedEvent, setPublishedEvent] = useState(null);
 
   const load = async () => setEvents(await eventService.myEvents());
 
@@ -123,7 +124,10 @@ export default function EventManagePage() {
         ? await cutinappService.unpublishEvent(event.id)
         : await cutinappService.publishEvent(event.id);
       await load();
-      if (!event.is_published) trackProducerActivation("producer_event_published", event, { activation_stage: "published" });
+      if (!event.is_published) {
+        trackProducerActivation("producer_event_published", event, { activation_stage: "published" });
+        setPublishedEvent({ ...event, is_published: true, slug: response?.event?.slug || event.slug });
+      }
       setSuccess(event.is_published ? (response.message || "Evento retirado da publicação.") : "Evento publicado. Agora compartilhe a página pública para buscar a primeira venda.");
     } catch (err) {
       setError(err?.message || "Não foi possível alterar a publicação do evento.");
@@ -296,6 +300,32 @@ export default function EventManagePage() {
           <Button variant="outline-secondary" onClick={closeDuplicate} disabled={duplicating}>Cancelar</Button>
           <Button onClick={duplicate} disabled={duplicating || !duplicateDate}>
             <i className="fa-regular fa-copy me-2" />Criar cópia
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      <Modal show={Boolean(publishedEvent)} onHide={() => setPublishedEvent(null)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Evento publicado</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p className="mb-2"><strong>{publishedEvent?.title}</strong> já está disponível para venda.</p>
+          <p className="text-secondary mb-0">Compartilhe agora enquanto o evento está fresco para acelerar a primeira venda.</p>
+        </Modal.Body>
+        <Modal.Footer className="d-flex flex-wrap justify-content-start gap-2">
+          <Button onClick={() => publishedEvent && shareWhatsApp(publishedEvent)}>
+            <i className="fa-brands fa-whatsapp me-2" />Compartilhar no WhatsApp
+          </Button>
+          <Button variant="outline-light" onClick={() => publishedEvent && share(publishedEvent)}>
+            <i className="fa-solid fa-share-nodes me-2" />Compartilhar
+          </Button>
+          <Button variant="outline-secondary" onClick={() => {
+            if (!publishedEvent?.slug) return;
+            trackProducerActivation("producer_public_event_opened", publishedEvent, { activation_stage: "distribution" });
+            navigate(`/event/${publishedEvent.slug}`);
+            setPublishedEvent(null);
+          }} disabled={!publishedEvent?.slug}>
+            Ver página pública
           </Button>
         </Modal.Footer>
       </Modal>
