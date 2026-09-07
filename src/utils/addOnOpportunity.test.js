@@ -2,12 +2,19 @@ import { addOnMarginGuard, addOnMonetizationEfficiency, estimateAddOnAttachmentO
 
 test("uses production benchmark for events without add-on history", () => {
   expect(estimateAddOnAttachmentOpportunity({ paidCount: 50, addOnOrders: 0, averageAddOnValue: 0, benchmarkAddOnValue: 20, takeRate: 8 }))
-    .toMatchObject({ incrementalOrders: 5, incrementalGmv: 100, incrementalPlatformRevenue: 8, benchmarkUsed: true });
+    .toMatchObject({ incrementalOrders: 5, incrementalGmv: 100, incrementalPlatformRevenue: 8, benchmarkUsed: true, evidenceFactor: 1 });
 });
 
 test("prefers observed event value when available", () => {
   expect(estimateAddOnAttachmentOpportunity({ paidCount: 100, addOnOrders: 20, averageAddOnValue: 30, benchmarkAddOnValue: 15, takeRate: 10 }))
-    .toMatchObject({ incrementalGmv: 300, incrementalPlatformRevenue: 30, benchmarkUsed: false });
+    .toMatchObject({ incrementalGmv: 300, incrementalPlatformRevenue: 30, benchmarkUsed: false, evidenceFactor: 1 });
+});
+
+test("reduces monetization projection while paid-order evidence is still thin", () => {
+  expect(estimateAddOnAttachmentOpportunity({ paidCount: 5, addOnOrders: 0, averageAddOnValue: 20, takeRate: 10 }))
+    .toMatchObject({ incrementalOrders: 0.125, incrementalGmv: 2.5, incrementalPlatformRevenue: 0.25, evidenceFactor: 0.25 });
+  expect(estimateAddOnAttachmentOpportunity({ paidCount: 10, addOnOrders: 0, averageAddOnValue: 20, takeRate: 10, fullEvidencePaidOrders: 10 }))
+    .toMatchObject({ incrementalOrders: 1, evidenceFactor: 1 });
 });
 
 test("suggests editable stock with a bounded demand buffer", () => {
