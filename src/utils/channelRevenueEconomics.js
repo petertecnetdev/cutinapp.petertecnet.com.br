@@ -32,6 +32,7 @@ export const summarizeRevenueByChannel = (orders = [], options = {}) => {
   const reinvestmentSafetyFactor = boundedRate(options.reinvestmentSafetyFactor, 0.5);
   const minOrdersForScale = Math.max(1, Math.floor(amount(options.minOrdersForScale ?? 5)));
   const minTakeRateGapForScale = amount(options.minTakeRateGapForScale ?? 2);
+  const maxRequiredGmvUpliftForScale = amount(options.maxRequiredGmvUpliftForScale ?? 50);
 
   (Array.isArray(orders) ? orders : [])
     .filter((order) => normalizedText(order?.status || order?.payment_status) === "paid")
@@ -86,12 +87,17 @@ export const summarizeRevenueByChannel = (orders = [], options = {}) => {
         ? safeReinvestmentBudget / netRevenuePerOrder
         : 0;
       const requiredGmvUpliftRate = channel.gmv > 0 ? (reinvestmentBreakEvenGmv / channel.gmv) * 100 : 0;
+      const paybackStatus = safeReinvestmentBudget <= 0
+        ? "not_applicable"
+        : requiredGmvUpliftRate <= maxRequiredGmvUpliftForScale
+          ? "efficient"
+          : "high_burden";
       const evidenceStatus = channel.paidOrders >= minOrdersForScale ? "sufficient" : "limited";
       const recommendedAction = netTakeRate < minNetTakeRate
         ? "reduce_cost"
         : evidenceStatus === "limited"
           ? "test"
-          : netTakeRateGap >= minTakeRateGapForScale && safeReinvestmentBudget > 0
+          : netTakeRateGap >= minTakeRateGapForScale && safeReinvestmentBudget > 0 && paybackStatus === "efficient"
             ? "scale"
             : "maintain";
 
@@ -116,6 +122,8 @@ export const summarizeRevenueByChannel = (orders = [], options = {}) => {
         reinvestmentBreakEvenGmv,
         reinvestmentBreakEvenOrders,
         requiredGmvUpliftRate,
+        maxRequiredGmvUpliftForScale,
+        paybackStatus,
         evidenceStatus,
         recommendedAction,
       };
