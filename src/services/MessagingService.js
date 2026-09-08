@@ -34,6 +34,28 @@ const sendMessageIdempotently = createIdempotentMutation({
   ).data,
 });
 
+const markConversationReadIdempotently = createIdempotentMutation({
+  storagePrefix: "cutinapp_messaging_read_attempt_",
+  keyPrefix: "message-read",
+  requestKeyFor: (conversationId) => String(Number(conversationId)),
+  mutate: async ({ idempotencyKey }, conversationId) => (
+    await appApiClient.post(`/messaging/conversations/${Number(conversationId)}/read`, undefined, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    })
+  ).data,
+});
+
+const archiveConversationIdempotently = createIdempotentMutation({
+  storagePrefix: "cutinapp_messaging_archive_attempt_",
+  keyPrefix: "message-archive",
+  requestKeyFor: (conversationId) => String(Number(conversationId)),
+  mutate: async ({ idempotencyKey }, conversationId) => (
+    await appApiClient.delete(`/messaging/conversations/${Number(conversationId)}`, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    })
+  ).data,
+});
+
 const messagingService = {
   conversations: async (params = {}) => (await appApiClient.get("/messaging/conversations", { params })).data,
   searchPeople: async (query) => (await appApiClient.get("/messaging/people", { params: { q: query } })).data,
@@ -41,8 +63,8 @@ const messagingService = {
   conversation: async (conversationId) => (await appApiClient.get(`/messaging/conversations/${Number(conversationId)}`)).data,
   messages: async (conversationId, params = {}) => (await appApiClient.get(`/messaging/conversations/${Number(conversationId)}/messages`, { params })).data,
   send: (conversationId, body, replyToId = null) => sendMessageIdempotently(conversationId, body, replyToId),
-  markRead: async (conversationId) => (await appApiClient.post(`/messaging/conversations/${Number(conversationId)}/read`)).data,
-  archive: async (conversationId) => (await appApiClient.delete(`/messaging/conversations/${Number(conversationId)}`)).data,
+  markRead: (conversationId) => markConversationReadIdempotently(conversationId),
+  archive: (conversationId) => archiveConversationIdempotently(conversationId),
 };
 
 export default messagingService;
