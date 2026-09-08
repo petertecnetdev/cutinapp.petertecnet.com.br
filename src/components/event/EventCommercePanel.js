@@ -6,6 +6,7 @@ import commerceService from "../../services/CommerceService";
 import { checkoutQuantityLimit, resolveCheckoutQuantity } from "../../utils/checkoutAddOns";
 import { reconcileStoredSelection } from "../../utils/checkoutSelectionRecovery";
 import { safeGetSessionJson, safeRemoveSessionItem, safeSetSessionJson } from "../../utils/safeStorage";
+import "../../styles/event-ticket-purchase.css";
 
 const money = (value) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
 const dateLabel = (value) => {
@@ -91,16 +92,17 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
     return { tickets, items };
   }, [catalog, quantities]);
 
-  const total = useMemo(() => {
-    const ticketTotal = selected.tickets.reduce((sum, item) => sum + Number(item.price) * Number(quantities[`ticket:${item.id}`] || 0), 0);
-    const itemTotal = selected.items.reduce((sum, item) => sum + Number(item.price) * Number(quantities[`item:${item.id}`] || 0), 0);
-    return ticketTotal + itemTotal;
-  }, [selected, quantities]);
+  const selectedEntries = useMemo(() => [
+    ...selected.tickets.map((item) => ({ kind: "ticket", item, quantity: Number(quantities[`ticket:${item.id}`] || 0) })),
+    ...selected.items.map((item) => ({ kind: "item", item, quantity: Number(quantities[`item:${item.id}`] || 0) })),
+  ], [selected, quantities]);
 
-  const selectedQuantity = useMemo(() => (
-    [...selected.tickets.map((item) => ({ kind: "ticket", item })), ...selected.items.map((item) => ({ kind: "item", item }))]
-      .reduce((sum, entry) => sum + Number(quantities[`${entry.kind}:${entry.item.id}`] || 0), 0)
-  ), [selected, quantities]);
+  const total = useMemo(() => selectedEntries.reduce(
+    (sum, entry) => sum + (Number(entry.item.price || 0) * entry.quantity),
+    0,
+  ), [selectedEntries]);
+
+  const selectedQuantity = useMemo(() => selectedEntries.reduce((sum, entry) => sum + entry.quantity, 0), [selectedEntries]);
 
   const salesClosed = Boolean(catalog?.sales_closed || catalog?.event?.sales_closed);
   const checkoutAvailable = !salesClosed && (catalog?.payment_config?.available ?? catalog?.payment_config?.connected ?? false);
@@ -145,10 +147,10 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
 
   const QuantityStepper = ({ kind, id, value, max, label }) => {
     const quantity = Number(value || 0);
-    return <div className="d-inline-flex align-items-center gap-2" role="group" aria-label={`Quantidade de ${label}`}>
-      <Button type="button" variant="outline-secondary" className="rounded-circle p-0 d-inline-flex align-items-center justify-content-center" style={{ width: 42, height: 42 }} onClick={() => setQuantity(kind, id, quantity - 1, max)} disabled={quantity <= 0} aria-label={`Remover uma unidade de ${label}`}><i className="fa-solid fa-minus" /></Button>
-      <output className="fw-bold text-center" style={{ minWidth: 28 }} aria-live="polite">{quantity}</output>
-      <Button type="button" variant="outline-primary" className="rounded-circle p-0 d-inline-flex align-items-center justify-content-center" style={{ width: 42, height: 42 }} onClick={() => setQuantity(kind, id, quantity + 1, max)} disabled={quantity >= max} aria-label={`Adicionar uma unidade de ${label}`}><i className="fa-solid fa-plus" /></Button>
+    return <div className="cut-ticket-shop__stepper" role="group" aria-label={`Quantidade de ${label}`}>
+      <button type="button" onClick={() => setQuantity(kind, id, quantity - 1, max)} disabled={quantity <= 0} aria-label={`Remover uma unidade de ${label}`}><i className="fa-solid fa-minus" /></button>
+      <output aria-live="polite">{quantity}</output>
+      <button type="button" onClick={() => setQuantity(kind, id, quantity + 1, max)} disabled={quantity >= max} aria-label={`Adicionar uma unidade de ${label}`}><i className="fa-solid fa-plus" /></button>
     </div>;
   };
 
@@ -230,44 +232,102 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
   if (!(catalog.tickets || []).length && !(catalog.items || []).length && availableDates.length <= 1) return null;
 
   return <div className="cut-commerce-panel mt-4">
-    <span className="cut-eyebrow">Comprar</span>
-    <h3 className="cut-section-title mt-2">Ingressos e itens antecipados</h3>
-    <p className="text-secondary small">Escolha a data, seus ingressos e, se quiser, itens do estabelecimento para retirar no evento por QR Code.</p>
-    {error && <Alert variant="danger">{error}</Alert>}
-    {!checkoutAvailable && <Alert variant="warning">Pagamentos temporariamente indisponíveis para esta data.</Alert>}
-    {restoredSelection && selectedQuantity > 0 && checkoutAvailable && <Alert variant="success" className="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2">
-      <div><strong>Você já tinha uma compra em andamento.</strong><span className="d-block small">{selectedQuantity} selecionado{selectedQuantity === 1 ? "" : "s"} · {money(total)}. Preço e disponibilidade serão revalidados antes do pagamento.</span></div>
-      <Button type="button" variant="success" onClick={resumeRestoredCheckout}>{user ? `Continuar compra · ${money(total)}` : "Entrar e continuar"}</Button>
+    <div className="cut-ticket-shop__heading">
+      <div>
+        <span className="cut-eyebrow">Comprar</span>
+        <h3 className="mt-2">Escolha seus ingressos</h3>
+        <p>Selecione as quantidades e confira o resumo antes de seguir para o pagamento.</p>
+      </div>
+    </div>
+
+    {error && <Alert variant="danger" className="mb-0">{error}</Alert>}
+    {!checkoutAvailable && <Alert variant="warning" className="mb-0">Pagamentos temporariamente indisponíveis para esta data.</Alert>}
+
+    {restoredSelection && selectedQuantity > 0 && checkoutAvailable && <Alert variant="success" className="mb-0">
+      <div className="d-flex flex-column gap-2">
+        <div><strong>Compra em andamento recuperada.</strong><span className="d-block small">{selectedQuantity} selecionado{selectedQuantity === 1 ? "" : "s"} · {money(total)}. Preço e disponibilidade serão revalidados antes do pagamento.</span></div>
+        <Button type="button" variant="success" size="sm" onClick={resumeRestoredCheckout}>{user ? `Continuar compra · ${money(total)}` : "Entrar e continuar"}</Button>
+      </div>
     </Alert>}
 
-    {availableDates.length > 1 && <div className="mb-3">
-      <Form.Label className="fw-semibold">Para qual data você quer comprar?</Form.Label>
+    {availableDates.length > 1 && <div>
+      <Form.Label className="fw-semibold">Data do evento</Form.Label>
       <Form.Select value={activeSlug} onChange={(event) => handleDateChange(event.target.value)} aria-label="Escolha a data do evento">
         {availableDates.map((date) => <option key={date.event_id} value={date.slug}>{dateLabel(date.date || date.start_date)}</option>)}
       </Form.Select>
-      <small className="text-secondary d-block mt-1">Ingressos e estoque abaixo são exclusivos da data selecionada.</small>
+      <small className="text-secondary d-block mt-1">Ingressos e estoque são exclusivos da data selecionada.</small>
     </div>}
 
-    {(catalog.tickets || []).map((ticket) => {
-      const maxQuantity = resolveCheckoutQuantity(ticket, checkoutQuantityLimit("ticket"), checkoutQuantityLimit("ticket"));
-      const soldOut = maxQuantity <= 0;
-      const quantity = Number(quantities[`ticket:${ticket.id}`] || 0);
-      const subtotal = Number(ticket.price || 0) * quantity;
-      return <div className={`cut-ticket-option ${soldOut ? "opacity-50" : ""}`} key={`paid-ticket-${ticket.id}`} aria-disabled={soldOut}><div><span className="cut-ticket-kicker">Ingresso · {dateLabel(catalog?.event?.start_date)}</span><strong>{ticket.name}</strong><span>{quantity > 0 ? `${quantity} × ${money(ticket.price)} = ${money(subtotal)}` : money(ticket.price)}</span><small className={soldOut ? "text-secondary" : "text-success"}>{stockLabel(ticket, soldOut, checkoutQuantityLimit("ticket"))}</small></div>{soldOut ? <Button variant="secondary" disabled>{ticket.expired ? "Encerrado" : "Esgotado"}</Button> : <QuantityStepper kind="ticket" id={ticket.id} value={quantity} max={maxQuantity} label={ticket.name} />}</div>;
-    })}
+    {(catalog.tickets || []).length > 0 && <div className="cut-ticket-shop__list">
+      {(catalog.tickets || []).map((ticket) => {
+        const maxQuantity = resolveCheckoutQuantity(ticket, checkoutQuantityLimit("ticket"), checkoutQuantityLimit("ticket"));
+        const soldOut = maxQuantity <= 0;
+        const quantity = Number(quantities[`ticket:${ticket.id}`] || 0);
+        const subtotal = Number(ticket.price || 0) * quantity;
+        return <div className={`cut-ticket-shop__option ${soldOut ? "cut-ticket-shop__option--sold-out" : ""}`} key={`paid-ticket-${ticket.id}`} aria-disabled={soldOut}>
+          <div className="cut-ticket-shop__option-copy">
+            <span className="cut-ticket-kicker">Ingresso · {dateLabel(catalog?.event?.start_date)}</span>
+            <strong>{ticket.name}</strong>
+            <span>{quantity > 0 ? `${quantity} × ${money(ticket.price)} · ${money(subtotal)}` : money(ticket.price)}</span>
+            <small>{stockLabel(ticket, soldOut, checkoutQuantityLimit("ticket"))}</small>
+          </div>
+          {soldOut
+            ? <span className="cut-ticket-shop__sold-badge">{ticket.expired ? "Encerrado" : "Esgotado"}</span>
+            : <QuantityStepper kind="ticket" id={ticket.id} value={quantity} max={maxQuantity} label={ticket.name} />}
+        </div>;
+      })}
+    </div>}
 
-    {(catalog.items || []).map((item) => {
-      const maxQuantity = resolveCheckoutQuantity(item, checkoutQuantityLimit("item"), checkoutQuantityLimit("item"));
-      const soldOut = maxQuantity <= 0;
-      const quantity = Number(quantities[`item:${item.id}`] || 0);
-      const subtotal = Number(item.price || 0) * quantity;
-      return <div className={`cut-ticket-option ${soldOut ? "opacity-50" : ""}`} key={`event-item-${item.id}`} aria-disabled={soldOut}><div><span className="cut-ticket-kicker">Retirada no evento</span><strong>{item.name}</strong><span>{quantity > 0 ? `${quantity} × ${money(item.price)} = ${money(subtotal)}` : money(item.price)}</span>{item.description && <small>{item.description}</small>}<small className={soldOut ? "text-secondary" : "text-success"}>{stockLabel(item, soldOut, checkoutQuantityLimit("item"))}</small></div>{soldOut ? <Button variant="secondary" disabled>{item.expired ? "Encerrado" : "Esgotado"}</Button> : <QuantityStepper kind="item" id={item.id} value={quantity} max={maxQuantity} label={item.name} />}</div>;
-    })}
+    {(catalog.items || []).length > 0 && <>
+      <div className="cut-ticket-shop__heading mt-2">
+        <div><span className="cut-eyebrow">Extras</span><h3 className="mt-2">Itens para o evento</h3><p>Adicione itens antecipados para retirar no evento por QR Code.</p></div>
+      </div>
+      <div className="cut-ticket-shop__list">
+        {(catalog.items || []).map((item) => {
+          const maxQuantity = resolveCheckoutQuantity(item, checkoutQuantityLimit("item"), checkoutQuantityLimit("item"));
+          const soldOut = maxQuantity <= 0;
+          const quantity = Number(quantities[`item:${item.id}`] || 0);
+          const subtotal = Number(item.price || 0) * quantity;
+          return <div className={`cut-ticket-shop__option ${soldOut ? "cut-ticket-shop__option--sold-out" : ""}`} key={`event-item-${item.id}`} aria-disabled={soldOut}>
+            <div className="cut-ticket-shop__option-copy">
+              <span className="cut-ticket-kicker">Retirada no evento</span>
+              <strong>{item.name}</strong>
+              <span>{quantity > 0 ? `${quantity} × ${money(item.price)} · ${money(subtotal)}` : money(item.price)}</span>
+              {item.description && <small>{item.description}</small>}
+              <small>{stockLabel(item, soldOut, checkoutQuantityLimit("item"))}</small>
+            </div>
+            {soldOut
+              ? <span className="cut-ticket-shop__sold-badge">{item.expired ? "Encerrado" : "Esgotado"}</span>
+              : <QuantityStepper kind="item" id={item.id} value={quantity} max={maxQuantity} label={item.name} />}
+          </div>;
+        })}
+      </div>
+    </>}
 
-    <div className="d-flex align-items-center justify-content-between mt-3"><strong>{selectedQuantity > 0 ? `${selectedQuantity} selecionado${selectedQuantity === 1 ? "" : "s"}` : "Total"}</strong><strong>{money(total)}</strong></div>
-    {selectedQuantity > 0 && <small className="d-block text-success mt-2 text-center"><i className="fa-solid fa-clock-rotate-left me-1" />Sua seleção fica salva neste navegador e será revalidada ao retornar.</small>}
-    <Button className="w-100 mt-3" onClick={continueToCheckout} disabled={total <= 0 || !checkoutAvailable}><i className="fa-solid fa-lock me-2" />{user ? `Continuar · ${money(total)}` : "Entrar para comprar"}</Button>
-    <small className="d-block text-secondary mt-2 text-center"><i className="fa-solid fa-shield-halved me-1" />Ingressos usam QR de entrada; itens antecipados usam QR de retirada.</small>
+    <aside className="cut-ticket-shop__summary" aria-label="Resumo da seleção">
+      <div className="cut-ticket-shop__summary-head">
+        <span className="cut-ticket-shop__summary-count">×{selectedQuantity || 0}</span>
+        <small>{selectedQuantity > 0 ? "Itens selecionados" : "Sua seleção"}</small>
+      </div>
+
+      {selectedEntries.length > 0
+        ? <div className="cut-ticket-shop__summary-items">{selectedEntries.map((entry) => <div className="cut-ticket-shop__summary-item" key={`summary-${entry.kind}-${entry.item.id}`}>
+          <div><strong>{entry.item.name}</strong><span>{entry.quantity} × {money(entry.item.price)}</span></div>
+          <b>{money(Number(entry.item.price || 0) * entry.quantity)}</b>
+        </div>)}</div>
+        : <div className="cut-ticket-shop__summary-empty">Use os botões + para adicionar ingressos ou itens.</div>}
+
+      <div className="cut-ticket-shop__summary-footer">
+        <div className="cut-ticket-shop__summary-line"><span>Subtotal</span><strong>{money(total)}</strong></div>
+        <div className="cut-ticket-shop__summary-line"><span>Taxas</span><span>Calculadas no checkout</span></div>
+        <div className="cut-ticket-shop__summary-line cut-ticket-shop__summary-line--total"><span>Total dos itens</span><strong>{money(total)}</strong></div>
+        <p className="cut-ticket-shop__summary-note">O valor final, incluindo eventuais taxas de processamento, é confirmado antes do pagamento.</p>
+        <button type="button" className="cut-ticket-shop__checkout-btn" onClick={continueToCheckout} disabled={total <= 0 || !checkoutAvailable}>{user ? `Continuar · ${money(total)}` : "Entrar para comprar"}</button>
+      </div>
+    </aside>
+
+    {selectedQuantity > 0 && <small className="d-block text-success text-center"><i className="fa-solid fa-clock-rotate-left me-1" />Sua seleção fica salva neste navegador e será revalidada ao retornar.</small>}
+    <div className="cut-ticket-shop__trust"><i className="fa-solid fa-shield-halved" /><span>Compra segura. Ingressos usam QR de entrada; itens antecipados usam QR de retirada.</span></div>
   </div>;
 }
 
