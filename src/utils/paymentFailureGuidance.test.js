@@ -14,8 +14,41 @@ describe("paymentFailureGuidance", () => {
   });
 
   test("guides correction when provider reports invalid card data", () => {
-    const result = classifyPaymentFailure({ provider_payload: { status_detail: "cc_rejected_bad_filled_security_code" } }, "card");
+    const result = classifyPaymentFailure({ provider_payload: { status_detail: "cc_rejected_bad_filled_other" } }, "card");
     expect(result.reason).toBe("card_data");
+  });
+
+  test("points directly to CVV when the provider rejects the security code", () => {
+    const result = paymentFailureGuidance({
+      method: "card",
+      pixAvailable: true,
+      payment: { provider_payload: { status_detail: "cc_rejected_bad_filled_security_code" } },
+    });
+    expect(result.reason).toBe("card_security_code");
+    expect(result.title).toContain("código de segurança");
+    expect(result.message).toContain("CVV");
+    expect(result.message).toContain("3 ou 4 dígitos");
+    expect(result.message).toContain("sem refazer sua seleção");
+  });
+
+  test("points directly to expiration data when month or year is invalid", () => {
+    const result = paymentFailureGuidance({
+      method: "card",
+      payment: { provider_payload: { status_detail: "cc_rejected_bad_filled_date" } },
+    });
+    expect(result.reason).toBe("card_expiration_data");
+    expect(result.title).toContain("validade");
+    expect(result.message).toContain("mês e ano");
+  });
+
+  test("points directly to card number when provider reports invalid digits", () => {
+    const result = paymentFailureGuidance({
+      method: "card",
+      payment: { provider_payload: { status_detail: "cc_rejected_bad_filled_card_number" } },
+    });
+    expect(result.reason).toBe("card_number");
+    expect(result.title).toContain("número do cartão");
+    expect(result.message).toContain("Confira os dígitos");
   });
 
   test("explains disabled cards and recommends PIX without losing the selection", () => {
