@@ -13,21 +13,20 @@ const routeOf = (node) => {
 
 const labelOf = (node) => node?.querySelector?.("span")?.textContent?.trim() || node?.textContent?.trim() || "";
 
-const iconFor = (route, label) => {
+const iconFor = (route) => {
   if (route.startsWith("/event")) return "fa-regular fa-calendar-days";
   if (route.startsWith("/feed")) return "fa-solid fa-house";
+  if (route.startsWith("/messages")) return "fa-regular fa-paper-plane";
   if (route.startsWith("/passes")) return "fa-solid fa-ticket";
   if (route.startsWith("/profile")) return "fa-regular fa-circle-user";
-  if (/áreas|areas|produção|producao/i.test(label)) return "fa-solid fa-plus";
   return "fa-regular fa-circle";
 };
 
 const rank = (node) => {
   const route = routeOf(node);
-  const label = labelOf(node);
   if (route.startsWith("/event")) return 1;
   if (route.startsWith("/feed")) return 2;
-  if (/áreas|areas|produção|producao/i.test(label)) return 3;
+  if (route.startsWith("/messages")) return 3;
   if (route.startsWith("/passes")) return 4;
   if (route.startsWith("/profile")) return 5;
   return 20;
@@ -55,11 +54,11 @@ const prepareBottomNav = () => {
     const itemRank = rank(node);
     node.classList.toggle("cut-mobile-bottom-nav__primary", itemRank === 3);
     const icon = node.querySelector("i");
-    const desiredIcon = iconFor(route, label);
+    const desiredIcon = iconFor(route);
     if (icon && icon.className !== desiredIcon) icon.className = desiredIcon;
     if (!node.getAttribute("aria-label") && label) node.setAttribute("aria-label", label);
     if (node.getAttribute("title") !== (label || "Navegação")) node.setAttribute("title", label || "Navegação");
-    if (itemRank === 3 && node.querySelector("span")) node.querySelector("span").textContent = "Criar";
+    if (itemRank === 3 && node.querySelector("span")) node.querySelector("span").textContent = "Mensagens";
     if (node.dataset.cutNavInteraction !== "true") {
       node.dataset.cutNavInteraction = "true";
       node.addEventListener("pointerdown", () => haptic(itemRank === 3 ? 12 : 7), { passive: true });
