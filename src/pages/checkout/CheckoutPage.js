@@ -10,6 +10,7 @@ import { copyText } from "../../utils/clipboard";
 import { resolveCheckoutPaymentMethod } from "../../utils/paymentMethod";
 import { paymentFailureGuidance } from "../../utils/paymentFailureGuidance";
 import { checkoutQuantityLimit, rankCheckoutAddOns, resolveCheckoutQuantity, summarizeCheckoutAddOnOffer } from "../../utils/checkoutAddOns";
+import { checkoutReconciliationMessage, summarizeCheckoutReconciliation } from "../../utils/checkoutReconciliation";
 import { getPaymentSyncDelay } from "../../utils/paymentSyncSchedule";
 import { createKeyedSingleFlight } from "../../utils/singleFlight";
 import { safeGetSessionJson, safeRemoveSessionItem, safeSetSessionJson } from "../../utils/safeStorage";
@@ -163,10 +164,11 @@ export default function CheckoutPage() {
     if (previous === nextComparable) return;
 
     const nextSelection = { ...selection, tickets, items };
+    const reconciliation = summarizeCheckoutReconciliation({ catalog, previousSelection: selection, nextSelection });
     setSelection(nextSelection);
     safeSetSessionJson(checkoutStorageKey, nextSelection);
     writeCheckoutRecovery(slug, { selection: nextSelection, orderPublicId: null });
-    setError("Sua seleção foi atualizada para a disponibilidade atual do evento. Revise o resumo antes de pagar.");
+    setError(checkoutReconciliationMessage(reconciliation, money));
     trackCheckout("checkout_selection_reconciled", {
       label: "Seleção ajustada à disponibilidade atual",
       target: slug,
@@ -176,6 +178,11 @@ export default function CheckoutPage() {
         ticket_quantity: tickets.reduce((sum, item) => sum + Number(item.quantity || 0), 0),
         previous_item_quantity: (selection.items || []).reduce((sum, item) => sum + Number(item.quantity || 0), 0),
         item_quantity: items.reduce((sum, item) => sum + Number(item.quantity || 0), 0),
+        changed_lines: reconciliation.changed_lines,
+        previous_gmv: reconciliation.previous_gmv,
+        reconciled_gmv: reconciliation.reconciled_gmv,
+        gmv_removed: reconciliation.gmv_removed,
+        unpriced_removed_lines: reconciliation.unpriced_removed_lines,
       },
     });
   }, [catalog, checkoutStorageKey, result, selection, slug]);
