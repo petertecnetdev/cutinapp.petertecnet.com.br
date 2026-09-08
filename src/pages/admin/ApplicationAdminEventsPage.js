@@ -74,6 +74,7 @@ export default function ApplicationAdminEventsPage() {
         params: { page: nextPage, per_page: PAGE_SIZE, q: q || undefined },
       });
       if (requestId !== requestRef.current) return;
+
       const payload = response.data || {};
       const paginator = paginatorFrom(payload);
       const rows = rowsFrom(payload);
@@ -130,6 +131,7 @@ export default function ApplicationAdminEventsPage() {
       setSelectedEventIds((current) => current.filter((id) => !loadedEventIds.includes(id)));
       return;
     }
+
     setSelectedEventIds((current) => Array.from(new Set([...current, ...loadedEventIds])));
   };
 
@@ -158,6 +160,7 @@ export default function ApplicationAdminEventsPage() {
     setBusy(true);
     setError("");
     setSuccess("");
+
     try {
       const response = await applicationAdminEventService.removeMany(selectedEventIds);
       const deletedCount = Number(response?.deleted_count || selectedEventIds.length);
@@ -181,17 +184,50 @@ export default function ApplicationAdminEventsPage() {
   return <div className="cut-app-page cut-admin-events-page">
     <NavlogComponent />
     <Container className="cut-page-container py-4 py-lg-5">
-      <section className="cut-admin-events-hero"><div><span className="cut-eyebrow">Cutinapp Admin Center</span><h1>Eventos</h1><p>{total || events.length} evento(s) na Cutinapp. Selecione vários eventos para executar ações administrativas em lote.</p></div></section>
+      <section className="cut-admin-events-hero">
+        <div>
+          <span className="cut-eyebrow">Cutinapp Admin Center</span>
+          <h1>Eventos</h1>
+          <p>{total || events.length} evento(s) na Cutinapp. Selecione vários eventos para executar ações administrativas em lote.</p>
+        </div>
+      </section>
+
       {error && <Alert variant="danger">{error}</Alert>}
       {success && <Alert variant="success" dismissible onClose={() => setSuccess("")}>{success}</Alert>}
+
       <div className="cut-admin-events-toolbar">
-        <div className="cut-admin-search-wrap"><i className="fa-solid fa-magnifying-glass" aria-hidden="true" /><Form.Control type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar evento, produção ou cidade" aria-label="Buscar evento" /></div>
-        <Button variant="outline-light" onClick={() => { setSelectedEventIds([]); loadEvents({ nextPage: 1, append: false }); }} disabled={loading}><i className="fa-solid fa-rotate me-2" />Atualizar</Button>
+        <div className="cut-admin-search-wrap">
+          <i className="fa-solid fa-magnifying-glass" aria-hidden="true" />
+          <Form.Control type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar evento, produção ou cidade" aria-label="Buscar evento" />
+        </div>
+        <Button variant="outline-light" onClick={() => { setSelectedEventIds([]); loadEvents({ nextPage: 1, append: false }); }} disabled={loading}>
+          <i className="fa-solid fa-rotate me-2" />Atualizar
+        </Button>
       </div>
+
       {events.length > 0 && <div className="cut-admin-events-bulkbar">
-        <Form.Check type="checkbox" id="cut-admin-select-all-events" checked={allLoadedSelected} onChange={toggleSelectAllLoaded} label={selectedEventIds.length > 0 ? `${selectedEventIds.length} evento(s) selecionado(s)` : "Selecionar eventos"} />
-        <div className="cut-admin-events-bulkbar__actions"><Button variant="outline-light" size="sm" onClick={toggleSelectAllLoaded}>{allLoadedSelected ? "Limpar seleção" : `Selecionar ${events.length} carregado(s)`}</Button><Button variant="danger" size="sm" disabled={!selectedEventIds.length} onClick={() => { setBulkDeleteConfirmation(""); setBulkDeleteOpen(true); }}><i className="fa-regular fa-trash-can me-2" />Excluir selecionados</Button></div>
+        <Form.Check
+          type="checkbox"
+          id="cut-admin-select-all-events"
+          checked={allLoadedSelected}
+          onChange={toggleSelectAllLoaded}
+          label={selectedEventIds.length > 0 ? `${selectedEventIds.length} evento(s) selecionado(s)` : "Selecionar eventos"}
+        />
+        <div className="cut-admin-events-bulkbar__actions">
+          <Button variant="outline-light" size="sm" onClick={toggleSelectAllLoaded}>
+            {allLoadedSelected ? "Limpar seleção" : `Selecionar ${events.length} carregado(s)`}
+          </Button>
+          <Button
+            variant="danger"
+            size="sm"
+            disabled={!selectedEventIds.length}
+            onClick={() => { setBulkDeleteConfirmation(""); setBulkDeleteOpen(true); }}
+          >
+            <i className="fa-regular fa-trash-can me-2" />Excluir selecionados
+          </Button>
+        </div>
       </div>}
+
       {loading && !events.length ? <div className="text-center py-5"><Spinner /><p className="mt-2">Carregando eventos...</p></div> : <div className="cut-admin-event-list">
         {events.map((event) => {
           const image = eventImage(event);
@@ -199,27 +235,77 @@ export default function ApplicationAdminEventsPage() {
           const eventId = Number(event.id);
           const selected = selectedEventIds.includes(eventId);
           return <article className={`cut-admin-event-row${selected ? " is-selected" : ""}`} key={event.id}>
-            <div className="cut-admin-event-row__select" onClick={(e) => e.stopPropagation()}><Form.Check type="checkbox" checked={selected} onChange={() => toggleEventSelection(eventId)} aria-label={`Selecionar ${event.title || "evento"}`} /></div>
+            <div className="cut-admin-event-row__select" onClick={(e) => e.stopPropagation()}>
+              <Form.Check
+                type="checkbox"
+                checked={selected}
+                onChange={() => toggleEventSelection(eventId)}
+                aria-label={`Selecionar ${event.title || "evento"}`}
+              />
+            </div>
             <button type="button" className="cut-admin-event-row__main" onClick={() => navigate(`/event/edit/${event.id}`)} aria-label={`Editar ${event.title || "evento"}`}>
-              <div className="cut-admin-event-row__media">{image ? <img src={image} alt="" loading="lazy" decoding="async" /> : <i className="fa-regular fa-calendar" aria-hidden="true" />}</div>
-              <div className="cut-admin-event-row__content"><div className="cut-admin-event-row__title-line"><h2>{event.title || "Evento sem nome"}</h2><Badge bg={status.variant}>{status.label}</Badge></div><span className="cut-admin-event-row__date"><i className="fa-regular fa-calendar me-2" />{formatEventDate(event.start_date)}</span><small>{event.production?.name || "Produção não informada"}</small></div>
+              <div className="cut-admin-event-row__media">
+                {image ? <img src={image} alt="" loading="lazy" decoding="async" /> : <i className="fa-regular fa-calendar" aria-hidden="true" />}
+              </div>
+              <div className="cut-admin-event-row__content">
+                <div className="cut-admin-event-row__title-line">
+                  <h2>{event.title || "Evento sem nome"}</h2>
+                  <Badge bg={status.variant}>{status.label}</Badge>
+                </div>
+                <span className="cut-admin-event-row__date"><i className="fa-regular fa-calendar me-2" />{formatEventDate(event.start_date)}</span>
+                <small>{event.production?.name || "Produção não informada"}</small>
+              </div>
             </button>
-            <div className="cut-admin-event-row__actions"><Button onClick={() => navigate(`/event/edit/${event.id}`)}><i className="fa-regular fa-pen-to-square me-2" />Editar</Button><Button variant="outline-light" aria-label="Abrir evento" onClick={() => event.slug ? navigate(`/event/${event.slug}`) : navigate(`/event/edit/${event.id}`)}><i className="fa-regular fa-eye" /></Button><Button variant="outline-danger" aria-label="Excluir evento" onClick={() => { setDeleteConfirmation(""); setEventToDelete(event); }}><i className="fa-regular fa-trash-can" /></Button></div>
+            <div className="cut-admin-event-row__actions">
+              <Button onClick={() => navigate(`/event/edit/${event.id}`)}><i className="fa-regular fa-pen-to-square me-2" />Editar</Button>
+              <Button variant="outline-light" aria-label="Abrir evento" onClick={() => event.slug ? navigate(`/event/${event.slug}`) : navigate(`/event/edit/${event.id}`)}><i className="fa-regular fa-eye" /></Button>
+              <Button variant="outline-danger" aria-label="Excluir evento" onClick={() => { setDeleteConfirmation(""); setEventToDelete(event); }}><i className="fa-regular fa-trash-can" /></Button>
+            </div>
           </article>;
         })}
         {!events.length && !error && <Alert variant="secondary">Nenhum evento encontrado.</Alert>}
       </div>}
-      <div ref={sentinelRef} className="text-center py-4" aria-live="polite">{loadingMore && <><Spinner size="sm" /><span className="ms-2">Buscando mais eventos...</span></>}{!loadingMore && events.length > 0 && page >= lastPage && <small className="text-secondary">Fim dos resultados.</small>}</div>
+
+      <div ref={sentinelRef} className="text-center py-4" aria-live="polite">
+        {loadingMore && <><Spinner size="sm" /><span className="ms-2">Buscando mais eventos...</span></>}
+        {!loadingMore && events.length > 0 && page >= lastPage && <small className="text-secondary">Fim dos resultados.</small>}
+      </div>
     </Container>
+
     <Modal show={Boolean(eventToDelete)} onHide={() => !busy && setEventToDelete(null)} centered>
       <Modal.Header closeButton={!busy}><Modal.Title>Excluir evento</Modal.Title></Modal.Header>
-      <Modal.Body><p>Excluir <strong>{eventToDelete?.title}</strong>?</p><Form.Label>Digite <strong>EXCLUIR</strong> para confirmar.</Form.Label><Form.Control autoFocus value={deleteConfirmation} onChange={(e) => setDeleteConfirmation(e.target.value)} disabled={busy} /></Modal.Body>
-      <Modal.Footer><Button variant="outline-light" onClick={() => setEventToDelete(null)} disabled={busy}>Cancelar</Button><Button variant="danger" onClick={deleteEvent} disabled={busy || deleteConfirmation.trim().toUpperCase() !== "EXCLUIR"}>{busy ? <Spinner size="sm" className="me-2" /> : <i className="fa-regular fa-trash-can me-2" />}Excluir evento</Button></Modal.Footer>
+      <Modal.Body>
+        <p>Excluir <strong>{eventToDelete?.title}</strong>?</p>
+        <Form.Label>Digite <strong>EXCLUIR</strong> para confirmar.</Form.Label>
+        <Form.Control autoFocus value={deleteConfirmation} onChange={(e) => setDeleteConfirmation(e.target.value)} disabled={busy} />
+      </Modal.Body>
+      <Modal.Footer>
+        <Button variant="outline-light" onClick={() => setEventToDelete(null)} disabled={busy}>Cancelar</Button>
+        <Button variant="danger" onClick={deleteEvent} disabled={busy || deleteConfirmation.trim().toUpperCase() !== "EXCLUIR"}>
+          {busy ? <Spinner size="sm" className="me-2" /> : <i className="fa-regular fa-trash-can me-2" />}Excluir evento
+        </Button>
+      </Modal.Footer>
     </Modal>
+
     <Modal show={bulkDeleteOpen} onHide={() => !busy && setBulkDeleteOpen(false)} centered>
       <Modal.Header closeButton={!busy}><Modal.Title>Excluir vários eventos</Modal.Title></Modal.Header>
-      <Modal.Body><Alert variant="danger">Você está prestes a excluir <strong>{selectedEventIds.length} evento(s)</strong>. A ação é permanente e será cancelada se algum dos eventos tiver ingressos já emitidos.</Alert>{selectedEvents.length > 0 && <div className="cut-admin-bulk-preview">{selectedEvents.slice(0, 5).map((event) => <span key={event.id}>{event.title || `Evento #${event.id}`}</span>)}{selectedEvents.length > 5 && <small>+ {selectedEvents.length - 5} outro(s)</small>}</div>}<Form.Label className="mt-3">Digite <strong>EXCLUIR</strong> para confirmar.</Form.Label><Form.Control autoFocus value={bulkDeleteConfirmation} onChange={(e) => setBulkDeleteConfirmation(e.target.value)} disabled={busy} /></Modal.Body>
-      <Modal.Footer><Button variant="outline-light" onClick={() => setBulkDeleteOpen(false)} disabled={busy}>Cancelar</Button><Button variant="danger" onClick={deleteSelectedEvents} disabled={busy || !selectedEventIds.length || bulkDeleteConfirmation.trim().toUpperCase() !== "EXCLUIR"}>{busy ? <Spinner size="sm" className="me-2" /> : <i className="fa-regular fa-trash-can me-2" />}Excluir {selectedEventIds.length} evento(s)</Button></Modal.Footer>
+      <Modal.Body>
+        <Alert variant="danger">
+          Você está prestes a excluir <strong>{selectedEventIds.length} evento(s)</strong>. A ação é permanente e será cancelada se algum dos eventos tiver ingressos já emitidos.
+        </Alert>
+        {selectedEvents.length > 0 && <div className="cut-admin-bulk-preview">
+          {selectedEvents.slice(0, 5).map((event) => <span key={event.id}>{event.title || `Evento #${event.id}`}</span>)}
+          {selectedEvents.length > 5 && <small>+ {selectedEvents.length - 5} outro(s)</small>}
+        </div>}
+        <Form.Label className="mt-3">Digite <strong>EXCLUIR</strong> para confirmar.</Form.Label>
+        <Form.Control autoFocus value={bulkDeleteConfirmation} onChange={(e) => setBulkDeleteConfirmation(e.target.value)} disabled={busy} />
+      </Modal.Body>
+      <Modal.Footer>
+        <Button variant="outline-light" onClick={() => setBulkDeleteOpen(false)} disabled={busy}>Cancelar</Button>
+        <Button variant="danger" onClick={deleteSelectedEvents} disabled={busy || !selectedEventIds.length || bulkDeleteConfirmation.trim().toUpperCase() !== "EXCLUIR"}>
+          {busy ? <Spinner size="sm" className="me-2" /> : <i className="fa-regular fa-trash-can me-2" />}Excluir {selectedEventIds.length} evento(s)
+        </Button>
+      </Modal.Footer>
     </Modal>
   </div>;
 }
