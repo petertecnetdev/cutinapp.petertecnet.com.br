@@ -33,6 +33,8 @@ export const classifyPaymentFailure = (payment = {}, method = "") => {
   if (detail.includes("bad_filled") || detail.includes("invalid") || detail.includes("form")) return { reason: "card_data", detail };
   if (detail.includes("expired")) return { reason: "expired_card", detail };
   if (detail.includes("call_for_authorize")) return { reason: "issuer_authorization", detail };
+  if (detail.includes("blacklist")) return { reason: "security_block", detail };
+  if (detail.includes("other_reason")) return { reason: "issuer_or_risk_rejection", detail };
   if (detail.includes("high_risk") || detail.includes("fraud")) return { reason: "security_review", detail };
   if (detail.includes("max_attempts") || detail.includes("duplicated")) return { reason: "attempt_limit", detail };
   return { reason: "card_rejected", detail };
@@ -83,6 +85,14 @@ export const paymentFailureGuidance = ({ payment = {}, method = "", pixAvailable
     issuer_authorization: {
       title: "O banco precisa autorizar a compra",
       message: `O emissor pediu autorização para esta compra. Autorize no seu banco primeiro e só então tente novamente.${pixRecommended}`,
+    },
+    security_block: {
+      title: "Este cartão não pode ser usado nesta tentativa",
+      message: `O provedor bloqueou esta tentativa por critérios de segurança. Não repita o mesmo cartão em sequência; escolha outro meio de pagamento ou fale com o banco emissor.${pixRecommended}`,
+    },
+    issuer_or_risk_rejection: {
+      title: "O banco não aprovou esta tentativa",
+      message: `O banco não informou um motivo específico para a recusa e o provedor recomenda trocar o meio de pagamento ou consultar o emissor. Evite repetir imediatamente os mesmos dados.${pixRecommended}`,
     },
     security_review: {
       title: "O pagamento não foi autorizado",
