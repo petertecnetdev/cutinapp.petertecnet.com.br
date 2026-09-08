@@ -25,12 +25,12 @@ describe("ApiClient error messages", () => {
     );
   });
 
-  test("keeps network failures understandable without technical details", () => {
+  test("keeps network failures understandable without blaming the user's internet", () => {
     expect(humanizeApiErrorMessage("Network Error", undefined, "ERR_NETWORK")).toBe(
-      "Não foi possível conectar ao servidor. Verifique sua internet e tente novamente."
+      "Não foi possível concluir a comunicação com o servidor. Isso pode ser uma indisponibilidade da API ou um bloqueio do navegador. Tente novamente."
     );
     expect(humanizeApiErrorMessage("timeout of 20000ms exceeded", undefined, "ECONNABORTED")).toBe(
-      "A solicitação demorou mais que o esperado. Verifique sua conexão e tente novamente."
+      "A API demorou mais que o esperado para responder. Tente novamente em instantes."
     );
   });
 });
