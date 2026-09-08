@@ -30,6 +30,7 @@ import "./styles/mobile-hamburger-recovery.css";
 import "./styles/desktop-navbar-overflow-fix.css";
 import "./styles/responsive-hardening.css";
 import "./styles/event-view-shotgun-layout.css";
+import "./pages/checkout/Coupon.css";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import PeterAccountGateway from "./components/PeterAccountGateway";

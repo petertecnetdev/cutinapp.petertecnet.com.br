@@ -72,6 +72,7 @@ const PurchasesPage = lazy(() => import("./pages/commerce/PurchasesPage"));
 const PurchaseDetailPage = lazy(() => import("./pages/commerce/PurchaseDetailPage"));
 const ProducerSalesPage = lazy(() => import("./pages/commerce/ProducerSalesPage"));
 const ProducerSaleDetailPage = lazy(() => import("./pages/commerce/ProducerSaleDetailPage"));
+const CouponManagePage = lazy(() => import("./pages/commerce/CouponManagePage"));
 const TicketCreatePage = lazy(() => import("./pages/ticket/TicketCreatePage"));
 const CourtesyManagePage = lazy(() => import("./pages/ticket/CourtesyManagePage"));
 const MyPassesPage = lazyWithPreload(() => import("./pages/ticket/MyPassesPage"));
@@ -180,6 +181,7 @@ function AppRoutes() {
           <Route path="/producer/finance" element={protectedRoute(<ProductionFinancePage />)} />
           <Route path="/producer/sales" element={protectedRoute(<ProducerSalesPage />)} />
           <Route path="/producer/sales/:productionId/:publicId" element={protectedRoute(<ProducerSaleDetailPage />)} />
+          <Route path="/production/:productionId/coupons" element={protectedRoute(<CouponManagePage />)} />
           <Route path="/production/:productionId/agenda" element={protectedRoute(<ProductionAgendaManager />)} />
           <Route path="/production/:productionId/agenda/new" element={protectedRoute(<ProductionAgendaFormPage />)} />
           <Route path="/production/:productionId/agenda/:scheduleId/edit" element={protectedRoute(<ProductionAgendaFormPage />)} />
