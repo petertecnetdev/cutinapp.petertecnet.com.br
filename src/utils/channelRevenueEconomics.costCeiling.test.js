@@ -10,7 +10,7 @@ describe("channel economic cost ceilings", () => {
         promoter_id: 10,
         promoter_commission: 3,
         processor_fee: 2,
-        metadata: { settlement_mode: "platform" },
+        metadata: { settlement_mode: "platform_collection" },
       },
     ], { minNetTakeRate: 2 });
 
