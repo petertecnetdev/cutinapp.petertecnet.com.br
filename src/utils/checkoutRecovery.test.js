@@ -12,18 +12,36 @@ describe("checkoutRecovery", () => {
   beforeEach(() => localStorage.clear());
   afterEach(() => jest.restoreAllMocks());
 
-  test("persists only the minimal cart and order reference needed to recover checkout", () => {
+  test("persists only the minimal cart, coupon code and order reference needed to recover checkout", () => {
     expect(writeCheckoutRecovery(slug, {
       selection: {
         tickets: [{ id: "7", quantity: "2", name: "VIP", price: 100 }],
         items: [{ id: 9, quantity: 1, secret: "discard-me" }],
       },
       orderPublicId: "order-public-123",
+      couponCode: " cutvip20 ",
     }, now)).toBe(true);
 
     expect(readCheckoutRecovery(slug, now + 1000)).toEqual({
       selection: { tickets: [{ id: 7, quantity: 2 }], items: [{ id: 9, quantity: 1 }] },
       orderPublicId: "order-public-123",
+      couponCode: "CUTVIP20",
+      savedAt: now,
+    });
+  });
+
+  test("does not persist malformed coupon data or financial values", () => {
+    writeCheckoutRecovery(slug, {
+      selection: { tickets: [{ id: 7, quantity: 1 }] },
+      couponCode: "<script>alert(1)</script>",
+      discountAmount: 999,
+      total: 1,
+    }, now);
+
+    expect(readCheckoutRecovery(slug, now)).toEqual({
+      selection: { tickets: [{ id: 7, quantity: 1 }], items: [] },
+      orderPublicId: null,
+      couponCode: null,
       savedAt: now,
     });
   });
