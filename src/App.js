@@ -22,6 +22,9 @@ import lazyWithPreload from "./utils/lazyWithPreload";
 
 const HomePage = lazyWithPreload(() => import("./pages/LandingPageV2"));
 const FeedPage = lazyWithPreload(() => import("./pages/FeedPage"));
+const BlogPage = lazyWithPreload(() => import("./pages/blog/BlogPage"));
+const BlogArticlePage = lazy(() => import("./pages/blog/BlogArticlePage"));
+const MessagesPage = lazy(() => import("./pages/MessagesPage"));
 const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
 const ReportModerationPage = lazy(() => import("./pages/moderation/ReportModerationPage"));
 const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
@@ -35,6 +38,7 @@ const AcquisitionDashboardPage = lazy(() => import("./pages/acquisition/Acquisit
 const AcquisitionActivationPage = lazy(() => import("./pages/acquisition/AcquisitionActivationPage"));
 const AdminCenterPage = lazy(() => import("./pages/admin/AdminCenterPage"));
 const ApplicationAdminAccessPage = lazy(() => import("./pages/admin/ApplicationAdminAccessPage"));
+const AdminBlogPage = lazy(() => import("./pages/admin/AdminBlogPage"));
 const ApplicationAdminEventsPage = lazy(() => import("./pages/admin/ApplicationAdminEventsPage"));
 const ApplicationAdminTicketsPage = lazy(() => import("./pages/admin/ApplicationAdminTicketsPage"));
 const ApplicationAdminUsersPage = lazy(() => import("./pages/admin/ApplicationAdminUsersPage"));
@@ -47,8 +51,10 @@ const UserProfilePage = lazy(() => import("./pages/user/UserProfilePage"));
 const ProductionListPage = lazyWithPreload(() => import("./pages/production/ProductionListPage"));
 const ProductionCreatePage = lazy(() => import("./pages/production/ProductionCreatePage"));
 const ProductionMinePage = lazy(() => import("./pages/production/ProductionMinePage"));
+const ProducerMediaLibraryPage = lazy(() => import("./pages/production/ProducerMediaLibraryPage"));
 const ProductionViewPage = lazy(() => import("./pages/production/ProductionViewPage"));
 const ProductionPublicPage = lazy(() => import("./pages/production/ProductionPublicPage"));
+const ProductionAgendaPublicPage = lazy(() => import("./pages/production/ProductionAgendaPublicPage"));
 const ProductionUpdatePage = lazy(() => import("./pages/production/ProductionUpdatePage"));
 const ProductionFinancePage = lazy(() => import("./pages/production/ProductionFinancePage"));
 const ProducerContractsPage = lazy(() => import("./pages/production/ProducerContractsPage"));
@@ -69,6 +75,7 @@ const PurchasesPage = lazy(() => import("./pages/commerce/PurchasesPage"));
 const PurchaseDetailPage = lazy(() => import("./pages/commerce/PurchaseDetailPage"));
 const ProducerSalesPage = lazy(() => import("./pages/commerce/ProducerSalesPage"));
 const ProducerSaleDetailPage = lazy(() => import("./pages/commerce/ProducerSaleDetailPage"));
+const CouponManagePage = lazy(() => import("./pages/commerce/CouponManagePage"));
 const TicketCreatePage = lazy(() => import("./pages/ticket/TicketCreatePage"));
 const CourtesyManagePage = lazy(() => import("./pages/ticket/CourtesyManagePage"));
 const MyPassesPage = lazyWithPreload(() => import("./pages/ticket/MyPassesPage"));
@@ -85,6 +92,7 @@ function AppRoutes() {
     const run = () => {
       EventPage.preload();
       ProductionListPage.preload();
+      BlogPage.preload();
       if (user) {
         FeedPage.preload();
         MyPassesPage.preload();
@@ -146,6 +154,7 @@ function AppRoutes() {
           <Route path="/dashboard" element={protectedRoute(<DashboardPage />)} />
           <Route path="/agent" element={acquisitionRoute(<AcquisitionDashboardPage />)} />
           <Route path="/admin" element={adminRoute(<AdminCenterPage />, "dashboard.view")} />
+          <Route path="/admin/blog" element={adminRoute(<AdminBlogPage />)} />
           <Route path="/admin/users" element={adminRoute(<ApplicationAdminUsersPage />, "users.view")} />
           <Route path="/admin/access" element={adminRoute(<ApplicationAdminAccessPage />, "admin.access.manage")} />
           <Route path="/admin/productions" element={adminRoute(<ApplicationAdminProductionsPage />, "establishments.view")} />
@@ -155,7 +164,10 @@ function AppRoutes() {
           <Route path="/admin/finance" element={adminRoute(<ApplicationAdminFinancePage />, "finance.view")} />
           <Route path="/admin/checkins" element={adminRoute(<ApplicationAdminCheckinsPage />, "checkin.view")} />
           <Route path="/admin/moderation" element={adminRoute(<ReportModerationPage />, "moderation.view")} />
+          <Route path="/blog" element={<BlogPage />} />
+          <Route path="/blog/:slug" element={<BlogArticlePage />} />
           <Route path="/feed" element={protectedRoute(<FeedPage />)} />
+          <Route path="/messages" element={protectedRoute(<MessagesPage />)} />
           <Route path="/notifications" element={protectedRoute(<NotificationsPage />)} />
           <Route path="/moderation/reports" element={protectedRoute(<ReportModerationPage />)} />
           <Route path="/profile" element={protectedRoute(<UserProfilePage />)} />
@@ -169,13 +181,16 @@ function AppRoutes() {
           <Route path="/productions" element={<ProductionListPage />} />
           <Route path="/production/create" element={protectedRoute(<ProductionCreatePage />)} />
           <Route path="/production/mine" element={protectedRoute(<ProductionMinePage />)} />
+          <Route path="/producer/media" element={protectedRoute(<ProducerMediaLibraryPage />)} />
           <Route path="/producer/contracts" element={protectedRoute(<ProducerContractsPage />)} />
           <Route path="/producer/finance" element={protectedRoute(<ProductionFinancePage />)} />
           <Route path="/producer/sales" element={protectedRoute(<ProducerSalesPage />)} />
           <Route path="/producer/sales/:productionId/:publicId" element={protectedRoute(<ProducerSaleDetailPage />)} />
+          <Route path="/production/:productionId/coupons" element={protectedRoute(<CouponManagePage />)} />
           <Route path="/production/:productionId/agenda" element={protectedRoute(<ProductionAgendaManager />)} />
           <Route path="/production/:productionId/agenda/new" element={protectedRoute(<ProductionAgendaFormPage />)} />
           <Route path="/production/:productionId/agenda/:scheduleId/edit" element={protectedRoute(<ProductionAgendaFormPage />)} />
+          <Route path="/agenda/:slug" element={<ProductionAgendaPublicPage />} />
           <Route path="/production/:slug/public" element={<ProductionPublicPage />} />
           <Route path="/production/:id" element={protectedRoute(<ProductionViewPage />)} />
           <Route path="/production/edit/:id" element={protectedRoute(<ProductionUpdatePage />)} />
