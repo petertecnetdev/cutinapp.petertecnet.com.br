@@ -21,6 +21,8 @@ import lazyWithPreload from "./utils/lazyWithPreload";
 
 const HomePage = lazyWithPreload(() => import("./pages/LandingPageV2"));
 const FeedPage = lazyWithPreload(() => import("./pages/FeedPage"));
+const BlogPage = lazyWithPreload(() => import("./pages/blog/BlogPage"));
+const BlogArticlePage = lazy(() => import("./pages/blog/BlogArticlePage"));
 const MessagesPage = lazy(() => import("./pages/MessagesPage"));
 const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
 const ReportModerationPage = lazy(() => import("./pages/moderation/ReportModerationPage"));
@@ -34,6 +36,7 @@ const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const AcquisitionDashboardPage = lazy(() => import("./pages/acquisition/AcquisitionDashboardPage"));
 const AcquisitionActivationPage = lazy(() => import("./pages/acquisition/AcquisitionActivationPage"));
 const AdminCenterPage = lazy(() => import("./pages/admin/AdminCenterPage"));
+const AdminBlogPage = lazy(() => import("./pages/admin/AdminBlogPage"));
 const ApplicationAdminEventsPage = lazy(() => import("./pages/admin/ApplicationAdminEventsPage"));
 const ApplicationAdminTicketsPage = lazy(() => import("./pages/admin/ApplicationAdminTicketsPage"));
 const ApplicationAdminUsersPage = lazy(() => import("./pages/admin/ApplicationAdminUsersPage"));
@@ -85,6 +88,7 @@ function AppRoutes() {
     const run = () => {
       EventPage.preload();
       ProductionListPage.preload();
+      BlogPage.preload();
       if (user) {
         FeedPage.preload();
         MyPassesPage.preload();
@@ -146,6 +150,7 @@ function AppRoutes() {
           <Route path="/dashboard" element={protectedRoute(<DashboardPage />)} />
           <Route path="/agent" element={acquisitionRoute(<AcquisitionDashboardPage />)} />
           <Route path="/admin" element={adminRoute(<AdminCenterPage />)} />
+          <Route path="/admin/blog" element={adminRoute(<AdminBlogPage />)} />
           <Route path="/admin/users" element={adminRoute(<ApplicationAdminUsersPage />)} />
           <Route path="/admin/productions" element={adminRoute(<ApplicationAdminProductionsPage />)} />
           <Route path="/admin/events" element={adminRoute(<ApplicationAdminEventsPage />)} />
@@ -154,6 +159,8 @@ function AppRoutes() {
           <Route path="/admin/finance" element={adminRoute(<ApplicationAdminFinancePage />)} />
           <Route path="/admin/checkins" element={adminRoute(<ApplicationAdminCheckinsPage />)} />
           <Route path="/admin/moderation" element={adminRoute(<ReportModerationPage />)} />
+          <Route path="/blog" element={<BlogPage />} />
+          <Route path="/blog/:slug" element={<BlogArticlePage />} />
           <Route path="/feed" element={protectedRoute(<FeedPage />)} />
           <Route path="/messages" element={protectedRoute(<MessagesPage />)} />
           <Route path="/notifications" element={protectedRoute(<NotificationsPage />)} />
