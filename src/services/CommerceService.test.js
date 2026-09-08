@@ -197,7 +197,45 @@ describe("CommerceService", () => {
     await expect(commerceService.recoverPendingCheckout(77)).resolves.toMatchObject({ recovery_started: true });
 
     expect(appApiClient.get).toHaveBeenCalledWith("/commerce/checkout/pending");
-    expect(appApiClient.post).toHaveBeenCalledWith("/commerce/checkout/pending/recover", { order_id: 77 });
+    expect(appApiClient.post).toHaveBeenCalledWith(
+      "/commerce/checkout/pending/recover",
+      { order_id: 77 },
+      { headers: { "Idempotency-Key": expect.any(String) } },
+    );
+  });
+
+  test("reuses the checkout recovery key after an uncertain failure", async () => {
+    const networkError = Object.assign(new Error("Network Error"), { code: "ERR_NETWORK" });
+    appApiClient.post
+      .mockRejectedValueOnce(networkError)
+      .mockResolvedValueOnce({ data: { recovery_started: true, order: { id: 77 } } });
+
+    await expect(commerceService.recoverPendingCheckout(77)).rejects.toThrow("Network Error");
+    const firstKey = idempotencyKeyAt(0);
+    await expect(commerceService.recoverPendingCheckout("77")).resolves.toMatchObject({ recovery_started: true });
+    expect(idempotencyKeyAt(1)).toBe(firstKey);
+  });
+
+  test("protects payment reconciliation retries with an idempotency key", async () => {
+    appApiClient.post.mockResolvedValueOnce({ data: { order: { public_id: "order-uuid", status: "pending" } } });
+
+    await expect(commerceService.syncPayment(" order-uuid ")).resolves.toMatchObject({ public_id: "order-uuid" });
+    expect(appApiClient.post).toHaveBeenCalledWith(
+      "/commerce/orders/order-uuid/sync-payment",
+      undefined,
+      { headers: { "Idempotency-Key": expect.any(String) } },
+    );
+  });
+
+  test("reuses the payment reconciliation key after a transient server failure", async () => {
+    appApiClient.post
+      .mockRejectedValueOnce({ response: { status: 503 } })
+      .mockResolvedValueOnce({ data: { order: { public_id: "order-uuid", status: "paid" } } });
+
+    await expect(commerceService.syncPayment("order-uuid")).rejects.toMatchObject({ response: { status: 503 } });
+    const firstKey = idempotencyKeyAt(0);
+    await expect(commerceService.syncPayment("order-uuid")).resolves.toMatchObject({ status: "paid" });
+    expect(idempotencyKeyAt(1)).toBe(firstKey);
   });
 
   test("redeems event items against the selected event", async () => {
