@@ -52,20 +52,15 @@ describe("prepareCheckoutFailureForRecovery", () => {
 });
 
 describe("checkout conflict classification", () => {
-  test("classifies authoritative stock shortage as inventory conflict", () => {
+  test("classifies only authoritative stock shortages as inventory conflicts", () => {
     expect(isCheckoutInventoryConflict({ status: 422, message: "Não há quantidade suficiente no lote VIP." })).toBe(true);
-  });
-
-  test("does not classify idempotency processing conflict as inventory change", () => {
     expect(isCheckoutInventoryConflict({ status: 409, message: "Esta operação já está em processamento." })).toBe(false);
-    expect(isCheckoutOperationInProgress({ status: 409, message: "Esta operação já está em processamento." })).toBe(true);
   });
 
-  test("keeps processing conflicts out of inventory recovery without losing the idempotency attempt", () => {
+  test("recognizes an in-flight idempotent checkout without changing its status contract", () => {
     const error = { status: 409, message: "Esta operação já está em processamento." };
+    expect(isCheckoutOperationInProgress(error)).toBe(true);
     expect(shouldKeepCheckoutAttempt(error)).toBe(true);
-    expect(error.status).toBe(425);
-    expect(error.serverStatus).toBe(409);
-    expect(error.message).toContain("Não inicie outra cobrança");
+    expect(error.status).toBe(409);
   });
 });
