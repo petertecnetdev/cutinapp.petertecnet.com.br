@@ -1,5 +1,6 @@
 const MOBILE_BREAKPOINT = 991.98;
 const SHELL_MARK = "data-cut-instagram-shell";
+const NAV_RELEVANT_SELECTOR = ".cut-mobile-bottom-nav, .cut-capability-nav, .cut-navbar";
 
 const isMobile = () => typeof window !== "undefined" && window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`).matches;
 
@@ -152,6 +153,14 @@ const prepareShell = () => {
   focusComposer();
 };
 
+const mutationTouchesNavigation = (mutation) => {
+  const nodes = [...mutation.addedNodes, ...mutation.removedNodes];
+  return nodes.some((node) => {
+    if (!(node instanceof Element)) return false;
+    return node.matches(NAV_RELEVANT_SELECTOR) || Boolean(node.querySelector?.(NAV_RELEVANT_SELECTOR));
+  });
+};
+
 export const installInstagramMobileShell = () => {
   if (typeof window === "undefined" || typeof document === "undefined") return () => {};
 
@@ -177,15 +186,24 @@ export const installInstagramMobileShell = () => {
 
   const onFocusChange = () => window.setTimeout(syncKeyboardState, 80);
   const onViewportChange = () => window.requestAnimationFrame(syncKeyboardState);
+  const onNavigation = () => queue();
 
   queue();
   lastScrollY = Math.max(0, window.scrollY || 0);
-  const observer = new MutationObserver(queue);
-  observer.observe(document.documentElement, { childList: true, subtree: true });
+
+  // React can mutate large feeds/lists many times per second. Re-running the shell on
+  // every DOM mutation was unnecessary and expensive, so only navigation mount/unmount
+  // changes trigger a full shell preparation now.
+  const observer = new MutationObserver((mutations) => {
+    if (mutations.some(mutationTouchesNavigation)) queue();
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+
   window.addEventListener("resize", queue, { passive: true });
   window.addEventListener("scroll", onScroll, { passive: true });
-  window.addEventListener("popstate", queue);
-  window.addEventListener("hashchange", queue);
+  window.addEventListener("popstate", onNavigation);
+  window.addEventListener("hashchange", onNavigation);
+  window.addEventListener("pageshow", onNavigation);
   document.addEventListener("focusin", onFocusChange);
   document.addEventListener("focusout", onFocusChange);
   window.visualViewport?.addEventListener("resize", onViewportChange, { passive: true });
@@ -194,8 +212,9 @@ export const installInstagramMobileShell = () => {
     observer.disconnect();
     window.removeEventListener("resize", queue);
     window.removeEventListener("scroll", onScroll);
-    window.removeEventListener("popstate", queue);
-    window.removeEventListener("hashchange", queue);
+    window.removeEventListener("popstate", onNavigation);
+    window.removeEventListener("hashchange", onNavigation);
+    window.removeEventListener("pageshow", onNavigation);
     document.removeEventListener("focusin", onFocusChange);
     document.removeEventListener("focusout", onFocusChange);
     window.visualViewport?.removeEventListener("resize", onViewportChange);
