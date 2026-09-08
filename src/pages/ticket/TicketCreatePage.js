@@ -8,29 +8,20 @@ import eventService from "../../services/EventService";
 import { AuthContext } from "../../context/AuthContext";
 import { nextProducerActivationRoute } from "../../utils/producerActivationRoute";
 import { clearTicketCreationDraft, readTicketCreationDraft, writeTicketCreationDraft } from "../../utils/ticketCreationDraft";
+import {
+  SALES_CUTOFF_PRESETS,
+  buildSalesCutoffRule,
+  calculateSalesCutoffForEvent,
+  describeSalesCutoffRule,
+  ruleFromTicket,
+} from "../../utils/ticketSalesCutoff";
 
-const pad = (value) => String(value).padStart(2, "0");
-const toLocalInput = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 const money = (value) => Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const formatDateTime = (value) => {
   if (!value) return "—";
-  const date = new Date(value);
+  const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
   return new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium", timeStyle: "short" }).format(date);
-};
-const minimumWithdrawalDate = () => {
-  const date = new Date();
-  date.setHours(date.getHours() + 1);
-  date.setSeconds(0, 0);
-  return date;
-};
-const suggestedLimitDate = (event) => {
-  if (!event?.start_date) return "";
-  const start = new Date(event.start_date);
-  if (Number.isNaN(start.getTime())) return "";
-  const minimum = minimumWithdrawalDate();
-  const suggestion = new Date(start.getTime() - 60 * 60 * 1000);
-  return suggestion >= minimum ? toLocalInput(suggestion) : "";
 };
 const firstError = (errors, field) => {
   const value = errors?.[field];
@@ -42,6 +33,9 @@ const ticketSignature = (ticket) => [
   ticket?.ticket_type,
   Number(ticket?.price || 0).toFixed(2),
   Number(ticket?.quantity || 0),
+  ticket?.sales_cutoff_mode || "legacy",
+  Number(ticket?.sales_cutoff_offset_minutes || 0),
+  ticket?.limit_date || "",
   ticket?.description || "",
 ].join("|");
 
@@ -64,7 +58,10 @@ export default function TicketCreatePage() {
   const [name, setName] = useState("1º Lote");
   const [price, setPrice] = useState("");
   const [quantity, setQuantity] = useState(100);
-  const [limitDate, setLimitDate] = useState("");
+  const [cutoffPreset, setCutoffPreset] = useState("at_start");
+  const [customCutoffMode, setCustomCutoffMode] = useState("after_start");
+  const [customCutoffAmount, setCustomCutoffAmount] = useState(2);
+  const [customCutoffUnit, setCustomCutoffUnit] = useState("hours");
   const [description, setDescription] = useState("Ingresso para acesso ao evento mediante QR Code individual.");
   const [optionalDetailsOpen, setOptionalDetailsOpen] = useState(false);
 
@@ -75,26 +72,41 @@ export default function TicketCreatePage() {
   const [submitted, setSubmitted] = useState(false);
   const [draftRestored, setDraftRestored] = useState(false);
 
-  const eligibleEvents = useMemo(() => events.filter((item) => !item.is_cancelled), [events]);
+  const reusableEvents = useMemo(() => events.filter((item) => !item.is_cancelled), [events]);
+  const eligibleEvents = useMemo(() => reusableEvents.filter((item) => {
+    if (!item.end_date) return true;
+    const end = new Date(item.end_date);
+    return Number.isNaN(end.getTime()) || end > new Date();
+  }), [reusableEvents]);
   const selectedEvents = useMemo(
     () => eligibleEvents.filter((item) => selectedEventIds.includes(String(item.id))),
     [eligibleEvents, selectedEventIds]
   );
-  const earliestSelectedEvent = useMemo(() => {
-    const dated = selectedEvents
-      .filter((item) => item.start_date && !Number.isNaN(new Date(item.start_date).getTime()))
-      .sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
-    return dated[0] || null;
-  }, [selectedEvents]);
-  const minimumLimit = useMemo(() => toLocalInput(minimumWithdrawalDate()), [selectedEventIds]);
-  const maximumLimit = useMemo(() => {
-    if (!earliestSelectedEvent?.start_date) return "";
-    return toLocalInput(new Date(earliestSelectedEvent.start_date));
-  }, [earliestSelectedEvent]);
   const selectedSourceTicket = useMemo(
     () => library.find((ticket) => String(ticket.id) === String(sourceTicketId)) || null,
     [library, sourceTicketId]
   );
+  const newCutoffRule = useMemo(() => buildSalesCutoffRule({
+    preset: cutoffPreset,
+    customMode: customCutoffMode,
+    customAmount: customCutoffAmount,
+    customUnit: customCutoffUnit,
+  }), [cutoffPreset, customCutoffMode, customCutoffAmount, customCutoffUnit]);
+  const activeCutoffRule = useMemo(
+    () => mode === "reuse" && selectedSourceTicket ? ruleFromTicket(selectedSourceTicket) : newCutoffRule,
+    [mode, selectedSourceTicket, newCutoffRule]
+  );
+  const customCutoffInvalid = mode === "new" && cutoffPreset === "custom"
+    && (!Number.isFinite(Number(customCutoffAmount)) || Number(customCutoffAmount) < 1);
+  const cutoffPreviews = useMemo(() => {
+    const now = new Date();
+    return selectedEvents.map((item) => ({
+      event: item,
+      ...calculateSalesCutoffForEvent(item, activeCutoffRule, now),
+    }));
+  }, [selectedEvents, activeCutoffRule]);
+  const cutoffInvalid = customCutoffInvalid || cutoffPreviews.some((item) => !item.valid);
+  const clampedCount = cutoffPreviews.filter((item) => item.clamped).length;
 
   useEffect(() => {
     let active = true;
@@ -102,14 +114,19 @@ export default function TicketCreatePage() {
       .then((items) => {
         if (!active) return;
         setEvents(items);
-        const eligible = items.filter((item) => !item.is_cancelled);
+        const available = items.filter((item) => {
+          if (item.is_cancelled) return false;
+          if (!item.end_date) return true;
+          const end = new Date(item.end_date);
+          return Number.isNaN(end.getTime()) || end > new Date();
+        });
         const requested = requestedEventId
-          ? eligible.find((item) => String(item.id) === String(requestedEventId))
+          ? available.find((item) => String(item.id) === String(requestedEventId))
           : null;
 
         if (requestedEventId && !requested) {
           setSelectedEventIds([]);
-          setError("O evento informado não pertence às suas produções ou está cancelado. Selecione um evento válido.");
+          setError("O evento informado não pertence às suas produções, está cancelado ou já terminou. Selecione um evento válido.");
           return;
         }
 
@@ -121,18 +138,19 @@ export default function TicketCreatePage() {
             setName(draft.name || "1º Lote");
             setPrice(draft.price ?? "");
             setQuantity(draft.quantity ?? 100);
-            setLimitDate(draft.limitDate || suggestedLimitDate(requested));
+            setCutoffPreset(draft.cutoffPreset || "at_start");
+            setCustomCutoffMode(draft.customCutoffMode || "after_start");
+            setCustomCutoffAmount(draft.customCutoffAmount || 2);
+            setCustomCutoffUnit(draft.customCutoffUnit || "hours");
             setDescription(draft.description || "Ingresso para acesso ao evento mediante QR Code individual.");
             setOptionalDetailsOpen(Boolean(draft.optionalDetailsOpen));
             setDraftRestored(true);
           } else {
-            setLimitDate(suggestedLimitDate(requested));
             const capacity = Number(requested.max_attendees || 0);
             if (Number.isInteger(capacity) && capacity > 0) setQuantity(Math.min(capacity, 100000));
           }
-        } else if (eligible.length === 1) {
-          setSelectedEventIds([String(eligible[0].id)]);
-          setLimitDate(suggestedLimitDate(eligible[0]));
+        } else if (available.length === 1) {
+          setSelectedEventIds([String(available[0].id)]);
         }
       })
       .catch((err) => active && setError(err?.message || "Não foi possível carregar seus eventos."))
@@ -145,11 +163,36 @@ export default function TicketCreatePage() {
     const eventId = selectedEventIds[0];
     const timer = window.setTimeout(() => {
       writeTicketCreationDraft(draftOwnerId, eventId, {
-        kind, name, price, quantity, limitDate, description, optionalDetailsOpen,
+        kind,
+        name,
+        price,
+        quantity,
+        cutoffPreset,
+        customCutoffMode,
+        customCutoffAmount,
+        customCutoffUnit,
+        description,
+        optionalDetailsOpen,
       });
     }, 300);
     return () => window.clearTimeout(timer);
-  }, [draftOwnerId, mode, selectedEventIds, kind, name, price, quantity, limitDate, description, optionalDetailsOpen, initialLoading, loading]);
+  }, [
+    draftOwnerId,
+    mode,
+    selectedEventIds,
+    kind,
+    name,
+    price,
+    quantity,
+    cutoffPreset,
+    customCutoffMode,
+    customCutoffAmount,
+    customCutoffUnit,
+    description,
+    optionalDetailsOpen,
+    initialLoading,
+    loading,
+  ]);
 
   const loadTicketLibrary = async () => {
     if (libraryLoaded || libraryLoading) return;
@@ -158,8 +201,8 @@ export default function TicketCreatePage() {
     try {
       const collected = [];
       const batchSize = 6;
-      for (let index = 0; index < eligibleEvents.length; index += batchSize) {
-        const batch = eligibleEvents.slice(index, index + batchSize);
+      for (let index = 0; index < reusableEvents.length; index += batchSize) {
+        const batch = reusableEvents.slice(index, index + batchSize);
         const responses = await Promise.allSettled(batch.map(async (event) => ({
           event,
           tickets: await ticketService.listByEvent(event.id),
@@ -225,16 +268,17 @@ export default function TicketCreatePage() {
   };
 
   const normalizedPrice = kind === "free" ? 0 : Number(price);
-  const priceInvalid = mode === "new" && kind === "paid" && (!String(price).trim() || !Number.isFinite(normalizedPrice) || normalizedPrice < 0.01 || normalizedPrice > 999999.99);
-  const limitDateInvalid = useMemo(() => {
-    if (mode !== "new" || !limitDate) return false;
-    const limit = new Date(limitDate);
-    if (Number.isNaN(limit.getTime()) || limit < new Date(minimumLimit)) return true;
-    return Boolean(maximumLimit && limit > new Date(maximumLimit));
-  }, [mode, limitDate, minimumLimit, maximumLimit]);
+  const priceInvalid = mode === "new" && kind === "paid"
+    && (!String(price).trim() || !Number.isFinite(normalizedPrice) || normalizedPrice < 0.01 || normalizedPrice > 999999.99);
   const canSubmit = mode === "reuse"
-    ? selectedEventIds.length > 0 && Boolean(sourceTicketId) && !loading
-    : selectedEventIds.length > 0 && name.trim() && Number(quantity) > 0 && Number(quantity) <= 100000 && !priceInvalid && !limitDateInvalid && !loading;
+    ? selectedEventIds.length > 0 && Boolean(sourceTicketId) && !cutoffInvalid && !loading
+    : selectedEventIds.length > 0
+      && name.trim()
+      && Number(quantity) > 0
+      && Number(quantity) <= 100000
+      && !priceInvalid
+      && !cutoffInvalid
+      && !loading;
 
   const submit = async (event) => {
     event.preventDefault();
@@ -245,7 +289,7 @@ export default function TicketCreatePage() {
     if (!canSubmit) {
       if (selectedEventIds.length === 0) setError("Selecione pelo menos um evento.");
       else if (mode === "reuse" && !sourceTicketId) setError("Escolha o ingresso que deseja reutilizar.");
-      else if (limitDateInvalid) setError("O prazo precisa ficar entre 1 hora após agora e o início do primeiro evento selecionado.");
+      else if (cutoffInvalid) setError("Revise o encerramento das vendas. Todos os eventos precisam ter um prazo futuro e anterior ou igual ao término do evento.");
       else if (priceInvalid) setError("Informe um preço válido a partir de R$ 0,01.");
       else setError("Revise os campos antes de continuar.");
       return;
@@ -262,7 +306,8 @@ export default function TicketCreatePage() {
         quantity: Number(quantity),
         price: normalizedPrice,
         ticket_type: kind === "free" ? "courtesy" : "standard",
-        limit_date: limitDate || null,
+        sales_cutoff_mode: newCutoffRule.mode,
+        sales_cutoff_offset_minutes: newCutoffRule.offsetMinutes,
         description: description.trim() || null,
       });
 
@@ -281,6 +326,8 @@ export default function TicketCreatePage() {
             source_ticket_id: mode === "reuse" ? Number(sourceTicketId) : null,
             created_count: Number(response?.created_count || 0),
             existing_count: Number(response?.existing_count || 0),
+            sales_cutoff_mode: activeCutoffRule.mode,
+            sales_cutoff_offset_minutes: activeCutoffRule.offsetMinutes,
           },
         });
       } catch (_) {
@@ -305,7 +352,7 @@ export default function TicketCreatePage() {
     } catch (err) {
       const errors = err?.errors || {};
       setFieldErrors(errors);
-      if (errors?.limit_date || errors?.description) setOptionalDetailsOpen(true);
+      if (errors?.description) setOptionalDetailsOpen(true);
       setError(err?.message || "Não foi possível aplicar o ingresso aos eventos selecionados.");
     } finally {
       setLoading(false);
@@ -313,6 +360,7 @@ export default function TicketCreatePage() {
   };
 
   const invalid = (field, local = false) => Boolean(local || firstError(fieldErrors, field));
+  const cutoffFieldError = firstError(fieldErrors, "sales_cutoff_mode") || firstError(fieldErrors, "sales_cutoff_offset_minutes");
 
   return (
     <div className="cut-app-page">
@@ -336,7 +384,7 @@ export default function TicketCreatePage() {
           <Card className="cut-empty-state">
             <Card.Body>
               <h2>Você ainda não tem eventos disponíveis</h2>
-              <p>Crie um evento antes de configurar ingressos.</p>
+              <p>Crie um evento futuro antes de configurar ingressos.</p>
               <Button onClick={() => navigate("/event/create")}>Criar evento</Button>
             </Card.Body>
           </Card>
@@ -371,7 +419,9 @@ export default function TicketCreatePage() {
                               <Form.Check checked={checked} onChange={() => toggleEvent(item.id)} aria-label={`Selecionar ${item.title}`} />
                               <span className="flex-grow-1">
                                 <strong className="d-block">{item.title}</strong>
-                                <small className="text-body-secondary">{formatDateTime(item.start_date)} · {item.is_published ? "publicado" : "rascunho"}</small>
+                                <small className="text-body-secondary">
+                                  Início {formatDateTime(item.start_date)} · término {formatDateTime(item.end_date)} · {item.is_published ? "publicado" : "rascunho"}
+                                </small>
                               </span>
                               {checked && <Badge bg="primary">selecionado</Badge>}
                             </label>
@@ -402,7 +452,7 @@ export default function TicketCreatePage() {
                         {selectedSourceTicket && (
                           <div className="cut-info-box mt-3">
                             <strong>{selectedSourceTicket.name} · {money(selectedSourceTicket.price)}</strong>
-                            <span>Quantidade por evento: {selectedSourceTicket.quantity}. O prazo será reaproveitado quando compatível; em eventos com outra data, a API adapta o fechamento mantendo a segurança da venda.</span>
+                            <span>Quantidade por evento: {selectedSourceTicket.quantity}. Encerramento: {describeSalesCutoffRule(activeCutoffRule)}. A regra será recalculada para a data de cada evento, nunca depois do término.</span>
                           </div>
                         )}
                       </div>
@@ -440,29 +490,109 @@ export default function TicketCreatePage() {
                             <Form.Control.Feedback type="invalid">{firstError(fieldErrors, "quantity") || "Informe de 1 a 100.000."}</Form.Control.Feedback>
                           </Form.Group>
                         </Col>
+
+                        <Col xs={12}>
+                          <Form.Group>
+                            <Form.Label>Encerrar vendas *</Form.Label>
+                            <Form.Select
+                              value={cutoffPreset}
+                              onChange={(event) => setCutoffPreset(event.target.value)}
+                              isInvalid={invalid("sales_cutoff_mode", submitted && cutoffInvalid)}
+                            >
+                              {SALES_CUTOFF_PRESETS.map((preset) => (
+                                <option key={preset.value} value={preset.value}>{preset.label}</option>
+                              ))}
+                            </Form.Select>
+                            <Form.Text>
+                              O horário é calculado separadamente para cada evento. O sistema nunca deixa a venda aberta depois do término do evento.
+                            </Form.Text>
+                            <Form.Control.Feedback type="invalid">{cutoffFieldError || "Escolha uma regra que gere um horário futuro para todos os eventos selecionados."}</Form.Control.Feedback>
+                          </Form.Group>
+                        </Col>
+
+                        {cutoffPreset === "custom" && (
+                          <>
+                            <Col md={4}>
+                              <Form.Group>
+                                <Form.Label>Intervalo *</Form.Label>
+                                <Form.Control
+                                  type="number"
+                                  min={1}
+                                  step={1}
+                                  value={customCutoffAmount}
+                                  onChange={(event) => setCustomCutoffAmount(event.target.value)}
+                                  isInvalid={submitted && customCutoffInvalid}
+                                />
+                              </Form.Group>
+                            </Col>
+                            <Col md={3}>
+                              <Form.Group>
+                                <Form.Label>Unidade *</Form.Label>
+                                <Form.Select value={customCutoffUnit} onChange={(event) => setCustomCutoffUnit(event.target.value)}>
+                                  <option value="minutes">minutos</option>
+                                  <option value="hours">horas</option>
+                                  <option value="days">dias</option>
+                                </Form.Select>
+                              </Form.Group>
+                            </Col>
+                            <Col md={5}>
+                              <Form.Group>
+                                <Form.Label>Referência *</Form.Label>
+                                <Form.Select value={customCutoffMode} onChange={(event) => setCustomCutoffMode(event.target.value)}>
+                                  <option value="before_start">antes do início</option>
+                                  <option value="after_start">depois do início</option>
+                                  <option value="before_end">antes do término</option>
+                                </Form.Select>
+                              </Form.Group>
+                            </Col>
+                          </>
+                        )}
+
+                        <Col xs={12}>
+                          <div className={`cut-info-box ${cutoffInvalid ? "border border-danger" : ""}`}>
+                            <strong>Fechamento automático: {describeSalesCutoffRule(activeCutoffRule)}</strong>
+                            {cutoffPreviews.length === 0 ? (
+                              <span>Selecione um evento para visualizar o horário de encerramento.</span>
+                            ) : (
+                              <>
+                                {cutoffPreviews.slice(0, 4).map((preview) => (
+                                  <span key={preview.event.id} className={preview.valid ? "" : "text-danger"}>
+                                    {preview.event.title}: {preview.date ? formatDateTime(preview.date) : preview.reason}
+                                    {!preview.valid && preview.date ? ` · ${preview.reason}` : ""}
+                                  </span>
+                                ))}
+                                {cutoffPreviews.length > 4 && <span>+ {cutoffPreviews.length - 4} evento(s) com a mesma regra.</span>}
+                                {clampedCount > 0 && <span>{clampedCount} evento(s) terão o prazo limitado automaticamente ao horário de término.</span>}
+                              </>
+                            )}
+                          </div>
+                        </Col>
+
                         <Col xs={12}>
                           {!optionalDetailsOpen ? (
-                            <Button type="button" variant="link" className="px-0" onClick={() => setOptionalDetailsOpen(true)}>Definir prazo ou descrição</Button>
+                            <Button type="button" variant="link" className="px-0" onClick={() => setOptionalDetailsOpen(true)}>Adicionar descrição</Button>
                           ) : (
-                            <Row className="g-3">
-                              <Col xs={12}>
-                                <Form.Group>
-                                  <Form.Label>Disponível até</Form.Label>
-                                  <Form.Control type="datetime-local" min={minimumLimit} max={maximumLimit || undefined} value={limitDate} onChange={(event) => setLimitDate(event.target.value)} isInvalid={invalid("limit_date", submitted && limitDateInvalid)} />
-                                  <Form.Text>Quando vários eventos estiverem selecionados, o prazo precisa ser anterior ao primeiro deles. Você também pode deixar em branco.</Form.Text>
-                                  <Form.Control.Feedback type="invalid">{firstError(fieldErrors, "limit_date") || "Informe um prazo válido."}</Form.Control.Feedback>
-                                </Form.Group>
-                              </Col>
-                              <Col xs={12}>
-                                <Form.Group>
-                                  <Form.Label>Descrição</Form.Label>
-                                  <Form.Control as="textarea" rows={3} value={description} onChange={(event) => setDescription(event.target.value)} />
-                                </Form.Group>
-                              </Col>
-                            </Row>
+                            <Form.Group>
+                              <Form.Label>Descrição</Form.Label>
+                              <Form.Control as="textarea" rows={3} value={description} onChange={(event) => setDescription(event.target.value)} />
+                              {firstError(fieldErrors, "description") && <div className="text-danger small mt-1">{firstError(fieldErrors, "description")}</div>}
+                            </Form.Group>
                           )}
                         </Col>
                       </Row>
+                    )}
+
+                    {mode === "reuse" && cutoffPreviews.length > 0 && (
+                      <div className={`cut-info-box mt-4 ${cutoffInvalid ? "border border-danger" : ""}`}>
+                        <strong>Fechamento recalculado: {describeSalesCutoffRule(activeCutoffRule)}</strong>
+                        {cutoffPreviews.slice(0, 4).map((preview) => (
+                          <span key={preview.event.id} className={preview.valid ? "" : "text-danger"}>
+                            {preview.event.title}: {preview.date ? formatDateTime(preview.date) : preview.reason}
+                            {!preview.valid && preview.date ? ` · ${preview.reason}` : ""}
+                          </span>
+                        ))}
+                        {clampedCount > 0 && <span>{clampedCount} evento(s) terão o prazo limitado automaticamente ao término.</span>}
+                      </div>
                     )}
 
                     <div className="cut-info-box mt-4">
