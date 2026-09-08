@@ -60,6 +60,14 @@ export const addOnNetRevenuePerEligibleBuyer = ({ incrementalNetRevenue = 0, pai
   return eligibleBuyers > 0 ? netRevenue / eligibleBuyers : 0;
 };
 
+export const addOnRevenueMateriality = ({ incrementalNetRevenue = 0, netPlatformRevenue = 0 } = {}) => {
+  const incremental = Math.max(0, Number(incrementalNetRevenue || 0));
+  const current = Math.max(0, Number(netPlatformRevenue || 0));
+  if (incremental <= 0) return 0;
+  if (current <= 0) return 100;
+  return Math.min(100, (incremental / current) * 100);
+};
+
 export const addOnMarginGuard = ({ incrementalGmv = 0, incrementalNetRevenue = 0, minimumNetMargin = 2, minimumNetRevenue = 5 } = {}) => {
   const gmv = Math.max(0, Number(incrementalGmv || 0));
   const netRevenue = Math.max(0, Number(incrementalNetRevenue || 0));
@@ -102,6 +110,9 @@ export const compareAddOnOpportunities = (a = {}, b = {}) => {
 
   const eligibleBuyerEfficiencyDelta = addOnNetRevenuePerEligibleBuyer(b) - addOnNetRevenuePerEligibleBuyer(a);
   if (eligibleBuyerEfficiencyDelta !== 0) return eligibleBuyerEfficiencyDelta;
+
+  const materialityDelta = addOnRevenueMateriality(b) - addOnRevenueMateriality(a);
+  if (materialityDelta !== 0) return materialityDelta;
 
   return Math.max(0, Number(b.netPlatformRevenue || 0)) - Math.max(0, Number(a.netPlatformRevenue || 0));
 };
