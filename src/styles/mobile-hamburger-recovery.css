@@ -1,7 +1,7 @@
 /* Final safety layer for the mobile hamburger.
  * Imported after every legacy navigation stylesheet.
- * The drawer must remain reachable/closable and must never leave an invisible
- * full-screen layer intercepting the whole application.
+ * The drawer is a true full-screen navigation surface and always wins the
+ * stacking order over fixed CTAs, footers, dialogs and page content.
  */
 
 @media (max-width: 991.98px) {
@@ -11,38 +11,43 @@
 
   .cut-navbar .navbar-toggler {
     position: relative !important;
-    z-index: 10020 !important;
+    z-index: 2147483647 !important;
     pointer-events: auto !important;
     touch-action: manipulation !important;
   }
 
   .cut-navbar .navbar-collapse {
     position: fixed !important;
-    top: calc(64px + env(safe-area-inset-top, 0px)) !important;
-    right: max(8px, env(safe-area-inset-right, 0px)) !important;
-    bottom: auto !important;
-    left: auto !important;
-    width: min(380px, calc(100vw - 16px)) !important;
-    max-width: calc(100vw - 16px) !important;
-    height: auto !important;
-    min-height: 0 !important;
-    max-height: calc(100dvh - 80px - env(safe-area-inset-bottom, 0px)) !important;
-    padding: 14px !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    max-width: none !important;
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    max-height: 100dvh !important;
+    padding:
+      calc(76px + env(safe-area-inset-top, 0px))
+      max(18px, env(safe-area-inset-right, 0px))
+      calc(28px + env(safe-area-inset-bottom, 0px))
+      max(18px, env(safe-area-inset-left, 0px)) !important;
     overflow-x: hidden !important;
     overflow-y: auto !important;
     overscroll-behavior: contain !important;
     -webkit-overflow-scrolling: touch;
-    border: 1px solid rgba(255,255,255,.14) !important;
-    border-radius: 18px !important;
-    background: linear-gradient(155deg, rgba(18,39,61,.985), rgba(8,21,34,.995)) !important;
-    box-shadow: 0 24px 70px rgba(0,0,0,.42) !important;
-    transform: translate3d(12px, -8px, 0) scale(.985) !important;
-    transform-origin: top right !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background:
+      radial-gradient(circle at 88% 7%, rgba(105, 86, 255, .18), transparent 32%),
+      radial-gradient(circle at 8% 92%, rgba(52, 199, 232, .12), transparent 34%),
+      linear-gradient(160deg, rgba(13, 31, 47, .998), rgba(5, 15, 24, .999)) !important;
+    box-shadow: none !important;
+    transform: translate3d(0, -14px, 0) !important;
+    transform-origin: top center !important;
     opacity: 0 !important;
     visibility: hidden !important;
     pointer-events: none !important;
-    transition: opacity .16s ease, transform .16s ease, visibility 0s linear .16s !important;
-    z-index: 10010 !important;
+    transition: opacity .18s ease, transform .18s ease, visibility 0s linear .18s !important;
+    z-index: 2147483646 !important;
+    isolation: isolate !important;
   }
 
   .cut-navbar .navbar-collapse.show,
@@ -50,8 +55,8 @@
     display: flex !important;
     flex-direction: column !important;
     align-items: stretch !important;
-    height: auto !important;
-    transform: translate3d(0, 0, 0) scale(1) !important;
+    height: 100dvh !important;
+    transform: translate3d(0, 0, 0) !important;
     opacity: 1 !important;
     visibility: visible !important;
     pointer-events: auto !important;
@@ -59,16 +64,84 @@
   }
 
   .cut-navbar .navbar-collapse.collapsing {
-    transition: opacity .12s ease, transform .12s ease !important;
+    transition: opacity .14s ease, transform .14s ease !important;
+  }
+
+  .cut-navbar:has(.navbar-collapse.show),
+  .cut-navbar:has(.navbar-collapse.collapsing) {
+    z-index: 2147483645 !important;
   }
 
   .cut-navbar:has(.navbar-collapse.show) .navbar-toggler,
   .cut-navbar:has(.navbar-collapse.collapsing) .navbar-toggler {
+    position: fixed !important;
+    top: calc(14px + env(safe-area-inset-top, 0px)) !important;
+    right: max(14px, env(safe-area-inset-right, 0px)) !important;
+    margin: 0 !important;
+    z-index: 2147483647 !important;
+  }
+
+  /* Actor areas (Administrador, Promoter, Produtor, etc.) behave like
+   * collapsible sections inside the full-screen drawer, never like floating
+   * popovers that can shift hit targets or accidentally navigate. */
+  .cut-navbar .navbar-collapse .cut-actor-menu,
+  .cut-navbar .navbar-collapse .cut-context-menu,
+  .cut-navbar .navbar-collapse .cut-navbar__quick-toggle,
+  .cut-navbar .navbar-collapse .cut-nav-notification-menu {
+    width: 100% !important;
     position: relative !important;
-    top: auto !important;
-    right: auto !important;
-    margin-top: 0 !important;
-    z-index: 10020 !important;
+  }
+
+  .cut-navbar .navbar-collapse .dropdown-toggle {
+    width: 100% !important;
+    min-height: 48px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+    touch-action: manipulation !important;
+  }
+
+  .cut-navbar .navbar-collapse .dropdown-menu {
+    position: static !important;
+    inset: auto !important;
+    float: none !important;
+    transform: none !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 6px 0 10px !important;
+    padding: 8px !important;
+    border-radius: 14px !important;
+    box-shadow: none !important;
+  }
+
+  .cut-navbar .navbar-collapse .dropdown-menu:not(.show) {
+    display: none !important;
+  }
+
+  .cut-navbar .navbar-collapse .dropdown-menu.show {
+    display: block !important;
+    animation: cut-mobile-submenu-in .16s ease both;
+  }
+
+  .cut-navbar .navbar-collapse .dropdown-item {
+    min-height: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+    white-space: normal !important;
+  }
+
+  /* While the drawer is open, page-level fixed controls such as Comprar
+   * ingresso must be fully inert even on browsers with unusual stacking
+   * contexts. */
+  html:has(.cut-navbar .navbar-collapse.show) .cut-event-buy-cta-fixed,
+  html:has(.cut-navbar .navbar-collapse.collapsing) .cut-event-buy-cta-fixed,
+  html:has(.cut-navbar .navbar-collapse.show) .cut-mobile-bottom-nav,
+  html:has(.cut-navbar .navbar-collapse.collapsing) .cut-mobile-bottom-nav,
+  html:has(.cut-navbar .navbar-collapse.show) .cut-instagram-mobile-action,
+  html:has(.cut-navbar .navbar-collapse.collapsing) .cut-instagram-mobile-action {
+    pointer-events: none !important;
+    visibility: hidden !important;
   }
 
   /* Legacy pseudo-overlays are not allowed to capture touches. */
@@ -90,4 +163,9 @@
     pointer-events: auto !important;
     touch-action: manipulation !important;
   }
+}
+
+@keyframes cut-mobile-submenu-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
