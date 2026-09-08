@@ -103,3 +103,36 @@ export const ruleFromTicket = (ticket) => {
 
   return { mode: "at_start", offsetMinutes: 0 };
 };
+
+export const cutoffEditorStateFromRule = (rule = {}) => {
+  const mode = String(rule?.mode || "at_start");
+  const offsetMinutes = Math.max(0, Number(rule?.offsetMinutes || 0));
+  const preset = SALES_CUTOFF_PRESETS.find((item) => item.value !== "custom"
+    && item.mode === mode
+    && Number(item.offsetMinutes || 0) === offsetMinutes);
+  if (preset) {
+    return {
+      preset: preset.value,
+      customMode: mode === "at_start" ? "after_start" : mode,
+      customAmount: 2,
+      customUnit: "hours",
+    };
+  }
+
+  let customUnit = "minutes";
+  let customAmount = Math.max(1, offsetMinutes || 1);
+  if (offsetMinutes > 0 && offsetMinutes % 1440 === 0) {
+    customUnit = "days";
+    customAmount = offsetMinutes / 1440;
+  } else if (offsetMinutes > 0 && offsetMinutes % 60 === 0) {
+    customUnit = "hours";
+    customAmount = offsetMinutes / 60;
+  }
+
+  return {
+    preset: "custom",
+    customMode: ["before_start", "after_start", "before_end"].includes(mode) ? mode : "after_start",
+    customAmount,
+    customUnit,
+  };
+};
