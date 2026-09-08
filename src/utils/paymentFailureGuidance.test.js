@@ -51,6 +51,19 @@ describe("paymentFailureGuidance", () => {
     expect(result.message).toContain("Confira os dígitos");
   });
 
+  test("guides the buyer to change installments when the provider rejects the selected plan", () => {
+    const result = paymentFailureGuidance({
+      method: "card",
+      pixAvailable: true,
+      payment: { provider_payload: { status_detail: "cc_rejected_invalid_installments" } },
+    });
+    expect(result.reason).toBe("invalid_installments");
+    expect(result.title).toContain("parcelas");
+    expect(result.message).toContain("outra quantidade de parcelas");
+    expect(result.message).toContain("valor da compra continuam preservados");
+    expect(result.message).toContain("sem refazer sua seleção");
+  });
+
   test("explains disabled cards and recommends PIX without losing the selection", () => {
     const result = paymentFailureGuidance({
       method: "card",

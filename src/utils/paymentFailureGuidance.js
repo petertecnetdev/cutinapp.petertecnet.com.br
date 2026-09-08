@@ -26,6 +26,7 @@ export const classifyPaymentFailure = (payment = {}, method = "") => {
   if (detail.includes("bad_filled_security_code")) return { reason: "card_security_code", detail };
   if (detail.includes("bad_filled_date")) return { reason: "card_expiration_data", detail };
   if (detail.includes("bad_filled_card_number")) return { reason: "card_number", detail };
+  if (detail.includes("invalid_installments") || detail.includes("installment")) return { reason: "invalid_installments", detail };
   if (detail.includes("insufficient_amount")) return { reason: "insufficient_funds", detail };
   if (detail.includes("card_disabled")) return { reason: "card_disabled", detail };
   if (detail.includes("card_type_not_allowed")) return { reason: "card_type_not_allowed", detail };
@@ -54,6 +55,10 @@ export const paymentFailureGuidance = ({ payment = {}, method = "", pixAvailable
     card_number: {
       title: "Revise o número do cartão",
       message: `O provedor indicou que o número do cartão precisa ser corrigido. Confira os dígitos antes de tentar novamente.${pixAlternative}`,
+    },
+    invalid_installments: {
+      title: "Escolha outra quantidade de parcelas",
+      message: `O provedor não aceitou o parcelamento selecionado para este cartão. Escolha outra quantidade de parcelas disponível e tente novamente; sua seleção e o valor da compra continuam preservados.${pixAlternative}`,
     },
     insufficient_funds: {
       title: "O cartão não conseguiu concluir o pagamento",
