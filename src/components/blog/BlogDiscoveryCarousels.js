@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import PropTypes from "prop-types";
 import { Link } from "react-router-dom";
 import blogService from "../../services/BlogService";
 import cutinappService from "../../services/CutinappService";
@@ -27,7 +28,7 @@ const mediaUrl = (value) => {
 
 const firstFileUrl = (item) => {
   const file = Array.isArray(item?.files) ? item.files.find(Boolean) : null;
-  return file?.url || file?.path || file?.file_path || file?.storage_path || file?.name || "";
+  return file?.public_url || file?.url || file?.path || file?.file_path || file?.storage_path || file?.name || "";
 };
 
 const itemImage = (item) => mediaUrl(
@@ -126,11 +127,26 @@ function Carousel({ eyebrow, title, action, children, className = "" }) {
   </section>;
 }
 
+Carousel.propTypes = {
+  eyebrow: PropTypes.string.isRequired,
+  title: PropTypes.string.isRequired,
+  action: PropTypes.node,
+  children: PropTypes.node.isRequired,
+  className: PropTypes.string,
+};
+
 function Media({ src, alt, icon, className = "" }) {
   const [failed, setFailed] = useState(false);
   if (!src || failed) return <div className={`cut-blog-discovery-fallback ${className}`} aria-hidden="true"><i className={icon} /></div>;
   return <img className={className} src={src} alt={alt} loading="lazy" decoding="async" onError={() => setFailed(true)} />;
 }
+
+Media.propTypes = {
+  src: PropTypes.string,
+  alt: PropTypes.string.isRequired,
+  icon: PropTypes.string.isRequired,
+  className: PropTypes.string,
+};
 
 function ProductionLogo({ production }) {
   const [failed, setFailed] = useState(false);
@@ -141,6 +157,13 @@ function ProductionLogo({ production }) {
       : initials(production?.name)}
   </span>;
 }
+
+ProductionLogo.propTypes = {
+  production: PropTypes.shape({
+    logo: PropTypes.string,
+    name: PropTypes.string,
+  }).isRequired,
+};
 
 export default function BlogDiscoveryCarousels({ currentSlug = "", blogEntries = null, showBlogs = true }) {
   const [remoteBlogs, setRemoteBlogs] = useState([]);
@@ -236,3 +259,9 @@ export default function BlogDiscoveryCarousels({ currentSlug = "", blogEntries =
     </Carousel>}
   </div>;
 }
+
+BlogDiscoveryCarousels.propTypes = {
+  currentSlug: PropTypes.string,
+  blogEntries: PropTypes.arrayOf(PropTypes.object),
+  showBlogs: PropTypes.bool,
+};
