@@ -14,6 +14,10 @@ const idempotencyKeyAt = (index) => (
   apiClient.post.mock.calls[index]?.[2]?.headers?.["Idempotency-Key"]
 );
 
+const deleteIdempotencyKeyAt = (index) => (
+  apiClient.delete.mock.calls[index]?.[1]?.headers?.["Idempotency-Key"]
+);
+
 const profilePayload = () => {
   const data = new FormData();
   data.append("first_name", "Maria");
@@ -98,5 +102,47 @@ describe("UserService mutation reliability", () => {
     await expect(userService.store({ ...payload })).resolves.toEqual({ user: { id: 8 } });
     expect(idempotencyKeyAt(1)).toBe(firstKey);
     expect(apiClient.post.mock.calls[1][0]).toBe("/user/new");
+  });
+
+  test("reuses the deletion key after an ambiguous network failure", async () => {
+    const networkError = Object.assign(new Error("Network Error"), { code: "ERR_NETWORK" });
+    apiClient.delete
+      .mockRejectedValueOnce(networkError)
+      .mockResolvedValueOnce({ data: { deleted: true } });
+
+    await expect(userService.destroy(12)).rejects.toThrow("Network Error");
+    const firstKey = deleteIdempotencyKeyAt(0);
+
+    await expect(userService.destroy("12")).resolves.toEqual({ deleted: true });
+    expect(deleteIdempotencyKeyAt(1)).toBe(firstKey);
+    expect(apiClient.delete.mock.calls[1][0]).toBe("/user/12");
+  });
+
+  test("uses a new deletion key after a definitive failure", async () => {
+    apiClient.delete
+      .mockRejectedValueOnce({ status: 403, message: "Acesso negado" })
+      .mockResolvedValueOnce({ data: { deleted: true } });
+
+    await expect(userService.destroy(12)).rejects.toMatchObject({ status: 403 });
+    const rejectedKey = deleteIdempotencyKeyAt(0);
+
+    await userService.destroy(12);
+    expect(deleteIdempotencyKeyAt(1)).not.toBe(rejectedKey);
+  });
+
+  test("coalesces equivalent concurrent user deletions", async () => {
+    let resolveRequest;
+    apiClient.delete.mockReturnValue(new Promise((resolve) => {
+      resolveRequest = resolve;
+    }));
+
+    const first = userService.destroy(12);
+    const second = userService.destroy("12");
+
+    expect(second).toBe(first);
+    expect(apiClient.delete).toHaveBeenCalledTimes(1);
+
+    resolveRequest({ data: { deleted: true } });
+    await expect(first).resolves.toEqual({ deleted: true });
   });
 });
