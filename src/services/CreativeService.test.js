@@ -6,12 +6,18 @@ jest.mock("./AppApiClient", () => ({ __esModule: true, default: { get: jest.fn()
 const input = () => ({
   title: "  Festival Noturno  ",
   description: "  Luzes e música  ",
+  category: "  Eletrônico  ",
+  artist: "  DJ Marco Roger  ",
   style: "  neon  ",
+  intensity: "  impactful  ",
   productionName: "  Peter Produções  ",
   venue: "  Arena Central  ",
   city: "  Goiânia  ",
   uf: " go ",
   format: "  portrait  ",
+  brandContext: "  Food | Music | Drinks  ",
+  promotions: [" Mulheres FREE ", " Homens R$ 10 ", ""],
+  featuredItems: [" Combo de vodka ", " Porção de frango "],
 });
 
 const keyAt = (index) => appApiClient.post.mock.calls[index]?.[2]?.headers?.["Idempotency-Key"];
@@ -22,7 +28,7 @@ describe("CreativeService flyer generation idempotency", () => {
     sessionStorage.clear();
   });
 
-  test("normalizes the request and sends an idempotency key", async () => {
+  test("normalizes the structured creative brief and sends an idempotency key", async () => {
     appApiClient.post.mockResolvedValueOnce({ data: { image_url: "https://example.test/flyer.webp" } });
 
     await creativeService.generateEventFlyerBackground(input());
@@ -31,14 +37,29 @@ describe("CreativeService flyer generation idempotency", () => {
       purpose: "event_flyer_background",
       subject: "Festival Noturno",
       description: "Luzes e música",
+      category: "Eletrônico",
+      artist: "DJ Marco Roger",
       style: "neon",
+      intensity: "impactful",
       production_name: "Peter Produções",
       venue: "Arena Central",
       city: "Goiânia",
       uf: "GO",
       format: "portrait",
+      brand_context: "Food | Music | Drinks",
+      promotions: ["Mulheres FREE", "Homens R$ 10"],
+      featured_items: ["Combo de vodka", "Porção de frango"],
     }, { headers: { "Idempotency-Key": expect.any(String) } });
     expect(keyAt(0)).toBeTruthy();
+  });
+
+  test("loads the creative preset catalog from the central API", async () => {
+    appApiClient.get.mockResolvedValueOnce({ data: { styles: [{ key: "automatic", label: "Automático" }] } });
+
+    await expect(creativeService.getEventCreativePresets()).resolves.toEqual({
+      styles: [{ key: "automatic", label: "Automático" }],
+    });
+    expect(appApiClient.get).toHaveBeenCalledWith("/creative/presets");
   });
 
   test("reuses the key after an uncertain network failure", async () => {

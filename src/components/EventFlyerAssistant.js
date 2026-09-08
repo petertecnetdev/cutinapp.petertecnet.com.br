@@ -9,13 +9,30 @@ const formats = {
   cover: { label: "Capa do evento", width: 1600, height: 900, ratio: "16:9" },
   post: { label: "Post / feed", width: 1080, height: 1350, ratio: "4:5" },
   story: { label: "Story", width: 1080, height: 1920, ratio: "9:16" },
+  og: { label: "WhatsApp", width: 1200, height: 630, ratio: "1.91:1" },
 };
 
 const themes = {
-  neon: { label: "Neon", top: "#19002f", bottom: "#05050a", accent: "#ef37ff", secondary: "#25d9ff" },
-  premium: { label: "Premium", top: "#17130c", bottom: "#050505", accent: "#e8c66a", secondary: "#fff3c4" },
-  sunset: { label: "Vibrante", top: "#45114b", bottom: "#180514", accent: "#ff6b35", secondary: "#ffca55" },
-  clean: { label: "Minimalista", top: "#182235", bottom: "#070b12", accent: "#78a8ff", secondary: "#d9e7ff" },
+  automatic: { label: "Automático", top: "#17052d", bottom: "#05050a", accent: "#b94cff", secondary: "#31d8ff" },
+  neon: { label: "Balada / Neon", top: "#19002f", bottom: "#05050a", accent: "#ef37ff", secondary: "#25d9ff" },
+  premium: { label: "Premium / Luxo", top: "#17130c", bottom: "#050505", accent: "#e8c66a", secondary: "#fff3c4" },
+  festival: { label: "Festival", top: "#281036", bottom: "#07070d", accent: "#ff4db8", secondary: "#56d9ff" },
+  sertanejo: { label: "Sertanejo", top: "#2d1b11", bottom: "#090604", accent: "#e8a85d", secondary: "#ffe3b5" },
+  pagode: { label: "Pagode", top: "#2b1711", bottom: "#080605", accent: "#f6a84f", secondary: "#ffd77a" },
+  funk: { label: "Funk", top: "#240b22", bottom: "#050507", accent: "#ff398a", secondary: "#6ee8ff" },
+  electronic: { label: "Eletrônico", top: "#091b35", bottom: "#03050a", accent: "#25d9ff", secondary: "#e83cff" },
+  pub: { label: "Bar / Pub", top: "#25140d", bottom: "#070504", accent: "#e28d48", secondary: "#ffd89b" },
+  minimal: { label: "Minimalista", top: "#182235", bottom: "#070b12", accent: "#78a8ff", secondary: "#d9e7ff" },
+  urban: { label: "Urbano", top: "#171719", bottom: "#050506", accent: "#f05252", secondary: "#dedede" },
+  open_bar: { label: "Open Bar", top: "#24102d", bottom: "#070509", accent: "#ff42c8", secondary: "#55e3ff" },
+  sunset: { label: "Sunset", top: "#45114b", bottom: "#180514", accent: "#ff6b35", secondary: "#ffca55" },
+  clean: { label: "Clean", top: "#182235", bottom: "#070b12", accent: "#78a8ff", secondary: "#d9e7ff" },
+};
+
+const intensities = {
+  clean: { label: "Clean", description: "Mais espaço e menos elementos" },
+  balanced: { label: "Equilibrado", description: "Impacto sem poluição visual" },
+  impactful: { label: "Impactante", description: "Mais luz, profundidade e energia" },
 };
 
 const imageUrl = (path) => {
@@ -27,17 +44,43 @@ const imageUrl = (path) => {
 const productionImage = (production) => production?.background || production?.background_image || production?.cover || production?.image || production?.logo || "";
 
 const readField = (name) => document.querySelector(`[name="${name}"]`)?.value?.trim?.() || "";
+const readFirstField = (...names) => names.map(readField).find(Boolean) || "";
 
 const readFormContext = () => ({
   productionId: readField("production_id"),
   productionName: document.querySelector('[name="production_id"] option:checked')?.textContent?.trim() || "",
   title: readField("title"),
   description: readField("description"),
+  category: readFirstField("category", "event_category", "genre", "music_genre"),
+  artist: readFirstField("artist", "artist_name", "artists", "dj", "attraction"),
   venue: readField("venue"),
   city: readField("city"),
   uf: readField("uf"),
   startDate: readField("start_date"),
 });
+
+const compactTextList = (value) => {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.map((item) => String(item?.name || item?.title || item || "").trim()).filter(Boolean).slice(0, 8);
+  return String(value).split(/[\n;|]+/).map((item) => item.trim()).filter(Boolean).slice(0, 8);
+};
+
+const productionCreativeContext = (production) => {
+  if (!production) return { brandContext: "", featuredItems: [] };
+
+  const brandContext = [
+    production?.name || production?.title,
+    production?.slogan || production?.tagline,
+    production?.type || production?.category,
+    production?.description,
+  ].filter(Boolean).map((item) => String(item).trim()).join(" · ").slice(0, 500);
+
+  const featuredItems = compactTextList(
+    production?.items || production?.catalog_items || production?.products || production?.featured_items,
+  );
+
+  return { brandContext, featuredItems };
+};
 
 const roundedRect = (ctx, x, y, width, height, radius) => {
   const r = Math.min(radius, width / 2, height / 2);
@@ -127,9 +170,9 @@ const formatDate = (value) => {
   };
 };
 
-async function renderFlyer({ data, production, formatKey, themeKey, generatedBackground = "" }) {
-  const format = formats[formatKey];
-  const theme = themes[themeKey];
+async function renderFlyer({ data, production, formatKey, themeKey, intensityKey, generatedBackground = "" }) {
+  const format = formats[formatKey] || formats.cover;
+  const theme = themes[themeKey] || themes.automatic;
   const canvas = document.createElement("canvas");
   canvas.width = format.width;
   canvas.height = format.height;
@@ -148,18 +191,19 @@ async function renderFlyer({ data, production, formatKey, themeKey, generatedBac
     try {
       const img = await loadImage(imageUrl(ref));
       ctx.save();
-      ctx.globalAlpha = generatedBackground ? 0.9 : 0.48;
+      const aiAlpha = intensityKey === "clean" ? 0.82 : (intensityKey === "impactful" ? 0.98 : 0.92);
+      ctx.globalAlpha = generatedBackground ? aiAlpha : 0.48;
       drawCoverImage(ctx, img, width, height);
       ctx.restore();
     } catch (_) {
-      // Remote/production image is optional; gradient fallback remains valid.
+      // Production imagery is optional; the branded gradient remains a valid fallback.
     }
   }
 
   const overlay = ctx.createLinearGradient(0, 0, 0, height);
-  overlay.addColorStop(0, "rgba(0,0,0,.08)");
-  overlay.addColorStop(0.56, "rgba(0,0,0,.38)");
-  overlay.addColorStop(1, "rgba(0,0,0,.92)");
+  overlay.addColorStop(0, "rgba(0,0,0,.06)");
+  overlay.addColorStop(0.52, "rgba(0,0,0,.24)");
+  overlay.addColorStop(1, "rgba(0,0,0,.90)");
   ctx.fillStyle = overlay;
   ctx.fillRect(0, 0, width, height);
 
@@ -169,7 +213,7 @@ async function renderFlyer({ data, production, formatKey, themeKey, generatedBac
   const producer = (data.productionName && data.productionName !== "Selecione")
     ? data.productionName
     : (production?.name || production?.title || "CUTINAPP");
-  ctx.fillStyle = "rgba(255,255,255,.82)";
+  ctx.fillStyle = "rgba(255,255,255,.86)";
   ctx.font = `700 ${Math.max(24, Math.round(width * 0.022))}px Inter, Arial, sans-serif`;
   ctx.fillText(producer.toUpperCase(), margin, margin + Math.round(height * 0.07));
 
@@ -195,9 +239,18 @@ async function renderFlyer({ data, production, formatKey, themeKey, generatedBac
   const titleSize = fitText(ctx, title.toUpperCase(), titleMax, Math.round(width * (formatKey === "story" ? 0.105 : 0.083)), Math.round(width * 0.048));
   ctx.font = `900 ${titleSize}px Inter, Arial, sans-serif`;
   ctx.fillStyle = "#ffffff";
-  const titleLines = wrapText(ctx, title.toUpperCase(), titleMax, formatKey === "cover" ? 2 : 3);
+  const titleLines = wrapText(ctx, title.toUpperCase(), titleMax, formatKey === "cover" || formatKey === "og" ? 2 : 3);
   const lineHeight = titleSize * 0.96;
-  let titleY = Math.round(height * (formatKey === "cover" ? 0.58 : 0.57));
+  let titleY = Math.round(height * (formatKey === "cover" || formatKey === "og" ? 0.58 : 0.57));
+
+  if (data.artist) {
+    ctx.fillStyle = theme.accent;
+    ctx.font = `800 ${Math.max(20, Math.round(width * 0.022))}px Inter, Arial, sans-serif`;
+    ctx.fillText(String(data.artist).toUpperCase(), margin, titleY - Math.round(height * 0.075));
+  }
+
+  ctx.fillStyle = "#ffffff";
+  ctx.font = `900 ${titleSize}px Inter, Arial, sans-serif`;
   titleLines.forEach((line) => {
     ctx.fillText(line, margin, titleY);
     titleY += lineHeight;
@@ -212,23 +265,25 @@ async function renderFlyer({ data, production, formatKey, themeKey, generatedBac
     locationLines.forEach((line) => { ctx.fillText(line, margin, y); y += Math.round(width * 0.037); });
   }
 
-  ctx.fillStyle = "rgba(255,255,255,.68)";
-  ctx.font = `600 ${Math.max(18, Math.round(width * 0.018))}px Inter, Arial, sans-serif`;
-  ctx.fillText("DESCUBRA · CONECTE · VIVA O EVENTO", margin, height - margin * 0.68);
+  ctx.fillStyle = "rgba(255,255,255,.72)";
+  ctx.font = `700 ${Math.max(18, Math.round(width * 0.018))}px Inter, Arial, sans-serif`;
+  ctx.fillText("INGRESSOS E EXPERIÊNCIAS NA CUTINAPP", margin, height - margin * 0.68);
 
   return canvas;
 }
 
 const canvasToFile = (canvas, name) => new Promise((resolve, reject) => {
-  canvas.toBlob((blob) => blob ? resolve(new File([blob], name, { type: "image/jpeg" })) : reject(new Error("Não foi possível criar a imagem.")), "image/jpeg", 0.92);
+  canvas.toBlob((blob) => blob ? resolve(new File([blob], name, { type: "image/jpeg" })) : reject(new Error("Não foi possível criar a imagem.")), "image/jpeg", 0.94);
 });
 
 export default function EventFlyerAssistant() {
   const [open, setOpen] = useState(false);
   const [formatKey, setFormatKey] = useState("cover");
-  const [themeKey, setThemeKey] = useState("neon");
+  const [themeKey, setThemeKey] = useState("automatic");
+  const [intensityKey, setIntensityKey] = useState("balanced");
   const [context, setContext] = useState(readFormContext);
   const [production, setProduction] = useState(null);
+  const [presetCatalog, setPresetCatalog] = useState(null);
   const [preview, setPreview] = useState("");
   const [generatedFile, setGeneratedFile] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -238,9 +293,35 @@ export default function EventFlyerAssistant() {
 
   const pathname = window.location.pathname.replace(/\/+$/, "") || "/";
   const canOpen = pathname === "/event/create" || /^\/event\/edit\/[^/]+$/.test(pathname);
-  const format = formats[formatKey];
+  const format = formats[formatKey] || formats.cover;
+
+  const styleOptions = useMemo(() => {
+    if (Array.isArray(presetCatalog?.styles) && presetCatalog.styles.length) return presetCatalog.styles;
+    return Object.entries(themes).map(([key, item]) => ({ key, label: item.label }));
+  }, [presetCatalog]);
+
+  const intensityOptions = useMemo(() => {
+    if (Array.isArray(presetCatalog?.intensities) && presetCatalog.intensities.length) return presetCatalog.intensities;
+    return Object.entries(intensities).map(([key, item]) => ({ key, label: item.label }));
+  }, [presetCatalog]);
 
   useEffect(() => () => { if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview); }, [preview]);
+
+  useEffect(() => {
+    if (!canOpen || presetCatalog) return;
+    creativeService.getEventCreativePresets()
+      .then(setPresetCatalog)
+      .catch(() => {
+        // Local catalog keeps the studio available while API deployments roll out.
+      });
+  }, [canOpen, presetCatalog]);
+
+  const resetPreview = () => {
+    setGeneratedFile(null);
+    setPreview("");
+    setAiError("");
+    setGenerationSource("");
+  };
 
   const openStudio = async () => {
     const data = readFormContext();
@@ -254,7 +335,7 @@ export default function EventFlyerAssistant() {
     setProduction(null);
     if (data.productionId) {
       try { setProduction(await cutinappService.getProduction(data.productionId)); } catch (_) {
-        // Production visual is optional for flyer generation.
+        // Production identity is optional for flyer generation.
       }
     }
   };
@@ -277,31 +358,47 @@ export default function EventFlyerAssistant() {
       setContext(data);
       if (!data.title) throw new Error("Preencha o nome do evento antes de gerar a capa.");
 
+      const creativeContext = productionCreativeContext(production);
+      const promotions = compactTextList(readFirstField("promotion_summary", "ticket_summary", "promotions"));
+
       let generatedBackground = "";
       try {
         const aiResult = await creativeService.generateEventFlyerBackground({
           title: data.title,
           description: data.description,
+          category: data.category,
+          artist: data.artist,
           style: themeKey,
+          intensity: intensityKey,
           productionName: data.productionName,
           venue: data.venue,
           city: data.city,
           uf: data.uf,
           format: formatKey,
+          brandContext: creativeContext.brandContext,
+          promotions,
+          featuredItems: creativeContext.featuredItems,
         });
         const candidate = String(aiResult?.image?.data_uri || "");
         if (!/^data:image\/(?:jpeg|jpg|png|webp)(?:;charset=[^;]+)?;base64,/i.test(candidate) || candidate.length < 2048) {
           throw new Error("A IA respondeu sem uma imagem utilizável.");
         }
         generatedBackground = candidate;
-        setGenerationSource("cloudflare");
+        setGenerationSource(aiResult?.image?.model || "cloudflare");
       } catch (err) {
         const message = err?.response?.data?.message || err?.message || "O serviço de IA não respondeu corretamente.";
         setAiError(message);
         setGenerationSource("local");
       }
 
-      const canvas = await renderFlyer({ data, production, formatKey, themeKey, generatedBackground });
+      const canvas = await renderFlyer({
+        data,
+        production,
+        formatKey,
+        themeKey,
+        intensityKey,
+        generatedBackground,
+      });
       const file = await canvasToFile(canvas, `flyer-${(data.title || "evento").toLowerCase().replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") || "evento"}-${formatKey}.jpg`);
       if (!file?.size || file.size < 4096) throw new Error("A composição final da capa ficou inválida. Gere novamente.");
 
@@ -323,14 +420,10 @@ export default function EventFlyerAssistant() {
     const file = generatedFile || await generate();
     if (!file) return;
 
-    // React owns the event form state. A DOM-only assignment to input.files can
-    // visually look selected while the state used to build FormData still holds
-    // null. Dispatch the file explicitly so create/edit pages persist it.
     window.dispatchEvent(new CustomEvent("cutinapp:event-cover-selected", {
       detail: { file, source: "ai_flyer" },
     }));
 
-    // Keep the native input synchronized for accessibility/browser affordances.
     const input = document.querySelector('[data-event-image-input="true"]') || document.querySelector('input[name="image"][type="file"]');
     if (input && typeof DataTransfer !== "undefined") {
       const transfer = new DataTransfer();
@@ -345,11 +438,12 @@ export default function EventFlyerAssistant() {
         metadata: {
           format: formatKey,
           theme: themeKey,
-          source: generationSource === "cloudflare" ? "cloudflare_workers_ai" : (productionImage(production) ? "production_identity" : "cutinapp_theme"),
+          intensity: intensityKey,
+          source: generationSource === "local" ? (productionImage(production) ? "production_identity" : "cutinapp_theme") : generationSource,
         },
       });
     } catch (_) {
-      // Remote/production image is optional; gradient fallback remains valid.
+      // Telemetry must never block the producer workflow.
     }
     setOpen(false);
   };
@@ -369,28 +463,72 @@ export default function EventFlyerAssistant() {
       </Modal.Header>
       <Modal.Body>
         <div className="cut-flyer-intro">
-          <div><strong>{context.title || "Seu evento"}</strong><span>A Cutinapp cria o fundo com IA e finaliza a arte com os dados reais do cadastro.</span></div>
-          <span className="cut-flyer-beta">IA</span>
+          <div>
+            <strong>{context.title || "Seu evento"}</strong>
+            <span>O Diretor Criativo interpreta o evento, cria a direção de arte e a Cutinapp finaliza o flyer com os dados reais.</span>
+          </div>
+          <span className="cut-flyer-beta">CREATIVE AI</span>
         </div>
 
         <div className="cut-flyer-controls">
-          <Form.Group><Form.Label>Formato</Form.Label><div className="cut-flyer-options">{Object.entries(formats).map(([key, item]) => <Button key={key} type="button" variant={formatKey === key ? "primary" : "outline-light"} onClick={() => { setFormatKey(key); setGeneratedFile(null); setPreview(""); setAiError(""); }}><strong>{item.ratio}</strong><span>{item.label}</span></Button>)}</div></Form.Group>
-          <Form.Group><Form.Label>Estilo</Form.Label><div className="cut-flyer-options cut-flyer-options--themes">{Object.entries(themes).map(([key, item]) => <Button key={key} type="button" variant={themeKey === key ? "primary" : "outline-light"} onClick={() => { setThemeKey(key); setGeneratedFile(null); setPreview(""); setAiError(""); }}><span className="cut-flyer-theme-dot" style={{ background: `linear-gradient(135deg, ${item.accent}, ${item.secondary})` }} />{item.label}</Button>)}</div></Form.Group>
+          <Form.Group>
+            <Form.Label>Formato</Form.Label>
+            <div className="cut-flyer-options">
+              {Object.entries(formats).map(([key, item]) => (
+                <Button key={key} type="button" variant={formatKey === key ? "primary" : "outline-light"} onClick={() => { setFormatKey(key); resetPreview(); }}>
+                  <strong>{item.ratio}</strong><span>{item.label}</span>
+                </Button>
+              ))}
+            </div>
+          </Form.Group>
+
+          <Form.Group>
+            <Form.Label>Direção visual</Form.Label>
+            <div className="cut-flyer-options cut-flyer-options--themes">
+              {styleOptions.map((item) => {
+                const palette = themes[item.key] || themes.automatic;
+                return <Button key={item.key} type="button" variant={themeKey === item.key ? "primary" : "outline-light"} onClick={() => { setThemeKey(item.key); resetPreview(); }}>
+                  <span className="cut-flyer-theme-dot" style={{ background: `linear-gradient(135deg, ${palette.accent}, ${palette.secondary})` }} />{item.label}
+                </Button>;
+              })}
+            </div>
+          </Form.Group>
+
+          <Form.Group>
+            <Form.Label>Intensidade</Form.Label>
+            <div className="cut-flyer-options cut-flyer-options--intensity">
+              {intensityOptions.map((item) => (
+                <Button key={item.key} type="button" variant={intensityKey === item.key ? "primary" : "outline-light"} onClick={() => { setIntensityKey(item.key); resetPreview(); }}>
+                  <strong>{item.label}</strong>
+                  <span>{intensities[item.key]?.description || "Direção criativa da composição"}</span>
+                </Button>
+              ))}
+            </div>
+          </Form.Group>
         </div>
 
         {error && <div className="alert alert-danger py-2">{error}</div>}
-        {aiError && <div className="alert alert-warning py-2"><strong>A IA não gerou o fundo:</strong> {aiError} A Cutinapp montou uma capa local completa com os dados do evento para você não ficar sem arte.</div>}
+        {aiError && <div className="alert alert-warning py-2"><strong>A IA não gerou o fundo:</strong> {aiError} A Cutinapp montou uma capa local completa para você não ficar sem arte.</div>}
+
         <div className="cut-flyer-preview" style={previewStyle}>
-          {preview ? <img src={preview} alt="Prévia do flyer gerado" /> : <div><i className="fa-regular fa-image" /><strong>Gere uma prévia</strong><span>A IA cria a arte de fundo e a Cutinapp aplica os dados corretos por cima.</span></div>}
+          {preview
+            ? <img src={preview} alt="Prévia do flyer gerado" />
+            : <div><i className="fa-regular fa-image" /><strong>Gere uma prévia</strong><span>A IA cria a direção artística e a Cutinapp preserva nome, data, local e demais dados oficiais.</span></div>}
         </div>
 
-        {generationSource && <small className="cut-flyer-note d-block mb-2">{generationSource === "cloudflare" ? "Fundo criado com Cloudflare Workers AI · FLUX" : "Modo local usado com nome, data, horário e local do evento preservados na arte."}</small>}
+        {generationSource && <small className="cut-flyer-note d-block mb-2">
+          {generationSource === "local" ? "Modo local de segurança usado." : `Arte-base gerada por IA · ${generationSource}`}
+        </small>}
 
         <div className="cut-flyer-actions">
-          <Button type="button" variant="outline-light" onClick={generate} disabled={busy}>{busy ? <><Spinner size="sm" className="me-2" />Gerando com IA...</> : "Gerar com IA"}</Button>
-          <Button type="button" onClick={useAsCover} disabled={busy}>{busy ? "Preparando..." : (generatedFile ? "Usar esta prévia como capa" : "Gerar e usar como capa")}</Button>
+          <Button type="button" variant="outline-light" onClick={generate} disabled={busy}>
+            {busy ? <><Spinner size="sm" className="me-2" />Criando direção de arte...</> : "Gerar nova arte"}
+          </Button>
+          <Button type="button" onClick={useAsCover} disabled={busy}>
+            {busy ? "Preparando..." : (generatedFile ? "Usar esta prévia como capa" : "Gerar e usar como capa")}
+          </Button>
         </div>
-        <small className="cut-flyer-note">A IA não escreve o flyer. Nome, data, horário e local são desenhados pela Cutinapp a partir dos campos do evento, evitando alterações nos dados oficiais.</small>
+        <small className="cut-flyer-note">A IA cria o visual. Os textos oficiais continuam sendo renderizados pela própria Cutinapp para evitar nomes, datas e preços escritos incorretamente pela imagem generativa.</small>
       </Modal.Body>
     </Modal>
   </>;
