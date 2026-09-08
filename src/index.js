@@ -26,6 +26,7 @@ import "./styles/mobile-footer-regression-fixes.css";
 import "./styles/event-view-mobile-cleanup.css";
 import "./styles/mobile-navigation-v2.css";
 import "./styles/event-view-polish.css";
+import "./styles/mobile-hamburger-recovery.css";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import PeterAccountGateway from "./components/PeterAccountGateway";
@@ -37,6 +38,7 @@ import { installClipboardFallback } from "./utils/clipboard";
 import { installPeterWhatsappFallback } from "./utils/peterWhatsappFallback";
 import { installGlobalImagePerformance } from "./utils/imagePerformance";
 import { installInstagramMobileShell } from "./utils/instagramMobileShell";
+import { installNavigationRecovery } from "./utils/navigationRecovery";
 import { trackTelemetry } from "./utils/telemetry";
 
 installGlobalImageFallbacks();
@@ -45,6 +47,7 @@ installClipboardFallback();
 installPeterWhatsappFallback();
 installGlobalImagePerformance();
 installInstagramMobileShell();
+installNavigationRecovery();
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
