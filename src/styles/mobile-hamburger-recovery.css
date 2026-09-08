@@ -1,0 +1,93 @@
+/* Final safety layer for the mobile hamburger.
+ * Imported after every legacy navigation stylesheet.
+ * The drawer must remain reachable/closable and must never leave an invisible
+ * full-screen layer intercepting the whole application.
+ */
+
+@media (max-width: 991.98px) {
+  .cut-navbar {
+    overflow: visible !important;
+  }
+
+  .cut-navbar .navbar-toggler {
+    position: relative !important;
+    z-index: 10020 !important;
+    pointer-events: auto !important;
+    touch-action: manipulation !important;
+  }
+
+  .cut-navbar .navbar-collapse {
+    position: fixed !important;
+    top: calc(64px + env(safe-area-inset-top, 0px)) !important;
+    right: max(8px, env(safe-area-inset-right, 0px)) !important;
+    bottom: auto !important;
+    left: auto !important;
+    width: min(380px, calc(100vw - 16px)) !important;
+    max-width: calc(100vw - 16px) !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: calc(100dvh - 80px - env(safe-area-inset-bottom, 0px)) !important;
+    padding: 14px !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+    -webkit-overflow-scrolling: touch;
+    border: 1px solid rgba(255,255,255,.14) !important;
+    border-radius: 18px !important;
+    background: linear-gradient(155deg, rgba(18,39,61,.985), rgba(8,21,34,.995)) !important;
+    box-shadow: 0 24px 70px rgba(0,0,0,.42) !important;
+    transform: translate3d(12px, -8px, 0) scale(.985) !important;
+    transform-origin: top right !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    transition: opacity .16s ease, transform .16s ease, visibility 0s linear .16s !important;
+    z-index: 10010 !important;
+  }
+
+  .cut-navbar .navbar-collapse.show,
+  .cut-navbar .navbar-collapse.collapsing {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    height: auto !important;
+    transform: translate3d(0, 0, 0) scale(1) !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    transition-delay: 0s !important;
+  }
+
+  .cut-navbar .navbar-collapse.collapsing {
+    transition: opacity .12s ease, transform .12s ease !important;
+  }
+
+  .cut-navbar:has(.navbar-collapse.show) .navbar-toggler,
+  .cut-navbar:has(.navbar-collapse.collapsing) .navbar-toggler {
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    margin-top: 0 !important;
+    z-index: 10020 !important;
+  }
+
+  /* Legacy pseudo-overlays are not allowed to capture touches. */
+  .cut-navbar::before,
+  .cut-navbar::after {
+    pointer-events: none !important;
+  }
+
+  .cut-navbar .navbar-collapse:not(.show):not(.collapsing) {
+    pointer-events: none !important;
+  }
+
+  .cut-navbar .navbar-collapse.show a,
+  .cut-navbar .navbar-collapse.show button,
+  .cut-navbar .navbar-collapse.show select,
+  .cut-navbar .navbar-collapse.show input,
+  .cut-navbar .navbar-collapse.show .dropdown-toggle,
+  .cut-navbar .navbar-collapse.show .dropdown-item {
+    pointer-events: auto !important;
+    touch-action: manipulation !important;
+  }
+}
