@@ -145,6 +145,15 @@ export default function EventSeriesLauncher() {
     <Button
       type="button"
       className="cut-event-series-launcher"
+      style={isEditMode ? {
+        position: "fixed",
+        right: "max(16px, env(safe-area-inset-right))",
+        bottom: "calc(148px + env(safe-area-inset-bottom))",
+        zIndex: 1041,
+        borderRadius: 999,
+        fontWeight: 800,
+        boxShadow: "0 16px 42px rgba(0,0,0,.34)",
+      } : undefined}
       onClick={openLauncher}
       aria-label={isEditMode ? "Duplicar evento" : "Criar agenda em lote"}
       title={isEditMode ? "Duplicar evento" : "Criar agenda em lote"}
