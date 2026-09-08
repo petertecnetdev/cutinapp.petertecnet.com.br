@@ -31,6 +31,14 @@ const dateTime = (value) => value ? new Intl.DateTimeFormat("pt-BR", {
   timeZone: "America/Sao_Paulo",
 }).format(new Date(value)) : "";
 
+const localDateTimeInput = (value) => {
+  if (!value) return "";
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60 * 1000);
+  return local.toISOString().slice(0, 16);
+};
+
 const nameOf = (person) => [person?.first_name, person?.last_name].filter(Boolean).join(" ") || "Participante";
 const initials = (person) => `${person?.first_name?.[0] || "U"}${person?.last_name?.[0] || ""}`.toUpperCase();
 
@@ -80,7 +88,7 @@ export default function EventRideSection({ event }) {
   const openForm = (kind) => {
     if (!user) return login();
     const suggestedDeparture = event?.start_date
-      ? new Date(new Date(event.start_date).getTime() - 60 * 60 * 1000).toISOString().slice(0, 16)
+      ? localDateTimeInput(new Date(new Date(event.start_date).getTime() - 60 * 60 * 1000))
       : "";
     setForm({ ...emptyForm, kind, origin_city: user?.city || "", departure_at: suggestedDeparture });
     setShowForm(true);
