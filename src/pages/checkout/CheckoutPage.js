@@ -47,6 +47,7 @@ export default function CheckoutPage() {
   const addOnOfferViewedRef = useRef(false);
   const pixReadyTrackedRef = useRef("");
   const paymentSyncGateRef = useRef(createKeyedSingleFlight());
+  const paymentSubmissionRef = useRef(false);
   resultRef.current = result;
 
   const checkoutStorageKey = `cutinapp_checkout_${slug}`;
@@ -470,6 +471,7 @@ export default function CheckoutPage() {
 
   const chooseMethod = (nextMethod) => {
     if (nextMethod === method) return;
+    if (paying || paymentSubmissionRef.current) return;
     if (paymentPending) {
       trackCheckout("payment_method_change_blocked", {
         label: "Troca de método bloqueada durante pagamento pendente",
@@ -499,7 +501,9 @@ export default function CheckoutPage() {
   };
 
   const checkoutPix = async () => {
+    if (paymentSubmissionRef.current || paying) return;
     if (!ensurePaymentAvailable("pix")) return;
+    paymentSubmissionRef.current = true;
     trackCheckout("payment_attempted", { label: "PIX solicitado", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(total.toFixed(2)), payment_method: "pix" } });
     setPaying(true); setError("");
     try {
@@ -511,11 +515,13 @@ export default function CheckoutPage() {
       trackCheckout("payment_attempt_failed", { label: "Falha ao iniciar PIX", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(total.toFixed(2)), payment_method: "pix", outcome: "error", status: Number(err?.status || err?.response?.status || 0), inventory_reconciled: reconciled } });
       if (!reconciled) setError(err?.message || "Não foi possível gerar o PIX.");
     }
-    finally { setPaying(false); }
+    finally { paymentSubmissionRef.current = false; setPaying(false); }
   };
 
   const checkoutCard = async (cardData) => {
+    if (paymentSubmissionRef.current || paying) return;
     if (!ensurePaymentAvailable("card")) return;
+    paymentSubmissionRef.current = true;
     trackCheckout("payment_attempted", { label: "Pagamento com cartão enviado", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(total.toFixed(2)), payment_method: "card" } });
     setPaying(true); setError("");
     try {
@@ -527,7 +533,7 @@ export default function CheckoutPage() {
       trackCheckout("payment_attempt_failed", { label: "Falha ao processar cartão", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(total.toFixed(2)), payment_method: "card", outcome: "error", status: Number(err?.status || err?.response?.status || 0), inventory_reconciled: reconciled } });
       if (!reconciled) setError(err?.message || "Não foi possível processar o cartão.");
     }
-    finally { setPaying(false); }
+    finally { paymentSubmissionRef.current = false; setPaying(false); }
   };
 
   const recoverFailedPayment = (nextMethod = method) => {
