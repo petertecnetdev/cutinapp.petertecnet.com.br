@@ -3,11 +3,11 @@ import { DEFAULT_DELAYS_MS, RATE_LIMIT_DELAY_MS, getPaymentSyncDelay } from "./p
 describe("payment sync schedule", () => {
   it("backs off progressively while keeping initial confirmations fast", () => {
     expect([0, 1, 2, 3, 4, 5, 6, 10].map((attempt) => getPaymentSyncDelay(attempt, { random: () => 0.5 })))
-      .toEqual([1500, 3000, 5000, 10000, 15000, 30000, 60000, 60000]);
+      .toEqual([1500, 1500, 3000, 5000, 10000, 15000, 30000, 30000]);
   });
 
-  it("keeps the first follow-up confirmation within two seconds before jitter", () => {
-    expect(DEFAULT_DELAYS_MS[0]).toBeLessThanOrEqual(2000);
+  it("keeps the first two confirmation windows within two seconds before jitter", () => {
+    expect(DEFAULT_DELAYS_MS.slice(0, 2).every((delay) => delay <= 2000)).toBe(true);
   });
 
   it("uses a cooldown after rate limiting", () => {
