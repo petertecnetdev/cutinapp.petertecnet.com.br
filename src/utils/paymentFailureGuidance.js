@@ -7,11 +7,22 @@ const providerDetail = (payment = {}) => normalize(
   || payment?.provider_payload?.statusDetail
 );
 
+const paymentStatus = (payment = {}) => normalize(
+  payment?.status
+  || payment?.provider_payload?.status
+);
+
 export const classifyPaymentFailure = (payment = {}, method = "") => {
   const detail = providerDetail(payment);
+  const status = paymentStatus(payment);
   const paymentMethod = normalize(method || payment?.method);
 
-  if (paymentMethod !== "card") return { reason: "pix_not_completed", detail };
+  if (paymentMethod !== "card") {
+    if (detail.includes("expired") || status === "expired") return { reason: "pix_expired", detail };
+    if (detail.includes("cancel") || status === "cancelled" || status === "canceled") return { reason: "pix_cancelled", detail };
+    if (detail.includes("reject") || status === "rejected") return { reason: "pix_rejected", detail };
+    return { reason: "pix_not_completed", detail };
+  }
   if (detail.includes("bad_filled_security_code")) return { reason: "card_security_code", detail };
   if (detail.includes("bad_filled_date")) return { reason: "card_expiration_data", detail };
   if (detail.includes("bad_filled_card_number")) return { reason: "card_number", detail };
@@ -79,6 +90,18 @@ export const paymentFailureGuidance = ({ payment = {}, method = "", pixAvailable
     card_rejected: {
       title: "O cartão não concluiu o pagamento",
       message: `Você pode revisar os dados e tentar novamente ou escolher outra forma de pagamento.${pixAlternative}`,
+    },
+    pix_expired: {
+      title: "Este PIX expirou",
+      message: "O código PIX anterior não está mais ativo. Gere um novo PIX para esta mesma compra; sua seleção continua preservada.",
+    },
+    pix_cancelled: {
+      title: "Este PIX foi encerrado",
+      message: "A tentativa anterior não está mais ativa. Gere um novo PIX para esta mesma compra; sua seleção continua preservada.",
+    },
+    pix_rejected: {
+      title: "O PIX não foi confirmado",
+      message: "A tentativa anterior não pôde ser concluída. Gere um novo PIX para esta mesma compra; sua seleção continua preservada.",
     },
     pix_not_completed: {
       title: "O PIX não foi concluído",
