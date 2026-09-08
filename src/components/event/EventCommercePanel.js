@@ -3,7 +3,7 @@ import PropTypes from "prop-types";
 import { Alert, Button, Form } from "react-bootstrap";
 import { useLocation, useNavigate } from "react-router-dom";
 import commerceService from "../../services/CommerceService";
-import { resolveCheckoutQuantity } from "../../utils/checkoutAddOns";
+import { checkoutQuantityLimit, resolveCheckoutQuantity } from "../../utils/checkoutAddOns";
 import { reconcileStoredSelection } from "../../utils/checkoutSelectionRecovery";
 import { safeGetSessionJson, safeRemoveSessionItem, safeSetSessionJson } from "../../utils/safeStorage";
 
@@ -126,7 +126,7 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
   };
 
   const setQuantity = (kind, id, value, availableMax = null) => {
-    const configuredMax = kind === "ticket" ? 20 : 50;
+    const configuredMax = checkoutQuantityLimit(kind);
     const max = availableMax === null ? configuredMax : Math.max(0, Math.min(configuredMax, Number(availableMax || 0)));
     const parsed = Math.max(0, Math.min(max, Number(value || 0)));
     const key = `${kind}:${id}`;
@@ -249,19 +249,19 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
     </div>}
 
     {(catalog.tickets || []).map((ticket) => {
-      const maxQuantity = resolveCheckoutQuantity(ticket, 20, 20);
+      const maxQuantity = resolveCheckoutQuantity(ticket, checkoutQuantityLimit("ticket"), checkoutQuantityLimit("ticket"));
       const soldOut = maxQuantity <= 0;
       const quantity = Number(quantities[`ticket:${ticket.id}`] || 0);
       const subtotal = Number(ticket.price || 0) * quantity;
-      return <div className={`cut-ticket-option ${soldOut ? "opacity-50" : ""}`} key={`paid-ticket-${ticket.id}`} aria-disabled={soldOut}><div><span className="cut-ticket-kicker">Ingresso · {dateLabel(catalog?.event?.start_date)}</span><strong>{ticket.name}</strong><span>{quantity > 0 ? `${quantity} × ${money(ticket.price)} = ${money(subtotal)}` : money(ticket.price)}</span><small className={soldOut ? "text-secondary" : "text-success"}>{stockLabel(ticket, soldOut, 20)}</small></div>{soldOut ? <Button variant="secondary" disabled>{ticket.expired ? "Encerrado" : "Esgotado"}</Button> : <QuantityStepper kind="ticket" id={ticket.id} value={quantity} max={maxQuantity} label={ticket.name} />}</div>;
+      return <div className={`cut-ticket-option ${soldOut ? "opacity-50" : ""}`} key={`paid-ticket-${ticket.id}`} aria-disabled={soldOut}><div><span className="cut-ticket-kicker">Ingresso · {dateLabel(catalog?.event?.start_date)}</span><strong>{ticket.name}</strong><span>{quantity > 0 ? `${quantity} × ${money(ticket.price)} = ${money(subtotal)}` : money(ticket.price)}</span><small className={soldOut ? "text-secondary" : "text-success"}>{stockLabel(ticket, soldOut, checkoutQuantityLimit("ticket"))}</small></div>{soldOut ? <Button variant="secondary" disabled>{ticket.expired ? "Encerrado" : "Esgotado"}</Button> : <QuantityStepper kind="ticket" id={ticket.id} value={quantity} max={maxQuantity} label={ticket.name} />}</div>;
     })}
 
     {(catalog.items || []).map((item) => {
-      const maxQuantity = resolveCheckoutQuantity(item, 50, 50);
+      const maxQuantity = resolveCheckoutQuantity(item, checkoutQuantityLimit("item"), checkoutQuantityLimit("item"));
       const soldOut = maxQuantity <= 0;
       const quantity = Number(quantities[`item:${item.id}`] || 0);
       const subtotal = Number(item.price || 0) * quantity;
-      return <div className={`cut-ticket-option ${soldOut ? "opacity-50" : ""}`} key={`event-item-${item.id}`} aria-disabled={soldOut}><div><span className="cut-ticket-kicker">Retirada no evento</span><strong>{item.name}</strong><span>{quantity > 0 ? `${quantity} × ${money(item.price)} = ${money(subtotal)}` : money(item.price)}</span>{item.description && <small>{item.description}</small>}<small className={soldOut ? "text-secondary" : "text-success"}>{stockLabel(item, soldOut, 50)}</small></div>{soldOut ? <Button variant="secondary" disabled>{item.expired ? "Encerrado" : "Esgotado"}</Button> : <QuantityStepper kind="item" id={item.id} value={quantity} max={maxQuantity} label={item.name} />}</div>;
+      return <div className={`cut-ticket-option ${soldOut ? "opacity-50" : ""}`} key={`event-item-${item.id}`} aria-disabled={soldOut}><div><span className="cut-ticket-kicker">Retirada no evento</span><strong>{item.name}</strong><span>{quantity > 0 ? `${quantity} × ${money(item.price)} = ${money(subtotal)}` : money(item.price)}</span>{item.description && <small>{item.description}</small>}<small className={soldOut ? "text-secondary" : "text-success"}>{stockLabel(item, soldOut, checkoutQuantityLimit("item"))}</small></div>{soldOut ? <Button variant="secondary" disabled>{item.expired ? "Encerrado" : "Esgotado"}</Button> : <QuantityStepper kind="item" id={item.id} value={quantity} max={maxQuantity} label={item.name} />}</div>;
     })}
 
     <div className="d-flex align-items-center justify-content-between mt-3"><strong>{selectedQuantity > 0 ? `${selectedQuantity} selecionado${selectedQuantity === 1 ? "" : "s"}` : "Total"}</strong><strong>{money(total)}</strong></div>
