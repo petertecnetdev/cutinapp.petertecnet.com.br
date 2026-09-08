@@ -3,6 +3,7 @@ import { Alert, Badge, Button, Card, Col, Container, Form, Row } from "react-boo
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
+import EventItemBulkSelector from "../../components/event/EventItemBulkSelector";
 import useAutoSave from "../../hooks/useAutoSave";
 import eventService from "../../services/EventService";
 import cutinappService from "../../services/CutinappService";
@@ -590,6 +591,18 @@ export default function EventUpdatePage() {
               </Alert>
             ) : (
               <>
+                <EventItemBulkSelector
+                  eventId={id}
+                  productionItems={productionItems}
+                  eventItems={eventItems}
+                  onItemsChange={setEventItems}
+                />
+
+                <div className="d-flex align-items-center gap-3 mb-3">
+                  <span className="cut-eyebrow mb-0">Adicionar individualmente</span>
+                  <span className="text-secondary small">Use esta opção quando quiser preço ou estoque diferente do catálogo.</span>
+                </div>
+
                 <Row className="g-3 align-items-end">
                   <Col lg={5} md={6}>
                     <Form.Group>
