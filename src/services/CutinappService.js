@@ -289,6 +289,48 @@ const attachArtist = createIdempotentMutation({
   )).data,
 });
 
+const updateArtist = createIdempotentMutation({
+  storagePrefix: "cutinapp_artist_update_attempt_",
+  keyPrefix: "artist-update",
+  requestKeyFor: (artistId, payload = {}) => `${Number(artistId)}:${createMutationRequestKey(payload)}`,
+  mutate: async ({ idempotencyKey }, artistId, payload = {}) => (await appApiClient.patch(`/artists/${Number(artistId)}/managed`, payload, { headers: { "Idempotency-Key": idempotencyKey } })).data,
+});
+
+const updateArtistType = createIdempotentMutation({
+  storagePrefix: "cutinapp_artist_type_update_attempt_",
+  keyPrefix: "artist-type-update",
+  requestKeyFor: (artistId, artistType) => `${Number(artistId)}:${createMutationRequestKey({ artist_type: String(artistType || "").trim() })}`,
+  mutate: async ({ idempotencyKey }, artistId, artistType) => (await appApiClient.put(`/artists/${Number(artistId)}/type`, { artist_type: String(artistType || "").trim() }, { headers: { "Idempotency-Key": idempotencyKey } })).data,
+});
+
+const updateArtistMember = createIdempotentMutation({
+  storagePrefix: "cutinapp_artist_member_update_attempt_",
+  keyPrefix: "artist-member-update",
+  requestKeyFor: (artistId, memberId, payload = {}) => `${Number(artistId)}:${Number(memberId)}:${createMutationRequestKey(payload)}`,
+  mutate: async ({ idempotencyKey }, artistId, memberId, payload = {}) => (await appApiClient.patch(`/artists/${Number(artistId)}/members/${Number(memberId)}`, payload, { headers: { "Idempotency-Key": idempotencyKey } })).data,
+});
+
+const deleteArtistMember = createIdempotentMutation({
+  storagePrefix: "cutinapp_artist_member_delete_attempt_",
+  keyPrefix: "artist-member-delete",
+  requestKeyFor: (artistId, memberId) => `${Number(artistId)}:${Number(memberId)}`,
+  mutate: async ({ idempotencyKey }, artistId, memberId) => (await appApiClient.delete(`/artists/${Number(artistId)}/members/${Number(memberId)}`, { headers: { "Idempotency-Key": idempotencyKey } })).data,
+});
+
+const reviewArtistClaim = createIdempotentMutation({
+  storagePrefix: "cutinapp_artist_claim_review_attempt_",
+  keyPrefix: "artist-claim-review",
+  requestKeyFor: (eventId, claimId, payload = {}) => `${Number(eventId)}:${Number(claimId)}:${createMutationRequestKey(payload)}`,
+  mutate: async ({ idempotencyKey }, eventId, claimId, payload = {}) => (await appApiClient.put(`/events/${Number(eventId)}/artist-claims/${Number(claimId)}`, payload, { headers: { "Idempotency-Key": idempotencyKey } })).data,
+});
+
+const detachArtist = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_artist_detach_attempt_",
+  keyPrefix: "event-artist-detach",
+  requestKeyFor: (eventId, artistId) => `${Number(eventId)}:${Number(artistId)}`,
+  mutate: async ({ idempotencyKey }, eventId, artistId) => (await appApiClient.delete(`/events/${Number(eventId)}/artists/${Number(artistId)}`, { headers: { "Idempotency-Key": idempotencyKey } })).data,
+});
+
 const normalizeSocialTargetType = (targetType) => String(targetType || "").trim().toLowerCase();
 
 const followSocialTarget = createIdempotentMutation({
@@ -418,20 +460,20 @@ const cutinappService = {
   updateModerationReport: async (reportId, payload) => (await appApiClient.put(`/moderation/reports/${reportId}`, payload)).data,
   myArtists: async () => unwrap((await appApiClient.get("/artists/manageable", { params: { per_page: 100 } })).data.artists),
   createArtist,
-  updateArtist: async (id, payload) => (await appApiClient.patch(`/artists/${id}/managed`, payload)).data,
-  updateArtistType: async (id, artistType) => (await appApiClient.put(`/artists/${id}/type`, { artist_type: artistType })).data,
+  updateArtist,
+  updateArtistType,
   artistMembers: async (id) => (await appApiClient.get(`/artists/${id}/members`)).data.members || [],
   createArtistMember,
-  updateArtistMember: async (id, memberId, payload) => (await appApiClient.patch(`/artists/${id}/members/${memberId}`, payload)).data,
-  deleteArtistMember: async (id, memberId) => (await appApiClient.delete(`/artists/${id}/members/${memberId}`)).data,
+  updateArtistMember,
+  deleteArtistMember,
   artistClaimability: async (eventId, artistId) => (await appApiClient.get(`/events/${eventId}/artists/${artistId}/claim`)).data,
   claimArtistEvent,
   myArtistClaims: async () => (await appApiClient.get("/artist-claims/mine")).data,
   eventArtistClaims: async (eventId) => (await appApiClient.get(`/events/${eventId}/artist-claims`)).data,
-  reviewArtistClaim: async (eventId, claimId, payload) => (await appApiClient.put(`/events/${eventId}/artist-claims/${claimId}`, payload)).data,
+  reviewArtistClaim,
   eventArtists: async (eventId) => (await appApiClient.get(`/events/${eventId}/artists`)).data,
   attachArtist,
-  detachArtist: async (eventId, artistId) => (await appApiClient.delete(`/events/${eventId}/artists/${artistId}`)).data,
+  detachArtist,
   follow: followSocialTarget,
   unfollow: async (targetType, targetId) => (await appApiClient.delete("/social/follow", { data: { target_type: targetType, target_id: targetId } })).data,
   preferences: async () => (await appApiClient.get("/social/preferences")).data.preferences,
