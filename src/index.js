@@ -26,6 +26,7 @@ import "./styles/mobile-footer-regression-fixes.css";
 import "./styles/event-view-mobile-cleanup.css";
 import "./styles/mobile-navigation-v2.css";
 import "./styles/event-view-polish.css";
+import "./styles/event-flyer-background.css";
 import "./styles/mobile-hamburger-recovery.css";
 import "./styles/desktop-navbar-overflow-fix.css";
 import "./styles/responsive-hardening.css";
