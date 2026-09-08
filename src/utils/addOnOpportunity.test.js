@@ -116,3 +116,12 @@ test("preserves raw net revenue as tie-breaker after confidence adjustment", () 
 
   expect(opportunities.sort(compareAddOnOpportunities).map(({ id }) => id)).toEqual(["higher-raw", "lower-raw"]);
 });
+
+test("uses net revenue per incremental order before historical revenue when upside is tied", () => {
+  const opportunities = [
+    { id: "higher-history", addOnProfitable: true, incrementalNetRevenue: 40, evidenceFactor: 1, netRevenuePerIncrementalOrder: 8, netPlatformRevenue: 500 },
+    { id: "higher-unit-contribution", addOnProfitable: true, incrementalNetRevenue: 40, evidenceFactor: 1, netRevenuePerIncrementalOrder: 20, netPlatformRevenue: 100 },
+  ];
+
+  expect(opportunities.sort(compareAddOnOpportunities).map(({ id }) => id)).toEqual(["higher-unit-contribution", "higher-history"]);
+});
