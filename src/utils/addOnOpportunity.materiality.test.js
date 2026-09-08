@@ -1,10 +1,20 @@
 import { addOnRevenueMateriality, compareAddOnOpportunities } from "./addOnOpportunity";
 
-test("measures incremental net revenue materiality against current event net revenue", () => {
-  expect(addOnRevenueMateriality({ incrementalNetRevenue: 25, netPlatformRevenue: 100 })).toBe(25);
+test("measures incremental net revenue as a bounded share of post-uplift net revenue", () => {
+  expect(addOnRevenueMateriality({ incrementalNetRevenue: 25, netPlatformRevenue: 100 })).toBe(20);
   expect(addOnRevenueMateriality({ incrementalNetRevenue: 25, netPlatformRevenue: 0 })).toBe(100);
   expect(addOnRevenueMateriality({ incrementalNetRevenue: 0, netPlatformRevenue: 100 })).toBe(0);
-  expect(addOnRevenueMateriality({ incrementalNetRevenue: 250, netPlatformRevenue: 100 })).toBe(100);
+  expect(addOnRevenueMateriality({ incrementalNetRevenue: 250, netPlatformRevenue: 100 })).toBeCloseTo(71.428571, 5);
+});
+
+test("keeps high-uplift events distinguishable without allowing an unbounded small-base score", () => {
+  const moderateUplift = addOnRevenueMateriality({ incrementalNetRevenue: 100, netPlatformRevenue: 100 });
+  const highUplift = addOnRevenueMateriality({ incrementalNetRevenue: 300, netPlatformRevenue: 100 });
+
+  expect(moderateUplift).toBe(50);
+  expect(highUplift).toBe(75);
+  expect(highUplift).toBeLessThan(100);
+  expect(highUplift).toBeGreaterThan(moderateUplift);
 });
 
 test("uses net revenue materiality before historical revenue when economics are otherwise tied", () => {
