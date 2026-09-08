@@ -39,6 +39,15 @@ const expectedGmvUpliftForChannel = (channelKey, options = {}) => {
   return null;
 };
 
+const observedGmvUpliftForChannel = (channelKey, options = {}) => {
+  const perChannel = options.observedGmvUpliftRateByChannel;
+  if (perChannel && typeof perChannel === "object" && perChannel[channelKey] !== undefined) {
+    return amount(perChannel[channelKey]);
+  }
+
+  return null;
+};
+
 export const summarizeRevenueByChannel = (orders = [], options = {}) => {
   const grouped = new Map();
   const minNetTakeRate = amount(options.minNetTakeRate ?? 2);
@@ -46,6 +55,10 @@ export const summarizeRevenueByChannel = (orders = [], options = {}) => {
   const minOrdersForScale = Math.max(1, Math.floor(amount(options.minOrdersForScale ?? 5)));
   const minTakeRateGapForScale = amount(options.minTakeRateGapForScale ?? 2);
   const maxRequiredGmvUpliftForScale = amount(options.maxRequiredGmvUpliftForScale ?? 50);
+  const minOrdersForFullHistoricalConfidence = Math.max(
+    1,
+    Math.floor(amount(options.minOrdersForFullHistoricalConfidence ?? 20))
+  );
   const minProjectedNetReturnPerRealForScale = Number.isFinite(Number(options.minProjectedNetReturnPerRealForScale))
     ? Number(options.minProjectedNetReturnPerRealForScale)
     : 0;
@@ -109,9 +122,19 @@ export const summarizeRevenueByChannel = (orders = [], options = {}) => {
           ? "efficient"
           : "high_burden";
       const expectedGmvUpliftRate = expectedGmvUpliftForChannel(channel.key, options);
-      const projectedIncrementalGmv = expectedGmvUpliftRate === null
+      const observedGmvUpliftRate = observedGmvUpliftForChannel(channel.key, options);
+      const historicalConfidence = observedGmvUpliftRate === null
+        ? 0
+        : Math.min(1, channel.paidOrders / minOrdersForFullHistoricalConfidence);
+      const calibratedExpectedGmvUpliftRate = expectedGmvUpliftRate === null
         ? null
-        : channel.gmv * (expectedGmvUpliftRate / 100);
+        : observedGmvUpliftRate === null
+          ? expectedGmvUpliftRate
+          : (expectedGmvUpliftRate * (1 - historicalConfidence))
+              + (observedGmvUpliftRate * historicalConfidence);
+      const projectedIncrementalGmv = calibratedExpectedGmvUpliftRate === null
+        ? null
+        : channel.gmv * (calibratedExpectedGmvUpliftRate / 100);
       const projectedIncrementalNetRevenue = projectedIncrementalGmv === null
         ? null
         : projectedIncrementalGmv * (netTakeRate / 100);
@@ -165,6 +188,10 @@ export const summarizeRevenueByChannel = (orders = [], options = {}) => {
         maxRequiredGmvUpliftForScale,
         paybackStatus,
         expectedGmvUpliftRate,
+        observedGmvUpliftRate,
+        historicalConfidence,
+        minOrdersForFullHistoricalConfidence,
+        calibratedExpectedGmvUpliftRate,
         projectedIncrementalGmv,
         projectedIncrementalNetRevenue,
         projectedNetReturnAfterReinvestment,
