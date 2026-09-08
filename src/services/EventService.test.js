@@ -128,13 +128,62 @@ describe("EventService event update uploads", () => {
     expect(idempotencyKeyAt(1)).toBe(firstKey);
   });
 
-  test("keeps normal PATCH for non-multipart updates", async () => {
+  test("protects non-multipart PATCH updates with an idempotency key", async () => {
     appApiClient.patch.mockResolvedValueOnce({ data: { event: { id: 78 } } });
 
     await eventService.update(78, { title: "Sem arquivo" });
 
-    expect(appApiClient.patch).toHaveBeenCalledWith("/events/78", { title: "Sem arquivo" });
+    expect(appApiClient.patch).toHaveBeenCalledWith(
+      "/events/78",
+      { title: "Sem arquivo" },
+      { headers: { "Idempotency-Key": expect.any(String) } }
+    );
     expect(appApiClient.post).not.toHaveBeenCalled();
+  });
+
+  test("reuses the JSON update key after an uncertain network failure", async () => {
+    const payload = { title: "Evento sem arquivo" };
+    appApiClient.patch
+      .mockRejectedValueOnce({ code: "ERR_NETWORK", message: "Network Error" })
+      .mockResolvedValueOnce({ data: { event: { id: 79 } } });
+
+    await expect(eventService.update(79, payload)).rejects.toMatchObject({ code: "ERR_NETWORK" });
+    const firstKey = appApiClient.patch.mock.calls[0]?.[2]?.headers?.["Idempotency-Key"];
+
+    await eventService.update(79, { ...payload });
+    expect(appApiClient.patch.mock.calls[1]?.[2]?.headers?.["Idempotency-Key"]).toBe(firstKey);
+  });
+
+  test("rotates the JSON update key after a definitive validation failure", async () => {
+    const payload = { title: "Evento inválido" };
+    appApiClient.patch
+      .mockRejectedValueOnce({ response: { status: 422 } })
+      .mockResolvedValueOnce({ data: { event: { id: 80 } } });
+
+    await expect(eventService.update(80, payload)).rejects.toMatchObject({ response: { status: 422 } });
+    const rejectedKey = appApiClient.patch.mock.calls[0]?.[2]?.headers?.["Idempotency-Key"];
+
+    await eventService.update(80, { ...payload });
+    const retryKey = appApiClient.patch.mock.calls[1]?.[2]?.headers?.["Idempotency-Key"];
+    expect(retryKey).toBeTruthy();
+    expect(retryKey).not.toBe(rejectedKey);
+  });
+
+  test("deduplicates concurrent equivalent JSON event updates", async () => {
+    let resolveRequest;
+    const pendingResponse = new Promise((resolve) => {
+      resolveRequest = resolve;
+    });
+    appApiClient.patch.mockReturnValueOnce(pendingResponse);
+
+    const first = eventService.update(81, { title: "Mesmo evento" });
+    const second = eventService.update(81, { title: "Mesmo evento" });
+
+    expect(appApiClient.patch).toHaveBeenCalledTimes(1);
+
+    resolveRequest({ data: { event: { id: 81 } } });
+    await expect(first).resolves.toMatchObject({ event: { id: 81 } });
+    await expect(second).resolves.toMatchObject({ event: { id: 81 } });
   });
 });
 

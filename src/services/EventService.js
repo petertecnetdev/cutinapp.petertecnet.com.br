@@ -138,6 +138,17 @@ const updateMultipartEvent = createIdempotentMutation({
   ).data,
 });
 
+const updateJsonEvent = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_json_update_attempt_",
+  keyPrefix: "event-json-update",
+  requestKeyFor: (eventId, payload = {}) => `${Number(eventId)}:${createMutationRequestKey(payload)}`,
+  mutate: async ({ idempotencyKey }, eventId, payload = {}) => (
+    await appApiClient.patch(`/events/${Number(eventId)}`, payload, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    })
+  ).data,
+});
+
 const updateAgendaItem = createIdempotentMutation({
   storagePrefix: "cutinapp_event_agenda_update_attempt_",
   keyPrefix: "event-agenda-update",
@@ -370,7 +381,7 @@ const eventService = {
       else payload.append("_method", "PATCH");
       return updateMultipartEvent(eventId, payload);
     }
-    return (await appApiClient.patch(`/events/${eventId}`, payload)).data;
+    return updateJsonEvent(eventId, payload);
   },
   show: async (eventId) => (await appApiClient.get(`/events/${eventId}/manage`)).data.event,
   myEvents: async (params = {}) => unwrap((await appApiClient.get("/events/mine", { params: { per_page: 100, ...params } })).data.events),
