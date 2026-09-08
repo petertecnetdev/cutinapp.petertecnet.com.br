@@ -100,6 +100,7 @@ export const addOnMarginQualityBonus = ({ incrementalNetMargin = 0, minimumNetMa
 };
 
 export const addOnGrowthMaterialityBonus = (opportunity = {}, maximumBonus = 25) => {
+  if (!Object.prototype.hasOwnProperty.call(opportunity, "netPlatformRevenue")) return 0;
   const cap = Math.max(0, Math.min(100, Number(maximumBonus || 0)));
   const materiality = addOnRevenueMateriality(opportunity);
   return Math.min(cap, materiality * (cap / 100));
