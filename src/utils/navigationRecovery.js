@@ -51,7 +51,16 @@ export const installNavigationRecovery = () => {
       return;
     }
 
-    const navbarDestination = target.closest(`${NAVBAR_SELECTOR} a[href], ${NAVBAR_SELECTOR} .dropdown-item`);
+    // Dropdown toggles are disclosure controls, not navigation destinations.
+    // They must only expand/collapse their option list and keep the fullscreen
+    // hamburger open. Closing here caused actor areas such as Administrativo,
+    // Produtor and Promoter to disappear immediately after the user tapped them.
+    if (target.closest(`${NAVBAR_SELECTOR} .dropdown-toggle`)) {
+      scheduleRecovery(120);
+      return;
+    }
+
+    const navbarDestination = target.closest(`${NAVBAR_SELECTOR} a[href]:not(.dropdown-toggle), ${NAVBAR_SELECTOR} .dropdown-item`);
     const bottomDestination = target.closest(".cut-mobile-bottom-nav a[href], .cut-mobile-bottom-nav button");
     if (navbarDestination || bottomDestination) {
       scheduleRecovery(220, { collapseNavbar: Boolean(navbarDestination) });
