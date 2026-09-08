@@ -32,10 +32,24 @@ const isDismissed = (storage, slug) => {
   }
 };
 
-export const isResumePromptRoute = (pathname = "") => pathname === "/" || pathname === "/home" || pathname === "/event";
+export const resumePromptSlugForRoute = (pathname = "") => {
+  const match = String(pathname).match(/^\/event\/([^/]+)\/?$/);
+  if (!match?.[1]) return null;
+  try {
+    return decodeURIComponent(match[1]);
+  } catch (_) {
+    return match[1];
+  }
+};
 
-export const findPendingCheckout = (storage, now = Date.now(), recoveryStorage = null) => {
+export const isResumePromptRoute = (pathname = "") => pathname === "/"
+  || pathname === "/home"
+  || pathname === "/event"
+  || Boolean(resumePromptSlugForRoute(pathname));
+
+export const findPendingCheckout = (storage, now = Date.now(), recoveryStorage = null, targetSlug = null) => {
   const candidatesBySlug = new Map();
+  const matchesTarget = (slug) => !targetSlug || slug === targetSlug;
 
   try {
     if (storage) {
@@ -43,7 +57,7 @@ export const findPendingCheckout = (storage, now = Date.now(), recoveryStorage =
         const key = storage.key(index);
         if (!key?.startsWith(CHECKOUT_PREFIX) || key.startsWith(RECOVERY_PREFIX) || key.startsWith(DISMISS_PREFIX)) continue;
         const slug = key.slice(CHECKOUT_PREFIX.length);
-        if (!slug || isDismissed(storage, slug)) continue;
+        if (!slug || !matchesTarget(slug) || isDismissed(storage, slug)) continue;
 
         const checkout = safeJson(storage, key);
         const quantity = quantityOf(checkout);
@@ -67,7 +81,7 @@ export const findPendingCheckout = (storage, now = Date.now(), recoveryStorage =
         const key = recoveryStorage.key(index);
         if (!key?.startsWith(RECOVERY_PREFIX)) continue;
         const slug = key.slice(RECOVERY_PREFIX.length);
-        if (!slug || isDismissed(storage, slug)) continue;
+        if (!slug || !matchesTarget(slug) || isDismissed(storage, slug)) continue;
 
         const recovery = safeJson(recoveryStorage, key);
         const savedAt = Number(recovery?.savedAt || 0);
@@ -109,16 +123,19 @@ const removePrompt = () => document.getElementById(PROMPT_ID)?.remove();
 const renderPrompt = () => {
   if (typeof window === "undefined" || typeof document === "undefined") return;
   removePrompt();
-  if (!isResumePromptRoute(window.location.pathname)) return;
+  const pathname = window.location.pathname;
+  if (!isResumePromptRoute(pathname)) return;
 
+  const contextualSlug = resumePromptSlugForRoute(pathname);
   let pending;
   try {
-    pending = findPendingCheckout(window.sessionStorage, Date.now(), window.localStorage);
+    pending = findPendingCheckout(window.sessionStorage, Date.now(), window.localStorage, contextualSlug);
   } catch (_) {
     pending = null;
   }
   if (!pending) return;
 
+  const surface = contextualSlug ? "event_detail" : "discovery";
   const prompt = document.createElement("aside");
   prompt.id = PROMPT_ID;
   prompt.setAttribute("role", "status");
@@ -147,7 +164,7 @@ const renderPrompt = () => {
   const copy = document.createElement("div");
   copy.style.minWidth = "0";
   const title = document.createElement("strong");
-  title.textContent = pending.hasOrder ? "Pagamento em andamento" : "Compra em andamento";
+  title.textContent = pending.hasOrder ? "Pagamento em andamento" : "Sua compra ainda está aqui";
   title.style.display = "block";
   const detail = document.createElement("small");
   detail.textContent = pending.hasOrder
@@ -177,6 +194,7 @@ const renderPrompt = () => {
       quantity: pending.quantity,
       target: pending.slug,
       source: pending.source,
+      surface,
       has_pending_order: pending.hasOrder,
     });
     window.location.assign(`/checkout/${encodeURIComponent(pending.slug)}`);
@@ -197,6 +215,14 @@ const renderPrompt = () => {
     cursor: "pointer",
   });
   dismissButton.addEventListener("click", () => {
+    trackTelemetry("checkout_resume_prompt_dismissed", {
+      event_id: pending.eventId,
+      quantity: pending.quantity,
+      target: pending.slug,
+      source: pending.source,
+      surface,
+      has_pending_order: pending.hasOrder,
+    });
     try {
       window.sessionStorage.setItem(`${DISMISS_PREFIX}${pending.slug}`, "1");
     } catch (_) {
@@ -210,7 +236,7 @@ const renderPrompt = () => {
   prompt.append(copy, actions);
   document.body.appendChild(prompt);
 
-  const shownKey = `${pending.slug}:${pending.hasOrder ? "order" : "selection"}:${pending.source}`;
+  const shownKey = `${pending.slug}:${pending.hasOrder ? "order" : "selection"}:${pending.source}:${surface}`;
   if (!shown.has(shownKey)) {
     shown.add(shownKey);
     trackTelemetry("checkout_resume_prompt_shown", {
@@ -218,6 +244,7 @@ const renderPrompt = () => {
       quantity: pending.quantity,
       target: pending.slug,
       source: pending.source,
+      surface,
       has_pending_order: pending.hasOrder,
     });
   }
