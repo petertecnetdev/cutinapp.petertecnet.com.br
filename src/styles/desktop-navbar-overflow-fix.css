@@ -1,0 +1,156 @@
+/* Desktop navbar overflow guard.
+ * Mantém menus de perfis/admin, conta e launcher do ecossistema em áreas
+ * independentes e permite quebra controlada quando o usuário possui muitas
+ * capacidades (caso do Super Admin).
+ */
+
+@media (min-width: 992px) {
+  .cut-capability-nav .cut-navbar__inner {
+    width: calc(100% - 40px) !important;
+    max-width: 1680px !important;
+    gap: 10px !important;
+  }
+
+  .cut-capability-nav .navbar-collapse {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .cut-capability-nav .cut-navbar__links {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    margin-inline: 0 !important;
+    justify-content: center;
+    flex-wrap: nowrap;
+    overflow: visible !important;
+  }
+
+  .cut-capability-nav .cut-navbar__account,
+  .cut-capability-nav .cut-navbar__ecosystem-slot {
+    position: relative;
+    z-index: 3;
+    min-width: 0;
+    flex: 0 0 auto;
+  }
+
+  .cut-capability-nav .cut-navbar__account {
+    margin-left: 0 !important;
+  }
+}
+
+@media (max-width: 1599.98px) and (min-width: 1400px) {
+  .cut-capability-nav .cut-navbar__inner {
+    width: calc(100% - 28px) !important;
+    gap: 7px !important;
+  }
+
+  .cut-capability-nav .cut-navbar__brand {
+    margin-right: 3px !important;
+  }
+
+  .cut-capability-nav .cut-navbar__brand small,
+  .cut-capability-nav .cut-navbar__user small {
+    display: none !important;
+  }
+
+  .cut-capability-nav .cut-navbar__links {
+    gap: 0 !important;
+  }
+
+  .cut-capability-nav .cut-navbar__links .nav-link,
+  .cut-capability-nav .cut-navbar__links .dropdown-toggle {
+    padding-inline: 7px !important;
+    font-size: .75rem !important;
+  }
+
+  .cut-capability-nav .cut-navbar__user {
+    max-width: 145px !important;
+  }
+}
+
+@media (max-width: 1399.98px) and (min-width: 1200px) {
+  .cut-capability-nav .cut-navbar__inner {
+    width: calc(100% - 24px) !important;
+    max-width: none !important;
+    gap: 6px !important;
+  }
+
+  .cut-capability-nav .cut-navbar__brand {
+    margin-right: 2px !important;
+  }
+
+  .cut-capability-nav .cut-navbar__brand small,
+  .cut-capability-nav .cut-navbar__user small {
+    display: none !important;
+  }
+
+  .cut-capability-nav .cut-navbar__links {
+    justify-content: flex-start;
+    flex-wrap: wrap !important;
+    column-gap: 0 !important;
+    row-gap: 2px !important;
+  }
+
+  .cut-capability-nav .cut-navbar__links .nav-link,
+  .cut-capability-nav .cut-navbar__links .dropdown-toggle {
+    min-height: 36px !important;
+    padding: 5px 6px !important;
+    font-size: .72rem !important;
+  }
+
+  .cut-capability-nav .cut-navbar__user {
+    max-width: 126px !important;
+  }
+}
+
+@media (max-width: 1199.98px) and (min-width: 992px) {
+  .cut-capability-nav .cut-navbar__inner {
+    width: calc(100% - 18px) !important;
+    max-width: none !important;
+    gap: 5px !important;
+  }
+
+  .cut-capability-nav .cut-navbar__brand {
+    margin-right: 0 !important;
+  }
+
+  .cut-capability-nav .cut-navbar__brand > div {
+    display: none !important;
+  }
+
+  .cut-capability-nav .cut-navbar__links {
+    justify-content: flex-start;
+    flex-wrap: wrap !important;
+    column-gap: 0 !important;
+    row-gap: 1px !important;
+  }
+
+  .cut-capability-nav .cut-navbar__links .nav-link,
+  .cut-capability-nav .cut-navbar__links .dropdown-toggle {
+    min-height: 34px !important;
+    padding: 4px 5px !important;
+    font-size: .7rem !important;
+  }
+
+  .cut-capability-nav .cut-navbar__user {
+    grid-template-columns: 38px !important;
+    max-width: 52px !important;
+    gap: 0 !important;
+  }
+
+  .cut-capability-nav .cut-navbar__user > span:last-child {
+    display: none !important;
+  }
+
+  .cut-capability-nav .cut-navbar__account .dropdown-toggle {
+    padding-inline: 4px !important;
+  }
+
+  .cut-capability-nav .cut-navbar__account .dropdown-toggle::after {
+    margin-left: 2px !important;
+  }
+}
