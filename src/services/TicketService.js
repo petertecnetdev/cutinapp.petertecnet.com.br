@@ -39,6 +39,17 @@ const storeIdempotently = createIdempotentMutation({
   ).data,
 });
 
+const bulkUpdateIdempotently = createIdempotentMutation({
+  storagePrefix: "cutinapp_ticket_bulk_update_attempt_",
+  keyPrefix: "ticket-bulk-update",
+  requestKeyFor: (requestPayload) => createMutationRequestKey(requestPayload),
+  mutate: async ({ idempotencyKey }, requestPayload) => (
+    await appApiClient.patch("/tickets/bulk", requestPayload, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    })
+  ).data,
+});
+
 const store = (payload) => storeIdempotently(normalizePayload(payload));
 
 const listByEvent = async (eventId) => {
@@ -46,6 +57,15 @@ const listByEvent = async (eventId) => {
   return Array.isArray(response?.tickets) ? response.tickets : [];
 };
 
-const ticketService = { store, listByEvent };
+const similar = async (ticketId) => (
+  await appApiClient.get(`/tickets/${Number(ticketId)}/similar`)
+).data;
+
+const bulkUpdate = (payload = {}) => bulkUpdateIdempotently({
+  ...payload,
+  ticket_ids: (payload.ticket_ids || []).map(Number),
+});
+
+const ticketService = { store, listByEvent, similar, bulkUpdate };
 
 export default ticketService;
