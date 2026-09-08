@@ -75,13 +75,22 @@ export const summarizeCheckoutAddOnOffer = (items = []) => {
   };
 };
 
+const nonNegativeInteger = (value) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return 0;
+  return Math.floor(parsed);
+};
+
 export const resolveCheckoutQuantity = (item, requestedQuantity, limit = 10) => {
   if (!item || item.available === false || item.expired) return 0;
-  const requested = Math.max(0, Number(requestedQuantity || 0));
-  const normalizedLimit = Math.max(0, Number(limit) || 0);
+  const requested = nonNegativeInteger(requestedQuantity);
+  const normalizedLimit = nonNegativeInteger(limit);
+  if (!requested || !normalizedLimit) return 0;
+
   const stock = item.remaining ?? item.quantity;
   if (stock == null || stock === "") return Math.min(requested, normalizedLimit);
-  const remaining = Number(stock);
-  if (!Number.isFinite(remaining)) return Math.min(requested, normalizedLimit);
-  return Math.max(0, Math.min(requested, normalizedLimit, remaining));
+
+  const remaining = nonNegativeInteger(stock);
+  if (!remaining) return 0;
+  return Math.min(requested, normalizedLimit, remaining);
 };

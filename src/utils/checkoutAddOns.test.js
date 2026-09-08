@@ -122,4 +122,17 @@ describe("resolveCheckoutQuantity", () => {
     expect(resolveCheckoutQuantity({ id: 1, available: false }, 1, 10)).toBe(0);
     expect(resolveCheckoutQuantity({ id: 1, expired: true }, 1, 10)).toBe(0);
   });
+
+  test("normalizes malformed quantities before they can reach checkout totals or payment payloads", () => {
+    expect(resolveCheckoutQuantity({ id: 1, remaining: 8 }, "not-a-number", 10)).toBe(0);
+    expect(resolveCheckoutQuantity({ id: 1, remaining: 8 }, Number.NaN, 10)).toBe(0);
+    expect(resolveCheckoutQuantity({ id: 1, remaining: 8 }, Number.POSITIVE_INFINITY, 10)).toBe(0);
+    expect(resolveCheckoutQuantity({ id: 1, remaining: 8 }, -3, 10)).toBe(0);
+  });
+
+  test("keeps quantities integer-safe across requested values, limits and stock", () => {
+    expect(resolveCheckoutQuantity({ id: 1, remaining: 8 }, 3.9, 10)).toBe(3);
+    expect(resolveCheckoutQuantity({ id: 1, remaining: 8.7 }, 9, 10)).toBe(8);
+    expect(resolveCheckoutQuantity({ id: 1, remaining: 20 }, 9, 4.8)).toBe(4);
+  });
 });
