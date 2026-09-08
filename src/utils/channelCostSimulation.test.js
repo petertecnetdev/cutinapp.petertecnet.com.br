@@ -61,7 +61,7 @@ describe("channel cost simulation", () => {
     expect(channel.variableChannelCosts).toBe(6);
   });
 
-  test("recommends promoter commission only while preserving the margin reserve", () => {
+  test("recommends promoter commission only while preserving the margin reserve and efficient payback", () => {
     const recommended = assessPromoterCommissionProposal(
       promoterChannel,
       { commissionRate: 6 },
@@ -77,6 +77,9 @@ describe("channel cost simulation", () => {
     expect(recommended.maximumRecommendedPromoterCommission).toBe(6);
     expect(recommended.maximumRecommendedPromoterCommissionRate).toBe(6);
     expect(recommended.projectedHeadroomAboveFloor).toBe(2);
+    expect(recommended.requiredIncrementalNetRevenue).toBe(2);
+    expect(recommended.requiredGmvUpliftRate).toBeCloseTo(33.3333333333);
+    expect(recommended.paybackStatus).toBe("efficient");
     expect(recommended.decisionStatus).toBe("recommended");
     expect(recommended.recommendedToApply).toBe(true);
 
@@ -85,6 +88,42 @@ describe("channel cost simulation", () => {
     expect(caution.decisionStatus).toBe("caution");
     expect(caution.canApply).toBe(true);
     expect(caution.recommendedToApply).toBe(false);
+  });
+
+  test("downgrades a margin-safe promoter proposal when incremental GMV payback is too demanding", () => {
+    const assessment = assessPromoterCommissionProposal(
+      promoterChannel,
+      { commissionRate: 6 },
+      { safetyReserveFactor: 0.5, maxRequiredGmvUpliftRate: 25 },
+    );
+
+    expect(assessment.preservesFloor).toBe(true);
+    expect(assessment.preservesSafetyReserve).toBe(true);
+    expect(assessment.requiredIncrementalGmv).toBeCloseTo(33.3333333333);
+    expect(assessment.requiredGmvUpliftRate).toBeCloseTo(33.3333333333);
+    expect(assessment.maxRequiredGmvUpliftRate).toBe(25);
+    expect(assessment.paybackStatus).toBe("high_burden");
+    expect(assessment.decisionStatus).toBe("caution");
+    expect(assessment.canApply).toBe(true);
+    expect(assessment.recommendedToApply).toBe(false);
+  });
+
+  test("can require positive incremental net return before recommending acquisition spend", () => {
+    const assessment = assessPromoterCommissionProposal(
+      promoterChannel,
+      { commissionRate: 5 },
+      {
+        safetyReserveFactor: 0.5,
+        maxRequiredGmvUpliftRate: 40,
+        minProjectedNetReturnPerReal: 1,
+      },
+    );
+
+    expect(assessment.requiredIncrementalNetRevenue).toBe(2);
+    expect(assessment.requiredIncrementalGmv).toBeCloseTo(33.3333333333);
+    expect(assessment.requiredGmvUpliftRate).toBeCloseTo(33.3333333333);
+    expect(assessment.paybackStatus).toBe("efficient");
+    expect(assessment.recommendedToApply).toBe(true);
   });
 
   test("blocks promoter commission that breaches the hard take-rate floor", () => {
@@ -121,6 +160,9 @@ describe("channel cost simulation", () => {
     expect(assessment.maximumRecommendedVariableCosts).toBe(10);
     expect(assessment.maximumRecommendedVariableCostRate).toBe(5);
     expect(assessment.projectedHeadroomAboveFloor).toBe(4);
+    expect(assessment.requiredIncrementalGmv).toBeCloseTo(57.1428571429);
+    expect(assessment.requiredGmvUpliftRate).toBeCloseTo(28.5714285714);
+    expect(assessment.paybackStatus).toBe("efficient");
     expect(assessment.decisionStatus).toBe("recommended");
   });
 });
