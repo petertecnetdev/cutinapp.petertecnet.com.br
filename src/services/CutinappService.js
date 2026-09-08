@@ -107,6 +107,27 @@ const claimCourtesy = createIdempotentMutation({
   })).data,
 });
 
+const updateCourtesy = createIdempotentMutation({
+  storagePrefix: "cutinapp_courtesy_update_attempt_",
+  keyPrefix: "courtesy-update",
+  requestKeyFor: (ticketId, payload = {}) => `${Number(ticketId)}:${createMutationRequestKey(payload)}`,
+  mutate: async ({ idempotencyKey }, ticketId, payload = {}) => (await appApiClient.patch(
+    `/tickets/${Number(ticketId)}`,
+    payload,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
+const deleteCourtesy = createIdempotentMutation({
+  storagePrefix: "cutinapp_courtesy_delete_attempt_",
+  keyPrefix: "courtesy-delete",
+  requestKeyFor: (ticketId) => String(Number(ticketId)),
+  mutate: async ({ idempotencyKey }, ticketId) => (await appApiClient.delete(
+    `/tickets/${Number(ticketId)}`,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
 const transferPass = createIdempotentMutation({
   storagePrefix: "cutinapp_pass_transfer_attempt_",
   keyPrefix: "pass-transfer",
@@ -375,8 +396,8 @@ const cutinappService = {
   unpublishEvent: unpublishEventMutation,
 
   eventCourtesies: async (eventId) => (await appApiClient.get(`/events/${eventId}/tickets`)).data,
-  updateCourtesy: async (ticketId, payload) => (await appApiClient.patch(`/tickets/${ticketId}`, payload)).data,
-  deleteCourtesy: async (ticketId) => (await appApiClient.delete(`/tickets/${ticketId}`)).data,
+  updateCourtesy,
+  deleteCourtesy,
   claimCourtesy,
   myPasses: async () => unwrap((await appApiClient.get(`/passes/mine`)).data.passes),
   getPass: async (passId) => (await appApiClient.get(`/passes/${passId}`)).data.pass,
