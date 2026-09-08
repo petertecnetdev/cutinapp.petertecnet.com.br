@@ -13,6 +13,7 @@ const firstValidationMessage = (errors) => {
 
 const nowMs = () => (typeof performance !== "undefined" && typeof performance.now === "function" ? performance.now() : Date.now());
 const durationMs = (config) => Math.max(0, Math.round(nowMs() - Number(config?._peterStartedAt || nowMs())));
+const isQuickProductionCreate = (config) => String(config?.method || "get").toLowerCase() === "post" && String(config?.url || "").replace(/\?.*$/, "") === "/organizations";
 
 const publishAuthInvalidation = (requestUrl) => {
   if (typeof window === "undefined") return;
@@ -67,8 +68,15 @@ export const createApiClient = (baseURL) => {
 
   client.interceptors.request.use((config) => {
     config._peterStartedAt = nowMs();
+    if (isQuickProductionCreate(config)) config.timeout = Math.min(Number(config.timeout || 20000), 8000);
+
     const token = getAuthToken();
     if (token) config.headers.Authorization = `Bearer ${token}`;
+    if (typeof window !== "undefined" && !getHeaderValue(config.headers, "x-frontend-page")) {
+      const page = `${window.location.pathname || "/"}${window.location.search || ""}`;
+      if (typeof config.headers?.set === "function") config.headers.set("X-Frontend-Page", page);
+      else if (config.headers) config.headers["X-Frontend-Page"] = page;
+    }
 
     if (!getHeaderValue(config.headers, "x-request-id")) {
       const requestId = createRequestId();
@@ -137,16 +145,7 @@ export const createApiClient = (baseURL) => {
       normalizedError.durationMs = durationMs(error.config);
       normalizedError.original = error;
 
-      publishApiFailure({
-        requestId,
-        requestUrl,
-        method: error.config?.method,
-        status,
-        code: normalizedError.code,
-        kind,
-        duration: normalizedError.durationMs,
-      });
-
+      publishApiFailure({ requestId, requestUrl, method: error.config?.method, status, code: normalizedError.code, kind, duration: normalizedError.durationMs });
       return Promise.reject(normalizedError);
     }
   );
