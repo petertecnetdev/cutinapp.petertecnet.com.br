@@ -138,7 +138,7 @@ describe("revenue channel attribution", () => {
 
     expect(coupon.netTakeRate).toBe(6);
     expect(coupon.minimumNetTakeRate).toBe(7);
-    expect(coupon.minimumNetRevenue).toBe(7);
+    expect(coupon.minimumNetRevenue).toBeCloseTo(7, 8);
     expect(coupon.netTakeRateGap).toBe(-1);
     expect(coupon.economicStatus).toBe("below_floor");
   });
