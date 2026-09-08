@@ -95,8 +95,6 @@ export default function TicketBulkEditPage() {
 
   useEffect(() => {
     load();
-    // ticketId is the complete resource identity for this page.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticketId]);
 
   const allTickets = useMemo(() => source ? [source, ...similarTickets] : similarTickets, [source, similarTickets]);
