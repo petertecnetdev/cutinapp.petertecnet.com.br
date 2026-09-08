@@ -44,6 +44,38 @@ const createProduction = createIdempotentMutation({
   })).data, "organization", "production"),
 });
 
+const updateProduction = createIdempotentMutation({
+  storagePrefix: "cutinapp_production_update_attempt_",
+  keyPrefix: "production-update",
+  requestKeyFor: (organizationId, payload) => `${Number(organizationId)}:${productionRequestKey(payload)}`,
+  mutate: async ({ idempotencyKey }, organizationId, payload) => rename((await appApiClient.patch(
+    `/organizations/${Number(organizationId)}`,
+    payload,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data, "organization", "production"),
+});
+
+const deleteProduction = createIdempotentMutation({
+  storagePrefix: "cutinapp_production_delete_attempt_",
+  keyPrefix: "production-delete",
+  requestKeyFor: (organizationId) => String(Number(organizationId)),
+  mutate: async ({ idempotencyKey }, organizationId) => (await appApiClient.delete(
+    `/organizations/${Number(organizationId)}`,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
+const updateProductionExperience = createIdempotentMutation({
+  storagePrefix: "cutinapp_production_experience_update_attempt_",
+  keyPrefix: "production-experience-update",
+  requestKeyFor: (organizationId, payload = {}) => `${Number(organizationId)}:${createMutationRequestKey(payload)}`,
+  mutate: async ({ idempotencyKey }, organizationId, payload = {}) => (await appApiClient.patch(
+    `/organizations/${Number(organizationId)}/experience-profile`,
+    payload,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
 const signProducerContract = createIdempotentMutation({
   storagePrefix: "cutinapp_contract_sign_attempt_",
   keyPrefix: "contract-sign",
@@ -278,7 +310,7 @@ const cutinappService = {
   productionItems: async (id) => unwrap((await appApiClient.get(`/establishments/${id}/items`)).data.data),
   productionWorkspace: async (id) => (await appApiClient.get(`/organizations/${id}/workspace`)).data,
   productionExperience: async (slug) => (await appApiClient.get(`/organizations/public/${slug}/experience`)).data,
-  updateProductionExperience: async (id, payload) => (await appApiClient.patch(`/organizations/${id}/experience-profile`, payload)).data,
+  updateProductionExperience,
   productionCommunity: async (slug, params = {}) => (await appApiClient.get(`/organizations/public/${slug}/community`, { params })).data,
   createProductionPost: (organizationId, payload) => createProductionCommunityPost(organizationId, payload),
   deleteProductionPost: async (postId) => (await appApiClient.delete(`/organization-community/${postId}`)).data,
@@ -288,8 +320,8 @@ const cutinappService = {
   deleteProductionMedia: async (organizationId, mediaId) => (await appApiClient.delete(`/organizations/${organizationId}/media/${mediaId}`)).data,
   publicProduction: async (slug) => rename(await cachedPublicGet(appApiClient, `/organizations/public/${slug}`, { ttlMs: 30000, staleMs: 180000 }), "organization", "production"),
   createProduction,
-  updateProduction: async (id, formData) => rename((await appApiClient.patch(`/organizations/${id}`, formData)).data, "organization", "production"),
-  deleteProduction: async (id) => (await appApiClient.delete(`/organizations/${id}`)).data,
+  updateProduction,
+  deleteProduction,
   producerContract: async (organizationId) => {
     const data = (await appApiClient.get(`/organizations/${organizationId}/agreement`)).data;
     return data?.agreement ?? data?.contract ?? null;
