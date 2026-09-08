@@ -1,4 +1,9 @@
-import { simulateChannelVariableCost, simulatePromoterCommission } from "./channelCostSimulation";
+import {
+  assessChannelCostProposal,
+  assessPromoterCommissionProposal,
+  simulateChannelVariableCost,
+  simulatePromoterCommission,
+} from "./channelCostSimulation";
 
 describe("channel cost simulation", () => {
   const promoterChannel = {
@@ -9,6 +14,8 @@ describe("channel cost simulation", () => {
     variableChannelCosts: 7,
     promoterCommission: 4,
     minimumNetTakeRate: 2,
+    netRevenue: 6,
+    netRevenueHeadroomAboveFloor: 4,
   };
 
   test("marks a promoter commission proposal as safe while preserving the take-rate floor", () => {
@@ -52,5 +59,68 @@ describe("channel cost simulation", () => {
     expect(simulation.projectedNetTakeRate).toBe(5);
     expect(simulation.projectedHeadroomAboveFloor).toBe(4);
     expect(channel.variableChannelCosts).toBe(6);
+  });
+
+  test("recommends promoter commission only while preserving the margin reserve", () => {
+    const recommended = assessPromoterCommissionProposal(
+      promoterChannel,
+      { commissionRate: 6 },
+      { safetyReserveFactor: 0.5 },
+    );
+    const caution = assessPromoterCommissionProposal(
+      promoterChannel,
+      { commissionRate: 7 },
+      { safetyReserveFactor: 0.5 },
+    );
+
+    expect(recommended.minimumHeadroomReserve).toBe(2);
+    expect(recommended.maximumRecommendedPromoterCommission).toBe(6);
+    expect(recommended.maximumRecommendedPromoterCommissionRate).toBe(6);
+    expect(recommended.projectedHeadroomAboveFloor).toBe(2);
+    expect(recommended.decisionStatus).toBe("recommended");
+    expect(recommended.recommendedToApply).toBe(true);
+
+    expect(caution.preservesFloor).toBe(true);
+    expect(caution.preservesSafetyReserve).toBe(false);
+    expect(caution.decisionStatus).toBe("caution");
+    expect(caution.canApply).toBe(true);
+    expect(caution.recommendedToApply).toBe(false);
+  });
+
+  test("blocks promoter commission that breaches the hard take-rate floor", () => {
+    const assessment = assessPromoterCommissionProposal(
+      promoterChannel,
+      { commissionRate: 9 },
+      { safetyReserveFactor: 0.5 },
+    );
+
+    expect(assessment.decisionStatus).toBe("blocked");
+    expect(assessment.canApply).toBe(false);
+    expect(assessment.recommendedToApply).toBe(false);
+  });
+
+  test("exposes a generic recommended channel cost ceiling with configurable reserve", () => {
+    const channel = {
+      key: "campaign",
+      gmv: 200,
+      platformRevenue: 24,
+      processorFeesBorneByPlatform: 4,
+      variableChannelCosts: 6,
+      minimumNetTakeRate: 3,
+      netRevenue: 14,
+      netRevenueHeadroomAboveFloor: 8,
+    };
+
+    const assessment = assessChannelCostProposal(
+      channel,
+      { totalVariableCosts: 10 },
+      { safetyReserveFactor: 0.5 },
+    );
+
+    expect(assessment.minimumHeadroomReserve).toBe(4);
+    expect(assessment.maximumRecommendedVariableCosts).toBe(10);
+    expect(assessment.maximumRecommendedVariableCostRate).toBe(5);
+    expect(assessment.projectedHeadroomAboveFloor).toBe(4);
+    expect(assessment.decisionStatus).toBe("recommended");
   });
 });
