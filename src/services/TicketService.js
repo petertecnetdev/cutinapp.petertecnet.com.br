@@ -12,10 +12,11 @@ const normalizePayload = (payload = {}) => {
   const normalized = {
     name: payload.name,
     quantity: payload.quantity,
-    limit_date: payload.limit_date || null,
     description: payload.description || null,
     price: Number(payload.price || 0),
     ticket_type: payload.ticket_type || (Number(payload.price || 0) > 0 ? "standard" : "courtesy"),
+    sales_cutoff_mode: payload.sales_cutoff_mode || "at_start",
+    sales_cutoff_offset_minutes: Math.max(0, Number(payload.sales_cutoff_offset_minutes || 0)),
   };
 
   if (Array.isArray(payload.event_ids) && payload.event_ids.length > 0) {
