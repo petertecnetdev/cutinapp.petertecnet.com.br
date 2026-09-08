@@ -186,6 +186,36 @@ const attachArtist = createIdempotentMutation({
   )).data,
 });
 
+const publishEventMutation = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_publish_attempt_",
+  keyPrefix: "event-publish",
+  requestKeyFor: (eventId) => String(Number(eventId)),
+  mutate: async ({ idempotencyKey }, eventId) => {
+    const data = (await appApiClient.post(
+      `/events/${Number(eventId)}/publish`,
+      undefined,
+      { headers: { "Idempotency-Key": idempotencyKey } },
+    )).data;
+    invalidatePublicRequestCache("/events");
+    return data;
+  },
+});
+
+const unpublishEventMutation = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_unpublish_attempt_",
+  keyPrefix: "event-unpublish",
+  requestKeyFor: (eventId) => String(Number(eventId)),
+  mutate: async ({ idempotencyKey }, eventId) => {
+    const data = (await appApiClient.post(
+      `/events/${Number(eventId)}/unpublish`,
+      undefined,
+      { headers: { "Idempotency-Key": idempotencyKey } },
+    )).data;
+    invalidatePublicRequestCache("/events");
+    return data;
+  },
+});
+
 // Product UI facade. Every request below consumes a reusable capability from
 // /api/v1/apps/{application}; product-specific backend URLs are intentionally
 // absent. Small response aliases keep the current UI stable during vocabulary
@@ -274,8 +304,8 @@ const cutinappService = {
   notifications: async (params = {}) => (await appApiClient.get("/notifications", { params })).data,
   markNotificationRead: async (notificationId) => (await appApiClient.patch(`/notifications/${notificationId}/read`)).data,
   markAllNotificationsRead: async () => (await appApiClient.patch("/notifications/read-all")).data,
-  publishEvent: async (eventId) => { const data = (await appApiClient.post(`/events/${eventId}/publish`)).data; invalidatePublicRequestCache("/events"); return data; },
-  unpublishEvent: async (eventId) => { const data = (await appApiClient.post(`/events/${eventId}/unpublish`)).data; invalidatePublicRequestCache("/events"); return data; },
+  publishEvent: publishEventMutation,
+  unpublishEvent: unpublishEventMutation,
 
   eventCourtesies: async (eventId) => (await appApiClient.get(`/events/${eventId}/tickets`)).data,
   updateCourtesy: async (ticketId, payload) => (await appApiClient.patch(`/tickets/${ticketId}`, payload)).data,
