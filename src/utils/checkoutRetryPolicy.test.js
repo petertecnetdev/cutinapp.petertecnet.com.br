@@ -60,4 +60,12 @@ describe("checkout conflict classification", () => {
     expect(isCheckoutInventoryConflict({ status: 409, message: "Esta operação já está em processamento." })).toBe(false);
     expect(isCheckoutOperationInProgress({ status: 409, message: "Esta operação já está em processamento." })).toBe(true);
   });
+
+  test("keeps processing conflicts out of inventory recovery without losing the idempotency attempt", () => {
+    const error = { status: 409, message: "Esta operação já está em processamento." };
+    expect(shouldKeepCheckoutAttempt(error)).toBe(true);
+    expect(error.status).toBe(425);
+    expect(error.serverStatus).toBe(409);
+    expect(error.message).toContain("Não inicie outra cobrança");
+  });
 });
