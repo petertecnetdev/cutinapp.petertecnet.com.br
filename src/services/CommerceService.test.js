@@ -388,4 +388,75 @@ describe("CommerceService", () => {
       { item: { id: 304 } },
     ]);
   });
+
+  test("protects event item updates with an idempotency key and normalized identifiers", async () => {
+    const item = { name: "Camiseta premium", price: 49.9, quantity: 12 };
+    appApiClient.patch.mockResolvedValueOnce({ data: { item: { id: 304, ...item } } });
+
+    await expect(commerceService.saveEventItem("46", item, "304")).resolves.toMatchObject({ item: { id: 304 } });
+    expect(appApiClient.patch).toHaveBeenCalledWith(
+      "/events/46/items/304",
+      item,
+      { headers: { "Idempotency-Key": expect.any(String) } },
+    );
+  });
+
+  test("reuses the event item update key after an uncertain failure", async () => {
+    const networkError = Object.assign(new Error("Network Error"), { code: "ERR_NETWORK" });
+    appApiClient.patch
+      .mockRejectedValueOnce(networkError)
+      .mockResolvedValueOnce({ data: { item: { id: 305, quantity: 8 } } });
+
+    await expect(commerceService.saveEventItem(47, { quantity: 8, price: 20 }, 305)).rejects.toThrow("Network Error");
+    const firstKey = appApiClient.patch.mock.calls[0][2].headers["Idempotency-Key"];
+
+    await expect(commerceService.saveEventItem("47", { price: 20, quantity: 8 }, "305")).resolves.toMatchObject({ item: { id: 305 } });
+    expect(appApiClient.patch.mock.calls[1][2].headers["Idempotency-Key"]).toBe(firstKey);
+  });
+
+  test("rotates the event item update key after a definitive validation failure", async () => {
+    appApiClient.patch
+      .mockRejectedValueOnce({ response: { status: 422 } })
+      .mockResolvedValueOnce({ data: { item: { id: 306 } } });
+
+    await expect(commerceService.saveEventItem(48, { quantity: -1 }, 306)).rejects.toMatchObject({ response: { status: 422 } });
+    const rejectedKey = appApiClient.patch.mock.calls[0][2].headers["Idempotency-Key"];
+    await commerceService.saveEventItem(48, { quantity: -1 }, 306);
+    expect(appApiClient.patch.mock.calls[1][2].headers["Idempotency-Key"]).not.toBe(rejectedKey);
+  });
+
+  test("coalesces concurrent equivalent event item updates", async () => {
+    let resolveUpdate;
+    appApiClient.patch.mockImplementationOnce(() => new Promise((resolve) => { resolveUpdate = resolve; }));
+
+    const first = commerceService.saveEventItem(49, { name: "Combo", quantity: 9 }, 307);
+    const second = commerceService.saveEventItem("49", { quantity: 9, name: "Combo" }, "307");
+
+    expect(appApiClient.patch).toHaveBeenCalledTimes(1);
+    resolveUpdate({ data: { item: { id: 307 } } });
+    await expect(Promise.all([first, second])).resolves.toEqual([
+      { item: { id: 307 } },
+      { item: { id: 307 } },
+    ]);
+  });
+
+  test("protects event item deletion against ambiguous retries and concurrent duplicates", async () => {
+    const networkError = Object.assign(new Error("Network Error"), { code: "ERR_NETWORK" });
+    appApiClient.delete
+      .mockRejectedValueOnce(networkError)
+      .mockResolvedValueOnce({ data: { deleted: true } });
+
+    await expect(commerceService.deleteEventItem(50, 308)).rejects.toThrow("Network Error");
+    const firstKey = appApiClient.delete.mock.calls[0][1].headers["Idempotency-Key"];
+
+    const first = commerceService.deleteEventItem("50", "308");
+    const second = commerceService.deleteEventItem(50, 308);
+    await expect(Promise.all([first, second])).resolves.toEqual([
+      { deleted: true },
+      { deleted: true },
+    ]);
+    expect(appApiClient.delete).toHaveBeenCalledTimes(2);
+    expect(appApiClient.delete.mock.calls[1][1].headers["Idempotency-Key"]).toBe(firstKey);
+  });
+
 });
