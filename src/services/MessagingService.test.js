@@ -10,8 +10,12 @@ jest.mock("./AppApiClient", () => ({
   },
 }));
 
-const idempotencyKeyAt = (index) => (
+const postIdempotencyKeyAt = (index) => (
   appApiClient.post.mock.calls[index]?.[2]?.headers?.["Idempotency-Key"]
+);
+
+const deleteIdempotencyKeyAt = (index) => (
+  appApiClient.delete.mock.calls[index]?.[1]?.headers?.["Idempotency-Key"]
 );
 
 describe("MessagingService", () => {
@@ -39,10 +43,10 @@ describe("MessagingService", () => {
       .mockResolvedValueOnce({ data: { data: { id: 42 } } });
 
     await expect(messagingService.openDirect(12)).rejects.toThrow("Network Error");
-    const firstKey = idempotencyKeyAt(0);
+    const firstKey = postIdempotencyKeyAt(0);
 
     await expect(messagingService.openDirect(12)).resolves.toEqual({ data: { id: 42 } });
-    expect(idempotencyKeyAt(1)).toBe(firstKey);
+    expect(postIdempotencyKeyAt(1)).toBe(firstKey);
   });
 
   test("uses a new direct-open key after a definitive validation failure", async () => {
@@ -51,10 +55,10 @@ describe("MessagingService", () => {
       .mockResolvedValueOnce({ data: { data: { id: 43 } } });
 
     await expect(messagingService.openDirect(12)).rejects.toMatchObject({ status: 422 });
-    const rejectedKey = idempotencyKeyAt(0);
+    const rejectedKey = postIdempotencyKeyAt(0);
 
     await messagingService.openDirect(12);
-    expect(idempotencyKeyAt(1)).not.toBe(rejectedKey);
+    expect(postIdempotencyKeyAt(1)).not.toBe(rejectedKey);
   });
 
   test("coalesces equivalent concurrent direct opens but keeps different users independent", async () => {
@@ -71,7 +75,7 @@ describe("MessagingService", () => {
 
     expect(duplicate).toBe(first);
     expect(appApiClient.post).toHaveBeenCalledTimes(2);
-    expect(idempotencyKeyAt(0)).not.toBe(idempotencyKeyAt(1));
+    expect(postIdempotencyKeyAt(0)).not.toBe(postIdempotencyKeyAt(1));
 
     resolveFirst({ data: { data: { id: 44 } } });
     await expect(first).resolves.toEqual({ data: { id: 44 } });
@@ -97,10 +101,10 @@ describe("MessagingService", () => {
       .mockResolvedValueOnce({ data: { data: { id: 92 } } });
 
     await expect(messagingService.send(42, "Mensagem importante")).rejects.toThrow("Network Error");
-    const firstKey = idempotencyKeyAt(0);
+    const firstKey = postIdempotencyKeyAt(0);
 
     await expect(messagingService.send(42, "Mensagem importante")).resolves.toEqual({ data: { id: 92 } });
-    expect(idempotencyKeyAt(1)).toBe(firstKey);
+    expect(postIdempotencyKeyAt(1)).toBe(firstKey);
   });
 
   test("uses a new key after a definitive validation failure", async () => {
@@ -109,10 +113,10 @@ describe("MessagingService", () => {
       .mockResolvedValueOnce({ data: { data: { id: 93 } } });
 
     await expect(messagingService.send(42, "Mensagem")).rejects.toMatchObject({ status: 422 });
-    const rejectedKey = idempotencyKeyAt(0);
+    const rejectedKey = postIdempotencyKeyAt(0);
 
     await messagingService.send(42, "Mensagem");
-    expect(idempotencyKeyAt(1)).not.toBe(rejectedKey);
+    expect(postIdempotencyKeyAt(1)).not.toBe(rejectedKey);
   });
 
   test("coalesces equivalent concurrent sends", async () => {
@@ -138,6 +142,73 @@ describe("MessagingService", () => {
     await messagingService.send(42, "Resposta", 11);
 
     expect(appApiClient.post).toHaveBeenCalledTimes(2);
-    expect(idempotencyKeyAt(0)).not.toBe(idempotencyKeyAt(1));
+    expect(postIdempotencyKeyAt(0)).not.toBe(postIdempotencyKeyAt(1));
+  });
+
+  test("marks a conversation as read with an idempotency key and retries safely", async () => {
+    const networkError = Object.assign(new Error("Network Error"), { code: "ERR_NETWORK" });
+    appApiClient.post
+      .mockRejectedValueOnce(networkError)
+      .mockResolvedValueOnce({ data: { data: { read: true } } });
+
+    await expect(messagingService.markRead("42")).rejects.toThrow("Network Error");
+    const firstKey = postIdempotencyKeyAt(0);
+
+    await expect(messagingService.markRead(42)).resolves.toEqual({ data: { read: true } });
+    expect(postIdempotencyKeyAt(1)).toBe(firstKey);
+    expect(appApiClient.post).toHaveBeenLastCalledWith(
+      "/messaging/conversations/42/read",
+      undefined,
+      expect.objectContaining({ headers: { "Idempotency-Key": firstKey } })
+    );
+  });
+
+  test("coalesces concurrent equivalent mark-read requests", async () => {
+    let resolveRequest;
+    appApiClient.post.mockReturnValue(new Promise((resolve) => {
+      resolveRequest = resolve;
+    }));
+
+    const first = messagingService.markRead(42);
+    const duplicate = messagingService.markRead("42");
+
+    expect(duplicate).toBe(first);
+    expect(appApiClient.post).toHaveBeenCalledTimes(1);
+
+    resolveRequest({ data: { data: { read: true } } });
+    await expect(first).resolves.toEqual({ data: { read: true } });
+  });
+
+  test("archives a conversation with an idempotency key and retries safely", async () => {
+    const networkError = Object.assign(new Error("Network Error"), { code: "ERR_NETWORK" });
+    appApiClient.delete
+      .mockRejectedValueOnce(networkError)
+      .mockResolvedValueOnce({ data: { data: { archived: true } } });
+
+    await expect(messagingService.archive("42")).rejects.toThrow("Network Error");
+    const firstKey = deleteIdempotencyKeyAt(0);
+
+    await expect(messagingService.archive(42)).resolves.toEqual({ data: { archived: true } });
+    expect(deleteIdempotencyKeyAt(1)).toBe(firstKey);
+    expect(appApiClient.delete).toHaveBeenLastCalledWith(
+      "/messaging/conversations/42",
+      expect.objectContaining({ headers: { "Idempotency-Key": firstKey } })
+    );
+  });
+
+  test("coalesces concurrent equivalent archive requests", async () => {
+    let resolveRequest;
+    appApiClient.delete.mockReturnValue(new Promise((resolve) => {
+      resolveRequest = resolve;
+    }));
+
+    const first = messagingService.archive(42);
+    const duplicate = messagingService.archive("42");
+
+    expect(duplicate).toBe(first);
+    expect(appApiClient.delete).toHaveBeenCalledTimes(1);
+
+    resolveRequest({ data: { data: { archived: true } } });
+    await expect(first).resolves.toEqual({ data: { archived: true } });
   });
 });
