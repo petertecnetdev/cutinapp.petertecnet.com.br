@@ -1,4 +1,4 @@
-import { prepareCheckoutFailureForRecovery, shouldKeepCheckoutAttempt } from "./checkoutRetryPolicy";
+import { isCheckoutInventoryConflict, isCheckoutOperationInProgress, prepareCheckoutFailureForRecovery, shouldKeepCheckoutAttempt } from "./checkoutRetryPolicy";
 
 describe("shouldKeepCheckoutAttempt", () => {
   test.each([408, 409, 425, 429, 500, 502, 503, 504])("keeps idempotency key for uncertain HTTP %s responses", (status) => {
@@ -48,5 +48,16 @@ describe("prepareCheckoutFailureForRecovery", () => {
     prepareCheckoutFailureForRecovery(error);
     expect(error.status).toBe(400);
     expect(error.serverStatus).toBe(422);
+  });
+});
+
+describe("checkout conflict classification", () => {
+  test("classifies authoritative stock shortage as inventory conflict", () => {
+    expect(isCheckoutInventoryConflict({ status: 422, message: "Não há quantidade suficiente no lote VIP." })).toBe(true);
+  });
+
+  test("does not classify idempotency processing conflict as inventory change", () => {
+    expect(isCheckoutInventoryConflict({ status: 409, message: "Esta operação já está em processamento." })).toBe(false);
+    expect(isCheckoutOperationInProgress({ status: 409, message: "Esta operação já está em processamento." })).toBe(true);
   });
 });
