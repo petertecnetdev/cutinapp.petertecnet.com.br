@@ -1,9 +1,14 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, Badge, Button, Card, Col, Container, Form, Row, Spinner } from "react-bootstrap";
+import { Alert, Badge, Button, Card, Col, Container, Form, Modal, Row, Spinner } from "react-bootstrap";
 import NavlogComponent from "../../components/NavlogComponent";
 import appApiClient from "../../services/AppApiClient";
 
 const PAGE_SIZE = 12;
+
+const money = (value) => new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+}).format(Number(value || 0));
 
 export default function ApplicationAdminProductionsPage() {
   const [rows, setRows] = useState([]);
@@ -16,6 +21,11 @@ export default function ApplicationAdminProductionsPage() {
   const [busyId, setBusyId] = useState(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [engagementProduction, setEngagementProduction] = useState(null);
+  const [engagementPreview, setEngagementPreview] = useState(null);
+  const [engagementLoading, setEngagementLoading] = useState(false);
+  const [engagementSending, setEngagementSending] = useState(false);
+  const [engagementError, setEngagementError] = useState("");
   const sentinelRef = useRef(null);
   const requestRef = useRef(0);
 
@@ -70,6 +80,47 @@ export default function ApplicationAdminProductionsPage() {
     } finally { setBusyId(null); }
   };
 
+  const closeEngagementModal = () => {
+    if (engagementSending) return;
+    setEngagementProduction(null);
+    setEngagementPreview(null);
+    setEngagementError("");
+  };
+
+  const openEngagementModal = async (production) => {
+    setEngagementProduction(production);
+    setEngagementPreview(null);
+    setEngagementError("");
+    setEngagementLoading(true);
+    try {
+      const response = await appApiClient.get(`/admin/productions/${production.id}/engagement-email/preview`);
+      setEngagementPreview(response.data?.data || null);
+    } catch (err) {
+      const validationMessage = err?.response?.data?.errors?.recipient?.[0];
+      setEngagementError(validationMessage || err?.response?.data?.message || err?.message || "Não foi possível gerar a prévia do e-mail.");
+    } finally {
+      setEngagementLoading(false);
+    }
+  };
+
+  const sendEngagementEmail = async () => {
+    if (!engagementProduction || engagementSending) return;
+    setEngagementSending(true);
+    setEngagementError("");
+    try {
+      const response = await appApiClient.post(`/admin/productions/${engagementProduction.id}/engagement-email`);
+      setSuccess(response.data?.message || "Resumo enviado ao produtor com sucesso.");
+      closeEngagementModal();
+    } catch (err) {
+      const validationMessage = err?.response?.data?.errors?.recipient?.[0];
+      setEngagementError(validationMessage || err?.response?.data?.message || err?.message || "Não foi possível enviar o e-mail ao produtor.");
+    } finally {
+      setEngagementSending(false);
+    }
+  };
+
+  const metrics = engagementPreview?.report?.metrics || {};
+
   return <div className="cut-app-page">
     <NavlogComponent />
     <Container className="cut-page-container py-4 py-lg-5">
@@ -87,6 +138,7 @@ export default function ApplicationAdminProductionsPage() {
           <p className="mb-3"><strong>Responsável:</strong> {production.user?.email || production.email || "Não informado"}</p>
           <div className="d-flex flex-wrap gap-3 mb-3"><span>{production.events_count || 0} eventos</span><span>{production.employers_count || 0} membros</span></div>
           <div className="mt-auto d-flex flex-wrap gap-2">
+            <Button size="sm" variant="success" disabled={busyId === production.id} onClick={() => openEngagementModal(production)}>Enviar resumo por e-mail</Button>
             <Button size="sm" disabled={busyId === production.id} onClick={() => patch(production, { is_published: !production.is_published }, production.is_published ? "Produção despublicada." : "Produção publicada.")}>{production.is_published ? "Despublicar" : "Publicar"}</Button>
             <Button size="sm" variant={production.is_approved ? "outline-secondary" : "outline-success"} disabled={busyId === production.id} onClick={() => patch(production, { is_approved: !production.is_approved }, production.is_approved ? "Aprovação removida." : "Produção aprovada.")}>{production.is_approved ? "Remover aprovação" : "Aprovar"}</Button>
             <Button size="sm" variant={production.is_cancelled ? "outline-success" : "outline-danger"} disabled={busyId === production.id} onClick={() => patch(production, { is_cancelled: !production.is_cancelled }, production.is_cancelled ? "Produção reativada." : "Produção suspensa.")}>{production.is_cancelled ? "Reativar" : "Suspender"}</Button>
@@ -96,5 +148,44 @@ export default function ApplicationAdminProductionsPage() {
       </Row>}
       <div ref={sentinelRef} className="text-center py-4">{loadingMore && <><Spinner size="sm" /><span className="ms-2">Buscando mais produções...</span></>}{!loadingMore && rows.length > 0 && page >= lastPage && <small className="text-secondary">Fim dos resultados.</small>}</div>
     </Container>
+
+    <Modal show={Boolean(engagementProduction)} onHide={closeEngagementModal} size="xl" centered scrollable>
+      <Modal.Header closeButton={!engagementSending}>
+        <Modal.Title>Notificar produtor · {engagementProduction?.name}</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        {engagementLoading && <div className="text-center py-5"><Spinner /><p className="mt-3 mb-0">Analisando eventos, vendas e oportunidades...</p></div>}
+        {engagementError && <Alert variant="danger">{engagementError}</Alert>}
+        {!engagementLoading && engagementPreview && <>
+          <div className="mb-3">
+            <div><strong>Destinatário:</strong> {engagementPreview.recipient?.name} &lt;{engagementPreview.recipient?.email}&gt;</div>
+            <div><strong>Assunto:</strong> {engagementPreview.subject}</div>
+          </div>
+
+          <Row className="g-2 mb-3">
+            <Col xs={6} lg={3}><Card className="h-100"><Card.Body><div className="text-secondary small">Próximos eventos</div><strong className="fs-4">{metrics.events_future || 0}</strong></Card.Body></Card></Col>
+            <Col xs={6} lg={3}><Card className="h-100"><Card.Body><div className="text-secondary small">Ingressos vendidos</div><strong className="fs-4">{metrics.tickets_sold || 0}</strong></Card.Body></Card></Col>
+            <Col xs={6} lg={3}><Card className="h-100"><Card.Body><div className="text-secondary small">Receita paga</div><strong className="fs-5">{money(metrics.revenue)}</strong></Card.Body></Card></Col>
+            <Col xs={6} lg={3}><Card className="h-100"><Card.Body><div className="text-secondary small">Visualizações</div><strong className="fs-4">{metrics.event_views || 0}</strong></Card.Body></Card></Col>
+          </Row>
+
+          <div className="mb-2"><strong>Prévia do e-mail</strong></div>
+          <div className="border rounded overflow-hidden bg-dark" style={{ minHeight: 520 }}>
+            <iframe
+              title={`Prévia do e-mail para ${engagementProduction?.name || "produção"}`}
+              srcDoc={engagementPreview.html || ""}
+              sandbox=""
+              style={{ border: 0, width: "100%", minHeight: 520, display: "block", background: "#07111f" }}
+            />
+          </div>
+        </>}
+      </Modal.Body>
+      <Modal.Footer>
+        <Button variant="outline-secondary" onClick={closeEngagementModal} disabled={engagementSending}>Cancelar</Button>
+        <Button variant="success" onClick={sendEngagementEmail} disabled={!engagementPreview || engagementLoading || engagementSending}>
+          {engagementSending ? <><Spinner size="sm" className="me-2" />Enviando...</> : "Enviar e-mail ao produtor"}
+        </Button>
+      </Modal.Footer>
+    </Modal>
   </div>;
 }
