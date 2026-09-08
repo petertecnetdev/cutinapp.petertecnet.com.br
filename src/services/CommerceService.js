@@ -216,6 +216,32 @@ const createEventItem = createIdempotentMutation({
   ).data,
 });
 
+const requestPayoutIdempotently = createIdempotentMutation({
+  storagePrefix: "cutinapp_commerce_payout_request_attempt_",
+  keyPrefix: "payout-request",
+  requestKeyFor: (organizationId, amount) => `${Number(organizationId)}:${createMutationRequestKey({
+    amount: Number(amount),
+  })}`,
+  mutate: async ({ idempotencyKey }, organizationId, amount) => (
+    await appApiClient.post(`/organizations/${Number(organizationId)}/payouts`, { amount }, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    })
+  ).data,
+});
+
+const cancelPayoutIdempotently = createIdempotentMutation({
+  storagePrefix: "cutinapp_commerce_payout_cancel_attempt_",
+  keyPrefix: "payout-cancel",
+  requestKeyFor: (organizationId, payoutId) => `${Number(organizationId)}:${Number(payoutId)}`,
+  mutate: async ({ idempotencyKey }, organizationId, payoutId) => (
+    await appApiClient.post(
+      `/organizations/${Number(organizationId)}/payouts/${Number(payoutId)}/cancel`,
+      undefined,
+      { headers: { "Idempotency-Key": idempotencyKey } },
+    )
+  ).data,
+});
+
 const syncPayment = async (publicId) => {
   const order = (await appApiClient.post(`/commerce/orders/${publicId}/sync-payment`)).data.order;
   const recoveryAttribution = readPaymentRecoveryAttribution(order?.public_id || publicId);
@@ -298,8 +324,8 @@ const commerceService = {
     }
   },
   payoutSummary: async (organizationId) => (await appApiClient.get(`/organizations/${organizationId}/payouts`)).data,
-  requestPayout: async (organizationId, amount) => (await appApiClient.post(`/organizations/${organizationId}/payouts`, { amount })).data,
-  cancelPayout: async (organizationId, payoutId) => (await appApiClient.post(`/organizations/${organizationId}/payouts/${payoutId}/cancel`)).data,
+  requestPayout: (organizationId, amount) => requestPayoutIdempotently(organizationId, amount),
+  cancelPayout: (organizationId, payoutId) => cancelPayoutIdempotently(organizationId, payoutId),
 };
 
 export default commerceService;
