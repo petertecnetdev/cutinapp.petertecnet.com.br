@@ -1,0 +1,93 @@
+name: Refresh SEO Sitemap
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_run:
+    workflows:
+      - Deploy VPS
+    types:
+      - completed
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: cutinapp-seo-sitemap-refresh
+      cancel-in-progress: true
+
+    steps:
+      - name: Check VPS configuration
+        id: config
+        shell: bash
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${VPS_HOST}" || -z "${VPS_USER}" || -z "${VPS_SSH_KEY}" ]]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Sitemap refresh skipped because VPS deployment secrets are not configured."
+            exit 0
+          fi
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+          echo "port=${VPS_PORT:-22}" >> "$GITHUB_OUTPUT"
+
+      - name: Configure SSH
+        if: steps.config.outputs.enabled == 'true'
+        shell: bash
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ steps.config.outputs.port }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$VPS_SSH_KEY" > "$HOME/.ssh/id_ed25519"
+          chmod 600 "$HOME/.ssh/id_ed25519"
+          ssh-keyscan -p "$VPS_PORT" -H "$VPS_HOST" >> "$HOME/.ssh/known_hosts" 2>/dev/null
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+      - name: Publish dynamic sitemap
+        if: steps.config.outputs.enabled == 'true'
+        shell: bash
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ steps.config.outputs.port }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          set -euo pipefail
+          ssh -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          APP_ROOT="/var/www/cutinapp.petertecnet.com.br"
+          LIVE_BUILD="$APP_ROOT/build"
+          SITEMAP_API="https://api.petertecnet.com.br/api/v1/discovery/sitemap.xml?origin=https%3A%2F%2Fcutinapp.petertecnet.com.br&application=cutinapp"
+
+          [[ -d "$LIVE_BUILD" ]] || { echo "Cutinapp live build not found: $LIVE_BUILD" >&2; exit 1; }
+
+          exec 9>/tmp/petertecnet-vps-deploy.lock
+          flock -w 180 9 || { echo "Could not acquire deployment lock for sitemap refresh." >&2; exit 75; }
+
+          tmp="$(mktemp)"
+          trap 'rm -f "$tmp"' EXIT
+          curl --fail --silent --show-error --location --retry 3 --retry-delay 2 "$SITEMAP_API" -o "$tmp"
+          grep -q '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' "$tmp" || {
+            echo "Dynamic sitemap response is not a valid sitemap." >&2
+            exit 2
+          }
+          grep -q 'https://cutinapp.petertecnet.com.br/' "$tmp" || {
+            echo "Dynamic sitemap does not contain the Cutinapp origin." >&2
+            exit 3
+          }
+
+          install -m 0644 "$tmp" "$LIVE_BUILD/sitemap.xml"
+          echo "Dynamic sitemap published: $(grep -c '<url>' "$LIVE_BUILD/sitemap.xml") URLs"
+          REMOTE
