@@ -65,7 +65,11 @@ export const addOnRevenueMateriality = ({ incrementalNetRevenue = 0, netPlatform
   const current = Math.max(0, Number(netPlatformRevenue || 0));
   if (incremental <= 0) return 0;
   if (current <= 0) return 100;
-  return Math.min(100, (incremental / current) * 100);
+
+  // Share of post-uplift net revenue attributable to the opportunity. This keeps
+  // the signal bounded while still distinguishing >100% uplift scenarios,
+  // avoiding both hard-cap ties and small-base explosions in the ranking.
+  return (incremental / (current + incremental)) * 100;
 };
 
 export const addOnMarginGuard = ({ incrementalGmv = 0, incrementalNetRevenue = 0, minimumNetMargin = 2, minimumNetRevenue = 5 } = {}) => {
