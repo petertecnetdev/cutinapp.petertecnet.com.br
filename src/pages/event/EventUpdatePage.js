@@ -3,6 +3,7 @@ import { Alert, Badge, Button, Card, Col, Container, Form, Row } from "react-boo
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
+import useAutoSave from "../../hooks/useAutoSave";
 import eventService from "../../services/EventService";
 import cutinappService from "../../services/CutinappService";
 import commerceService from "../../services/CommerceService";
@@ -22,6 +23,22 @@ const minNow = () => {
 };
 
 const money = (value) => Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+const eventIsValid = (value) => {
+  if (!value || value.title.trim().length < 2 || !value.description.trim() || !value.address.trim()) return false;
+  if (!value.start_date || !value.end_date || new Date(value.end_date) <= new Date(value.start_date)) return false;
+  if (value.max_attendees !== "" && Number(value.max_attendees) < 1) return false;
+  if (value.uf && value.uf.trim().length !== 2) return false;
+  return true;
+};
+
+const autosaveLabel = (status) => {
+  if (status === "saving") return "Salvando...";
+  if (status === "saved") return "Salvo automaticamente";
+  if (status === "dirty") return "Alterações pendentes";
+  if (status === "error") return "Falha ao salvar";
+  return "Salvamento automático ativo";
+};
 
 const buildFirstSaleShareUrl = (event) => {
   if (!event?.slug) return "";
@@ -113,9 +130,6 @@ export default function EventUpdatePage() {
       const catalog = await commerceService.catalog(eventData.slug, { force: true });
       setEventItems(Array.isArray(catalog?.items) ? catalog.items : []);
     } catch (err) {
-      // O catálogo público é um recurso auxiliar da edição. Quando o evento
-      // ainda não está disponível publicamente, um 404 não pode transformar
-      // a tela inteira de edição em estado de erro.
       if (Number(err?.status || 0) === 404) {
         setEventItems([]);
         return;
@@ -197,10 +211,57 @@ export default function EventUpdatePage() {
   const capacityInvalid = Boolean(form?.max_attendees !== "" && Number(form?.max_attendees) < 1);
   const ufInvalid = Boolean(form?.uf && form.uf.trim().length !== 2);
 
-  const canSave = useMemo(() => Boolean(
-    form && form.title.trim().length >= 2 && form.description.trim() && form.address.trim() &&
-    form.start_date && form.end_date && !dateInvalid && !capacityInvalid && !ufInvalid && !saving
-  ), [form, dateInvalid, capacityInvalid, ufInvalid, saving]);
+  const canSave = useMemo(() => Boolean(eventIsValid(form) && !saving), [form, saving]);
+
+  const persistEvent = async (nextForm, { includeImage = false, silent = false } = {}) => {
+    if (!eventIsValid(nextForm)) return false;
+
+    setSaving(true);
+    setError("");
+    setFieldErrors({});
+    if (!silent) setSuccess("");
+    try {
+      const data = new FormData();
+      Object.entries(nextForm).forEach(([key, value]) => {
+        if (value !== null && value !== "") data.append(key, value);
+      });
+      if (includeImage && image) data.append("image", image);
+
+      const response = await eventService.update(id, data);
+      if (includeImage) {
+        setImage(null);
+        applyEvent(response.event);
+        setSuccess("Alterações salvas com sucesso.");
+      } else {
+        setEventData((current) => ({ ...(current || {}), ...(response?.event || {}) }));
+      }
+      return true;
+    } catch (err) {
+      setFieldErrors(err?.errors || {});
+      setError(err?.message || "Não foi possível salvar o evento.");
+      throw err;
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const {
+    status: autoSaveStatus,
+    lastSavedAt,
+    saveError: autoSaveError,
+    flush: flushAutoSave,
+  } = useAutoSave({
+    value: form,
+    enabled: Boolean(form) && Boolean(eventData?.id) && !loading,
+    delay: 800,
+    validate: eventIsValid,
+    onSave: (nextForm) => persistEvent(nextForm, { includeImage: false, silent: true }),
+  });
+
+  useEffect(() => {
+    if (!autoSaveError) return;
+    setError(autoSaveError?.message || "Não foi possível salvar automaticamente.");
+  }, [autoSaveError]);
 
   const change = (event) => {
     const { name, value } = event.target;
@@ -253,27 +314,22 @@ export default function EventUpdatePage() {
     setError("");
     setSuccess("");
     setFieldErrors({});
-    if (!canSave) {
+    if (!eventIsValid(form)) {
       setError(dateInvalid ? "O término do evento precisa ser posterior ao início." : "Revise os campos destacados antes de salvar.");
       return;
     }
 
-    setSaving(true);
     try {
-      const data = new FormData();
-      Object.entries(form).forEach(([key, value]) => {
-        if (value !== null && value !== "") data.append(key, value);
-      });
-      if (image) data.append("image", image);
-      const response = await eventService.update(id, data);
-      applyEvent(response.event);
-      setSuccess("Alterações salvas com sucesso.");
-    } catch (err) {
-      setFieldErrors(err?.errors || {});
-      setError(err?.message || "Não foi possível salvar o evento.");
-    } finally {
-      setSaving(false);
+      await persistEvent(form, { includeImage: true, silent: false });
+    } catch {
+      // persistEvent já apresenta o erro correto na tela.
     }
+  };
+
+  const handleFormBlur = (event) => {
+    const element = event.target;
+    if (!element || element.type === "file" || element.type === "submit" || element.type === "button") return;
+    flushAutoSave();
   };
 
   const togglePublication = async () => {
@@ -440,9 +496,12 @@ export default function EventUpdatePage() {
   return (
     <div className="cut-app-page">
       <NavlogComponent />
-      {(saving || publishing) && <ProcessingIndicatorComponent label={publishing ? "Atualizando publicação" : "Salvando evento"} />}
+      {(publishing || (saving && image)) && <ProcessingIndicatorComponent label={publishing ? "Atualizando publicação" : "Salvando imagem do evento"} />}
       <Container className="cut-page-container py-4 py-lg-5">
-        <div className="cut-page-heading"><div><span className="cut-eyebrow">Gestão do evento</span><h1>Editar evento</h1><p>Revise agenda, localização, mapa, ingressos e publicação antes de colocar o evento no ar.</p></div><div className="cut-card-actions"><Button variant="outline-light" onClick={() => navigate("/event/manage")}>Voltar</Button>{eventData?.is_published && eventData?.slug && <Button variant="outline-light" onClick={() => navigate(`/event/${eventData.slug}`)}>Página pública</Button>}</div></div>
+        <div className="cut-page-heading">
+          <div><span className="cut-eyebrow">Gestão do evento</span><h1>Editar evento</h1><p>Digite normalmente: os dados são salvos automaticamente após uma pausa curta e ao sair do campo.</p></div>
+          <div className="d-flex flex-column align-items-end gap-2"><div className="cut-card-actions"><Button variant="outline-light" onClick={() => navigate("/event/manage")}>Voltar</Button>{eventData?.is_published && eventData?.slug && <Button variant="outline-light" onClick={() => navigate(`/event/${eventData.slug}`)}>Página pública</Button>}</div><Badge bg={autoSaveStatus === "error" ? "danger" : autoSaveStatus === "dirty" ? "warning" : autoSaveStatus === "saving" ? "info" : "success"}>{autosaveLabel(autoSaveStatus)}</Badge>{lastSavedAt && <small className="text-secondary">Último salvamento: {lastSavedAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</small>}</div>
+        </div>
 
         {error && <Alert variant="danger">{error}</Alert>}
         {success && <Alert variant="success">{success}</Alert>}
@@ -484,13 +543,13 @@ export default function EventUpdatePage() {
           </Card>
         )}
 
-        {form && <Form onSubmit={submit} noValidate>
+        {form && <Form onSubmit={submit} onBlur={handleFormBlur} noValidate>
           <input type="hidden" name="production_id" value={form.production_id || ""} />
           <Row className="g-4">
             <Col lg={8}><Card className="cut-panel"><Card.Body className="p-4 p-lg-5"><span className="cut-eyebrow">Apresentação</span><h2 className="cut-section-title mt-2">Informações principais</h2><Row className="g-3">
               <Col xs={12}><Form.Group><Form.Label>Nome do evento *</Form.Label><Form.Control name="title" value={form.title} onChange={change} isInvalid={Boolean(fieldError("title"))} /><Form.Control.Feedback type="invalid">{fieldError("title")}</Form.Control.Feedback></Form.Group></Col>
               <Col xs={12}><Form.Group><Form.Label>Descrição *</Form.Label><Form.Control as="textarea" rows={7} name="description" value={form.description} onChange={change} isInvalid={Boolean(fieldError("description"))} /><Form.Control.Feedback type="invalid">{fieldError("description")}</Form.Control.Feedback></Form.Group></Col>
-              <Col xs={12}><Form.Group><div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2"><Form.Label className="mb-0">Imagem/capa</Form.Label><Button type="button" size="sm" variant="outline-info" onClick={() => window.dispatchEvent(new CustomEvent("cutinapp:open-event-flyer"))}><i className="fa-solid fa-wand-magic-sparkles me-2" />Gerar nova capa com IA</Button></div>{preview && <img src={preview} className="cut-upload-preview cut-upload-preview--event" alt="Prévia" />}<Form.Control name="image" data-event-image-input="true" type="file" accept="image/png,image/jpeg,image/webp" onChange={chooseImage} isInvalid={Boolean(fieldError("image"))} /><Form.Control.Feedback type="invalid">{fieldError("image")}</Form.Control.Feedback><Form.Text>Você pode enviar uma imagem ou gerar uma nova capa automaticamente com IA usando os dados atuais do evento.</Form.Text></Form.Group></Col>
+              <Col xs={12}><Form.Group><div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2"><Form.Label className="mb-0">Imagem/capa</Form.Label><Button type="button" size="sm" variant="outline-info" onClick={() => window.dispatchEvent(new CustomEvent("cutinapp:open-event-flyer"))}><i className="fa-solid fa-wand-magic-sparkles me-2" />Gerar nova capa com IA</Button></div>{preview && <img src={preview} className="cut-upload-preview cut-upload-preview--event" alt="Prévia" />}<Form.Control name="image" data-event-image-input="true" type="file" accept="image/png,image/jpeg,image/webp" onChange={chooseImage} isInvalid={Boolean(fieldError("image"))} /><Form.Control.Feedback type="invalid">{fieldError("image")}</Form.Control.Feedback><Form.Text>Os textos são salvos automaticamente. Uma nova imagem é enviada somente ao clicar em “Salvar imagem agora”.</Form.Text></Form.Group></Col>
               <Col md={6}><Form.Group><Form.Label>E-mail de contato</Form.Label><Form.Control type="email" name="contact_email" value={form.contact_email} onChange={change} isInvalid={Boolean(fieldError("contact_email"))} /><Form.Control.Feedback type="invalid">{fieldError("contact_email")}</Form.Control.Feedback></Form.Group></Col>
               <Col md={6}><Form.Group><Form.Label>Telefone de contato</Form.Label><Form.Control name="contact_phone" value={form.contact_phone} onChange={change} /></Form.Group></Col>
             </Row></Card.Body></Card></Col>
@@ -503,7 +562,7 @@ export default function EventUpdatePage() {
               <Form.Group><Form.Label>Link do Google Maps</Form.Label><Form.Control type="url" name="google_maps_url" value={form.google_maps_url} onChange={change} placeholder="https://maps.app.goo.gl/..." isInvalid={Boolean(fieldError("google_maps_url"))} /><Form.Text>Cole o link compartilhável do local.</Form.Text><Form.Control.Feedback type="invalid">{fieldError("google_maps_url")}</Form.Control.Feedback></Form.Group>
               <Row className="g-2"><Col xs={8}><Form.Control name="city" placeholder="Cidade" value={form.city} onChange={change} /></Col><Col xs={4}><Form.Control name="uf" maxLength={2} placeholder="UF" value={form.uf} onChange={change} isInvalid={ufInvalid} /></Col></Row>
               <Form.Group><Form.Label>Capacidade</Form.Label><Form.Control type="number" min="1" max="1000000" name="max_attendees" value={form.max_attendees} onChange={change} isInvalid={capacityInvalid || Boolean(fieldError("max_attendees"))} /><Form.Control.Feedback type="invalid">{fieldError("max_attendees") || "Use um valor maior que zero."}</Form.Control.Feedback></Form.Group>
-              <Button type="submit" disabled={!canSave}>Salvar alterações</Button>
+              <Button type="submit" disabled={!canSave}>{saving ? "Salvando..." : image ? "Salvar imagem agora" : "Salvar agora"}</Button>
             </div></Card.Body></Card>
 
               <Card className="cut-panel"><Card.Body className="p-4"><div className="d-flex justify-content-between gap-3 align-items-start"><div><span className="cut-eyebrow">Publicação</span><h2 className="cut-section-title mt-2">{eventData?.is_published ? "Evento no ar" : isFirstTicketActivation ? "Seu lote está pronto. Coloque o evento à venda." : "Evento em rascunho"}</h2></div><Badge bg={eventData?.is_published ? "success" : "secondary"}>{eventData?.is_published ? "Publicado" : "Rascunho"}</Badge></div><div className="cut-info-box mt-3"><strong>{eventData?.tickets_count || 0} lote(s) configurado(s)</strong><span>{Number(eventData?.tickets_count || 0) > 0 ? "Você já tem ingresso configurado. Para publicar, mantenha o evento no futuro e revise os dados obrigatórios acima." : "Crie pelo menos um lote de ingresso, pago ou gratuito, antes de publicar."}</span></div>{isFirstTicketActivation && !eventData?.is_published && Number(eventData?.tickets_count || 0) > 0 && <Alert variant="success" className="mt-3 mb-0"><strong>Pronto para a próxima etapa.</strong> Publique agora para liberar a página de vendas e reduzir o tempo até a primeira venda.</Alert>}{isFirstTicketActivation && eventData?.is_published && eventData?.slug && <Alert variant="success" className="mt-3 mb-0"><strong>Evento publicado.</strong> Compartilhe agora com seu público para buscar a primeira venda enquanto a configuração ainda está fresca.</Alert>}<div className="d-grid gap-2 mt-3"><Button variant="outline-light" onClick={() => navigate(`/event/${id}/courtesies`)}>Gerenciar ingressos</Button><Button variant="outline-light" onClick={() => navigate(`/ticket/create?eventId=${id}`)}>Criar novo lote</Button><Button onClick={togglePublication} disabled={publishing || eventData?.is_cancelled || (!eventData?.is_published && Number(eventData?.tickets_count || 0) <= 0)}>{eventData?.is_published ? "Retirar da publicação" : isFirstTicketActivation ? "Publicar e começar a vender" : "Publicar evento"}</Button>{isFirstTicketActivation && eventData?.is_published && eventData?.slug && <Button variant="success" type="button" onClick={shareForFirstSale}><i className="fa-brands fa-whatsapp me-2" />Compartilhar e buscar a primeira venda</Button>}{eventData?.is_published && eventData?.slug && <Button variant="outline-light" onClick={() => navigate(`/event/${eventData.slug}`)}>Abrir página de vendas</Button>}{eventData?.is_published && <Button variant="outline-light" onClick={() => navigate(`/checkin?eventId=${id}`)}>Abrir portaria deste evento</Button>}</div></Card.Body></Card>
