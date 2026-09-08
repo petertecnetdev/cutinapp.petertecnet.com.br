@@ -15,6 +15,7 @@ export const installEventViewScrollReset = () => {
 
   let timer = null;
   let frame = null;
+  let lastPathname = window.location.pathname;
   const originalPushState = window.history.pushState;
   const originalReplaceState = window.history.replaceState;
 
@@ -30,22 +31,36 @@ export const installEventViewScrollReset = () => {
     timer = window.setTimeout(scrollEventViewToTop, 120);
   };
 
-  const dispatchRouteChange = () => window.dispatchEvent(new Event(ROUTE_CHANGE_EVENT));
+  const dispatchRouteChangeIfPathChanged = (previousPathname) => {
+    const currentPathname = window.location.pathname;
+    if (currentPathname === previousPathname) return;
+    lastPathname = currentPathname;
+    window.dispatchEvent(new Event(ROUTE_CHANGE_EVENT));
+  };
 
   window.history.pushState = function patchedPushState(...args) {
+    const previousPathname = window.location.pathname;
     const result = originalPushState.apply(this, args);
-    dispatchRouteChange();
+    dispatchRouteChangeIfPathChanged(previousPathname);
     return result;
   };
 
   window.history.replaceState = function patchedReplaceState(...args) {
+    const previousPathname = window.location.pathname;
     const result = originalReplaceState.apply(this, args);
-    dispatchRouteChange();
+    dispatchRouteChangeIfPathChanged(previousPathname);
     return result;
   };
 
+  const handlePopState = () => {
+    const currentPathname = window.location.pathname;
+    if (currentPathname === lastPathname) return;
+    lastPathname = currentPathname;
+    scheduleReset();
+  };
+
   window.addEventListener(ROUTE_CHANGE_EVENT, scheduleReset);
-  window.addEventListener("popstate", scheduleReset);
+  window.addEventListener("popstate", handlePopState);
   window.addEventListener("pageshow", scheduleReset);
 
   scheduleReset();
@@ -56,7 +71,7 @@ export const installEventViewScrollReset = () => {
     window.history.pushState = originalPushState;
     window.history.replaceState = originalReplaceState;
     window.removeEventListener(ROUTE_CHANGE_EVENT, scheduleReset);
-    window.removeEventListener("popstate", scheduleReset);
+    window.removeEventListener("popstate", handlePopState);
     window.removeEventListener("pageshow", scheduleReset);
   };
 };
