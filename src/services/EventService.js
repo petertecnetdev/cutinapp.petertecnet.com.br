@@ -172,6 +172,49 @@ const generateAgendaUpcoming = createAgendaGeneration({
   pathFor: (productionId) => `/event-agenda/productions/${productionId}/generate-upcoming`,
 });
 
+const setAgendaStatusIdempotently = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_agenda_status_attempt_",
+  keyPrefix: "event-agenda-status",
+  requestKeyFor: (productionId, isActive) => createMutationRequestKey({
+    production_id: Number(productionId),
+    is_active: Boolean(isActive),
+  }),
+  mutate: async ({ idempotencyKey }, productionId, isActive) => (
+    await appApiClient.patch(`/event-agenda/productions/${Number(productionId)}/status`, {
+      is_active: Boolean(isActive),
+    }, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    })
+  ).data,
+});
+
+const setAgendaItemStatusIdempotently = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_agenda_item_status_attempt_",
+  keyPrefix: "event-agenda-item-status",
+  requestKeyFor: (scheduleId, isActive) => createMutationRequestKey({
+    schedule_id: Number(scheduleId),
+    is_active: Boolean(isActive),
+  }),
+  mutate: async ({ idempotencyKey }, scheduleId, isActive) => (
+    await appApiClient.patch(`/event-agenda/items/${Number(scheduleId)}/status`, {
+      is_active: Boolean(isActive),
+    }, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    })
+  ).data,
+});
+
+const deleteAgendaItemIdempotently = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_agenda_delete_attempt_",
+  keyPrefix: "event-agenda-delete",
+  requestKeyFor: (scheduleId) => String(Number(scheduleId)),
+  mutate: async ({ idempotencyKey }, scheduleId) => (
+    await appApiClient.delete(`/event-agenda/items/${Number(scheduleId)}`, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    })
+  ).data,
+});
+
 const dateKeyInTimeZone = (value = new Date()) => {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: CUTINAPP_TIME_ZONE,
@@ -335,11 +378,11 @@ const eventService = {
   series: (eventId, payload) => createEventSeries(eventId, payload),
 
   agenda: async (productionId) => (await appApiClient.get(`/event-agenda/productions/${productionId}`)).data,
-  setAgendaStatus: async (productionId, isActive) => (await appApiClient.patch(`/event-agenda/productions/${productionId}/status`, { is_active: isActive })).data,
+  setAgendaStatus: (productionId, isActive) => setAgendaStatusIdempotently(productionId, isActive),
   createAgendaItem,
   updateAgendaItem,
-  setAgendaItemStatus: async (scheduleId, isActive) => (await appApiClient.patch(`/event-agenda/items/${scheduleId}/status`, { is_active: isActive })).data,
-  deleteAgendaItem: async (scheduleId) => (await appApiClient.delete(`/event-agenda/items/${scheduleId}`)).data,
+  setAgendaItemStatus: (scheduleId, isActive) => setAgendaItemStatusIdempotently(scheduleId, isActive),
+  deleteAgendaItem: (scheduleId) => deleteAgendaItemIdempotently(scheduleId),
   generateAgendaItem,
   generateAgendaUpcoming,
 };
