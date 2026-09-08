@@ -78,6 +78,14 @@ export const summarizeRevenueByChannel = (orders = [], options = {}) => {
       const netTakeRateGap = netTakeRate - minNetTakeRate;
       const safeReinvestmentBudget = netRevenueHeadroomAboveFloor * reinvestmentSafetyFactor;
       const safeReinvestmentPerOrder = channel.paidOrders > 0 ? safeReinvestmentBudget / channel.paidOrders : 0;
+      const netRevenuePerOrder = channel.paidOrders > 0 ? netRevenue / channel.paidOrders : 0;
+      const reinvestmentBreakEvenGmv = safeReinvestmentBudget > 0 && netTakeRate > 0
+        ? safeReinvestmentBudget / (netTakeRate / 100)
+        : 0;
+      const reinvestmentBreakEvenOrders = safeReinvestmentBudget > 0 && netRevenuePerOrder > 0
+        ? safeReinvestmentBudget / netRevenuePerOrder
+        : 0;
+      const requiredGmvUpliftRate = channel.gmv > 0 ? (reinvestmentBreakEvenGmv / channel.gmv) * 100 : 0;
       const evidenceStatus = channel.paidOrders >= minOrdersForScale ? "sufficient" : "limited";
       const recommendedAction = netTakeRate < minNetTakeRate
         ? "reduce_cost"
@@ -95,7 +103,7 @@ export const summarizeRevenueByChannel = (orders = [], options = {}) => {
         netTakeRate,
         contributionMargin,
         averageTicket: channel.paidOrders > 0 ? channel.gmv / channel.paidOrders : 0,
-        netRevenuePerOrder: channel.paidOrders > 0 ? netRevenue / channel.paidOrders : 0,
+        netRevenuePerOrder,
         minimumNetTakeRate: minNetTakeRate,
         minimumNetRevenue,
         netRevenueHeadroomAboveFloor,
@@ -105,6 +113,9 @@ export const summarizeRevenueByChannel = (orders = [], options = {}) => {
         reinvestmentSafetyFactor,
         safeReinvestmentBudget,
         safeReinvestmentPerOrder,
+        reinvestmentBreakEvenGmv,
+        reinvestmentBreakEvenOrders,
+        requiredGmvUpliftRate,
         evidenceStatus,
         recommendedAction,
       };

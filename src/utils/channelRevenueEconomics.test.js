@@ -93,6 +93,9 @@ describe("revenue channel attribution", () => {
     expect(campaign.netRevenueHeadroomAboveFloor).toBe(0);
     expect(campaign.additionalCostCapacityPerOrder).toBe(0);
     expect(campaign.safeReinvestmentBudget).toBe(0);
+    expect(campaign.reinvestmentBreakEvenGmv).toBe(0);
+    expect(campaign.reinvestmentBreakEvenOrders).toBe(0);
+    expect(campaign.requiredGmvUpliftRate).toBe(0);
     expect(campaign.recommendedAction).toBe("reduce_cost");
     expect(campaign.economicStatus).toBe("below_floor");
   });
@@ -123,6 +126,9 @@ describe("revenue channel attribution", () => {
     expect(promoter.additionalCostCapacityPerOrder).toBe(12);
     expect(promoter.safeReinvestmentBudget).toBe(12);
     expect(promoter.safeReinvestmentPerOrder).toBe(6);
+    expect(promoter.reinvestmentBreakEvenGmv).toBe(150);
+    expect(promoter.reinvestmentBreakEvenOrders).toBe(0.75);
+    expect(promoter.requiredGmvUpliftRate).toBe(37.5);
     expect(promoter.evidenceStatus).toBe("limited");
     expect(promoter.recommendedAction).toBe("test");
     expect(promoter.economicStatus).toBe("healthy");
@@ -144,6 +150,9 @@ describe("revenue channel attribution", () => {
     expect(campaign.netRevenueHeadroomAboveFloor).toBe(35);
     expect(campaign.safeReinvestmentBudget).toBe(17.5);
     expect(campaign.safeReinvestmentPerOrder).toBe(3.5);
+    expect(campaign.reinvestmentBreakEvenGmv).toBeCloseTo(194.4444444444, 8);
+    expect(campaign.reinvestmentBreakEvenOrders).toBeCloseTo(1.9444444444, 8);
+    expect(campaign.requiredGmvUpliftRate).toBeCloseTo(38.8888888889, 8);
     expect(campaign.evidenceStatus).toBe("sufficient");
     expect(campaign.recommendedAction).toBe("scale");
   });
@@ -155,6 +164,9 @@ describe("revenue channel attribution", () => {
     expect(organic.netRevenueHeadroomAboveFloor).toBe(40);
     expect(organic.safeReinvestmentBudget).toBe(10);
     expect(organic.safeReinvestmentPerOrder).toBe(2);
+    expect(organic.reinvestmentBreakEvenGmv).toBe(100);
+    expect(organic.reinvestmentBreakEvenOrders).toBe(1);
+    expect(organic.requiredGmvUpliftRate).toBe(20);
   });
 
   test("bounds reinvestment safety factor so recommendations never spend beyond economic headroom", () => {
@@ -163,6 +175,8 @@ describe("revenue channel attribution", () => {
 
     expect(organic.reinvestmentSafetyFactor).toBe(1);
     expect(organic.safeReinvestmentBudget).toBe(organic.netRevenueHeadroomAboveFloor);
+    expect(organic.reinvestmentBreakEvenGmv).toBe(400);
+    expect(organic.requiredGmvUpliftRate).toBe(80);
   });
 
   test("supports a stricter configurable net take rate floor without changing prices or fees", () => {
@@ -184,6 +198,7 @@ describe("revenue channel attribution", () => {
     expect(coupon.minimumNetRevenue).toBeCloseTo(7, 8);
     expect(coupon.netTakeRateGap).toBe(-1);
     expect(coupon.safeReinvestmentBudget).toBe(0);
+    expect(coupon.reinvestmentBreakEvenGmv).toBe(0);
     expect(coupon.recommendedAction).toBe("reduce_cost");
     expect(coupon.economicStatus).toBe("below_floor");
   });
