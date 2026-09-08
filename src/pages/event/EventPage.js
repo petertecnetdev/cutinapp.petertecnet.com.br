@@ -8,6 +8,7 @@ import eventService from "../../services/EventService";
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
 import { PERIOD_OPTIONS, paramsFromSearch, periodLabel, readDiscoveryPreference, readRecentCities, saveDiscoveryPreference } from "../../utils/discoveryFilters";
+import { safeGetSessionJson, safeRemoveSessionItem } from "../../utils/safeStorage";
 import "./EventPage.css";
 
 const formatDate = (value) => value
@@ -31,6 +32,33 @@ const formatEventLocation = (event) => {
   return venue || cityState || "Local a confirmar";
 };
 
+const checkoutResumeStorageKey = "cutinapp_checkout_resume";
+
+const readCheckoutResume = () => {
+  const resume = safeGetSessionJson(checkoutResumeStorageKey);
+  if (!resume?.slug) return null;
+  const checkout = safeGetSessionJson(`cutinapp_checkout_${resume.slug}`);
+  if (!checkout || Number(checkout?.eventId || 0) !== Number(resume?.eventId || 0)) {
+    safeRemoveSessionItem(checkoutResumeStorageKey);
+    return null;
+  }
+  const quantity = [...(checkout.tickets || []), ...(checkout.items || [])]
+    .reduce((sum, item) => sum + Math.max(0, Number(item?.quantity || 0)), 0);
+  if (quantity <= 0) {
+    safeRemoveSessionItem(checkoutResumeStorageKey);
+    return null;
+  }
+  return { ...resume, quantity };
+};
+
+const trackDiscovery = (type, details = {}) => {
+  try {
+    window.PeterTecnetTelemetry?.track?.(type, details);
+  } catch (_) {
+    // Telemetry must never interrupt discovery or checkout recovery.
+  }
+};
+
 export default function EventPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -41,6 +69,7 @@ export default function EventPage() {
   const [error, setError] = useState("");
   const [locationBusy, setLocationBusy] = useState(false);
   const [draftSearch, setDraftSearch] = useState(searchParams.get("q") || "");
+  const [checkoutResume] = useState(() => readCheckoutResume());
 
   const filters = useMemo(() => paramsFromSearch(searchParams), [searchParams]);
   const recentCities = useMemo(() => readRecentCities(), [filters.city]);
@@ -48,6 +77,18 @@ export default function EventPage() {
   useEffect(() => {
     cutinappService.discoveryFacets().then(setFacets).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!checkoutResume) return;
+    trackDiscovery("checkout_resume_discovery_viewed", {
+      label: "Retomada de compra exibida na descoberta",
+      target: checkoutResume.slug,
+      metadata: {
+        event_id: Number(checkoutResume.eventId || 0),
+        quantity: Number(checkoutResume.quantity || 0),
+      },
+    });
+  }, [checkoutResume]);
 
   useEffect(() => {
     const current = paramsFromSearch(searchParams);
@@ -152,6 +193,23 @@ export default function EventPage() {
         </div>
 
         {error && <Alert variant="danger">{error}</Alert>}
+
+        {checkoutResume && <Alert variant="success" className="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+          <div>
+            <strong>Você tem uma compra em andamento.</strong>
+            <span className="d-block small mt-1">{checkoutResume.eventTitle || "Evento"} · {checkoutResume.quantity} {checkoutResume.quantity === 1 ? "item selecionado" : "itens selecionados"}. Preço e disponibilidade serão revisados antes do pagamento.</span>
+          </div>
+          <Button type="button" variant="success" className="flex-shrink-0" onClick={() => {
+            trackDiscovery("checkout_resume_discovery_clicked", {
+              label: "Compra retomada pela descoberta",
+              target: checkoutResume.slug,
+              metadata: { event_id: Number(checkoutResume.eventId || 0), quantity: Number(checkoutResume.quantity || 0) },
+            });
+            navigate(`/event/${checkoutResume.slug}`);
+          }}>
+            Continuar compra <i className="fa-solid fa-arrow-right ms-2" />
+          </Button>
+        </Alert>}
 
         <Card className="cut-discovery-shell mb-4"><Card.Body>
           <CollapsibleFilterPanel title="Pesquisar e filtrar eventos" activeCount={activeFilterCount} defaultOpen={activeFilterCount > 0}>
