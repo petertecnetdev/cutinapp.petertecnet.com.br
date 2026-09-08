@@ -80,8 +80,8 @@ export default function ApplicationAdminProductionsPage() {
     } finally { setBusyId(null); }
   };
 
-  const closeEngagementModal = () => {
-    if (engagementSending) return;
+  const closeEngagementModal = (force = false) => {
+    if (engagementSending && !force) return;
     setEngagementProduction(null);
     setEngagementPreview(null);
     setEngagementError("");
@@ -110,7 +110,7 @@ export default function ApplicationAdminProductionsPage() {
     try {
       const response = await appApiClient.post(`/admin/productions/${engagementProduction.id}/engagement-email`);
       setSuccess(response.data?.message || "Resumo enviado ao produtor com sucesso.");
-      closeEngagementModal();
+      closeEngagementModal(true);
     } catch (err) {
       const validationMessage = err?.response?.data?.errors?.recipient?.[0];
       setEngagementError(validationMessage || err?.response?.data?.message || err?.message || "Não foi possível enviar o e-mail ao produtor.");
