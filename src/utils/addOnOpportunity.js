@@ -52,6 +52,14 @@ export const addOnMonetizationEfficiency = ({
   };
 };
 
+export const addOnNetRevenuePerEligibleBuyer = ({ incrementalNetRevenue = 0, paidCount = 0, addOnOrders = 0 } = {}) => {
+  const netRevenue = Math.max(0, Number(incrementalNetRevenue || 0));
+  const paid = Math.max(0, Number(paidCount || 0));
+  const attached = Math.max(0, Number(addOnOrders || 0));
+  const eligibleBuyers = Math.max(0, paid - attached);
+  return eligibleBuyers > 0 ? netRevenue / eligibleBuyers : 0;
+};
+
 export const addOnMarginGuard = ({ incrementalGmv = 0, incrementalNetRevenue = 0, minimumNetMargin = 2, minimumNetRevenue = 5 } = {}) => {
   const gmv = Math.max(0, Number(incrementalGmv || 0));
   const netRevenue = Math.max(0, Number(incrementalNetRevenue || 0));
@@ -91,6 +99,9 @@ export const compareAddOnOpportunities = (a = {}, b = {}) => {
 
   const attachmentEfficiencyDelta = Math.max(0, Number(b.netRevenuePerAttachmentPoint || 0)) - Math.max(0, Number(a.netRevenuePerAttachmentPoint || 0));
   if (attachmentEfficiencyDelta !== 0) return attachmentEfficiencyDelta;
+
+  const eligibleBuyerEfficiencyDelta = addOnNetRevenuePerEligibleBuyer(b) - addOnNetRevenuePerEligibleBuyer(a);
+  if (eligibleBuyerEfficiencyDelta !== 0) return eligibleBuyerEfficiencyDelta;
 
   return Math.max(0, Number(b.netPlatformRevenue || 0)) - Math.max(0, Number(a.netPlatformRevenue || 0));
 };
