@@ -21,8 +21,9 @@ const attributionForOrder = (order = {}) => {
   return { key: "organic", label: "Orgânico" };
 };
 
-export const summarizeRevenueByChannel = (orders = []) => {
+export const summarizeRevenueByChannel = (orders = [], options = {}) => {
   const grouped = new Map();
+  const minNetTakeRate = amount(options.minNetTakeRate ?? 2);
 
   (Array.isArray(orders) ? orders : [])
     .filter((order) => normalizedText(order?.status || order?.payment_status) === "paid")
@@ -60,18 +61,29 @@ export const summarizeRevenueByChannel = (orders = []) => {
         processorFeesBorneByPlatform: channel.processorFeesBorneByPlatform,
         paidOrders: channel.paidOrders,
       });
-      const variableCosts = channel.promoterCommission + channel.discountAmount;
-      const netRevenue = Math.max(0, baseEconomics.netRevenue - variableCosts);
+      const variableChannelCosts = channel.promoterCommission + channel.discountAmount;
+      const netRevenue = Math.max(0, baseEconomics.netRevenue - variableChannelCosts);
       const netTakeRate = channel.gmv > 0 ? (netRevenue / channel.gmv) * 100 : 0;
       const contributionMargin = channel.platformRevenue > 0 ? (netRevenue / channel.platformRevenue) * 100 : 0;
+      const minimumNetRevenue = channel.gmv * (minNetTakeRate / 100);
+      const netRevenueHeadroomAboveFloor = Math.max(0, netRevenue - minimumNetRevenue);
+      const netTakeRateGap = netTakeRate - minNetTakeRate;
 
       return {
         ...channel,
+        variableChannelCosts,
+        channelCostRate: channel.gmv > 0 ? (variableChannelCosts / channel.gmv) * 100 : 0,
         netRevenue,
         netTakeRate,
         contributionMargin,
         averageTicket: channel.paidOrders > 0 ? channel.gmv / channel.paidOrders : 0,
         netRevenuePerOrder: channel.paidOrders > 0 ? netRevenue / channel.paidOrders : 0,
+        minimumNetTakeRate: minNetTakeRate,
+        minimumNetRevenue,
+        netRevenueHeadroomAboveFloor,
+        additionalCostCapacityPerOrder: channel.paidOrders > 0 ? netRevenueHeadroomAboveFloor / channel.paidOrders : 0,
+        netTakeRateGap,
+        economicStatus: netTakeRate >= minNetTakeRate ? "healthy" : "below_floor",
       };
     })
     .sort((a, b) => b.netRevenue - a.netRevenue || b.netTakeRate - a.netTakeRate || b.gmv - a.gmv);

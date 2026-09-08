@@ -74,4 +74,72 @@ describe("revenue channel attribution", () => {
     expect(channels[0].netRevenue).toBe(15);
     expect(channels[1].netRevenue).toBe(5);
   });
+
+  test("flags channels below the minimum net take rate instead of treating GMV as healthy revenue", () => {
+    const [campaign] = summarizeRevenueByChannel([
+      {
+        status: "paid",
+        total: 100,
+        platform_fee: 8,
+        channel: "campaign",
+        discount_amount: 7,
+      },
+    ]);
+
+    expect(campaign.netRevenue).toBe(1);
+    expect(campaign.netTakeRate).toBe(1);
+    expect(campaign.minimumNetTakeRate).toBe(2);
+    expect(campaign.netTakeRateGap).toBe(-1);
+    expect(campaign.netRevenueHeadroomAboveFloor).toBe(0);
+    expect(campaign.additionalCostCapacityPerOrder).toBe(0);
+    expect(campaign.economicStatus).toBe("below_floor");
+  });
+
+  test("measures how much channel cost can increase before crossing the economic floor", () => {
+    const [promoter] = summarizeRevenueByChannel([
+      {
+        status: "paid",
+        total: 200,
+        platform_fee: 20,
+        promoter_id: 3,
+        promoter_commission: 4,
+      },
+      {
+        status: "paid",
+        total: 200,
+        platform_fee: 20,
+        promoter_id: 3,
+        promoter_commission: 4,
+      },
+    ]);
+
+    expect(promoter.variableChannelCosts).toBe(8);
+    expect(promoter.channelCostRate).toBe(2);
+    expect(promoter.netRevenue).toBe(32);
+    expect(promoter.minimumNetRevenue).toBe(8);
+    expect(promoter.netRevenueHeadroomAboveFloor).toBe(24);
+    expect(promoter.additionalCostCapacityPerOrder).toBe(12);
+    expect(promoter.economicStatus).toBe("healthy");
+  });
+
+  test("supports a stricter configurable net take rate floor without changing prices or fees", () => {
+    const [coupon] = summarizeRevenueByChannel(
+      [
+        {
+          status: "paid",
+          total: 100,
+          platform_fee: 10,
+          coupon_code: "SAFE",
+          discount_amount: 4,
+        },
+      ],
+      { minNetTakeRate: 7 },
+    );
+
+    expect(coupon.netTakeRate).toBe(6);
+    expect(coupon.minimumNetTakeRate).toBe(7);
+    expect(coupon.minimumNetRevenue).toBeCloseTo(7, 8);
+    expect(coupon.netTakeRateGap).toBe(-1);
+    expect(coupon.economicStatus).toBe("below_floor");
+  });
 });
