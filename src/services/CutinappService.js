@@ -186,6 +186,41 @@ const attachArtist = createIdempotentMutation({
   )).data,
 });
 
+const normalizeSocialTargetType = (targetType) => String(targetType || "").trim().toLowerCase();
+
+const followSocialTarget = createIdempotentMutation({
+  storagePrefix: "cutinapp_social_follow_attempt_",
+  keyPrefix: "social-follow",
+  requestKeyFor: (targetType, targetId) => `${normalizeSocialTargetType(targetType)}:${String(targetId)}`,
+  mutate: async ({ idempotencyKey }, targetType, targetId) => (await appApiClient.post(
+    "/social/follow",
+    { target_type: normalizeSocialTargetType(targetType), target_id: targetId },
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
+const likeProductionCommunityPost = createIdempotentMutation({
+  storagePrefix: "cutinapp_production_community_like_attempt_",
+  keyPrefix: "production-community-like",
+  requestKeyFor: (postId) => String(Number(postId)),
+  mutate: async ({ idempotencyKey }, postId) => (await appApiClient.post(
+    `/organization-community/${Number(postId)}/like`,
+    undefined,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
+const likeEventCommunityPost = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_community_like_attempt_",
+  keyPrefix: "event-community-like",
+  requestKeyFor: (postId) => String(Number(postId)),
+  mutate: async ({ idempotencyKey }, postId) => (await appApiClient.post(
+    `/community/${Number(postId)}/like`,
+    undefined,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
 const publishEventMutation = createIdempotentMutation({
   storagePrefix: "cutinapp_event_publish_attempt_",
   keyPrefix: "event-publish",
@@ -247,7 +282,7 @@ const cutinappService = {
   productionCommunity: async (slug, params = {}) => (await appApiClient.get(`/organizations/public/${slug}/community`, { params })).data,
   createProductionPost: (organizationId, payload) => createProductionCommunityPost(organizationId, payload),
   deleteProductionPost: async (postId) => (await appApiClient.delete(`/organization-community/${postId}`)).data,
-  likeProductionPost: async (postId) => (await appApiClient.post(`/organization-community/${postId}/like`)).data,
+  likeProductionPost: likeProductionCommunityPost,
   unlikeProductionPost: async (postId) => (await appApiClient.delete(`/organization-community/${postId}/like`)).data,
   uploadProductionMedia,
   deleteProductionMedia: async (organizationId, mediaId) => (await appApiClient.delete(`/organizations/${organizationId}/media/${mediaId}`)).data,
@@ -271,7 +306,7 @@ const cutinappService = {
   createEventPost: (eventId, payload) => createEventCommunityPost(eventId, payload),
   createFeedPost: (payload) => createEventCommunityPost(0, payload),
   deleteEventPost: async (postId) => (await appApiClient.delete(`/community/${postId}`)).data,
-  likeEventPost: async (postId) => (await appApiClient.post(`/community/${postId}/like`)).data,
+  likeEventPost: likeEventCommunityPost,
   unlikeEventPost: async (postId) => (await appApiClient.delete(`/community/${postId}/like`)).data,
   rateEvent: async (eventId, rating) => (await appApiClient.put(`/events/${eventId}/rating`, { rating })).data,
   reportEvent,
@@ -294,7 +329,7 @@ const cutinappService = {
   eventArtists: async (eventId) => (await appApiClient.get(`/events/${eventId}/artists`)).data,
   attachArtist,
   detachArtist: async (eventId, artistId) => (await appApiClient.delete(`/events/${eventId}/artists/${artistId}`)).data,
-  follow: async (targetType, targetId) => (await appApiClient.post("/social/follow", { target_type: targetType, target_id: targetId })).data,
+  follow: followSocialTarget,
   unfollow: async (targetType, targetId) => (await appApiClient.delete("/social/follow", { data: { target_type: targetType, target_id: targetId } })).data,
   preferences: async () => (await appApiClient.get("/social/preferences")).data.preferences,
   savePreferences: async (payload) => (await appApiClient.put("/social/preferences", payload)).data,
