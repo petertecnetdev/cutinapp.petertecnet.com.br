@@ -74,3 +74,63 @@ describe("CutinappService community post idempotency", () => {
     );
   });
 });
+
+describe("CutinappService event report idempotency", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    sessionStorage.clear();
+  });
+
+  test("protects event reports with an idempotency key", async () => {
+    appApiClient.post.mockResolvedValueOnce({ data: { report: { id: 501 } } });
+    await expect(cutinappService.reportEvent("77", { reason: "spam", details: "Duplicado" })).resolves.toEqual({ report: { id: 501 } });
+    expect(appApiClient.post).toHaveBeenCalledWith(
+      "/events/77/report",
+      { reason: "spam", details: "Duplicado" },
+      { headers: { "Idempotency-Key": expect.any(String) } },
+    );
+  });
+
+  test("reuses the same report key after an uncertain network failure", async () => {
+    appApiClient.post
+      .mockRejectedValueOnce({ code: "ERR_NETWORK", message: "Network Error" })
+      .mockResolvedValueOnce({ data: { report: { id: 502 } } });
+    const payload = { reason: "abuse", details: "Conteúdo impróprio" };
+    await expect(cutinappService.reportEvent(77, payload)).rejects.toMatchObject({ code: "ERR_NETWORK" });
+    const firstKey = idempotencyKeyAt(0);
+    await expect(cutinappService.reportEvent("77", { details: "Conteúdo impróprio", reason: "abuse" })).resolves.toEqual({ report: { id: 502 } });
+    expect(idempotencyKeyAt(1)).toBe(firstKey);
+  });
+
+  test("uses a fresh report key after a definitive validation failure", async () => {
+    appApiClient.post
+      .mockRejectedValueOnce({ response: { status: 422 } })
+      .mockResolvedValueOnce({ data: { report: { id: 503 } } });
+    const payload = { reason: "other", details: "Detalhes" };
+    await expect(cutinappService.reportEvent(77, payload)).rejects.toMatchObject({ response: { status: 422 } });
+    const rejectedKey = idempotencyKeyAt(0);
+    await cutinappService.reportEvent(77, payload);
+    expect(idempotencyKeyAt(1)).toBeTruthy();
+    expect(idempotencyKeyAt(1)).not.toBe(rejectedKey);
+  });
+
+  test("deduplicates equivalent concurrent reports for the same event", async () => {
+    let resolveReport;
+    appApiClient.post.mockImplementationOnce(() => new Promise((resolve) => { resolveReport = resolve; }));
+    const first = cutinappService.reportEvent(77, { reason: "spam", details: "Mesmo relato" });
+    const second = cutinappService.reportEvent("77", { details: "Mesmo relato", reason: "spam" });
+    expect(first).toBe(second);
+    expect(appApiClient.post).toHaveBeenCalledTimes(1);
+    resolveReport({ data: { report: { id: 504 } } });
+    await expect(first).resolves.toEqual({ report: { id: 504 } });
+  });
+
+  test("keeps reports for different events independent", async () => {
+    appApiClient.post
+      .mockResolvedValueOnce({ data: { report: { id: 505 } } })
+      .mockResolvedValueOnce({ data: { report: { id: 506 } } });
+    await cutinappService.reportEvent(77, { reason: "spam" });
+    await cutinappService.reportEvent(78, { reason: "spam" });
+    expect(idempotencyKeyAt(0)).not.toBe(idempotencyKeyAt(1));
+  });
+});
