@@ -54,7 +54,9 @@ const readDraft = () => {
 };
 
 const draftableForm = (form) => {
-  const { logo, background, ...serializable } = form;
+  const serializable = { ...form };
+  delete serializable.logo;
+  delete serializable.background;
   return serializable;
 };
 
@@ -252,12 +254,12 @@ export default function ProductionCreatePage() {
       if (!synced) warning = true;
     }
 
-    const hasLocationData = ["city", "uf", "cep", "address", "address_number", "neighborhood", "address_complement", "address_reference"]
-      .some((key) => String(resolvedForm[key] || "").trim() !== "") || Boolean(resolvedForm.location_public);
-
-    if (hasLocationData && (!resolvedForm.city || cityResolution.resolved)) {
-      const experiencePayload = {
-        type: resolvedForm.type,
+    const experiencePayload = {
+      type: resolvedForm.type,
+      location_public: Boolean(resolvedForm.location_public),
+    };
+    if (!resolvedForm.city || cityResolution.resolved) {
+      Object.assign(experiencePayload, {
         city_id: resolvedForm.city_id || null,
         city: resolvedForm.city || null,
         uf: resolvedForm.uf || null,
@@ -267,26 +269,26 @@ export default function ProductionCreatePage() {
         neighborhood: resolvedForm.neighborhood || null,
         address_complement: resolvedForm.address_complement || null,
         address_reference: resolvedForm.address_reference || null,
-        location_public: Boolean(resolvedForm.location_public),
-      };
-      const synced = await runBestEffort(
-        () => cutinappService.updateProductionExperience(id, experiencePayload),
-        (syncError) => {
-          warning = true;
-          trackProducerActivation("producer_production_experience_sync_failed", production, {
-            status: Number(syncError?.status || 0) || null,
-            request_id: syncError?.requestId || null,
-          });
-        }
-      );
-      if (!synced) warning = true;
-    } else if (resolvedForm.city && !cityResolution.resolved) {
+      });
+    } else {
       warning = true;
       trackProducerActivation("producer_production_city_sync_deferred", production, {
         typed_city: resolvedForm.city,
         activation_stage: "production_created",
       });
     }
+
+    const experienceSynced = await runBestEffort(
+      () => cutinappService.updateProductionExperience(id, experiencePayload),
+      (syncError) => {
+        warning = true;
+        trackProducerActivation("producer_production_experience_sync_failed", production, {
+          status: Number(syncError?.status || 0) || null,
+          request_id: syncError?.requestId || null,
+        });
+      }
+    );
+    if (!experienceSynced) warning = true;
 
     if (cnpj && cnpj.length !== 14) warning = true;
     return warning;
@@ -328,7 +330,11 @@ export default function ProductionCreatePage() {
       if (!id) throw new Error("A produção foi criada, mas a API não retornou o identificador necessário para continuar.");
 
       const optionalSyncWarning = await syncOptionalDetails(id, { ...production, id, name: production?.name || form.name }, form);
-      try { window.localStorage.removeItem(DRAFT_KEY); } catch (_) {}
+      try {
+        window.localStorage.removeItem(DRAFT_KEY);
+      } catch (_) {
+        // Storage restrictions do not affect successful creation.
+      }
 
       const duration = Date.now() - createdAtRef.current;
       trackProducerActivation("producer_production_create_success", { ...production, id }, {
