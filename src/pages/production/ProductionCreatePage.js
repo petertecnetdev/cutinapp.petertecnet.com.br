@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Button, Card, Col, Collapse, Container, Form, Modal, Row } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
@@ -6,6 +6,11 @@ import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorCo
 import LocationFields from "../../components/location/LocationFields";
 import cutinappService from "../../services/CutinappService";
 import { runBestEffort } from "../../utils/bestEffort";
+import { apiDiagnostic } from "../../utils/apiErrorMessage";
+
+const DRAFT_KEY = "cutinapp:production-create:draft:v2";
+const DRAFT_VERSION = 2;
+const CREATE_RECOVERY_DELAYS = [700, 1800];
 
 const initialForm = {
   name: "",
@@ -35,12 +40,35 @@ const normalizeText = (value) => String(value || "").trim().toLocaleLowerCase("p
 const cityId = (city) => city?.ibge_code ?? city?.city_id ?? city?.id ?? city?.code ?? "";
 const cityName = (city) => city?.name ?? city?.city ?? city?.nome ?? "";
 const cityUf = (city) => city?.uf ?? city?.state_code ?? city?.state?.uf ?? "";
+const wait = (delayMs) => new Promise((resolve) => setTimeout(resolve, delayMs));
+
+const readDraft = () => {
+  if (typeof window === "undefined") return initialForm;
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(DRAFT_KEY) || "null");
+    if (!stored || stored.version !== DRAFT_VERSION || !stored.form) return initialForm;
+    return { ...initialForm, ...stored.form, logo: null, background: null };
+  } catch (_) {
+    return initialForm;
+  }
+};
+
+const draftableForm = (form) => {
+  const { logo, background, ...serializable } = form;
+  return serializable;
+};
+
+const isUncertainCreationFailure = (error) => {
+  const status = Number(error?.status || 0);
+  if ([408, 409, 425, 429].includes(status) || status >= 500) return true;
+  return ["transport", "timeout", "server", "conflict", "rate_limit"].includes(String(error?.kind || ""));
+};
 
 const trackProducerActivation = (type, production, metadata = {}) => {
   try {
     window.PeterTecnetTelemetry?.track?.(type, {
       label: production?.name || "Produção",
-      target: String(production?.id || ""),
+      target: String(production?.id || "production_create"),
       metadata: {
         production_id: Number(production?.id || 0),
         ...metadata,
@@ -53,18 +81,53 @@ const trackProducerActivation = (type, production, metadata = {}) => {
 
 export default function ProductionCreatePage() {
   const navigate = useNavigate();
-  const [form, setForm] = useState(initialForm);
+  const [form, setForm] = useState(readDraft);
   const [showOptionalDetails, setShowOptionalDetails] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [diagnostic, setDiagnostic] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [logoPreview, setLogoPreview] = useState("");
   const [backgroundPreview, setBackgroundPreview] = useState("");
+  const [success, setSuccess] = useState(null);
+  const submitLock = useRef(false);
+  const createdAtRef = useRef(0);
 
   const cnpjDigits = normalizeCnpj(form.cnpj);
   const cnpjInvalid = submitted && cnpjDigits !== "" && cnpjDigits.length !== 14;
   const canSubmit = useMemo(() => form.name.trim().length >= 2 && !loading, [form.name, loading]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || success) return undefined;
+    const timer = window.setTimeout(() => {
+      try {
+        window.localStorage.setItem(DRAFT_KEY, JSON.stringify({
+          version: DRAFT_VERSION,
+          savedAt: new Date().toISOString(),
+          form: draftableForm(form),
+        }));
+      } catch (_) {
+        // Storage restrictions must never block producer onboarding.
+      }
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [form, success]);
+
+  useEffect(() => {
+    if (!success?.id) return undefined;
+    const timer = window.setTimeout(() => {
+      navigate(`/event/create?productionId=${success.id}`, {
+        replace: true,
+        state: {
+          productionCreated: true,
+          productionRecovered: Boolean(success.recovered),
+          productionOptionalSyncWarning: Boolean(success.optionalSyncWarning),
+        },
+      });
+    }, 1000);
+    return () => window.clearTimeout(timer);
+  }, [navigate, success]);
 
   const change = (event) => {
     const { name, value } = event.target;
@@ -84,82 +147,115 @@ export default function ProductionCreatePage() {
     setter(file ? URL.createObjectURL(file) : "");
   };
 
-  const resolveTypedCity = async (currentForm) => {
-    if (!currentForm.city || currentForm.city_id) return currentForm;
-
-    const cities = await cutinappService.locationCities(currentForm.uf || "", currentForm.city.trim());
-    const cityQuery = normalizeText(currentForm.city);
-    const ufQuery = String(currentForm.uf || "").trim().toUpperCase();
-    const matches = (Array.isArray(cities) ? cities : []).filter((candidate) => {
-      if (!cityId(candidate) || normalizeText(cityName(candidate)) !== cityQuery) return false;
-      return !ufQuery || String(cityUf(candidate) || "").toUpperCase() === ufQuery;
-    });
-
-    const selected = matches.length === 1 ? matches[0] : null;
-    if (!selected) return currentForm;
-
-    const resolved = {
-      ...currentForm,
-      city: cityName(selected),
-      city_id: String(cityId(selected)),
-      uf: cityUf(selected) || currentForm.uf,
-    };
-    setForm(resolved);
-    return resolved;
+  const resolveTypedCityBestEffort = async (currentForm) => {
+    if (!currentForm.city || currentForm.city_id) return { form: currentForm, resolved: Boolean(currentForm.city_id) };
+    try {
+      const cities = await cutinappService.locationCities(currentForm.uf || "", currentForm.city.trim());
+      const cityQuery = normalizeText(currentForm.city);
+      const ufQuery = String(currentForm.uf || "").trim().toUpperCase();
+      const matches = (Array.isArray(cities) ? cities : []).filter((candidate) => {
+        if (!cityId(candidate) || normalizeText(cityName(candidate)) !== cityQuery) return false;
+        return !ufQuery || String(cityUf(candidate) || "").toUpperCase() === ufQuery;
+      });
+      if (matches.length !== 1) return { form: currentForm, resolved: false };
+      const selected = matches[0];
+      const resolvedForm = {
+        ...currentForm,
+        city: cityName(selected),
+        city_id: String(cityId(selected)),
+        uf: cityUf(selected) || currentForm.uf,
+      };
+      setForm(resolvedForm);
+      return { form: resolvedForm, resolved: true };
+    } catch (_) {
+      return { form: currentForm, resolved: false };
+    }
   };
 
-  const showFormError = (message, errors = {}) => {
-    setFieldErrors(errors);
-    setError(message || "Não foi possível criar a produção.");
+  const essentialPayload = () => {
+    const payload = new FormData();
+    payload.append("name", form.name.trim());
+    return payload;
   };
 
-  const submit = async (event) => {
-    event.preventDefault();
-    setSubmitted(true);
-    setError("");
-    setFieldErrors({});
-
-    const nameInvalid = form.name.trim().length < 2;
-    const cnpjInvalidNow = cnpjDigits !== "" && cnpjDigits.length !== 14;
-    if (nameInvalid || cnpjInvalidNow) {
-      const errors = {};
-      if (nameInvalid) errors.name = ["Informe um nome com pelo menos 2 caracteres."];
-      if (cnpjInvalidNow) errors.cnpj = ["Informe 14 dígitos ou deixe o CNPJ vazio."];
-      if (cnpjInvalidNow) setShowOptionalDetails(true);
-      showFormError("Revise os campos destacados antes de continuar.", errors);
-      return;
+  const createWithRecovery = async (payload) => {
+    let lastError = null;
+    for (let attempt = 0; attempt <= CREATE_RECOVERY_DELAYS.length; attempt += 1) {
+      try {
+        const response = await cutinappService.createProduction(payload);
+        return { response, recovered: attempt > 0 };
+      } catch (err) {
+        lastError = err;
+        if (!isUncertainCreationFailure(err) || attempt >= CREATE_RECOVERY_DELAYS.length) break;
+        trackProducerActivation("producer_production_create_recovery_attempt", { name: form.name }, {
+          attempt: attempt + 1,
+          status: Number(err?.status || 0) || null,
+          kind: err?.kind || null,
+          request_id: err?.requestId || null,
+        });
+        await wait(CREATE_RECOVERY_DELAYS[attempt]);
+      }
     }
 
-    setLoading(true);
-    try {
-      let resolvedForm = form;
-      if (form.city && !form.city_id) {
-        try {
-          resolvedForm = await resolveTypedCity(form);
-        } catch (_) {
-          throw Object.assign(new Error("Não foi possível consultar a cidade informada. Tente novamente ou selecione a cidade pela lista."), {
-            errors: { city: ["Não conseguimos validar a cidade neste momento."] },
+    if (lastError && isUncertainCreationFailure(lastError)) {
+      try {
+        const productions = await cutinappService.myProductions();
+        const cutoff = createdAtRef.current - (5 * 60 * 1000);
+        const candidates = productions.filter((production) => {
+          if (normalizeText(production?.name) !== normalizeText(form.name)) return false;
+          const created = Date.parse(production?.created_at || "");
+          return Number.isFinite(created) ? created >= cutoff : false;
+        });
+        if (candidates.length === 1) {
+          return { response: { production: candidates[0] }, recovered: true };
+        }
+      } catch (_) {
+        // The original error remains the authoritative diagnostic.
+      }
+    }
+    throw lastError;
+  };
+
+  const syncOptionalDetails = async (id, production, currentForm) => {
+    let warning = false;
+    const cnpj = normalizeCnpj(currentForm.cnpj);
+    const cityResolution = await resolveTypedCityBestEffort(currentForm);
+    const resolvedForm = cityResolution.form;
+
+    const profilePayload = new FormData();
+    const basicFields = ["fantasy", "phone", "description", "website_url", "instagram_url"];
+    basicFields.forEach((key) => {
+      const value = resolvedForm[key];
+      if (value !== null && String(value || "").trim() !== "") profilePayload.append(key, value);
+    });
+    if (cnpj.length === 14) profilePayload.append("cnpj", cnpj);
+    if (cityResolution.resolved) {
+      ["city", "uf", "address"].forEach((key) => {
+        const value = resolvedForm[key];
+        if (value !== null && String(value || "").trim() !== "") profilePayload.append(key, value);
+      });
+    }
+    if (resolvedForm.logo) profilePayload.append("logo", resolvedForm.logo);
+    if (resolvedForm.background) profilePayload.append("background", resolvedForm.background);
+
+    if (Array.from(profilePayload.keys()).length > 0) {
+      const synced = await runBestEffort(
+        () => cutinappService.updateProduction(id, profilePayload),
+        (syncError) => {
+          warning = true;
+          trackProducerActivation("producer_production_optional_profile_sync_failed", production, {
+            status: Number(syncError?.status || 0) || null,
+            request_id: syncError?.requestId || null,
           });
         }
-      }
+      );
+      if (!synced) warning = true;
+    }
 
-      if ((resolvedForm.city || resolvedForm.uf) && !resolvedForm.city_id) {
-        setShowOptionalDetails(true);
-        throw Object.assign(new Error("Não conseguimos confirmar a cidade. Selecione a opção correta na lista de cidades para continuar."), {
-          errors: { city: ["Selecione uma cidade válida da lista oficial."] },
-        });
-      }
+    const hasLocationData = ["city", "uf", "cep", "address", "address_number", "neighborhood", "address_complement", "address_reference"]
+      .some((key) => String(resolvedForm[key] || "").trim() !== "") || Boolean(resolvedForm.location_public);
 
-      const payload = new FormData();
-      Object.entries(resolvedForm).forEach(([key, value]) => {
-        if (value !== null && String(value).trim() !== "") payload.append(key, value);
-      });
-
-      const response = await cutinappService.createProduction(payload);
-      const production = response?.production || null;
-      const id = Number(production?.id || 0);
-      if (!id) throw new Error("A produção foi criada, mas não conseguimos abrir seus dados.");
-
+    if (hasLocationData && (!resolvedForm.city || cityResolution.resolved)) {
       const experiencePayload = {
         type: resolvedForm.type,
         city_id: resolvedForm.city_id || null,
@@ -173,45 +269,119 @@ export default function ProductionCreatePage() {
         address_reference: resolvedForm.address_reference || null,
         location_public: Boolean(resolvedForm.location_public),
       };
-
-      const experienceSynced = await runBestEffort(
+      const synced = await runBestEffort(
         () => cutinappService.updateProductionExperience(id, experiencePayload),
         (syncError) => {
-          trackProducerActivation("producer_production_experience_sync_failed", { ...production, id, name: production?.name || resolvedForm.name }, {
-            activation_stage: "production_created",
-            next_step: "event_create",
-            status: Number(syncError?.status || syncError?.response?.status || 0) || null,
+          warning = true;
+          trackProducerActivation("producer_production_experience_sync_failed", production, {
+            status: Number(syncError?.status || 0) || null,
+            request_id: syncError?.requestId || null,
           });
         }
       );
-
-      const usedQuickPath = !showOptionalDetails;
-      trackProducerActivation("producer_production_created", { ...production, id, name: production?.name || resolvedForm.name }, {
+      if (!synced) warning = true;
+    } else if (resolvedForm.city && !cityResolution.resolved) {
+      warning = true;
+      trackProducerActivation("producer_production_city_sync_deferred", production, {
+        typed_city: resolvedForm.city,
         activation_stage: "production_created",
-        next_step: "event_create",
-        onboarding_path: usedQuickPath ? "quick" : "detailed",
       });
-      if (usedQuickPath) {
-        trackProducerActivation("producer_quick_production_created", { ...production, id, name: production?.name || resolvedForm.name }, {
-          activation_stage: "production_created",
-          next_step: "event_create",
-        });
+    }
+
+    if (cnpj && cnpj.length !== 14) warning = true;
+    return warning;
+  };
+
+  const showFormError = (message, errors = {}, err = null) => {
+    setFieldErrors(errors);
+    setDiagnostic(apiDiagnostic(err));
+    setError(message || "Não foi possível criar a produção.");
+  };
+
+  const submit = async (event) => {
+    event.preventDefault();
+    if (submitLock.current) return;
+    submitLock.current = true;
+    setSubmitted(true);
+    setError("");
+    setDiagnostic(null);
+    setFieldErrors({});
+
+    if (form.name.trim().length < 2) {
+      const errors = { name: ["Informe um nome com pelo menos 2 caracteres."] };
+      showFormError("Informe o nome da produção para continuar.", errors);
+      trackProducerActivation("producer_production_create_validation_failed", { name: form.name }, { fields: ["name"] });
+      submitLock.current = false;
+      return;
+    }
+
+    createdAtRef.current = Date.now();
+    setLoading(true);
+    trackProducerActivation("producer_production_create_started", { name: form.name }, {
+      onboarding_path: showOptionalDetails ? "detailed" : "quick",
+    });
+
+    try {
+      const { response, recovered } = await createWithRecovery(essentialPayload());
+      const production = response?.production || null;
+      const id = Number(production?.id || 0);
+      if (!id) throw new Error("A produção foi criada, mas a API não retornou o identificador necessário para continuar.");
+
+      const optionalSyncWarning = await syncOptionalDetails(id, { ...production, id, name: production?.name || form.name }, form);
+      try { window.localStorage.removeItem(DRAFT_KEY); } catch (_) {}
+
+      const duration = Date.now() - createdAtRef.current;
+      trackProducerActivation("producer_production_create_success", { ...production, id }, {
+        duration_ms: duration,
+        recovered,
+        optional_sync_warning: optionalSyncWarning,
+        next_step: "event_create",
+      });
+      trackProducerActivation("producer_production_created", { ...production, id }, {
+        duration_ms: duration,
+        recovered,
+        onboarding_path: showOptionalDetails ? "detailed" : "quick",
+        next_step: "event_create",
+      });
+      if (recovered) {
+        trackProducerActivation("producer_production_create_recovered", { ...production, id }, { duration_ms: duration });
       }
 
-      navigate(`/event/create?productionId=${id}`, {
-        replace: true,
-        state: { productionCreated: true, productionExperienceSynced: experienceSynced },
-      });
+      setSuccess({ id, name: production?.name || form.name.trim(), recovered, optionalSyncWarning });
     } catch (err) {
       const errors = err?.errors || err?.response?.data?.errors || {};
       const message = err?.message || err?.response?.data?.message || "Não foi possível criar a produção.";
-      showFormError(message, errors);
-      if (Object.keys(errors).some((field) => field !== "name" && field !== "type")) {
-        setShowOptionalDetails(true);
+      showFormError(message, errors, err);
+      trackProducerActivation("producer_production_create_failed", { name: form.name }, {
+        duration_ms: Date.now() - createdAtRef.current,
+        status: Number(err?.status || 0) || null,
+        kind: err?.kind || null,
+        code: err?.code || null,
+        request_id: err?.requestId || null,
+      });
+      if (err?.kind) {
+        trackProducerActivation(`producer_production_create_${err.kind}`, { name: form.name }, {
+          status: Number(err?.status || 0) || null,
+          request_id: err?.requestId || null,
+        });
       }
+      if (Object.keys(errors).some((field) => field !== "name")) setShowOptionalDetails(true);
     } finally {
       setLoading(false);
+      submitLock.current = false;
     }
+  };
+
+  const continueToEvent = () => {
+    if (!success?.id) return;
+    navigate(`/event/create?productionId=${success.id}`, {
+      replace: true,
+      state: {
+        productionCreated: true,
+        productionRecovered: Boolean(success.recovered),
+        productionOptionalSyncWarning: Boolean(success.optionalSyncWarning),
+      },
+    });
   };
 
   const modalMessages = Object.values(fieldErrors).flat().filter(Boolean);
@@ -228,13 +398,34 @@ export default function ProductionCreatePage() {
         <Modal.Body>
           <p className="mb-2">{error}</p>
           {modalMessages.length > 0 && (
-            <div className="alert alert-warning mb-0" role="alert">
+            <div className="alert alert-warning mb-3" role="alert">
               {modalMessages.map((message, index) => <div key={`${message}-${index}`}>{message}</div>)}
+            </div>
+          )}
+          {diagnostic && (
+            <div className="small text-secondary" data-testid="api-diagnostic">
+              Código de diagnóstico: {diagnostic.requestId || diagnostic.code || `HTTP-${diagnostic.status || "N/A"}`}
+              {diagnostic.status ? ` · HTTP ${diagnostic.status}` : ""}
             </div>
           )}
         </Modal.Body>
         <Modal.Footer>
           <Button variant="primary" onClick={() => setError("")}>Entendi, vou corrigir</Button>
+        </Modal.Footer>
+      </Modal>
+
+      <Modal show={Boolean(success)} onHide={() => {}} centered backdrop="static" keyboard={false}>
+        <Modal.Header>
+          <Modal.Title>Produção criada com sucesso</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p className="mb-2"><strong>{success?.name}</strong> já está cadastrada.</p>
+          <p className="mb-0">Agora vamos criar seu primeiro evento.</p>
+          {success?.recovered && <Alert variant="info" className="mt-3 mb-0">A Cutinapp confirmou automaticamente uma tentativa que havia ficado sem resposta. Nenhuma produção duplicada foi criada.</Alert>}
+          {success?.optionalSyncWarning && <Alert variant="warning" className="mt-3 mb-0">A produção foi criada normalmente. Algum dado opcional ficou para ser completado depois e não bloqueia a criação do evento.</Alert>}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="primary" onClick={continueToEvent}>Criar primeiro evento</Button>
         </Modal.Footer>
       </Modal>
 
@@ -265,15 +456,7 @@ export default function ProductionCreatePage() {
                     <Col md={8}>
                       <Form.Group>
                         <Form.Label>Nome da produção *</Form.Label>
-                        <Form.Control
-                          name="name"
-                          value={form.name}
-                          onChange={change}
-                          autoFocus
-                          autoComplete="organization"
-                          placeholder="Ex.: Peter Eventos"
-                          isInvalid={submitted && form.name.trim().length < 2}
-                        />
+                        <Form.Control name="name" value={form.name} onChange={change} autoFocus autoComplete="organization" placeholder="Ex.: Peter Eventos" isInvalid={submitted && form.name.trim().length < 2} />
                         <Form.Control.Feedback type="invalid">Informe um nome com pelo menos 2 caracteres.</Form.Control.Feedback>
                       </Form.Group>
                     </Col>
@@ -290,31 +473,15 @@ export default function ProductionCreatePage() {
 
                   <div className="cut-info-box mt-4">
                     <strong>Fluxo rápido para o primeiro evento</strong>
-                    <span>Ao criar a produção, você seguirá automaticamente para o cadastro do evento e depois para o primeiro lote de ingressos.</span>
+                    <span>O nome cria a produção imediatamente. Cidade, CNPJ, imagens e demais dados são sincronizados depois e nunca impedem esta etapa.</span>
                   </div>
 
                   <div className="d-flex flex-wrap gap-2 mt-4">
-                    <Button type="submit" disabled={!canSubmit || loading}>
-                      {loading ? "Criando..." : "Criar produção e começar o evento"}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline-light"
-                      aria-expanded={showOptionalDetails}
-                      aria-controls="production-optional-details"
-                      onClick={() => {
-                        setShowOptionalDetails((current) => !current);
-                        try {
-                          window.PeterTecnetTelemetry?.track?.("producer_production_details_toggled", {
-                            label: showOptionalDetails ? "Ocultar dados opcionais" : "Completar dados opcionais",
-                            target: "production_create",
-                            metadata: { activation_stage: "production_create" },
-                          });
-                        } catch (_) {
-                          // Telemetry must never interrupt producer onboarding.
-                        }
-                      }}
-                    >
+                    <Button type="submit" disabled={!canSubmit || loading}>{loading ? "Criando..." : "Criar produção e começar o evento"}</Button>
+                    <Button type="button" variant="outline-light" aria-expanded={showOptionalDetails} aria-controls="production-optional-details" onClick={() => {
+                      setShowOptionalDetails((current) => !current);
+                      trackProducerActivation("producer_production_details_toggled", { name: form.name }, { open: !showOptionalDetails });
+                    }}>
                       {showOptionalDetails ? "Ocultar dados opcionais" : "Completar dados opcionais"}
                     </Button>
                   </div>
@@ -323,52 +490,27 @@ export default function ProductionCreatePage() {
                     <div id="production-optional-details">
                       <hr className="my-4" />
                       <h2 className="cut-section-title">Dados opcionais</h2>
-                      <p className="text-secondary">Use estes campos para enriquecer o perfil público e facilitar a operação. Eles não bloqueiam a criação do primeiro evento.</p>
+                      <p className="text-secondary">Use estes campos para enriquecer o perfil público. Se algum serviço auxiliar estiver indisponível, a produção será criada mesmo assim.</p>
 
                       <Row className="g-3">
-                        <Col md={6}>
-                          <Form.Group>
-                            <Form.Label>Nome fantasia</Form.Label>
-                            <Form.Control name="fantasy" value={form.fantasy} onChange={change} />
-                          </Form.Group>
-                        </Col>
+                        <Col md={6}><Form.Group><Form.Label>Nome fantasia</Form.Label><Form.Control name="fantasy" value={form.fantasy} onChange={change} /></Form.Group></Col>
                         <Col md={6}>
                           <Form.Group>
                             <Form.Label>CNPJ</Form.Label>
                             <Form.Control name="cnpj" value={form.cnpj} onChange={change} inputMode="numeric" isInvalid={cnpjInvalid} />
-                            <Form.Control.Feedback type="invalid">Informe 14 dígitos ou deixe o CNPJ vazio.</Form.Control.Feedback>
+                            <Form.Control.Feedback type="invalid">O CNPJ não será salvo agora. Informe 14 dígitos ou complete depois; isso não bloqueia a criação.</Form.Control.Feedback>
                           </Form.Group>
                         </Col>
-                        <Col md={6}>
-                          <Form.Group>
-                            <Form.Label>Telefone</Form.Label>
-                            <Form.Control name="phone" value={form.phone} onChange={change} inputMode="tel" />
-                          </Form.Group>
-                        </Col>
-                        <Col xs={12}>
-                          <Form.Group>
-                            <Form.Label>Descrição</Form.Label>
-                            <Form.Control as="textarea" rows={4} name="description" value={form.description} onChange={change} />
-                          </Form.Group>
-                        </Col>
+                        <Col md={6}><Form.Group><Form.Label>Telefone</Form.Label><Form.Control name="phone" value={form.phone} onChange={change} inputMode="tel" /></Form.Group></Col>
+                        <Col xs={12}><Form.Group><Form.Label>Descrição</Form.Label><Form.Control as="textarea" rows={4} name="description" value={form.description} onChange={change} /></Form.Group></Col>
                       </Row>
 
                       <h2 className="cut-section-title mt-4">Localização comercial</h2>
                       <LocationFields value={form} onChange={setForm} showPublicToggle />
 
                       <Row className="g-3 mt-1">
-                        <Col md={6}>
-                          <Form.Group>
-                            <Form.Label>Site</Form.Label>
-                            <Form.Control name="website_url" value={form.website_url} onChange={change} />
-                          </Form.Group>
-                        </Col>
-                        <Col md={6}>
-                          <Form.Group>
-                            <Form.Label>Instagram</Form.Label>
-                            <Form.Control name="instagram_url" value={form.instagram_url} onChange={change} />
-                          </Form.Group>
-                        </Col>
+                        <Col md={6}><Form.Group><Form.Label>Site</Form.Label><Form.Control name="website_url" value={form.website_url} onChange={change} /></Form.Group></Col>
+                        <Col md={6}><Form.Group><Form.Label>Instagram</Form.Label><Form.Control name="instagram_url" value={form.instagram_url} onChange={change} /></Form.Group></Col>
                       </Row>
 
                       <Row className="g-3 mt-2">
@@ -401,12 +543,12 @@ export default function ProductionCreatePage() {
                   <span className="cut-eyebrow">Ativação</span>
                   <h2 className="cut-section-title mt-2">Do cadastro à venda</h2>
                   <div className="d-grid gap-3 mt-3">
-                    <div className="cut-info-box"><strong>1. Produção</strong><span>Agora: nome e tipo.</span></div>
+                    <div className="cut-info-box"><strong>1. Produção</strong><span>Agora: somente o nome é obrigatório.</span></div>
                     <div className="cut-info-box"><strong>2. Evento</strong><span>Data, local e informações públicas.</span></div>
                     <div className="cut-info-box"><strong>3. Ingressos</strong><span>Crie o primeiro lote e defina o preço.</span></div>
                     <div className="cut-info-box"><strong>4. Publicação</strong><span>Coloque o evento no ar e compartilhe o link.</span></div>
                   </div>
-                  <p className="text-secondary mt-3 mb-0">Nenhum plano ou cobrança adicional é criado neste fluxo. A monetização continua vinculada às vendas e serviços do evento.</p>
+                  <p className="text-secondary mt-3 mb-0">O formulário é salvo automaticamente neste navegador até a produção ser criada.</p>
                 </Card.Body>
               </Card>
             </Col>
