@@ -117,10 +117,19 @@ test("preserves raw net revenue as tie-breaker after confidence adjustment", () 
   expect(opportunities.sort(compareAddOnOpportunities).map(({ id }) => id)).toEqual(["higher-raw", "lower-raw"]);
 });
 
-test("uses net revenue per incremental order before historical revenue when upside is tied", () => {
+test("uses incremental net margin before unit contribution when upside is tied", () => {
   const opportunities = [
-    { id: "higher-history", addOnProfitable: true, incrementalNetRevenue: 40, evidenceFactor: 1, netRevenuePerIncrementalOrder: 8, netPlatformRevenue: 500 },
-    { id: "higher-unit-contribution", addOnProfitable: true, incrementalNetRevenue: 40, evidenceFactor: 1, netRevenuePerIncrementalOrder: 20, netPlatformRevenue: 100 },
+    { id: "higher-unit-contribution", addOnProfitable: true, incrementalNetRevenue: 40, evidenceFactor: 1, incrementalNetMargin: 4, netRevenuePerIncrementalOrder: 20, netPlatformRevenue: 100 },
+    { id: "higher-margin", addOnProfitable: true, incrementalNetRevenue: 40, evidenceFactor: 1, incrementalNetMargin: 8, netRevenuePerIncrementalOrder: 8, netPlatformRevenue: 100 },
+  ];
+
+  expect(opportunities.sort(compareAddOnOpportunities).map(({ id }) => id)).toEqual(["higher-margin", "higher-unit-contribution"]);
+});
+
+test("uses net revenue per incremental order before historical revenue when upside and margin are tied", () => {
+  const opportunities = [
+    { id: "higher-history", addOnProfitable: true, incrementalNetRevenue: 40, evidenceFactor: 1, incrementalNetMargin: 5, netRevenuePerIncrementalOrder: 8, netPlatformRevenue: 500 },
+    { id: "higher-unit-contribution", addOnProfitable: true, incrementalNetRevenue: 40, evidenceFactor: 1, incrementalNetMargin: 5, netRevenuePerIncrementalOrder: 20, netPlatformRevenue: 100 },
   ];
 
   expect(opportunities.sort(compareAddOnOpportunities).map(({ id }) => id)).toEqual(["higher-unit-contribution", "higher-history"]);

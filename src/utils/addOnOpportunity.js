@@ -82,6 +82,9 @@ export const compareAddOnOpportunities = (a = {}, b = {}) => {
   const netRevenueDelta = Math.max(0, Number(b.incrementalNetRevenue || 0)) - Math.max(0, Number(a.incrementalNetRevenue || 0));
   if (netRevenueDelta !== 0) return netRevenueDelta;
 
+  const marginDelta = Math.max(0, Number(b.incrementalNetMargin || 0)) - Math.max(0, Number(a.incrementalNetMargin || 0));
+  if (marginDelta !== 0) return marginDelta;
+
   const unitContributionDelta = Math.max(0, Number(b.netRevenuePerIncrementalOrder || 0)) - Math.max(0, Number(a.netRevenuePerIncrementalOrder || 0));
   if (unitContributionDelta !== 0) return unitContributionDelta;
 
