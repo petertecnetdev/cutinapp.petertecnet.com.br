@@ -344,6 +344,58 @@ const followSocialTarget = createIdempotentMutation({
   )).data,
 });
 
+const unfollowSocialTarget = createIdempotentMutation({
+  storagePrefix: "cutinapp_social_unfollow_attempt_",
+  keyPrefix: "social-unfollow",
+  requestKeyFor: (targetType, targetId) => `${normalizeSocialTargetType(targetType)}:${String(targetId)}`,
+  mutate: async ({ idempotencyKey }, targetType, targetId) => (await appApiClient.delete(
+    "/social/follow",
+    { data: { target_type: normalizeSocialTargetType(targetType), target_id: targetId }, headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
+const rateEventMutation = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_rating_attempt_",
+  keyPrefix: "event-rating",
+  requestKeyFor: (eventId, rating) => `${Number(eventId)}:${createMutationRequestKey({ rating: Number(rating) })}`,
+  mutate: async ({ idempotencyKey }, eventId, rating) => (await appApiClient.put(`/events/${Number(eventId)}/rating`, { rating: Number(rating) }, { headers: { "Idempotency-Key": idempotencyKey } })).data,
+});
+
+const updateModerationReportMutation = createIdempotentMutation({
+  storagePrefix: "cutinapp_moderation_report_attempt_",
+  keyPrefix: "moderation-report",
+  requestKeyFor: (reportId, payload = {}) => `${Number(reportId)}:${createMutationRequestKey(payload)}`,
+  mutate: async ({ idempotencyKey }, reportId, payload = {}) => (await appApiClient.put(`/moderation/reports/${Number(reportId)}`, payload, { headers: { "Idempotency-Key": idempotencyKey } })).data,
+});
+
+const saveSocialPreferencesMutation = createIdempotentMutation({
+  storagePrefix: "cutinapp_social_preferences_attempt_",
+  keyPrefix: "social-preferences",
+  requestKeyFor: (payload = {}) => createMutationRequestKey(payload),
+  mutate: async ({ idempotencyKey }, payload = {}) => (await appApiClient.put("/social/preferences", payload, { headers: { "Idempotency-Key": idempotencyKey } })).data,
+});
+
+const updateEventEngagementMutation = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_engagement_attempt_",
+  keyPrefix: "event-engagement",
+  requestKeyFor: (eventId, payload = {}) => `${Number(eventId)}:${createMutationRequestKey(payload)}`,
+  mutate: async ({ idempotencyKey }, eventId, payload = {}) => (await appApiClient.put(`/events/${Number(eventId)}/engagement`, payload, { headers: { "Idempotency-Key": idempotencyKey } })).data,
+});
+
+const markNotificationReadMutation = createIdempotentMutation({
+  storagePrefix: "cutinapp_notification_read_attempt_",
+  keyPrefix: "notification-read",
+  requestKeyFor: (notificationId) => String(Number(notificationId)),
+  mutate: async ({ idempotencyKey }, notificationId) => (await appApiClient.patch(`/notifications/${Number(notificationId)}/read`, undefined, { headers: { "Idempotency-Key": idempotencyKey } })).data,
+});
+
+const markAllNotificationsReadMutation = createIdempotentMutation({
+  storagePrefix: "cutinapp_notifications_read_all_attempt_",
+  keyPrefix: "notifications-read-all",
+  requestKeyFor: () => "all",
+  mutate: async ({ idempotencyKey }) => (await appApiClient.patch("/notifications/read-all", undefined, { headers: { "Idempotency-Key": idempotencyKey } })).data,
+});
+
 const likeProductionCommunityPost = createIdempotentMutation({
   storagePrefix: "cutinapp_production_community_like_attempt_",
   keyPrefix: "production-community-like",
@@ -453,11 +505,11 @@ const cutinappService = {
   deleteEventPost: deleteEventCommunityPost,
   likeEventPost: likeEventCommunityPost,
   unlikeEventPost: unlikeEventCommunityPost,
-  rateEvent: async (eventId, rating) => (await appApiClient.put(`/events/${eventId}/rating`, { rating })).data,
+  rateEvent: rateEventMutation,
   reportEvent,
 
   moderationReports: async (params = {}) => (await appApiClient.get("/moderation/reports", { params })).data,
-  updateModerationReport: async (reportId, payload) => (await appApiClient.put(`/moderation/reports/${reportId}`, payload)).data,
+  updateModerationReport: updateModerationReportMutation,
   myArtists: async () => unwrap((await appApiClient.get("/artists/manageable", { params: { per_page: 100 } })).data.artists),
   createArtist,
   updateArtist,
@@ -475,15 +527,15 @@ const cutinappService = {
   attachArtist,
   detachArtist,
   follow: followSocialTarget,
-  unfollow: async (targetType, targetId) => (await appApiClient.delete("/social/follow", { data: { target_type: targetType, target_id: targetId } })).data,
+  unfollow: unfollowSocialTarget,
   preferences: async () => (await appApiClient.get("/social/preferences")).data.preferences,
-  savePreferences: async (payload) => (await appApiClient.put("/social/preferences", payload)).data,
-  engagement: async (eventId, payload) => (await appApiClient.put(`/events/${eventId}/engagement`, payload)).data,
+  savePreferences: saveSocialPreferencesMutation,
+  engagement: updateEventEngagementMutation,
   feed: async (params = {}) => (await appApiClient.get("/feed", { params })).data,
 
   notifications: async (params = {}) => (await appApiClient.get("/notifications", { params })).data,
-  markNotificationRead: async (notificationId) => (await appApiClient.patch(`/notifications/${notificationId}/read`)).data,
-  markAllNotificationsRead: async () => (await appApiClient.patch("/notifications/read-all")).data,
+  markNotificationRead: markNotificationReadMutation,
+  markAllNotificationsRead: markAllNotificationsReadMutation,
   publishEvent: publishEventMutation,
   unpublishEvent: unpublishEventMutation,
 
