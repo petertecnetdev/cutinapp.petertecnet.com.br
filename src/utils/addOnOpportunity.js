@@ -93,9 +93,23 @@ export const confidenceAdjustedAddOnNetRevenue = ({ incrementalNetRevenue = 0, e
   return netRevenue * confidence;
 };
 
+export const addOnEconomicPriorityScore = (opportunity = {}) => {
+  const netRevenue = confidenceAdjustedAddOnNetRevenue(opportunity);
+  const margin = Math.max(0, Math.min(100, Number(opportunity.incrementalNetMargin || 0)));
+
+  // Net revenue remains the economic base, while margin can improve priority by
+  // at most 100%. This lets a materially healthier opportunity outrank a close
+  // revenue alternative without allowing tiny high-margin projections to beat
+  // substantially larger net-revenue opportunities.
+  return netRevenue * (1 + (margin / 100));
+};
+
 export const compareAddOnOpportunities = (a = {}, b = {}) => {
   const profitabilityDelta = Number(Boolean(b.addOnProfitable)) - Number(Boolean(a.addOnProfitable));
   if (profitabilityDelta !== 0) return profitabilityDelta;
+
+  const economicPriorityDelta = addOnEconomicPriorityScore(b) - addOnEconomicPriorityScore(a);
+  if (economicPriorityDelta !== 0) return economicPriorityDelta;
 
   const confidenceAdjustedRevenueDelta = confidenceAdjustedAddOnNetRevenue(b) - confidenceAdjustedAddOnNetRevenue(a);
   if (confidenceAdjustedRevenueDelta !== 0) return confidenceAdjustedRevenueDelta;
