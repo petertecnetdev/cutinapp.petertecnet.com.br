@@ -13,9 +13,18 @@ describe("paymentFailureGuidance", () => {
     expect(result.message).toContain("Recomendado: tente PIX");
   });
 
-  test("guides correction when provider reports invalid card data", () => {
-    const result = classifyPaymentFailure({ provider_payload: { status_detail: "cc_rejected_bad_filled_other" } }, "card");
-    expect(result.reason).toBe("card_data");
+  test("guides correction when provider reports another invalid card field", () => {
+    const result = paymentFailureGuidance({
+      method: "card",
+      pixAvailable: true,
+      payment: { provider_payload: { status_detail: "cc_rejected_bad_filled_other" } },
+    });
+    expect(result.reason).toBe("card_additional_data");
+    expect(result.title).toContain("outros dados do cartão");
+    expect(result.message).toContain("diferente de número, validade ou CVV");
+    expect(result.message).toContain("demais campos solicitados");
+    expect(result.message).toContain("seleção continua preservada");
+    expect(result.message).toContain("sem refazer sua seleção");
   });
 
   test("points directly to CVV when the provider rejects the security code", () => {
