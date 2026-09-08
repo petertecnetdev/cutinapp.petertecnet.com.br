@@ -147,7 +147,12 @@ const renderPrompt = () => {
     cursor: "pointer",
   });
   dismissButton.addEventListener("click", () => {
-    try { window.sessionStorage.setItem(`${DISMISS_PREFIX}${pending.slug}`, "1"); } catch (_) {}
+    try {
+      window.sessionStorage.setItem(`${DISMISS_PREFIX}${pending.slug}`, "1");
+    } catch (_) {
+      removePrompt();
+      return;
+    }
     removePrompt();
   });
 
