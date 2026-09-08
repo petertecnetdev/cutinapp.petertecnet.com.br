@@ -112,6 +112,32 @@ describe("paymentFailureGuidance", () => {
     expect(result.message).toContain("só então tente novamente");
   });
 
+  test("does not recommend repeating identical data after a blacklist security block", () => {
+    const result = paymentFailureGuidance({
+      method: "card",
+      pixAvailable: true,
+      payment: { provider_payload: { status_detail: "cc_rejected_blacklist" } },
+    });
+    expect(result.reason).toBe("security_block");
+    expect(result.title).toContain("não pode ser usado");
+    expect(result.message).toContain("Não repita o mesmo cartão em sequência");
+    expect(result.message).toContain("fale com o banco emissor");
+    expect(result.message).toContain("Recomendado: tente PIX");
+  });
+
+  test("routes unspecified issuer or risk rejection away from an immediate identical retry", () => {
+    const result = paymentFailureGuidance({
+      method: "card",
+      pixAvailable: true,
+      payment: { provider_payload: { status_detail: "cc_rejected_other_reason" } },
+    });
+    expect(result.reason).toBe("issuer_or_risk_rejection");
+    expect(result.title).toContain("banco não aprovou");
+    expect(result.message).toContain("trocar o meio de pagamento");
+    expect(result.message).toContain("Evite repetir imediatamente os mesmos dados");
+    expect(result.message).toContain("Recomendado: tente PIX");
+  });
+
   test("does not recommend repeating identical data after a security rejection", () => {
     const result = paymentFailureGuidance({
       method: "card",
