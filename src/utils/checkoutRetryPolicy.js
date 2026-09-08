@@ -19,7 +19,14 @@ export const isCheckoutOperationInProgress = (error) => {
 };
 
 export const prepareCheckoutFailureForRecovery = (error) => {
-  if (!error || Number(error?.status || 0) !== 422) return error;
+  if (!error) return error;
+  if (isCheckoutOperationInProgress(error)) {
+    error.serverStatus = 409;
+    error.status = 425;
+    error.message = "Sua tentativa anterior ainda está sendo processada. Não inicie outra cobrança; tente novamente em instantes para retomar a mesma operação com segurança.";
+    return error;
+  }
+  if (Number(error?.status || 0) !== 422) return error;
 
   const message = checkoutMessage(error);
   if (message && inventoryConflict422(message)) return error;
