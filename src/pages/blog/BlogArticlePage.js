@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import PropTypes from "prop-types";
 import { Alert, Container, Spinner } from "react-bootstrap";
 import { Link, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
@@ -111,6 +112,10 @@ function InlineText({ text }) {
   })}</>;
 }
 
+InlineText.propTypes = {
+  text: PropTypes.string,
+};
+
 function ArticleBody({ content }) {
   const blocks = useMemo(() => parseArticle(content), [content]);
   if (blocks.length === 0) return <p className="cut-blog-content-empty">Este conteúdo ainda não possui texto publicado.</p>;
@@ -134,6 +139,10 @@ function ArticleBody({ content }) {
   </div>;
 }
 
+ArticleBody.propTypes = {
+  content: PropTypes.string,
+};
+
 function ArticleCover({ entry }) {
   const [failed, setFailed] = useState(false);
   const src = mediaUrl(entry?.cover_image);
@@ -150,6 +159,14 @@ function ArticleCover({ entry }) {
     <div><small>{entry?.category || "CUTINAPP"}</small><strong>{entry?.title}</strong></div>
   </div>;
 }
+
+ArticleCover.propTypes = {
+  entry: PropTypes.shape({
+    cover_image: PropTypes.string,
+    title: PropTypes.string,
+    category: PropTypes.string,
+  }).isRequired,
+};
 
 export default function BlogArticlePage() {
   const { slug } = useParams();
