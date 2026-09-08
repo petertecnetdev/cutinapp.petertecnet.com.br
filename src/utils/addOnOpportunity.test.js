@@ -134,3 +134,12 @@ test("uses net revenue per incremental order before historical revenue when upsi
 
   expect(opportunities.sort(compareAddOnOpportunities).map(({ id }) => id)).toEqual(["higher-unit-contribution", "higher-history"]);
 });
+
+test("uses net revenue per attachment point before historical revenue when other economics are tied", () => {
+  const opportunities = [
+    { id: "higher-history", addOnProfitable: true, incrementalNetRevenue: 40, evidenceFactor: 1, incrementalNetMargin: 5, netRevenuePerIncrementalOrder: 10, netRevenuePerAttachmentPoint: 2, netPlatformRevenue: 500 },
+    { id: "higher-attachment-efficiency", addOnProfitable: true, incrementalNetRevenue: 40, evidenceFactor: 1, incrementalNetMargin: 5, netRevenuePerIncrementalOrder: 10, netRevenuePerAttachmentPoint: 4, netPlatformRevenue: 100 },
+  ];
+
+  expect(opportunities.sort(compareAddOnOpportunities).map(({ id }) => id)).toEqual(["higher-attachment-efficiency", "higher-history"]);
+});
