@@ -1,3 +1,10 @@
+export const CHECKOUT_QUANTITY_LIMITS = Object.freeze({
+  ticket: 20,
+  item: 50,
+});
+
+export const checkoutQuantityLimit = (kind) => CHECKOUT_QUANTITY_LIMITS[kind] || 0;
+
 const numericPriority = (item) => {
   const explicit = Number(item?.checkout_priority ?? item?.priority ?? item?.sort_order);
   return Number.isFinite(explicit) ? explicit : null;
