@@ -34,10 +34,11 @@ export const classifyPaymentFailure = (payment = {}, method = "") => {
   if (detail.includes("bad_filled") || detail.includes("invalid") || detail.includes("form")) return { reason: "card_data", detail };
   if (detail.includes("expired")) return { reason: "expired_card", detail };
   if (detail.includes("call_for_authorize")) return { reason: "issuer_authorization", detail };
+  if (detail.includes("duplicated")) return { reason: "duplicate_payment", detail };
   if (detail.includes("blacklist")) return { reason: "security_block", detail };
   if (detail.includes("other_reason")) return { reason: "issuer_or_risk_rejection", detail };
   if (detail.includes("high_risk") || detail.includes("fraud")) return { reason: "security_review", detail };
-  if (detail.includes("max_attempts") || detail.includes("duplicated")) return { reason: "attempt_limit", detail };
+  if (detail.includes("max_attempts")) return { reason: "attempt_limit", detail };
   return { reason: "card_rejected", detail };
 };
 
@@ -90,6 +91,10 @@ export const paymentFailureGuidance = ({ payment = {}, method = "", pixAvailable
     issuer_authorization: {
       title: "O banco precisa autorizar a compra",
       message: `O emissor pediu autorização para esta compra. Autorize no seu banco primeiro e só então tente novamente.${pixRecommended}`,
+    },
+    duplicate_payment: {
+      title: "Já existe um pagamento semelhante para esta compra",
+      message: "O provedor identificou uma tentativa de pagamento duplicada. Não tente pagar novamente com outro cartão ou PIX agora. Verifique o status da compra e aguarde a confirmação antes de iniciar uma nova cobrança.",
     },
     security_block: {
       title: "Este cartão não pode ser usado nesta tentativa",
