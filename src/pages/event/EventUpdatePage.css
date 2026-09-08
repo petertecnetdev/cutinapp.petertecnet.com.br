@@ -1,0 +1,299 @@
+/* Visual event editor. Reuses the public event hierarchy so producers edit
+ * content in the same place where participants will see it. */
+.cut-event-editor-page {
+  min-width: 0;
+  overflow-x: clip;
+}
+
+.cut-event-editor-page .cut-event-editor-summary-card {
+  min-width: 0;
+}
+
+.cut-event-editor-page .cut-event-editor-field {
+  min-width: 0;
+}
+
+.cut-event-editor-page .cut-event-editor-field__label {
+  display: block;
+  margin-bottom: 7px;
+  color: rgba(255, 255, 255, 0.56);
+  font-size: 0.68rem;
+  font-weight: 850;
+  letter-spacing: 0.095em;
+  text-transform: uppercase;
+}
+
+.cut-event-editor-page .cut-event-editor-title.form-control {
+  width: 100%;
+  min-height: 0;
+  margin: 0 0 8px;
+  padding: 0 0 8px;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: #f5f7f8;
+  font-size: clamp(2.15rem, 3.25vw, 4rem);
+  font-weight: 950;
+  line-height: 0.98;
+  letter-spacing: -0.045em;
+  text-transform: uppercase;
+}
+
+.cut-event-editor-page .cut-event-editor-title.form-control:focus {
+  border-bottom-color: rgba(192, 67, 255, 0.9);
+  background: transparent;
+  color: #fff;
+  box-shadow: 0 8px 0 -7px rgba(192, 67, 255, 0.72);
+}
+
+.cut-event-editor-page .cut-event-editor-title.form-control::placeholder {
+  color: rgba(255, 255, 255, 0.32);
+}
+
+.cut-event-editor-page .cut-event-editor-production {
+  cursor: default;
+  pointer-events: none;
+}
+
+.cut-event-editor-page .cut-event-editor-summary-meta {
+  max-width: 520px;
+}
+
+.cut-event-editor-page .cut-event-editor-meta-row {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 13px;
+  align-items: start;
+  padding: 16px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.11);
+}
+
+.cut-event-editor-page .cut-event-editor-meta-row > i {
+  width: 22px;
+  margin-top: 34px;
+  color: rgba(255, 255, 255, 0.55);
+  text-align: center;
+}
+
+.cut-event-editor-page .cut-event-editor-meta-row .form-control,
+.cut-event-editor-page .cut-event-editor-meta-row .form-select {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.075);
+  color: #f8f9fa;
+}
+
+.cut-event-editor-page .cut-event-editor-meta-row small {
+  display: block;
+  margin-top: 7px;
+  color: rgba(255, 255, 255, 0.5);
+  line-height: 1.4;
+}
+
+.cut-event-editor-page .cut-event-editor-inline-location {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 82px;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.cut-event-editor-page .cut-event-editor-actions {
+  max-width: 620px !important;
+}
+
+.cut-event-editor-page .cut-event-editor-actions > .btn,
+.cut-event-editor-page .cut-event-editor-actions > a.btn {
+  width: auto !important;
+  min-width: 0 !important;
+  padding-inline: 16px !important;
+  font-size: 0.76rem !important;
+}
+
+.cut-event-editor-page .cut-event-editor-actions > .btn i,
+.cut-event-editor-page .cut-event-editor-actions > a.btn i {
+  margin-right: 0.5rem !important;
+  font-size: 0.86rem !important;
+}
+
+.cut-event-editor-page .cut-event-editor-media {
+  position: relative;
+}
+
+.cut-event-editor-page .cut-event-editor-media::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent 58%, rgba(0, 0, 0, 0.58) 100%);
+}
+
+.cut-event-editor-page .cut-event-editor-media.is-invalid {
+  outline: 2px solid #dc3545;
+  outline-offset: 2px;
+}
+
+.cut-event-editor-page .cut-event-editor-media__actions {
+  position: absolute;
+  z-index: 2;
+  right: 18px;
+  bottom: 18px;
+  left: 18px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.cut-event-editor-page .cut-event-editor-media__actions .btn {
+  min-height: 42px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 850;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.cut-event-editor-page .cut-event-editor-media__error {
+  position: absolute;
+  z-index: 3;
+  top: 12px;
+  right: 12px;
+  left: 12px;
+  padding: 9px 12px;
+  border-radius: 6px;
+  background: rgba(220, 53, 69, 0.94);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.cut-event-editor-page .cut-event-editor-guide {
+  border-color: rgba(54, 199, 239, 0.25);
+  background: rgba(54, 199, 239, 0.08);
+  color: rgba(255, 255, 255, 0.83);
+}
+
+.cut-event-editor-page .cut-event-editor-panel textarea.form-control,
+.cut-event-editor-page .cut-event-editor-map-card .form-control,
+.cut-event-editor-page .cut-event-editor-management .form-control,
+.cut-event-editor-page .cut-event-editor-management .form-select,
+.cut-event-editor-page form .form-control,
+.cut-event-editor-page form .form-select {
+  min-width: 0;
+}
+
+.cut-event-editor-page .cut-event-editor-panel textarea.form-control {
+  resize: vertical;
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.cut-event-editor-page .cut-event-editor-details .cut-event-editor-detail-input {
+  align-items: flex-start;
+}
+
+.cut-event-editor-page .cut-event-editor-details .cut-event-editor-detail-input > i {
+  margin-top: 9px;
+}
+
+.cut-event-editor-page .cut-event-editor-details .cut-event-editor-detail-input .form-control {
+  margin-top: 6px;
+}
+
+.cut-event-editor-page .cut-event-editor-details .cut-event-editor-detail-input small {
+  display: block;
+  margin-top: 5px;
+}
+
+.cut-event-editor-page .cut-event-editor-map-card > .card-body {
+  overflow: hidden;
+}
+
+.cut-event-editor-page .cut-event-editor-map-card iframe {
+  border-radius: 8px;
+}
+
+.cut-event-editor-page .cut-event-editor-map-placeholder {
+  display: grid;
+  min-height: 260px;
+  place-items: center;
+  gap: 10px;
+  border: 1px dashed rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.035);
+  color: rgba(255, 255, 255, 0.56);
+  text-align: center;
+}
+
+.cut-event-editor-page .cut-event-editor-map-placeholder i {
+  font-size: 2rem;
+}
+
+.cut-event-editor-page .cut-event-editor-ticket-card {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+@media (min-width: 992px) {
+  .cut-event-editor-page .cut-event-editor-management:first-child {
+    position: sticky;
+    top: calc(var(--cut-navbar-height, 76px) + 18px);
+  }
+}
+
+@media (max-width: 991.98px) {
+  .cut-event-editor-page .cut-event-editor-field__label {
+    font-size: 0.64rem;
+  }
+
+  .cut-event-editor-page .cut-event-editor-title.form-control {
+    font-size: clamp(1.9rem, 9vw, 3rem);
+  }
+
+  .cut-event-editor-page .cut-event-editor-actions {
+    display: grid !important;
+    grid-template-columns: 1fr;
+    width: 100%;
+    max-width: none !important;
+  }
+
+  .cut-event-editor-page .cut-event-editor-actions > .btn,
+  .cut-event-editor-page .cut-event-editor-actions > a.btn {
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .cut-event-editor-page .cut-event-editor-inline-location {
+    grid-template-columns: minmax(0, 1fr) 72px;
+  }
+
+  .cut-event-editor-page .cut-event-editor-media__actions {
+    right: 10px;
+    bottom: 10px;
+    left: 10px;
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .cut-event-editor-page .cut-event-editor-media__actions .btn,
+  .cut-event-editor-page .cut-event-editor-media__actions label.btn {
+    width: 100%;
+  }
+
+  .cut-event-editor-page .cut-event-editor-meta-row {
+    grid-template-columns: 18px minmax(0, 1fr);
+    gap: 9px;
+  }
+
+  .cut-event-editor-page .cut-event-editor-meta-row > i {
+    width: 18px;
+  }
+}
+
+.cut-event-editor-page .cut-event-editor-last-saved {
+  display: block;
+  margin-top: 10px;
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 0.72rem;
+}

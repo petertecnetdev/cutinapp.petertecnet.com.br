@@ -88,6 +88,17 @@ export default function AdminCenterPage() {
       <Alert variant="info"><strong>Escopo global ativo.</strong> Os indicadores abaixo também funcionam como atalhos para administração.</Alert>
       {error && <Alert variant="danger">{error}</Alert>}
 
+      <Row className="g-3 mb-4">
+        <Col xs={12} md={6} lg={4}>
+          <Card as={Link} to="/admin/blog" className="cut-panel h-100 text-decoration-none text-reset" style={{ cursor: "pointer" }} aria-label="Gerenciar blog da Cutinapp">
+            <Card.Body className="d-flex align-items-center justify-content-between gap-3">
+              <div><span className="cut-eyebrow">Conteúdo & SEO</span><h2 className="h4 mb-1">Blog da Cutinapp</h2><small className="text-secondary">Criar, editar e publicar artigos exclusivos</small></div>
+              <i className="fa-solid fa-newspaper fs-2 opacity-75" aria-hidden="true" />
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+
       {loading ? <div className="text-center py-5"><Spinner /><p className="mt-2">Carregando administração global da Cutinapp...</p></div> : <>
         {stats.length > 0 && <Row className="g-3 mb-4">
           {stats.map(({ label, value, icon, to }) => <Col xs={6} lg={4} xl={2} key={label}>

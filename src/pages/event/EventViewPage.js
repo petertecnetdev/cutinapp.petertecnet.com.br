@@ -12,6 +12,8 @@ import eventService from "../../services/EventService";
 import cutinappService from "../../services/CutinappService";
 import commerceService from "../../services/CommerceService";
 import { storageUrl } from "../../config";
+import { isPeterTecnetRoot } from "../../utils/applicationRoles";
+import { buildEventShareUrl } from "../../utils/eventShareUrl";
 
 const formatDate = (value) => value
   ? new Intl.DateTimeFormat("pt-BR", {
@@ -158,6 +160,7 @@ export default function EventViewPage() {
   const tickets = useMemo(() => (data?.tickets || []).filter((ticket) => Number(ticket.price) === 0), [data]);
   const claimableArtists = useMemo(() => artists.filter((artist) => !artist.claimed_at), [artists]);
   const isOwner = Boolean(event?.production?.user_id && Number(event.production.user_id) === Number(user?.id));
+  const canManageEvent = isOwner || isPeterTecnetRoot(user);
   const productionId = Number(event?.production_id || event?.production?.id || 0);
   const mapEmbedUrl = useMemo(() => buildMapEmbedUrl(event), [event]);
   const flyerUrl = useMemo(() => resolveImageUrl(event?.image), [event?.image]);
@@ -166,15 +169,7 @@ export default function EventViewPage() {
   const isPastEvent = temporalState === "past";
   const hasTickets = Number(event?.tickets_count || 0) > 0 || tickets.length > 0;
   const canMarkInterested = event?.allowed_actions?.mark_interested ?? !isPastEvent;
-  const heroStyle = useMemo(() => {
-    if (!flyerUrl) return undefined;
-    const overlay = temporalState === "past"
-      ? "linear-gradient(180deg,rgba(20,24,28,.48),rgba(3,10,16,.98))"
-      : temporalState === "ongoing"
-        ? "linear-gradient(180deg,rgba(0,70,48,.12),rgba(3,10,16,.98))"
-        : "linear-gradient(180deg,rgba(3,10,16,.08),rgba(3,10,16,.98))";
-    return { backgroundImage: `${overlay},url(${flyerUrl})` };
-  }, [flyerUrl, temporalState]);
+  const showPersistentBuyCta = !isPastEvent && hasTickets;
 
   useEffect(() => {
     if (!event || isPastEvent) return undefined;
@@ -290,7 +285,7 @@ export default function EventViewPage() {
   };
 
   const share = async () => {
-    const url = `${window.location.origin}${location.pathname}${location.search}`;
+    const url = buildEventShareUrl({ event, origin: window.location.origin, fallbackSlug: slug });
     const title = event?.title || "Evento Cutinapp";
     const text = event?.city ? `${title} em ${event.city}` : title;
 
@@ -382,10 +377,38 @@ export default function EventViewPage() {
   const attendanceCheckedIn = Number(ownerResults?.attendance?.checked_in || 0);
   const attendanceRate = attendanceIssued > 0 ? Math.round((attendanceCheckedIn / attendanceIssued) * 100) : 0;
 
-  return <div className="cut-app-page"><NavlogComponent />{(loading || claimingId || artistClaimingId || duplicating) && <ProcessingIndicatorComponent label={claimingId ? "Emitindo ingresso" : artistClaimingId ? "Enviando reivindicação" : duplicating ? "Criando próxima edição" : "Carregando evento"} />}
+  return <div className={`cut-app-page cut-event-view-page ${showPersistentBuyCta ? "cut-event-view-page--buyable" : ""}`}><NavlogComponent />{(loading || claimingId || artistClaimingId || duplicating) && <ProcessingIndicatorComponent label={claimingId ? "Emitindo ingresso" : artistClaimingId ? "Enviando reivindicação" : duplicating ? "Criando próxima edição" : "Carregando evento"} />}
     {!loading && event && <>
-      <section className="cut-event-hero cut-event-hero--premium" style={heroStyle}>
-        <Container className="cut-page-container"><div className="cut-event-hero__content"><div className="d-flex flex-wrap gap-2 mb-3">{event.category && <Badge bg="dark">{event.category}</Badge>}<Badge bg={temporal.badgeVariant}>{temporal.badge}</Badge>{!isPastEvent && hasTickets && <Badge bg="info" text="dark">Ingressos disponíveis</Badge>}</div><h1>{event.title}</h1><p className="cut-event-hero__date">{formatDate(event.start_date)}</p><span>{event.venue || event.address}{event.city ? ` · ${event.city}${event.uf ? ` - ${event.uf}` : ""}` : ""}</span>{event.production?.name && <button className="cut-inline-profile-link" onClick={() => navigate(`/production/${event.production.slug}/public`)}>Por {event.production.name} <i className="fa-solid fa-arrow-up-right-from-square" /></button>}<div className="cut-card-actions mt-4">{!isPastEvent && hasTickets && <Button as="a" href="#ingressos" className="fw-bold px-4" aria-label={`Ver ingressos para ${event.title}`}><i className="fa-solid fa-ticket me-2" />Ingressos</Button>}{isOwner && <Button variant="light" onClick={() => navigate(`/event/edit/${event.id}`)} aria-label={`Editar ${event.title}`} title="Editar evento"><i className="fa-solid fa-pen-to-square me-2" />Editar evento</Button>}<Button variant="outline-light" onClick={share} aria-label={`Compartilhar ${event.title}`} title="Compartilhar este evento"><i className="fa-solid fa-share-nodes me-2" />Compartilhar</Button>{flyerUrl && <Button variant="outline-light" onClick={() => setFlyerOpen(true)}><i className="fa-regular fa-image me-2" />Ver Flyer</Button>}{canMarkInterested && <Button variant={interested ? "info" : "outline-light"} onClick={() => setEngagement("interested")} disabled={socialBusy || engagementLoading}><i className="fa-regular fa-star me-2" />Tenho interesse</Button>}<Button variant={favorite ? "danger" : "outline-light"} onClick={() => setEngagement("favorite")} disabled={socialBusy || engagementLoading}><i className={`${favorite ? "fa-solid" : "fa-regular"} fa-heart me-2`} />{favorite ? "Salvo" : "Salvar"}</Button><Button variant="outline-light" href="#comunidade"><i className="fa-regular fa-comments me-2" />Conversa</Button>{event.google_maps_url && <Button variant="outline-light" as="a" href={event.google_maps_url} target="_blank" rel="noreferrer"><i className="fa-solid fa-location-arrow me-2" />Maps</Button>}</div></div></Container>
+      <section className="cut-event-banner-stage" aria-label={`Imagem do evento ${event.title}`}>
+        <Container className="cut-page-container">
+          {flyerUrl ? <div className="cut-event-banner-frame"><img src={flyerUrl} alt={`Banner do evento ${event.title}`} /></div> : <div className="cut-event-banner-placeholder"><i className="fa-regular fa-image" aria-hidden="true" /></div>}
+        </Container>
+      </section>
+
+      <section className="cut-event-summary-strip">
+        <Container className="cut-page-container">
+          <div className="cut-event-summary-card">
+            <div className="cut-event-summary-card__content">
+              <div className="d-flex flex-wrap gap-2 mb-3">{event.category && <Badge bg="dark">{event.category}</Badge>}<Badge bg={temporal.badgeVariant}>{temporal.badge}</Badge>{!isPastEvent && hasTickets && <Badge bg="info" text="dark">Ingressos disponíveis</Badge>}</div>
+              <h1>{event.title}</h1>
+              <div className="cut-event-summary-card__meta">
+                <span><i className="fa-regular fa-calendar" aria-hidden="true" />{formatDate(event.start_date)}</span>
+                <span><i className="fa-solid fa-location-dot" aria-hidden="true" />{event.venue || event.address}{event.city ? ` · ${event.city}${event.uf ? ` - ${event.uf}` : ""}` : ""}</span>
+              </div>
+              {event.production?.name && <button className="cut-inline-profile-link mt-3" onClick={() => navigate(`/production/${event.production.slug}/public`)}>Por {event.production.name} <i className="fa-solid fa-arrow-up-right-from-square" /></button>}
+            </div>
+            <div className="cut-card-actions cut-event-summary-card__actions">
+              {showPersistentBuyCta && <Button as="a" href="#ingressos" size="lg" className="fw-bold" aria-label={`Comprar ingresso para ${event.title}`}><i className="fa-solid fa-ticket me-2" />Comprar ingresso</Button>}
+              {canManageEvent && <Button variant="light" onClick={() => navigate(`/event/edit/${event.id}`)} aria-label={`Editar ${event.title}`} title="Editar evento"><i className="fa-solid fa-pen-to-square me-2" />Editar evento</Button>}
+              <Button variant="outline-light" onClick={share} aria-label={`Compartilhar ${event.title}`}><i className="fa-solid fa-share-nodes me-2" />Compartilhar</Button>
+              {flyerUrl && <Button variant="outline-light" onClick={() => setFlyerOpen(true)}><i className="fa-regular fa-image me-2" />Ver imagem</Button>}
+              {canMarkInterested && <Button variant={interested ? "info" : "outline-light"} onClick={() => setEngagement("interested")} disabled={socialBusy || engagementLoading}><i className="fa-regular fa-star me-2" />Tenho interesse</Button>}
+              <Button variant={favorite ? "danger" : "outline-light"} onClick={() => setEngagement("favorite")} disabled={socialBusy || engagementLoading}><i className={`${favorite ? "fa-solid" : "fa-regular"} fa-heart me-2`} />{favorite ? "Salvo" : "Salvar"}</Button>
+              <Button variant="outline-light" href="#comunidade"><i className="fa-regular fa-comments me-2" />Conversa</Button>
+              {event.google_maps_url && <Button variant="outline-light" as="a" href={event.google_maps_url} target="_blank" rel="noreferrer"><i className="fa-solid fa-location-arrow me-2" />Maps</Button>}
+            </div>
+          </div>
+        </Container>
       </section>
 
       <Container className="cut-page-container py-4 py-lg-5">
@@ -401,41 +424,33 @@ export default function EventViewPage() {
           {claimableArtists.length > 0 && <Card className="cut-panel mt-4"><Card.Body className="p-4"><span className="cut-eyebrow">Artista do evento?</span><h3 className="cut-section-title">Reivindique seu vínculo</h3><p className="text-secondary">Se o produtor cadastrou você antes da criação da sua conta, escolha seu perfil abaixo. O produtor receberá a solicitação e confirmará que você realmente faz parte deste line-up.</p><div className="d-flex flex-wrap gap-2">{claimableArtists.map((artist) => <Button key={artist.id} variant="outline-light" onClick={() => claimArtist(artist)} disabled={artistClaimingId === artist.id}><i className="fa-solid fa-user-check me-2" />Sou {artist.stage_name}</Button>)}</div>{!user && <small className="d-block text-secondary mt-3">Você será direcionado ao cadastro e voltará para este evento após confirmar o e-mail.</small>}</Card.Body></Card>}
         </section>}
 
-        <Row className="g-4"><Col lg={8}>
+        {showPersistentBuyCta && <section id="ingressos" className="cut-ticket-shop-section mb-5" style={{ scrollMarginTop: "calc(var(--cut-navbar-height) + 18px)" }}>
+          <div className="cut-ticket-shop-section__heading">
+            <span className="cut-eyebrow">Tickets</span>
+            <h2 className="cut-section-title mt-2 mb-1">Ingressos</h2>
+            <p className="text-secondary mb-0">Escolha seus lotes, ajuste a quantidade e confira o resumo antes de seguir para o checkout.</p>
+          </div>
+          {tickets.length > 0 && <div className="cut-ticket-shop__list mb-4">{tickets.map((ticket) => { const remaining = Number(ticket.remaining ?? 0); const available = Boolean(ticket.available); return <div className={`cut-ticket-shop__option ${!available ? "cut-ticket-shop__option--sold-out" : ""}`} key={`courtesy-${ticket.id}`}><div className="cut-ticket-shop__option-copy"><span className="cut-ticket-kicker">{ticket.type || ticket.ticket_type || "Ingresso promocional"}</span><strong>{ticket.name}</strong><span>Grátis</span><small>{ticket.expired ? "Prazo encerrado" : available ? `${remaining} restante${remaining === 1 ? "" : "s"}` : "Esgotado"}</small>{ticket.limit_date && !ticket.expired && <small>Retirada até {formatDate(ticket.limit_date)}</small>}</div><Button onClick={() => claim(ticket)} disabled={!available || claimingId === ticket.id}>{available ? (user ? "Obter ingresso" : "Entrar para obter") : ticket.expired ? "Prazo encerrado" : "Esgotado"}</Button></div>; })}</div>}
+          <EventCommercePanel slug={slug} eventId={event.id} user={user} onLoginRequired={(returnTo = `${location.pathname}${location.search}`) => navigate("/login", { state: { from: returnTo } })} />
+        </section>}
+
+        <Row className="g-4"><Col lg={isOwner ? 8 : 12}>
           <Card className="cut-panel mb-4"><Card.Body className="p-4 p-lg-5"><span className="cut-eyebrow">Sobre o evento</span><h2 className="cut-section-title mt-2">Informações</h2><p className="cut-body-copy">{event.description}</p><div className="cut-event-details"><div><i className="fa-regular fa-calendar" /><span><strong>Início</strong>{formatDate(event.start_date)}</span></div><div><i className="fa-regular fa-clock" /><span><strong>Término</strong>{formatDate(event.end_date)}</span></div><div><i className="fa-solid fa-location-dot" /><span><strong>Local</strong>{event.venue || event.address}</span></div>{event.city && <div><i className="fa-solid fa-map" /><span><strong>Cidade</strong>{event.city}{event.uf ? ` - ${event.uf}` : ""}</span></div>}</div></Card.Body></Card>
           {event.production?.name && <Card className="cut-panel mb-4"><Card.Body className="p-4"><span className="cut-eyebrow">Responsável</span><div className="cut-production-inline"><div><h2>{event.production.name}</h2><p>Veja os próximos eventos e acompanhe esta produção.</p></div><Button variant="outline-light" onClick={() => navigate(`/production/${event.production.slug}/public`)}>Ver página da produção</Button></div></Card.Body></Card>}
           {mapEmbedUrl && <Card className="cut-panel"><Card.Body className="p-0 overflow-hidden"><iframe title={`Mapa de ${event.title}`} src={mapEmbedUrl} width="100%" height="360" style={{ border: 0, display: "block" }} loading="lazy" referrerPolicy="no-referrer-when-downgrade" allowFullScreen /></Card.Body></Card>}
         </Col>
-        <Col lg={4}><Card id="ingressos" className="cut-panel cut-ticket-purchase-panel" style={{ scrollMarginTop: "calc(var(--cut-navbar-height) + 18px)" }}><Card.Body className="p-4"><span className="cut-eyebrow">Entrada</span><h2 className="cut-section-title mt-2">Ingressos</h2>
-          {isPastEvent ? <div className="cut-empty-state-inline"><p>Vendas e retiradas encerradas para este evento.</p><small className="text-secondary d-block">Nenhum novo ingresso, cortesia ou item antecipado pode ser adquirido. Ingressos já emitidos continuam disponíveis no histórico do usuário.</small></div> : <>{tickets.length === 0 ? <div className="cut-empty-state-inline"><p>Nenhum ingresso gratuito disponível neste momento.</p>{isOwner && <Button onClick={() => navigate(`/ticket/create?eventId=${event.id}`)}>Criar cortesia</Button>}</div> : <div className="cut-ticket-list">{tickets.map((ticket) => { const remaining = Number(ticket.remaining ?? 0); const available = Boolean(ticket.available); return <div className="cut-ticket-option" key={ticket.id}><div><span className="cut-ticket-kicker">{ticket.type || ticket.ticket_type || "Ingresso"}</span><strong>{ticket.name}</strong><span>Grátis · {ticket.expired ? "prazo encerrado" : available ? `${remaining} restante${remaining === 1 ? "" : "s"}` : "esgotado"}</span>{ticket.limit_date && !ticket.expired && <small>Retirada até {formatDate(ticket.limit_date)}</small>}</div><Button onClick={() => claim(ticket)} disabled={!available || claimingId === ticket.id}>{available ? (user ? "Obter ingresso" : "Entrar para obter") : ticket.expired ? "Prazo encerrado" : "Esgotado"}</Button></div>; })}</div>}
-          <EventCommercePanel slug={slug} eventId={event.id} user={user} onLoginRequired={(returnTo = `${location.pathname}${location.search}`) => navigate("/login", { state: { from: returnTo } })} /></>}
-          {isOwner && <div className="cut-owner-actions mt-4"><Button variant="outline-light" onClick={() => navigate(`/event/edit/${event.id}`)}><i className="fa-solid fa-pen-to-square me-2" />Editar evento</Button><Button variant="outline-light" onClick={() => navigate(`/event/${event.id}/lineup`)}>Line-up</Button><Button variant="outline-light" onClick={() => navigate(`/event/${event.id}/artist-claims`)}>Reivindicações</Button>{!isPastEvent && <Button variant="outline-light" onClick={() => navigate(`/checkin?eventId=${event.id}`)}>Portaria</Button>}</div>}
-        </Card.Body></Card></Col></Row>
+        {isOwner && <Col lg={4}><Card className="cut-panel"><Card.Body className="p-4"><span className="cut-eyebrow">Gestão</span><h2 className="cut-section-title mt-2">Ferramentas do evento</h2><div className="cut-owner-actions mt-4"><Button variant="outline-light" onClick={() => navigate(`/event/edit/${event.id}`)}><i className="fa-solid fa-pen-to-square me-2" />Editar evento</Button><Button variant="outline-light" onClick={() => navigate(`/event/${event.id}/lineup`)}>Line-up</Button><Button variant="outline-light" onClick={() => navigate(`/event/${event.id}/artist-claims`)}>Reivindicações</Button>{!isPastEvent && <Button variant="outline-light" onClick={() => navigate(`/checkin?eventId=${event.id}`)}>Portaria</Button>}{!isPastEvent && <Button variant="outline-light" onClick={() => navigate(`/ticket/create?eventId=${event.id}`)}>Criar cortesia</Button>}</div></Card.Body></Card></Col>}</Row>
 
         {!isOwner && <Card className="cut-panel mt-4 mb-4"><Card.Body className="p-4 p-lg-5"><div className="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4"><div><span className="cut-eyebrow">Você também produz eventos?</span><h2 className="cut-section-title mt-2 mb-2">Crie seu primeiro evento na Cutinapp</h2><p className="text-secondary mb-0">Comece pelo evento. Se ainda não tiver uma produção, você cria o nome dela no mesmo fluxo e segue direto para o primeiro lote e a publicação.</p></div><Button size="lg" onClick={startProducerActivation} className="flex-shrink-0"><i className="fa-solid fa-bolt me-2" />{user ? "Criar meu evento" : "Começar como produtor"}</Button></div></Card.Body></Card>}
 
         <EventCommunitySection event={event} isOwner={isOwner} />
       </Container>
 
-      <Button
-        type="button"
-        variant="light"
-        className="d-flex d-lg-none align-items-center justify-content-center rounded-circle shadow"
-        onClick={share}
-        aria-label={`Compartilhar ${event.title}`}
-        title="Compartilhar este evento"
-        style={{
-          position: "fixed",
-          right: "18px",
-          bottom: "92px",
-          width: "56px",
-          height: "56px",
-          padding: 0,
-          zIndex: 1045,
-        }}
-      >
-        <i className="fa-solid fa-share-nodes" aria-hidden="true" />
-      </Button>
+      {showPersistentBuyCta && <a className="cut-event-buy-cta-fixed" href="#ingressos" aria-label={`Comprar ingresso para ${event.title}`}>
+        <i className="fa-solid fa-ticket" aria-hidden="true" />
+        <span><strong>Comprar ingresso</strong><small>Ver opções disponíveis</small></span>
+        <i className="fa-solid fa-chevron-down" aria-hidden="true" />
+      </a>}
 
       <WhatsAppFloatingButton
         phone={event.production?.phone || event.phone}

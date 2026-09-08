@@ -43,6 +43,35 @@ const requestPayout = (organizationId, amount) => {
   return requestPayoutIdempotently(organizationId, payload);
 };
 
+const startLivenessIdempotently = createIdempotentMutation({
+  storagePrefix: "cutinapp_finance_liveness_start_attempt_",
+  keyPrefix: "finance-liveness-start",
+  requestKeyFor: (organizationId) => createMutationRequestKey({
+    organization_id: String(organizationId),
+  }),
+  mutate: async ({ idempotencyKey }, organizationId) => (
+    await appApiClient.post(`/organizations/${organizationId}/finance/identity/liveness-session`, undefined, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    })
+  ).data,
+});
+
+const completeLivenessIdempotently = createIdempotentMutation({
+  storagePrefix: "cutinapp_finance_liveness_complete_attempt_",
+  keyPrefix: "finance-liveness-complete",
+  requestKeyFor: (organizationId, sessionId) => createMutationRequestKey({
+    organization_id: String(organizationId),
+    session_id: String(sessionId || "").trim(),
+  }),
+  mutate: async ({ idempotencyKey }, organizationId, sessionId) => (
+    await appApiClient.post(`/organizations/${organizationId}/finance/identity/liveness-complete`, {
+      session_id: String(sessionId || "").trim(),
+    }, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    })
+  ).data,
+});
+
 const financeService = {
   overview: async (organizationId) => (
     await appApiClient.get(`/organizations/${organizationId}/finance`)
@@ -54,15 +83,9 @@ const financeService = {
 
   uploadDocument: uploadIdentityDocumentIdempotently,
 
-  startLiveness: async (organizationId) => (
-    await appApiClient.post(`/organizations/${organizationId}/finance/identity/liveness-session`)
-  ).data,
+  startLiveness: startLivenessIdempotently,
 
-  completeLiveness: async (organizationId, sessionId) => (
-    await appApiClient.post(`/organizations/${organizationId}/finance/identity/liveness-complete`, {
-      session_id: sessionId,
-    })
-  ).data,
+  completeLiveness: completeLivenessIdempotently,
 
   savePix: async (organizationId, pixKeyType, pixKey) => (
     await appApiClient.put(`/organizations/${organizationId}/finance/pix`, {

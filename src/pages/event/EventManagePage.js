@@ -6,7 +6,22 @@ import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorCo
 import eventService from "../../services/EventService";
 import eventBulkService from "../../services/EventBulkService";
 import cutinappService from "../../services/CutinappService";
+import { storageUrl } from "../../config";
 import "./EventManagePage.css";
+import "./EventManagePageSorting.css";
+
+const collator = new Intl.Collator("pt-BR", { numeric: true, sensitivity: "base" });
+
+const SORT_COLUMNS = [
+  { key: "event", label: "Evento" },
+  { key: "production", label: "Produção" },
+  { key: "date", label: "Data" },
+  { key: "location", label: "Local" },
+  { key: "status", label: "Status" },
+  { key: "tickets", label: "Ingressos" },
+  { key: "readiness", label: "Preparação" },
+  { key: "nextAction", label: "Próxima ação" },
+];
 
 const formatDate = (value) => value
   ? new Intl.DateTimeFormat("pt-BR", {
@@ -25,6 +40,15 @@ const toDateInput = (value) => {
   const pad = (number) => String(number).padStart(2, "0");
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 };
+
+const mediaUrl = (path) => {
+  if (!path) return "";
+  const value = String(path);
+  if (/^https?:\/\//i.test(value)) return value;
+  return `${storageUrl}${value.replace(/^\//, "")}`;
+};
+
+const eventLocation = (event) => event?.venue || event?.address || event?.city || "Não informado";
 
 const suggestedDuplicateDate = (event) => {
   const source = new Date(event?.start_date);
@@ -155,6 +179,48 @@ const getStatus = (event) => {
   return { key: "draft", label: "Rascunho", variant: "secondary" };
 };
 
+const sortValue = (event, key) => {
+  const readiness = getSalesReadiness(event);
+  switch (key) {
+    case "event":
+      return String(event?.title || "");
+    case "production":
+      return String(event?.production?.name || "");
+    case "date": {
+      const timestamp = new Date(event?.start_date || "").getTime();
+      return Number.isNaN(timestamp) ? null : timestamp;
+    }
+    case "location":
+      return eventLocation(event);
+    case "status":
+      return getStatus(event).label;
+    case "tickets":
+      return Number(event?.tickets_count || 0);
+    case "readiness":
+      return Number(readiness.completed || 0);
+    case "nextAction":
+      return String(event?.is_cancelled ? "Evento cancelado" : readiness.title || "");
+    default:
+      return "";
+  }
+};
+
+const compareSortValues = (left, right, direction) => {
+  const leftMissing = left === null || left === undefined || left === "";
+  const rightMissing = right === null || right === undefined || right === "";
+
+  if (leftMissing && rightMissing) return 0;
+  if (leftMissing) return 1;
+  if (rightMissing) return -1;
+
+  const multiplier = direction === "desc" ? -1 : 1;
+  if (typeof left === "number" && typeof right === "number") {
+    return (left - right) * multiplier;
+  }
+
+  return collator.compare(String(left), String(right)) * multiplier;
+};
+
 export default function EventManagePage() {
   const navigate = useNavigate();
   const [events, setEvents] = useState([]);
@@ -169,7 +235,7 @@ export default function EventManagePage() {
   const [copiedEventId, setCopiedEventId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [sortMode, setSortMode] = useState("date-asc");
+  const [sortConfig, setSortConfig] = useState({ key: "date", direction: "asc" });
   const [bulkPublishOpen, setBulkPublishOpen] = useState(false);
   const [bulkPublishing, setBulkPublishing] = useState(false);
   const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0, current: "" });
@@ -384,30 +450,39 @@ export default function EventManagePage() {
   const visibleEvents = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLocaleLowerCase("pt-BR");
     const filtered = events.filter((event) => {
-      const status = getStatus(event).key;
+      const status = getStatus(event);
+      const readiness = getSalesReadiness(event);
       const matchesStatus = statusFilter === "all"
-        || status === statusFilter
-        || (statusFilter === "attention" && !event.is_cancelled && getSalesReadiness(event).completed < 3);
+        || status.key === statusFilter
+        || (statusFilter === "attention" && !event.is_cancelled && readiness.completed < 3);
 
       if (!matchesStatus) return false;
       if (!normalizedSearch) return true;
 
-      return [event.title, event.production?.name, event.venue, event.address, event.city]
+      return [
+        event.title,
+        event.production?.name,
+        eventLocation(event),
+        event.city,
+        event.uf,
+        status.label,
+        readiness.title,
+      ]
         .filter(Boolean)
         .some((value) => String(value).toLocaleLowerCase("pt-BR").includes(normalizedSearch));
     });
 
     return [...filtered].sort((a, b) => {
-      if (sortMode === "title") return String(a?.title || "").localeCompare(String(b?.title || ""), "pt-BR");
-      if (sortMode === "status") return getStatus(a).label.localeCompare(getStatus(b).label, "pt-BR");
+      const result = compareSortValues(
+        sortValue(a, sortConfig.key),
+        sortValue(b, sortConfig.key),
+        sortConfig.direction,
+      );
 
-      const first = new Date(a?.start_date || 0).getTime();
-      const second = new Date(b?.start_date || 0).getTime();
-      const safeFirst = Number.isNaN(first) ? 0 : first;
-      const safeSecond = Number.isNaN(second) ? 0 : second;
-      return sortMode === "date-desc" ? safeSecond - safeFirst : safeFirst - safeSecond;
+      if (result !== 0) return result;
+      return collator.compare(String(a?.title || ""), String(b?.title || ""));
     });
-  }, [events, searchTerm, sortMode, statusFilter]);
+  }, [events, searchTerm, sortConfig, statusFilter]);
 
   const openBulkPublish = () => {
     if (!bulkCandidates.length || bulkPublishing) return;
@@ -496,8 +571,79 @@ export default function EventManagePage() {
     if (readiness.route) navigate(readiness.route);
   };
 
+  const handleSort = (key) => {
+    setSortConfig((current) => ({
+      key,
+      direction: current.key === key && current.direction === "asc" ? "desc" : "asc",
+    }));
+  };
+
+  const sortIcon = (key) => {
+    if (sortConfig.key !== key) return "fa-solid fa-sort";
+    return sortConfig.direction === "asc" ? "fa-solid fa-arrow-up" : "fa-solid fa-arrow-down";
+  };
+
+  const ariaSort = (key) => {
+    if (sortConfig.key !== key) return "none";
+    return sortConfig.direction === "asc" ? "ascending" : "descending";
+  };
+
   const duplicating = String(busyId).startsWith("duplicate-");
   const deletingAll = busyId === "delete-all";
+
+  const renderActions = (event) => (
+    <div className="cut-event-admin-actions">
+      <Button
+        size="sm"
+        variant="outline-light"
+        onClick={() => navigate(`/event/edit/${event.id}`)}
+        title="Editar evento"
+        aria-label={`Editar ${event.title}`}
+        disabled={bulkPublishing || deletingAll}
+      >
+        <i className="fa-solid fa-pen" />
+      </Button>
+      <Button
+        size="sm"
+        variant="outline-info"
+        onClick={() => openDuplicate(event)}
+        title="Copiar evento"
+        aria-label={`Copiar ${event.title}`}
+        disabled={Boolean(busyId) || bulkPublishing || deletingAll}
+      >
+        <i className="fa-regular fa-copy" />
+      </Button>
+      <Dropdown align="end" className="cut-event-manager-more">
+        <Dropdown.Toggle
+          size="sm"
+          variant="outline-light"
+          aria-label={`Mais ações para ${event.title}`}
+          disabled={bulkPublishing || deletingAll}
+        >
+          <i className="fa-solid fa-ellipsis" />
+        </Dropdown.Toggle>
+        <Dropdown.Menu>
+          <Dropdown.Item onClick={() => navigate(`/ticket/create?eventId=${event.id}`)}><i className="fa-solid fa-ticket" />Novo lote</Dropdown.Item>
+          <Dropdown.Item onClick={() => navigate(`/event/${event.id}/participants`)}><i className="fa-solid fa-users" />Participantes</Dropdown.Item>
+          <Dropdown.Item onClick={() => navigate(`/event/${event.id}/courtesies`)}><i className="fa-solid fa-gift" />Cortesias</Dropdown.Item>
+          <Dropdown.Item onClick={() => openDuplicate(event)} disabled={Boolean(busyId)}><i className="fa-regular fa-copy" />Duplicar evento</Dropdown.Item>
+          {event.is_published && !event.is_cancelled && <Dropdown.Divider />}
+          {event.is_published && !event.is_cancelled && <Dropdown.Item onClick={() => navigate(`/checkin?eventId=${event.id}`)}><i className="fa-solid fa-qrcode" />Portaria / check-in</Dropdown.Item>}
+          {event.is_published && !event.is_cancelled && <Dropdown.Item onClick={() => navigate(`/event/${event.slug}`)}><i className="fa-solid fa-arrow-up-right-from-square" />Página pública</Dropdown.Item>}
+          {event.is_published && !event.is_cancelled && <Dropdown.Item onClick={() => copyLink(event)}><i className="fa-regular fa-copy" />Copiar link</Dropdown.Item>}
+          {event.is_published && !event.is_cancelled && <Dropdown.Item onClick={() => share(event)}><i className="fa-solid fa-share-nodes" />Compartilhar</Dropdown.Item>}
+          {!event.is_cancelled && <Dropdown.Divider />}
+          {!event.is_cancelled && (
+            <Dropdown.Item className={event.is_published ? "text-warning" : "text-success"} onClick={() => publication(event)} disabled={busyId === event.id}>
+              <i className={event.is_published ? "fa-solid fa-eye-slash" : "fa-solid fa-rocket"} />
+              {event.is_published ? "Despublicar" : "Publicar"}
+            </Dropdown.Item>
+          )}
+        </Dropdown.Menu>
+      </Dropdown>
+    </div>
+  );
+
   const processingLabel = loading
     ? "Carregando eventos"
     : deletingAll
@@ -586,12 +732,11 @@ export default function EventManagePage() {
               </div>
 
               <div className="cut-event-manager-toolbar__right">
-                <Form.Select value={sortMode} onChange={(event) => setSortMode(event.target.value)} aria-label="Ordenar eventos">
-                  <option value="date-asc">Próximos primeiro</option>
-                  <option value="date-desc">Mais distantes primeiro</option>
-                  <option value="title">Nome do evento</option>
-                  <option value="status">Status</option>
-                </Form.Select>
+                <span className="cut-event-manager-sort-summary" aria-live="polite">
+                  <i className="fa-solid fa-arrow-down-a-z" />
+                  {SORT_COLUMNS.find((item) => item.key === sortConfig.key)?.label || "Data"}
+                  <b>{sortConfig.direction === "asc" ? "↑" : "↓"}</b>
+                </span>
                 {(searchTerm || statusFilter !== "all") && (
                   <Button variant="outline-light" onClick={() => { setSearchTerm(""); setStatusFilter("all"); }}>
                     <i className="fa-solid fa-filter-circle-xmark me-2" />Limpar
@@ -608,125 +753,207 @@ export default function EventManagePage() {
                 <Button size="sm" variant="outline-light" onClick={() => { setSearchTerm(""); setStatusFilter("all"); }}>Limpar filtros</Button>
               </div>
             ) : (
-              <section className="cut-event-admin-table-shell" aria-label="Tabela de gerenciamento de eventos">
-                <div className="cut-event-admin-table-scroll table-responsive">
-                  <Table className="cut-event-admin-table align-middle mb-0" hover>
-                    <thead>
-                      <tr>
-                        <th className="cut-event-admin-table__event">Evento</th>
-                        <th>Data</th>
-                        <th>Local</th>
-                        <th>Status</th>
-                        <th>Ingressos</th>
-                        <th>Preparação</th>
-                        <th>Próxima ação</th>
-                        <th className="cut-event-admin-table__actions">Gestão</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {visibleEvents.map((event) => {
-                        const readiness = getSalesReadiness(event);
-                        const status = getStatus(event);
-                        const progress = Math.round((readiness.completed / 3) * 100);
-                        const needsAttention = !event.is_cancelled && readiness.completed < 3;
+              <>
+                <section className="cut-event-admin-desktop cut-event-admin-table-shell" aria-label="Tabela de gerenciamento de eventos">
+                  <div className="cut-event-admin-table-scroll table-responsive">
+                    <Table className="cut-event-admin-table cut-event-admin-table--sortable align-middle mb-0" hover>
+                      <thead>
+                        <tr>
+                          <th className="cut-event-admin-table__event" aria-sort={ariaSort("event")}>
+                            <button type="button" className="cut-event-sort-head" onClick={() => handleSort("event")}>Evento <i className={sortIcon("event")} /></button>
+                          </th>
+                          <th aria-sort={ariaSort("production")}>
+                            <button type="button" className="cut-event-sort-head" onClick={() => handleSort("production")}>Produção <i className={sortIcon("production")} /></button>
+                          </th>
+                          <th aria-sort={ariaSort("date")}>
+                            <button type="button" className="cut-event-sort-head" onClick={() => handleSort("date")}>Data <i className={sortIcon("date")} /></button>
+                          </th>
+                          <th aria-sort={ariaSort("location")}>
+                            <button type="button" className="cut-event-sort-head" onClick={() => handleSort("location")}>Local <i className={sortIcon("location")} /></button>
+                          </th>
+                          <th aria-sort={ariaSort("status")}>
+                            <button type="button" className="cut-event-sort-head" onClick={() => handleSort("status")}>Status <i className={sortIcon("status")} /></button>
+                          </th>
+                          <th aria-sort={ariaSort("tickets")}>
+                            <button type="button" className="cut-event-sort-head" onClick={() => handleSort("tickets")}>Ingressos <i className={sortIcon("tickets")} /></button>
+                          </th>
+                          <th aria-sort={ariaSort("readiness")}>
+                            <button type="button" className="cut-event-sort-head" onClick={() => handleSort("readiness")}>Preparação <i className={sortIcon("readiness")} /></button>
+                          </th>
+                          <th aria-sort={ariaSort("nextAction")}>
+                            <button type="button" className="cut-event-sort-head" onClick={() => handleSort("nextAction")}>Próxima ação <i className={sortIcon("nextAction")} /></button>
+                          </th>
+                          <th className="cut-event-admin-table__actions">Gestão</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {visibleEvents.map((event) => {
+                          const readiness = getSalesReadiness(event);
+                          const status = getStatus(event);
+                          const progress = Math.round((readiness.completed / 3) * 100);
+                          const needsAttention = !event.is_cancelled && readiness.completed < 3;
+                          const eventImage = event.image || event.production?.logo;
 
-                        return (
-                          <tr key={event.id} className={needsAttention ? "is-attention" : ""}>
-                            <td className="cut-event-admin-table__event">
-                              <button type="button" className="cut-event-admin-table__title" onClick={() => navigate(`/event/edit/${event.id}`)}>{event.title}</button>
-                              <span className="cut-event-admin-table__production">{event.production?.name || "Produção não informada"}</span>
-                            </td>
-                            <td>
-                              <span className="cut-event-admin-table__date"><i className="fa-regular fa-calendar" />{formatDate(event.start_date)}</span>
-                            </td>
-                            <td>
-                              <span className="cut-event-admin-table__location"><i className="fa-solid fa-location-dot" />{event.venue || event.address || event.city || "Não informado"}</span>
-                            </td>
-                            <td><Badge bg={status.variant}>{status.label}</Badge></td>
-                            <td>
-                              <button type="button" className="cut-event-admin-table__link" onClick={() => navigate(`/ticket/create?eventId=${event.id}`)}>
-                                <i className="fa-solid fa-ticket" />{Number(event.tickets_count || 0)} lote(s)
-                              </button>
-                            </td>
-                            <td>
-                              {event.is_cancelled ? (
-                                <span className="cut-event-admin-table__muted">—</span>
-                              ) : (
-                                <div className="cut-event-admin-progress" title={`${readiness.completed} de 3 etapas concluídas`}>
-                                  <div className="cut-event-admin-progress__top"><strong>{readiness.completed}/3</strong><span>{progress}%</span></div>
-                                  <div className="cut-event-admin-progress__track"><span style={{ width: `${progress}%` }} /></div>
+                          return (
+                            <tr key={event.id} className={needsAttention ? "is-attention" : ""}>
+                              <td className="cut-event-admin-table__event">
+                                <div className="cut-event-admin-identity">
+                                  <button type="button" className="cut-event-admin-identity__media" onClick={() => navigate(`/event/edit/${event.id}`)} aria-label={`Editar ${event.title}`}>
+                                    {eventImage ? <img src={mediaUrl(eventImage)} alt="" loading="lazy" /> : <i className="fa-regular fa-calendar" />}
+                                  </button>
+                                  <div>
+                                    <button type="button" className="cut-event-admin-table__title" onClick={() => navigate(`/event/edit/${event.id}`)}>{event.title}</button>
+                                    <span className="cut-event-admin-table__production">{event.category || `#${event.id}`}</span>
+                                  </div>
                                 </div>
-                              )}
-                            </td>
-                            <td>
-                              {event.is_cancelled ? (
-                                <span className="cut-event-admin-table__muted">Evento cancelado</span>
-                              ) : (
-                                <div className="cut-event-admin-next">
+                              </td>
+                              <td>
+                                <span className="cut-event-admin-production-cell">
+                                  {event.production?.logo ? <img src={mediaUrl(event.production.logo)} alt="" loading="lazy" /> : <i className="fa-solid fa-clapperboard" />}
+                                  {event.production?.name || "Produção não informada"}
+                                </span>
+                              </td>
+                              <td><span className="cut-event-admin-table__date"><i className="fa-regular fa-calendar" />{formatDate(event.start_date)}</span></td>
+                              <td><span className="cut-event-admin-table__location"><i className="fa-solid fa-location-dot" />{eventLocation(event)}</span></td>
+                              <td><Badge bg={status.variant}>{status.label}</Badge></td>
+                              <td>
+                                <button type="button" className="cut-event-admin-table__link" onClick={() => navigate(`/ticket/create?eventId=${event.id}`)}>
+                                  <i className="fa-solid fa-ticket" />{Number(event.tickets_count || 0)} lote(s)
+                                </button>
+                              </td>
+                              <td>
+                                {event.is_cancelled ? (
+                                  <span className="cut-event-admin-table__muted">—</span>
+                                ) : (
+                                  <div className="cut-event-admin-progress" title={`${readiness.completed} de 3 etapas concluídas`}>
+                                    <div className="cut-event-admin-progress__top"><strong>{readiness.completed}/3</strong><span>{progress}%</span></div>
+                                    <div className="cut-event-admin-progress__track"><span style={{ width: `${progress}%` }} /></div>
+                                  </div>
+                                )}
+                              </td>
+                              <td>
+                                {event.is_cancelled ? (
+                                  <span className="cut-event-admin-table__muted">Evento cancelado</span>
+                                ) : (
+                                  <div className="cut-event-admin-next">
+                                    <strong>{readiness.title}</strong>
+                                    <span>{readiness.label}</span>
+                                    <Button
+                                      size="sm"
+                                      variant={readiness.mode === "whatsapp" ? "success" : "light"}
+                                      onClick={() => runPrimaryAction(event, readiness)}
+                                      disabled={busyId === event.id || bulkPublishing || deletingAll}
+                                    >
+                                      <i className={`${readiness.icon} me-2`} />{readiness.action}
+                                    </Button>
+                                  </div>
+                                )}
+                              </td>
+                              <td className="cut-event-admin-table__actions">{renderActions(event)}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </Table>
+                  </div>
+                  <footer className="cut-event-admin-table-footer">
+                    <span>Exibindo <strong>{visibleEvents.length}</strong> de <strong>{events.length}</strong> evento(s)</span>
+                    <span><i className="fa-solid fa-arrow-pointer" /> Clique no nome de qualquer coluna para ordenar.</span>
+                  </footer>
+                </section>
+
+                <section className="cut-event-admin-mobile" aria-label="Gerenciamento de eventos no celular">
+                  <div className="cut-event-mobile-sort" aria-label="Ordenar eventos">
+                    <span>Ordenar:</span>
+                    <div>
+                      {SORT_COLUMNS.map((column) => (
+                        <button
+                          key={column.key}
+                          type="button"
+                          className={sortConfig.key === column.key ? "is-active" : ""}
+                          onClick={() => handleSort(column.key)}
+                          aria-pressed={sortConfig.key === column.key}
+                        >
+                          {column.label}
+                          {sortConfig.key === column.key && <i className={sortIcon(column.key)} />}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="cut-event-mobile-list">
+                    {visibleEvents.map((event) => {
+                      const readiness = getSalesReadiness(event);
+                      const status = getStatus(event);
+                      const progress = Math.round((readiness.completed / 3) * 100);
+                      const needsAttention = !event.is_cancelled && readiness.completed < 3;
+                      const eventImage = event.image || event.production?.logo;
+
+                      return (
+                        <article key={event.id} className={`cut-event-mobile-card${needsAttention ? " is-attention" : ""}`}>
+                          <div className="cut-event-mobile-card__top">
+                            <button type="button" className="cut-event-mobile-card__media" onClick={() => navigate(`/event/edit/${event.id}`)} aria-label={`Editar ${event.title}`}>
+                              {eventImage ? <img src={mediaUrl(eventImage)} alt="" loading="lazy" /> : <i className="fa-regular fa-calendar" />}
+                            </button>
+                            <div className="cut-event-mobile-card__heading">
+                              <div className="cut-event-mobile-card__badges">
+                                <Badge bg={status.variant}>{status.label}</Badge>
+                                <span>{Number(event.tickets_count || 0)} lote(s)</span>
+                              </div>
+                              <button type="button" className="cut-event-mobile-card__title" onClick={() => navigate(`/event/edit/${event.id}`)}>{event.title}</button>
+                              <span className="cut-event-mobile-card__production">
+                                {event.production?.logo && <img src={mediaUrl(event.production.logo)} alt="" loading="lazy" />}
+                                {event.production?.name || "Produção não informada"}
+                              </span>
+                            </div>
+                            {renderActions(event)}
+                          </div>
+
+                          <div className="cut-event-mobile-card__meta">
+                            <span><i className="fa-regular fa-calendar" />{formatDate(event.start_date)}</span>
+                            <span><i className="fa-solid fa-location-dot" />{eventLocation(event)}</span>
+                          </div>
+
+                          {!event.is_cancelled && (
+                            <div className="cut-event-mobile-card__readiness">
+                              <div className="cut-event-mobile-card__readiness-head">
+                                <span>Preparação</span>
+                                <strong>{readiness.completed}/3 · {progress}%</strong>
+                              </div>
+                              <div className="cut-event-admin-progress__track"><span style={{ width: `${progress}%` }} /></div>
+                            </div>
+                          )}
+
+                          <div className="cut-event-mobile-card__footer">
+                            {event.is_cancelled ? (
+                              <span className="cut-event-admin-table__muted">Evento cancelado</span>
+                            ) : (
+                              <>
+                                <div>
+                                  <small>Próxima ação</small>
                                   <strong>{readiness.title}</strong>
-                                  <span>{readiness.label}</span>
-                                  <Button
-                                    size="sm"
-                                    variant={readiness.mode === "whatsapp" ? "success" : "light"}
-                                    onClick={() => runPrimaryAction(event, readiness)}
-                                    disabled={busyId === event.id || bulkPublishing || deletingAll}
-                                  >
-                                    <i className={`${readiness.icon} me-2`} />{readiness.action}
-                                  </Button>
                                 </div>
-                              )}
-                            </td>
-                            <td className="cut-event-admin-table__actions">
-                              <div className="cut-event-admin-actions">
-                                <Button size="sm" variant="outline-light" onClick={() => navigate(`/event/edit/${event.id}`)} title="Editar evento" aria-label={`Editar ${event.title}`} disabled={bulkPublishing || deletingAll}>
-                                  <i className="fa-solid fa-pen" />
-                                </Button>
                                 <Button
                                   size="sm"
-                                  variant="outline-info"
-                                  onClick={() => openDuplicate(event)}
-                                  title="Copiar evento"
-                                  aria-label={`Copiar ${event.title}`}
-                                  disabled={Boolean(busyId) || bulkPublishing || deletingAll}
+                                  variant={readiness.mode === "whatsapp" ? "success" : "light"}
+                                  onClick={() => runPrimaryAction(event, readiness)}
+                                  disabled={busyId === event.id || bulkPublishing || deletingAll}
                                 >
-                                  <i className="fa-regular fa-copy" />
+                                  <i className={`${readiness.icon} me-2`} />{readiness.action}
                                 </Button>
-                                <Dropdown align="end" className="cut-event-manager-more">
-                                  <Dropdown.Toggle size="sm" variant="outline-light" aria-label={`Mais ações para ${event.title}`} disabled={bulkPublishing || deletingAll}>
-                                    <i className="fa-solid fa-ellipsis" />
-                                  </Dropdown.Toggle>
-                                  <Dropdown.Menu>
-                                    <Dropdown.Item onClick={() => navigate(`/ticket/create?eventId=${event.id}`)}><i className="fa-solid fa-ticket" />Novo lote</Dropdown.Item>
-                                    <Dropdown.Item onClick={() => navigate(`/event/${event.id}/participants`)}><i className="fa-solid fa-users" />Participantes</Dropdown.Item>
-                                    <Dropdown.Item onClick={() => navigate(`/event/${event.id}/courtesies`)}><i className="fa-solid fa-gift" />Cortesias</Dropdown.Item>
-                                    <Dropdown.Item onClick={() => openDuplicate(event)} disabled={Boolean(busyId)}><i className="fa-regular fa-copy" />Duplicar evento</Dropdown.Item>
-                                    {event.is_published && !event.is_cancelled && <Dropdown.Divider />}
-                                    {event.is_published && !event.is_cancelled && <Dropdown.Item onClick={() => navigate(`/checkin?eventId=${event.id}`)}><i className="fa-solid fa-qrcode" />Portaria / check-in</Dropdown.Item>}
-                                    {event.is_published && !event.is_cancelled && <Dropdown.Item onClick={() => navigate(`/event/${event.slug}`)}><i className="fa-solid fa-arrow-up-right-from-square" />Página pública</Dropdown.Item>}
-                                    {event.is_published && !event.is_cancelled && <Dropdown.Item onClick={() => copyLink(event)}><i className="fa-regular fa-copy" />Copiar link</Dropdown.Item>}
-                                    {event.is_published && !event.is_cancelled && <Dropdown.Item onClick={() => share(event)}><i className="fa-solid fa-share-nodes" />Compartilhar</Dropdown.Item>}
-                                    {!event.is_cancelled && <Dropdown.Divider />}
-                                    {!event.is_cancelled && (
-                                      <Dropdown.Item className={event.is_published ? "text-warning" : "text-success"} onClick={() => publication(event)} disabled={busyId === event.id}>
-                                        <i className={event.is_published ? "fa-solid fa-eye-slash" : "fa-solid fa-rocket"} />
-                                        {event.is_published ? "Despublicar" : "Publicar"}
-                                      </Dropdown.Item>
-                                    )}
-                                  </Dropdown.Menu>
-                                </Dropdown>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </Table>
-                </div>
-                <footer className="cut-event-admin-table-footer">
-                  <span>Exibindo <strong>{visibleEvents.length}</strong> de <strong>{events.length}</strong> evento(s)</span>
-                  <span><i className="fa-solid fa-arrows-left-right" /> No celular, deslize a tabela para ver todas as colunas.</span>
-                </footer>
-              </section>
+                              </>
+                            )}
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+
+                  <footer className="cut-event-mobile-footer">
+                    Exibindo <strong>{visibleEvents.length}</strong> de <strong>{events.length}</strong> evento(s)
+                  </footer>
+                </section>
+              </>
             )}
           </>
         )}
@@ -799,9 +1026,7 @@ export default function EventManagePage() {
           ) : (
             <>
               {bulkResult.published.length > 0 && (
-                <Alert variant="success">
-                  <strong>{bulkResult.published.length} evento(s)</strong> publicado(s) com sucesso.
-                </Alert>
+                <Alert variant="success"><strong>{bulkResult.published.length} evento(s)</strong> publicado(s) com sucesso.</Alert>
               )}
 
               {bulkResult.failed.length > 0 && (

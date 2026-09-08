@@ -1,4 +1,19 @@
-import { rankCheckoutAddOns, resolveCheckoutQuantity, summarizeCheckoutAddOnOffer } from "./checkoutAddOns";
+import {
+  CHECKOUT_QUANTITY_LIMITS,
+  checkoutQuantityLimit,
+  rankCheckoutAddOns,
+  resolveCheckoutQuantity,
+  summarizeCheckoutAddOnOffer,
+} from "./checkoutAddOns";
+
+describe("checkout quantity policy", () => {
+  test("keeps ticket and item limits explicit and shared", () => {
+    expect(CHECKOUT_QUANTITY_LIMITS).toEqual({ ticket: 20, item: 50 });
+    expect(checkoutQuantityLimit("ticket")).toBe(20);
+    expect(checkoutQuantityLimit("item")).toBe(50);
+    expect(checkoutQuantityLimit("unknown")).toBe(0);
+  });
+});
 
 describe("rankCheckoutAddOns", () => {
   test("prioritizes explicit merchandising priority before the automatic value ladder", () => {
@@ -106,5 +121,18 @@ describe("resolveCheckoutQuantity", () => {
     expect(resolveCheckoutQuantity({ id: 1, remaining: 0 }, 1, 10)).toBe(0);
     expect(resolveCheckoutQuantity({ id: 1, available: false }, 1, 10)).toBe(0);
     expect(resolveCheckoutQuantity({ id: 1, expired: true }, 1, 10)).toBe(0);
+  });
+
+  test("normalizes malformed quantities before they can reach checkout totals or payment payloads", () => {
+    expect(resolveCheckoutQuantity({ id: 1, remaining: 8 }, "not-a-number", 10)).toBe(0);
+    expect(resolveCheckoutQuantity({ id: 1, remaining: 8 }, Number.NaN, 10)).toBe(0);
+    expect(resolveCheckoutQuantity({ id: 1, remaining: 8 }, Number.POSITIVE_INFINITY, 10)).toBe(0);
+    expect(resolveCheckoutQuantity({ id: 1, remaining: 8 }, -3, 10)).toBe(0);
+  });
+
+  test("keeps quantities integer-safe across requested values, limits and stock", () => {
+    expect(resolveCheckoutQuantity({ id: 1, remaining: 8 }, 3.9, 10)).toBe(3);
+    expect(resolveCheckoutQuantity({ id: 1, remaining: 8.7 }, 9, 10)).toBe(8);
+    expect(resolveCheckoutQuantity({ id: 1, remaining: 20 }, 9, 4.8)).toBe(4);
   });
 });

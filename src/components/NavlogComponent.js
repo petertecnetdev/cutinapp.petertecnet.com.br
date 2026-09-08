@@ -263,8 +263,8 @@ export default function NavlogComponent() {
       <nav className="cut-mobile-bottom-nav" aria-label="Navegação principal mobile">
         <Link to="/feed" className={active("/feed") ? "active" : ""} aria-current={active("/feed") ? "page" : undefined}><i className="fa-solid fa-bolt" /><span>Feed</span></Link>
         <Link to="/event" className={active("/event") ? "active" : ""} aria-current={active("/event") ? "page" : undefined}><i className="fa-regular fa-calendar-days" /><span>Eventos</span></Link>
+        <Link to="/messages" className={active("/messages") ? "active" : ""} aria-current={active("/messages") ? "page" : undefined} aria-label="Mensagens"><i className="fa-regular fa-paper-plane" /><span>Mensagens</span></Link>
         <Link to="/passes" className={active("/passes") ? "active" : ""} aria-current={active("/passes") ? "page" : undefined}><i className="fa-solid fa-ticket" /><span>Ingressos</span></Link>
-        {capabilities.hasWorkArea ? <button type="button" className={actorMenus.some((area) => area.items.some((entry) => active(entry.to))) ? "active" : ""} onClick={() => setOpen(true)} aria-label="Abrir áreas de trabalho"><i className="fa-solid fa-briefcase" /><span>Áreas</span></button> : <Link to="/productions" className={active("/productions") ? "active" : ""}><i className="fa-solid fa-building" /><span>Produções</span></Link>}
         <Link to="/profile" className={active("/profile") ? "active" : ""} aria-current={active("/profile") ? "page" : undefined}><i className="fa-regular fa-user" /><span>Perfil</span></Link>
       </nav>
     </>

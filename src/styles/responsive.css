@@ -107,9 +107,57 @@
   .cut-auto-grid { grid-template-columns: 1fr; }
   .cut-discovery-primary, .cut-discovery-secondary { grid-template-columns: 1fr; }
   .cut-discovery-primary .btn { grid-column: auto; }
-  .cut-filter-shortcuts { flex-wrap: nowrap; overflow-x: auto; padding: 2px 2px 6px; scrollbar-width: none; scroll-snap-type: x proximity; }
-  .cut-filter-shortcuts::-webkit-scrollbar { display: none; }
-  .cut-filter-shortcuts button { scroll-snap-align: start; }
+
+  .cut-wallet-toolbar,
+  .cut-wallet-toolbar .card-body,
+  .cut-wallet-toolbar .cut-collapsible-filters,
+  .cut-wallet-toolbar .cut-collapsible-filters__body,
+  .cut-wallet-toolbar .cut-search-bar {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .cut-wallet-toolbar .cut-search-bar {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    padding: 5px 12px;
+    overflow: hidden;
+  }
+
+  .cut-wallet-toolbar .cut-search-bar > i {
+    flex: 0 0 auto;
+  }
+
+  .cut-wallet-toolbar .cut-search-bar .form-control {
+    flex: 1 1 auto;
+    width: 0;
+    min-width: 0;
+    max-width: 100%;
+    padding-inline: 4px;
+  }
+
+  .cut-wallet-toolbar .cut-filter-shortcuts {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    overflow: visible;
+    padding: 0;
+  }
+
+  .cut-wallet-toolbar .cut-filter-shortcuts button {
+    width: 100%;
+    min-width: 0;
+    padding-inline: 8px;
+    text-align: center;
+  }
+
+  .cut-filter-shortcuts:not(.cut-wallet-toolbar .cut-filter-shortcuts) { flex-wrap: nowrap; overflow-x: auto; padding: 2px 2px 6px; scrollbar-width: none; scroll-snap-type: x proximity; }
+  .cut-filter-shortcuts:not(.cut-wallet-toolbar .cut-filter-shortcuts)::-webkit-scrollbar { display: none; }
+  .cut-filter-shortcuts:not(.cut-wallet-toolbar .cut-filter-shortcuts) button { scroll-snap-align: start; }
   .cut-search-bar { flex-wrap: wrap; }
   .cut-search-bar .btn { width: 100%; }
   .cut-ticket-wallet-card__main { grid-template-columns: 1fr; }
@@ -138,6 +186,12 @@
   .cut-page-heading p { font-size: .9rem; line-height: 1.65; }
   .cut-panel, .cut-empty-state, .cut-discovery-shell, .cut-wallet-toolbar, .cut-event-card, .cut-production-card, .cut-artist-card, .cut-feed-card, .cut-pass-card { border-radius: 20px !important; }
   .cut-panel .card-body { padding: 20px !important; }
+  .cut-wallet-toolbar .card-body { padding: 12px; }
+  .cut-wallet-toolbar .cut-collapsible-filters__toggle { gap: 8px; }
+  .cut-wallet-toolbar .cut-collapsible-filters__title { gap: 8px; }
+  .cut-wallet-toolbar .cut-collapsible-filters__title strong { font-size: .82rem; }
+  .cut-wallet-toolbar .cut-collapsible-filters__title small { font-size: .68rem; }
+  .cut-wallet-toolbar .cut-collapsible-filters__body { padding-inline: 10px; }
   .cut-form-actions { flex-direction: column-reverse; }
   .cut-form-actions .btn { width: 100%; flex: none; }
   .cut-card-actions, .cut-owner-actions { align-items: stretch; flex-direction: column; }
@@ -182,6 +236,7 @@
   .cut-page-heading h1 { font-size: 2.15rem; }
   .cut-section-title { font-size: 1.18rem; }
   .cut-discovery-shell .card-body, .cut-wallet-toolbar .card-body { padding: 14px; }
+  .cut-wallet-toolbar .cut-filter-shortcuts { grid-template-columns: 1fr 1fr; }
   .cut-ticket-wallet-card__qr { width: 100%; }
   .cut-ticket-detail__mark { align-items: flex-start; }
 }
@@ -192,6 +247,7 @@
   .btn { padding-inline: .82rem; }
   .cut-panel .card-body { padding: 18px 16px !important; }
   .cut-page-heading h1 { font-size: 2rem; }
+  .cut-wallet-toolbar .cut-filter-shortcuts { grid-template-columns: 1fr; }
   .cut-event-hero__content h1 { font-size: 2.3rem; }
   .cut-ticket-wallet-card__main { padding: 18px 16px; }
   .cut-ticket-detail__top, .cut-ticket-detail__body, .cut-ticket-detail__footer { padding-left: 16px; padding-right: 16px; }

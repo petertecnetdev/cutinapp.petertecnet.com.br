@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Badge, Button, Card, Col, Container, Form, Modal, Row, Spinner } from "react-bootstrap";
 import NavlogComponent from "../../components/NavlogComponent";
-import appApiClient from "../../services/AppApiClient";
+import applicationAdminUserService from "../../services/ApplicationAdminUserService";
 
 const PAGE_SIZE = 4;
 const initialForm = { first_name: "", last_name: "", email: "", role: "participant" };
@@ -36,11 +36,9 @@ export default function ApplicationAdminUsersPage() {
     append ? setLoadingMore(true) : setLoading(true);
     setError("");
     try {
-      const response = await appApiClient.get("/admin/users", {
-        params: { q: q || undefined, page: nextPage, per_page: PAGE_SIZE },
-      });
+      const response = await applicationAdminUserService.list({ q: q || undefined, page: nextPage, per_page: PAGE_SIZE });
       if (requestId !== requestRef.current) return;
-      const paginator = response.data?.data || {};
+      const paginator = response?.data || {};
       const rows = Array.isArray(paginator?.data) ? paginator.data : [];
       setUsers((current) => append ? [...current, ...rows.filter((row) => !current.some((item) => item.id === row.id))] : rows);
       setPage(Number(paginator.current_page || nextPage));
@@ -85,8 +83,8 @@ export default function ApplicationAdminUsersPage() {
     setError("");
     setSuccess("");
     try {
-      const response = await appApiClient.post("/admin/users", form);
-      setSuccess(response.data?.message || "Usuário cadastrado com sucesso.");
+      const response = await applicationAdminUserService.create(form);
+      setSuccess(response?.message || "Usuário cadastrado com sucesso.");
       setForm(initialForm);
       setShowCreate(false);
       await loadUsers({ nextPage: 1, append: false });

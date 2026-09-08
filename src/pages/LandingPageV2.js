@@ -275,6 +275,7 @@ export default function LandingPageV2() {
 
   const browseLink = makeEventLink();
   const featuredEvent = events[0] || null;
+  const featuredEventLink = featuredEvent?.slug ? `/event/${encodeURIComponent(featuredEvent.slug)}` : browseLink;
   const featuredProduction = productions[0] || null;
   const featuredArtists = artists.slice(0, 4);
   const activeRoleData = roles.find((role) => role.key === activeRole) || roles[0];
@@ -334,7 +335,12 @@ export default function LandingPageV2() {
             </div>
 
             <div className="cut-landing__heroStage" aria-label="Prévia da Cutinapp">
-              <div className="cut-landing__phone">
+              <a
+                href={featuredEventLink}
+                className="cut-landing__phone"
+                aria-label={featuredEvent?.title ? `Abrir evento ${featuredEvent.title}` : "Explorar eventos"}
+                style={{ display: "block", color: "inherit", cursor: "pointer", pointerEvents: "auto", touchAction: "manipulation" }}
+              >
                 <div className="cut-landing__phoneTop"><span /><strong>Cutinapp</strong><i className="fa-solid fa-bell" /></div>
                 <div className="cut-landing__phoneMedia">
                   {featuredEvent?.image
@@ -348,15 +354,15 @@ export default function LandingPageV2() {
                   <p><i className="fa-solid fa-location-dot" /> {featuredEvent ? formatEventLocation(featuredEvent) : locationLabel}</p>
                   <div className="cut-landing__phoneActions"><span><i className="fa-regular fa-heart" /> Curtir</span><span><i className="fa-solid fa-share-nodes" /> Compartilhar</span></div>
                 </div>
-              </div>
+              </a>
 
-              <div className="cut-landing__floatingCard cut-landing__floatingCard--people">
+              <div className="cut-landing__floatingCard cut-landing__floatingCard--people" style={{ pointerEvents: "none" }}>
                 <small>QUEM FAZ ACONTECER</small>
                 <strong>{featuredProduction?.name || "Produções da sua cidade"}</strong>
                 <span>{featuredProduction?.city || "Descubra e acompanhe"}</span>
               </div>
 
-              <div className="cut-landing__floatingCard cut-landing__floatingCard--artists">
+              <div className="cut-landing__floatingCard cut-landing__floatingCard--artists" style={{ pointerEvents: "none" }}>
                 <small>ARTISTAS NA CENA</small>
                 <div>
                   {featuredArtists.length ? featuredArtists.map((artist) => (

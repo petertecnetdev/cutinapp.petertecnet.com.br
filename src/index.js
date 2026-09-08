@@ -24,6 +24,14 @@ import "./styles/peter-branding-bridge.css";
 import "./styles/instagram-mobile-shell.css";
 import "./styles/mobile-footer-regression-fixes.css";
 import "./styles/event-view-mobile-cleanup.css";
+import "./styles/mobile-navigation-v2.css";
+import "./styles/event-view-polish.css";
+import "./styles/event-flyer-background.css";
+import "./styles/mobile-hamburger-recovery.css";
+import "./styles/desktop-navbar-overflow-fix.css";
+import "./styles/responsive-hardening.css";
+import "./styles/event-view-shotgun-layout.css";
+import "./pages/checkout/Coupon.css";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import PeterAccountGateway from "./components/PeterAccountGateway";
@@ -35,6 +43,10 @@ import { installClipboardFallback } from "./utils/clipboard";
 import { installPeterWhatsappFallback } from "./utils/peterWhatsappFallback";
 import { installGlobalImagePerformance } from "./utils/imagePerformance";
 import { installInstagramMobileShell } from "./utils/instagramMobileShell";
+import { installNavigationRecovery } from "./utils/navigationRecovery";
+import { installEventViewScrollReset } from "./utils/eventViewScrollReset";
+import { installCheckoutResumePrompt } from "./utils/checkoutResumePrompt";
+import { installEventFlyerBackground } from "./utils/eventFlyerBackground";
 import { trackTelemetry } from "./utils/telemetry";
 
 installGlobalImageFallbacks();
@@ -43,6 +55,10 @@ installClipboardFallback();
 installPeterWhatsappFallback();
 installGlobalImagePerformance();
 installInstagramMobileShell();
+installNavigationRecovery();
+installEventViewScrollReset();
+installCheckoutResumePrompt();
+installEventFlyerBackground();
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(

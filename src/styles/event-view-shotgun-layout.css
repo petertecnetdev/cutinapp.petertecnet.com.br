@@ -1,0 +1,525 @@
+/* Shotgun-inspired public event layout for Cutinapp.
+ * Keeps all existing event actions and commerce behavior while changing only
+ * presentation/hierarchy. Imported last so this layer intentionally wins over
+ * older event-view polish rules without touching shared screens.
+ */
+
+.cut-event-view-page {
+  --cut-shotgun-bg: #17191b;
+  --cut-shotgun-bg-soft: #1f2124;
+  --cut-shotgun-card: #f5f5f3;
+  --cut-shotgun-ink: #111315;
+  --cut-shotgun-muted: rgba(245, 247, 249, 0.66);
+  --cut-shotgun-line: rgba(255, 255, 255, 0.11);
+  --cut-shotgun-accent: #c043ff;
+  --cut-shotgun-accent-2: #36c7ef;
+  background:
+    radial-gradient(circle at 42% 2%, rgba(192, 67, 255, 0.08), transparent 34rem),
+    linear-gradient(180deg, #191b1d 0%, #151719 64%, #121416 100%);
+}
+
+.cut-event-view-page .cut-page-container {
+  max-width: 1420px;
+}
+
+/* Desktop hero: event identity on the left, artwork on the right. */
+@media (min-width: 992px) {
+  .cut-event-view-page {
+    display: grid;
+    grid-template-columns:
+      minmax(28px, 1fr)
+      minmax(330px, 500px)
+      clamp(34px, 4vw, 76px)
+      minmax(500px, 720px)
+      minmax(28px, 1fr);
+    grid-auto-rows: auto;
+  }
+
+  .cut-event-view-page > .cut-navbar,
+  .cut-event-view-page > .cut-page-container,
+  .cut-event-view-page > .cut-event-buy-cta-fixed {
+    grid-column: 1 / -1;
+  }
+
+  .cut-event-view-page > .cut-event-banner-stage,
+  .cut-event-view-page > .cut-event-summary-strip,
+  .cut-event-view-page > .cut-event-banner-stage > .cut-page-container,
+  .cut-event-view-page > .cut-event-summary-strip > .cut-page-container {
+    display: contents;
+  }
+
+  .cut-event-view-page .cut-event-summary-card {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: center;
+    display: block;
+    width: 100%;
+    min-width: 0;
+    margin: 54px 0 48px;
+    padding: 10px 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .cut-event-view-page .cut-event-banner-frame,
+  .cut-event-view-page .cut-event-banner-placeholder {
+    grid-column: 4;
+    grid-row: 2;
+    align-self: center;
+    width: 100%;
+    max-width: none;
+    margin: 54px 0 48px;
+    aspect-ratio: 16 / 9;
+    min-height: 0;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    background: #090a0b;
+    box-shadow: 0 26px 65px rgba(0, 0, 0, 0.34);
+  }
+
+  .cut-event-view-page .cut-event-banner-frame img {
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    object-fit: cover;
+    object-position: center;
+  }
+
+  .cut-event-view-page .cut-event-banner-placeholder {
+    display: grid;
+    place-items: center;
+  }
+
+  .cut-event-view-page > .cut-page-container.py-4,
+  .cut-event-view-page > .cut-page-container.py-lg-5 {
+    grid-row: 3;
+  }
+}
+
+/* Hero typography and metadata. */
+.cut-event-view-page .cut-event-summary-card__content > .d-flex:first-child {
+  margin-bottom: 18px !important;
+}
+
+.cut-event-view-page .cut-event-summary-card__content .badge {
+  padding: 7px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: rgba(255, 255, 255, 0.76) !important;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cut-event-view-page .cut-event-summary-card h1 {
+  max-width: 680px;
+  margin: 0 0 10px;
+  color: #f5f7f8;
+  font-size: clamp(2.25rem, 3.25vw, 4.05rem) !important;
+  font-weight: 950;
+  line-height: 0.98 !important;
+  letter-spacing: -0.045em !important;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+.cut-event-view-page .cut-inline-profile-link {
+  margin-top: 0 !important;
+  margin-bottom: 26px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.cut-event-view-page .cut-inline-profile-link:hover,
+.cut-event-view-page .cut-inline-profile-link:focus-visible {
+  color: #fff;
+}
+
+.cut-event-view-page .cut-event-summary-card__meta {
+  display: grid;
+  max-width: 385px;
+  gap: 0;
+  margin-top: 20px;
+  border-top: 1px solid var(--cut-shotgun-line);
+}
+
+.cut-event-view-page .cut-event-summary-card__meta > span {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 13px;
+  align-items: start;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--cut-shotgun-line);
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.cut-event-view-page .cut-event-summary-card__meta i {
+  width: 22px;
+  margin-top: 2px;
+  color: rgba(255, 255, 255, 0.55);
+  text-align: center;
+}
+
+/* Shotgun-like compact action row. Primary purchase + interest stay prominent;
+ * secondary actions remain available as compact icon controls. */
+.cut-event-view-page .cut-event-summary-card__actions {
+  display: flex !important;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px !important;
+  width: 100%;
+  max-width: 500px;
+  margin: 26px 0 0;
+}
+
+.cut-event-view-page .cut-event-summary-card__actions > .btn,
+.cut-event-view-page .cut-event-summary-card__actions > a.btn {
+  min-width: 0 !important;
+  min-height: 46px;
+  padding: 11px 16px;
+  border-radius: 5px;
+  font-size: 0.82rem;
+  font-weight: 850;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.cut-event-view-page--buyable .cut-event-summary-card__actions > a[href="#ingressos"] {
+  display: inline-flex !important;
+  order: 1;
+  align-items: center;
+  justify-content: center;
+  min-width: 188px !important;
+  border-color: #f6f6f4;
+  background: #f6f6f4;
+  color: #111315;
+  box-shadow: none;
+}
+
+.cut-event-view-page .cut-event-summary-card__actions > button:has(.fa-star) {
+  order: 2;
+  min-width: 148px !important;
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.09);
+  color: #fff;
+}
+
+.cut-event-view-page .cut-event-summary-card__actions > .btn-light {
+  order: 0;
+  flex: 0 0 auto;
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.cut-event-view-page .cut-event-summary-card__actions > .btn:not(.btn-light):not(:has(.fa-star)):not([href="#ingressos"]),
+.cut-event-view-page .cut-event-summary-card__actions > a.btn:not([href="#ingressos"]) {
+  order: 3;
+  width: 46px;
+  min-width: 46px !important;
+  padding-inline: 0;
+  border-color: rgba(255, 255, 255, 0.16);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0;
+}
+
+.cut-event-view-page .cut-event-summary-card__actions > .btn:not(.btn-light):not(:has(.fa-star)):not([href="#ingressos"]) i,
+.cut-event-view-page .cut-event-summary-card__actions > a.btn:not([href="#ingressos"]) i {
+  margin-right: 0 !important;
+  font-size: 0.93rem;
+}
+
+.cut-event-view-page .cut-event-summary-card__actions > .btn:hover,
+.cut-event-view-page .cut-event-summary-card__actions > a.btn:hover {
+  transform: translateY(-1px);
+}
+
+/* The page content starts like a ticket marketplace after the hero. */
+.cut-event-view-page > .cut-page-container.py-4,
+.cut-event-view-page > .cut-page-container.py-lg-5 {
+  padding-top: 30px !important;
+}
+
+.cut-event-view-page .cut-event-summary-strip + .cut-page-container > .alert:first-child {
+  margin-bottom: 28px !important;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.055);
+  color: rgba(255, 255, 255, 0.82);
+}
+
+/* Ticket section: wide, flat light cards like the reference, but retaining all
+ * Cutinapp checkout/quantity logic. */
+.cut-event-view-page .cut-ticket-purchase-panel {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.cut-event-view-page .cut-ticket-purchase-panel > .card-body {
+  padding: 0 !important;
+}
+
+.cut-event-view-page .cut-ticket-purchase-panel > .card-body > .cut-eyebrow {
+  display: none;
+}
+
+.cut-event-view-page .cut-ticket-purchase-panel .cut-section-title {
+  margin: 0 0 18px !important;
+  color: #f3f5f6;
+  font-size: clamp(1.35rem, 2vw, 1.8rem);
+  font-weight: 900;
+}
+
+.cut-event-view-page .cut-commerce-panel {
+  margin-top: 18px !important;
+}
+
+.cut-event-view-page .cut-commerce-panel > .cut-eyebrow,
+.cut-event-view-page .cut-commerce-panel > .cut-section-title,
+.cut-event-view-page .cut-commerce-panel > p.text-secondary.small {
+  display: none;
+}
+
+.cut-event-view-page .cut-ticket-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 118px;
+  margin-bottom: 14px;
+  padding: 24px 24px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 5px;
+  background: var(--cut-shotgun-card);
+  color: var(--cut-shotgun-ink);
+  box-shadow: none;
+}
+
+.cut-event-view-page .cut-ticket-option > div:first-child {
+  min-width: 0;
+}
+
+.cut-event-view-page .cut-ticket-option .cut-ticket-kicker {
+  display: block;
+  margin-bottom: 9px;
+  color: #3e4246;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.cut-event-view-page .cut-ticket-option strong {
+  display: block;
+  margin-bottom: 13px;
+  color: #141618;
+  font-size: 0.98rem;
+  font-weight: 900;
+}
+
+.cut-event-view-page .cut-ticket-option span:not(.cut-ticket-kicker),
+.cut-event-view-page .cut-ticket-option small {
+  color: #25292d !important;
+}
+
+.cut-event-view-page .cut-ticket-option .text-success {
+  color: #28653b !important;
+}
+
+.cut-event-view-page .cut-ticket-option .btn.rounded-circle {
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  box-shadow: none !important;
+}
+
+.cut-event-view-page .cut-ticket-option .btn-outline-primary {
+  border-color: #17191b;
+  background: #17191b;
+  color: #fff;
+}
+
+.cut-event-view-page .cut-ticket-option .btn-outline-secondary {
+  border-color: #d5d6d7;
+  background: #d5d6d7;
+  color: #fff;
+}
+
+.cut-event-view-page .cut-ticket-option .btn-outline-secondary:not(:disabled) {
+  border-color: #b8bbbe;
+  background: #b8bbbe;
+  color: #16181a;
+}
+
+.cut-event-view-page .cut-ticket-option output {
+  color: #17191b;
+}
+
+@media (min-width: 1200px) {
+  .cut-event-view-page .cut-page-container > .row.g-4 > .col-lg-4 {
+    flex: 0 0 760px;
+    width: 760px;
+    max-width: min(760px, 100%);
+  }
+
+  .cut-event-view-page .cut-page-container > .row.g-4 > .col-lg-8 {
+    flex: 0 0 100%;
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+/* Secondary information remains dark and understated beneath ticketing. */
+.cut-event-view-page .cut-panel:not(.cut-ticket-purchase-panel) {
+  border-color: rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.035);
+  box-shadow: none;
+}
+
+.cut-event-view-page .cut-panel:not(.cut-ticket-purchase-panel) .text-secondary,
+.cut-event-view-page .cut-body-copy {
+  color: rgba(236, 241, 245, 0.68) !important;
+}
+
+/* The page itself now exposes the buy CTA clearly in the hero, so the floating
+ * purchase pill is redundant on desktop and would diverge from the reference. */
+@media (min-width: 992px) {
+  .cut-event-view-page .cut-event-buy-cta-fixed {
+    display: none !important;
+  }
+
+  .cut-event-view-page.cut-event-view-page--buyable {
+    padding-bottom: 0;
+  }
+}
+
+/* Tablet/mobile: keep the proven single-column flow and prevent horizontal
+ * overflow while carrying the new visual language down. */
+@media (max-width: 991.98px) {
+  .cut-event-view-page {
+    display: block;
+  }
+
+  .cut-event-view-page > .cut-event-banner-stage,
+  .cut-event-view-page > .cut-event-summary-strip,
+  .cut-event-view-page > .cut-event-banner-stage > .cut-page-container,
+  .cut-event-view-page > .cut-event-summary-strip > .cut-page-container {
+    display: block;
+  }
+
+  .cut-event-view-page .cut-event-banner-frame {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 10px;
+  }
+
+  .cut-event-view-page .cut-event-summary-card {
+    display: block;
+    padding: 24px 20px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .cut-event-view-page .cut-event-summary-card h1 {
+    font-size: clamp(2rem, 9vw, 3.1rem) !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card__actions {
+    max-width: none;
+  }
+
+  .cut-event-view-page--buyable .cut-event-summary-card__actions > a[href="#ingressos"] {
+    flex: 1 1 210px;
+  }
+
+  .cut-event-view-page .cut-event-summary-card__actions > button:has(.fa-star) {
+    flex: 1 1 160px;
+  }
+
+  .cut-event-view-page .cut-ticket-option {
+    min-height: 104px;
+    padding: 20px 18px;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .cut-event-view-page .cut-event-banner-stage {
+    padding-top: 10px;
+  }
+
+  .cut-event-view-page .cut-event-summary-card {
+    padding: 20px 8px 22px;
+  }
+
+  .cut-event-view-page .cut-event-summary-card__meta {
+    max-width: none;
+  }
+
+  .cut-event-view-page .cut-event-summary-card__actions {
+    gap: 8px !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card__actions > .btn,
+  .cut-event-view-page .cut-event-summary-card__actions > a.btn {
+    min-height: 44px;
+  }
+
+  .cut-event-view-page .cut-ticket-option {
+    align-items: center;
+    gap: 14px;
+    min-height: 110px;
+    padding: 18px 15px;
+  }
+
+  .cut-event-view-page .cut-ticket-option .d-inline-flex {
+    flex-shrink: 0;
+    gap: 6px !important;
+  }
+
+  .cut-event-view-page .cut-ticket-option .btn.rounded-circle {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+  }
+
+  .cut-event-view-page .cut-ticket-option output {
+    min-width: 20px !important;
+  }
+}
+
+@media (max-width: 389.98px) {
+  .cut-event-view-page .cut-event-summary-card__actions > .btn-light {
+    flex: 1 1 100%;
+  }
+
+  .cut-event-view-page--buyable .cut-event-summary-card__actions > a[href="#ingressos"],
+  .cut-event-view-page .cut-event-summary-card__actions > button:has(.fa-star) {
+    flex: 1 1 100%;
+  }
+
+  .cut-event-view-page .cut-ticket-option {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .cut-event-view-page .cut-ticket-option .d-inline-flex {
+    align-self: flex-end;
+  }
+}

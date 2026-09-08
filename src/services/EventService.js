@@ -127,6 +127,105 @@ const createAgendaItem = createIdempotentMutation({
   ).data,
 });
 
+const updateMultipartEvent = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_update_attempt_",
+  keyPrefix: "event-update",
+  requestKeyFor: (eventId, formData) => `${Number(eventId)}:${createMutationRequestKey(formData)}`,
+  mutate: async ({ idempotencyKey }, eventId, formData) => (
+    await appApiClient.post(`/events/${Number(eventId)}`, formData, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    })
+  ).data,
+});
+
+const updateJsonEvent = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_json_update_attempt_",
+  keyPrefix: "event-json-update",
+  requestKeyFor: (eventId, payload = {}) => `${Number(eventId)}:${createMutationRequestKey(payload)}`,
+  mutate: async ({ idempotencyKey }, eventId, payload = {}) => (
+    await appApiClient.patch(`/events/${Number(eventId)}`, payload, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    })
+  ).data,
+});
+
+const updateAgendaItem = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_agenda_update_attempt_",
+  keyPrefix: "event-agenda-update",
+  requestKeyFor: (scheduleId, formData) => `${Number(scheduleId)}:${createMutationRequestKey(formData)}`,
+  mutate: async ({ idempotencyKey }, scheduleId, formData) => (
+    await appApiClient.post(`/event-agenda/items/${Number(scheduleId)}`, formData, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    })
+  ).data,
+});
+
+const createAgendaGeneration = ({ storagePrefix, keyPrefix, pathFor }) => createIdempotentMutation({
+  storagePrefix,
+  keyPrefix,
+  requestKeyFor: (resourceId) => String(Number(resourceId)),
+  mutate: async ({ idempotencyKey }, resourceId) => (
+    await appApiClient.post(pathFor(Number(resourceId)), undefined, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    })
+  ).data,
+});
+
+const generateAgendaItem = createAgendaGeneration({
+  storagePrefix: "cutinapp_event_agenda_generate_item_attempt_",
+  keyPrefix: "event-agenda-generate-item",
+  pathFor: (scheduleId) => `/event-agenda/items/${scheduleId}/generate`,
+});
+
+const generateAgendaUpcoming = createAgendaGeneration({
+  storagePrefix: "cutinapp_event_agenda_generate_upcoming_attempt_",
+  keyPrefix: "event-agenda-generate-upcoming",
+  pathFor: (productionId) => `/event-agenda/productions/${productionId}/generate-upcoming`,
+});
+
+const setAgendaStatusIdempotently = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_agenda_status_attempt_",
+  keyPrefix: "event-agenda-status",
+  requestKeyFor: (productionId, isActive) => createMutationRequestKey({
+    production_id: Number(productionId),
+    is_active: Boolean(isActive),
+  }),
+  mutate: async ({ idempotencyKey }, productionId, isActive) => (
+    await appApiClient.patch(`/event-agenda/productions/${Number(productionId)}/status`, {
+      is_active: Boolean(isActive),
+    }, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    })
+  ).data,
+});
+
+const setAgendaItemStatusIdempotently = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_agenda_item_status_attempt_",
+  keyPrefix: "event-agenda-item-status",
+  requestKeyFor: (scheduleId, isActive) => createMutationRequestKey({
+    schedule_id: Number(scheduleId),
+    is_active: Boolean(isActive),
+  }),
+  mutate: async ({ idempotencyKey }, scheduleId, isActive) => (
+    await appApiClient.patch(`/event-agenda/items/${Number(scheduleId)}/status`, {
+      is_active: Boolean(isActive),
+    }, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    })
+  ).data,
+});
+
+const deleteAgendaItemIdempotently = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_agenda_delete_attempt_",
+  keyPrefix: "event-agenda-delete",
+  requestKeyFor: (scheduleId) => String(Number(scheduleId)),
+  mutate: async ({ idempotencyKey }, scheduleId) => (
+    await appApiClient.delete(`/event-agenda/items/${Number(scheduleId)}`, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    })
+  ).data,
+});
+
 const dateKeyInTimeZone = (value = new Date()) => {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: CUTINAPP_TIME_ZONE,
@@ -280,9 +379,9 @@ const eventService = {
     if (typeof FormData !== "undefined" && payload instanceof FormData) {
       if (typeof payload.set === "function") payload.set("_method", "PATCH");
       else payload.append("_method", "PATCH");
-      return (await appApiClient.post(`/events/${eventId}`, payload)).data;
+      return updateMultipartEvent(eventId, payload);
     }
-    return (await appApiClient.patch(`/events/${eventId}`, payload)).data;
+    return updateJsonEvent(eventId, payload);
   },
   show: async (eventId) => (await appApiClient.get(`/events/${eventId}/manage`)).data.event,
   myEvents: async (params = {}) => unwrap((await appApiClient.get("/events/mine", { params: { per_page: 100, ...params } })).data.events),
@@ -290,13 +389,13 @@ const eventService = {
   series: (eventId, payload) => createEventSeries(eventId, payload),
 
   agenda: async (productionId) => (await appApiClient.get(`/event-agenda/productions/${productionId}`)).data,
-  setAgendaStatus: async (productionId, isActive) => (await appApiClient.patch(`/event-agenda/productions/${productionId}/status`, { is_active: isActive })).data,
+  setAgendaStatus: (productionId, isActive) => setAgendaStatusIdempotently(productionId, isActive),
   createAgendaItem,
-  updateAgendaItem: async (scheduleId, formData) => (await appApiClient.post(`/event-agenda/items/${scheduleId}`, formData)).data,
-  setAgendaItemStatus: async (scheduleId, isActive) => (await appApiClient.patch(`/event-agenda/items/${scheduleId}/status`, { is_active: isActive })).data,
-  deleteAgendaItem: async (scheduleId) => (await appApiClient.delete(`/event-agenda/items/${scheduleId}`)).data,
-  generateAgendaItem: async (scheduleId) => (await appApiClient.post(`/event-agenda/items/${scheduleId}/generate`)).data,
-  generateAgendaUpcoming: async (productionId) => (await appApiClient.post(`/event-agenda/productions/${productionId}/generate-upcoming`)).data,
+  updateAgendaItem,
+  setAgendaItemStatus: (scheduleId, isActive) => setAgendaItemStatusIdempotently(scheduleId, isActive),
+  deleteAgendaItem: (scheduleId) => deleteAgendaItemIdempotently(scheduleId),
+  generateAgendaItem,
+  generateAgendaUpcoming,
 };
 
 export default eventService;

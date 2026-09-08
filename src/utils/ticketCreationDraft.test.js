@@ -11,7 +11,10 @@ test("persists and restores first ticket draft per user and event", () => {
     name: "1º Lote",
     price: "35.00",
     quantity: 180,
-    limitDate: "2026-09-10T22:00",
+    cutoffPreset: "custom",
+    customCutoffMode: "after_start",
+    customCutoffAmount: 2,
+    customCutoffUnit: "hours",
     description: "Entrada inteira",
     optionalDetailsOpen: true,
   }, now)).toBe(true);
@@ -21,7 +24,10 @@ test("persists and restores first ticket draft per user and event", () => {
     name: "1º Lote",
     price: "35.00",
     quantity: 180,
-    limitDate: "2026-09-10T22:00",
+    cutoffPreset: "custom",
+    customCutoffMode: "after_start",
+    customCutoffAmount: 2,
+    customCutoffUnit: "hours",
     description: "Entrada inteira",
     optionalDetailsOpen: true,
   });

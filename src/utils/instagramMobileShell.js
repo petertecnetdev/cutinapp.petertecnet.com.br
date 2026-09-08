@@ -1,5 +1,6 @@
 const MOBILE_BREAKPOINT = 991.98;
 const SHELL_MARK = "data-cut-instagram-shell";
+const NAV_RELEVANT_SELECTOR = ".cut-mobile-bottom-nav, .cut-capability-nav, .cut-navbar";
 
 const isMobile = () => typeof window !== "undefined" && window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`).matches;
 
@@ -12,21 +13,20 @@ const routeOf = (node) => {
 
 const labelOf = (node) => node?.querySelector?.("span")?.textContent?.trim() || node?.textContent?.trim() || "";
 
-const iconFor = (route, label) => {
+const iconFor = (route) => {
   if (route.startsWith("/event")) return "fa-regular fa-calendar-days";
   if (route.startsWith("/feed")) return "fa-solid fa-house";
+  if (route.startsWith("/messages")) return "fa-regular fa-paper-plane";
   if (route.startsWith("/passes")) return "fa-solid fa-ticket";
   if (route.startsWith("/profile")) return "fa-regular fa-circle-user";
-  if (/áreas|areas|produção|producao/i.test(label)) return "fa-solid fa-plus";
   return "fa-regular fa-circle";
 };
 
 const rank = (node) => {
   const route = routeOf(node);
-  const label = labelOf(node);
   if (route.startsWith("/event")) return 1;
   if (route.startsWith("/feed")) return 2;
-  if (/áreas|areas|produção|producao/i.test(label)) return 3;
+  if (route.startsWith("/messages")) return 3;
   if (route.startsWith("/passes")) return 4;
   if (route.startsWith("/profile")) return 5;
   return 20;
@@ -35,7 +35,7 @@ const rank = (node) => {
 const haptic = (duration = 8) => {
   try {
     if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") navigator.vibrate(duration);
-  } catch (_) { /* vibration is progressive enhancement only */ }
+  } catch (_) { /* progressive enhancement only */ }
 };
 
 const prepareBottomNav = () => {
@@ -51,15 +51,17 @@ const prepareBottomNav = () => {
   Array.from(nav.children).forEach((node) => {
     const route = routeOf(node);
     const label = labelOf(node);
-    node.classList.toggle("cut-mobile-bottom-nav__primary", rank(node) === 3);
+    const itemRank = rank(node);
+    node.classList.toggle("cut-mobile-bottom-nav__primary", itemRank === 3);
     const icon = node.querySelector("i");
-    const desiredIcon = iconFor(route, label);
+    const desiredIcon = iconFor(route);
     if (icon && icon.className !== desiredIcon) icon.className = desiredIcon;
     if (!node.getAttribute("aria-label") && label) node.setAttribute("aria-label", label);
     if (node.getAttribute("title") !== (label || "Navegação")) node.setAttribute("title", label || "Navegação");
+    if (itemRank === 3 && node.querySelector("span")) node.querySelector("span").textContent = "Mensagens";
     if (node.dataset.cutNavInteraction !== "true") {
       node.dataset.cutNavInteraction = "true";
-      node.addEventListener("pointerdown", () => haptic(rank(node) === 3 ? 12 : 7), { passive: true });
+      node.addEventListener("pointerdown", () => haptic(itemRank === 3 ? 12 : 7), { passive: true });
     }
   });
 };
@@ -98,10 +100,30 @@ const ensureTopActions = () => {
   }
 };
 
+let lastScrollY = 0;
 const syncNavbarScrollState = () => {
   const navbar = document.querySelector(".cut-capability-nav");
   if (!navbar) return;
-  navbar.classList.toggle("cut-mobile-nav--scrolled", window.scrollY > 10);
+  const y = Math.max(0, window.scrollY || 0);
+  const delta = y - lastScrollY;
+  navbar.classList.toggle("cut-mobile-nav--scrolled", y > 10);
+  navbar.classList.toggle("cut-mobile-nav--compact", y > 56);
+
+  const canHide = y > 160 && Math.abs(delta) > 4 && !document.body.classList.contains("cut-mobile-keyboard-open");
+  if (canHide && delta > 0) navbar.classList.add("cut-mobile-nav--hidden");
+  if (delta < 0 || y < 80) navbar.classList.remove("cut-mobile-nav--hidden");
+  lastScrollY = y;
+};
+
+const isTextInput = (target) => target instanceof Element && Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
+
+const syncKeyboardState = () => {
+  if (!isMobile()) return;
+  const focused = isTextInput(document.activeElement);
+  const viewport = window.visualViewport;
+  const viewportShrunk = viewport ? window.innerHeight - viewport.height > 140 : false;
+  document.body.classList.toggle("cut-mobile-keyboard-open", focused && viewportShrunk);
+  document.body.classList.toggle("cut-mobile-focus-mode", focused && viewportShrunk);
 };
 
 const focusComposer = () => {
@@ -117,14 +139,25 @@ const focusComposer = () => {
 const prepareShell = () => {
   if (!isMobile()) {
     document.documentElement.removeAttribute(SHELL_MARK);
-    document.querySelector(".cut-capability-nav")?.classList.remove("cut-mobile-nav--scrolled");
+    document.body.classList.remove("cut-mobile-keyboard-open", "cut-mobile-focus-mode");
+    const navbar = document.querySelector(".cut-capability-nav");
+    navbar?.classList.remove("cut-mobile-nav--scrolled", "cut-mobile-nav--compact", "cut-mobile-nav--hidden");
     return;
   }
   document.documentElement.setAttribute(SHELL_MARK, "active");
   prepareBottomNav();
   ensureTopActions();
   syncNavbarScrollState();
+  syncKeyboardState();
   focusComposer();
+};
+
+const mutationTouchesNavigation = (mutation) => {
+  const nodes = [...mutation.addedNodes, ...mutation.removedNodes];
+  return nodes.some((node) => {
+    if (!(node instanceof Element)) return false;
+    return node.matches(NAV_RELEVANT_SELECTOR) || Boolean(node.querySelector?.(NAV_RELEVANT_SELECTOR));
+  });
 };
 
 export const installInstagramMobileShell = () => {
@@ -150,19 +183,39 @@ export const installInstagramMobileShell = () => {
     });
   };
 
+  const onFocusChange = () => window.setTimeout(syncKeyboardState, 80);
+  const onViewportChange = () => window.requestAnimationFrame(syncKeyboardState);
+  const onNavigation = () => queue();
+
   queue();
-  const observer = new MutationObserver(queue);
-  observer.observe(document.documentElement, { childList: true, subtree: true });
+  lastScrollY = Math.max(0, window.scrollY || 0);
+
+  // React can mutate large feeds/lists many times per second. Re-running the shell on
+  // every DOM mutation was unnecessary and expensive, so only navigation mount/unmount
+  // changes trigger a full shell preparation now.
+  const observer = new MutationObserver((mutations) => {
+    if (mutations.some(mutationTouchesNavigation)) queue();
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+
   window.addEventListener("resize", queue, { passive: true });
   window.addEventListener("scroll", onScroll, { passive: true });
-  window.addEventListener("popstate", queue);
-  window.addEventListener("hashchange", queue);
+  window.addEventListener("popstate", onNavigation);
+  window.addEventListener("hashchange", onNavigation);
+  window.addEventListener("pageshow", onNavigation);
+  document.addEventListener("focusin", onFocusChange);
+  document.addEventListener("focusout", onFocusChange);
+  window.visualViewport?.addEventListener("resize", onViewportChange, { passive: true });
 
   return () => {
     observer.disconnect();
     window.removeEventListener("resize", queue);
     window.removeEventListener("scroll", onScroll);
-    window.removeEventListener("popstate", queue);
-    window.removeEventListener("hashchange", queue);
+    window.removeEventListener("popstate", onNavigation);
+    window.removeEventListener("hashchange", onNavigation);
+    window.removeEventListener("pageshow", onNavigation);
+    document.removeEventListener("focusin", onFocusChange);
+    document.removeEventListener("focusout", onFocusChange);
+    window.visualViewport?.removeEventListener("resize", onViewportChange);
   };
 };

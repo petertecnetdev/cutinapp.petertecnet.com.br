@@ -106,7 +106,9 @@ export default function UserProfilePage() {
         <div className="cut-user-profile-meta">{profile.city && <span><i className="fa-solid fa-location-dot" />{profile.city}{profile.uf ? ` - ${profile.uf}` : ""}</span>}{profile.favorite_genre && <span><i className="fa-solid fa-music" />{profile.favorite_genre}</span>}</div>
         {profile.about && <p className="cut-user-profile-bio">{profile.about}</p>}
       </div>
-      {isOwnProfile && <Button variant="outline-light" onClick={() => navigate("/user/edit")}><i className="fa-regular fa-pen-to-square me-2" />Editar perfil</Button>}
+      <div className="d-flex flex-wrap gap-2">
+        {isOwnProfile ? <Button variant="outline-light" onClick={() => navigate("/user/edit")}><i className="fa-regular fa-pen-to-square me-2" />Editar perfil</Button> : <Button variant="light" onClick={() => navigate(`/messages?user=${requestedUserId}`)}><i className="fa-regular fa-paper-plane me-2" />Mensagem</Button>}
+      </div>
     </div></Container></section>}
 
     <Container className="cut-page-container py-4 py-lg-5">

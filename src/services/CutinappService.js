@@ -44,6 +44,38 @@ const createProduction = createIdempotentMutation({
   })).data, "organization", "production"),
 });
 
+const updateProduction = createIdempotentMutation({
+  storagePrefix: "cutinapp_production_update_attempt_",
+  keyPrefix: "production-update",
+  requestKeyFor: (organizationId, payload) => `${Number(organizationId)}:${productionRequestKey(payload)}`,
+  mutate: async ({ idempotencyKey }, organizationId, payload) => rename((await appApiClient.patch(
+    `/organizations/${Number(organizationId)}`,
+    payload,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data, "organization", "production"),
+});
+
+const deleteProduction = createIdempotentMutation({
+  storagePrefix: "cutinapp_production_delete_attempt_",
+  keyPrefix: "production-delete",
+  requestKeyFor: (organizationId) => String(Number(organizationId)),
+  mutate: async ({ idempotencyKey }, organizationId) => (await appApiClient.delete(
+    `/organizations/${Number(organizationId)}`,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
+const updateProductionExperience = createIdempotentMutation({
+  storagePrefix: "cutinapp_production_experience_update_attempt_",
+  keyPrefix: "production-experience-update",
+  requestKeyFor: (organizationId, payload = {}) => `${Number(organizationId)}:${createMutationRequestKey(payload)}`,
+  mutate: async ({ idempotencyKey }, organizationId, payload = {}) => (await appApiClient.patch(
+    `/organizations/${Number(organizationId)}/experience-profile`,
+    payload,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
 const signProducerContract = createIdempotentMutation({
   storagePrefix: "cutinapp_contract_sign_attempt_",
   keyPrefix: "contract-sign",
@@ -75,6 +107,27 @@ const claimCourtesy = createIdempotentMutation({
   })).data,
 });
 
+const updateCourtesy = createIdempotentMutation({
+  storagePrefix: "cutinapp_courtesy_update_attempt_",
+  keyPrefix: "courtesy-update",
+  requestKeyFor: (ticketId, payload = {}) => `${Number(ticketId)}:${createMutationRequestKey(payload)}`,
+  mutate: async ({ idempotencyKey }, ticketId, payload = {}) => (await appApiClient.patch(
+    `/tickets/${Number(ticketId)}`,
+    payload,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
+const deleteCourtesy = createIdempotentMutation({
+  storagePrefix: "cutinapp_courtesy_delete_attempt_",
+  keyPrefix: "courtesy-delete",
+  requestKeyFor: (ticketId) => String(Number(ticketId)),
+  mutate: async ({ idempotencyKey }, ticketId) => (await appApiClient.delete(
+    `/tickets/${Number(ticketId)}`,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
 const transferPass = createIdempotentMutation({
   storagePrefix: "cutinapp_pass_transfer_attempt_",
   keyPrefix: "pass-transfer",
@@ -96,6 +149,251 @@ const checkIn = createIdempotentMutation({
   }, {
     headers: { "Idempotency-Key": idempotencyKey },
   })).data,
+});
+
+const createProductionCommunityPost = createIdempotentMutation({
+  storagePrefix: "cutinapp_production_community_post_attempt_",
+  keyPrefix: "production-community-post",
+  requestKeyFor: (organizationId, payload = {}) => `${Number(organizationId)}:${createMutationRequestKey(payload)}`,
+  mutate: async ({ idempotencyKey }, organizationId, payload = {}) => (await appApiClient.post(
+    `/organizations/${Number(organizationId)}/community`,
+    payload,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
+const createEventCommunityPost = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_community_post_attempt_",
+  keyPrefix: "event-community-post",
+  requestKeyFor: (eventId, payload = {}) => `${Number(eventId)}:${createMutationRequestKey(payload)}`,
+  mutate: async ({ idempotencyKey }, eventId, payload = {}) => (await appApiClient.post(
+    `/events/${Number(eventId)}/community`,
+    payload,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
+const deleteProductionCommunityPost = createIdempotentMutation({
+  storagePrefix: "cutinapp_production_community_delete_attempt_",
+  keyPrefix: "production-community-delete",
+  requestKeyFor: (postId) => String(Number(postId)),
+  mutate: async ({ idempotencyKey }, postId) => (await appApiClient.delete(
+    `/organization-community/${Number(postId)}`,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
+const deleteEventCommunityPost = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_community_delete_attempt_",
+  keyPrefix: "event-community-delete",
+  requestKeyFor: (postId) => String(Number(postId)),
+  mutate: async ({ idempotencyKey }, postId) => (await appApiClient.delete(
+    `/community/${Number(postId)}`,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
+const unlikeProductionCommunityPost = createIdempotentMutation({
+  storagePrefix: "cutinapp_production_community_unlike_attempt_",
+  keyPrefix: "production-community-unlike",
+  requestKeyFor: (postId) => String(Number(postId)),
+  mutate: async ({ idempotencyKey }, postId) => (await appApiClient.delete(
+    `/organization-community/${Number(postId)}/like`,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
+const unlikeEventCommunityPost = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_community_unlike_attempt_",
+  keyPrefix: "event-community-unlike",
+  requestKeyFor: (postId) => String(Number(postId)),
+  mutate: async ({ idempotencyKey }, postId) => (await appApiClient.delete(
+    `/community/${Number(postId)}/like`,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
+const reportEvent = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_report_attempt_",
+  keyPrefix: "event-report",
+  requestKeyFor: (eventId, payload = {}) => `${Number(eventId)}:${createMutationRequestKey(payload)}`,
+  mutate: async ({ idempotencyKey }, eventId, payload = {}) => (await appApiClient.post(
+    `/events/${Number(eventId)}/report`,
+    payload,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
+const uploadProductionMedia = createIdempotentMutation({
+  storagePrefix: "cutinapp_production_media_upload_attempt_",
+  keyPrefix: "production-media-upload",
+  requestKeyFor: (organizationId, formData) => `${Number(organizationId)}:${createMutationRequestKey(formData)}`,
+  mutate: async ({ idempotencyKey }, organizationId, formData) => (await appApiClient.post(
+    `/organizations/${Number(organizationId)}/media`,
+    formData,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
+const deleteProductionMedia = createIdempotentMutation({
+  storagePrefix: "cutinapp_production_media_delete_attempt_",
+  keyPrefix: "production-media-delete",
+  requestKeyFor: (organizationId, mediaId) => `${Number(organizationId)}:${Number(mediaId)}`,
+  mutate: async ({ idempotencyKey }, organizationId, mediaId) => (await appApiClient.delete(
+    `/organizations/${Number(organizationId)}/media/${Number(mediaId)}`,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
+const createArtist = createIdempotentMutation({
+  storagePrefix: "cutinapp_artist_create_attempt_",
+  keyPrefix: "artist-create",
+  requestKeyFor: (payload = {}) => createMutationRequestKey(payload),
+  mutate: async ({ idempotencyKey }, payload = {}) => (await appApiClient.post(
+    "/artists/provisional",
+    payload,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
+const createArtistMember = createIdempotentMutation({
+  storagePrefix: "cutinapp_artist_member_create_attempt_",
+  keyPrefix: "artist-member-create",
+  requestKeyFor: (artistId, payload = {}) => `${Number(artistId)}:${createMutationRequestKey(payload)}`,
+  mutate: async ({ idempotencyKey }, artistId, payload = {}) => (await appApiClient.post(
+    `/artists/${Number(artistId)}/members`,
+    payload,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
+const claimArtistEvent = createIdempotentMutation({
+  storagePrefix: "cutinapp_artist_claim_attempt_",
+  keyPrefix: "artist-claim",
+  requestKeyFor: (eventId, artistId, payload = {}) => `${Number(eventId)}:${Number(artistId)}:${createMutationRequestKey(payload)}`,
+  mutate: async ({ idempotencyKey }, eventId, artistId, payload = {}) => (await appApiClient.post(
+    `/events/${Number(eventId)}/artists/${Number(artistId)}/claim`,
+    payload,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
+const attachArtist = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_artist_attach_attempt_",
+  keyPrefix: "event-artist-attach",
+  requestKeyFor: (eventId, payload = {}) => `${Number(eventId)}:${createMutationRequestKey(payload)}`,
+  mutate: async ({ idempotencyKey }, eventId, payload = {}) => (await appApiClient.post(
+    `/events/${Number(eventId)}/artists`,
+    payload,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
+const updateArtist = createIdempotentMutation({
+  storagePrefix: "cutinapp_artist_update_attempt_",
+  keyPrefix: "artist-update",
+  requestKeyFor: (artistId, payload = {}) => `${Number(artistId)}:${createMutationRequestKey(payload)}`,
+  mutate: async ({ idempotencyKey }, artistId, payload = {}) => (await appApiClient.patch(`/artists/${Number(artistId)}/managed`, payload, { headers: { "Idempotency-Key": idempotencyKey } })).data,
+});
+
+const updateArtistType = createIdempotentMutation({
+  storagePrefix: "cutinapp_artist_type_update_attempt_",
+  keyPrefix: "artist-type-update",
+  requestKeyFor: (artistId, artistType) => `${Number(artistId)}:${createMutationRequestKey({ artist_type: String(artistType || "").trim() })}`,
+  mutate: async ({ idempotencyKey }, artistId, artistType) => (await appApiClient.put(`/artists/${Number(artistId)}/type`, { artist_type: String(artistType || "").trim() }, { headers: { "Idempotency-Key": idempotencyKey } })).data,
+});
+
+const updateArtistMember = createIdempotentMutation({
+  storagePrefix: "cutinapp_artist_member_update_attempt_",
+  keyPrefix: "artist-member-update",
+  requestKeyFor: (artistId, memberId, payload = {}) => `${Number(artistId)}:${Number(memberId)}:${createMutationRequestKey(payload)}`,
+  mutate: async ({ idempotencyKey }, artistId, memberId, payload = {}) => (await appApiClient.patch(`/artists/${Number(artistId)}/members/${Number(memberId)}`, payload, { headers: { "Idempotency-Key": idempotencyKey } })).data,
+});
+
+const deleteArtistMember = createIdempotentMutation({
+  storagePrefix: "cutinapp_artist_member_delete_attempt_",
+  keyPrefix: "artist-member-delete",
+  requestKeyFor: (artistId, memberId) => `${Number(artistId)}:${Number(memberId)}`,
+  mutate: async ({ idempotencyKey }, artistId, memberId) => (await appApiClient.delete(`/artists/${Number(artistId)}/members/${Number(memberId)}`, { headers: { "Idempotency-Key": idempotencyKey } })).data,
+});
+
+const reviewArtistClaim = createIdempotentMutation({
+  storagePrefix: "cutinapp_artist_claim_review_attempt_",
+  keyPrefix: "artist-claim-review",
+  requestKeyFor: (eventId, claimId, payload = {}) => `${Number(eventId)}:${Number(claimId)}:${createMutationRequestKey(payload)}`,
+  mutate: async ({ idempotencyKey }, eventId, claimId, payload = {}) => (await appApiClient.put(`/events/${Number(eventId)}/artist-claims/${Number(claimId)}`, payload, { headers: { "Idempotency-Key": idempotencyKey } })).data,
+});
+
+const detachArtist = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_artist_detach_attempt_",
+  keyPrefix: "event-artist-detach",
+  requestKeyFor: (eventId, artistId) => `${Number(eventId)}:${Number(artistId)}`,
+  mutate: async ({ idempotencyKey }, eventId, artistId) => (await appApiClient.delete(`/events/${Number(eventId)}/artists/${Number(artistId)}`, { headers: { "Idempotency-Key": idempotencyKey } })).data,
+});
+
+const normalizeSocialTargetType = (targetType) => String(targetType || "").trim().toLowerCase();
+
+const followSocialTarget = createIdempotentMutation({
+  storagePrefix: "cutinapp_social_follow_attempt_",
+  keyPrefix: "social-follow",
+  requestKeyFor: (targetType, targetId) => `${normalizeSocialTargetType(targetType)}:${String(targetId)}`,
+  mutate: async ({ idempotencyKey }, targetType, targetId) => (await appApiClient.post(
+    "/social/follow",
+    { target_type: normalizeSocialTargetType(targetType), target_id: targetId },
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
+const likeProductionCommunityPost = createIdempotentMutation({
+  storagePrefix: "cutinapp_production_community_like_attempt_",
+  keyPrefix: "production-community-like",
+  requestKeyFor: (postId) => String(Number(postId)),
+  mutate: async ({ idempotencyKey }, postId) => (await appApiClient.post(
+    `/organization-community/${Number(postId)}/like`,
+    undefined,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
+const likeEventCommunityPost = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_community_like_attempt_",
+  keyPrefix: "event-community-like",
+  requestKeyFor: (postId) => String(Number(postId)),
+  mutate: async ({ idempotencyKey }, postId) => (await appApiClient.post(
+    `/community/${Number(postId)}/like`,
+    undefined,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
+const publishEventMutation = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_publish_attempt_",
+  keyPrefix: "event-publish",
+  requestKeyFor: (eventId) => String(Number(eventId)),
+  mutate: async ({ idempotencyKey }, eventId) => {
+    const data = (await appApiClient.post(
+      `/events/${Number(eventId)}/publish`,
+      undefined,
+      { headers: { "Idempotency-Key": idempotencyKey } },
+    )).data;
+    invalidatePublicRequestCache("/events");
+    return data;
+  },
+});
+
+const unpublishEventMutation = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_unpublish_attempt_",
+  keyPrefix: "event-unpublish",
+  requestKeyFor: (eventId) => String(Number(eventId)),
+  mutate: async ({ idempotencyKey }, eventId) => {
+    const data = (await appApiClient.post(
+      `/events/${Number(eventId)}/unpublish`,
+      undefined,
+      { headers: { "Idempotency-Key": idempotencyKey } },
+    )).data;
+    invalidatePublicRequestCache("/events");
+    return data;
+  },
 });
 
 // Product UI facade. Every request below consumes a reusable capability from
@@ -125,18 +423,18 @@ const cutinappService = {
   productionItems: async (id) => unwrap((await appApiClient.get(`/establishments/${id}/items`)).data.data),
   productionWorkspace: async (id) => (await appApiClient.get(`/organizations/${id}/workspace`)).data,
   productionExperience: async (slug) => (await appApiClient.get(`/organizations/public/${slug}/experience`)).data,
-  updateProductionExperience: async (id, payload) => (await appApiClient.patch(`/organizations/${id}/experience-profile`, payload)).data,
+  updateProductionExperience,
   productionCommunity: async (slug, params = {}) => (await appApiClient.get(`/organizations/public/${slug}/community`, { params })).data,
-  createProductionPost: async (organizationId, payload) => (await appApiClient.post(`/organizations/${organizationId}/community`, payload)).data,
-  deleteProductionPost: async (postId) => (await appApiClient.delete(`/organization-community/${postId}`)).data,
-  likeProductionPost: async (postId) => (await appApiClient.post(`/organization-community/${postId}/like`)).data,
-  unlikeProductionPost: async (postId) => (await appApiClient.delete(`/organization-community/${postId}/like`)).data,
-  uploadProductionMedia: async (organizationId, formData) => (await appApiClient.post(`/organizations/${organizationId}/media`, formData)).data,
-  deleteProductionMedia: async (organizationId, mediaId) => (await appApiClient.delete(`/organizations/${organizationId}/media/${mediaId}`)).data,
+  createProductionPost: (organizationId, payload) => createProductionCommunityPost(organizationId, payload),
+  deleteProductionPost: deleteProductionCommunityPost,
+  likeProductionPost: likeProductionCommunityPost,
+  unlikeProductionPost: unlikeProductionCommunityPost,
+  uploadProductionMedia,
+  deleteProductionMedia,
   publicProduction: async (slug) => rename(await cachedPublicGet(appApiClient, `/organizations/public/${slug}`, { ttlMs: 30000, staleMs: 180000 }), "organization", "production"),
   createProduction,
-  updateProduction: async (id, formData) => rename((await appApiClient.patch(`/organizations/${id}`, formData)).data, "organization", "production"),
-  deleteProduction: async (id) => (await appApiClient.delete(`/organizations/${id}`)).data,
+  updateProduction,
+  deleteProduction,
   producerContract: async (organizationId) => {
     const data = (await appApiClient.get(`/organizations/${organizationId}/agreement`)).data;
     return data?.agreement ?? data?.contract ?? null;
@@ -150,33 +448,33 @@ const cutinappService = {
   publicArtistMembers: async (slug) => (await appApiClient.get(`/artists/${slug}/members`)).data.members || [],
   publicEventArtists: async (slug) => (await appApiClient.get(`/events/public/${slug}/artists`)).data.artists || [],
   eventCommunity: async (slug, params = {}) => (await appApiClient.get(`/events/public/${slug}/community`, { params })).data,
-  createEventPost: async (eventId, payload) => (await appApiClient.post(`/events/${eventId}/community`, payload)).data,
-  createFeedPost: async (payload) => (await appApiClient.post("/events/0/community", payload)).data,
-  deleteEventPost: async (postId) => (await appApiClient.delete(`/community/${postId}`)).data,
-  likeEventPost: async (postId) => (await appApiClient.post(`/community/${postId}/like`)).data,
-  unlikeEventPost: async (postId) => (await appApiClient.delete(`/community/${postId}/like`)).data,
+  createEventPost: (eventId, payload) => createEventCommunityPost(eventId, payload),
+  createFeedPost: (payload) => createEventCommunityPost(0, payload),
+  deleteEventPost: deleteEventCommunityPost,
+  likeEventPost: likeEventCommunityPost,
+  unlikeEventPost: unlikeEventCommunityPost,
   rateEvent: async (eventId, rating) => (await appApiClient.put(`/events/${eventId}/rating`, { rating })).data,
-  reportEvent: async (eventId, payload) => (await appApiClient.post(`/events/${eventId}/report`, payload)).data,
+  reportEvent,
 
   moderationReports: async (params = {}) => (await appApiClient.get("/moderation/reports", { params })).data,
   updateModerationReport: async (reportId, payload) => (await appApiClient.put(`/moderation/reports/${reportId}`, payload)).data,
   myArtists: async () => unwrap((await appApiClient.get("/artists/manageable", { params: { per_page: 100 } })).data.artists),
-  createArtist: async (payload) => (await appApiClient.post("/artists/provisional", payload)).data,
-  updateArtist: async (id, payload) => (await appApiClient.patch(`/artists/${id}/managed`, payload)).data,
-  updateArtistType: async (id, artistType) => (await appApiClient.put(`/artists/${id}/type`, { artist_type: artistType })).data,
+  createArtist,
+  updateArtist,
+  updateArtistType,
   artistMembers: async (id) => (await appApiClient.get(`/artists/${id}/members`)).data.members || [],
-  createArtistMember: async (id, payload) => (await appApiClient.post(`/artists/${id}/members`, payload)).data,
-  updateArtistMember: async (id, memberId, payload) => (await appApiClient.patch(`/artists/${id}/members/${memberId}`, payload)).data,
-  deleteArtistMember: async (id, memberId) => (await appApiClient.delete(`/artists/${id}/members/${memberId}`)).data,
+  createArtistMember,
+  updateArtistMember,
+  deleteArtistMember,
   artistClaimability: async (eventId, artistId) => (await appApiClient.get(`/events/${eventId}/artists/${artistId}/claim`)).data,
-  claimArtistEvent: async (eventId, artistId, payload = {}) => (await appApiClient.post(`/events/${eventId}/artists/${artistId}/claim`, payload)).data,
+  claimArtistEvent,
   myArtistClaims: async () => (await appApiClient.get("/artist-claims/mine")).data,
   eventArtistClaims: async (eventId) => (await appApiClient.get(`/events/${eventId}/artist-claims`)).data,
-  reviewArtistClaim: async (eventId, claimId, payload) => (await appApiClient.put(`/events/${eventId}/artist-claims/${claimId}`, payload)).data,
+  reviewArtistClaim,
   eventArtists: async (eventId) => (await appApiClient.get(`/events/${eventId}/artists`)).data,
-  attachArtist: async (eventId, payload) => (await appApiClient.post(`/events/${eventId}/artists`, payload)).data,
-  detachArtist: async (eventId, artistId) => (await appApiClient.delete(`/events/${eventId}/artists/${artistId}`)).data,
-  follow: async (targetType, targetId) => (await appApiClient.post("/social/follow", { target_type: targetType, target_id: targetId })).data,
+  attachArtist,
+  detachArtist,
+  follow: followSocialTarget,
   unfollow: async (targetType, targetId) => (await appApiClient.delete("/social/follow", { data: { target_type: targetType, target_id: targetId } })).data,
   preferences: async () => (await appApiClient.get("/social/preferences")).data.preferences,
   savePreferences: async (payload) => (await appApiClient.put("/social/preferences", payload)).data,
@@ -186,14 +484,14 @@ const cutinappService = {
   notifications: async (params = {}) => (await appApiClient.get("/notifications", { params })).data,
   markNotificationRead: async (notificationId) => (await appApiClient.patch(`/notifications/${notificationId}/read`)).data,
   markAllNotificationsRead: async () => (await appApiClient.patch("/notifications/read-all")).data,
-  publishEvent: async (eventId) => { const data = (await appApiClient.post(`/events/${eventId}/publish`)).data; invalidatePublicRequestCache("/events"); return data; },
-  unpublishEvent: async (eventId) => { const data = (await appApiClient.post(`/events/${eventId}/unpublish`)).data; invalidatePublicRequestCache("/events"); return data; },
+  publishEvent: publishEventMutation,
+  unpublishEvent: unpublishEventMutation,
 
   eventCourtesies: async (eventId) => (await appApiClient.get(`/events/${eventId}/tickets`)).data,
-  updateCourtesy: async (ticketId, payload) => (await appApiClient.patch(`/tickets/${ticketId}`, payload)).data,
-  deleteCourtesy: async (ticketId) => (await appApiClient.delete(`/tickets/${ticketId}`)).data,
+  updateCourtesy,
+  deleteCourtesy,
   claimCourtesy,
-  myPasses: async () => unwrap((await appApiClient.get("/passes/mine")).data.passes),
+  myPasses: async () => unwrap((await appApiClient.get(`/passes/mine`)).data.passes),
   getPass: async (passId) => (await appApiClient.get(`/passes/${passId}`)).data.pass,
   transferPass,
   eventParticipants: async (eventId) => (await appApiClient.get(`/events/${eventId}/participants`)).data,

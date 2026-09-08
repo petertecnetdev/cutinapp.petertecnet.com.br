@@ -1,5 +1,5 @@
-import React, { useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { Alert, Badge, Button, Card, Container, Form } from "react-bootstrap";
+import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
+import { Alert, Button, Card, Container, Form } from "react-bootstrap";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import NavlogComponent from "../components/NavlogComponent";
@@ -17,40 +17,44 @@ export default function FeedPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useContext(AuthContext);
-  const [events, setEvents] = useState([]);
+  const feedRequestRef = useRef(0);
   const [communityActivity, setCommunityActivity] = useState([]);
-  const [page, setPage] = useState(1);
-  const [lastPage, setLastPage] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [moreLoading, setMoreLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [postBody, setPostBody] = useState("");
   const [publishing, setPublishing] = useState(false);
   const [replyTo, setReplyTo] = useState(null);
   const [replyBody, setReplyBody] = useState("");
-  const [busyPost, setBusyPost] = useState(null);
+  const [busyPosts, setBusyPosts] = useState(() => new Set());
   const [shareNotice, setShareNotice] = useState("");
 
-  const load = useCallback(async (nextPage = 1) => {
-    nextPage === 1 ? setLoading(true) : setMoreLoading(true);
+  const load = useCallback(async ({ showSkeleton = false } = {}) => {
+    const requestId = ++feedRequestRef.current;
+    if (showSkeleton) setLoading(true);
     setError("");
     try {
-      const response = await cutinappService.feed({ page: nextPage, per_page: 12 });
-      const batch = response.feed?.data || [];
-      setEvents((current) => nextPage === 1 ? batch : [...current, ...batch.filter((item) => !current.some((old) => old.id === item.id))]);
-      if (nextPage === 1) setCommunityActivity(Array.isArray(response.community_activity) ? response.community_activity : []);
-      setPage(response.feed?.current_page || nextPage);
-      setLastPage(response.feed?.last_page || 1);
+      const response = await cutinappService.feed({ page: 1, per_page: 12 });
+      if (requestId !== feedRequestRef.current) return;
+      setCommunityActivity(Array.isArray(response.community_activity) ? response.community_activity : []);
     } catch (err) {
+      if (requestId !== feedRequestRef.current) return;
       setError(err?.response?.data?.message || err?.message || "Não foi possível montar seu feed agora.");
     } finally {
-      setLoading(false);
-      setMoreLoading(false);
+      if (showSkeleton && requestId === feedRequestRef.current) setLoading(false);
     }
   }, []);
 
-  useEffect(() => { load(1); }, [load]);
+  useEffect(() => { load({ showSkeleton: true }); }, [load]);
+
+  const setPostBusy = (postId, busy) => {
+    setBusyPosts((current) => {
+      const next = new Set(current);
+      if (busy) next.add(postId);
+      else next.delete(postId);
+      return next;
+    });
+  };
 
   const requireLogin = () => {
     if (user) return true;
@@ -67,44 +71,46 @@ export default function FeedPage() {
     try {
       await cutinappService.createFeedPost({ body });
       setPostBody("");
-      setSuccess("Sua publicação está no ar. Agora a comunidade pode curtir, responder, responder respostas e compartilhar.");
-      await load(1);
+      setSuccess("Sua publicação está no ar. A comunidade já pode curtir, comentar e compartilhar.");
+      await load();
     } catch (err) {
       setError(err?.response?.data?.message || err?.message || "Não foi possível publicar agora.");
     } finally { setPublishing(false); }
   };
 
-  const publishReply = async (parentId) => {
-    if (!requireLogin()) return;
+  const publishReply = async (post) => {
+    if (!requireLogin() || busyPosts.has(post.id)) return;
     const body = replyBody.trim();
     if (body.length < 2) return;
-    setBusyPost(parentId); setError("");
+    setPostBusy(post.id, true); setError("");
     try {
-      await cutinappService.createFeedPost({ body, parent_id: parentId });
+      const payload = { body, parent_id: post.id };
+      if (Number(post.event_id) > 0) await cutinappService.createEventPost(Number(post.event_id), payload);
+      else await cutinappService.createFeedPost(payload);
       setReplyBody(""); setReplyTo(null);
-      await load(1);
+      await load();
     } catch (err) {
-      setError(err?.response?.data?.message || err?.message || "Não foi possível responder agora.");
-    } finally { setBusyPost(null); }
+      setError(err?.response?.data?.message || err?.message || "Não foi possível comentar agora.");
+    } finally { setPostBusy(post.id, false); }
   };
 
   const toggleLike = async (post) => {
-    if (!requireLogin()) return;
-    setBusyPost(post.id);
+    if (!requireLogin() || busyPosts.has(post.id)) return;
+    setPostBusy(post.id, true);
     try {
       if (post.is_liked) await cutinappService.unlikeEventPost(post.id);
       else await cutinappService.likeEventPost(post.id);
-      await load(1);
+      await load();
     } catch (err) {
       setError(err?.response?.data?.message || err?.message || "Não foi possível atualizar a curtida.");
-    } finally { setBusyPost(null); }
+    } finally { setPostBusy(post.id, false); }
   };
 
   const sharePost = async (post) => {
-    const url = post.event_slug ? `${window.location.origin}/event/${post.event_slug}#comunidade` : window.location.href;
+    const url = post.event_slug ? `${window.location.origin}/event/${post.event_slug}` : `${window.location.origin}/feed`;
     const text = `${authorName(post)} na Cutinapp: ${String(post.body || "").slice(0, 180)}`;
     try {
-      if (navigator.share) await navigator.share({ title: "Publicação na Cutinapp", text, url });
+      if (navigator.share) await navigator.share({ title: post.event_title || "Publicação na Cutinapp", text, url });
       else {
         await navigator.clipboard.writeText(`${text}\n${url}`);
         setShareNotice("Link da publicação copiado.");
@@ -121,35 +127,44 @@ export default function FeedPage() {
     setReplyBody("");
   };
 
+  const openProfile = (post) => {
+    if (post?.user_id) navigate(`/profile/${post.user_id}`);
+  };
+
   const composerAvatar = imageUrl(user?.avatar);
   const composerInitial = String(user?.first_name || user?.name || "U").trim().slice(0, 1).toUpperCase() || "U";
   const composerPlaceholder = user?.first_name ? `No que você está pensando, ${user.first_name}?` : "No que você está pensando?";
 
   const renderPost = (post, depth = 0) => <article className={`cut-feed-post${depth ? " cut-feed-post--reply" : ""}`} key={`${depth}-${post.id}`}>
     <div className="cut-feed-post__header">
-      <div className="cut-feed-post__avatar">{post.avatar ? <img src={imageUrl(post.avatar)} alt="" /> : <span>{initials(post)}</span>}</div>
-      <div><strong>{authorName(post)}</strong><small>{fmt(post.created_at)} · Público</small></div>
+      <button type="button" className="cut-feed-post__avatar cut-feed-post__profile-link" onClick={() => openProfile(post)} aria-label={`Abrir perfil de ${authorName(post)}`}>
+        {post.avatar ? <img src={imageUrl(post.avatar)} alt="" /> : <span>{initials(post)}</span>}
+      </button>
+      <div>
+        <button type="button" className="cut-feed-post__author" onClick={() => openProfile(post)}>{authorName(post)}</button>
+        <small>{fmt(post.created_at)} · Público</small>
+      </div>
     </div>
+
+    {(post.event_slug || post.production_slug) && <div className="cut-feed-post__context">
+      {post.event_slug && <button type="button" onClick={() => navigate(`/event/${post.event_slug}`)}><i className="fa-regular fa-calendar" /> {post.event_title || "Ver evento"}</button>}
+      {post.production_slug && <button type="button" onClick={() => navigate(`/production/${post.production_slug}/public`)}><i className="fa-regular fa-building" /> {post.production_name || "Ver produção"}</button>}
+    </div>}
+
     <p className="cut-feed-post__body">{post.body}</p>
     <div className="cut-feed-post__actions">
-      <button type="button" className={post.is_liked ? "active" : ""} disabled={busyPost === post.id} onClick={() => toggleLike(post)}><i className={`${post.is_liked ? "fa-solid" : "fa-regular"} fa-heart`} /><span>{post.likes_count || 0}</span><b>Curtir</b></button>
-      <button type="button" onClick={() => openReply(post)}><i className="fa-regular fa-comment-dots" /><span>{post.comments_count || post.replies?.length || 0}</span><b>Responder</b></button>
+      <button type="button" className={post.is_liked ? "active" : ""} disabled={busyPosts.has(post.id)} onClick={() => toggleLike(post)}><i className={`${post.is_liked ? "fa-solid" : "fa-regular"} fa-heart`} /><span>{post.likes_count || 0}</span><b>Curtir</b></button>
+      <button type="button" onClick={() => openReply(post)}><i className="fa-regular fa-comment-dots" /><span>{post.comments_count || post.replies?.length || 0}</span><b>Comentar</b></button>
       <button type="button" onClick={() => sharePost(post)}><i className="fa-solid fa-share-nodes" /><b>Compartilhar</b></button>
       {post.event_slug && <button type="button" onClick={() => navigate(`/event/${post.event_slug}#comunidade`)}><i className="fa-regular fa-comments" /><b>Ver conversa</b></button>}
     </div>
-    {replyTo === post.id && <div className="cut-feed-replybox"><Form.Control as="textarea" rows={2} maxLength={3000} value={replyBody} onChange={(e) => setReplyBody(e.target.value)} placeholder={`Responder a ${authorName(post)}...`} /><div><Button variant="outline-light" size="sm" onClick={() => { setReplyTo(null); setReplyBody(""); }}>Cancelar</Button><Button size="sm" disabled={busyPost === post.id || replyBody.trim().length < 2} onClick={() => publishReply(post.id)}>{busyPost === post.id ? "Respondendo..." : "Responder"}</Button></div></div>}
+    {replyTo === post.id && <div className="cut-feed-replybox"><Form.Control as="textarea" rows={2} maxLength={3000} value={replyBody} onChange={(e) => setReplyBody(e.target.value)} placeholder={`Comentar na publicação de ${authorName(post)}...`} /><div><Button variant="outline-light" size="sm" onClick={() => { setReplyTo(null); setReplyBody(""); }}>Cancelar</Button><Button size="sm" disabled={busyPosts.has(post.id) || replyBody.trim().length < 2} onClick={() => publishReply(post)}>{busyPosts.has(post.id) ? "Publicando..." : "Comentar"}</Button></div></div>}
     {Array.isArray(post.replies) && post.replies.length > 0 && <div className="cut-feed-thread">{post.replies.map((reply) => renderPost(reply, depth + 1))}</div>}
   </article>;
 
-  const timeline = useMemo(() => {
-    const posts = communityActivity.map((item) => ({ kind: "post", created_at: item.created_at, item }));
-    const announcements = events.map((item) => ({ kind: "event", created_at: item.published_at || item.created_at || item.start_date, item }));
-    return [...posts, ...announcements].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-  }, [communityActivity, events]);
-
   return <div className="cut-app-page"><NavlogComponent />
     <Container className="cut-page-container py-4 py-lg-5 cut-feed-page">
-      <div className="cut-feed-heading"><div><span className="cut-eyebrow">Comunidade</span><h1>Feed</h1><p>Converse sobre os eventos, responda pessoas e acompanhe anúncios das produções.</p></div></div>
+      <div className="cut-feed-heading"><div><span className="cut-eyebrow">Comunidade</span><h1>Feed</h1><p>Publicações, novidades e atualizações dos eventos em um só lugar.</p></div></div>
       {error && <Alert variant="danger" dismissible onClose={() => setError("")}>{error}</Alert>}
       {success && <Alert variant="success" dismissible onClose={() => setSuccess("")}>{success}</Alert>}
       {shareNotice && <Alert variant="info">{shareNotice}</Alert>}
@@ -159,13 +174,9 @@ export default function FeedPage() {
         <div className="cut-feed-composer__footer"><span className="cut-feed-composer__visibility"><i className="fa-solid fa-earth-americas" /> Público na Cutinapp</span><div className="cut-feed-composer__actions">{postBody.length > 0 && <small>{postBody.length}/3000</small>}<Button type="submit" size="sm" disabled={publishing || postBody.trim().length < 2}>{publishing ? "Publicando..." : "Publicar"}</Button></div></div>
       </Form></Card.Body></Card>}
 
-      <div className="cut-feed-capabilities" aria-label="Recursos das publicações"><span><i className="fa-regular fa-comment-dots" /> Responder</span><span><i className="fa-solid fa-comments" /> Responder respostas</span><span><i className="fa-regular fa-heart" /> Curtir</span><span><i className="fa-solid fa-share-nodes" /> Compartilhar</span></div>
+      <div className="cut-feed-capabilities" aria-label="Recursos das publicações"><span><i className="fa-regular fa-comment-dots" /> Comentar</span><span><i className="fa-solid fa-comments" /> Responder</span><span><i className="fa-regular fa-heart" /> Curtir</span><span><i className="fa-solid fa-share-nodes" /> Compartilhar</span></div>
 
-      {loading ? <div className="cut-feed-stream">{Array.from({ length: 4 }).map((_, index) => <SkeletonCard key={index} />)}</div> : timeline.length === 0 ? <Card className="cut-empty-state"><Card.Body><div className="cut-empty-icon"><i className="fa-regular fa-comments" /></div><h2>O feed está começando</h2><p>Publique algo ou acompanhe os novos anúncios de eventos.</p></Card.Body></Card> : <div className="cut-feed-stream">{timeline.map(({ kind, item }) => kind === "post" ? <Card className="cut-feed-social-card" key={`post-${item.id}`}><Card.Body>{renderPost(item)}</Card.Body></Card> : <Card className="cut-feed-social-card cut-feed-event-announcement" key={`event-${item.id}`}>
-        <Card.Body><div className="cut-feed-announcement-label"><i className="fa-solid fa-bullhorn" /> {item.production?.name || "Uma produção"} acabou de anunciar um evento</div>{item.image && <button type="button" className="cut-feed-event-image" onClick={() => navigate(`/event/${item.slug}`)}><img src={imageUrl(item.image)} alt={item.title} loading="lazy" /></button>}<div className="cut-feed-event-copy"><div><Badge bg="secondary">Novo evento</Badge><h2>{item.title}</h2><p><i className="fa-regular fa-calendar me-2" />{fmt(item.start_date)}{item.city ? ` · ${item.city}` : ""}</p></div><div className="cut-feed-event-cta"><Button onClick={() => navigate(`/event/${item.slug}`)}>Ver evento</Button><Button variant="outline-light" onClick={() => navigate(`/event/${item.slug}#ingressos`)}>Comprar ingresso</Button></div></div></Card.Body>
-      </Card>)}</div>}
-
-      {page < lastPage && <div className="cut-load-more"><Button variant="outline-light" disabled={moreLoading} onClick={() => load(page + 1)}>{moreLoading ? "Carregando..." : "Carregar mais"}</Button></div>}
+      {loading ? <div className="cut-feed-stream">{Array.from({ length: 4 }).map((_, index) => <SkeletonCard key={index} />)}</div> : communityActivity.length === 0 ? <Card className="cut-empty-state"><Card.Body><div className="cut-empty-icon"><i className="fa-regular fa-comments" /></div><h2>O feed está começando</h2><p>Publique algo ou acompanhe as próximas novidades dos eventos.</p></Card.Body></Card> : <div className="cut-feed-stream">{communityActivity.map((item) => <Card className="cut-feed-social-card" key={`post-${item.id}`}><Card.Body>{renderPost(item)}</Card.Body></Card>)}</div>}
     </Container>
   </div>;
 }
