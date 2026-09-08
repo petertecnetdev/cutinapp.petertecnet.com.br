@@ -1,0 +1,97 @@
+/* Final responsive guardrail.
+ * Imported last so feature-specific styles cannot reintroduce page-wide
+ * horizontal scrolling on narrow viewports.
+ */
+
+html,
+body,
+#root {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: clip;
+}
+
+#root,
+main,
+header,
+footer,
+nav,
+section,
+article,
+aside,
+.container,
+.container-fluid {
+  min-width: 0;
+}
+
+img,
+picture,
+video,
+canvas,
+iframe,
+svg {
+  max-width: 100%;
+}
+
+pre,
+code,
+.cut-card,
+.card,
+.modal-content,
+.table-responsive {
+  max-width: 100%;
+}
+
+pre,
+code {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Bootstrap rows use negative gutters by design. Keep them inside the
+ * viewport when a page/card accidentally places a row without a container. */
+@media (max-width: 991.98px) {
+  html,
+  body,
+  #root {
+    overscroll-behavior-x: none;
+    touch-action: pan-y pinch-zoom;
+  }
+
+  .container,
+  .container-fluid {
+    max-width: 100%;
+  }
+
+  .row > * {
+    min-width: 0;
+  }
+
+  .table-responsive,
+  .overflow-auto,
+  [class*="overflow-x-auto"] {
+    max-width: 100%;
+    overscroll-behavior-inline: contain;
+  }
+
+  .modal-dialog,
+  .offcanvas,
+  .dropdown-menu {
+    max-width: calc(100vw - 16px);
+  }
+
+  .position-fixed,
+  [style*="position: fixed"] {
+    max-width: 100vw;
+  }
+}
+
+/* Fallback for browsers that do not support overflow: clip. */
+@supports not (overflow: clip) {
+  html,
+  body,
+  #root {
+    overflow-x: hidden;
+  }
+}
