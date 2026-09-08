@@ -124,6 +124,7 @@ export default function ProducerSalesPage() {
     const grouped = new Map();
     const benchmarkAddOnValue = addOnEconomics.averageAddOnValue;
     const benchmarkAddOnUnitPrice = addOnEconomics.averageAddOnUnitPrice;
+    const benchmarkAttachmentRate = addOnEconomics.attachmentRate;
 
     orders.filter((order) => order.status === "paid").forEach((order) => {
       const editableId = order.event?.id || order.event_id || null;
@@ -163,6 +164,9 @@ export default function ProducerSalesPage() {
     return Array.from(grouped.values())
       .map((event) => {
         const takeRate = event.gmv > 0 ? (event.platformRevenue / event.gmv) * 100 : 0;
+        const currentAttachmentRate = event.paidCount > 0 ? (event.addOnOrders / event.paidCount) * 100 : 0;
+        const attachmentGapPoints = Math.max(0, benchmarkAttachmentRate - currentAttachmentRate);
+        const targetAttachmentUpliftPoints = Math.min(10, attachmentGapPoints);
         const averageAddOnValue = event.addOnOrders > 0 ? event.addOnGmv / event.addOnOrders : 0;
         const averageAddOnUnitPrice = event.addOnUnits > 0 ? event.addOnUnitRevenue / event.addOnUnits : 0;
         const opportunity = estimateAddOnAttachmentOpportunity({
@@ -171,6 +175,7 @@ export default function ProducerSalesPage() {
           averageAddOnValue,
           benchmarkAddOnValue,
           takeRate,
+          upliftPoints: targetAttachmentUpliftPoints,
         });
         const netEconomics = estimateNetRevenueEconomics({
           grossRevenue: event.gmv,
@@ -183,6 +188,7 @@ export default function ProducerSalesPage() {
         const efficiency = addOnMonetizationEfficiency({
           incrementalNetRevenue,
           incrementalOrders: opportunity.incrementalOrders,
+          attachmentUpliftPoints: targetAttachmentUpliftPoints,
         });
         const marginGuard = addOnMarginGuard({ incrementalGmv: opportunity.incrementalGmv, incrementalNetRevenue });
 
@@ -199,7 +205,9 @@ export default function ProducerSalesPage() {
           addOnProfitable: marginGuard.profitable,
           incrementalNetMargin: marginGuard.netMargin,
           producerShare: event.gmv > 0 ? (event.producerNet / event.gmv) * 100 : 0,
-          addOnAttachmentRate: event.paidCount > 0 ? (event.addOnOrders / event.paidCount) * 100 : 0,
+          addOnAttachmentRate: currentAttachmentRate,
+          benchmarkAttachmentRate,
+          targetAttachmentUpliftPoints,
           averageAddOnValue,
           averageAddOnUnitPrice,
           suggestedAddOnPrice: Number((averageAddOnUnitPrice > 0 ? averageAddOnUnitPrice : benchmarkAddOnUnitPrice).toFixed(2)),
@@ -211,7 +219,7 @@ export default function ProducerSalesPage() {
       })
       .sort(compareAddOnOpportunities)
       .slice(0, 5);
-  }, [addOnEconomics.averageAddOnUnitPrice, addOnEconomics.averageAddOnValue, orders]);
+  }, [addOnEconomics.attachmentRate, addOnEconomics.averageAddOnUnitPrice, addOnEconomics.averageAddOnValue, orders]);
 
   const clearFilters = () => setFilters({ q: "", status: "" });
 
@@ -253,7 +261,7 @@ export default function ProducerSalesPage() {
           <Col sm={6} lg={4} xl={3}><div className="cut-commerce-stat"><small>Receita líquida recuperável</small><strong>{money(pendingRevenue.estimatedNetPlatformRevenue)}</strong><span>{money(pendingRevenue.estimatedPlatformRevenue)} de receita bruta potencial · margem observada {percent(pendingRevenue.contributionRatio * 100)}</span></div></Col>
         </Row>
         <Alert variant="info" className="mb-3">
-          O GMV considera as vendas pagas. A receita Cutinapp corresponde às taxas brutas registradas; receita líquida, receita líquida por venda e take rate líquido descontam somente o processamento que a Peter Tecnet efetivamente suporta nos pedidos carregados, respeitando o settlement registrado. Os indicadores de adicionais consideram itens não classificados como ingresso e agora priorizam a contribuição líquida estimada, não apenas receita bruta. A oportunidade de +10 p.p. simula somente mais vendas aderindo a adicionais pelo valor médio já observado e pela margem de contribuição após processamento. As pendências mostram receita potencial já iniciada no checkout; usam a taxa registrada no pedido quando disponível e, como fallback analítico, o take rate efetivo da produção. A receita líquida recuperável aplica a margem de contribuição observada nas vendas pagas para priorizar recuperação por valor econômico, sem presumir novos preços ou taxas. Nenhuma projeção altera preços, taxas ou regras de pagamento e nenhuma delas representa garantia de receita.
+          O GMV considera as vendas pagas. A receita Cutinapp corresponde às taxas brutas registradas; receita líquida, receita líquida por venda e take rate líquido descontam somente o processamento que a Peter Tecnet efetivamente suporta nos pedidos carregados, respeitando o settlement registrado. Os indicadores de adicionais consideram itens não classificados como ingresso e agora priorizam a contribuição líquida estimada, não apenas receita bruta. A oportunidade geral de +10 p.p. simula mais vendas aderindo a adicionais pelo valor médio já observado e pela margem de contribuição após processamento. No ranking por evento, a meta deixa de presumir +10 p.p. para todos: cada evento é comparado à adesão observada da própria produção e a projeção fica limitada ao gap real, com teto de +10 p.p. As pendências mostram receita potencial já iniciada no checkout; usam a taxa registrada no pedido quando disponível e, como fallback analítico, o take rate efetivo da produção. Nenhuma projeção altera preços, taxas ou regras de pagamento e nenhuma delas representa garantia de receita.
         </Alert>
         {!!pendingRevenue.events.length && <Card className="cut-commerce-card mb-3">
           <Card.Body>
@@ -282,7 +290,7 @@ export default function ProducerSalesPage() {
               <div>
                 <small>Monetização por evento</small>
                 <h2>Onde há mais receita líquida incremental disponível</h2>
-                <p>Os eventos são priorizados pela receita líquida incremental estimada após o custo de processamento já observado, simulando +10 pontos percentuais de adesão aos adicionais. Assim, o ranking favorece crescimento que também preserva margem.</p>
+                <p>Os eventos são priorizados pela receita líquida incremental estimada após o custo de processamento já observado. A meta de adesão usa o desempenho real da própria produção como benchmark e limita qualquer projeção a +10 pontos percentuais, reduzindo projeções arbitrárias e favorecendo gaps comprovados.</p>
               </div>
             </div>
             <Row className="g-3">
@@ -290,6 +298,7 @@ export default function ProducerSalesPage() {
                 <div className="cut-commerce-stat h-100">
                   <small>#{index + 1} · {event.title}</small>
                   <strong>{event.addOnProfitable ? `+${money(event.incrementalNetRevenue)} receita líquida estimada` : "Sem contribuição líquida para priorizar"}</strong>
+                  <span>Adesão atual {percent(event.addOnAttachmentRate)} · benchmark da produção {percent(event.benchmarkAttachmentRate)} · meta incremental +{percent(event.targetAttachmentUpliftPoints)}</span>
                   <span>+1 p.p. de adesão ≈ +{money(event.netRevenuePerAttachmentPoint)} líquidos · {money(event.netRevenuePerIncrementalOrder)} líquidos por nova venda com adicional</span>
                   <span>Oportunidade: +{money(event.incrementalGmv)} GMV · +{money(event.incrementalPlatformRevenue)} receita bruta Cutinapp com até {event.incrementalOrders.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} venda(s) adicional(is) aderindo ao cross-sell</span>
                   <span>Atual: {money(event.netPlatformRevenue)} receita líquida · {money(event.platformRevenue)} receita bruta · {money(event.processorFeesBorneByPlatform)} processamento suportado pela Cutinapp</span>
