@@ -126,8 +126,34 @@ describe("paymentFailureGuidance", () => {
     expect(result.message).not.toContain("PIX");
   });
 
-  test("keeps PIX recovery specific and selection-preserving", () => {
+  test("explains an expired PIX and preserves the current selection", () => {
+    const result = paymentFailureGuidance({ method: "pix", payment: { status: "expired" } });
+    expect(result.reason).toBe("pix_expired");
+    expect(result.title).toContain("expirou");
+    expect(result.message).toContain("não está mais ativo");
+    expect(result.message).toContain("seleção continua preservada");
+  });
+
+  test("explains a cancelled PIX without suggesting that the old code remains usable", () => {
     const result = paymentFailureGuidance({ method: "pix", payment: { status: "cancelled" } });
+    expect(result.reason).toBe("pix_cancelled");
+    expect(result.title).toContain("encerrado");
+    expect(result.message).toContain("não está mais ativa");
+    expect(result.message).toContain("novo PIX");
+  });
+
+  test("distinguishes a rejected PIX for recovery attribution", () => {
+    const result = paymentFailureGuidance({
+      method: "pix",
+      payment: { provider_payload: { status_detail: "pix_rejected" } },
+    });
+    expect(result.reason).toBe("pix_rejected");
+    expect(result.message).toContain("não pôde ser concluída");
+    expect(result.message).toContain("seleção continua preservada");
+  });
+
+  test("keeps generic PIX recovery selection-preserving when no specific status is available", () => {
+    const result = paymentFailureGuidance({ method: "pix", payment: { status: "unknown" } });
     expect(result.reason).toBe("pix_not_completed");
     expect(result.message).toContain("seleção continua preservada");
   });
