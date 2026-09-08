@@ -221,6 +221,28 @@ const createEventItem = createIdempotentMutation({
   ).data,
 });
 
+const updateEventItemIdempotently = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_item_update_attempt_",
+  keyPrefix: "event-item-update",
+  requestKeyFor: (eventId, itemId, payload = {}) => `${Number(eventId)}:${Number(itemId)}:${createMutationRequestKey(payload)}`,
+  mutate: async ({ idempotencyKey }, eventId, itemId, payload = {}) => (
+    await appApiClient.patch(`/events/${Number(eventId)}/items/${Number(itemId)}`, payload, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    })
+  ).data,
+});
+
+const deleteEventItemIdempotently = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_item_delete_attempt_",
+  keyPrefix: "event-item-delete",
+  requestKeyFor: (eventId, itemId) => `${Number(eventId)}:${Number(itemId)}`,
+  mutate: async ({ idempotencyKey }, eventId, itemId) => (
+    await appApiClient.delete(`/events/${Number(eventId)}/items/${Number(itemId)}`, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    })
+  ).data,
+});
+
 const requestPayoutIdempotently = createIdempotentMutation({
   storagePrefix: "cutinapp_commerce_payout_request_attempt_",
   keyPrefix: "payout-request",
@@ -316,15 +338,15 @@ const commerceService = {
 
   saveEventItem: async (eventId, payload, itemId = null) => {
     const data = itemId
-      ? (await appApiClient.patch(`/events/${eventId}/items/${itemId}`, payload)).data
+      ? await updateEventItemIdempotently(eventId, itemId, payload)
       : await createEventItem(eventId, payload);
     invalidateCatalogCache();
     return data;
   },
   deleteEventItem: async (eventId, itemId) => {
-    const response = await appApiClient.delete(`/events/${eventId}/items/${itemId}`);
+    const data = await deleteEventItemIdempotently(eventId, itemId);
     invalidateCatalogCache();
-    return response.data;
+    return data;
   },
   paymentAccount: async (organizationId) => (await appApiClient.get(`/organizations/${organizationId}/payment-account`)).data.account,
   connectMercadoPago: async (organizationId) => (await appApiClient.get(`/organizations/${organizationId}/payment-provider/connect`)).data,
