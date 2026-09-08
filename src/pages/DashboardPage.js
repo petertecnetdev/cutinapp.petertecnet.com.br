@@ -79,6 +79,7 @@ export default function DashboardPage() {
           <Link to="/passes" className="cut-dashboard__card"><i className="fa-solid fa-ticket" /><div><h3>Meus ingressos</h3><p>Encontre seus QR Codes e ingressos já retirados.</p></div><b>→</b></Link>
           <Link to="/event" className="cut-dashboard__card"><i className="fa-regular fa-calendar-days" /><div><h3>Eventos</h3><p>Descubra eventos publicados na Cutinapp.</p></div><b>→</b></Link>
           <Link to={producerStep.route} onClick={trackActivationResume} className="cut-dashboard__card"><i className="fa-solid fa-bullhorn" /><div><h3>{producerStep.label}</h3><p>{producerStep.description}</p></div><b>→</b></Link>
+          <Link to="/producer/media" className="cut-dashboard__card"><i className="fa-regular fa-images" /><div><h3>Biblioteca de mídias</h3><p>Baixe capas já usadas ou crie outra edição reaproveitando a identidade visual.</p></div><b>→</b></Link>
           <Link to="/checkin" className="cut-dashboard__card"><i className="fa-solid fa-qrcode" /><div><h3>Portaria</h3><p>Abra a câmera e valide as entradas do evento.</p></div><b>→</b></Link>
         </div>
       </section>
