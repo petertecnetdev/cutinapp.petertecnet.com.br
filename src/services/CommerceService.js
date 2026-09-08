@@ -205,6 +205,17 @@ const redeemEventItemsIdempotently = createIdempotentMutation({
   ).data,
 });
 
+const createEventItem = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_item_create_attempt_",
+  keyPrefix: "event-item-create",
+  requestKeyFor: (eventId, payload = {}) => `${Number(eventId)}:${createMutationRequestKey(payload)}`,
+  mutate: async ({ idempotencyKey }, eventId, payload = {}) => (
+    await appApiClient.post(`/events/${Number(eventId)}/items`, payload, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    })
+  ).data,
+});
+
 const syncPayment = async (publicId) => {
   const order = (await appApiClient.post(`/commerce/orders/${publicId}/sync-payment`)).data.order;
   const recoveryAttribution = readPaymentRecoveryAttribution(order?.public_id || publicId);
@@ -253,11 +264,11 @@ const commerceService = {
   ).data.order,
 
   saveEventItem: async (eventId, payload, itemId = null) => {
-    const response = itemId
-      ? await appApiClient.patch(`/events/${eventId}/items/${itemId}`, payload)
-      : await appApiClient.post(`/events/${eventId}/items`, payload);
+    const data = itemId
+      ? (await appApiClient.patch(`/events/${eventId}/items/${itemId}`, payload)).data
+      : await createEventItem(eventId, payload);
     invalidateCatalogCache();
-    return response.data;
+    return data;
   },
   deleteEventItem: async (eventId, itemId) => {
     const response = await appApiClient.delete(`/events/${eventId}/items/${itemId}`);
