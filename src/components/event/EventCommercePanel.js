@@ -44,11 +44,7 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
 
   const applyCatalog = (response, targetSlug) => {
     const nextCatalog = response || { tickets: [], items: [], available_dates: [] };
-    const restored = reconcileStoredSelection(
-      nextCatalog,
-      safeGetSessionJson(checkoutStorageKey(targetSlug)),
-      eventId,
-    );
+    const restored = reconcileStoredSelection(nextCatalog, safeGetSessionJson(checkoutStorageKey(targetSlug)), eventId);
     setCatalog(nextCatalog);
     setQuantities(restored);
 
@@ -58,10 +54,7 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
       trackCommerce("event_purchase_selection_restored", {
         label: "Seleção válida restaurada no evento",
         target: targetSlug,
-        metadata: {
-          event_id: Number(nextCatalog?.event?.id || eventId),
-          quantity: restoredQuantity,
-        },
+        metadata: { event_id: Number(nextCatalog?.event?.id || eventId), quantity: restoredQuantity },
       });
     }
   };
@@ -116,12 +109,8 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
   const availableDates = catalog?.available_dates || [];
 
   const persistSelection = (nextQuantities) => {
-    const tickets = (catalog.tickets || [])
-      .map((item) => ({ id: item.id, quantity: Number(nextQuantities[`ticket:${item.id}`] || 0) }))
-      .filter((item) => item.quantity > 0);
-    const items = (catalog.items || [])
-      .map((item) => ({ id: item.id, quantity: Number(nextQuantities[`item:${item.id}`] || 0) }))
-      .filter((item) => item.quantity > 0);
+    const tickets = (catalog.tickets || []).map((item) => ({ id: item.id, quantity: Number(nextQuantities[`ticket:${item.id}`] || 0) })).filter((item) => item.quantity > 0);
+    const items = (catalog.items || []).map((item) => ({ id: item.id, quantity: Number(nextQuantities[`item:${item.id}`] || 0) })).filter((item) => item.quantity > 0);
 
     if (!tickets.length && !items.length) {
       safeRemoveSessionItem(checkoutStorageKey(activeSlug));
@@ -150,12 +139,7 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
     trackCommerce("event_purchase_quantity_changed", {
       label: kind === "ticket" ? "Quantidade de ingresso alterada" : "Quantidade de item alterada",
       target: activeSlug,
-      metadata: {
-        event_id: activeEventId,
-        item_type: kind,
-        item_id: Number(id),
-        quantity: parsed,
-      },
+      metadata: { event_id: activeEventId, item_type: kind, item_id: Number(id), quantity: parsed },
     });
   };
 
@@ -211,11 +195,7 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
       trackCommerce("event_purchase_login_required", {
         label: "Seleção preservada antes do login",
         target: activeSlug,
-        metadata: {
-          event_id: activeEventId,
-          amount: Number(total.toFixed(2)),
-          quantity: selectedQuantity,
-        },
+        metadata: { event_id: activeEventId, amount: Number(total.toFixed(2)), quantity: selectedQuantity },
       });
       onLoginRequired?.(checkoutPath);
       return;
@@ -240,11 +220,7 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
     trackCommerce("event_purchase_selection_resumed", {
       label: "Compra retomada após restaurar seleção",
       target: activeSlug,
-      metadata: {
-        event_id: activeEventId,
-        amount: Number(total.toFixed(2)),
-        quantity: selectedQuantity,
-      },
+      metadata: { event_id: activeEventId, amount: Number(total.toFixed(2)), quantity: selectedQuantity },
     });
     continueToCheckout();
   };
@@ -275,13 +251,17 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
     {(catalog.tickets || []).map((ticket) => {
       const maxQuantity = resolveCheckoutQuantity(ticket, 20, 20);
       const soldOut = maxQuantity <= 0;
-      return <div className={`cut-ticket-option ${soldOut ? "opacity-50" : ""}`} key={`paid-ticket-${ticket.id}`} aria-disabled={soldOut}><div><span className="cut-ticket-kicker">Ingresso · {dateLabel(catalog?.event?.start_date)}</span><strong>{ticket.name}</strong><span>{money(ticket.price)}</span><small className={soldOut ? "text-secondary" : "text-success"}>{stockLabel(ticket, soldOut, 20)}</small></div>{soldOut ? <Button variant="secondary" disabled>{ticket.expired ? "Encerrado" : "Esgotado"}</Button> : <QuantityStepper kind="ticket" id={ticket.id} value={Number(quantities[`ticket:${ticket.id}`] || 0)} max={maxQuantity} label={ticket.name} />}</div>;
+      const quantity = Number(quantities[`ticket:${ticket.id}`] || 0);
+      const subtotal = Number(ticket.price || 0) * quantity;
+      return <div className={`cut-ticket-option ${soldOut ? "opacity-50" : ""}`} key={`paid-ticket-${ticket.id}`} aria-disabled={soldOut}><div><span className="cut-ticket-kicker">Ingresso · {dateLabel(catalog?.event?.start_date)}</span><strong>{ticket.name}</strong><span>{quantity > 0 ? `${quantity} × ${money(ticket.price)} = ${money(subtotal)}` : money(ticket.price)}</span><small className={soldOut ? "text-secondary" : "text-success"}>{stockLabel(ticket, soldOut, 20)}</small></div>{soldOut ? <Button variant="secondary" disabled>{ticket.expired ? "Encerrado" : "Esgotado"}</Button> : <QuantityStepper kind="ticket" id={ticket.id} value={quantity} max={maxQuantity} label={ticket.name} />}</div>;
     })}
 
     {(catalog.items || []).map((item) => {
       const maxQuantity = resolveCheckoutQuantity(item, 50, 50);
       const soldOut = maxQuantity <= 0;
-      return <div className={`cut-ticket-option ${soldOut ? "opacity-50" : ""}`} key={`event-item-${item.id}`} aria-disabled={soldOut}><div><span className="cut-ticket-kicker">Retirada no evento</span><strong>{item.name}</strong><span>{money(item.price)}</span>{item.description && <small>{item.description}</small>}<small className={soldOut ? "text-secondary" : "text-success"}>{stockLabel(item, soldOut, 50)}</small></div>{soldOut ? <Button variant="secondary" disabled>{item.expired ? "Encerrado" : "Esgotado"}</Button> : <QuantityStepper kind="item" id={item.id} value={Number(quantities[`item:${item.id}`] || 0)} max={maxQuantity} label={item.name} />}</div>;
+      const quantity = Number(quantities[`item:${item.id}`] || 0);
+      const subtotal = Number(item.price || 0) * quantity;
+      return <div className={`cut-ticket-option ${soldOut ? "opacity-50" : ""}`} key={`event-item-${item.id}`} aria-disabled={soldOut}><div><span className="cut-ticket-kicker">Retirada no evento</span><strong>{item.name}</strong><span>{quantity > 0 ? `${quantity} × ${money(item.price)} = ${money(subtotal)}` : money(item.price)}</span>{item.description && <small>{item.description}</small>}<small className={soldOut ? "text-secondary" : "text-success"}>{stockLabel(item, soldOut, 50)}</small></div>{soldOut ? <Button variant="secondary" disabled>{item.expired ? "Encerrado" : "Esgotado"}</Button> : <QuantityStepper kind="item" id={item.id} value={quantity} max={maxQuantity} label={item.name} />}</div>;
     })}
 
     <div className="d-flex align-items-center justify-content-between mt-3"><strong>{selectedQuantity > 0 ? `${selectedQuantity} selecionado${selectedQuantity === 1 ? "" : "s"}` : "Total"}</strong><strong>{money(total)}</strong></div>
