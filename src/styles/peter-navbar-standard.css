@@ -21,6 +21,52 @@
   gap: 16px;
 }
 
+/*
+ * Usuários com várias áreas (principalmente Super Admin) podem ter muitos
+ * atalhos simultâneos. No desktop, usamos a largura útil da viewport e
+ * isolamos navegação/conta/ecossistema em colunas próprias. Assim nenhum
+ * bloco invade o outro e o menu continua utilizável em resoluções menores.
+ */
+@media (min-width: 992px) {
+  .cut-capability-nav .cut-navbar__inner {
+    width: calc(100% - 40px);
+    max-width: 1680px !important;
+    gap: 10px;
+  }
+
+  .cut-capability-nav .navbar-collapse {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .cut-capability-nav .cut-navbar__links {
+    width: 100%;
+    min-width: 0;
+    margin-inline: 0 !important;
+    justify-content: center;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: visible;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+  }
+
+  .cut-capability-nav .cut-navbar__links::-webkit-scrollbar {
+    display: none;
+  }
+
+  .cut-capability-nav .cut-navbar__account,
+  .cut-capability-nav .cut-navbar__ecosystem-slot {
+    position: relative;
+    z-index: 2;
+    flex: 0 0 auto;
+    min-width: 0;
+  }
+}
+
 .cut-navbar__brand {
   min-width: 0;
   margin-right: 12px !important;
@@ -117,10 +163,49 @@
   transform: none !important;
 }
 
+@media (max-width: 1599.98px) and (min-width: 1200px) {
+  .cut-capability-nav .cut-navbar__inner {
+    width: calc(100% - 28px);
+    gap: 7px;
+  }
+
+  .cut-capability-nav .cut-navbar__brand {
+    margin-right: 4px !important;
+  }
+
+  .cut-capability-nav .cut-navbar__brand small {
+    display: none;
+  }
+
+  .cut-capability-nav .cut-navbar__links {
+    gap: 0;
+  }
+
+  .cut-capability-nav .cut-navbar__links .nav-link,
+  .cut-capability-nav .cut-navbar__links .dropdown-toggle {
+    padding-inline: 7px !important;
+    font-size: .76rem;
+  }
+
+  .cut-capability-nav .cut-navbar__user {
+    max-width: 150px;
+  }
+
+  .cut-capability-nav .cut-navbar__user small {
+    display: none;
+  }
+}
+
 @media (max-width: 1199.98px) and (min-width: 992px) {
   .cut-navbar__inner {
     width: min(100% - 24px, 1140px);
     gap: 8px;
+  }
+
+  .cut-capability-nav .cut-navbar__inner {
+    width: calc(100% - 20px);
+    max-width: none !important;
+    gap: 6px;
   }
 
   .cut-navbar__brand {
@@ -131,6 +216,10 @@
     display: none;
   }
 
+  .cut-capability-nav .cut-navbar__brand > div {
+    display: none;
+  }
+
   .cut-navbar__links .nav-link,
   .cut-navbar__links .dropdown-toggle {
     gap: 6px;
@@ -138,8 +227,27 @@
     font-size: .77rem;
   }
 
+  .cut-capability-nav .cut-navbar__links .nav-link,
+  .cut-capability-nav .cut-navbar__links .dropdown-toggle {
+    padding-inline: 6px !important;
+    font-size: .72rem;
+  }
+
   .cut-navbar__user > span:last-child {
     max-width: 116px;
+  }
+
+  .cut-capability-nav .cut-navbar__user {
+    max-width: 58px;
+    grid-template-columns: 38px;
+  }
+
+  .cut-capability-nav .cut-navbar__user > span:last-child {
+    display: none;
+  }
+
+  .cut-capability-nav .cut-navbar__account .dropdown-toggle::after {
+    margin-left: 2px;
   }
 }
 
