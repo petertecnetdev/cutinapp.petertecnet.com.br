@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect, useState } from "react";
+import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Alert, Button, Card, Container, Form } from "react-bootstrap";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
@@ -17,6 +17,7 @@ export default function FeedPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useContext(AuthContext);
+  const feedRequestRef = useRef(0);
   const [communityActivity, setCommunityActivity] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -25,23 +26,35 @@ export default function FeedPage() {
   const [publishing, setPublishing] = useState(false);
   const [replyTo, setReplyTo] = useState(null);
   const [replyBody, setReplyBody] = useState("");
-  const [busyPost, setBusyPost] = useState(null);
+  const [busyPosts, setBusyPosts] = useState(() => new Set());
   const [shareNotice, setShareNotice] = useState("");
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async ({ showSkeleton = false } = {}) => {
+    const requestId = ++feedRequestRef.current;
+    if (showSkeleton) setLoading(true);
     setError("");
     try {
       const response = await cutinappService.feed({ page: 1, per_page: 12 });
+      if (requestId !== feedRequestRef.current) return;
       setCommunityActivity(Array.isArray(response.community_activity) ? response.community_activity : []);
     } catch (err) {
+      if (requestId !== feedRequestRef.current) return;
       setError(err?.response?.data?.message || err?.message || "Não foi possível montar seu feed agora.");
     } finally {
-      setLoading(false);
+      if (showSkeleton && requestId === feedRequestRef.current) setLoading(false);
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load({ showSkeleton: true }); }, [load]);
+
+  const setPostBusy = (postId, busy) => {
+    setBusyPosts((current) => {
+      const next = new Set(current);
+      if (busy) next.add(postId);
+      else next.delete(postId);
+      return next;
+    });
+  };
 
   const requireLogin = () => {
     if (user) return true;
@@ -66,10 +79,10 @@ export default function FeedPage() {
   };
 
   const publishReply = async (post) => {
-    if (!requireLogin()) return;
+    if (!requireLogin() || busyPosts.has(post.id)) return;
     const body = replyBody.trim();
     if (body.length < 2) return;
-    setBusyPost(post.id); setError("");
+    setPostBusy(post.id, true); setError("");
     try {
       const payload = { body, parent_id: post.id };
       if (Number(post.event_id) > 0) await cutinappService.createEventPost(Number(post.event_id), payload);
@@ -78,19 +91,19 @@ export default function FeedPage() {
       await load();
     } catch (err) {
       setError(err?.response?.data?.message || err?.message || "Não foi possível comentar agora.");
-    } finally { setBusyPost(null); }
+    } finally { setPostBusy(post.id, false); }
   };
 
   const toggleLike = async (post) => {
-    if (!requireLogin()) return;
-    setBusyPost(post.id);
+    if (!requireLogin() || busyPosts.has(post.id)) return;
+    setPostBusy(post.id, true);
     try {
       if (post.is_liked) await cutinappService.unlikeEventPost(post.id);
       else await cutinappService.likeEventPost(post.id);
       await load();
     } catch (err) {
       setError(err?.response?.data?.message || err?.message || "Não foi possível atualizar a curtida.");
-    } finally { setBusyPost(null); }
+    } finally { setPostBusy(post.id, false); }
   };
 
   const sharePost = async (post) => {
@@ -140,12 +153,12 @@ export default function FeedPage() {
 
     <p className="cut-feed-post__body">{post.body}</p>
     <div className="cut-feed-post__actions">
-      <button type="button" className={post.is_liked ? "active" : ""} disabled={busyPost === post.id} onClick={() => toggleLike(post)}><i className={`${post.is_liked ? "fa-solid" : "fa-regular"} fa-heart`} /><span>{post.likes_count || 0}</span><b>Curtir</b></button>
+      <button type="button" className={post.is_liked ? "active" : ""} disabled={busyPosts.has(post.id)} onClick={() => toggleLike(post)}><i className={`${post.is_liked ? "fa-solid" : "fa-regular"} fa-heart`} /><span>{post.likes_count || 0}</span><b>Curtir</b></button>
       <button type="button" onClick={() => openReply(post)}><i className="fa-regular fa-comment-dots" /><span>{post.comments_count || post.replies?.length || 0}</span><b>Comentar</b></button>
       <button type="button" onClick={() => sharePost(post)}><i className="fa-solid fa-share-nodes" /><b>Compartilhar</b></button>
       {post.event_slug && <button type="button" onClick={() => navigate(`/event/${post.event_slug}#comunidade`)}><i className="fa-regular fa-comments" /><b>Ver conversa</b></button>}
     </div>
-    {replyTo === post.id && <div className="cut-feed-replybox"><Form.Control as="textarea" rows={2} maxLength={3000} value={replyBody} onChange={(e) => setReplyBody(e.target.value)} placeholder={`Comentar na publicação de ${authorName(post)}...`} /><div><Button variant="outline-light" size="sm" onClick={() => { setReplyTo(null); setReplyBody(""); }}>Cancelar</Button><Button size="sm" disabled={busyPost === post.id || replyBody.trim().length < 2} onClick={() => publishReply(post)}>{busyPost === post.id ? "Publicando..." : "Comentar"}</Button></div></div>}
+    {replyTo === post.id && <div className="cut-feed-replybox"><Form.Control as="textarea" rows={2} maxLength={3000} value={replyBody} onChange={(e) => setReplyBody(e.target.value)} placeholder={`Comentar na publicação de ${authorName(post)}...`} /><div><Button variant="outline-light" size="sm" onClick={() => { setReplyTo(null); setReplyBody(""); }}>Cancelar</Button><Button size="sm" disabled={busyPosts.has(post.id) || replyBody.trim().length < 2} onClick={() => publishReply(post)}>{busyPosts.has(post.id) ? "Publicando..." : "Comentar"}</Button></div></div>}
     {Array.isArray(post.replies) && post.replies.length > 0 && <div className="cut-feed-thread">{post.replies.map((reply) => renderPost(reply, depth + 1))}</div>}
   </article>;
 
