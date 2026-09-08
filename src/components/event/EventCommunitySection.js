@@ -4,6 +4,7 @@ import { Alert, Button, Form, Modal } from "react-bootstrap";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import cutinappService from "../../services/CutinappService";
+import EventRideSection from "./EventRideSection";
 
 const REPORT_REASONS = [
   ["fraud", "Fraude ou golpe"],
@@ -145,47 +146,50 @@ export default function EventCommunitySection({ event, isOwner = false }) {
     style={{ appearance: "none", border: 0, padding: 0, background: "transparent", color: "inherit", font: "inherit", fontWeight: 700, cursor: "pointer", textAlign: "left" }}
   >{displayName(item)}</button>;
 
-  return <section className="cut-community" id="comunidade">
-    <div className="cut-community__head">
-      <div><span className="cut-eyebrow">Comunidade</span><h2>Conversa sobre o evento</h2><p>Combine encontros, tire dúvidas e compartilhe expectativas com quem também está acompanhando.</p></div>
-      <Button variant="outline-danger" className="cut-report-button" onClick={() => user ? setReportOpen(true) : login()}><i className="fa-regular fa-flag me-2" />Denunciar evento</Button>
-    </div>
-
-    {message && <Alert variant={message.type} dismissible onClose={() => setMessage(null)}>{message.text}</Alert>}
-
-    <div className="cut-rating-panel">
-      <div><strong>{rating.total ? Number(rating.average).toFixed(1) : "Novo"}</strong><span>{rating.total ? `${rating.total} avaliação${rating.total === 1 ? "" : "ões"}` : "Seja a primeira pessoa a avaliar"}</span></div>
-      <div className="cut-rating-stars" aria-label="Avaliar evento de 1 a 5 estrelas">{stars.map((value) => <button key={value} type="button" disabled={busy} className={Number(rating.mine) >= value ? "active" : ""} onClick={() => rate(value)} aria-label={`${value} estrela${value > 1 ? "s" : ""}`}><i className="fa-solid fa-star" /></button>)}</div>
-      {rating.mine && <small>Sua nota: {rating.mine}/5</small>}
-    </div>
-
-    <div className="cut-community__composer">
-      {user ? <button type="button" className="cut-community-avatar" onClick={() => navigate("/profile")} aria-label="Abrir meu perfil" title="Abrir meu perfil" style={{ border: 0, padding: 0, cursor: "pointer" }}>{user.avatar ? <img src={user.avatar} alt={displayName(user)} /> : initials(user)}</button> : <div className="cut-community-avatar"><i className="fa-regular fa-user" /></div>}
-      <div className="cut-community__composer-body">
-        <Form.Control as="textarea" rows={3} value={body} maxLength={3000} onChange={(e) => setBody(e.target.value)} placeholder={user ? "Publique algo sobre este evento..." : "Entre para participar da conversa"} onFocus={() => { if (!user) login(); }} />
-        <div><small>{body.length}/3000</small><Button disabled={busy || body.trim().length < 2} onClick={() => publish()}>{busy ? "Publicando..." : "Publicar"}</Button></div>
+  return <>
+    <EventRideSection event={event} />
+    <section className="cut-community" id="comunidade">
+      <div className="cut-community__head">
+        <div><span className="cut-eyebrow">Comunidade</span><h2>Conversa sobre o evento</h2><p>Combine encontros, tire dúvidas e compartilhe expectativas com quem também está acompanhando.</p></div>
+        <Button variant="outline-danger" className="cut-report-button" onClick={() => user ? setReportOpen(true) : login()}><i className="fa-regular fa-flag me-2" />Denunciar evento</Button>
       </div>
-    </div>
 
-    {loading ? <div className="cut-community-loading"><span /><span /><span /></div> : posts.length === 0 ? <div className="cut-community-empty"><i className="fa-regular fa-comments" /><strong>A conversa ainda não começou</strong><span>Seja a primeira pessoa a publicar algo sobre este evento.</span></div> : <div className="cut-community-list">{posts.map((post) => <article className="cut-community-post" key={post.id}>
-      {avatarButton(post)}
-      <div className="cut-community-post__content">
-        <header><div>{nameButton(post)}{post.is_pinned ? <span className="cut-community-pin"><i className="fa-solid fa-thumbtack" /> Destaque</span> : null}</div><time>{fmt(post.created_at)}{post.edited_at ? " · editado" : ""}</time></header>
-        <p>{post.body}</p>
-        <div className="cut-community-post__actions"><button type="button" className={post.is_liked ? "active" : ""} onClick={() => toggleLike(post)}><i className={`${post.is_liked ? "fa-solid" : "fa-regular"} fa-heart`} /> {post.likes_count || 0}</button><button type="button" onClick={() => user ? setReplyTo(replyTo === post.id ? null : post.id) : login()}><i className="fa-regular fa-comment" /> {post.comments_count || 0} Responder</button>{user && (Number(post.user_id) === Number(user.id) || isOwner) && <button type="button" className="danger" onClick={() => remove(post.id)}><i className="fa-regular fa-trash-can" /> Remover</button>}</div>
-        {replyTo === post.id && <div className="cut-community-replybox"><Form.Control as="textarea" rows={2} value={replyBody} maxLength={3000} onChange={(e) => setReplyBody(e.target.value)} placeholder="Escreva sua resposta..." /><div><Button variant="outline-light" size="sm" onClick={() => { setReplyTo(null); setReplyBody(""); }}>Cancelar</Button><Button size="sm" disabled={busy || replyBody.trim().length < 2} onClick={() => publish(post.id)}>Responder</Button></div></div>}
-        {post.replies?.length > 0 && <div className="cut-community-replies">{post.replies.map((reply) => <div className="cut-community-reply" key={reply.id}>{avatarButton(reply, true)}<div><header>{nameButton(reply)}<time>{fmt(reply.created_at)}</time></header><p>{reply.body}</p><div className="cut-community-post__actions"><button type="button" className={reply.is_liked ? "active" : ""} onClick={() => toggleLike(reply)}><i className={`${reply.is_liked ? "fa-solid" : "fa-regular"} fa-heart`} /> {reply.likes_count || 0}</button>{user && (Number(reply.user_id) === Number(user.id) || isOwner) && <button type="button" className="danger" onClick={() => remove(reply.id)}>Remover</button>}</div></div></div>)}</div>}
+      {message && <Alert variant={message.type} dismissible onClose={() => setMessage(null)}>{message.text}</Alert>}
+
+      <div className="cut-rating-panel">
+        <div><strong>{rating.total ? Number(rating.average).toFixed(1) : "Novo"}</strong><span>{rating.total ? `${rating.total} avaliação${rating.total === 1 ? "" : "ões"}` : "Seja a primeira pessoa a avaliar"}</span></div>
+        <div className="cut-rating-stars" aria-label="Avaliar evento de 1 a 5 estrelas">{stars.map((value) => <button key={value} type="button" disabled={busy} className={Number(rating.mine) >= value ? "active" : ""} onClick={() => rate(value)} aria-label={`${value} estrela${value > 1 ? "s" : ""}`}><i className="fa-solid fa-star" /></button>)}</div>
+        {rating.mine && <small>Sua nota: {rating.mine}/5</small>}
       </div>
-    </article>)}</div>}
 
-    {community?.posts?.current_page < community?.posts?.last_page && <div className="cut-community-pagination"><Button variant="outline-light" disabled={moreLoading} onClick={() => load((community.posts.current_page || 1) + 1, true)}>{moreLoading ? "Carregando..." : "Carregar mais publicações"}</Button></div>}
+      <div className="cut-community__composer">
+        {user ? <button type="button" className="cut-community-avatar" onClick={() => navigate("/profile")} aria-label="Abrir meu perfil" title="Abrir meu perfil" style={{ border: 0, padding: 0, cursor: "pointer" }}>{user.avatar ? <img src={user.avatar} alt={displayName(user)} /> : initials(user)}</button> : <div className="cut-community-avatar"><i className="fa-regular fa-user" /></div>}
+        <div className="cut-community__composer-body">
+          <Form.Control as="textarea" rows={3} value={body} maxLength={3000} onChange={(e) => setBody(e.target.value)} placeholder={user ? "Publique algo sobre este evento..." : "Entre para participar da conversa"} onFocus={() => { if (!user) login(); }} />
+          <div><small>{body.length}/3000</small><Button disabled={busy || body.trim().length < 2} onClick={() => publish()}>{busy ? "Publicando..." : "Publicar"}</Button></div>
+        </div>
+      </div>
 
-    <Modal show={reportOpen} onHide={() => setReportOpen(false)} centered className="cut-modal">
-      <Modal.Header closeButton><Modal.Title>Denunciar evento</Modal.Title></Modal.Header>
-      <Modal.Body><p className="text-secondary">Use este canal para conteúdos, informações ou situações que possam prejudicar participantes ou a plataforma.</p><Form.Group className="mb-3"><Form.Label>Motivo *</Form.Label><Form.Select value={report.reason} onChange={(e) => setReport((current) => ({ ...current, reason: e.target.value }))}><option value="">Selecione</option>{REPORT_REASONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Form.Select></Form.Group><Form.Group><Form.Label>Detalhes</Form.Label><Form.Control as="textarea" rows={5} maxLength={3000} value={report.details} onChange={(e) => setReport((current) => ({ ...current, details: e.target.value }))} placeholder="Explique o problema. Não inclua dados pessoais desnecessários." /><Form.Text>{report.details.length}/3000</Form.Text></Form.Group></Modal.Body>
-      <Modal.Footer><Button variant="outline-light" onClick={() => setReportOpen(false)}>Cancelar</Button><Button variant="danger" disabled={busy || !report.reason} onClick={sendReport}>{busy ? "Enviando..." : "Enviar denúncia"}</Button></Modal.Footer>
-    </Modal>
-  </section>;
+      {loading ? <div className="cut-community-loading"><span /><span /><span /></div> : posts.length === 0 ? <div className="cut-community-empty"><i className="fa-regular fa-comments" /><strong>A conversa ainda não começou</strong><span>Seja a primeira pessoa a publicar algo sobre este evento.</span></div> : <div className="cut-community-list">{posts.map((post) => <article className="cut-community-post" key={post.id}>
+        {avatarButton(post)}
+        <div className="cut-community-post__content">
+          <header><div>{nameButton(post)}{post.is_pinned ? <span className="cut-community-pin"><i className="fa-solid fa-thumbtack" /> Destaque</span> : null}</div><time>{fmt(post.created_at)}{post.edited_at ? " · editado" : ""}</time></header>
+          <p>{post.body}</p>
+          <div className="cut-community-post__actions"><button type="button" className={post.is_liked ? "active" : ""} onClick={() => toggleLike(post)}><i className={`${post.is_liked ? "fa-solid" : "fa-regular"} fa-heart`} /> {post.likes_count || 0}</button><button type="button" onClick={() => user ? setReplyTo(replyTo === post.id ? null : post.id) : login()}><i className="fa-regular fa-comment" /> {post.comments_count || 0} Responder</button>{user && (Number(post.user_id) === Number(user.id) || isOwner) && <button type="button" className="danger" onClick={() => remove(post.id)}><i className="fa-regular fa-trash-can" /> Remover</button>}</div>
+          {replyTo === post.id && <div className="cut-community-replybox"><Form.Control as="textarea" rows={2} value={replyBody} maxLength={3000} onChange={(e) => setReplyBody(e.target.value)} placeholder="Escreva sua resposta..." /><div><Button variant="outline-light" size="sm" onClick={() => { setReplyTo(null); setReplyBody(""); }}>Cancelar</Button><Button size="sm" disabled={busy || replyBody.trim().length < 2} onClick={() => publish(post.id)}>Responder</Button></div></div>}
+          {post.replies?.length > 0 && <div className="cut-community-replies">{post.replies.map((reply) => <div className="cut-community-reply" key={reply.id}>{avatarButton(reply, true)}<div><header>{nameButton(reply)}<time>{fmt(reply.created_at)}</time></header><p>{reply.body}</p><div className="cut-community-post__actions"><button type="button" className={reply.is_liked ? "active" : ""} onClick={() => toggleLike(reply)}><i className={`${reply.is_liked ? "fa-solid" : "fa-regular"} fa-heart`} /> {reply.likes_count || 0}</button>{user && (Number(reply.user_id) === Number(user.id) || isOwner) && <button type="button" className="danger" onClick={() => remove(reply.id)}>Remover</button>}</div></div></div>)}</div>}
+        </div>
+      </article>)}</div>}
+
+      {community?.posts?.current_page < community?.posts?.last_page && <div className="cut-community-pagination"><Button variant="outline-light" disabled={moreLoading} onClick={() => load((community.posts.current_page || 1) + 1, true)}>{moreLoading ? "Carregando..." : "Carregar mais publicações"}</Button></div>}
+
+      <Modal show={reportOpen} onHide={() => setReportOpen(false)} centered className="cut-modal">
+        <Modal.Header closeButton><Modal.Title>Denunciar evento</Modal.Title></Modal.Header>
+        <Modal.Body><p className="text-secondary">Use este canal para conteúdos, informações ou situações que possam prejudicar participantes ou a plataforma.</p><Form.Group className="mb-3"><Form.Label>Motivo *</Form.Label><Form.Select value={report.reason} onChange={(e) => setReport((current) => ({ ...current, reason: e.target.value }))}><option value="">Selecione</option>{REPORT_REASONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Form.Select></Form.Group><Form.Group><Form.Label>Detalhes</Form.Label><Form.Control as="textarea" rows={5} maxLength={3000} value={report.details} onChange={(e) => setReport((current) => ({ ...current, details: e.target.value }))} placeholder="Explique o problema. Não inclua dados pessoais desnecessários." /><Form.Text>{report.details.length}/3000</Form.Text></Form.Group></Modal.Body>
+        <Modal.Footer><Button variant="outline-light" onClick={() => setReportOpen(false)}>Cancelar</Button><Button variant="danger" disabled={busy || !report.reason} onClick={sendReport}>{busy ? "Enviando..." : "Enviar denúncia"}</Button></Modal.Footer>
+      </Modal>
+    </section>
+  </>;
 }
 
 EventCommunitySection.propTypes = {
