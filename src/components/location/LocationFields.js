@@ -15,37 +15,41 @@ export default function LocationFields({ value, onChange, required = false, show
   const [loadingCep, setLoadingCep] = useState(false);
   const [notice, setNotice] = useState("");
   const timer = useRef(null);
+  const cityRequestSequence = useRef(0);
   const set = (field, next) => onChange({ ...value, [field]: next });
 
-  useEffect(() => () => clearTimeout(timer.current), []);
+  useEffect(() => () => {
+    clearTimeout(timer.current);
+    cityRequestSequence.current += 1;
+  }, []);
 
   const searchCity = (text) => {
     onChange({ ...value, city: text, city_id: "", uf: "" });
     setCities([]);
     clearTimeout(timer.current);
     setNotice("");
+    const sequence = cityRequestSequence.current + 1;
+    cityRequestSequence.current = sequence;
     if (text.trim().length < 2) return;
 
     timer.current = setTimeout(async () => {
       setLoadingCities(true);
       try {
         const result = await cutinappService.locationCities("", text.trim());
+        if (sequence !== cityRequestSequence.current) return;
         setCities((Array.isArray(result) ? result : []).filter((city) => cityId(city) && cityName(city)));
       } catch {
-        setNotice("Não foi possível consultar as cidades brasileiras agora.");
+        if (sequence !== cityRequestSequence.current) return;
+        setNotice("A consulta de cidades está temporariamente indisponível. Você pode continuar: a localização é opcional e poderá ser confirmada depois.");
       } finally {
-        setLoadingCities(false);
+        if (sequence === cityRequestSequence.current) setLoadingCities(false);
       }
-    }, 300);
+    }, 350);
   };
 
   const chooseCity = (city) => {
-    onChange({
-      ...value,
-      city: cityName(city),
-      city_id: String(cityId(city)),
-      uf: cityUf(city),
-    });
+    cityRequestSequence.current += 1;
+    onChange({ ...value, city: cityName(city), city_id: String(cityId(city)), uf: cityUf(city) });
     setCities([]);
     setNotice("");
   };
@@ -69,7 +73,7 @@ export default function LocationFields({ value, onChange, required = false, show
         city_id: resolvedCityId ? String(resolvedCityId) : value.city_id,
       });
     } catch {
-      setNotice("Não conseguimos consultar o CEP. Confira o número ou preencha o endereço e selecione a cidade pela lista oficial.");
+      setNotice("Não conseguimos consultar o CEP agora. A produção pode ser criada normalmente; complete ou confirme o endereço depois.");
     } finally {
       setLoadingCep(false);
     }
@@ -101,7 +105,7 @@ export default function LocationFields({ value, onChange, required = false, show
               </button>)}
             </div>}
           </div>
-          {value.city && !value.city_id && <Form.Text className="text-warning">Selecione uma opção da lista oficial. Se houver uma correspondência exata, a Cutinapp também tentará confirmá-la automaticamente ao salvar.</Form.Text>}
+          {value.city && !value.city_id && <Form.Text className="text-warning">Selecione uma opção da lista oficial quando possível. Se a consulta falhar, este campo não bloqueia a criação da produção.</Form.Text>}
         </Form.Group>
       </Col>
       <Col md={3}>
