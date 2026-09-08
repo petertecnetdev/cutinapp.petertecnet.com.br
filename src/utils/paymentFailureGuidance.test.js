@@ -121,6 +121,19 @@ describe("paymentFailureGuidance", () => {
     expect(result.message).toContain("só então tente novamente");
   });
 
+  test("stops a duplicate-payment rejection from sending the buyer to another payment method", () => {
+    const result = paymentFailureGuidance({
+      method: "card",
+      pixAvailable: true,
+      payment: { provider_payload: { status_detail: "cc_rejected_duplicated_payment" } },
+    });
+    expect(result.reason).toBe("duplicate_payment");
+    expect(result.title).toContain("pagamento semelhante");
+    expect(result.message).toContain("Não tente pagar novamente com outro cartão ou PIX agora");
+    expect(result.message).toContain("Verifique o status da compra");
+    expect(result.message).not.toContain("Recomendado: tente PIX");
+  });
+
   test("does not recommend repeating identical data after a blacklist security block", () => {
     const result = paymentFailureGuidance({
       method: "card",
