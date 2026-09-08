@@ -6,6 +6,11 @@ const amount = (value) => {
 };
 
 const normalizedText = (value) => String(value || "").trim().toLowerCase();
+const boundedRate = (value, fallback) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(1, Math.max(0, parsed));
+};
 
 const attributionForOrder = (order = {}) => {
   const metadata = order.metadata || {};
@@ -24,6 +29,9 @@ const attributionForOrder = (order = {}) => {
 export const summarizeRevenueByChannel = (orders = [], options = {}) => {
   const grouped = new Map();
   const minNetTakeRate = amount(options.minNetTakeRate ?? 2);
+  const reinvestmentSafetyFactor = boundedRate(options.reinvestmentSafetyFactor, 0.5);
+  const minOrdersForScale = Math.max(1, Math.floor(amount(options.minOrdersForScale ?? 5)));
+  const minTakeRateGapForScale = amount(options.minTakeRateGapForScale ?? 2);
 
   (Array.isArray(orders) ? orders : [])
     .filter((order) => normalizedText(order?.status || order?.payment_status) === "paid")
@@ -68,6 +76,16 @@ export const summarizeRevenueByChannel = (orders = [], options = {}) => {
       const minimumNetRevenue = channel.gmv * (minNetTakeRate / 100);
       const netRevenueHeadroomAboveFloor = Math.max(0, netRevenue - minimumNetRevenue);
       const netTakeRateGap = netTakeRate - minNetTakeRate;
+      const safeReinvestmentBudget = netRevenueHeadroomAboveFloor * reinvestmentSafetyFactor;
+      const safeReinvestmentPerOrder = channel.paidOrders > 0 ? safeReinvestmentBudget / channel.paidOrders : 0;
+      const evidenceStatus = channel.paidOrders >= minOrdersForScale ? "sufficient" : "limited";
+      const recommendedAction = netTakeRate < minNetTakeRate
+        ? "reduce_cost"
+        : evidenceStatus === "limited"
+          ? "test"
+          : netTakeRateGap >= minTakeRateGapForScale && safeReinvestmentBudget > 0
+            ? "scale"
+            : "maintain";
 
       return {
         ...channel,
@@ -84,6 +102,11 @@ export const summarizeRevenueByChannel = (orders = [], options = {}) => {
         additionalCostCapacityPerOrder: channel.paidOrders > 0 ? netRevenueHeadroomAboveFloor / channel.paidOrders : 0,
         netTakeRateGap,
         economicStatus: netTakeRate >= minNetTakeRate ? "healthy" : "below_floor",
+        reinvestmentSafetyFactor,
+        safeReinvestmentBudget,
+        safeReinvestmentPerOrder,
+        evidenceStatus,
+        recommendedAction,
       };
     })
     .sort((a, b) => b.netRevenue - a.netRevenue || b.netTakeRate - a.netTakeRate || b.gmv - a.gmv);
