@@ -1,4 +1,4 @@
-import { findPendingCheckout, isResumePromptRoute } from "./checkoutResumePrompt";
+import { findPendingCheckout, isResumePromptRoute, resumePromptSlugForRoute } from "./checkoutResumePrompt";
 import { CHECKOUT_RECOVERY_TTL_MS } from "./checkoutRecovery";
 
 const storageOf = (entries = {}) => {
@@ -11,12 +11,15 @@ const storageOf = (entries = {}) => {
 };
 
 describe("checkout resume prompt", () => {
-  test("shows only on discovery entry routes", () => {
+  test("shows on discovery routes and on a specific event page, but never inside checkout", () => {
     expect(isResumePromptRoute("/")).toBe(true);
     expect(isResumePromptRoute("/home")).toBe(true);
     expect(isResumePromptRoute("/event")).toBe(true);
-    expect(isResumePromptRoute("/event/festival-x")).toBe(false);
+    expect(isResumePromptRoute("/event/festival-x")).toBe(true);
+    expect(isResumePromptRoute("/event/festival-x/")).toBe(true);
     expect(isResumePromptRoute("/checkout/festival-x")).toBe(false);
+    expect(resumePromptSlugForRoute("/event/festival-x")).toBe("festival-x");
+    expect(resumePromptSlugForRoute("/home")).toBeNull();
   });
 
   test("finds a valid pending selection without trusting stale prices", () => {
@@ -37,6 +40,29 @@ describe("checkout resume prompt", () => {
       hasOrder: false,
       source: "session",
     });
+  });
+
+  test("filters the event detail prompt to the event currently being viewed", () => {
+    const now = new Date("2030-11-01T12:00:00-03:00").getTime();
+    const storage = storageOf({
+      "cutinapp_checkout_other-event": JSON.stringify({
+        eventId: 8,
+        eventDate: "2030-11-02T20:00:00-03:00",
+        tickets: [{ id: 1, quantity: 3 }],
+      }),
+      "cutinapp_checkout_festival-x": JSON.stringify({
+        eventId: 7,
+        eventDate: "2030-11-20T20:00:00-03:00",
+        tickets: [{ id: 2, quantity: 1 }],
+      }),
+    });
+
+    expect(findPendingCheckout(storage, now, null, "festival-x")).toMatchObject({
+      slug: "festival-x",
+      eventId: 7,
+      quantity: 1,
+    });
+    expect(findPendingCheckout(storage, now, null, "missing-event")).toBeNull();
   });
 
   test("ignores expired, empty and dismissed selections", () => {
@@ -84,6 +110,30 @@ describe("checkout resume prompt", () => {
       hasOrder: false,
       source: "recovery",
       savedAt: now - 30 * 60 * 1000,
+    });
+  });
+
+  test("filters persisted recovery to the current event without leaking another pending purchase", () => {
+    const now = new Date("2030-11-01T12:00:00-03:00").getTime();
+    const recoveryStorage = storageOf({
+      "cutinapp_checkout_recovery_other-event": JSON.stringify({
+        version: 1,
+        selection: { tickets: [{ id: 5, quantity: 2 }] },
+        orderPublicId: "ORD-OTHER",
+        savedAt: now - 5 * 60 * 1000,
+      }),
+      "cutinapp_checkout_recovery_festival-x": JSON.stringify({
+        version: 1,
+        selection: { tickets: [{ id: 6, quantity: 1 }] },
+        orderPublicId: null,
+        savedAt: now - 10 * 60 * 1000,
+      }),
+    });
+
+    expect(findPendingCheckout(storageOf(), now, recoveryStorage, "festival-x")).toMatchObject({
+      slug: "festival-x",
+      quantity: 1,
+      hasOrder: false,
     });
   });
 
