@@ -132,9 +132,21 @@ export const summarizeRevenueByChannel = (orders = [], options = {}) => {
           ? expectedGmvUpliftRate
           : (expectedGmvUpliftRate * (1 - historicalConfidence))
               + (observedGmvUpliftRate * historicalConfidence);
-      const projectedIncrementalGmv = calibratedExpectedGmvUpliftRate === null
+      const conservativeObservedGmvUpliftRate = expectedGmvUpliftRate === null || observedGmvUpliftRate === null
         ? null
-        : channel.gmv * (calibratedExpectedGmvUpliftRate / 100);
+        : Math.min(expectedGmvUpliftRate, observedGmvUpliftRate);
+      const conservativeExpectedGmvUpliftRate = expectedGmvUpliftRate === null
+        ? null
+        : conservativeObservedGmvUpliftRate === null
+          ? expectedGmvUpliftRate
+          : (expectedGmvUpliftRate * (1 - historicalConfidence))
+              + (conservativeObservedGmvUpliftRate * historicalConfidence);
+      const projectionDownsideGapRate = calibratedExpectedGmvUpliftRate === null || conservativeExpectedGmvUpliftRate === null
+        ? 0
+        : Math.max(0, calibratedExpectedGmvUpliftRate - conservativeExpectedGmvUpliftRate);
+      const projectedIncrementalGmv = conservativeExpectedGmvUpliftRate === null
+        ? null
+        : channel.gmv * (conservativeExpectedGmvUpliftRate / 100);
       const projectedIncrementalNetRevenue = projectedIncrementalGmv === null
         ? null
         : projectedIncrementalGmv * (netTakeRate / 100);
@@ -192,6 +204,8 @@ export const summarizeRevenueByChannel = (orders = [], options = {}) => {
         historicalConfidence,
         minOrdersForFullHistoricalConfidence,
         calibratedExpectedGmvUpliftRate,
+        conservativeExpectedGmvUpliftRate,
+        projectionDownsideGapRate,
         projectedIncrementalGmv,
         projectedIncrementalNetRevenue,
         projectedNetReturnAfterReinvestment,
