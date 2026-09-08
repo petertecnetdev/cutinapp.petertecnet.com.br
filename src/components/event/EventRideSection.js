@@ -3,7 +3,7 @@ import PropTypes from "prop-types";
 import { Alert, Badge, Button, Card, Col, Form, Modal, Row, Spinner } from "react-bootstrap";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
-import appApiClient from "../../services/AppApiClient";
+import rideService from "../../services/RideService";
 
 const emptyForm = {
   kind: "offer",
@@ -70,8 +70,8 @@ export default function EventRideSection({ event }) {
     }
     setLoading(true);
     try {
-      const response = await appApiClient.get(`/events/${Number(event.id)}/rides`);
-      setRides(Array.isArray(response?.data?.rides) ? response.data.rides : []);
+      const data = await rideService.list(event.id);
+      setRides(Array.isArray(data?.rides) ? data.rides : []);
     } catch (err) {
       setMessage({ type: "danger", text: err?.response?.data?.message || err?.message || "Não foi possível carregar os Rides deste evento." });
     } finally {
@@ -113,7 +113,7 @@ export default function EventRideSection({ event }) {
         suggested_cost: form.suggested_cost === "" ? undefined : Number(form.suggested_cost),
         notes: form.notes.trim() || undefined,
       };
-      await appApiClient.post(`/events/${Number(event.id)}/rides`, payload);
+      await rideService.create(event.id, payload);
       setShowForm(false);
       setMessage({ type: "success", text: form.kind === "offer" ? "Sua carona foi publicada no Ride." : "Seu pedido de carona foi publicado no Ride." });
       await load();
@@ -131,7 +131,7 @@ export default function EventRideSection({ event }) {
     setBusy(true);
     setMessage(null);
     try {
-      await appApiClient.post(`/rides/${ride.id}/requests`, { seats: 1 });
+      await rideService.requestSeat(ride.id, { seats: 1 });
       setMessage({ type: "success", text: "Solicitação enviada. O motorista poderá aceitar ou recusar." });
       await load();
     } catch (err) {
@@ -147,7 +147,7 @@ export default function EventRideSection({ event }) {
     setBusy(true);
     setMessage(null);
     try {
-      await appApiClient.patch(`/rides/${ride.id}/requests/${request.id}`, { status });
+      await rideService.respond(ride.id, request.id, status);
       setMessage({ type: "success", text: status === "accepted" ? "Solicitação aceita." : "Solicitação recusada." });
       await load();
     } catch (err) {
@@ -164,7 +164,7 @@ export default function EventRideSection({ event }) {
     setBusy(true);
     setMessage(null);
     try {
-      await appApiClient.delete(`/rides/${ride.id}`);
+      await rideService.cancel(ride.id);
       setMessage({ type: "success", text: "Ride cancelado." });
       await load();
     } catch (err) {
