@@ -243,6 +243,8 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
     {error && <Alert variant="danger" className="mb-0">{error}</Alert>}
     {!checkoutAvailable && <Alert variant="warning" className="mb-0">Pagamentos temporariamente indisponíveis para esta data.</Alert>}
 
+    <div className="cut-ticket-shop__layout">
+      <div className="cut-ticket-shop__catalog">
     {restoredSelection && selectedQuantity > 0 && checkoutAvailable && <Alert variant="success" className="mb-0">
       <div className="d-flex flex-column gap-2">
         <div><strong>Compra em andamento recuperada.</strong><span className="d-block small">{selectedQuantity} selecionado{selectedQuantity === 1 ? "" : "s"} · {money(total)}. Preço e disponibilidade serão revalidados antes do pagamento.</span></div>
@@ -304,7 +306,9 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
       </div>
     </>}
 
-    <aside className="cut-ticket-shop__summary" aria-label="Resumo da seleção">
+      </div>
+
+      <aside className="cut-ticket-shop__summary" aria-label="Resumo da seleção">
       <div className="cut-ticket-shop__summary-head">
         <span className="cut-ticket-shop__summary-count">×{selectedQuantity || 0}</span>
         <small>{selectedQuantity > 0 ? "Itens selecionados" : "Sua seleção"}</small>
@@ -324,7 +328,8 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
         <p className="cut-ticket-shop__summary-note">O valor final, incluindo eventuais taxas de processamento, é confirmado antes do pagamento.</p>
         <button type="button" className="cut-ticket-shop__checkout-btn" onClick={continueToCheckout} disabled={total <= 0 || !checkoutAvailable}>{user ? `Continuar · ${money(total)}` : "Entrar para comprar"}</button>
       </div>
-    </aside>
+      </aside>
+    </div>
 
     {selectedQuantity > 0 && <small className="d-block text-success text-center"><i className="fa-solid fa-clock-rotate-left me-1" />Sua seleção fica salva neste navegador e será revalidada ao retornar.</small>}
     <div className="cut-ticket-shop__trust"><i className="fa-solid fa-shield-halved" /><span>Compra segura. Ingressos usam QR de entrada; itens antecipados usam QR de retirada.</span></div>

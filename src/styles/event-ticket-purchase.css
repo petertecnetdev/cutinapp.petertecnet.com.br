@@ -283,3 +283,48 @@
     height: 32px;
   }
 }
+
+
+.cut-ticket-shop-section {
+  padding: 26px 0 8px;
+}
+
+.cut-ticket-shop-section__heading {
+  margin-bottom: 20px;
+}
+
+.cut-ticket-shop-section__heading p {
+  max-width: 720px;
+}
+
+.cut-ticket-shop__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(320px, .9fr);
+  align-items: start;
+  gap: 28px;
+}
+
+.cut-ticket-shop__catalog {
+  min-width: 0;
+  display: grid;
+  gap: 16px;
+}
+
+@media (min-width: 992px) {
+  .cut-ticket-shop__summary {
+    position: sticky;
+    top: calc(var(--cut-navbar-height) + 18px);
+    align-self: start;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .cut-ticket-shop__layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+
+  .cut-ticket-shop__summary {
+    position: static;
+  }
+}
