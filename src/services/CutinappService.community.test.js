@@ -134,3 +134,71 @@ describe("CutinappService event report idempotency", () => {
     expect(idempotencyKeyAt(0)).not.toBe(idempotencyKeyAt(1));
   });
 });
+
+
+describe("CutinappService community destructive mutation idempotency", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    sessionStorage.clear();
+  });
+
+  const deleteKeyAt = (callIndex) => (
+    appApiClient.delete.mock.calls[callIndex]?.[1]?.headers?.["Idempotency-Key"]
+  );
+
+  test("protects production and event post deletion with idempotency keys", async () => {
+    appApiClient.delete
+      .mockResolvedValueOnce({ data: { deleted: true } })
+      .mockResolvedValueOnce({ data: { deleted: true } });
+
+    await cutinappService.deleteProductionPost("41");
+    await cutinappService.deleteEventPost(42);
+
+    expect(appApiClient.delete).toHaveBeenNthCalledWith(
+      1,
+      "/organization-community/41",
+      { headers: { "Idempotency-Key": expect.any(String) } },
+    );
+    expect(appApiClient.delete).toHaveBeenNthCalledWith(
+      2,
+      "/community/42",
+      { headers: { "Idempotency-Key": expect.any(String) } },
+    );
+    expect(deleteKeyAt(0)).not.toBe(deleteKeyAt(1));
+  });
+
+  test("reuses the same deletion key after an uncertain failure", async () => {
+    appApiClient.delete
+      .mockRejectedValueOnce({ code: "ERR_NETWORK", message: "Network Error" })
+      .mockResolvedValueOnce({ data: { deleted: true } });
+
+    await expect(cutinappService.deleteEventPost(42)).rejects.toMatchObject({ code: "ERR_NETWORK" });
+    const firstKey = deleteKeyAt(0);
+    await expect(cutinappService.deleteEventPost("42")).resolves.toEqual({ deleted: true });
+    expect(deleteKeyAt(1)).toBe(firstKey);
+  });
+
+  test("deduplicates concurrent equivalent unlike requests", async () => {
+    let resolveUnlike;
+    appApiClient.delete.mockImplementationOnce(() => new Promise((resolve) => { resolveUnlike = resolve; }));
+
+    const first = cutinappService.unlikeProductionPost(55);
+    const second = cutinappService.unlikeProductionPost("55");
+
+    expect(first).toBe(second);
+    expect(appApiClient.delete).toHaveBeenCalledTimes(1);
+    resolveUnlike({ data: { liked: false } });
+    await expect(first).resolves.toEqual({ liked: false });
+  });
+
+  test("uses independent attempts for event and production unlikes", async () => {
+    appApiClient.delete
+      .mockResolvedValueOnce({ data: { liked: false } })
+      .mockResolvedValueOnce({ data: { liked: false } });
+
+    await cutinappService.unlikeProductionPost(77);
+    await cutinappService.unlikeEventPost(77);
+
+    expect(deleteKeyAt(0)).not.toBe(deleteKeyAt(1));
+  });
+});
