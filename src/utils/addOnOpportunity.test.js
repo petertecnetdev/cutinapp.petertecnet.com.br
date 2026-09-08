@@ -1,4 +1,4 @@
-import { addOnMarginGuard, addOnMonetizationEfficiency, compareAddOnOpportunities, confidenceAdjustedAddOnNetRevenue, estimateAddOnAttachmentOpportunity, suggestedAddOnStock, weightedAverageAddOnUnitPrice } from "./addOnOpportunity";
+import { addOnEconomicPriorityScore, addOnGrowthMaterialityBonus, addOnMarginGuard, addOnMonetizationEfficiency, compareAddOnOpportunities, confidenceAdjustedAddOnNetRevenue, estimateAddOnAttachmentOpportunity, suggestedAddOnStock, weightedAverageAddOnUnitPrice } from "./addOnOpportunity";
 
 test("uses production benchmark for events without add-on history", () => {
   expect(estimateAddOnAttachmentOpportunity({ paidCount: 50, addOnOrders: 0, averageAddOnValue: 0, benchmarkAddOnValue: 20, takeRate: 8 }))
@@ -92,6 +92,21 @@ test("discounts projected net revenue when evidence is still thin", () => {
   expect(confidenceAdjustedAddOnNetRevenue({ incrementalNetRevenue: 80, evidenceFactor: 0.25 })).toBe(20);
   expect(confidenceAdjustedAddOnNetRevenue({ incrementalNetRevenue: 80, evidenceFactor: 1 })).toBe(80);
   expect(confidenceAdjustedAddOnNetRevenue({ incrementalNetRevenue: 80, evidenceFactor: 2 })).toBe(80);
+});
+
+test("caps add-on materiality as a bounded economic bonus", () => {
+  expect(addOnGrowthMaterialityBonus({ incrementalNetRevenue: 20, netPlatformRevenue: 80 })).toBeCloseTo(5, 8);
+  expect(addOnGrowthMaterialityBonus({ incrementalNetRevenue: 1000, netPlatformRevenue: 0 })).toBe(25);
+  expect(addOnGrowthMaterialityBonus({ incrementalNetRevenue: 0, netPlatformRevenue: 100 })).toBe(0);
+});
+
+test("uses materiality to break close net-revenue opportunities without overwhelming absolute value", () => {
+  const established = { addOnProfitable: true, incrementalNetRevenue: 100, evidenceFactor: 1, incrementalNetMargin: 5, netPlatformRevenue: 1000 };
+  const material = { addOnProfitable: true, incrementalNetRevenue: 98, evidenceFactor: 1, incrementalNetMargin: 5, netPlatformRevenue: 50 };
+  const tiny = { addOnProfitable: true, incrementalNetRevenue: 60, evidenceFactor: 1, incrementalNetMargin: 5, netPlatformRevenue: 1 };
+
+  expect(addOnEconomicPriorityScore(material)).toBeGreaterThan(addOnEconomicPriorityScore(established));
+  expect(addOnEconomicPriorityScore(tiny)).toBeLessThan(addOnEconomicPriorityScore(established));
 });
 
 test("ranks profitable add-on opportunities by confidence-adjusted net revenue", () => {
