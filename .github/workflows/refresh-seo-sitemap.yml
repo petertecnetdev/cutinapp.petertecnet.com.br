@@ -1,4 +1,4 @@
-name: Refresh SEO Sitemap
+name: Refresh SEO Index
 
 on:
   workflow_dispatch:
@@ -17,12 +17,14 @@ jobs:
   refresh:
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     concurrency:
-      group: cutinapp-seo-sitemap-refresh
+      group: cutinapp-seo-index-refresh
       cancel-in-progress: true
 
     steps:
+      - uses: actions/checkout@v4
+
       - name: Check VPS configuration
         id: config
         shell: bash
@@ -35,7 +37,7 @@ jobs:
           set -euo pipefail
           if [[ -z "${VPS_HOST}" || -z "${VPS_USER}" || -z "${VPS_SSH_KEY}" ]]; then
             echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Sitemap refresh skipped because VPS deployment secrets are not configured."
+            echo "::notice::SEO index refresh skipped because VPS deployment secrets are not configured."
             exit 0
           fi
           echo "enabled=true" >> "$GITHUB_OUTPUT"
@@ -56,7 +58,18 @@ jobs:
           ssh-keyscan -p "$VPS_PORT" -H "$VPS_HOST" >> "$HOME/.ssh/known_hosts" 2>/dev/null
           chmod 600 "$HOME/.ssh/known_hosts"
 
-      - name: Publish dynamic sitemap
+      - name: Upload prerender generator
+        if: steps.config.outputs.enabled == 'true'
+        shell: bash
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ steps.config.outputs.port }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          set -euo pipefail
+          scp -P "$VPS_PORT" scripts/generate-seo-snapshots.mjs "$VPS_USER@$VPS_HOST:/tmp/cutinapp-generate-seo-snapshots.mjs"
+
+      - name: Publish dynamic sitemap and prerender snapshots
         if: steps.config.outputs.enabled == 'true'
         shell: bash
         env:
@@ -69,15 +82,18 @@ jobs:
           set -Eeuo pipefail
           APP_ROOT="/var/www/cutinapp.petertecnet.com.br"
           LIVE_BUILD="$APP_ROOT/build"
+          GENERATOR="/tmp/cutinapp-generate-seo-snapshots.mjs"
           SITEMAP_API="https://api.petertecnet.com.br/api/v1/discovery/sitemap.xml?origin=https%3A%2F%2Fcutinapp.petertecnet.com.br&application=cutinapp"
 
           [[ -d "$LIVE_BUILD" ]] || { echo "Cutinapp live build not found: $LIVE_BUILD" >&2; exit 1; }
+          [[ -f "$GENERATOR" ]] || { echo "SEO prerender generator was not uploaded." >&2; exit 1; }
+          command -v node >/dev/null 2>&1 || { echo "Node.js is required for SEO prerender generation." >&2; exit 1; }
 
           exec 9>/tmp/petertecnet-vps-deploy.lock
-          flock -w 180 9 || { echo "Could not acquire deployment lock for sitemap refresh." >&2; exit 75; }
+          flock -w 180 9 || { echo "Could not acquire deployment lock for SEO refresh." >&2; exit 75; }
 
           tmp="$(mktemp)"
-          trap 'rm -f "$tmp"' EXIT
+          trap 'rm -f "$tmp" "$GENERATOR"' EXIT
           curl --fail --silent --show-error --location --retry 3 --retry-delay 2 "$SITEMAP_API" -o "$tmp"
           grep -q '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' "$tmp" || {
             echo "Dynamic sitemap response is not a valid sitemap." >&2
@@ -89,5 +105,8 @@ jobs:
           }
 
           install -m 0644 "$tmp" "$LIVE_BUILD/sitemap.xml"
+          CUTINAPP_BUILD_DIR="$LIVE_BUILD" node "$GENERATOR" "$LIVE_BUILD"
+
           echo "Dynamic sitemap published: $(grep -c '<url>' "$LIVE_BUILD/sitemap.xml") URLs"
+          cat "$LIVE_BUILD/.cutinapp-seo-snapshots"
           REMOTE
