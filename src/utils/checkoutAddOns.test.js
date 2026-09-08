@@ -1,4 +1,19 @@
-import { rankCheckoutAddOns, resolveCheckoutQuantity, summarizeCheckoutAddOnOffer } from "./checkoutAddOns";
+import {
+  CHECKOUT_QUANTITY_LIMITS,
+  checkoutQuantityLimit,
+  rankCheckoutAddOns,
+  resolveCheckoutQuantity,
+  summarizeCheckoutAddOnOffer,
+} from "./checkoutAddOns";
+
+describe("checkout quantity policy", () => {
+  test("keeps ticket and item limits explicit and shared", () => {
+    expect(CHECKOUT_QUANTITY_LIMITS).toEqual({ ticket: 20, item: 50 });
+    expect(checkoutQuantityLimit("ticket")).toBe(20);
+    expect(checkoutQuantityLimit("item")).toBe(50);
+    expect(checkoutQuantityLimit("unknown")).toBe(0);
+  });
+});
 
 describe("rankCheckoutAddOns", () => {
   test("prioritizes explicit merchandising priority before the automatic value ladder", () => {

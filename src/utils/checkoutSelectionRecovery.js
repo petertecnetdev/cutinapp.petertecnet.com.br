@@ -1,11 +1,12 @@
-import { resolveCheckoutQuantity } from "./checkoutAddOns";
+import { checkoutQuantityLimit, resolveCheckoutQuantity } from "./checkoutAddOns";
 
 export const reconcileStoredSelection = (catalog, storedCheckout, fallbackEventId = 0) => {
   const eventId = Number(catalog?.event?.id || fallbackEventId || 0);
   if (!storedCheckout || Number(storedCheckout?.eventId || 0) !== eventId) return {};
 
   const restored = {};
-  const reconcile = (kind, catalogItems, storedItems, limit) => {
+  const reconcile = (kind, catalogItems, storedItems) => {
+    const limit = checkoutQuantityLimit(kind);
     const availableById = new Map((catalogItems || []).map((item) => [String(item.id), item]));
     (storedItems || []).forEach((entry) => {
       const item = availableById.get(String(entry?.id));
@@ -16,7 +17,7 @@ export const reconcileStoredSelection = (catalog, storedCheckout, fallbackEventI
     });
   };
 
-  reconcile("ticket", catalog?.tickets, storedCheckout?.tickets, 20);
-  reconcile("item", catalog?.items, storedCheckout?.items, 50);
+  reconcile("ticket", catalog?.tickets, storedCheckout?.tickets);
+  reconcile("item", catalog?.items, storedCheckout?.items);
   return restored;
 };
