@@ -1,4 +1,5 @@
 import { findPendingCheckout, isResumePromptRoute } from "./checkoutResumePrompt";
+import { CHECKOUT_RECOVERY_TTL_MS } from "./checkoutRecovery";
 
 const storageOf = (entries = {}) => {
   const values = new Map(Object.entries(entries));
@@ -33,6 +34,8 @@ describe("checkout resume prompt", () => {
       eventId: 44,
       quantity: 3,
       eventAt: new Date("2030-10-10T20:00:00-03:00").getTime(),
+      hasOrder: false,
+      source: "session",
     });
   });
 
@@ -58,6 +61,69 @@ describe("checkout resume prompt", () => {
       slug: "sooner",
       eventId: 7,
       quantity: 2,
+      source: "session",
     });
+  });
+
+  test("recovers a selection saved across browser sessions", () => {
+    const now = new Date("2030-11-01T12:00:00-03:00").getTime();
+    const recoveryStorage = storageOf({
+      "cutinapp_checkout_recovery_festival-persisted": JSON.stringify({
+        version: 1,
+        selection: { tickets: [{ id: 5, quantity: 2 }], items: [{ id: 9, quantity: 1 }] },
+        orderPublicId: null,
+        savedAt: now - 30 * 60 * 1000,
+      }),
+    });
+
+    expect(findPendingCheckout(storageOf(), now, recoveryStorage)).toEqual({
+      slug: "festival-persisted",
+      eventId: null,
+      quantity: 3,
+      eventAt: null,
+      hasOrder: false,
+      source: "recovery",
+      savedAt: now - 30 * 60 * 1000,
+    });
+  });
+
+  test("prioritizes a pending order so the buyer can follow confirmation instead of starting over", () => {
+    const now = new Date("2030-11-01T12:00:00-03:00").getTime();
+    const sessionStorage = storageOf({
+      "cutinapp_checkout_other-event": JSON.stringify({
+        eventId: 88,
+        eventDate: "2030-11-02T20:00:00-03:00",
+        tickets: [{ id: 2, quantity: 1 }],
+      }),
+    });
+    const recoveryStorage = storageOf({
+      "cutinapp_checkout_recovery_pending-payment": JSON.stringify({
+        version: 1,
+        selection: { tickets: [{ id: 7, quantity: 2 }], items: [] },
+        orderPublicId: "ORD-PENDING-1",
+        savedAt: now - 10 * 60 * 1000,
+      }),
+    });
+
+    expect(findPendingCheckout(sessionStorage, now, recoveryStorage)).toMatchObject({
+      slug: "pending-payment",
+      quantity: 2,
+      hasOrder: true,
+      source: "recovery",
+    });
+  });
+
+  test("ignores stale persisted recovery entries", () => {
+    const now = new Date("2030-11-10T12:00:00-03:00").getTime();
+    const recoveryStorage = storageOf({
+      "cutinapp_checkout_recovery_stale": JSON.stringify({
+        version: 1,
+        selection: { tickets: [{ id: 1, quantity: 1 }] },
+        orderPublicId: null,
+        savedAt: now - CHECKOUT_RECOVERY_TTL_MS - 1,
+      }),
+    });
+
+    expect(findPendingCheckout(storageOf(), now, recoveryStorage)).toBeNull();
   });
 });
