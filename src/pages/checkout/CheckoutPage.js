@@ -348,7 +348,32 @@ export default function CheckoutPage() {
   const refreshAvailabilityAfterCheckoutConflict = async (err, paymentMethod) => {
     if (!isCheckoutInventoryConflict(err)) return false;
     const status = Number(err?.status || err?.response?.status || 0);
-    try { const freshCatalog = await commerceService.catalog(slug, { force: true }); setCatalog(freshCatalog); setCoupon(null); setCouponError(""); setError("A disponibilidade mudou enquanto você finalizava a compra. Atualizamos sua seleção; revise o resumo, reaplique o cupom e confirme o pagamento novamente."); trackCheckout("checkout_inventory_conflict_reconciled", { label: "Disponibilidade atualizada após conflito no checkout", target: slug, metadata: { event_id: Number(freshCatalog?.event?.id || catalog?.event?.id || 0), amount: Number(payableTotal.toFixed(2)), payment_method: paymentMethod, status } }); return true; } catch (_) { return false; }
+    try {
+      const freshCatalog = await commerceService.catalog(slug, { force: true });
+      const reconcile = (chosenItems = [], currentItems = [], limit) => chosenItems.map((chosen) => {
+        const current = currentItems.find((entry) => Number(entry.id) === Number(chosen.id));
+        if (!current || current.available === false || current.expired) return null;
+        const quantity = resolveCheckoutQuantity(current, Math.max(1, Number(chosen.quantity || 1)), limit);
+        if (quantity <= 0) return null;
+        return { id: Number(chosen.id), quantity };
+      }).filter(Boolean);
+      const nextSelection = {
+        ...selection,
+        tickets: reconcile(selection?.tickets || [], freshCatalog?.tickets || [], checkoutQuantityLimit("ticket")),
+        items: reconcile(selection?.items || [], freshCatalog?.items || [], checkoutQuantityLimit("item")),
+      };
+      const reconciliation = summarizeCheckoutReconciliation({ catalog: freshCatalog, previousSelection: selection, nextSelection });
+      const activeCouponCode = coupon?.code || null;
+      setCatalog(freshCatalog);
+      setSelection(nextSelection);
+      safeSetSessionJson(checkoutStorageKey, nextSelection);
+      writeCheckoutRecovery(slug, { selection: nextSelection, orderPublicId: null, couponCode: activeCouponCode });
+      setCouponError("");
+      setError(`${checkoutReconciliationMessage(reconciliation, money)}${activeCouponCode ? " Seu cupom será revalidado automaticamente antes de uma nova tentativa." : " Revise o resumo antes de confirmar novamente."}`);
+      trackCheckout("checkout_inventory_conflict_reconciled", { label: "Disponibilidade atualizada após conflito no checkout", target: slug, metadata: { event_id: Number(freshCatalog?.event?.id || catalog?.event?.id || 0), amount: Number(payableTotal.toFixed(2)), payment_method: paymentMethod, status, changed_lines: reconciliation.changed_lines, previous_gmv: reconciliation.previous_gmv, reconciled_gmv: reconciliation.reconciled_gmv, gmv_removed: reconciliation.gmv_removed, coupon_revalidation_requested: Boolean(activeCouponCode) } });
+      if (activeCouponCode) await revalidateCouponForSelection(nextSelection, "payment_inventory_conflict");
+      return true;
+    } catch (_) { return false; }
   };
   const checkoutSubmissionErrorMessage = (err, fallback) => isCheckoutOperationInProgress(err)
     ? "Sua tentativa anterior ainda está sendo processada. Não inicie outra cobrança; tente novamente em instantes para retomar a mesma operação com segurança."
