@@ -48,6 +48,10 @@ export default function CheckoutPage() {
   const pixReadyTrackedRef = useRef("");
   const paymentSyncGateRef = useRef(createKeyedSingleFlight());
   const paymentSubmissionRef = useRef(false);
+  const paymentAttemptedRef = useRef(false);
+  const abandonmentTrackedRef = useRef(false);
+  const checkoutOpenedAtRef = useRef(Date.now());
+  const checkoutContextRef = useRef(null);
   resultRef.current = result;
 
   const checkoutStorageKey = `cutinapp_checkout_${slug}`;
@@ -139,6 +143,7 @@ export default function CheckoutPage() {
   }, [catalog, selection]);
 
   const total = useMemo(() => lines.reduce((sum, line) => sum + Number(line.price) * line.quantity, 0), [lines]);
+  checkoutContextRef.current = { catalog, selection, lines, total, method, result };
   const availableAddOns = useMemo(() => {
     if (!catalog || !selection) return [];
     const selectedIds = new Set((selection.items || []).map((item) => Number(item.id)));
@@ -202,6 +207,7 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (!catalog?.event?.id || !selection || !lines.length || checkoutViewedRef.current) return;
     checkoutViewedRef.current = true;
+    checkoutOpenedAtRef.current = Date.now();
     trackCheckout("checkout_opened", {
       label: "Checkout aberto", target: slug,
       metadata: {
@@ -211,6 +217,31 @@ export default function CheckoutPage() {
       },
     });
   }, [catalog?.event?.id, lines, methods, selection, slug, total]);
+
+  const trackPrePaymentAbandonment = useCallback((reason) => {
+    const current = checkoutContextRef.current;
+    if (!checkoutViewedRef.current || paymentAttemptedRef.current || abandonmentTrackedRef.current || current?.result || !current?.lines?.length) return;
+    abandonmentTrackedRef.current = true;
+    trackCheckout("checkout_abandoned_before_payment_attempt", {
+      label: "Checkout abandonado antes da tentativa de pagamento",
+      target: slug,
+      metadata: {
+        event_id: Number(current?.catalog?.event?.id || 0),
+        amount: Number(Number(current?.total || 0).toFixed(2)),
+        payment_method: current?.method || "unknown",
+        ticket_quantity: current.lines.filter((line) => line.kind === "ticket").reduce((sum, line) => sum + Number(line.quantity || 0), 0),
+        item_quantity: current.lines.filter((line) => line.kind === "item").reduce((sum, line) => sum + Number(line.quantity || 0), 0),
+        elapsed_ms: Math.max(0, Date.now() - checkoutOpenedAtRef.current),
+        reason,
+      },
+    });
+  }, [slug]);
+
+  useEffect(() => {
+    const handlePageHide = () => trackPrePaymentAbandonment("pagehide");
+    window.addEventListener("pagehide", handlePageHide);
+    return () => window.removeEventListener("pagehide", handlePageHide);
+  }, [trackPrePaymentAbandonment]);
 
   useEffect(() => {
     if (!availableAddOns.length || result || addOnOfferViewedRef.current) return;
@@ -356,7 +387,8 @@ export default function CheckoutPage() {
     if (paymentSubmissionRef.current || paying) return;
     if (!ensurePaymentAvailable("pix")) return;
     paymentSubmissionRef.current = true;
-    trackCheckout("payment_attempted", { label: "PIX solicitado", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(total.toFixed(2)), payment_method: "pix" } });
+    paymentAttemptedRef.current = true;
+    trackCheckout("payment_attempted", { label: "PIX solicitado", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(total.toFixed(2)), payment_method: "pix", checkout_elapsed_ms: Math.max(0, Date.now() - checkoutOpenedAtRef.current) } });
     setPaying(true); setError("");
     try { const checkoutResult = await commerceService.checkout(payload("pix")); setResult(checkoutResult); safeSetSessionJson(paymentStorageKey, checkoutResult); }
     catch (err) { const reconciled = await refreshAvailabilityAfterCheckoutConflict(err, "pix"); trackCheckout("payment_attempt_failed", { label: "Falha ao iniciar PIX", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(total.toFixed(2)), payment_method: "pix", outcome: "error", status: Number(err?.status || err?.response?.status || 0), inventory_reconciled: reconciled } }); if (!reconciled) setError(err?.message || "Não foi possível gerar o PIX."); }
@@ -366,7 +398,8 @@ export default function CheckoutPage() {
     if (paymentSubmissionRef.current || paying) return;
     if (!ensurePaymentAvailable("card")) return;
     paymentSubmissionRef.current = true;
-    trackCheckout("payment_attempted", { label: "Pagamento com cartão enviado", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(total.toFixed(2)), payment_method: "card" } });
+    paymentAttemptedRef.current = true;
+    trackCheckout("payment_attempted", { label: "Pagamento com cartão enviado", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(total.toFixed(2)), payment_method: "card", checkout_elapsed_ms: Math.max(0, Date.now() - checkoutOpenedAtRef.current) } });
     setPaying(true); setError("");
     try { const checkoutResult = await commerceService.checkout({ ...payload("card"), ...cardData }); setResult(checkoutResult); safeSetSessionJson(paymentStorageKey, checkoutResult); }
     catch (err) { const reconciled = await refreshAvailabilityAfterCheckoutConflict(err, "card"); trackCheckout("payment_attempt_failed", { label: "Falha ao processar cartão", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(total.toFixed(2)), payment_method: "card", outcome: "error", status: Number(err?.status || err?.response?.status || 0), inventory_reconciled: reconciled } }); if (!reconciled) setError(err?.message || "Não foi possível processar o cartão."); }
@@ -387,7 +420,7 @@ export default function CheckoutPage() {
   if (!selection || !lines.length) return <div className="cut-checkout-page"><Container className="cut-checkout-container"><Alert variant="warning">Sua seleção de compra não foi encontrada.</Alert><Button onClick={() => navigate(`/event/${slug}`)}>Voltar ao evento</Button></Container></div>;
 
   return <div className="cut-checkout-page" data-telemetry-screen="Checkout">
-    <header className="cut-checkout-topbar"><Container className="cut-checkout-topbar__inner"><Link to={`/event/${slug}`} className="cut-checkout-back"><i className="fa-solid fa-arrow-left" /> Voltar ao evento</Link><div className="cut-checkout-brand"><span className="cut-checkout-brand__mark">C</span><div><strong>Cutinapp</strong><small>Checkout seguro</small></div></div><div className="cut-checkout-secure"><i className="fa-solid fa-lock" /> Ambiente protegido</div></Container></header>
+    <header className="cut-checkout-topbar"><Container className="cut-checkout-topbar__inner"><Link to={`/event/${slug}`} className="cut-checkout-back" onClick={() => trackPrePaymentAbandonment("back_to_event")}><i className="fa-solid fa-arrow-left" /> Voltar ao evento</Link><div className="cut-checkout-brand"><span className="cut-checkout-brand__mark">C</span><div><strong>Cutinapp</strong><small>Checkout seguro</small></div></div><div className="cut-checkout-secure"><i className="fa-solid fa-lock" /> Ambiente protegido</div></Container></header>
     <Container className="cut-checkout-container">
       <div className="cut-checkout-heading"><span>Finalizar compra</span><h1>{catalog?.event?.title || "Seu pedido"}</h1><p>Revise seu pedido e escolha uma forma de pagamento.</p></div>
       <div className="cut-checkout-layout"><main className="cut-checkout-main">
