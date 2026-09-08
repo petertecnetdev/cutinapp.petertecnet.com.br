@@ -1,0 +1,18 @@
+/* Rendering containment for long discovery/social lists. */
+.cut-event-card,
+.cut-production-card,
+.cut-pass-card,
+.cut-artist-card,
+.cut-feed-card,
+.cut-notification-card,
+.cut-community-post {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 420px;
+}
+
+@media (max-width: 900px), (prefers-reduced-motion: reduce) {
+  .cut-fx-pointer-light,
+  .cut-fx-progress {
+    display: none !important;
+  }
+}
