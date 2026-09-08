@@ -40,6 +40,7 @@ import { installPeterWhatsappFallback } from "./utils/peterWhatsappFallback";
 import { installGlobalImagePerformance } from "./utils/imagePerformance";
 import { installInstagramMobileShell } from "./utils/instagramMobileShell";
 import { installNavigationRecovery } from "./utils/navigationRecovery";
+import { installEventViewScrollReset } from "./utils/eventViewScrollReset";
 import { trackTelemetry } from "./utils/telemetry";
 
 installGlobalImageFallbacks();
@@ -49,6 +50,7 @@ installPeterWhatsappFallback();
 installGlobalImagePerformance();
 installInstagramMobileShell();
 installNavigationRecovery();
+installEventViewScrollReset();
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
