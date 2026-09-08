@@ -29,6 +29,17 @@ const createUser = createIdempotentMutation({
   ).data,
 });
 
+const deleteUser = createIdempotentMutation({
+  storagePrefix: "cutinapp_user_delete_attempt_",
+  keyPrefix: "user-delete",
+  requestKeyFor: (userId) => String(Number(userId)),
+  mutate: async ({ idempotencyKey }, userId) => (
+    await apiClient.delete(`/${apiServiceUrl}/${Number(userId)}`, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    })
+  ).data,
+});
+
 const userService = {
   list: async () => {
     const response = await apiClient.get(`/${apiServiceUrl}`);
@@ -49,10 +60,7 @@ const userService = {
     return response.data;
   },
 
-  destroy: async (userId) => {
-    const response = await apiClient.delete(`/${apiServiceUrl}/${userId}`);
-    return response.data;
-  },
+  destroy: (userId) => deleteUser(userId),
 };
 
 export default userService;
