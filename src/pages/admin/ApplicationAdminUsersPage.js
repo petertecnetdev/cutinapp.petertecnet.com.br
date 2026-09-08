@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Badge, Button, Card, Col, Container, Form, Modal, Row, Spinner } from "react-bootstrap";
 import NavlogComponent from "../../components/NavlogComponent";
+import applicationAdminUserService from "../../services/ApplicationAdminUserService";
 import appApiClient from "../../services/AppApiClient";
 
 const PAGE_SIZE = 12;
@@ -37,9 +38,10 @@ export default function ApplicationAdminUsersPage() {
     const requestId = ++requestRef.current;
     append ? setLoadingMore(true) : setLoading(true); setError("");
     try {
-      const response = await appApiClient.get("/admin/users", { params: { q: q || undefined, page: nextPage, per_page: PAGE_SIZE } });
+      const response = await applicationAdminUserService.list({ q: q || undefined, page: nextPage, per_page: PAGE_SIZE });
       if (requestId !== requestRef.current) return;
-      const paginator = response.data?.data || {}; const rows = Array.isArray(paginator?.data) ? paginator.data : [];
+      const paginator = response?.data || {};
+      const rows = Array.isArray(paginator?.data) ? paginator.data : [];
       setUsers((current) => append ? [...current, ...rows.filter((row) => !current.some((item) => item.id === row.id))] : rows);
       setPage(Number(paginator.current_page || nextPage)); setLastPage(Number(paginator.last_page || nextPage));
     } catch (err) {
@@ -56,10 +58,23 @@ export default function ApplicationAdminUsersPage() {
   }, [lastPage, loadUsers, loading, loadingMore, page]);
 
   const submit = async (event) => {
-    event.preventDefault(); setBusy(true); setError(""); setSuccess("");
-    try { const response = await appApiClient.post("/admin/users", form); setSuccess(response.data?.message || "Usuário cadastrado com sucesso."); setForm(initialForm); setShowCreate(false); await loadUsers({ nextPage: 1, append: false }); }
-    catch (err) { const validation = err?.response?.data?.errors; setError(validation ? Object.values(validation).flat().join(" ") : (err?.response?.data?.message || err?.message || "Não foi possível cadastrar o usuário.")); }
-    finally { setBusy(false); }
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    setSuccess("");
+    try {
+      const response = await applicationAdminUserService.create(form);
+      setSuccess(response?.message || "Usuário cadastrado com sucesso.");
+      setForm(initialForm);
+      setShowCreate(false);
+      await loadUsers({ nextPage: 1, append: false });
+    } catch (err) {
+      const validation = err?.response?.data?.errors;
+      const validationMessage = validation ? Object.values(validation).flat().join(" ") : "";
+      setError(validationMessage || err?.response?.data?.message || err?.message || "Não foi possível cadastrar o usuário.");
+    } finally {
+      setBusy(false);
+    }
   };
 
   const openSecurity = async (user) => {
