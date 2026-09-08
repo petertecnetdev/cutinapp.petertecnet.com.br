@@ -89,5 +89,8 @@ export const compareAddOnOpportunities = (a = {}, b = {}) => {
   const unitContributionDelta = Math.max(0, Number(b.netRevenuePerIncrementalOrder || 0)) - Math.max(0, Number(a.netRevenuePerIncrementalOrder || 0));
   if (unitContributionDelta !== 0) return unitContributionDelta;
 
+  const attachmentEfficiencyDelta = Math.max(0, Number(b.netRevenuePerAttachmentPoint || 0)) - Math.max(0, Number(a.netRevenuePerAttachmentPoint || 0));
+  if (attachmentEfficiencyDelta !== 0) return attachmentEfficiencyDelta;
+
   return Math.max(0, Number(b.netPlatformRevenue || 0)) - Math.max(0, Number(a.netPlatformRevenue || 0));
 };
