@@ -1,8 +1,11 @@
-import { addOnEconomicPriorityScore, compareAddOnOpportunities } from "./addOnOpportunity";
+import { addOnEconomicPriorityScore, addOnMarginQualityBonus, compareAddOnOpportunities } from "./addOnOpportunity";
 
-test("balances confidence-adjusted net revenue with incremental margin", () => {
-  expect(addOnEconomicPriorityScore({ incrementalNetRevenue: 100, evidenceFactor: 1, incrementalNetMargin: 2 })).toBe(102);
-  expect(addOnEconomicPriorityScore({ incrementalNetRevenue: 95, evidenceFactor: 1, incrementalNetMargin: 10 })).toBeCloseTo(104.5, 8);
+test("rewards only margin above the profitability floor", () => {
+  expect(addOnMarginQualityBonus({ incrementalNetMargin: 2 })).toBe(0);
+  expect(addOnMarginQualityBonus({ incrementalNetMargin: 10 })).toBe(8);
+  expect(addOnMarginQualityBonus({ incrementalNetMargin: 10, minimumNetMargin: 5 })).toBe(5);
+  expect(addOnEconomicPriorityScore({ incrementalNetRevenue: 100, evidenceFactor: 1, incrementalNetMargin: 2 })).toBe(100);
+  expect(addOnEconomicPriorityScore({ incrementalNetRevenue: 95, evidenceFactor: 1, incrementalNetMargin: 10 })).toBeCloseTo(102.6, 8);
 });
 
 test("allows materially better margin to win when net revenue is close", () => {
@@ -30,6 +33,6 @@ test("does not let tiny high-margin upside beat substantially larger net revenue
 });
 
 test("keeps evidence discount in the economic priority score", () => {
-  expect(addOnEconomicPriorityScore({ incrementalNetRevenue: 100, evidenceFactor: 0.25, incrementalNetMargin: 20 })).toBe(30);
-  expect(addOnEconomicPriorityScore({ incrementalNetRevenue: 100, evidenceFactor: 0.25, evidenceAdjusted: true, incrementalNetMargin: 20 })).toBe(120);
+  expect(addOnEconomicPriorityScore({ incrementalNetRevenue: 100, evidenceFactor: 0.25, incrementalNetMargin: 20 })).toBe(29.5);
+  expect(addOnEconomicPriorityScore({ incrementalNetRevenue: 100, evidenceFactor: 0.25, evidenceAdjusted: true, incrementalNetMargin: 20 })).toBe(118);
 });
