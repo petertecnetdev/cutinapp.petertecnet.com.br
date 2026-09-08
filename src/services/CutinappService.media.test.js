@@ -94,3 +94,35 @@ describe("CutinappService production media upload idempotency", () => {
     expect(idempotencyKeyAt(0)).not.toBe(idempotencyKeyAt(1));
   });
 });
+
+
+describe("CutinappService production media deletion idempotency", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    sessionStorage.clear();
+  });
+
+  const deletionKeyAt = (callIndex) => (
+    appApiClient.delete.mock.calls[callIndex]?.[1]?.headers?.["Idempotency-Key"]
+  );
+
+  test("protects media deletion and normalizes resource identifiers", async () => {
+    appApiClient.delete.mockResolvedValueOnce({ data: { deleted: true } });
+    await expect(cutinappService.deleteProductionMedia("12", "201")).resolves.toEqual({ deleted: true });
+    expect(appApiClient.delete).toHaveBeenCalledWith(
+      "/organizations/12/media/201",
+      { headers: { "Idempotency-Key": expect.any(String) } },
+    );
+  });
+
+  test("reuses the media deletion key after an uncertain network failure", async () => {
+    appApiClient.delete
+      .mockRejectedValueOnce({ code: "ERR_NETWORK", message: "Network Error" })
+      .mockResolvedValueOnce({ data: { deleted: true } });
+
+    await expect(cutinappService.deleteProductionMedia(12, 201)).rejects.toMatchObject({ code: "ERR_NETWORK" });
+    const firstKey = deletionKeyAt(0);
+    await expect(cutinappService.deleteProductionMedia("12", "201")).resolves.toEqual({ deleted: true });
+    expect(deletionKeyAt(1)).toBe(firstKey);
+  });
+});

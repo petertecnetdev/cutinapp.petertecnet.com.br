@@ -173,6 +173,46 @@ const createEventCommunityPost = createIdempotentMutation({
   )).data,
 });
 
+const deleteProductionCommunityPost = createIdempotentMutation({
+  storagePrefix: "cutinapp_production_community_delete_attempt_",
+  keyPrefix: "production-community-delete",
+  requestKeyFor: (postId) => String(Number(postId)),
+  mutate: async ({ idempotencyKey }, postId) => (await appApiClient.delete(
+    `/organization-community/${Number(postId)}`,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
+const deleteEventCommunityPost = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_community_delete_attempt_",
+  keyPrefix: "event-community-delete",
+  requestKeyFor: (postId) => String(Number(postId)),
+  mutate: async ({ idempotencyKey }, postId) => (await appApiClient.delete(
+    `/community/${Number(postId)}`,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
+const unlikeProductionCommunityPost = createIdempotentMutation({
+  storagePrefix: "cutinapp_production_community_unlike_attempt_",
+  keyPrefix: "production-community-unlike",
+  requestKeyFor: (postId) => String(Number(postId)),
+  mutate: async ({ idempotencyKey }, postId) => (await appApiClient.delete(
+    `/organization-community/${Number(postId)}/like`,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
+const unlikeEventCommunityPost = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_community_unlike_attempt_",
+  keyPrefix: "event-community-unlike",
+  requestKeyFor: (postId) => String(Number(postId)),
+  mutate: async ({ idempotencyKey }, postId) => (await appApiClient.delete(
+    `/community/${Number(postId)}/like`,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
 const reportEvent = createIdempotentMutation({
   storagePrefix: "cutinapp_event_report_attempt_",
   keyPrefix: "event-report",
@@ -191,6 +231,16 @@ const uploadProductionMedia = createIdempotentMutation({
   mutate: async ({ idempotencyKey }, organizationId, formData) => (await appApiClient.post(
     `/organizations/${Number(organizationId)}/media`,
     formData,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
+const deleteProductionMedia = createIdempotentMutation({
+  storagePrefix: "cutinapp_production_media_delete_attempt_",
+  keyPrefix: "production-media-delete",
+  requestKeyFor: (organizationId, mediaId) => `${Number(organizationId)}:${Number(mediaId)}`,
+  mutate: async ({ idempotencyKey }, organizationId, mediaId) => (await appApiClient.delete(
+    `/organizations/${Number(organizationId)}/media/${Number(mediaId)}`,
     { headers: { "Idempotency-Key": idempotencyKey } },
   )).data,
 });
@@ -334,11 +384,11 @@ const cutinappService = {
   updateProductionExperience,
   productionCommunity: async (slug, params = {}) => (await appApiClient.get(`/organizations/public/${slug}/community`, { params })).data,
   createProductionPost: (organizationId, payload) => createProductionCommunityPost(organizationId, payload),
-  deleteProductionPost: async (postId) => (await appApiClient.delete(`/organization-community/${postId}`)).data,
+  deleteProductionPost: deleteProductionCommunityPost,
   likeProductionPost: likeProductionCommunityPost,
-  unlikeProductionPost: async (postId) => (await appApiClient.delete(`/organization-community/${postId}/like`)).data,
+  unlikeProductionPost: unlikeProductionCommunityPost,
   uploadProductionMedia,
-  deleteProductionMedia: async (organizationId, mediaId) => (await appApiClient.delete(`/organizations/${organizationId}/media/${mediaId}`)).data,
+  deleteProductionMedia,
   publicProduction: async (slug) => rename(await cachedPublicGet(appApiClient, `/organizations/public/${slug}`, { ttlMs: 30000, staleMs: 180000 }), "organization", "production"),
   createProduction,
   updateProduction,
@@ -358,9 +408,9 @@ const cutinappService = {
   eventCommunity: async (slug, params = {}) => (await appApiClient.get(`/events/public/${slug}/community`, { params })).data,
   createEventPost: (eventId, payload) => createEventCommunityPost(eventId, payload),
   createFeedPost: (payload) => createEventCommunityPost(0, payload),
-  deleteEventPost: async (postId) => (await appApiClient.delete(`/community/${postId}`)).data,
+  deleteEventPost: deleteEventCommunityPost,
   likeEventPost: likeEventCommunityPost,
-  unlikeEventPost: async (postId) => (await appApiClient.delete(`/community/${postId}/like`)).data,
+  unlikeEventPost: unlikeEventCommunityPost,
   rateEvent: async (eventId, rating) => (await appApiClient.put(`/events/${eventId}/rating`, { rating })).data,
   reportEvent,
 
