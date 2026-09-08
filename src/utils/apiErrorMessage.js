@@ -3,10 +3,10 @@ export const humanizeApiErrorMessage = (value, status, code) => {
 
   if (!status) {
     if (code === "ECONNABORTED" || /timeout|timed out/i.test(raw)) {
-      return "A solicitação demorou mais que o esperado. Verifique sua conexão e tente novamente.";
+      return "A API demorou mais que o esperado para responder. Tente novamente em instantes.";
     }
     if (!raw || /network error|failed to fetch|load failed/i.test(raw)) {
-      return "Não foi possível conectar ao servidor. Verifique sua internet e tente novamente.";
+      return "Não foi possível concluir a comunicação com o servidor. Isso pode ser uma indisponibilidade da API ou um bloqueio do navegador. Tente novamente.";
     }
   }
 
