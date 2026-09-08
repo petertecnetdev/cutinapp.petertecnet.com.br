@@ -42,6 +42,7 @@ export default function MessagesPage() {
   const [newChatOpen, setNewChatOpen] = useState(false);
   const bottomRef = useRef(null);
   const threadRequestSequence = useRef(0);
+  const directOpenedFor = useRef(null);
 
   const loadConversations = useCallback(async (query = "", { quiet = false } = {}) => {
     try {
@@ -73,6 +74,31 @@ export default function MessagesPage() {
   }, []);
 
   useEffect(() => { loadConversations(""); }, [loadConversations]);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const targetUserId = Number(params.get("user") || 0);
+    if (!targetUserId || targetUserId === Number(user?.id) || directOpenedFor.current === targetUserId) return;
+    directOpenedFor.current = targetUserId;
+    let cancelled = false;
+    setError("");
+    setThreadLoading(true);
+    messagingService.openDirect(targetUserId)
+      .then((response) => {
+        if (cancelled) return;
+        const conversation = { ...response?.data, unread_count: 0 };
+        setActive(conversation);
+        loadConversations("", { quiet: true });
+        window.history.replaceState({}, "", "/messages");
+      })
+      .catch((requestError) => {
+        if (!cancelled) {
+          directOpenedFor.current = null;
+          setError(requestError?.response?.data?.message || "Não foi possível iniciar esta conversa.");
+        }
+      })
+      .finally(() => { if (!cancelled) setThreadLoading(false); });
+    return () => { cancelled = true; };
+  }, [user?.id, loadConversations]);
   useEffect(() => {
     threadRequestSequence.current += 1;
     setMessages([]);
