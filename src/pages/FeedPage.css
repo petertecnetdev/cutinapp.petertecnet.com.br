@@ -39,6 +39,12 @@
 .cut-feed-post__header small { color:rgba(255,255,255,.48); font-size:.76rem; margin-top:2px; }
 .cut-feed-post__avatar { width:44px; height:44px; flex:0 0 44px; border-radius:50%; overflow:hidden; display:grid; place-items:center; background:rgba(255,255,255,.08); font-weight:800; border:1px solid rgba(255,255,255,.08); }
 .cut-feed-post__avatar img { width:100%; height:100%; object-fit:cover; }
+.cut-feed-post__profile-link { padding:0; color:inherit; cursor:pointer; }
+.cut-feed-post__author { appearance:none; border:0; padding:0; background:transparent; color:#fff; text-align:left; font-size:.98rem; font-weight:800; line-height:1.25; cursor:pointer; }
+.cut-feed-post__author:hover { text-decoration:underline; text-underline-offset:3px; }
+.cut-feed-post__context { display:flex; flex-wrap:wrap; gap:8px; margin:-2px 0 12px 56px; }
+.cut-feed-post__context button { appearance:none; border:1px solid rgba(255,255,255,.08); background:rgba(255,255,255,.05); color:rgba(255,255,255,.76); border-radius:999px; padding:6px 10px; display:inline-flex; align-items:center; gap:7px; font-size:.76rem; font-weight:750; cursor:pointer; }
+.cut-feed-post__context button:hover { background:rgba(255,255,255,.09); color:#fff; }
 .cut-feed-post__body { white-space:pre-wrap; margin:0 0 14px; line-height:1.55; font-size:1rem; color:rgba(255,255,255,.88); }
 .cut-feed-post__actions { display:flex; align-items:center; gap:6px; border-top:1px solid rgba(255,255,255,.07); padding-top:10px; }
 .cut-feed-post__actions button { appearance:none; border:0; background:transparent; color:rgba(255,255,255,.6); min-height:38px; padding:7px 10px; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; gap:7px; font-size:.78rem; font-weight:700; transition:.18s ease; }
@@ -91,5 +97,6 @@
   .cut-feed-capabilities { overflow-x:auto; flex-wrap:nowrap; scrollbar-width:none; padding-bottom:2px; }
   .cut-feed-capabilities::-webkit-scrollbar { display:none; }
   .cut-feed-capabilities span { flex:0 0 auto; }
+  .cut-feed-post__context { margin-left:0; }
   .cut-feed-event-image { aspect-ratio:16/9; border-radius:13px; }
 }
