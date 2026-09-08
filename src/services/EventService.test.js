@@ -104,10 +104,28 @@ describe("EventService event update uploads", () => {
     const result = await eventService.update(77, payload);
 
     expect(appApiClient.patch).not.toHaveBeenCalled();
-    expect(appApiClient.post).toHaveBeenCalledWith("/events/77", payload);
+    expect(appApiClient.post).toHaveBeenCalledWith(
+      "/events/77",
+      payload,
+      { headers: { "Idempotency-Key": expect.any(String) } }
+    );
     expect(payload.get("_method")).toBe("PATCH");
     expect(payload.get("image")).toBeInstanceOf(File);
     expect(result.event.image).toBe("images/events/cover.webp");
+  });
+
+  test("reuses multipart event update key after an uncertain network failure", async () => {
+    const payload = new FormData();
+    payload.append("title", "Evento atualizado");
+    appApiClient.post
+      .mockRejectedValueOnce({ code: "ERR_NETWORK", message: "Network Error" })
+      .mockResolvedValueOnce({ data: { event: { id: 77 } } });
+
+    await expect(eventService.update(77, payload)).rejects.toMatchObject({ code: "ERR_NETWORK" });
+    const firstKey = idempotencyKeyAt(0);
+
+    await eventService.update(77, payload);
+    expect(idempotencyKeyAt(1)).toBe(firstKey);
   });
 
   test("keeps normal PATCH for non-multipart updates", async () => {
@@ -272,6 +290,44 @@ describe("EventService agenda creation idempotency", () => {
 
     expect(appApiClient.post).toHaveBeenCalledTimes(2);
     expect(idempotencyKeyAt(0)).not.toBe(idempotencyKeyAt(1));
+  });
+});
+
+describe("EventService agenda update idempotency", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    sessionStorage.clear();
+  });
+
+  test("sends an idempotency key and deduplicates concurrent agenda updates", async () => {
+    let resolveRequest;
+    appApiClient.post.mockReturnValueOnce(new Promise((resolve) => { resolveRequest = resolve; }));
+
+    const first = eventService.updateAgendaItem(51, agendaPayload());
+    const second = eventService.updateAgendaItem(51, agendaPayload());
+
+    expect(second).toBe(first);
+    expect(appApiClient.post).toHaveBeenCalledTimes(1);
+    expect(appApiClient.post).toHaveBeenCalledWith(
+      "/event-agenda/items/51",
+      expect.any(FormData),
+      { headers: { "Idempotency-Key": expect.any(String) } }
+    );
+
+    resolveRequest({ data: { schedule: { id: 51 } } });
+    await expect(first).resolves.toMatchObject({ schedule: { id: 51 } });
+  });
+
+  test("rotates agenda update key after a definitive validation failure", async () => {
+    appApiClient.post
+      .mockRejectedValueOnce({ response: { status: 422 } })
+      .mockResolvedValueOnce({ data: { schedule: { id: 51 } } });
+
+    await expect(eventService.updateAgendaItem(51, agendaPayload())).rejects.toMatchObject({ response: { status: 422 } });
+    const rejectedKey = idempotencyKeyAt(0);
+
+    await eventService.updateAgendaItem(51, agendaPayload());
+    expect(idempotencyKeyAt(1)).not.toBe(rejectedKey);
   });
 });
 
