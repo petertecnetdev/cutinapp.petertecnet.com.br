@@ -218,4 +218,60 @@ describe("CommerceService", () => {
 
     expect(appApiClient.post).toHaveBeenCalledTimes(2);
   });
+
+  test("protects event item creation with an idempotency key", async () => {
+    const item = { name: "Camiseta", price: 35, quantity: 20 };
+    appApiClient.post.mockResolvedValueOnce({ data: { item: { id: 301 } } });
+
+    await expect(commerceService.saveEventItem("44", item)).resolves.toEqual({ item: { id: 301 } });
+    expect(appApiClient.post).toHaveBeenCalledWith(
+      "/events/44/items",
+      item,
+      { headers: { "Idempotency-Key": expect.any(String) } },
+    );
+  });
+
+  test("reuses the same event-item key after an uncertain network failure", async () => {
+    const item = { name: "Camiseta", price: 35, quantity: 20 };
+    appApiClient.post
+      .mockRejectedValueOnce({ code: "ERR_NETWORK", message: "Network Error" })
+      .mockResolvedValueOnce({ data: { item: { id: 302 } } });
+
+    await expect(commerceService.saveEventItem(44, item)).rejects.toMatchObject({ code: "ERR_NETWORK" });
+    const firstKey = idempotencyKeyAt(0);
+
+    await expect(commerceService.saveEventItem("44", { quantity: 20, price: 35, name: "Camiseta" })).resolves.toEqual({ item: { id: 302 } });
+    expect(idempotencyKeyAt(1)).toBe(firstKey);
+  });
+
+  test("rotates the event-item key after a definitive validation failure", async () => {
+    const item = { name: "Copo", price: 15 };
+    appApiClient.post
+      .mockRejectedValueOnce({ response: { status: 422 } })
+      .mockResolvedValueOnce({ data: { item: { id: 303 } } });
+
+    await expect(commerceService.saveEventItem(45, item)).rejects.toMatchObject({ response: { status: 422 } });
+    const rejectedKey = idempotencyKeyAt(0);
+
+    await commerceService.saveEventItem(45, item);
+    expect(idempotencyKeyAt(1)).toBeTruthy();
+    expect(idempotencyKeyAt(1)).not.toBe(rejectedKey);
+  });
+
+  test("deduplicates concurrent equivalent event item creation", async () => {
+    let resolveCreate;
+    appApiClient.post.mockImplementationOnce(() => new Promise((resolve) => { resolveCreate = resolve; }));
+    const item = { name: "Combo", price: 50 };
+
+    const first = commerceService.saveEventItem(46, item);
+    const second = commerceService.saveEventItem("46", { price: 50, name: "Combo" });
+
+    expect(appApiClient.post).toHaveBeenCalledTimes(1);
+
+    resolveCreate({ data: { item: { id: 304 } } });
+    await expect(Promise.all([first, second])).resolves.toEqual([
+      { item: { id: 304 } },
+      { item: { id: 304 } },
+    ]);
+  });
 });
