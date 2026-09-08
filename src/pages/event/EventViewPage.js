@@ -13,6 +13,7 @@ import cutinappService from "../../services/CutinappService";
 import commerceService from "../../services/CommerceService";
 import { storageUrl } from "../../config";
 import { isPeterTecnetRoot } from "../../utils/applicationRoles";
+import { buildEventShareUrl } from "../../utils/eventShareUrl";
 
 const formatDate = (value) => value
   ? new Intl.DateTimeFormat("pt-BR", {
@@ -284,7 +285,7 @@ export default function EventViewPage() {
   };
 
   const share = async () => {
-    const url = `${window.location.origin}${location.pathname}${location.search}`;
+    const url = buildEventShareUrl({ event, origin: window.location.origin, fallbackSlug: slug });
     const title = event?.title || "Evento Cutinapp";
     const text = event?.city ? `${title} em ${event.city}` : title;
 
