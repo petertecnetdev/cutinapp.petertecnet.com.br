@@ -92,6 +92,8 @@ describe("revenue channel attribution", () => {
     expect(campaign.netTakeRateGap).toBe(-1);
     expect(campaign.netRevenueHeadroomAboveFloor).toBe(0);
     expect(campaign.additionalCostCapacityPerOrder).toBe(0);
+    expect(campaign.safeReinvestmentBudget).toBe(0);
+    expect(campaign.recommendedAction).toBe("reduce_cost");
     expect(campaign.economicStatus).toBe("below_floor");
   });
 
@@ -119,7 +121,48 @@ describe("revenue channel attribution", () => {
     expect(promoter.minimumNetRevenue).toBe(8);
     expect(promoter.netRevenueHeadroomAboveFloor).toBe(24);
     expect(promoter.additionalCostCapacityPerOrder).toBe(12);
+    expect(promoter.safeReinvestmentBudget).toBe(12);
+    expect(promoter.safeReinvestmentPerOrder).toBe(6);
+    expect(promoter.evidenceStatus).toBe("limited");
+    expect(promoter.recommendedAction).toBe("test");
     expect(promoter.economicStatus).toBe("healthy");
+  });
+
+  test("recommends scaling only when evidence and take-rate headroom are sufficient", () => {
+    const orders = Array.from({ length: 5 }, () => ({
+      status: "paid",
+      total: 100,
+      platform_fee: 10,
+      channel: "campaign",
+      discount_amount: 1,
+    }));
+    const [campaign] = summarizeRevenueByChannel(orders);
+
+    expect(campaign.paidOrders).toBe(5);
+    expect(campaign.netTakeRate).toBe(9);
+    expect(campaign.netTakeRateGap).toBe(7);
+    expect(campaign.netRevenueHeadroomAboveFloor).toBe(35);
+    expect(campaign.safeReinvestmentBudget).toBe(17.5);
+    expect(campaign.safeReinvestmentPerOrder).toBe(3.5);
+    expect(campaign.evidenceStatus).toBe("sufficient");
+    expect(campaign.recommendedAction).toBe("scale");
+  });
+
+  test("keeps only a configurable safety fraction of headroom available for reinvestment", () => {
+    const orders = Array.from({ length: 5 }, () => ({ status: "paid", total: 100, platform_fee: 10 }));
+    const [organic] = summarizeRevenueByChannel(orders, { reinvestmentSafetyFactor: 0.25 });
+
+    expect(organic.netRevenueHeadroomAboveFloor).toBe(40);
+    expect(organic.safeReinvestmentBudget).toBe(10);
+    expect(organic.safeReinvestmentPerOrder).toBe(2);
+  });
+
+  test("bounds reinvestment safety factor so recommendations never spend beyond economic headroom", () => {
+    const orders = Array.from({ length: 5 }, () => ({ status: "paid", total: 100, platform_fee: 10 }));
+    const [organic] = summarizeRevenueByChannel(orders, { reinvestmentSafetyFactor: 5 });
+
+    expect(organic.reinvestmentSafetyFactor).toBe(1);
+    expect(organic.safeReinvestmentBudget).toBe(organic.netRevenueHeadroomAboveFloor);
   });
 
   test("supports a stricter configurable net take rate floor without changing prices or fees", () => {
@@ -140,6 +183,8 @@ describe("revenue channel attribution", () => {
     expect(coupon.minimumNetTakeRate).toBe(7);
     expect(coupon.minimumNetRevenue).toBeCloseTo(7, 8);
     expect(coupon.netTakeRateGap).toBe(-1);
+    expect(coupon.safeReinvestmentBudget).toBe(0);
+    expect(coupon.recommendedAction).toBe("reduce_cost");
     expect(coupon.economicStatus).toBe("below_floor");
   });
 });
