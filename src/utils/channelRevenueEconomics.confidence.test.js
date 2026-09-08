@@ -17,10 +17,12 @@ describe("channel uplift projection historical confidence", () => {
     expect(campaign.observedGmvUpliftRate).toBeNull();
     expect(campaign.historicalConfidence).toBe(0);
     expect(campaign.calibratedExpectedGmvUpliftRate).toBe(50);
+    expect(campaign.conservativeExpectedGmvUpliftRate).toBe(50);
+    expect(campaign.projectionDownsideGapRate).toBe(0);
     expect(campaign.recommendedAction).toBe("scale");
   });
 
-  test("blends projection with observed uplift according to paid-order evidence", () => {
+  test("blends downside history into the projection according to paid-order evidence", () => {
     const [campaign] = summarizeRevenueByChannel(campaignOrders(), {
       expectedGmvUpliftRate: 50,
       observedGmvUpliftRateByChannel: { campaign: 0 },
@@ -28,12 +30,13 @@ describe("channel uplift projection historical confidence", () => {
 
     expect(campaign.historicalConfidence).toBe(0.25);
     expect(campaign.calibratedExpectedGmvUpliftRate).toBe(37.5);
+    expect(campaign.conservativeExpectedGmvUpliftRate).toBe(37.5);
     expect(campaign.projectedIncrementalGmv).toBe(187.5);
     expect(campaign.projectionStatus).toBe("below_target");
     expect(campaign.recommendedAction).toBe("maintain");
   });
 
-  test("lets sufficient observed history fully calibrate an optimistic projection", () => {
+  test("lets sufficient observed downside fully calibrate an optimistic projection", () => {
     const [campaign] = summarizeRevenueByChannel(campaignOrders(20), {
       expectedGmvUpliftRate: 50,
       observedGmvUpliftRateByChannel: { campaign: 10 },
@@ -41,11 +44,12 @@ describe("channel uplift projection historical confidence", () => {
 
     expect(campaign.historicalConfidence).toBe(1);
     expect(campaign.calibratedExpectedGmvUpliftRate).toBe(10);
+    expect(campaign.conservativeExpectedGmvUpliftRate).toBe(10);
     expect(campaign.projectionStatus).toBe("below_target");
     expect(campaign.recommendedAction).toBe("maintain");
   });
 
-  test("supports a configurable evidence threshold for analytics-provided history", () => {
+  test("does not let historical upside inflate the reinvestment projection automatically", () => {
     const [campaign] = summarizeRevenueByChannel(campaignOrders(), {
       expectedGmvUpliftRate: 20,
       observedGmvUpliftRateByChannel: { campaign: 80 },
@@ -55,7 +59,10 @@ describe("channel uplift projection historical confidence", () => {
     expect(campaign.minOrdersForFullHistoricalConfidence).toBe(5);
     expect(campaign.historicalConfidence).toBe(1);
     expect(campaign.calibratedExpectedGmvUpliftRate).toBe(80);
-    expect(campaign.projectionStatus).toBe("profitable");
-    expect(campaign.recommendedAction).toBe("scale");
+    expect(campaign.conservativeExpectedGmvUpliftRate).toBe(20);
+    expect(campaign.projectionDownsideGapRate).toBe(60);
+    expect(campaign.projectedIncrementalGmv).toBe(100);
+    expect(campaign.projectionStatus).toBe("below_target");
+    expect(campaign.recommendedAction).toBe("maintain");
   });
 });
