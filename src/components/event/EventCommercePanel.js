@@ -40,6 +40,7 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
   const [quantities, setQuantities] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [restoredSelection, setRestoredSelection] = useState(false);
 
   const applyCatalog = (response, targetSlug) => {
     const nextCatalog = response || { tickets: [], items: [], available_dates: [] };
@@ -52,6 +53,7 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
     setQuantities(restored);
 
     const restoredQuantity = Object.values(restored).reduce((sum, quantity) => sum + Number(quantity || 0), 0);
+    setRestoredSelection(restoredQuantity > 0);
     if (restoredQuantity > 0) {
       trackCommerce("event_purchase_selection_restored", {
         label: "Seleção válida restaurada no evento",
@@ -139,6 +141,7 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
     const max = availableMax === null ? configuredMax : Math.max(0, Math.min(configuredMax, Number(availableMax || 0)));
     const parsed = Math.max(0, Math.min(max, Number(value || 0)));
     const key = `${kind}:${id}`;
+    setRestoredSelection(false);
     setQuantities((current) => {
       const next = { ...current, [key]: parsed };
       persistSelection(next);
@@ -233,6 +236,19 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
     navigate(checkoutPath, { state: { checkout, from: `${location.pathname}${location.search}` } });
   };
 
+  const resumeRestoredCheckout = () => {
+    trackCommerce("event_purchase_selection_resumed", {
+      label: "Compra retomada após restaurar seleção",
+      target: activeSlug,
+      metadata: {
+        event_id: activeEventId,
+        amount: Number(total.toFixed(2)),
+        quantity: selectedQuantity,
+      },
+    });
+    continueToCheckout();
+  };
+
   if (loading) return <p className="text-secondary mb-0">Carregando opções de compra...</p>;
   if (salesClosed) return <Alert variant="secondary" className="mt-4 mb-0"><strong>Vendas encerradas.</strong><span className="d-block mt-1">Ingressos e itens antecipados não podem mais ser adquiridos para esta edição.</span></Alert>;
   if (!(catalog.tickets || []).length && !(catalog.items || []).length && availableDates.length <= 1) return null;
@@ -243,6 +259,10 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
     <p className="text-secondary small">Escolha a data, seus ingressos e, se quiser, itens do estabelecimento para retirar no evento por QR Code.</p>
     {error && <Alert variant="danger">{error}</Alert>}
     {!checkoutAvailable && <Alert variant="warning">Pagamentos temporariamente indisponíveis para esta data.</Alert>}
+    {restoredSelection && selectedQuantity > 0 && checkoutAvailable && <Alert variant="success" className="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2">
+      <div><strong>Você já tinha uma compra em andamento.</strong><span className="d-block small">{selectedQuantity} selecionado{selectedQuantity === 1 ? "" : "s"} · {money(total)}. Preço e disponibilidade serão revalidados antes do pagamento.</span></div>
+      <Button type="button" variant="success" onClick={resumeRestoredCheckout}>{user ? `Continuar compra · ${money(total)}` : "Entrar e continuar"}</Button>
+    </Alert>}
 
     {availableDates.length > 1 && <div className="mb-3">
       <Form.Label className="fw-semibold">Para qual data você quer comprar?</Form.Label>
