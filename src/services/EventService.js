@@ -127,6 +127,28 @@ const createAgendaItem = createIdempotentMutation({
   ).data,
 });
 
+const updateMultipartEvent = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_update_attempt_",
+  keyPrefix: "event-update",
+  requestKeyFor: (eventId, formData) => `${Number(eventId)}:${createMutationRequestKey(formData)}`,
+  mutate: async ({ idempotencyKey }, eventId, formData) => (
+    await appApiClient.post(`/events/${Number(eventId)}`, formData, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    })
+  ).data,
+});
+
+const updateAgendaItem = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_agenda_update_attempt_",
+  keyPrefix: "event-agenda-update",
+  requestKeyFor: (scheduleId, formData) => `${Number(scheduleId)}:${createMutationRequestKey(formData)}`,
+  mutate: async ({ idempotencyKey }, scheduleId, formData) => (
+    await appApiClient.post(`/event-agenda/items/${Number(scheduleId)}`, formData, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    })
+  ).data,
+});
+
 const createAgendaGeneration = ({ storagePrefix, keyPrefix, pathFor }) => createIdempotentMutation({
   storagePrefix,
   keyPrefix,
@@ -303,7 +325,7 @@ const eventService = {
     if (typeof FormData !== "undefined" && payload instanceof FormData) {
       if (typeof payload.set === "function") payload.set("_method", "PATCH");
       else payload.append("_method", "PATCH");
-      return (await appApiClient.post(`/events/${eventId}`, payload)).data;
+      return updateMultipartEvent(eventId, payload);
     }
     return (await appApiClient.patch(`/events/${eventId}`, payload)).data;
   },
@@ -315,7 +337,7 @@ const eventService = {
   agenda: async (productionId) => (await appApiClient.get(`/event-agenda/productions/${productionId}`)).data,
   setAgendaStatus: async (productionId, isActive) => (await appApiClient.patch(`/event-agenda/productions/${productionId}/status`, { is_active: isActive })).data,
   createAgendaItem,
-  updateAgendaItem: async (scheduleId, formData) => (await appApiClient.post(`/event-agenda/items/${scheduleId}`, formData)).data,
+  updateAgendaItem,
   setAgendaItemStatus: async (scheduleId, isActive) => (await appApiClient.patch(`/event-agenda/items/${scheduleId}/status`, { is_active: isActive })).data,
   deleteAgendaItem: async (scheduleId) => (await appApiClient.delete(`/event-agenda/items/${scheduleId}`)).data,
   generateAgendaItem,
