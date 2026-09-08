@@ -2,13 +2,14 @@ name: Validate Cutinapp
 
 on:
   push:
-    branches: [main, 'refactor/**']
+    branches: [main, 'refactor/**', 'fix/**']
   pull_request:
     branches: [main]
 
 jobs:
   frontend:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -24,5 +25,15 @@ jobs:
             echo 'Runtime services must consume /api/v1/apps/{application} through AppApiClient.' >&2
             exit 1
           fi
+      - name: Protect production creation transport contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'appApiClient.post("/organizations"' src/services/CutinappService.js
+          grep -q '"Idempotency-Key"' src/services/CutinappService.js
+          grep -q 'producer_production_create_success' src/pages/production/ProductionCreatePage.js
+          grep -q 'Código de diagnóstico' src/pages/production/ProductionCreatePage.js
+          grep -q 'cutinapp:production-create:draft' src/pages/production/ProductionCreatePage.js
+          node --check scripts/production-smoke.mjs
       - run: CI=true npm test -- --watchAll=false
       - run: npm run build
