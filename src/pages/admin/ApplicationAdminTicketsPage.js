@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Badge, Button, Card, Col, Container, Form, Modal, Row, Spinner } from "react-bootstrap";
 import NavlogComponent from "../../components/NavlogComponent";
 import appApiClient from "../../services/AppApiClient";
+import applicationAdminTicketService from "../../services/ApplicationAdminTicketService";
 
 const PAGE_SIZE = 12;
 
@@ -101,8 +102,8 @@ export default function ApplicationAdminTicketsPage() {
         description: form.description || null,
         limit_date: form.limit_date || null,
       };
-      const response = await appApiClient.put(`/admin/tickets/${selected.id}`, payload);
-      const updated = response.data?.data;
+      const response = await applicationAdminTicketService.update(selected.id, payload);
+      const updated = response?.data;
       if (updated) setTickets((current) => current.map((item) => item.id === updated.id ? { ...item, ...updated } : item));
       setSuccess("Ingresso atualizado globalmente com sucesso.");
       setSelected(null);
@@ -118,7 +119,7 @@ export default function ApplicationAdminTicketsPage() {
     setBusy(true);
     setError("");
     try {
-      await appApiClient.delete(`/admin/tickets/${ticket.id}`);
+      await applicationAdminTicketService.remove(ticket.id);
       setTickets((current) => current.filter((item) => item.id !== ticket.id));
       setSuccess("Ingresso excluído com sucesso.");
     } catch (err) {
