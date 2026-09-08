@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import PropTypes from "prop-types";
 import { Alert, Container, Form, InputGroup, Spinner } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
@@ -42,6 +43,15 @@ function BlogCover({ entry, featured = false }) {
     </div>
   </div>;
 }
+
+BlogCover.propTypes = {
+  entry: PropTypes.shape({
+    cover_image: PropTypes.string,
+    title: PropTypes.string,
+    category: PropTypes.string,
+  }).isRequired,
+  featured: PropTypes.bool,
+};
 
 export default function BlogPage() {
   const [entries, setEntries] = useState([]);
