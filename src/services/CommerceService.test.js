@@ -79,6 +79,82 @@ describe("CommerceService", () => {
     expect(appApiClient.get).toHaveBeenCalledTimes(2);
   });
 
+  test("protects payout requests with an idempotency key", async () => {
+    appApiClient.post.mockResolvedValue({ data: { payout: { id: 91, status: "pending" } } });
+
+    await expect(commerceService.requestPayout("42", "125.50")).resolves.toEqual({
+      payout: { id: 91, status: "pending" },
+    });
+
+    expect(appApiClient.post).toHaveBeenCalledWith(
+      "/organizations/42/payouts",
+      { amount: "125.50" },
+      { headers: { "Idempotency-Key": expect.any(String) } },
+    );
+  });
+
+  test("reuses the payout request key after an uncertain network failure", async () => {
+    const networkError = Object.assign(new Error("Network Error"), { code: "ERR_NETWORK" });
+    appApiClient.post
+      .mockRejectedValueOnce(networkError)
+      .mockResolvedValueOnce({ data: { payout: { id: 92 } } });
+
+    await expect(commerceService.requestPayout(42, 200)).rejects.toThrow("Network Error");
+    const firstKey = idempotencyKeyAt(0);
+
+    await expect(commerceService.requestPayout(42, 200)).resolves.toEqual({ payout: { id: 92 } });
+    expect(idempotencyKeyAt(1)).toBe(firstKey);
+  });
+
+  test("rotates the payout request key after a definitive validation failure", async () => {
+    appApiClient.post
+      .mockRejectedValueOnce({ status: 422, message: "Valor indisponível" })
+      .mockResolvedValueOnce({ data: { payout: { id: 95 } } });
+
+    await expect(commerceService.requestPayout(42, 250)).rejects.toMatchObject({ status: 422 });
+    const rejectedKey = idempotencyKeyAt(0);
+
+    await expect(commerceService.requestPayout(42, 250)).resolves.toEqual({ payout: { id: 95 } });
+    expect(idempotencyKeyAt(1)).not.toBe(rejectedKey);
+  });
+
+  test("coalesces concurrent identical payout requests", async () => {
+    let resolveRequest;
+    appApiClient.post.mockReturnValue(new Promise((resolve) => {
+      resolveRequest = resolve;
+    }));
+
+    const first = commerceService.requestPayout(42, 300);
+    const second = commerceService.requestPayout("42", "300.00");
+
+    expect(second).toBe(first);
+    expect(appApiClient.post).toHaveBeenCalledTimes(1);
+
+    resolveRequest({ data: { payout: { id: 93 } } });
+    await expect(first).resolves.toEqual({ payout: { id: 93 } });
+  });
+
+  test("protects payout cancellation against retry and concurrent duplicate submits", async () => {
+    const networkError = Object.assign(new Error("Network Error"), { code: "ERR_NETWORK" });
+    appApiClient.post
+      .mockRejectedValueOnce(networkError)
+      .mockResolvedValueOnce({ data: { payout: { id: 94, status: "cancelled" } } });
+
+    await expect(commerceService.cancelPayout(42, 94)).rejects.toThrow("Network Error");
+    const firstKey = idempotencyKeyAt(0);
+
+    const first = commerceService.cancelPayout("42", "94");
+    const second = commerceService.cancelPayout(42, 94);
+
+    expect(second).toBe(first);
+    await expect(first).resolves.toEqual({ payout: { id: 94, status: "cancelled" } });
+    expect(appApiClient.post.mock.calls[1]).toEqual([
+      "/organizations/42/payouts/94/cancel",
+      undefined,
+      { headers: { "Idempotency-Key": firstKey } },
+    ]);
+  });
+
   test("loads revenue funnel with a bounded period", async () => {
     appApiClient.get.mockResolvedValue({ data: { gross_revenue: 1250 } });
 
