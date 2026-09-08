@@ -130,6 +130,64 @@ describe("CutinappService courtesy claim idempotency", () => {
   });
 });
 
+describe("CutinappService courtesy lifecycle idempotency", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    sessionStorage.clear();
+  });
+
+  test("sends an idempotency key when updating a courtesy", async () => {
+    appApiClient.patch.mockResolvedValueOnce({ data: { ticket: { id: 61, quantity: 2 } } });
+    await expect(cutinappService.updateCourtesy(61, { quantity: 2 })).resolves.toEqual({ ticket: { id: 61, quantity: 2 } });
+    expect(appApiClient.patch).toHaveBeenCalledWith(
+      "/tickets/61",
+      { quantity: 2 },
+      { headers: { "Idempotency-Key": expect.any(String) } }
+    );
+  });
+
+  test("reuses the update key after an ambiguous network failure", async () => {
+    appApiClient.patch
+      .mockRejectedValueOnce({ code: "ERR_NETWORK", message: "Network Error" })
+      .mockResolvedValueOnce({ data: { ticket: { id: 62, quantity: 3 } } });
+    await expect(cutinappService.updateCourtesy(62, { quantity: 3 })).rejects.toMatchObject({ code: "ERR_NETWORK" });
+    const firstKey = appApiClient.patch.mock.calls[0][2].headers["Idempotency-Key"];
+    await expect(cutinappService.updateCourtesy(62, { quantity: 3 })).resolves.toEqual({ ticket: { id: 62, quantity: 3 } });
+    expect(appApiClient.patch.mock.calls[1][2].headers["Idempotency-Key"]).toBe(firstKey);
+  });
+
+  test("uses a fresh update key after a definitive validation failure", async () => {
+    appApiClient.patch
+      .mockRejectedValueOnce({ response: { status: 422 } })
+      .mockResolvedValueOnce({ data: { ticket: { id: 63 } } });
+    await expect(cutinappService.updateCourtesy(63, { quantity: 0 })).rejects.toMatchObject({ response: { status: 422 } });
+    const rejectedKey = appApiClient.patch.mock.calls[0][2].headers["Idempotency-Key"];
+    await cutinappService.updateCourtesy(63, { quantity: 0 });
+    expect(appApiClient.patch.mock.calls[1][2].headers["Idempotency-Key"]).not.toBe(rejectedKey);
+  });
+
+  test("reuses the delete key after an ambiguous network failure", async () => {
+    appApiClient.delete
+      .mockRejectedValueOnce({ code: "ERR_NETWORK", message: "Network Error" })
+      .mockResolvedValueOnce({ data: { deleted: true } });
+    await expect(cutinappService.deleteCourtesy(64)).rejects.toMatchObject({ code: "ERR_NETWORK" });
+    const firstKey = appApiClient.delete.mock.calls[0][1].headers["Idempotency-Key"];
+    await expect(cutinappService.deleteCourtesy(64)).resolves.toEqual({ deleted: true });
+    expect(appApiClient.delete.mock.calls[1][1].headers["Idempotency-Key"]).toBe(firstKey);
+  });
+
+  test("deduplicates concurrent courtesy deletion requests", async () => {
+    let resolveDelete;
+    appApiClient.delete.mockImplementationOnce(() => new Promise((resolve) => { resolveDelete = resolve; }));
+    const first = cutinappService.deleteCourtesy(65);
+    const second = cutinappService.deleteCourtesy(65);
+    expect(first).toBe(second);
+    expect(appApiClient.delete).toHaveBeenCalledTimes(1);
+    resolveDelete({ data: { deleted: true } });
+    await expect(first).resolves.toEqual({ deleted: true });
+  });
+});
+
 describe("CutinappService pass transfer idempotency", () => {
   beforeEach(() => {
     jest.clearAllMocks();
