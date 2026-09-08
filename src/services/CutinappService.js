@@ -120,6 +120,17 @@ const createEventCommunityPost = createIdempotentMutation({
   )).data,
 });
 
+const reportEvent = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_report_attempt_",
+  keyPrefix: "event-report",
+  requestKeyFor: (eventId, payload = {}) => `${Number(eventId)}:${createMutationRequestKey(payload)}`,
+  mutate: async ({ idempotencyKey }, eventId, payload = {}) => (await appApiClient.post(
+    `/events/${Number(eventId)}/report`,
+    payload,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
 const uploadProductionMedia = createIdempotentMutation({
   storagePrefix: "cutinapp_production_media_upload_attempt_",
   keyPrefix: "production-media-upload",
@@ -233,7 +244,7 @@ const cutinappService = {
   likeEventPost: async (postId) => (await appApiClient.post(`/community/${postId}/like`)).data,
   unlikeEventPost: async (postId) => (await appApiClient.delete(`/community/${postId}/like`)).data,
   rateEvent: async (eventId, rating) => (await appApiClient.put(`/events/${eventId}/rating`, { rating })).data,
-  reportEvent: async (eventId, payload) => (await appApiClient.post(`/events/${eventId}/report`, payload)).data,
+  reportEvent,
 
   moderationReports: async (params = {}) => (await appApiClient.get("/moderation/reports", { params })).data,
   updateModerationReport: async (reportId, payload) => (await appApiClient.put(`/moderation/reports/${reportId}`, payload)).data,
@@ -270,7 +281,7 @@ const cutinappService = {
   updateCourtesy: async (ticketId, payload) => (await appApiClient.patch(`/tickets/${ticketId}`, payload)).data,
   deleteCourtesy: async (ticketId) => (await appApiClient.delete(`/tickets/${ticketId}`)).data,
   claimCourtesy,
-  myPasses: async () => unwrap((await appApiClient.get("/passes/mine")).data.passes),
+  myPasses: async () => unwrap((await appApiClient.get(`/passes/mine`)).data.passes),
   getPass: async (passId) => (await appApiClient.get(`/passes/${passId}`)).data.pass,
   transferPass,
   eventParticipants: async (eventId) => (await appApiClient.get(`/events/${eventId}/participants`)).data,
