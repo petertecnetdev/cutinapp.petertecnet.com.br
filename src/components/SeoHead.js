@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import { useEffect } from "react";
 
 const SITE_URL = "https://cutinapp.petertecnet.com.br";
@@ -86,5 +87,19 @@ export default function SeoHead({
 
   return null;
 }
+
+SeoHead.propTypes = {
+  title: PropTypes.string,
+  description: PropTypes.string,
+  canonical: PropTypes.string,
+  image: PropTypes.string,
+  type: PropTypes.string,
+  robots: PropTypes.string,
+  jsonLd: PropTypes.oneOfType([
+    PropTypes.object,
+    PropTypes.arrayOf(PropTypes.object),
+  ]),
+  scriptId: PropTypes.string,
+};
 
 export { SITE_URL };
