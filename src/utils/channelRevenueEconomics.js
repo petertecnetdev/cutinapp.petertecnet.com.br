@@ -106,6 +106,12 @@ export const summarizeRevenueByChannel = (orders = [], options = {}) => {
       const minimumNetRevenue = channel.gmv * (minNetTakeRate / 100);
       const netRevenueHeadroomAboveFloor = Math.max(0, netRevenue - minimumNetRevenue);
       const netTakeRateGap = netTakeRate - minNetTakeRate;
+      const maxVariableChannelCosts = variableChannelCosts + netRevenueHeadroomAboveFloor;
+      const maxVariableChannelCostRate = channel.gmv > 0 ? (maxVariableChannelCosts / channel.gmv) * 100 : 0;
+      const maxVariableChannelCostPerOrder = channel.paidOrders > 0 ? maxVariableChannelCosts / channel.paidOrders : 0;
+      const maxPromoterCommission = channel.promoterCommission + netRevenueHeadroomAboveFloor;
+      const maxPromoterCommissionRate = channel.gmv > 0 ? (maxPromoterCommission / channel.gmv) * 100 : 0;
+      const maxPromoterCommissionPerOrder = channel.paidOrders > 0 ? maxPromoterCommission / channel.paidOrders : 0;
       const safeReinvestmentBudget = netRevenueHeadroomAboveFloor * reinvestmentSafetyFactor;
       const safeReinvestmentPerOrder = channel.paidOrders > 0 ? safeReinvestmentBudget / channel.paidOrders : 0;
       const netRevenuePerOrder = channel.paidOrders > 0 ? netRevenue / channel.paidOrders : 0;
@@ -180,6 +186,12 @@ export const summarizeRevenueByChannel = (orders = [], options = {}) => {
         ...channel,
         variableChannelCosts,
         channelCostRate: channel.gmv > 0 ? (variableChannelCosts / channel.gmv) * 100 : 0,
+        maxVariableChannelCosts,
+        maxVariableChannelCostRate,
+        maxVariableChannelCostPerOrder,
+        maxPromoterCommission,
+        maxPromoterCommissionRate,
+        maxPromoterCommissionPerOrder,
         netRevenue,
         netTakeRate,
         contributionMargin,
