@@ -1,9 +1,10 @@
 import React, { useContext, useEffect, useState } from "react";
-import { Alert, Button, Card, Col, Container, Form, Row } from "react-bootstrap";
+import { Alert, Badge, Button, Card, Col, Container, Form, Row } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
+import useAutoSave from "../../hooks/useAutoSave";
 import userService from "../../services/UserService";
 import { storageUrl } from "../../config";
 import "./UserEditPage.css";
@@ -22,6 +23,19 @@ const emptyForm = {
 
 const image = (value) => !value ? "" : /^https?:/.test(value) ? value : `${storageUrl}${String(value).replace(/^\//, "")}`;
 const acceptedImageTypes = ["image/png", "image/jpeg", "image/webp"];
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const profileIsValid = (value) => Boolean(
+  value?.first_name?.trim() && value?.email?.trim() && emailPattern.test(value.email.trim())
+);
+
+const autosaveLabel = (status) => {
+  if (status === "saving") return "Salvando...";
+  if (status === "saved") return "Salvo automaticamente";
+  if (status === "dirty") return "Alterações pendentes";
+  if (status === "error") return "Falha ao salvar";
+  return "Salvamento automático ativo";
+};
 
 export default function UserEditPage() {
   const navigate = useNavigate();
@@ -52,9 +66,59 @@ export default function UserEditPage() {
     setBackgroundPreview(image(user.background));
   }, [user]);
 
+  const persistProfile = async (nextForm, { includeFiles = false, silent = false } = {}) => {
+    if (!user?.id || loading || !profileIsValid(nextForm)) return false;
+
+    setLoading(true);
+    setError("");
+    if (!silent) setSuccess("");
+    try {
+      const payload = new FormData();
+      Object.entries(nextForm).forEach(([key, value]) => payload.append(key, value ?? ""));
+      if (includeFiles && avatar) payload.append("avatar", avatar);
+      if (includeFiles && background) payload.append("background", background);
+
+      const response = await userService.update(user.id, payload);
+      await refreshUser();
+
+      if (includeFiles) {
+        setAvatar(null);
+        setBackground(null);
+        setSuccess(response?.message || "Dados atualizados com sucesso.");
+      }
+      return true;
+    } catch (err) {
+      setError(err?.message || "Não foi possível atualizar sua conta.");
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const {
+    status: autoSaveStatus,
+    lastSavedAt,
+    saveError: autoSaveError,
+    flush: flushAutoSave,
+  } = useAutoSave({
+    value: form,
+    enabled: Boolean(user?.id),
+    delay: 800,
+    validate: profileIsValid,
+    onSave: (nextForm) => persistProfile(nextForm, { includeFiles: false, silent: true }),
+  });
+
+  useEffect(() => {
+    if (!autoSaveError) return;
+    setError(autoSaveError?.message || "Não foi possível salvar automaticamente.");
+  }, [autoSaveError]);
+
   const change = (event) => {
     const { name, value } = event.target;
-    setForm((current) => ({ ...current, [name]: value }));
+    setForm((current) => ({
+      ...current,
+      [name]: name === "uf" ? value.toUpperCase().slice(0, 2) : value,
+    }));
   };
 
   const chooseAvatar = (event) => {
@@ -87,25 +151,22 @@ export default function UserEditPage() {
     event.preventDefault();
     if (!user?.id || loading) return;
 
-    setLoading(true);
-    setError("");
-    setSuccess("");
-    try {
-      const payload = new FormData();
-      Object.entries(form).forEach(([key, value]) => payload.append(key, value ?? ""));
-      if (avatar) payload.append("avatar", avatar);
-      if (background) payload.append("background", background);
-
-      const response = await userService.update(user.id, payload);
-      await refreshUser();
-      setAvatar(null);
-      setBackground(null);
-      setSuccess(response?.message || "Dados atualizados com sucesso.");
-    } catch (err) {
-      setError(err?.message || "Não foi possível atualizar sua conta.");
-    } finally {
-      setLoading(false);
+    if (!profileIsValid(form)) {
+      setError("Informe nome e e-mail válidos antes de salvar.");
+      return;
     }
+
+    try {
+      await persistProfile(form, { includeFiles: true, silent: false });
+    } catch {
+      // persistProfile já apresenta o erro correto na tela.
+    }
+  };
+
+  const handleFormBlur = (event) => {
+    const element = event.target;
+    if (!element || element.type === "file" || element.type === "submit" || element.type === "button") return;
+    flushAutoSave();
   };
 
   const initials = String(user?.first_name || "C").slice(0, 2).toUpperCase();
@@ -113,22 +174,26 @@ export default function UserEditPage() {
   return (
     <div className="cut-app-page">
       <NavlogComponent />
-      {loading && <ProcessingIndicatorComponent label="Salvando sua conta" />}
+      {loading && (avatar || background) && <ProcessingIndicatorComponent label="Salvando imagens do perfil" />}
 
       <Container className="cut-page-container py-4 py-lg-5">
         <div className="cut-page-heading">
           <div>
             <span className="cut-eyebrow">Minha conta</span>
             <h1>Dados pessoais</h1>
-            <p>Personalize seu perfil e mantenha seus dados corretos para suas experiências na Cutinapp.</p>
+            <p>Digite normalmente. Seus dados são salvos automaticamente enquanto você edita e ao sair de cada campo.</p>
           </div>
-          <Button variant="outline-light" onClick={() => navigate("/password")}>Alterar senha</Button>
+          <div className="d-flex flex-column align-items-end gap-2">
+            <Button variant="outline-light" onClick={() => navigate("/password")}>Alterar senha</Button>
+            <Badge bg={autoSaveStatus === "error" ? "danger" : autoSaveStatus === "dirty" ? "warning" : autoSaveStatus === "saving" ? "info" : "success"}>{autosaveLabel(autoSaveStatus)}</Badge>
+            {lastSavedAt && <small className="text-secondary">Último salvamento: {lastSavedAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</small>}
+          </div>
         </div>
 
         {error && <Alert variant="danger">{error}</Alert>}
         {success && <Alert variant="success">{success}</Alert>}
 
-        <Form onSubmit={submit}>
+        <Form onSubmit={submit} onBlur={handleFormBlur}>
           <Card className="cut-panel cut-account-cover-card mb-4">
             <div
               className={`cut-account-cover${backgroundPreview ? " has-image" : ""}`}
@@ -165,7 +230,7 @@ export default function UserEditPage() {
                   <Form.Group className="mt-4 text-start">
                     <Form.Label>Foto do perfil</Form.Label>
                     <Form.Control type="file" accept="image/png,image/jpeg,image/webp" onChange={chooseAvatar} />
-                    <Form.Text>PNG, JPG ou WEBP de até 4 MB.</Form.Text>
+                    <Form.Text>PNG, JPG ou WEBP de até 4 MB. Arquivos são enviados apenas ao confirmar.</Form.Text>
                   </Form.Group>
                 </Card.Body>
               </Card>
@@ -204,8 +269,8 @@ export default function UserEditPage() {
                     </Col>
                   </Row>
                   <div className="cut-form-actions mt-4">
-                    <Button type="button" variant="outline-light" onClick={() => navigate("/dashboard")}>Cancelar</Button>
-                    <Button type="submit" disabled={loading}>Salvar alterações</Button>
+                    <Button type="button" variant="outline-light" onClick={() => navigate("/dashboard")}>Voltar</Button>
+                    <Button type="submit" disabled={loading}>{avatar || background ? "Salvar imagens" : "Salvar agora"}</Button>
                   </div>
                 </Card.Body>
               </Card>
