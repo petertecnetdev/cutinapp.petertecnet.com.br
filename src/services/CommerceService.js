@@ -127,18 +127,23 @@ const checkout = (payload) => {
     .catch(async (error) => {
       if (attempt === 0 && shouldAutoRetryCheckout(error)) {
         const retryPlan = await waitForCheckoutRetry(error);
+        const retryAllowed = retryPlan.connectivityRestored !== false;
         trackTelemetry("checkout_transient_retry", {
-          label: "Checkout repetido automaticamente após falha transitória",
+          label: retryAllowed
+            ? "Checkout repetido automaticamente após falha transitória"
+            : "Checkout aguardou conexão, mas permaneceu offline",
           target: String(payload?.event_id || "checkout"),
           metadata: {
             payment_method: String(payload?.payment_method || "unknown"),
             status: Number(error?.status || error?.response?.status || 0),
-            retry_attempt: 1,
+            retry_attempt: retryAllowed ? 1 : 0,
             retry_delay_ms: retryPlan.retryDelayMs,
             waited_for_connectivity: retryPlan.waitedForConnectivity,
             connectivity_restored: retryPlan.connectivityRestored,
+            retry_skipped_offline: !retryAllowed,
           },
         });
+        if (!retryAllowed) throw error;
         return postCheckout(1);
       }
       throw error;
