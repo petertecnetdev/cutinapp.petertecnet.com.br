@@ -11,7 +11,7 @@
   <meta name="application-name" content="Cutinapp" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <meta name="peter-app-slug" content="cutinapp" />
-  <meta name="description" content="Cutinapp é a plataforma de eventos e ingressos da Peter Tecnet: descubra eventos, retire cortesias, receba seu QR Code e valide entradas pelo celular." />
+  <meta name="description" content="Cutinapp é a plataforma de eventos e ingressos da Peter Tecnet: descubra eventos, compre ou retire ingressos, receba seu QR Code e acompanhe artistas e produções." />
   <meta name="robots" content="index,follow,max-image-preview:large" />
   <link rel="canonical" href="https://cutinapp.petertecnet.com.br/" />
   <link rel="preconnect" href="https://api.petertecnet.com.br" crossorigin />
@@ -19,7 +19,7 @@
   <link rel="dns-prefetch" href="//accounts.google.com" />
   <link rel="dns-prefetch" href="//sdk.mercadopago.com" />
   <meta property="og:title" content="Cutinapp — Eventos e Ingressos | Peter Tecnet" />
-  <meta property="og:description" content="Eventos, cortesias digitais, QR Code individual e check-in em uma experiência conectada." />
+  <meta property="og:description" content="Descubra eventos, compre ou retire ingressos, acompanhe artistas, produções e experiências na Cutinapp." />
   <meta property="og:type" content="website" />
   <meta property="og:locale" content="pt_BR" />
   <meta property="og:site_name" content="Cutinapp" />
@@ -28,13 +28,62 @@
   <meta property="og:url" content="https://cutinapp.petertecnet.com.br/" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Cutinapp — Eventos e Ingressos | Peter Tecnet" />
-  <meta name="twitter:description" content="Eventos, cortesias digitais, QR Code individual e check-in em uma experiência conectada." />
+  <meta name="twitter:description" content="Descubra eventos, compre ou retire ingressos, acompanhe artistas, produções e experiências na Cutinapp." />
   <meta name="twitter:image" content="https://cutinapp.petertecnet.com.br/images/logo.png" />
   <meta name="twitter:image:alt" content="Logo da Cutinapp, plataforma de eventos e ingressos da Peter Tecnet" />
   <title>Cutinapp — Eventos e Ingressos | Peter Tecnet</title>
   <link rel="manifest" href="/manifest.json" />
   <link rel="icon" href="/images/logo.png" />
   <link rel="apple-touch-icon" href="/images/logo.png" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://cutinapp.petertecnet.com.br/#organization",
+        "name": "Cutinapp",
+        "url": "https://cutinapp.petertecnet.com.br/",
+        "logo": "https://cutinapp.petertecnet.com.br/images/logo.png",
+        "description": "Cutinapp é a plataforma de eventos e ingressos da Peter Tecnet, conectando participantes, produtores, artistas e promoters.",
+        "parentOrganization": {
+          "@type": "Organization",
+          "@id": "https://petertecnet.com.br/#organization",
+          "name": "Peter Tecnet",
+          "url": "https://petertecnet.com.br/"
+        }
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://cutinapp.petertecnet.com.br/#website",
+        "url": "https://cutinapp.petertecnet.com.br/",
+        "name": "Cutinapp",
+        "alternateName": "Cutinapp Eventos",
+        "inLanguage": "pt-BR",
+        "publisher": { "@id": "https://cutinapp.petertecnet.com.br/#organization" }
+      },
+      {
+        "@type": "SoftwareApplication",
+        "@id": "https://cutinapp.petertecnet.com.br/#application",
+        "name": "Cutinapp",
+        "url": "https://cutinapp.petertecnet.com.br/",
+        "applicationCategory": "LifestyleApplication",
+        "applicationSubCategory": "Eventos e ingressos",
+        "operatingSystem": "Web",
+        "inLanguage": "pt-BR",
+        "description": "Plataforma para descobrir e divulgar eventos, vender e retirar ingressos, acompanhar artistas e produções e validar entradas por QR Code.",
+        "publisher": { "@id": "https://cutinapp.petertecnet.com.br/#organization" },
+        "featureList": [
+          "Descoberta de eventos",
+          "Ingressos digitais",
+          "Check-in por QR Code",
+          "Perfis de artistas e produções",
+          "Interações sociais em eventos"
+        ]
+      }
+    ]
+  }
+  </script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script defer src="https://petertecnet.com.br/ecosystem/peter-branding.js?v=1.4.0" data-app-slug="cutinapp" data-auto-legacy-logo="true"></script>
   <script defer src="https://petertecnet.com.br/ecosystem/address-forms.js?v=20260904"></script>
