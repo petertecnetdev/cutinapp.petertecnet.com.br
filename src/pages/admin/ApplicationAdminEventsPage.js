@@ -3,6 +3,7 @@ import { Alert, Badge, Button, Container, Form, Modal, Spinner } from "react-boo
 import { useNavigate } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import appApiClient from "../../services/AppApiClient";
+import applicationAdminEventService from "../../services/ApplicationAdminEventService";
 import { storageUrl } from "../../config";
 import "./ApplicationAdminEventsPage.css";
 
@@ -140,11 +141,11 @@ export default function ApplicationAdminEventsPage() {
     setError("");
     setSuccess("");
     try {
-      const response = await appApiClient.delete(`/events/${eventToDelete.id}`);
+      const response = await applicationAdminEventService.remove(eventToDelete.id);
       setEvents((current) => current.filter((event) => event.id !== eventToDelete.id));
       setSelectedEventIds((current) => current.filter((id) => id !== Number(eventToDelete.id)));
       setTotal((current) => Math.max(0, current - 1));
-      setSuccess(response?.data?.message || "Evento excluído com sucesso.");
+      setSuccess(response?.message || "Evento excluído com sucesso.");
       setEventToDelete(null);
       setDeleteConfirmation("");
     } catch (err) {
@@ -161,11 +162,9 @@ export default function ApplicationAdminEventsPage() {
     setSuccess("");
 
     try {
-      const response = await appApiClient.delete("/admin/events", {
-        data: { ids: selectedEventIds },
-      });
-      const deletedCount = Number(response?.data?.deleted_count || selectedEventIds.length);
-      setSuccess(response?.data?.message || `${deletedCount} evento(s) excluído(s) com sucesso.`);
+      const response = await applicationAdminEventService.removeMany(selectedEventIds);
+      const deletedCount = Number(response?.deleted_count || selectedEventIds.length);
+      setSuccess(response?.message || `${deletedCount} evento(s) excluído(s) com sucesso.`);
       setSelectedEventIds([]);
       setBulkDeleteConfirmation("");
       setBulkDeleteOpen(false);
