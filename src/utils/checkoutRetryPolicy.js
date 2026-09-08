@@ -7,6 +7,16 @@ const inventoryConflict422 = (message) => message.includes("não há quantidade 
   || message.includes("estoque esgotado")
   || message.includes("estoque insuficiente");
 
+export const isCheckoutInventoryConflict = (error) => {
+  const status = Number(error?.status || error?.response?.status || 0);
+  return status === 422 && inventoryConflict422(checkoutMessage(error));
+};
+
+export const isCheckoutOperationInProgress = (error) => {
+  const status = Number(error?.status || error?.response?.status || 0);
+  return status === 409 && checkoutMessage(error).includes("processamento");
+};
+
 export const prepareCheckoutFailureForRecovery = (error) => {
   if (!error || Number(error?.status || 0) !== 422) return error;
 

@@ -12,6 +12,7 @@ import { paymentFailureGuidance } from "../../utils/paymentFailureGuidance";
 import { checkoutQuantityLimit, rankCheckoutAddOns, resolveCheckoutQuantity, summarizeCheckoutAddOnOffer } from "../../utils/checkoutAddOns";
 import { checkoutReconciliationMessage, summarizeCheckoutReconciliation } from "../../utils/checkoutReconciliation";
 import { getPaymentSyncDelay } from "../../utils/paymentSyncSchedule";
+import { isCheckoutInventoryConflict, isCheckoutOperationInProgress } from "../../utils/checkoutRetryPolicy";
 import { createKeyedSingleFlight } from "../../utils/singleFlight";
 import { safeGetSessionJson, safeRemoveSessionItem, safeSetSessionJson } from "../../utils/safeStorage";
 import "./CheckoutPage.css";
@@ -345,9 +346,13 @@ export default function CheckoutPage() {
   const payload = (paymentMethod) => ({ event_id: catalog?.event?.id, payment_method: paymentMethod, coupon_code: coupon?.code || undefined, tickets: (selection?.tickets || []).map((item) => ({ id: Number(item.id), quantity: Number(item.quantity) })), items: (selection?.items || []).map((item) => ({ id: Number(item.id), quantity: Number(item.quantity) })) });
   const ensurePaymentAvailable = (requestedMethod) => { if (paymentAvailable && methods.includes(requestedMethod)) return true; setError(catalog?.payment_config?.message || "As vendas deste evento ainda não estão habilitadas."); return false; };
   const refreshAvailabilityAfterCheckoutConflict = async (err, paymentMethod) => {
-    const status = Number(err?.status || err?.response?.status || 0); if (![409, 422].includes(status)) return false;
+    if (!isCheckoutInventoryConflict(err)) return false;
+    const status = Number(err?.status || err?.response?.status || 0);
     try { const freshCatalog = await commerceService.catalog(slug, { force: true }); setCatalog(freshCatalog); setCoupon(null); setCouponError(""); setError("A disponibilidade mudou enquanto você finalizava a compra. Atualizamos sua seleção; revise o resumo, reaplique o cupom e confirme o pagamento novamente."); trackCheckout("checkout_inventory_conflict_reconciled", { label: "Disponibilidade atualizada após conflito no checkout", target: slug, metadata: { event_id: Number(freshCatalog?.event?.id || catalog?.event?.id || 0), amount: Number(payableTotal.toFixed(2)), payment_method: paymentMethod, status } }); return true; } catch (_) { return false; }
   };
+  const checkoutSubmissionErrorMessage = (err, fallback) => isCheckoutOperationInProgress(err)
+    ? "Sua tentativa anterior ainda está sendo processada. Não inicie outra cobrança; tente novamente em instantes para retomar a mesma operação com segurança."
+    : (err?.message || fallback);
   const chooseMethod = (nextMethod) => {
     if (nextMethod === method || paying || paymentSubmissionRef.current) return;
     if (paymentPending) { trackCheckout("payment_method_change_blocked", { label: "Troca de método bloqueada durante pagamento pendente", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(result?.order?.total || payableTotal || 0), previous_payment_method: method, requested_payment_method: nextMethod, order_status: orderStatus || "pending" } }); setError("Há um pagamento em andamento para esta compra. Aguarde a confirmação ou verifique o status antes de escolher outra forma de pagamento."); return; }
@@ -360,7 +365,7 @@ export default function CheckoutPage() {
     trackCheckout("payment_attempted", { label: "PIX solicitado", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(payableTotal.toFixed(2)), discount_amount: discountAmount, coupon_code: coupon?.code || null, payment_method: "pix", checkout_elapsed_ms: Math.max(0, Date.now() - checkoutOpenedAtRef.current) } });
     setPaying(true); setError("");
     try { const checkoutResult = await commerceService.checkout(payload("pix")); setResult(checkoutResult); safeSetSessionJson(paymentStorageKey, checkoutResult); }
-    catch (err) { const reconciled = await refreshAvailabilityAfterCheckoutConflict(err, "pix"); trackCheckout("payment_attempt_failed", { label: "Falha ao iniciar PIX", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(payableTotal.toFixed(2)), payment_method: "pix", outcome: "error", status: Number(err?.status || err?.response?.status || 0), inventory_reconciled: reconciled } }); if (!reconciled) setError(err?.message || "Não foi possível gerar o PIX."); }
+    catch (err) { const reconciled = await refreshAvailabilityAfterCheckoutConflict(err, "pix"); trackCheckout("payment_attempt_failed", { label: "Falha ao iniciar PIX", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(payableTotal.toFixed(2)), payment_method: "pix", outcome: "error", status: Number(err?.status || err?.response?.status || 0), inventory_reconciled: reconciled } }); if (!reconciled) setError(checkoutSubmissionErrorMessage(err, "Não foi possível gerar o PIX.")); }
     finally { paymentSubmissionRef.current = false; setPaying(false); }
   };
   const checkoutCard = async (cardData) => {
@@ -369,7 +374,7 @@ export default function CheckoutPage() {
     trackCheckout("payment_attempted", { label: "Pagamento com cartão enviado", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(payableTotal.toFixed(2)), discount_amount: discountAmount, coupon_code: coupon?.code || null, payment_method: "card", checkout_elapsed_ms: Math.max(0, Date.now() - checkoutOpenedAtRef.current) } });
     setPaying(true); setError("");
     try { const checkoutResult = await commerceService.checkout({ ...payload("card"), ...cardData }); setResult(checkoutResult); safeSetSessionJson(paymentStorageKey, checkoutResult); }
-    catch (err) { const reconciled = await refreshAvailabilityAfterCheckoutConflict(err, "card"); trackCheckout("payment_attempt_failed", { label: "Falha ao processar cartão", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(payableTotal.toFixed(2)), payment_method: "card", outcome: "error", status: Number(err?.status || err?.response?.status || 0), inventory_reconciled: reconciled } }); if (!reconciled) setError(err?.message || "Não foi possível processar o cartão."); }
+    catch (err) { const reconciled = await refreshAvailabilityAfterCheckoutConflict(err, "card"); trackCheckout("payment_attempt_failed", { label: "Falha ao processar cartão", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(payableTotal.toFixed(2)), payment_method: "card", outcome: "error", status: Number(err?.status || err?.response?.status || 0), inventory_reconciled: reconciled } }); if (!reconciled) setError(checkoutSubmissionErrorMessage(err, "Não foi possível processar o cartão.")); }
     finally { paymentSubmissionRef.current = false; setPaying(false); }
   };
   const recoverFailedPayment = (nextMethod = method) => { trackCheckout("payment_recovery_selected", { label: nextMethod === method ? "Tentar pagamento novamente" : `Trocar para ${nextMethod === "pix" ? "PIX" : "cartão"}`, target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(result?.order?.total || payableTotal || 0), previous_payment_method: method, payment_method: nextMethod, previous_status: orderStatus || "failed", failure_reason: failedPaymentGuidance.reason } }); setMethod(nextMethod); setResult(null); setError(""); safeRemoveSessionItem(paymentStorageKey); writeCheckoutRecovery(slug, { selection, orderPublicId: null, couponCode: coupon?.code || null }); };
