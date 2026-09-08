@@ -26,6 +26,19 @@ const attributionForOrder = (order = {}) => {
   return { key: "organic", label: "Orgânico" };
 };
 
+const expectedGmvUpliftForChannel = (channelKey, options = {}) => {
+  const perChannel = options.expectedGmvUpliftRateByChannel;
+  if (perChannel && typeof perChannel === "object" && perChannel[channelKey] !== undefined) {
+    return amount(perChannel[channelKey]);
+  }
+
+  if (options.expectedGmvUpliftRate !== undefined && options.expectedGmvUpliftRate !== null) {
+    return amount(options.expectedGmvUpliftRate);
+  }
+
+  return null;
+};
+
 export const summarizeRevenueByChannel = (orders = [], options = {}) => {
   const grouped = new Map();
   const minNetTakeRate = amount(options.minNetTakeRate ?? 2);
@@ -33,6 +46,9 @@ export const summarizeRevenueByChannel = (orders = [], options = {}) => {
   const minOrdersForScale = Math.max(1, Math.floor(amount(options.minOrdersForScale ?? 5)));
   const minTakeRateGapForScale = amount(options.minTakeRateGapForScale ?? 2);
   const maxRequiredGmvUpliftForScale = amount(options.maxRequiredGmvUpliftForScale ?? 50);
+  const minProjectedNetReturnPerRealForScale = Number.isFinite(Number(options.minProjectedNetReturnPerRealForScale))
+    ? Number(options.minProjectedNetReturnPerRealForScale)
+    : 0;
 
   (Array.isArray(orders) ? orders : [])
     .filter((order) => normalizedText(order?.status || order?.payment_status) === "paid")
@@ -92,12 +108,36 @@ export const summarizeRevenueByChannel = (orders = [], options = {}) => {
         : requiredGmvUpliftRate <= maxRequiredGmvUpliftForScale
           ? "efficient"
           : "high_burden";
+      const expectedGmvUpliftRate = expectedGmvUpliftForChannel(channel.key, options);
+      const projectedIncrementalGmv = expectedGmvUpliftRate === null
+        ? null
+        : channel.gmv * (expectedGmvUpliftRate / 100);
+      const projectedIncrementalNetRevenue = projectedIncrementalGmv === null
+        ? null
+        : projectedIncrementalGmv * (netTakeRate / 100);
+      const projectedNetReturnAfterReinvestment = projectedIncrementalNetRevenue === null
+        ? null
+        : projectedIncrementalNetRevenue - safeReinvestmentBudget;
+      const projectedNetReturnPerReal = projectedNetReturnAfterReinvestment === null || safeReinvestmentBudget <= 0
+        ? null
+        : projectedNetReturnAfterReinvestment / safeReinvestmentBudget;
+      const projectionStatus = expectedGmvUpliftRate === null
+        ? "not_provided"
+        : safeReinvestmentBudget <= 0
+          ? "not_applicable"
+          : projectedNetReturnPerReal >= minProjectedNetReturnPerRealForScale
+            ? "profitable"
+            : "below_target";
       const evidenceStatus = channel.paidOrders >= minOrdersForScale ? "sufficient" : "limited";
+      const projectionAllowsScale = projectionStatus === "not_provided" || projectionStatus === "profitable";
       const recommendedAction = netTakeRate < minNetTakeRate
         ? "reduce_cost"
         : evidenceStatus === "limited"
           ? "test"
-          : netTakeRateGap >= minTakeRateGapForScale && safeReinvestmentBudget > 0 && paybackStatus === "efficient"
+          : netTakeRateGap >= minTakeRateGapForScale
+              && safeReinvestmentBudget > 0
+              && paybackStatus === "efficient"
+              && projectionAllowsScale
             ? "scale"
             : "maintain";
 
@@ -124,6 +164,13 @@ export const summarizeRevenueByChannel = (orders = [], options = {}) => {
         requiredGmvUpliftRate,
         maxRequiredGmvUpliftForScale,
         paybackStatus,
+        expectedGmvUpliftRate,
+        projectedIncrementalGmv,
+        projectedIncrementalNetRevenue,
+        projectedNetReturnAfterReinvestment,
+        projectedNetReturnPerReal,
+        minProjectedNetReturnPerRealForScale,
+        projectionStatus,
         evidenceStatus,
         recommendedAction,
       };
