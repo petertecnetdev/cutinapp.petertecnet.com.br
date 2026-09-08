@@ -1,15 +1,31 @@
 import appApiClient from "./AppApiClient";
 import { createIdempotentMutation, createMutationRequestKey } from "../utils/idempotencyAttempts";
 
-const normalizePayload = (payload = {}) => ({
-  event_id: payload.event_id,
-  name: payload.name,
-  quantity: payload.quantity,
-  limit_date: payload.limit_date || null,
-  description: payload.description || null,
-  price: Number(payload.price || 0),
-  ticket_type: payload.ticket_type || (Number(payload.price || 0) > 0 ? "standard" : "courtesy"),
-});
+const normalizePayload = (payload = {}) => {
+  if (payload.source_ticket_id) {
+    return {
+      source_ticket_id: Number(payload.source_ticket_id),
+      event_ids: (payload.event_ids || []).map(Number),
+    };
+  }
+
+  const normalized = {
+    name: payload.name,
+    quantity: payload.quantity,
+    limit_date: payload.limit_date || null,
+    description: payload.description || null,
+    price: Number(payload.price || 0),
+    ticket_type: payload.ticket_type || (Number(payload.price || 0) > 0 ? "standard" : "courtesy"),
+  };
+
+  if (Array.isArray(payload.event_ids) && payload.event_ids.length > 0) {
+    normalized.event_ids = payload.event_ids.map(Number);
+  } else {
+    normalized.event_id = Number(payload.event_id);
+  }
+
+  return normalized;
+};
 
 const storeIdempotently = createIdempotentMutation({
   storagePrefix: "cutinapp_ticket_create_attempt_",
@@ -24,6 +40,11 @@ const storeIdempotently = createIdempotentMutation({
 
 const store = (payload) => storeIdempotently(normalizePayload(payload));
 
-const ticketService = { store };
+const listByEvent = async (eventId) => {
+  const response = (await appApiClient.get(`/events/${Number(eventId)}/tickets`)).data;
+  return Array.isArray(response?.tickets) ? response.tickets : [];
+};
+
+const ticketService = { store, listByEvent };
 
 export default ticketService;
