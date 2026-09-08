@@ -61,12 +61,12 @@ async function loadDiscovery() {
 
   discoveryPromise = (async () => {
     const [eventResult, productionResult] = await Promise.allSettled([
-      eventService.search({ per_page: 12, sort: "soonest" }),
+      eventService.list({ per_page: 12, sort: "soonest" }),
       cutinappService.publicProductions({ per_page: 8 }),
     ]);
 
     const events = eventResult.status === "fulfilled"
-      ? (eventResult.value?.events?.data || eventResult.value?.events || []).slice(0, 12)
+      ? (Array.isArray(eventResult.value) ? eventResult.value : []).slice(0, 12)
       : [];
 
     const productions = productionResult.status === "fulfilled"
@@ -130,6 +130,16 @@ function Media({ src, alt, icon, className = "" }) {
   const [failed, setFailed] = useState(false);
   if (!src || failed) return <div className={`cut-blog-discovery-fallback ${className}`} aria-hidden="true"><i className={icon} /></div>;
   return <img className={className} src={src} alt={alt} loading="lazy" decoding="async" onError={() => setFailed(true)} />;
+}
+
+function ProductionLogo({ production }) {
+  const [failed, setFailed] = useState(false);
+  const src = mediaUrl(production?.logo);
+  return <span className="cut-blog-production-logo">
+    {src && !failed
+      ? <img src={src} alt="" loading="lazy" onError={() => setFailed(true)} />
+      : initials(production?.name)}
+  </span>;
 }
 
 export default function BlogDiscoveryCarousels({ currentSlug = "", blogEntries = null, showBlogs = true }) {
@@ -201,12 +211,12 @@ export default function BlogDiscoveryCarousels({ currentSlug = "", blogEntries =
     {items.length > 0 && <Carousel
       eyebrow="Descubra nas produções"
       title="Itens das produções"
-      action={<Link className="cut-blog-carousel-link" to="/production">Ver produções</Link>}
+      action={<Link className="cut-blog-carousel-link" to="/productions">Ver produções</Link>}
       className="cut-blog-carousel-section--items"
     >
       {items.map((item, index) => {
         const production = item.production || {};
-        const productionPath = production.slug ? `/production/${production.slug}/public` : "/production";
+        const productionPath = production.slug ? `/production/${production.slug}/public` : "/productions";
         return <article className="cut-blog-slide cut-blog-slide--item" key={`item-${item.id || index}-${production.id || "production"}`}>
           <Link to={productionPath} className="cut-blog-slide-media" aria-label={`Ver ${production.name || "produção"}`}>
             <Media src={itemImage(item)} alt={item.name || "Item da produção"} icon="fa-solid fa-bag-shopping" />
@@ -215,11 +225,7 @@ export default function BlogDiscoveryCarousels({ currentSlug = "", blogEntries =
           <div className="cut-blog-slide-body">
             <h3>{item.name || "Item da produção"}</h3>
             <Link to={productionPath} className="cut-blog-production-link">
-              <span className="cut-blog-production-logo">
-                {production.logo
-                  ? <img src={mediaUrl(production.logo)} alt="" loading="lazy" onError={(event) => { event.currentTarget.style.display = "none"; }} />
-                  : initials(production.name)}
-              </span>
+              <ProductionLogo production={production} />
               <span><small>Produção</small><strong>{production.name || "Ver produção"}</strong></span>
               <i className="fa-solid fa-arrow-up-right-from-square" />
             </Link>
