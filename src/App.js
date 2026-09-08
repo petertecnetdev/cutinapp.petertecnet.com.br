@@ -75,6 +75,7 @@ const ProducerSalesPage = lazy(() => import("./pages/commerce/ProducerSalesPage"
 const ProducerSaleDetailPage = lazy(() => import("./pages/commerce/ProducerSaleDetailPage"));
 const CouponManagePage = lazy(() => import("./pages/commerce/CouponManagePage"));
 const TicketCreatePage = lazy(() => import("./pages/ticket/TicketCreatePage"));
+const TicketBulkEditPage = lazy(() => import("./pages/ticket/TicketBulkEditPage"));
 const CourtesyManagePage = lazy(() => import("./pages/ticket/CourtesyManagePage"));
 const MyPassesPage = lazyWithPreload(() => import("./pages/ticket/MyPassesPage"));
 const PassDetailPage = lazy(() => import("./pages/ticket/PassDetailPage"));
@@ -202,6 +203,7 @@ function AppRoutes() {
           <Route path="/event/:slug" element={<EventViewPage />} />
           <Route path="/checkout/:slug" element={protectedRoute(<CheckoutPage />)} />
           <Route path="/ticket/create" element={protectedRoute(<TicketCreatePage />)} />
+          <Route path="/ticket/bulk-edit/:ticketId" element={protectedRoute(<TicketBulkEditPage />)} />
           <Route path="/passes" element={protectedRoute(<MyPassesPage />)} />
           <Route path="/passes/:id" element={protectedRoute(<PassDetailPage />)} />
           <Route path="/checkin" element={protectedRoute(<CheckinPage />)} />
