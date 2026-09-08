@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import PropTypes from "prop-types";
 import { Alert, Button } from "react-bootstrap";
 import { loadExternalScript } from "../../utils/loadExternalScript";
+import { cardFormValidationGuidance } from "../../utils/cardFormValidationGuidance";
 
 const MERCADO_PAGO_SDK_SRC = "https://sdk.mercadopago.com/js/v2";
 const MERCADO_PAGO_SDK_TIMEOUT_MS = 15000;
@@ -37,7 +38,11 @@ const money = (value) => new Intl.NumberFormat("pt-BR", {
 const trackCardCheckout = (type, metadata = {}) => {
   try {
     window.PeterTecnetTelemetry?.track?.(type, {
-      label: type === "card_sdk_retry_clicked" ? "Tentar carregar cartão novamente" : "Falha ao carregar ambiente do cartão",
+      label: type === "card_sdk_retry_clicked"
+        ? "Tentar carregar cartão novamente"
+        : type === "card_form_validation_blocked"
+          ? "Pagamento com cartão bloqueado por validação incompleta"
+          : "Falha ao carregar ambiente do cartão",
       target: "checkout-card",
       metadata,
     });
@@ -156,8 +161,13 @@ export default function MercadoPagoCardForm({ publicKey, amount, email, disabled
               event.preventDefault();
               if (!localCardForm || disabledRef.current || submittingRef.current) return;
               const data = localCardForm.getCardFormData();
-              if (!data?.token || !data?.paymentMethodId || !data?.installments) {
-                setError("Confira os dados do cartão antes de continuar.");
+              const guidance = cardFormValidationGuidance(data);
+              if (guidance) {
+                setError(guidance.message);
+                trackCardCheckout("card_form_validation_blocked", {
+                  reason: guidance.reason,
+                  amount: Number(amount || 0),
+                });
                 return;
               }
 
