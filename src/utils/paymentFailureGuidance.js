@@ -114,7 +114,7 @@ export const paymentFailureGuidance = ({ payment = {}, method = "", pixAvailable
     },
     card_rejected: {
       title: "O cartão não concluiu o pagamento",
-      message: `Você pode revisar os dados e tentar novamente ou escolher outra forma de pagamento.${pixAlternative}`,
+      message: `O provedor não informou um motivo específico para a recusa. Evite repetir imediatamente os mesmos dados; use outro cartão ou consulte o banco emissor.${pixRecommended}`,
     },
     pix_expired: {
       title: "Este PIX expirou",
