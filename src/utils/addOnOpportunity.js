@@ -99,15 +99,21 @@ export const addOnMarginQualityBonus = ({ incrementalNetMargin = 0, minimumNetMa
   return Math.max(0, Math.min(100, margin - floor));
 };
 
+export const addOnGrowthMaterialityBonus = (opportunity = {}, maximumBonus = 25) => {
+  const cap = Math.max(0, Math.min(100, Number(maximumBonus || 0)));
+  const materiality = addOnRevenueMateriality(opportunity);
+  return Math.min(cap, materiality * (cap / 100));
+};
+
 export const addOnEconomicPriorityScore = (opportunity = {}) => {
   const netRevenue = confidenceAdjustedAddOnNetRevenue(opportunity);
   const marginQualityBonus = addOnMarginQualityBonus(opportunity);
+  const growthMaterialityBonus = addOnGrowthMaterialityBonus(opportunity);
 
-  // Revenue remains the economic base. Margin only increases priority after the
-  // opportunity clears the minimum acceptable margin floor; merely meeting the
-  // floor does not earn a ranking bonus. The bonus remains capped at 100% so a
-  // tiny high-margin projection cannot dominate materially larger net revenue.
-  return netRevenue * (1 + (marginQualityBonus / 100));
+  // Net revenue remains the economic base. Margin quality and revenue
+  // materiality only apply bounded bonuses, so a tiny event cannot outrank a
+  // materially larger Peter Tecnet revenue opportunity solely due to ratios.
+  return netRevenue * (1 + ((marginQualityBonus + growthMaterialityBonus) / 100));
 };
 
 export const compareAddOnOpportunities = (a = {}, b = {}) => {
