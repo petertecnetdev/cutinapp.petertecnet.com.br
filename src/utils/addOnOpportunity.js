@@ -93,15 +93,21 @@ export const confidenceAdjustedAddOnNetRevenue = ({ incrementalNetRevenue = 0, e
   return netRevenue * confidence;
 };
 
+export const addOnMarginQualityBonus = ({ incrementalNetMargin = 0, minimumNetMargin = 2 } = {}) => {
+  const margin = Math.max(0, Math.min(100, Number(incrementalNetMargin || 0)));
+  const floor = Math.max(0, Math.min(100, Number(minimumNetMargin || 0)));
+  return Math.max(0, Math.min(100, margin - floor));
+};
+
 export const addOnEconomicPriorityScore = (opportunity = {}) => {
   const netRevenue = confidenceAdjustedAddOnNetRevenue(opportunity);
-  const margin = Math.max(0, Math.min(100, Number(opportunity.incrementalNetMargin || 0)));
+  const marginQualityBonus = addOnMarginQualityBonus(opportunity);
 
-  // Net revenue remains the economic base, while margin can improve priority by
-  // at most 100%. This lets a materially healthier opportunity outrank a close
-  // revenue alternative without allowing tiny high-margin projections to beat
-  // substantially larger net-revenue opportunities.
-  return netRevenue * (1 + (margin / 100));
+  // Revenue remains the economic base. Margin only increases priority after the
+  // opportunity clears the minimum acceptable margin floor; merely meeting the
+  // floor does not earn a ranking bonus. The bonus remains capped at 100% so a
+  // tiny high-margin projection cannot dominate materially larger net revenue.
+  return netRevenue * (1 + (marginQualityBonus / 100));
 };
 
 export const compareAddOnOpportunities = (a = {}, b = {}) => {
