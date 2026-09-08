@@ -12,7 +12,7 @@ export const estimateAddOnAttachmentOpportunity = ({ paidCount, addOnOrders, ave
   const actionableFloor = Math.max(0, Number(minimumActionableOrders || 0));
   const incrementalOrders = projectedOrders >= actionableFloor ? projectedOrders : 0;
   const incrementalGmv = incrementalOrders * average;
-  return { incrementalOrders, incrementalGmv, incrementalPlatformRevenue: incrementalGmv * (rate / 100), benchmarkUsed: observedAverage <= 0 && benchmarkAverage > 0, evidenceFactor, projectedOrders, minimumActionableOrders: actionableFloor };
+  return { incrementalOrders, incrementalGmv, incrementalPlatformRevenue: incrementalGmv * (rate / 100), benchmarkUsed: observedAverage <= 0 && benchmarkAverage > 0, evidenceFactor, evidenceAdjusted: true, projectedOrders, minimumActionableOrders: actionableFloor };
 };
 
 export const suggestedAddOnStock = (incrementalOrders, maxStock = 100, demandBufferPercentage = 20) => {
@@ -66,8 +66,9 @@ export const addOnMarginGuard = ({ incrementalGmv = 0, incrementalNetRevenue = 0
   };
 };
 
-export const confidenceAdjustedAddOnNetRevenue = ({ incrementalNetRevenue = 0, evidenceFactor = 1 } = {}) => {
+export const confidenceAdjustedAddOnNetRevenue = ({ incrementalNetRevenue = 0, evidenceFactor = 1, evidenceAdjusted = false } = {}) => {
   const netRevenue = Math.max(0, Number(incrementalNetRevenue || 0));
+  if (evidenceAdjusted) return netRevenue;
   const confidence = Math.max(0, Math.min(1, Number.isFinite(Number(evidenceFactor)) ? Number(evidenceFactor) : 1));
   return netRevenue * confidence;
 };
