@@ -10,6 +10,48 @@ const boundedRate = (value, fallback) => {
   return Math.min(1, Math.max(0, parsed));
 };
 
+const proposalPayback = (channel = {}, simulation = {}, options = {}) => {
+  const gmv = nonNegative(simulation.gmv);
+  const currentNetRevenue = nonNegative(channel.netRevenue);
+  const currentNetTakeRate = channel.netTakeRate !== undefined
+    ? nonNegative(channel.netTakeRate)
+    : gmv > 0
+      ? (currentNetRevenue / gmv) * 100
+      : 0;
+  const incrementalVariableCost = Math.max(0, nonNegative(simulation.incrementalVariableCost));
+  const minProjectedNetReturnPerReal = Number.isFinite(Number(options.minProjectedNetReturnPerReal))
+    ? Math.max(0, Number(options.minProjectedNetReturnPerReal))
+    : 0;
+  const maxRequiredGmvUpliftRate = nonNegative(options.maxRequiredGmvUpliftRate ?? 50);
+  const requiredIncrementalNetRevenue = incrementalVariableCost * (1 + minProjectedNetReturnPerReal);
+  const requiredIncrementalGmv = incrementalVariableCost <= 0
+    ? 0
+    : currentNetTakeRate > 0
+      ? requiredIncrementalNetRevenue / (currentNetTakeRate / 100)
+      : Number.POSITIVE_INFINITY;
+  const requiredGmvUpliftRate = incrementalVariableCost <= 0
+    ? 0
+    : gmv > 0 && Number.isFinite(requiredIncrementalGmv)
+      ? (requiredIncrementalGmv / gmv) * 100
+      : Number.POSITIVE_INFINITY;
+  const paybackStatus = incrementalVariableCost <= 0
+    ? "not_applicable"
+    : requiredGmvUpliftRate <= maxRequiredGmvUpliftRate
+      ? "efficient"
+      : "high_burden";
+
+  return {
+    currentNetTakeRate,
+    minProjectedNetReturnPerReal,
+    maxRequiredGmvUpliftRate,
+    requiredIncrementalNetRevenue,
+    requiredIncrementalGmv,
+    requiredGmvUpliftRate,
+    paybackStatus,
+    paybackAllowsRecommendation: paybackStatus === "not_applicable" || paybackStatus === "efficient",
+  };
+};
+
 /**
  * Simula o efeito econômico de uma nova configuração de custo variável do canal
  * (ex.: comissão de promoter, desconto/cupom ou campanha) sem alterar preços ou pedidos.
@@ -97,8 +139,8 @@ export const simulatePromoterCommission = (channel = {}, proposal = {}) => {
  * Avalia uma proposta de custo variável com um colchão econômico acima do piso.
  *
  * O piso mínimo continua sendo o limite duro. Além dele, a Cutinapp preserva por
- * padrão 50% do headroom econômico atual como reserva de margem, evitando que uma
- * configuração aparentemente "safe" consuma toda a folga de receita líquida.
+ * padrão 50% do headroom econômico atual como reserva de margem e exige que o custo
+ * incremental tenha payback plausível no GMV do próprio canal.
  */
 export const assessChannelCostProposal = (channel = {}, proposal = {}, options = {}) => {
   const simulation = simulateChannelVariableCost(channel, proposal);
@@ -120,14 +162,16 @@ export const assessChannelCostProposal = (channel = {}, proposal = {}, options =
   const maximumRecommendedVariableCostRate = gmv > 0
     ? (maximumRecommendedVariableCosts / gmv) * 100
     : 0;
+  const payback = proposalPayback(channel, simulation, options);
   const status = !simulation.preservesFloor
     ? "blocked"
-    : preservesSafetyReserve
+    : preservesSafetyReserve && payback.paybackAllowsRecommendation
       ? "recommended"
       : "caution";
 
   return {
     ...simulation,
+    ...payback,
     currentHeadroom,
     safetyReserveFactor,
     minimumHeadroomReserve,
@@ -138,7 +182,9 @@ export const assessChannelCostProposal = (channel = {}, proposal = {}, options =
     maximumRecommendedVariableCostRate,
     decisionStatus: status,
     canApply: simulation.preservesFloor,
-    recommendedToApply: simulation.preservesFloor && preservesSafetyReserve,
+    recommendedToApply: simulation.preservesFloor
+      && preservesSafetyReserve
+      && payback.paybackAllowsRecommendation,
   };
 };
 
@@ -161,14 +207,16 @@ export const assessPromoterCommissionProposal = (channel = {}, proposal = {}, op
   const maximumRecommendedPromoterCommissionRate = simulation.gmv > 0
     ? (maximumRecommendedPromoterCommission / simulation.gmv) * 100
     : 0;
+  const payback = proposalPayback(channel, simulation, options);
   const decisionStatus = !simulation.preservesFloor
     ? "blocked"
-    : preservesSafetyReserve
+    : preservesSafetyReserve && payback.paybackAllowsRecommendation
       ? "recommended"
       : "caution";
 
   return {
     ...simulation,
+    ...payback,
     currentHeadroom,
     safetyReserveFactor,
     minimumHeadroomReserve,
@@ -178,6 +226,8 @@ export const assessPromoterCommissionProposal = (channel = {}, proposal = {}, op
     maximumRecommendedPromoterCommissionRate,
     decisionStatus,
     canApply: simulation.preservesFloor,
-    recommendedToApply: simulation.preservesFloor && preservesSafetyReserve,
+    recommendedToApply: simulation.preservesFloor
+      && preservesSafetyReserve
+      && payback.paybackAllowsRecommendation,
   };
 };
