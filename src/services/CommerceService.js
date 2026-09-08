@@ -242,8 +242,30 @@ const cancelPayoutIdempotently = createIdempotentMutation({
   ).data,
 });
 
+const recoverPendingCheckoutIdempotently = createIdempotentMutation({
+  storagePrefix: "cutinapp_commerce_checkout_recovery_attempt_",
+  keyPrefix: "checkout-recovery",
+  requestKeyFor: (orderId) => String(Number(orderId)),
+  mutate: async ({ idempotencyKey }, orderId) => (
+    await appApiClient.post("/commerce/checkout/pending/recover", { order_id: Number(orderId) }, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    })
+  ).data,
+});
+
+const syncPaymentIdempotently = createIdempotentMutation({
+  storagePrefix: "cutinapp_commerce_payment_sync_attempt_",
+  keyPrefix: "payment-sync",
+  requestKeyFor: (publicId) => String(publicId || "").trim(),
+  mutate: async ({ idempotencyKey }, publicId) => (
+    await appApiClient.post(`/commerce/orders/${String(publicId || "").trim()}/sync-payment`, undefined, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    })
+  ).data.order,
+});
+
 const syncPayment = async (publicId) => {
-  const order = (await appApiClient.post(`/commerce/orders/${publicId}/sync-payment`)).data.order;
+  const order = await syncPaymentIdempotently(publicId);
   const recoveryAttribution = readPaymentRecoveryAttribution(order?.public_id || publicId);
   if (order?.status === "paid" && recoveryAttribution) {
     trackTelemetry("checkout_recovery_paid", {
@@ -267,9 +289,7 @@ const commerceService = {
   catalog,
   checkout,
   pendingCheckout: async () => (await appApiClient.get("/commerce/checkout/pending")).data,
-  recoverPendingCheckout: async (orderId) => (
-    await appApiClient.post("/commerce/checkout/pending/recover", { order_id: Number(orderId) })
-  ).data,
+  recoverPendingCheckout: (orderId) => recoverPendingCheckoutIdempotently(orderId),
   myOrders: async (params = {}) => (await appApiClient.get("/commerce/orders/mine", { params })).data,
   order: async (publicId) => (await appApiClient.get(`/commerce/orders/${publicId}`)).data.order,
   syncPayment,
