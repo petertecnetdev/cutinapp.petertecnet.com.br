@@ -45,6 +45,7 @@ import { installInstagramMobileShell } from "./utils/instagramMobileShell";
 import { installNavigationRecovery } from "./utils/navigationRecovery";
 import { installEventViewScrollReset } from "./utils/eventViewScrollReset";
 import { installCheckoutResumePrompt } from "./utils/checkoutResumePrompt";
+import { installEventFlyerBackground } from "./utils/eventFlyerBackground";
 import { trackTelemetry } from "./utils/telemetry";
 
 installGlobalImageFallbacks();
@@ -56,6 +57,7 @@ installInstagramMobileShell();
 installNavigationRecovery();
 installEventViewScrollReset();
 installCheckoutResumePrompt();
+installEventFlyerBackground();
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
