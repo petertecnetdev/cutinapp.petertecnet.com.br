@@ -8,6 +8,7 @@ import {
 } from "react-router-dom";
 import { AuthContext } from "./context/AuthContext";
 import AppErrorBoundary from "./components/AppErrorBoundary";
+import ApplicationAdminGate from "./components/ApplicationAdminGate";
 import ConnectionStatus from "./components/ConnectionStatus";
 import CutinappVisualEffects from "./components/CutinappVisualEffects";
 import EventFlyerAssistant from "./components/EventFlyerAssistant";
@@ -16,7 +17,7 @@ import PeterTecnetSignature from "./components/PeterTecnetSignature";
 import ProcessingIndicatorComponent from "./components/ProcessingIndicatorComponent";
 import SeoManager from "./components/SeoManager";
 import authService from "./services/AuthService";
-import { hasContextRole, isPeterTecnetRoot } from "./utils/applicationRoles";
+import { hasContextRole } from "./utils/applicationRoles";
 import lazyWithPreload from "./utils/lazyWithPreload";
 
 const HomePage = lazyWithPreload(() => import("./pages/LandingPageV2"));
@@ -36,6 +37,7 @@ const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const AcquisitionDashboardPage = lazy(() => import("./pages/acquisition/AcquisitionDashboardPage"));
 const AcquisitionActivationPage = lazy(() => import("./pages/acquisition/AcquisitionActivationPage"));
 const AdminCenterPage = lazy(() => import("./pages/admin/AdminCenterPage"));
+const ApplicationAdminAccessPage = lazy(() => import("./pages/admin/ApplicationAdminAccessPage"));
 const AdminBlogPage = lazy(() => import("./pages/admin/AdminBlogPage"));
 const ApplicationAdminEventsPage = lazy(() => import("./pages/admin/ApplicationAdminEventsPage"));
 const ApplicationAdminTicketsPage = lazy(() => import("./pages/admin/ApplicationAdminTicketsPage"));
@@ -119,10 +121,10 @@ function AppRoutes() {
     return hasContextRole(user, "acquisition_agent") ? element : <Navigate to="/dashboard" replace />;
   };
 
-  const adminRoute = (element) => {
+  const adminRoute = (element, permission = null) => {
     if (!user) return <Navigate to="/login" state={{ from: currentRoute() }} replace />;
     if (!user.email_verified_at && !canUseDeferredVerificationSession()) return <Navigate to="/email-verify" state={{ from: currentRoute() }} replace />;
-    return isPeterTecnetRoot(user) ? element : <Navigate to="/dashboard" replace />;
+    return <ApplicationAdminGate permission={permission}>{element}</ApplicationAdminGate>;
   };
 
   const verifyRoute = (element) => {
@@ -151,16 +153,17 @@ function AppRoutes() {
           <Route path="/agent/activate" element={<AcquisitionActivationPage />} />
           <Route path="/dashboard" element={protectedRoute(<DashboardPage />)} />
           <Route path="/agent" element={acquisitionRoute(<AcquisitionDashboardPage />)} />
-          <Route path="/admin" element={adminRoute(<AdminCenterPage />)} />
+          <Route path="/admin" element={adminRoute(<AdminCenterPage />, "dashboard.view")} />
           <Route path="/admin/blog" element={adminRoute(<AdminBlogPage />)} />
-          <Route path="/admin/users" element={adminRoute(<ApplicationAdminUsersPage />)} />
-          <Route path="/admin/productions" element={adminRoute(<ApplicationAdminProductionsPage />)} />
-          <Route path="/admin/events" element={adminRoute(<ApplicationAdminEventsPage />)} />
-          <Route path="/admin/tickets" element={adminRoute(<ApplicationAdminTicketsPage />)} />
-          <Route path="/admin/orders" element={adminRoute(<ApplicationAdminOrdersPage />)} />
-          <Route path="/admin/finance" element={adminRoute(<ApplicationAdminFinancePage />)} />
-          <Route path="/admin/checkins" element={adminRoute(<ApplicationAdminCheckinsPage />)} />
-          <Route path="/admin/moderation" element={adminRoute(<ReportModerationPage />)} />
+          <Route path="/admin/users" element={adminRoute(<ApplicationAdminUsersPage />, "users.view")} />
+          <Route path="/admin/access" element={adminRoute(<ApplicationAdminAccessPage />, "admin.access.manage")} />
+          <Route path="/admin/productions" element={adminRoute(<ApplicationAdminProductionsPage />, "establishments.view")} />
+          <Route path="/admin/events" element={adminRoute(<ApplicationAdminEventsPage />, "events.view")} />
+          <Route path="/admin/tickets" element={adminRoute(<ApplicationAdminTicketsPage />, "tickets.view")} />
+          <Route path="/admin/orders" element={adminRoute(<ApplicationAdminOrdersPage />, "finance.view")} />
+          <Route path="/admin/finance" element={adminRoute(<ApplicationAdminFinancePage />, "finance.view")} />
+          <Route path="/admin/checkins" element={adminRoute(<ApplicationAdminCheckinsPage />, "checkin.view")} />
+          <Route path="/admin/moderation" element={adminRoute(<ReportModerationPage />, "moderation.view")} />
           <Route path="/blog" element={<BlogPage />} />
           <Route path="/blog/:slug" element={<BlogArticlePage />} />
           <Route path="/feed" element={protectedRoute(<FeedPage />)} />
