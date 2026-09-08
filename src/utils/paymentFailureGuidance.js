@@ -12,6 +12,9 @@ export const classifyPaymentFailure = (payment = {}, method = "") => {
   const paymentMethod = normalize(method || payment?.method);
 
   if (paymentMethod !== "card") return { reason: "pix_not_completed", detail };
+  if (detail.includes("bad_filled_security_code")) return { reason: "card_security_code", detail };
+  if (detail.includes("bad_filled_date")) return { reason: "card_expiration_data", detail };
+  if (detail.includes("bad_filled_card_number")) return { reason: "card_number", detail };
   if (detail.includes("insufficient_amount")) return { reason: "insufficient_funds", detail };
   if (detail.includes("card_disabled")) return { reason: "card_disabled", detail };
   if (detail.includes("card_type_not_allowed")) return { reason: "card_type_not_allowed", detail };
@@ -29,6 +32,18 @@ export const paymentFailureGuidance = ({ payment = {}, method = "", pixAvailable
   const pixRecommended = pixAvailable ? " Recomendado: tente PIX para concluir esta mesma compra sem refazer sua seleção." : "";
 
   const guidance = {
+    card_security_code: {
+      title: "Revise o código de segurança do cartão",
+      message: `O provedor indicou que o código de segurança (CVV) precisa ser corrigido. Confira os 3 ou 4 dígitos do cartão antes de enviar novamente.${pixAlternative}`,
+    },
+    card_expiration_data: {
+      title: "Revise a validade do cartão",
+      message: `O provedor indicou que a data de validade precisa ser corrigida. Confira mês e ano antes de tentar novamente.${pixAlternative}`,
+    },
+    card_number: {
+      title: "Revise o número do cartão",
+      message: `O provedor indicou que o número do cartão precisa ser corrigido. Confira os dígitos antes de tentar novamente.${pixAlternative}`,
+    },
     insufficient_funds: {
       title: "O cartão não conseguiu concluir o pagamento",
       message: `O provedor indicou saldo ou limite insuficiente. Não repita a mesma tentativa sem liberar limite; use outro cartão ou aguarde a atualização do limite.${pixRecommended}`,
