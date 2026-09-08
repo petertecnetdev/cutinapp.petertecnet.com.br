@@ -17,6 +17,7 @@ import "./CheckoutPage.css";
 
 const money = (value) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
 const failedStatuses = ["refunded", "charged_back", "rejected", "cancelled"];
+const checkoutItemQuantityLimit = 50;
 
 const trackCheckout = (type, details = {}) => {
   try {
@@ -161,7 +162,7 @@ export default function CheckoutPage() {
       .filter(Boolean);
 
     const tickets = reconcile(selection.tickets || [], catalog.tickets || [], 20);
-    const items = reconcile(selection.items || [], catalog.items || [], 10);
+    const items = reconcile(selection.items || [], catalog.items || [], checkoutItemQuantityLimit);
     const previous = JSON.stringify({ tickets: selection.tickets || [], items: selection.items || [] });
     const nextComparable = JSON.stringify({ tickets, items });
     if (previous === nextComparable) return;
@@ -406,7 +407,7 @@ export default function CheckoutPage() {
 
   const updateItemQuantity = (item, nextQuantity) => {
     if (result || !item?.id) return;
-    const quantity = resolveCheckoutQuantity(item, Number(nextQuantity || 0), 10);
+    const quantity = resolveCheckoutQuantity(item, Number(nextQuantity || 0), checkoutItemQuantityLimit);
     const currentItems = selection?.items || [];
     const nextItems = quantity === 0
       ? currentItems.filter((entry) => Number(entry.id) !== Number(item.id))
@@ -640,7 +641,7 @@ export default function CheckoutPage() {
 
           <div className="cut-checkout-trustbar"><div><i className="fa-solid fa-lock" /><span><strong>Conexão segura</strong>Dados criptografados</span></div><div><i className="fa-solid fa-shield-halved" /><span><strong>Mercado Pago </strong>Processamento protegido</span></div><div><i className="fa-solid fa-ticket" /><span><strong>Liberação automática</strong>Ingresso após aprovação</span></div></div>
         </main>
-        <aside className="cut-checkout-summary"><span className="cut-eyebrow">Resumo do pedido</span><h2>Sua compra</h2><div className="cut-checkout-summary__event"><i className="fa-regular fa-calendar-check" /><div><strong>{catalog?.event?.title}</strong><span>Compra pela Cutinapp</span></div></div><div className="cut-checkout-summary__lines">{lines.map((line) => <div key={`${line.kind}-${line.id}`}><div><small>{line.kind === "ticket" ? "Ingresso" : "Item"}</small><strong>{line.name}</strong>{!result && line.kind === "item" ? <div className="d-flex flex-row align-items-center gap-2 mt-2" aria-label={`Quantidade de ${line.name}`}><Button type="button" variant="outline-light" size="sm" onClick={() => updateItemQuantity(line, line.quantity - 1)} aria-label={`Diminuir quantidade de ${line.name}`}><i className="fa-solid fa-minus" /></Button><span aria-live="polite">{line.quantity}</span><Button type="button" variant="outline-light" size="sm" onClick={() => updateItemQuantity(line, line.quantity + 1)} disabled={line.quantity >= 10} aria-label={`Aumentar quantidade de ${line.name}`}><i className="fa-solid fa-plus" /></Button></div> : <span>Qtd. {line.quantity}</span>}</div><strong>{money(Number(line.price) * line.quantity)}</strong></div>)}</div><div className="cut-checkout-summary__total"><span>Total</span><strong>{money(total)}</strong></div><div className="cut-checkout-summary__security"><i className="fa-solid fa-shield-halved" /><span>Pagamento processado com segurança pelo Mercado Pago.</span></div></aside>
+        <aside className="cut-checkout-summary"><span className="cut-eyebrow">Resumo do pedido</span><h2>Sua compra</h2><div className="cut-checkout-summary__event"><i className="fa-regular fa-calendar-check" /><div><strong>{catalog?.event?.title}</strong><span>Compra pela Cutinapp</span></div></div><div className="cut-checkout-summary__lines">{lines.map((line) => <div key={`${line.kind}-${line.id}`}><div><small>{line.kind === "ticket" ? "Ingresso" : "Item"}</small><strong>{line.name}</strong>{!result && line.kind === "item" ? <div className="d-flex flex-row align-items-center gap-2 mt-2" aria-label={`Quantidade de ${line.name}`}><Button type="button" variant="outline-light" size="sm" onClick={() => updateItemQuantity(line, line.quantity - 1)} aria-label={`Diminuir quantidade de ${line.name}`}><i className="fa-solid fa-minus" /></Button><span aria-live="polite">{line.quantity}</span><Button type="button" variant="outline-light" size="sm" onClick={() => updateItemQuantity(line, line.quantity + 1)} disabled={line.quantity >= checkoutItemQuantityLimit} aria-label={`Aumentar quantidade de ${line.name}`}><i className="fa-solid fa-plus" /></Button></div> : <span>Qtd. {line.quantity}</span>}</div><strong>{money(Number(line.price) * line.quantity)}</strong></div>)}</div><div className="cut-checkout-summary__total"><span>Total</span><strong>{money(total)}</strong></div><div className="cut-checkout-summary__security"><i className="fa-solid fa-shield-halved" /><span>Pagamento processado com segurança pelo Mercado Pago.</span></div></aside>
       </div>
     </Container>
   </div>;
