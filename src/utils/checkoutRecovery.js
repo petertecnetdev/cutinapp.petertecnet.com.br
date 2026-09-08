@@ -16,6 +16,11 @@ const normalizeSelection = (selection) => {
   return tickets.length || items.length ? { tickets, items } : null;
 };
 
+const normalizeCouponCode = (couponCode) => {
+  const normalized = typeof couponCode === "string" ? couponCode.trim().toUpperCase() : "";
+  return /^[A-Z0-9_-]{1,40}$/.test(normalized) ? normalized : null;
+};
+
 export const clearCheckoutRecovery = (slug) => {
   if (!slug) return false;
   return safeRemoveLocalItem(storageKey(slug));
@@ -34,27 +39,30 @@ export const readCheckoutRecovery = (slug, now = Date.now()) => {
 
   const selection = normalizeSelection(value?.selection);
   const orderPublicId = typeof value?.orderPublicId === "string" ? value.orderPublicId.trim() : "";
+  const couponCode = normalizeCouponCode(value?.couponCode);
   if (!selection && !orderPublicId) {
     clearCheckoutRecovery(slug);
     return null;
   }
 
-  return { selection, orderPublicId: orderPublicId || null, savedAt };
+  return { selection, orderPublicId: orderPublicId || null, couponCode, savedAt };
 };
 
-export const writeCheckoutRecovery = (slug, { selection, orderPublicId } = {}, now = Date.now()) => {
+export const writeCheckoutRecovery = (slug, { selection, orderPublicId, couponCode } = {}, now = Date.now()) => {
   if (!slug) return false;
   const normalizedSelection = normalizeSelection(selection);
   const normalizedOrderPublicId = typeof orderPublicId === "string" ? orderPublicId.trim() : "";
+  const normalizedCouponCode = normalizeCouponCode(couponCode);
   if (!normalizedSelection && !normalizedOrderPublicId) {
     clearCheckoutRecovery(slug);
     return false;
   }
 
   return safeSetLocalJson(storageKey(slug), {
-    version: 1,
+    version: 2,
     selection: normalizedSelection,
     orderPublicId: normalizedOrderPublicId || null,
+    couponCode: normalizedCouponCode,
     savedAt: Number(now),
   });
 };
