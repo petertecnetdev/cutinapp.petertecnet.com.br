@@ -1,6 +1,8 @@
+import { CHECKOUT_RECOVERY_TTL_MS } from "./checkoutRecovery";
 import { trackTelemetry } from "./telemetry";
 
 const CHECKOUT_PREFIX = "cutinapp_checkout_";
+const RECOVERY_PREFIX = "cutinapp_checkout_recovery_";
 const DISMISS_PREFIX = "cutinapp_checkout_resume_dismissed_";
 const PROMPT_ID = "cutinapp-checkout-resume-prompt";
 const shown = new Set();
@@ -14,46 +16,90 @@ const parseDate = (value) => {
   return Number.isFinite(timestamp) ? timestamp : null;
 };
 
+const safeJson = (storage, key) => {
+  try {
+    return JSON.parse(storage?.getItem?.(key) || "null");
+  } catch (_) {
+    return null;
+  }
+};
+
+const isDismissed = (storage, slug) => {
+  try {
+    return storage?.getItem?.(`${DISMISS_PREFIX}${slug}`) === "1";
+  } catch (_) {
+    return false;
+  }
+};
+
 export const isResumePromptRoute = (pathname = "") => pathname === "/" || pathname === "/home" || pathname === "/event";
 
-export const findPendingCheckout = (storage, now = Date.now()) => {
-  if (!storage) return null;
-  const candidates = [];
+export const findPendingCheckout = (storage, now = Date.now(), recoveryStorage = null) => {
+  const candidatesBySlug = new Map();
 
   try {
-    for (let index = 0; index < storage.length; index += 1) {
-      const key = storage.key(index);
-      if (!key?.startsWith(CHECKOUT_PREFIX)) continue;
-      const slug = key.slice(CHECKOUT_PREFIX.length);
-      if (!slug || storage.getItem(`${DISMISS_PREFIX}${slug}`) === "1") continue;
+    if (storage) {
+      for (let index = 0; index < storage.length; index += 1) {
+        const key = storage.key(index);
+        if (!key?.startsWith(CHECKOUT_PREFIX) || key.startsWith(RECOVERY_PREFIX) || key.startsWith(DISMISS_PREFIX)) continue;
+        const slug = key.slice(CHECKOUT_PREFIX.length);
+        if (!slug || isDismissed(storage, slug)) continue;
 
-      let checkout;
-      try {
-        checkout = JSON.parse(storage.getItem(key) || "null");
-      } catch (_) {
-        continue;
+        const checkout = safeJson(storage, key);
+        const quantity = quantityOf(checkout);
+        if (quantity <= 0) continue;
+        const eventAt = parseDate(checkout?.eventDate);
+        if (eventAt !== null && eventAt < now) continue;
+
+        candidatesBySlug.set(slug, {
+          slug,
+          eventId: Number(checkout?.eventId || 0) || null,
+          quantity,
+          eventAt,
+          hasOrder: false,
+          source: "session",
+        });
       }
+    }
 
-      const quantity = quantityOf(checkout);
-      if (quantity <= 0) continue;
-      const eventAt = parseDate(checkout?.eventDate);
-      if (eventAt !== null && eventAt < now) continue;
+    if (recoveryStorage) {
+      for (let index = 0; index < recoveryStorage.length; index += 1) {
+        const key = recoveryStorage.key(index);
+        if (!key?.startsWith(RECOVERY_PREFIX)) continue;
+        const slug = key.slice(RECOVERY_PREFIX.length);
+        if (!slug || isDismissed(storage, slug)) continue;
 
-      candidates.push({
-        slug,
-        eventId: Number(checkout?.eventId || 0) || null,
-        quantity,
-        eventAt,
-      });
+        const recovery = safeJson(recoveryStorage, key);
+        const savedAt = Number(recovery?.savedAt || 0);
+        if (!savedAt || savedAt > now + 5 * 60 * 1000 || now - savedAt > CHECKOUT_RECOVERY_TTL_MS) continue;
+
+        const quantity = quantityOf(recovery?.selection || {});
+        const hasOrder = typeof recovery?.orderPublicId === "string" && Boolean(recovery.orderPublicId.trim());
+        if (quantity <= 0 && !hasOrder) continue;
+
+        const existing = candidatesBySlug.get(slug);
+        candidatesBySlug.set(slug, {
+          slug,
+          eventId: existing?.eventId || null,
+          quantity: Math.max(existing?.quantity || 0, quantity),
+          eventAt: existing?.eventAt ?? null,
+          hasOrder: Boolean(existing?.hasOrder || hasOrder),
+          source: existing ? "session+recovery" : "recovery",
+          savedAt,
+        });
+      }
     }
   } catch (_) {
     return null;
   }
 
+  const candidates = [...candidatesBySlug.values()];
   candidates.sort((a, b) => {
+    if (a.hasOrder !== b.hasOrder) return a.hasOrder ? -1 : 1;
     if (a.eventAt === null && b.eventAt !== null) return 1;
     if (a.eventAt !== null && b.eventAt === null) return -1;
-    return (a.eventAt || 0) - (b.eventAt || 0);
+    if ((a.eventAt || 0) !== (b.eventAt || 0)) return (a.eventAt || 0) - (b.eventAt || 0);
+    return Number(b.savedAt || 0) - Number(a.savedAt || 0);
   });
   return candidates[0] || null;
 };
@@ -67,7 +113,7 @@ const renderPrompt = () => {
 
   let pending;
   try {
-    pending = findPendingCheckout(window.sessionStorage);
+    pending = findPendingCheckout(window.sessionStorage, Date.now(), window.localStorage);
   } catch (_) {
     pending = null;
   }
@@ -76,7 +122,7 @@ const renderPrompt = () => {
   const prompt = document.createElement("aside");
   prompt.id = PROMPT_ID;
   prompt.setAttribute("role", "status");
-  prompt.setAttribute("aria-label", "Compra em andamento");
+  prompt.setAttribute("aria-label", pending.hasOrder ? "Pagamento em andamento" : "Compra em andamento");
   Object.assign(prompt.style, {
     position: "fixed",
     left: "max(12px, env(safe-area-inset-left))",
@@ -101,10 +147,12 @@ const renderPrompt = () => {
   const copy = document.createElement("div");
   copy.style.minWidth = "0";
   const title = document.createElement("strong");
-  title.textContent = "Compra em andamento";
+  title.textContent = pending.hasOrder ? "Pagamento em andamento" : "Compra em andamento";
   title.style.display = "block";
   const detail = document.createElement("small");
-  detail.textContent = `${pending.quantity} selecionado${pending.quantity === 1 ? "" : "s"}. Preço e disponibilidade serão revalidados.`;
+  detail.textContent = pending.hasOrder
+    ? "Retome o checkout para acompanhar a confirmação sem criar uma nova cobrança."
+    : `${pending.quantity} selecionado${pending.quantity === 1 ? "" : "s"}. Preço e disponibilidade serão revalidados antes do pagamento.`;
   detail.style.opacity = ".78";
   copy.append(title, detail);
 
@@ -113,8 +161,8 @@ const renderPrompt = () => {
 
   const continueButton = document.createElement("button");
   continueButton.type = "button";
-  continueButton.textContent = "Continuar";
-  continueButton.setAttribute("aria-label", "Continuar compra em andamento");
+  continueButton.textContent = pending.hasOrder ? "Acompanhar" : "Retomar";
+  continueButton.setAttribute("aria-label", pending.hasOrder ? "Acompanhar pagamento em andamento" : "Retomar checkout em andamento");
   Object.assign(continueButton.style, {
     minHeight: "44px",
     padding: "0 16px",
@@ -128,8 +176,10 @@ const renderPrompt = () => {
       event_id: pending.eventId,
       quantity: pending.quantity,
       target: pending.slug,
+      source: pending.source,
+      has_pending_order: pending.hasOrder,
     });
-    window.location.assign(`/event/${encodeURIComponent(pending.slug)}`);
+    window.location.assign(`/checkout/${encodeURIComponent(pending.slug)}`);
   });
 
   const dismissButton = document.createElement("button");
@@ -160,12 +210,15 @@ const renderPrompt = () => {
   prompt.append(copy, actions);
   document.body.appendChild(prompt);
 
-  if (!shown.has(pending.slug)) {
-    shown.add(pending.slug);
+  const shownKey = `${pending.slug}:${pending.hasOrder ? "order" : "selection"}:${pending.source}`;
+  if (!shown.has(shownKey)) {
+    shown.add(shownKey);
     trackTelemetry("checkout_resume_prompt_shown", {
       event_id: pending.eventId,
       quantity: pending.quantity,
       target: pending.slug,
+      source: pending.source,
+      has_pending_order: pending.hasOrder,
     });
   }
 };
