@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import PropTypes from "prop-types";
 import { Alert, Button, Container, Spinner } from "react-bootstrap";
 import { Navigate, useLocation } from "react-router-dom";
 import appApiClient from "../services/AppApiClient";
@@ -62,3 +63,8 @@ export default function ApplicationAdminGate({ children, permission = null }) {
 
   return children;
 }
+
+ApplicationAdminGate.propTypes = {
+  children: PropTypes.node.isRequired,
+  permission: PropTypes.string,
+};
