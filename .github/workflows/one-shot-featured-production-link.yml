@@ -34,26 +34,33 @@ jobs:
                   raise SystemExit('featuredProduction marker not found')
               text = text.replace(marker, marker + link_line, 1)
 
-          old = '''              <div className="cut-landing__floatingCard cut-landing__floatingCard--people" style={{ pointerEvents: "none" }}>
-                <small>QUEM FAZ ACONTECER</small>
-                <strong>{featuredProduction?.name || "Produções da sua cidade"}</strong>
-                <span>{featuredProduction?.city || "Descubra e acompanhe"}</span>
-              </div>'''
-          new = '''              <Link
-                to={featuredProductionLink}
-                className="cut-landing__floatingCard cut-landing__floatingCard--people"
-                aria-label={featuredProduction?.name ? `Abrir produção ${featuredProduction.name}` : "Explorar produções"}
-                style={{ color: "inherit", textDecoration: "none", cursor: "pointer", pointerEvents: "auto", touchAction: "manipulation" }}
-              >
-                <small>QUEM FAZ ACONTECER</small>
-                <strong>{featuredProduction?.name || "Produções da sua cidade"}</strong>
-                <span>{featuredProduction?.city || "Descubra e acompanhe"}</span>
-              </Link>'''
+          lines = text.splitlines()
+          target = 'className="cut-landing__floatingCard cut-landing__floatingCard--people"'
+          index = next((i for i, line in enumerate(lines) if target in line), None)
+          if index is None:
+              raise SystemExit('featured production card not found')
 
-          if new not in text:
-              if old not in text:
-                  raise SystemExit('featured production card block not found')
-              text = text.replace(old, new, 1)
+          if '<Link' not in lines[index]:
+              indent = lines[index][:len(lines[index]) - len(lines[index].lstrip())]
+              if '<div' not in lines[index]:
+                  raise SystemExit('unexpected featured production card markup')
+              if index + 4 >= len(lines) or lines[index + 4].strip() != '</div>':
+                  raise SystemExit('unexpected featured production card block')
+
+              replacement = [
+                  f'{indent}<Link',
+                  f'{indent}  to={{featuredProductionLink}}',
+                  f'{indent}  className="cut-landing__floatingCard cut-landing__floatingCard--people"',
+                  f'{indent}  aria-label={{featuredProduction?.name ? `Abrir produção ${{featuredProduction.name}}` : "Explorar produções"}}',
+                  f'{indent}  style={{{{ color: "inherit", textDecoration: "none", cursor: "pointer", pointerEvents: "auto", touchAction: "manipulation" }}}}',
+                  f'{indent}>',
+                  lines[index + 1],
+                  lines[index + 2],
+                  lines[index + 3],
+                  f'{indent}</Link>',
+              ]
+              lines[index:index + 5] = replacement
+              text = '\n'.join(lines) + '\n'
 
           path.write_text(text)
           PY
