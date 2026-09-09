@@ -25,51 +25,33 @@ jobs:
         run: |
           from pathlib import Path
 
-          guidance = Path('src/utils/paymentFailureGuidance.js')
-          text = guidance.read_text()
-          old = '  return { ...classification, ...guidance[classification.reason] };\n'
-          new = '''  return {
-            ...classification,
-            ...guidance[classification.reason],
-            retryAllowed: classification.reason !== "duplicate_payment",
-          };
-          '''
-          if old not in text:
-              raise SystemExit('paymentFailureGuidance return anchor not found')
-          guidance.write_text(text.replace(old, new, 1))
+          def replace_once(path, old, new, label):
+              file = Path(path)
+              text = file.read_text()
+              if old not in text:
+                  raise SystemExit(f'{label} anchor not found')
+              file.write_text(text.replace(old, new, 1))
 
-          tests = Path('src/utils/paymentFailureGuidance.test.js')
-          text = tests.read_text()
-          old = '''    expect(result.message).not.toContain("Recomendado: tente PIX");
-          });
+          replace_once(
+              'src/utils/paymentFailureGuidance.js',
+              '  return { ...classification, ...guidance[classification.reason] };\n',
+              '  return {\n    ...classification,\n    ...guidance[classification.reason],\n    retryAllowed: classification.reason !== "duplicate_payment",\n  };\n',
+              'paymentFailureGuidance return',
+          )
 
-          test("does not recommend repeating identical data after a blacklist security block", () => {'''
-          new = '''    expect(result.message).not.toContain("Recomendado: tente PIX");
-            expect(result.retryAllowed).toBe(false);
-          });
+          replace_once(
+              'src/utils/paymentFailureGuidance.test.js',
+              '    expect(result.message).not.toContain("Recomendado: tente PIX");\n  });\n\n  test("does not recommend repeating identical data after a blacklist security block", () => {',
+              '    expect(result.message).not.toContain("Recomendado: tente PIX");\n    expect(result.retryAllowed).toBe(false);\n  });\n\n  test("keeps recovery actions enabled for ordinary recoverable failures", () => {\n    const result = paymentFailureGuidance({\n      method: "card",\n      pixAvailable: true,\n      payment: { provider_payload: { status_detail: "cc_rejected_bad_filled_security_code" } },\n    });\n    expect(result.reason).toBe("card_security_code");\n    expect(result.retryAllowed).toBe(true);\n  });\n\n  test("does not recommend repeating identical data after a blacklist security block", () => {',
+              'paymentFailureGuidance test',
+          )
 
-          test("keeps recovery actions enabled for ordinary recoverable failures", () => {
-            const result = paymentFailureGuidance({
-              method: "card",
-              pixAvailable: true,
-              payment: { provider_payload: { status_detail: "cc_rejected_bad_filled_security_code" } },
-            });
-            expect(result.reason).toBe("card_security_code");
-            expect(result.retryAllowed).toBe(true);
-          });
-
-          test("does not recommend repeating identical data after a blacklist security block", () => {'''
-          if old not in text:
-              raise SystemExit('paymentFailureGuidance test anchor not found')
-          tests.write_text(text.replace(old, new, 1))
-
-          checkout = Path('src/pages/checkout/CheckoutPage.js')
-          text = checkout.read_text()
-          old = '''{failed && <Alert variant="danger" className="mb-0" role="alert" aria-live="assertive"><strong>{failedPaymentGuidance.title}</strong><div>{failedPaymentGuidance.message}</div><div className="d-grid gap-2 mt-3">{method === "card" && pixAvailable && <Button variant="light" onClick={() => recoverFailedPayment("pix")}><i className="fa-brands fa-pix me-2" />Pagar esta compra com PIX</Button>}<Button variant="outline-light" onClick={() => recoverFailedPayment(method)}>Tentar novamente com {method === "pix" ? "PIX" : "cartão"}</Button>{method === "pix" && cardAvailable && <Button variant="light" onClick={() => recoverFailedPayment("card")}><i className="fa-regular fa-credit-card me-2" />Tentar com cartão</Button>}</div></Alert>}'''
-          new = '''{failed && <Alert variant="danger" className="mb-0" role="alert" aria-live="assertive"><strong>{failedPaymentGuidance.title}</strong><div>{failedPaymentGuidance.message}</div><div className="d-grid gap-2 mt-3">{failedPaymentGuidance.retryAllowed === false ? <Button variant="light" onClick={() => { trackCheckout("duplicate_payment_status_check", { label: "Status verificado após recusa por duplicidade", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(result?.order?.total || payableTotal || 0), payment_method: method, previous_status: orderStatus || "rejected" } }); syncCurrentPayment({ manual: true }); }} disabled={syncingNow}>{syncingNow ? "Verificando status..." : "Verificar status da compra"}</Button> : <>{method === "card" && pixAvailable && <Button variant="light" onClick={() => recoverFailedPayment("pix")}><i className="fa-brands fa-pix me-2" />Pagar esta compra com PIX</Button>}<Button variant="outline-light" onClick={() => recoverFailedPayment(method)}>Tentar novamente com {method === "pix" ? "PIX" : "cartão"}</Button>{method === "pix" && cardAvailable && <Button variant="light" onClick={() => recoverFailedPayment("card")}><i className="fa-regular fa-credit-card me-2" />Tentar com cartão</Button>}</>}</div></Alert>}'''
-          if old not in text:
-              raise SystemExit('CheckoutPage failed-payment action anchor not found')
-          checkout.write_text(text.replace(old, new, 1))
+          replace_once(
+              'src/pages/checkout/CheckoutPage.js',
+              '{failed && <Alert variant="danger" className="mb-0" role="alert" aria-live="assertive"><strong>{failedPaymentGuidance.title}</strong><div>{failedPaymentGuidance.message}</div><div className="d-grid gap-2 mt-3">{method === "card" && pixAvailable && <Button variant="light" onClick={() => recoverFailedPayment("pix")}><i className="fa-brands fa-pix me-2" />Pagar esta compra com PIX</Button>}<Button variant="outline-light" onClick={() => recoverFailedPayment(method)}>Tentar novamente com {method === "pix" ? "PIX" : "cartão"}</Button>{method === "pix" && cardAvailable && <Button variant="light" onClick={() => recoverFailedPayment("card")}><i className="fa-regular fa-credit-card me-2" />Tentar com cartão</Button>}</div></Alert>}',
+              '{failed && <Alert variant="danger" className="mb-0" role="alert" aria-live="assertive"><strong>{failedPaymentGuidance.title}</strong><div>{failedPaymentGuidance.message}</div><div className="d-grid gap-2 mt-3">{failedPaymentGuidance.retryAllowed === false ? <Button variant="light" onClick={() => { trackCheckout("duplicate_payment_status_check", { label: "Status verificado após recusa por duplicidade", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(result?.order?.total || payableTotal || 0), payment_method: method, previous_status: orderStatus || "rejected" } }); syncCurrentPayment({ manual: true }); }} disabled={syncingNow}>{syncingNow ? "Verificando status..." : "Verificar status da compra"}</Button> : <>{method === "card" && pixAvailable && <Button variant="light" onClick={() => recoverFailedPayment("pix")}><i className="fa-brands fa-pix me-2" />Pagar esta compra com PIX</Button>}<Button variant="outline-light" onClick={() => recoverFailedPayment(method)}>Tentar novamente com {method === "pix" ? "PIX" : "cartão"}</Button>{method === "pix" && cardAvailable && <Button variant="light" onClick={() => recoverFailedPayment("card")}><i className="fa-regular fa-credit-card me-2" />Tentar com cartão</Button>}</>}</div></Alert>}',
+              'CheckoutPage failed-payment action',
+          )
 
           Path('.github/workflows/automation-checkout-duplicate-guard.yml').unlink()
       - name: Validate focused regression
