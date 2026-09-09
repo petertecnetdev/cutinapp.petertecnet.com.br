@@ -54,6 +54,12 @@ const sameCardRetryBlockedReasons = new Set([
   "card_rejected",
   "card_type_not_allowed",
   "expired_card",
+  "insufficient_funds",
+  "card_disabled",
+]);
+
+const statusCheckOnlyReasons = new Set([
+  "duplicate_payment",
 ]);
 
 export const paymentFailureGuidance = ({ payment = {}, method = "", pixAvailable = false } = {}) => {
@@ -160,5 +166,6 @@ export const paymentFailureGuidance = ({ payment = {}, method = "", pixAvailable
     ...classification,
     ...guidance[classification.reason],
     retryAllowed: !sameCardRetryBlockedReasons.has(classification.reason),
+    statusCheckOnly: statusCheckOnlyReasons.has(classification.reason),
   };
 };
