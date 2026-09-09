@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import PropTypes from "prop-types";
 import { Button, Modal } from "react-bootstrap";
+import { safeExternalHref } from "../../utils/safeUrl";
 import "./EventFlyerModal.css";
 
 const MIN_ZOOM = 0.75;
@@ -13,6 +14,7 @@ export default function EventFlyerModal({ show, onHide, event, flyerUrl }) {
   const [zoom, setZoom] = useState(1);
   const [dimensions, setDimensions] = useState(null);
   const [copied, setCopied] = useState(false);
+  const safeFlyerUrl = useMemo(() => safeExternalHref(flyerUrl), [flyerUrl]);
 
   useEffect(() => {
     if (!show) {
@@ -24,7 +26,7 @@ export default function EventFlyerModal({ show, onHide, event, flyerUrl }) {
   useEffect(() => {
     setZoom(1);
     setDimensions(null);
-  }, [flyerUrl]);
+  }, [safeFlyerUrl]);
 
   const zoomLabel = `${Math.round(zoom * 100)}%`;
   const eventMeta = useMemo(() => {
@@ -49,7 +51,7 @@ export default function EventFlyerModal({ show, onHide, event, flyerUrl }) {
     }
   };
 
-  if (!flyerUrl || !event) return null;
+  if (!safeFlyerUrl || !event) return null;
 
   return (
     <Modal
@@ -76,12 +78,12 @@ export default function EventFlyerModal({ show, onHide, event, flyerUrl }) {
 
       <Modal.Body className="cut-flyer-modal__body">
         <div className="cut-flyer-stage">
-          <div className="cut-flyer-stage__ambient" style={{ backgroundImage: `url(${flyerUrl})` }} aria-hidden="true" />
+          <div className="cut-flyer-stage__ambient" style={{ backgroundImage: `url(${JSON.stringify(safeFlyerUrl)})` }} aria-hidden="true" />
           <div className="cut-flyer-stage__grid" aria-hidden="true" />
 
           <div className="cut-flyer-stage__viewport">
             <img
-              src={flyerUrl}
+              src={safeFlyerUrl}
               alt={`Flyer original do evento ${event.title}`}
               className="cut-flyer-stage__image"
               style={{ transform: `scale(${zoom})` }}
@@ -123,7 +125,7 @@ export default function EventFlyerModal({ show, onHide, event, flyerUrl }) {
           <Button variant="outline-light" onClick={share}>
             <i className={`fa-solid ${copied ? "fa-check" : "fa-share-nodes"} me-2`} />{copied ? "Link copiado" : "Compartilhar"}
           </Button>
-          <Button variant="light" as="a" href={flyerUrl} target="_blank" rel="noreferrer">
+          <Button variant="light" as="a" href={safeFlyerUrl} target="_blank" rel="noopener noreferrer">
             <i className="fa-solid fa-arrow-up-right-from-square me-2" />Abrir original
           </Button>
         </div>
