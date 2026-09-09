@@ -46,13 +46,24 @@
     return segment;
   };
 
+  const safeMediaUrl = (raw) => {
+    let url;
+    try { url = new URL(String(raw ?? "").trim()); } catch (_) { return null; }
+    return ["http:", "https:"].includes(url.protocol) ? url.toString() : null;
+  };
+
   const normalize = (value) => ({
     enabled: Boolean(value?.enabled),
     autoplay: value?.autoplay !== false,
     shuffle: Boolean(value?.shuffle),
     loop: value?.loop !== false,
     volume: Math.max(0, Math.min(1, Number(value?.volume ?? 0.35))),
-    items: Array.isArray(value?.items) ? value.items.filter((item) => item?.url) : [],
+    items: Array.isArray(value?.items)
+      ? value.items.map((item) => {
+        const url = safeMediaUrl(item?.url);
+        return url ? { ...item, url } : null;
+      }).filter(Boolean)
+      : [],
   });
 
   const detectProvider = (raw) => {
