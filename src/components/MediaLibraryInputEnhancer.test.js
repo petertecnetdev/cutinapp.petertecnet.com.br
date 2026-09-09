@@ -1,4 +1,4 @@
-import { isEligibleMediaLibraryInput } from "./MediaLibraryInputEnhancer";
+import { isEligibleMediaLibraryInput } from "../utils/mediaLibraryInput";
 
 describe("MediaLibraryInputEnhancer", () => {
   afterEach(() => {
