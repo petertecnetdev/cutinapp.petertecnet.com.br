@@ -22,9 +22,33 @@
   background: color-mix(in srgb, var(--cut-primary, #6f4cff) 28%, transparent);
 }
 
+/* Treatment keeps the same action and navigation semantics, changing only prominence.
+   The deterministic 50/50 assignment is emitted by notificationTelemetry.js so the
+   economic effect can be measured without increasing notification frequency or spend. */
+.cut-notification-popover__item[data-peter-recovery-prominence-variant="prominent"]::after {
+  justify-self: stretch;
+  text-align: center;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--cut-primary, #6f4cff) 34%, transparent);
+  border-color: color-mix(in srgb, var(--cut-primary, #6f4cff) 72%, transparent);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--cut-primary, #6f4cff) 18%, transparent);
+  font-size: 0.76rem;
+}
+
+.cut-notification-popover__item[data-peter-recovery-prominence-variant="prominent"]:hover::after,
+.cut-notification-popover__item[data-peter-recovery-prominence-variant="prominent"]:focus-visible::after {
+  background: color-mix(in srgb, var(--cut-primary, #6f4cff) 44%, transparent);
+}
+
 @media (max-width: 767.98px) {
   .cut-notification-popover__item[data-peter-notification-type="checkout_recovery"]::after {
     font-size: 0.7rem;
     padding: 5px 8px;
+  }
+
+  .cut-notification-popover__item[data-peter-recovery-prominence-variant="prominent"]::after {
+    font-size: 0.72rem;
+    padding: 7px 10px;
   }
 }

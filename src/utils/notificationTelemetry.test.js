@@ -40,6 +40,25 @@ describe("notificationTelemetryAttrs", () => {
     });
   });
 
+  it("assigns a stable navbar prominence experiment without affecting other surfaces", () => {
+    const notification = {
+      id: 76,
+      type: "checkout_recovery",
+      reference_id: "order-public-123",
+      metadata: { recovery_action: "resume_pix" },
+    };
+
+    const first = notificationTelemetryAttrs(notification, "navbar_popover");
+    const second = notificationTelemetryAttrs(notification, "navbar_popover");
+    const page = notificationTelemetryAttrs(notification, "notifications_page");
+
+    expect(first["data-peter-recovery-prominence-experiment"]).toBe("pix_recovery_navbar_prominence_v1");
+    expect(first["data-peter-recovery-prominence-variant"]).toBe("control");
+    expect(second["data-peter-recovery-prominence-variant"]).toBe(first["data-peter-recovery-prominence-variant"]);
+    expect(page["data-peter-recovery-prominence-experiment"]).toBeUndefined();
+    expect(page["data-peter-recovery-prominence-variant"]).toBeUndefined();
+  });
+
   it("attributes checkout recovery clicks from the navbar popover without blocking navigation", () => {
     const track = jest.fn();
     const previousTelemetry = window.PeterTecnetTelemetry;
@@ -58,6 +77,7 @@ describe("notificationTelemetryAttrs", () => {
       },
     }, "navbar_popover");
 
+    expect(attrs["data-peter-recovery-prominence-variant"]).toBe("control");
     expect(typeof attrs.onClickCapture).toBe("function");
     expect(() => attrs.onClickCapture()).not.toThrow();
     expect(track).toHaveBeenCalledWith("checkout_recovery_notification_cta_clicked", {
@@ -70,6 +90,8 @@ describe("notificationTelemetryAttrs", () => {
         recovery_action: "resume_pix",
         recovery_experiment: "pix_recovery_timing_v1",
         recovery_timing_minutes: 15,
+        recovery_prominence_experiment: "pix_recovery_navbar_prominence_v1",
+        recovery_prominence_variant: "control",
       },
     });
 
@@ -102,6 +124,7 @@ describe("notificationTelemetryAttrs", () => {
       },
     }, "navbar_popover");
 
+    expect(attrs["data-peter-recovery-prominence-variant"]).toBe("prominent");
     const node = document.createElement("button");
     expect(typeof attrs.ref).toBe("function");
     attrs.ref(node);
@@ -122,6 +145,8 @@ describe("notificationTelemetryAttrs", () => {
         recovery_action: "resume_pix",
         recovery_experiment: "pix_recovery_timing_v1",
         recovery_timing_minutes: 30,
+        recovery_prominence_experiment: "pix_recovery_navbar_prominence_v1",
+        recovery_prominence_variant: "prominent",
       },
     });
     expect(disconnect).toHaveBeenCalled();
@@ -156,6 +181,7 @@ describe("notificationTelemetryAttrs", () => {
       },
     }, "notifications_page");
 
+    expect(attrs["data-peter-recovery-prominence-variant"]).toBeUndefined();
     const node = document.createElement("button");
     expect(typeof attrs.ref).toBe("function");
     attrs.ref(node);
@@ -179,6 +205,8 @@ describe("notificationTelemetryAttrs", () => {
         recovery_action: "resume_pix",
         recovery_experiment: "pix_recovery_timing_v1",
         recovery_timing_minutes: 60,
+        recovery_prominence_experiment: null,
+        recovery_prominence_variant: null,
       },
     });
     expect(disconnect).toHaveBeenCalled();
