@@ -6,6 +6,7 @@ import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
+import { safeExternalHref } from "../../utils/safeUrl";
 
 const fmt = (value) => value ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)) : "";
 const mediaUrl = (value) => !value ? "" : /^https?:\/\//i.test(value) ? value : `${storageUrl}${String(value).replace(/^\//, "")}`;
@@ -51,10 +52,12 @@ export default function ArtistViewPage() {
   if (!data) return <div className="cut-app-page"><NavlogComponent /><Container className="py-5"><Alert variant="danger">{error || "Artista não encontrado."}</Alert></Container></div>;
   const { artist, upcoming_events: upcoming = [], past_events: past = [] } = data;
   const isGroup = GROUP_TYPES.has(artist.artist_type);
+  const instagramHref = safeExternalHref(artist.instagram_url);
+  const spotifyHref = safeExternalHref(artist.spotify_url);
 
   return <div className="cut-app-page"><NavlogComponent />
     <section className="cut-profile-hero" style={artist.cover ? { backgroundImage: `linear-gradient(180deg,rgba(2,8,13,.1),rgba(2,8,13,.95)),url(${mediaUrl(artist.cover)})` } : undefined}>
-      <Container className="cut-page-container"><div className="cut-profile-hero__content"><div className="cut-profile-avatar">{artist.photo ? <img src={mediaUrl(artist.photo)} alt={artist.stage_name} /> : <span>{artist.stage_name?.slice(0,2).toUpperCase()}</span>}</div><div><span className="cut-eyebrow">{TYPE_LABELS[artist.artist_type] || "Artista Cutinapp"}</span><h1>{artist.stage_name}</h1><p>{artist.city ? `${artist.city}${artist.uf ? ` - ${artist.uf}` : ""}` : ""}</p><div className="cut-social-stats"><span>{artist.followers_count || 0} seguidores</span><span>{upcoming.length} próximos eventos</span>{isGroup && <span>{currentMembers.length} integrante(s)</span>}</div><div className="cut-card-actions mt-3"><Button onClick={toggleFollow} disabled={busy}>{artist.is_following ? "Seguindo" : isGroup ? "Seguir formação" : "Seguir artista"}</Button>{artist.instagram_url && <Button as="a" href={artist.instagram_url} target="_blank" rel="noreferrer" variant="outline-light">Instagram</Button>}{artist.spotify_url && <Button as="a" href={artist.spotify_url} target="_blank" rel="noreferrer" variant="outline-light">Spotify</Button>}</div></div></div></Container>
+      <Container className="cut-page-container"><div className="cut-profile-hero__content"><div className="cut-profile-avatar">{artist.photo ? <img src={mediaUrl(artist.photo)} alt={artist.stage_name} /> : <span>{artist.stage_name?.slice(0,2).toUpperCase()}</span>}</div><div><span className="cut-eyebrow">{TYPE_LABELS[artist.artist_type] || "Artista Cutinapp"}</span><h1>{artist.stage_name}</h1><p>{artist.city ? `${artist.city}${artist.uf ? ` - ${artist.uf}` : ""}` : ""}</p><div className="cut-social-stats"><span>{artist.followers_count || 0} seguidores</span><span>{upcoming.length} próximos eventos</span>{isGroup && <span>{currentMembers.length} integrante(s)</span>}</div><div className="cut-card-actions mt-3"><Button onClick={toggleFollow} disabled={busy}>{artist.is_following ? "Seguindo" : isGroup ? "Seguir formação" : "Seguir artista"}</Button>{instagramHref && <Button as="a" href={instagramHref} target="_blank" rel="noopener noreferrer" variant="outline-light">Instagram</Button>}{spotifyHref && <Button as="a" href={spotifyHref} target="_blank" rel="noopener noreferrer" variant="outline-light">Spotify</Button>}</div></div></div></Container>
     </section>
     <Container className="cut-page-container py-5">{error && <Alert variant="danger">{error}</Alert>}
       <Row className="g-4"><Col lg={8}>
