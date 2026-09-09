@@ -115,4 +115,40 @@ describe("AcquisitionService idempotent mutations", () => {
     resolveRequest({ data: { user: { id: 25 } } });
     await expect(first).resolves.toEqual({ user: { id: 25 } });
   });
+
+  test("keeps the same commission update key after an ambiguous failure", async () => {
+    const networkError = Object.assign(new Error("Network Error"), { code: "ERR_NETWORK" });
+    appApiClient.put
+      .mockRejectedValueOnce(networkError)
+      .mockResolvedValueOnce({ data: { event_id: 42, percentage: 7.5 } });
+
+    await expect(acquisitionService.updateCommission("42", "7.5")).rejects.toThrow("Network Error");
+    const firstKey = appApiClient.put.mock.calls[0]?.[2]?.headers?.["Idempotency-Key"];
+
+    await expect(acquisitionService.updateCommission(42, 7.5)).resolves.toEqual({ event_id: 42, percentage: 7.5 });
+    expect(appApiClient.put.mock.calls[1]).toEqual([
+      "/acquisition/events/42/commission",
+      { percentage: 7.5 },
+      expect.objectContaining({ headers: { "Idempotency-Key": firstKey } }),
+    ]);
+  });
+
+  test("separates different commission percentages and coalesces equivalent updates", async () => {
+    let resolveRequest;
+    appApiClient.put.mockReturnValueOnce(new Promise((resolve) => { resolveRequest = resolve; }));
+
+    const first = acquisitionService.updateCommission(42, 8);
+    const second = acquisitionService.updateCommission("42", "8");
+
+    expect(second).toBe(first);
+    expect(appApiClient.put).toHaveBeenCalledTimes(1);
+    const firstKey = appApiClient.put.mock.calls[0]?.[2]?.headers?.["Idempotency-Key"];
+
+    resolveRequest({ data: { event_id: 42, percentage: 8 } });
+    await first;
+
+    appApiClient.put.mockResolvedValueOnce({ data: { event_id: 42, percentage: 9 } });
+    await acquisitionService.updateCommission(42, 9);
+    expect(appApiClient.put.mock.calls[1]?.[2]?.headers?.["Idempotency-Key"]).not.toBe(firstKey);
+  });
 });

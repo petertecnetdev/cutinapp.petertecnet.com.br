@@ -34,13 +34,24 @@ const activate = createIdempotentMutation({
   ).data,
 });
 
+const updateCommission = createIdempotentMutation({
+  storagePrefix: "cutinapp_acquisition_commission_attempt_",
+  keyPrefix: "acquisition-commission",
+  requestKeyFor: (eventId, percentage) => `${Number(eventId)}:${createMutationRequestKey({ percentage: Number(percentage) })}`,
+  mutate: async ({ idempotencyKey }, eventId, percentage) => (
+    await appApiClient.put(`/acquisition/events/${Number(eventId)}/commission`, { percentage: Number(percentage) }, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    })
+  ).data,
+});
+
 const acquisitionService = {
   context: async () => (await appApiClient.get("/acquisition/context")).data,
   dashboard: async () => (await appApiClient.get("/acquisition/dashboard")).data,
   referrals: async (params = {}) => (await appApiClient.get("/acquisition/referrals", { params })).data,
   onboard,
   resend,
-  updateCommission: async (eventId, percentage) => (await appApiClient.put(`/acquisition/events/${eventId}/commission`, { percentage })).data,
+  updateCommission,
   publicReferral: async (token) => (await appApiClient.get(`/acquisition/referrals/public/${encodeURIComponent(token)}`)).data,
   activate,
 };
