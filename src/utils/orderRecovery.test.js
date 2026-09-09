@@ -1,4 +1,4 @@
-import { checkoutSelectionFromOrder, isPendingPixExpired, isPendingPixRecoverable, latestPaymentFromOrder, latestPendingPaymentFromOrder, paymentMethodFromOrder } from "./orderRecovery";
+import { checkoutSelectionFromOrder, isPendingPixExpired, isPendingPixRecoverable, latestPaymentFromOrder, latestPendingPaymentFromOrder, paymentMethodFromOrder, pendingPixExpirationState } from "./orderRecovery";
 
 describe("orderRecovery", () => {
   test("rebuilds a checkout selection from persisted order lines", () => {
@@ -71,6 +71,29 @@ describe("orderRecovery", () => {
       expires_at: "2026-09-09T16:00:00.000Z",
       payments: [{ id: 14, method: "pix", status: "pending" }],
     }, Date.parse("2026-09-09T16:00:00.000Z"))).toBe(false);
+  });
+
+  test("describes the pending PIX validity window without inventing urgency", () => {
+    const state = pendingPixExpirationState({
+      status: "pending",
+      expires_at: "2026-09-09T16:30:00.000Z",
+      payments: [{ id: 14, method: "pix", status: "pending" }],
+    }, Date.parse("2026-09-09T16:23:10.000Z"));
+
+    expect(state).toEqual({
+      expiresAtMs: Date.parse("2026-09-09T16:30:00.000Z"),
+      remainingMs: 410000,
+      remainingMinutes: 7,
+      expired: false,
+    });
+  });
+
+  test("does not expose a PIX validity window for terminal attempts", () => {
+    expect(pendingPixExpirationState({
+      status: "pending",
+      expires_at: "2026-09-09T16:30:00.000Z",
+      payments: [{ id: 14, method: "pix", status: "paid" }],
+    }, Date.parse("2026-09-09T16:00:00.000Z"))).toBeNull();
   });
 
   test("marks only a still-pending PIX attempt as expired", () => {
