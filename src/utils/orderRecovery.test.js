@@ -1,4 +1,4 @@
-import { checkoutSelectionFromOrder, latestPaymentFromOrder, latestPendingPaymentFromOrder } from "./orderRecovery";
+import { checkoutSelectionFromOrder, latestPaymentFromOrder, latestPendingPaymentFromOrder, paymentMethodFromOrder } from "./orderRecovery";
 
 describe("orderRecovery", () => {
   test("rebuilds a checkout selection from persisted order lines", () => {
@@ -22,6 +22,20 @@ describe("orderRecovery", () => {
         { id: 12, method: "card", status: "cancelled" },
       ],
     })).toEqual({ id: 14, method: "pix", status: "pending" });
+  });
+
+  test("prefers the newest attempt method over a stale order-level method", () => {
+    expect(paymentMethodFromOrder({
+      payment_method: "card",
+      payments: [
+        { id: 11, method: "card", status: "rejected" },
+        { id: 14, method: "PIX", status: "pending" },
+      ],
+    })).toBe("pix");
+  });
+
+  test("falls back to the order-level payment method when no payment exists", () => {
+    expect(paymentMethodFromOrder({ payment_method: "CARD", payments: [] })).toBe("card");
   });
 
   test("returns null when the order has no payments", () => {
