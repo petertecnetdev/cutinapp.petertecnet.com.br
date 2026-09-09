@@ -1,15 +1,15 @@
-const EVENT_VIEW_SELECTOR = ".cut-event-view-page";
 const ROUTE_CHANGE_EVENT = "cutinapp:route-change";
 
-const scrollEventViewToTop = () => {
+const scrollPageToTop = () => {
   if (typeof window === "undefined" || typeof document === "undefined") return;
-  if (!document.querySelector(EVENT_VIEW_SELECTOR)) return;
 
   window.scrollTo({ top: 0, left: 0, behavior: "auto" });
   document.documentElement.scrollTop = 0;
   document.body.scrollTop = 0;
 };
 
+// Legacy export name retained to avoid import churn. The reset is intentionally
+// global so every Cutinapp route starts at the beginning of the page.
 export const installEventViewScrollReset = () => {
   if (typeof window === "undefined" || typeof document === "undefined") return () => {};
 
@@ -18,17 +18,22 @@ export const installEventViewScrollReset = () => {
   let lastPathname = window.location.pathname;
   const originalPushState = window.history.pushState;
   const originalReplaceState = window.history.replaceState;
+  const previousScrollRestoration = window.history.scrollRestoration;
+
+  if ("scrollRestoration" in window.history) {
+    window.history.scrollRestoration = "manual";
+  }
 
   const scheduleReset = () => {
     window.clearTimeout(timer);
     if (frame !== null) window.cancelAnimationFrame(frame);
 
-    scrollEventViewToTop();
+    scrollPageToTop();
     frame = window.requestAnimationFrame(() => {
-      scrollEventViewToTop();
-      frame = window.requestAnimationFrame(scrollEventViewToTop);
+      scrollPageToTop();
+      frame = window.requestAnimationFrame(scrollPageToTop);
     });
-    timer = window.setTimeout(scrollEventViewToTop, 120);
+    timer = window.setTimeout(scrollPageToTop, 120);
   };
 
   const dispatchRouteChangeIfPathChanged = (previousPathname) => {
@@ -70,6 +75,9 @@ export const installEventViewScrollReset = () => {
     if (frame !== null) window.cancelAnimationFrame(frame);
     window.history.pushState = originalPushState;
     window.history.replaceState = originalReplaceState;
+    if ("scrollRestoration" in window.history) {
+      window.history.scrollRestoration = previousScrollRestoration;
+    }
     window.removeEventListener(ROUTE_CHANGE_EVENT, scheduleReset);
     window.removeEventListener("popstate", handlePopState);
     window.removeEventListener("pageshow", scheduleReset);
