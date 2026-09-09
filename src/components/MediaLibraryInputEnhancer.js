@@ -179,12 +179,18 @@ export default function MediaLibraryInputEnhancer() {
   };
 
   const choose = async (item) => {
-    if (!targetInput || !document.body.contains(targetInput) || !item?.event_id || selectingId) return;
+    const input = targetInput;
+    if (!input || !document.body.contains(input) || !item?.event_id || selectingId) return;
 
     setSelectingId(item.event_id);
     setError("");
     try {
       const blob = await producerMediaLibraryService.download(item.event_id);
+
+      if (!document.body.contains(input)) {
+        throw new Error("O campo de imagem não está mais disponível. Abra a biblioteca novamente.");
+      }
+
       const mimeType = blob?.type || item.mime_type || "image/webp";
       const extension = extensionFrom(item, mimeType);
       const file = new File(
@@ -193,20 +199,32 @@ export default function MediaLibraryInputEnhancer() {
         { type: mimeType, lastModified: Date.now() }
       );
 
-      if (!acceptsImageFile(targetInput, file)) {
+      if (!acceptsImageFile(input, file)) {
         throw new Error("Esta imagem não é compatível com o formato aceito neste campo.");
       }
 
-      if (typeof DataTransfer === "undefined") {
-        throw new Error("Seu navegador não permite selecionar um arquivo da biblioteca neste campo.");
+      const isEventCoverInput = input.dataset.eventImageInput === "true";
+
+      if (isEventCoverInput) {
+        // Event forms already expose a React-safe channel for changing the cover.
+        // Avoid mutating FileList + dispatching a native change here: doing both
+        // while React reconciles the event form can lock the UI on some browsers.
+        window.dispatchEvent(new CustomEvent("cutinapp:event-cover-selected", {
+          detail: { file, source: "media_library", item },
+        }));
+      } else {
+        if (typeof DataTransfer === "undefined") {
+          throw new Error("Seu navegador não permite selecionar um arquivo da biblioteca neste campo.");
+        }
+
+        const transfer = new DataTransfer();
+        transfer.items.add(file);
+        input.files = transfer.files;
+        input.dispatchEvent(new Event("change", { bubbles: true }));
       }
 
-      const transfer = new DataTransfer();
-      transfer.items.add(file);
-      targetInput.files = transfer.files;
-      targetInput.dispatchEvent(new Event("change", { bubbles: true }));
       window.dispatchEvent(new CustomEvent("cutinapp:media-library-selected", {
-        detail: { file, item, inputName: targetInput.name || null },
+        detail: { file, item, inputName: input.name || null },
       }));
       setTargetInput(null);
       setItems([]);
