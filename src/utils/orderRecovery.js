@@ -29,4 +29,15 @@ export const paymentMethodFromOrder = (order = {}) => {
   return String(latestPayment?.method || order?.payment_method || "").trim().toLowerCase();
 };
 
+export const isPendingPixRecoverable = (order = {}, nowMs = Date.now()) => {
+  if (String(order?.status || "").trim().toLowerCase() !== "pending") return false;
+
+  const payment = latestPaymentFromOrder(order);
+  if (payment && String(payment?.status || "").trim().toLowerCase() !== "pending") return false;
+  if (paymentMethodFromOrder(order) !== "pix") return false;
+
+  const expiresAt = Date.parse(order?.expires_at || "");
+  return Number.isFinite(expiresAt) && expiresAt > Number(nowMs || 0);
+};
+
 export const latestPendingPaymentFromOrder = (order = {}) => latestPaymentFromOrder(order);
