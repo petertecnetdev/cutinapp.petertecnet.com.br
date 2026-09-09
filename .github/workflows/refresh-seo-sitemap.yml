@@ -66,13 +66,14 @@ jobs:
         run: |
           set -euo pipefail
           test -s scripts/generate-seo-snapshots.mjs
+          GENERATOR="/tmp/cutinapp-generate-seo-snapshots-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.mjs"
           ssh \
             -o StrictHostKeyChecking=accept-new \
             -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
             -o ConnectTimeout=20 \
             -p "$VPS_PORT" \
             "$VPS_USER@$VPS_HOST" \
-            'umask 077; cat > /tmp/cutinapp-generate-seo-snapshots.mjs' \
+            "umask 077; cat > '$GENERATOR'" \
             < scripts/generate-seo-snapshots.mjs
 
       - name: Publish dynamic sitemap and prerender snapshots
@@ -84,6 +85,7 @@ jobs:
           VPS_USER: ${{ secrets.VPS_USER }}
         run: |
           set -euo pipefail
+          GENERATOR="/tmp/cutinapp-generate-seo-snapshots-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.mjs"
           ssh \
             -o StrictHostKeyChecking=accept-new \
             -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
@@ -91,14 +93,15 @@ jobs:
             -o ServerAliveInterval=30 \
             -o ServerAliveCountMax=8 \
             -p "$VPS_PORT" \
-            "$VPS_USER@$VPS_HOST" 'bash -s' <<'REMOTE'
+            "$VPS_USER@$VPS_HOST" "bash -s -- '$GENERATOR'" <<'REMOTE'
           set -Eeuo pipefail
           APP_ROOT="/var/www/cutinapp.petertecnet.com.br"
           LIVE_BUILD="$APP_ROOT/build"
           SEO_ROOT="$APP_ROOT/seo-snapshots"
-          GENERATOR="/tmp/cutinapp-generate-seo-snapshots.mjs"
+          GENERATOR="$1"
           SITEMAP_API="https://api.petertecnet.com.br/api/v1/discovery/sitemap.xml?origin=https%3A%2F%2Fcutinapp.petertecnet.com.br&application=cutinapp"
 
+          [[ "$GENERATOR" =~ ^/tmp/cutinapp-generate-seo-snapshots-[0-9]+-[0-9]+\.mjs$ ]] || { echo "Invalid SEO generator path." >&2; exit 1; }
           [[ -d "$LIVE_BUILD" ]] || { echo "Cutinapp live build not found: $LIVE_BUILD" >&2; exit 1; }
           [[ -f "$LIVE_BUILD/index.html" ]] || { echo "Cutinapp live index not found." >&2; exit 1; }
           [[ -f "$GENERATOR" ]] || { echo "SEO prerender generator was not uploaded." >&2; exit 1; }
