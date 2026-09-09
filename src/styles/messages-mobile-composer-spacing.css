@@ -1,0 +1,6 @@
+/* Keep the message composer visually separated from the fixed mobile navigation. */
+@media (max-width: 767px) {
+  html[data-cut-instagram-shell="active"] .cut-chat-composer {
+    margin-bottom: max(24px, env(safe-area-inset-bottom, 0px));
+  }
+}
