@@ -1,4 +1,4 @@
-import { isEligibleMediaLibraryInput } from "../utils/mediaLibraryInput";
+import { isEligibleMediaLibraryInput, mediaLibraryTypeForInput } from "../utils/mediaLibraryInput";
 
 describe("MediaLibraryInputEnhancer", () => {
   afterEach(() => {
@@ -13,6 +13,29 @@ describe("MediaLibraryInputEnhancer", () => {
     document.body.appendChild(input);
 
     expect(isEligibleMediaLibraryInput(input)).toBe(true);
+    expect(mediaLibraryTypeForInput(input)).toBe("image");
+  });
+
+  test("enables the producer library for audio uploads", () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "audio/mpeg,audio/ogg,.wav";
+    input.name = "soundtrack";
+    document.body.appendChild(input);
+
+    expect(isEligibleMediaLibraryInput(input)).toBe(true);
+    expect(mediaLibraryTypeForInput(input)).toBe("audio");
+  });
+
+  test("enables the producer library for video uploads", () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "video/mp4,video/webm";
+    input.name = "video";
+    document.body.appendChild(input);
+
+    expect(isEligibleMediaLibraryInput(input)).toBe(true);
+    expect(mediaLibraryTypeForInput(input)).toBe("video");
   });
 
   test("does not offer event media as an identity document", () => {
@@ -34,10 +57,10 @@ describe("MediaLibraryInputEnhancer", () => {
     expect(isEligibleMediaLibraryInput(input)).toBe(false);
   });
 
-  test("does not attach an image library to incompatible media inputs", () => {
+  test("does not attach the library to non-media file inputs", () => {
     const input = document.createElement("input");
     input.type = "file";
-    input.accept = "audio/mpeg,audio/ogg";
+    input.accept = "text/csv,application/zip";
     document.body.appendChild(input);
 
     expect(isEligibleMediaLibraryInput(input)).toBe(false);
