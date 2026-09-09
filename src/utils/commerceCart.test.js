@@ -44,6 +44,29 @@ describe("commerce cart", () => {
     expect(getCommerceCart().events[0].tickets[0].quantity).toBe(5);
   });
 
+  test("preserves event items when tickets are added to the same event", () => {
+    localStorage.setItem(COMMERCE_CART_STORAGE_KEY, JSON.stringify({
+      version: 1,
+      updatedAt: "2026-09-08T20:00:00.000Z",
+      events: [{
+        eventId: 10,
+        eventSlug: "evento-a",
+        eventTitle: "Evento A",
+        tickets: [],
+        items: [{ id: 301, name: "Drink", quantity: 2, unitPrice: 12 }],
+      }],
+    }));
+
+    const result = addTicketsToCommerceCart({
+      event: { id: 10, slug: "evento-a", title: "Evento A" },
+      production: { id: 5, slug: "producao-x", name: "Produção X" },
+      tickets: [{ id: 101, name: "Pista", price: 25, quantity: 1, maxQuantity: 20 }],
+    });
+
+    expect(result.cart.events[0].items).toEqual([{ id: 301, name: "Drink", quantity: 2, unitPrice: 12 }]);
+    expect(result.itemCount).toBe(3);
+  });
+
   test("keeps a versioned persistent payload", () => {
     addTicketsToCommerceCart({
       event: { id: 10, slug: "evento-a", title: "Evento A" },
