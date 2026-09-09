@@ -354,6 +354,7 @@ const eventService = {
   },
   show: async (eventId) => (await appApiClient.get(`/events/${eventId}/manage`)).data.event,
   myEvents: async (params = {}) => unwrap((await appApiClient.get("/events/mine", { params: { per_page: 100, ...params } })).data.events),
+  destroy: async (eventId) => (await appApiClient.delete(`/events/${Number(eventId)}`)).data,
   duplicate: (eventId, date) => duplicateEvent(eventId, { date }),
   series: (eventId, payload) => createEventSeries(eventId, payload),
 
