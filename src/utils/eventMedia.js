@@ -1,4 +1,5 @@
 import { storageUrl } from "../config";
+import "../styles/event-media.css";
 
 export const EVENT_FLYER_RECOMMENDED_WIDTH = 1080;
 export const EVENT_FLYER_RECOMMENDED_HEIGHT = 1920;
