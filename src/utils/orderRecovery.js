@@ -29,26 +29,32 @@ export const paymentMethodFromOrder = (order = {}) => {
   return String(latestPayment?.method || order?.payment_method || "").trim().toLowerCase();
 };
 
+export const pendingPixExpirationState = (order = {}, nowMs = Date.now()) => {
+  if (String(order?.status || "").trim().toLowerCase() !== "pending") return null;
+  if (paymentMethodFromOrder(order) !== "pix") return null;
+
+  const payment = latestPaymentFromOrder(order);
+  if (payment && String(payment?.status || "").trim().toLowerCase() !== "pending") return null;
+
+  const expiresAtMs = Date.parse(order?.expires_at || "");
+  if (!Number.isFinite(expiresAtMs)) return null;
+
+  const remainingMs = expiresAtMs - Number(nowMs || 0);
+  return {
+    expiresAtMs,
+    remainingMs: Math.max(0, remainingMs),
+    remainingMinutes: remainingMs > 0 ? Math.max(1, Math.ceil(remainingMs / 60000)) : 0,
+    expired: remainingMs <= 0,
+  };
+};
+
 export const isPendingPixRecoverable = (order = {}, nowMs = Date.now()) => {
-  if (String(order?.status || "").trim().toLowerCase() !== "pending") return false;
-
-  const payment = latestPaymentFromOrder(order);
-  if (payment && String(payment?.status || "").trim().toLowerCase() !== "pending") return false;
-  if (paymentMethodFromOrder(order) !== "pix") return false;
-
-  const expiresAt = Date.parse(order?.expires_at || "");
-  return Number.isFinite(expiresAt) && expiresAt > Number(nowMs || 0);
+  const expiration = pendingPixExpirationState(order, nowMs);
+  return Boolean(expiration && !expiration.expired);
 };
 
-export const isPendingPixExpired = (order = {}, nowMs = Date.now()) => {
-  if (String(order?.status || "").trim().toLowerCase() !== "pending") return false;
-  if (paymentMethodFromOrder(order) !== "pix") return false;
-
-  const payment = latestPaymentFromOrder(order);
-  if (payment && String(payment?.status || "").trim().toLowerCase() !== "pending") return false;
-
-  const expiresAt = Date.parse(order?.expires_at || "");
-  return Number.isFinite(expiresAt) && expiresAt <= Number(nowMs || 0);
-};
+export const isPendingPixExpired = (order = {}, nowMs = Date.now()) => Boolean(
+  pendingPixExpirationState(order, nowMs)?.expired,
+);
 
 export const latestPendingPaymentFromOrder = (order = {}) => latestPaymentFromOrder(order);
