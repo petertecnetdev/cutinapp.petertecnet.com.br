@@ -12,6 +12,7 @@ describe("evaluateAddOnExperiment", () => {
     expect(result.ticketUplift).toBeCloseTo(15);
     expect(result.netRevenuePerOrderUplift).toBeCloseTo(2.65);
     expect(result.projectedIncrementalNetRevenueAtBaselineVolume).toBeCloseTo(265);
+    expect(result.projectedIncrementalContributionAtBaselineVolume).toBeCloseTo(265);
     expect(result.marginPreserved).toBe(true);
     expect(result.recommendation).toBe("prefer_variant");
   });
@@ -26,6 +27,47 @@ describe("evaluateAddOnExperiment", () => {
     expect(result.marginPreserved).toBe(false);
     expect(result.economicallyPositive).toBe(false);
     expect(result.recommendation).toBe("keep_baseline");
+  });
+
+  test("desconta custo incremental da variante antes de declarar vencedor", () => {
+    const result = evaluateAddOnExperiment({
+      baseline: { paidOrders: 100, addOnOrders: 20, gmv: 10000, netPlatformRevenue: 1000 },
+      variant: {
+        paidOrders: 100,
+        addOnOrders: 38,
+        gmv: 12000,
+        netPlatformRevenue: 1320,
+        incrementalExperimentCost: 360,
+      },
+    });
+
+    expect(result.netRevenuePerOrderUplift).toBeCloseTo(3.2);
+    expect(result.contributionPerOrderUplift).toBeCloseTo(-0.4);
+    expect(result.incrementalExperimentCost).toBeCloseTo(360);
+    expect(result.projectedIncrementalNetRevenueAtBaselineVolume).toBeCloseTo(320);
+    expect(result.projectedIncrementalContributionAtBaselineVolume).toBeCloseTo(-40);
+    expect(result.marginPreserved).toBe(false);
+    expect(result.economicallyPositive).toBe(false);
+    expect(result.recommendation).toBe("keep_baseline");
+  });
+
+  test("prefere variante quando receita incremental cobre custo e preserva margem", () => {
+    const result = evaluateAddOnExperiment({
+      baseline: { paidOrders: 100, addOnOrders: 20, gmv: 10000, netPlatformRevenue: 1000 },
+      variant: {
+        paidOrders: 100,
+        addOnOrders: 36,
+        gmv: 11200,
+        netPlatformRevenue: 1344,
+        incrementalExperimentCost: 112,
+      },
+    });
+
+    expect(result.contributionPerOrderUplift).toBeCloseTo(2.32);
+    expect(result.projectedIncrementalContributionAtBaselineVolume).toBeCloseTo(232);
+    expect(result.marginPreserved).toBe(true);
+    expect(result.economicallyPositive).toBe(true);
+    expect(result.recommendation).toBe("prefer_variant");
   });
 
   test("mantém coleta quando a amostra ainda é pequena", () => {
@@ -43,12 +85,14 @@ describe("evaluateAddOnExperiment", () => {
   test("normaliza entradas inválidas sem criar receita fictícia", () => {
     const result = evaluateAddOnExperiment({
       baseline: { paidOrders: -2, addOnOrders: 9, gmv: "x", netPlatformRevenue: -1 },
-      variant: {},
+      variant: { incrementalExperimentCost: -100 },
     });
 
     expect(result.baseline.paidOrders).toBe(0);
     expect(result.baseline.addOnOrders).toBe(0);
+    expect(result.variant.incrementalExperimentCost).toBe(0);
     expect(result.projectedIncrementalNetRevenueAtBaselineVolume).toBe(0);
+    expect(result.projectedIncrementalContributionAtBaselineVolume).toBe(0);
     expect(result.recommendation).toBe("collect_more_data");
   });
 });
