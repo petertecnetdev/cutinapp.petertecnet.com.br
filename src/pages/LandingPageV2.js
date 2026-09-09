@@ -277,6 +277,7 @@ export default function LandingPageV2() {
   const featuredEvent = events[0] || null;
   const featuredEventLink = featuredEvent?.slug ? `/event/${encodeURIComponent(featuredEvent.slug)}` : browseLink;
   const featuredProduction = productions[0] || null;
+  const featuredProductionLink = featuredProduction?.slug ? `/production/${encodeURIComponent(featuredProduction.slug)}/public` : "/productions";
   const featuredArtists = artists.slice(0, 4);
   const activeRoleData = roles.find((role) => role.key === activeRole) || roles[0];
   const activeDemoData = demoSteps.find((step) => step.key === activeDemo) || demoSteps[0];
@@ -356,11 +357,16 @@ export default function LandingPageV2() {
                 </div>
               </a>
 
-              <div className="cut-landing__floatingCard cut-landing__floatingCard--people" style={{ pointerEvents: "none" }}>
+              <Link
+                to={featuredProductionLink}
+                className="cut-landing__floatingCard cut-landing__floatingCard--people"
+                aria-label="Abrir página da produção"
+                style={{ color: "inherit", textDecoration: "none", cursor: "pointer", pointerEvents: "auto", touchAction: "manipulation" }}
+              >
                 <small>QUEM FAZ ACONTECER</small>
                 <strong>{featuredProduction?.name || "Produções da sua cidade"}</strong>
                 <span>{featuredProduction?.city || "Descubra e acompanhe"}</span>
-              </div>
+              </Link>
 
               <div className="cut-landing__floatingCard cut-landing__floatingCard--artists" style={{ pointerEvents: "none" }}>
                 <small>ARTISTAS NA CENA</small>
