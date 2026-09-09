@@ -1,9 +1,15 @@
 const normalizeStatus = (value) => String(value || "").trim().toLowerCase();
 
+const terminalStatusAliases = {
+  canceled: "cancelled",
+  failed: "rejected",
+};
+
 const normalizeEntityStatus = (entity) => {
   if (!entity || typeof entity !== "object") return entity;
-  if (normalizeStatus(entity.status) !== "canceled") return entity;
-  return { ...entity, status: "cancelled" };
+  const normalized = terminalStatusAliases[normalizeStatus(entity.status)];
+  if (!normalized) return entity;
+  return { ...entity, status: normalized };
 };
 
 export const normalizeCommercePaymentStatuses = (payload) => {
