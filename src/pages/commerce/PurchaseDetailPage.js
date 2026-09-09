@@ -5,7 +5,7 @@ import NavlogComponent from "../../components/NavlogComponent";
 import QrCodeComponent from "../../components/QrCodeComponent";
 import commerceService from "../../services/CommerceService";
 import { writeCheckoutRecovery } from "../../utils/checkoutRecovery";
-import { checkoutSelectionFromOrder, latestPendingPaymentFromOrder } from "../../utils/orderRecovery";
+import { checkoutSelectionFromOrder, latestPaymentFromOrder, latestPendingPaymentFromOrder } from "../../utils/orderRecovery";
 import { writePaymentRecoveryAttribution } from "../../utils/paymentRecoveryAttribution";
 import { safeSetSessionJson } from "../../utils/safeStorage";
 import "./CommerceHistory.css";
@@ -35,7 +35,7 @@ export default function PurchaseDetailPage() {
     return () => { active = false; };
   }, [publicId]);
 
-  const payment = useMemo(() => order?.payments?.[0], [order]);
+  const payment = useMemo(() => latestPaymentFromOrder(order), [order]);
   const itemLines = useMemo(() => (order?.items || []).filter((item) => item.type === "item"), [order]);
   const hasPickup = order?.status === "paid" && itemLines.length > 0;
   const expiresAt = Date.parse(order?.expires_at || "");
