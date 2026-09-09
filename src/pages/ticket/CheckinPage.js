@@ -99,6 +99,7 @@ export default function CheckinPage() {
   const [cameraNotice, setCameraNotice] = useState("");
   const [readerMode, setReaderMode] = useState(window.BarcodeDetector ? "native" : "fallback");
   const [fallbackReady, setFallbackReady] = useState(Boolean(window.jsQR));
+  const [fallbackFailed, setFallbackFailed] = useState(false);
   const [stats, setStats] = useState(null);
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
@@ -117,10 +118,14 @@ export default function CheckinPage() {
   }, [stopCameraStream]);
 
   const enableCamera = useCallback(() => {
+    if (readerMode === "fallback" && fallbackFailed) {
+      setCameraNotice("Leitor por câmera indisponível neste navegador. Use a validação manual pelo código impresso abaixo do QR.");
+      return;
+    }
     setCameraNotice("");
     setError("");
     setCameraEnabled(true);
-  }, []);
+  }, [fallbackFailed, readerMode]);
 
   const refreshStats = useCallback(async (selectedEventId) => {
     if (!selectedEventId) {
@@ -155,10 +160,20 @@ export default function CheckinPage() {
 
   useEffect(() => {
     if (readerMode !== "fallback" || fallbackReady) return;
+    setFallbackFailed(false);
     loadJsQr()
-      .then(() => setFallbackReady(true))
-      .catch((err) => setError(err?.message || "Seu navegador não conseguiu carregar o leitor QR alternativo."));
-  }, [fallbackReady, readerMode]);
+      .then(() => {
+        setFallbackReady(true);
+        trackCheckinOperation("checkin_reader_fallback_ready", { eventId, readerMode });
+      })
+      .catch((err) => {
+        setFallbackFailed(true);
+        disableCamera();
+        trackCheckinOperation("checkin_reader_fallback_unavailable", { eventId, readerMode });
+        setCameraNotice("A câmera não pôde preparar o leitor QR alternativo. Use a validação manual pelo código impresso abaixo do QR.");
+        setError(err?.message || "Seu navegador não conseguiu carregar o leitor QR alternativo.");
+      });
+  }, [disableCamera, eventId, fallbackReady, readerMode]);
 
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -344,7 +359,7 @@ export default function CheckinPage() {
 
           <Row className="g-4 justify-content-center">
             <Col lg={7}><Card className="cut-panel cut-scanner-card"><Card.Body className="p-3 p-md-4">
-              {!eventId ? <div className="cut-empty-state-inline"><h2>Selecione o evento</h2><p>A câmera só é liberada depois de escolher qual evento está sendo operado.</p></div> : result ? <div className={`cut-checkin-result cut-checkin-result--${result.type}`} role={result.type === "danger" ? "alert" : "status"} aria-live={result.type === "danger" ? "assertive" : "polite"}><i className={result.type === "success" ? "fa-solid fa-circle-check" : "fa-solid fa-triangle-exclamation"} aria-hidden="true" /><h2>{result.message}</h2>{result.pass && <div className="cut-checkin-person"><strong>{result.pass.holder_name || result.pass.holder_email || "Participante"}</strong><span>{result.pass.event?.title || "Evento"}</span><span>{result.pass.ticket?.name || "Ingresso"}</span></div>}{result.kind === "item" && Array.isArray(result.items) && <div className="cut-checkin-person"><strong>Entregue os itens abaixo</strong>{result.items.map((item) => <span key={item.id || item.event_item_id}>{item.quantity} × {item.name}</span>)}</div>}<Button size="lg" onClick={nextParticipant}>Próxima leitura</Button></div> : cameraEnabled ? <div className="cut-scanner"><Webcam ref={webcamRef} audio={false} className="cut-scanner__video" screenshotFormat="image/jpeg" videoConstraints={{ facingMode: { ideal: "environment" } }} onUserMediaError={(mediaError) => { setError(mediaError?.message || "Não foi possível acessar a câmera. Verifique a permissão do navegador."); disableCamera(); }} /><canvas ref={canvasRef} hidden /><div className="cut-scanner__frame" aria-hidden="true" /><span className="cut-scanner__hint" role="status" aria-live="polite">{readerMode === "native" ? "Leitor nativo ativo" : fallbackReady ? "Leitor compatível ativo" : "Preparando leitor QR..."} · posicione o QR no quadro</span></div> : <div className="cut-empty-state-inline"><i className="fa-solid fa-camera" aria-hidden="true" /><h2>Câmera pronta para iniciar</h2><p>Toque no botão para validar ingresso ou retirada de produtos.</p><Button size="lg" onClick={enableCamera} disabled={networkStatus === "offline"}>Ativar câmera</Button></div>}
+              {!eventId ? <div className="cut-empty-state-inline"><h2>Selecione o evento</h2><p>A câmera só é liberada depois de escolher qual evento está sendo operado.</p></div> : result ? <div className={`cut-checkin-result cut-checkin-result--${result.type}`} role={result.type === "danger" ? "alert" : "status"} aria-live={result.type === "danger" ? "assertive" : "polite"}><i className={result.type === "success" ? "fa-solid fa-circle-check" : "fa-solid fa-triangle-exclamation"} aria-hidden="true" /><h2>{result.message}</h2>{result.pass && <div className="cut-checkin-person"><strong>{result.pass.holder_name || result.pass.holder_email || "Participante"}</strong><span>{result.pass.event?.title || "Evento"}</span><span>{result.pass.ticket?.name || "Ingresso"}</span></div>}{result.kind === "item" && Array.isArray(result.items) && <div className="cut-checkin-person"><strong>Entregue os itens abaixo</strong>{result.items.map((item) => <span key={item.id || item.event_item_id}>{item.quantity} × {item.name}</span>)}</div>}<Button size="lg" onClick={nextParticipant}>Próxima leitura</Button></div> : cameraEnabled ? <div className="cut-scanner"><Webcam ref={webcamRef} audio={false} className="cut-scanner__video" screenshotFormat="image/jpeg" videoConstraints={{ facingMode: { ideal: "environment" } }} onUserMediaError={(mediaError) => { setError(mediaError?.message || "Não foi possível acessar a câmera. Verifique a permissão do navegador."); disableCamera(); }} /><canvas ref={canvasRef} hidden /><div className="cut-scanner__frame" aria-hidden="true" /><span className="cut-scanner__hint" role="status" aria-live="polite">{readerMode === "native" ? "Leitor nativo ativo" : fallbackReady ? "Leitor compatível ativo" : "Preparando leitor QR..."} · posicione o QR no quadro</span></div> : <div className="cut-empty-state-inline"><i className="fa-solid fa-camera" aria-hidden="true" /><h2>Câmera pronta para iniciar</h2><p>Toque no botão para validar ingresso ou retirada de produtos.</p><Button size="lg" onClick={enableCamera} disabled={networkStatus === "offline" || (readerMode === "fallback" && fallbackFailed)}>Ativar câmera</Button></div>}
             </Card.Body></Card></Col>
 
             <Col lg={5}><Card className="cut-panel h-100"><Card.Body className="p-4"><h2 className="cut-section-title">Validação manual</h2><p className="text-secondary">Use o código abaixo do QR apenas se a câmera estiver indisponível.</p><Form onSubmit={(event) => { event.preventDefault(); validate(token); }}><Form.Group><Form.Label>Código do QR</Form.Label><Form.Control value={token} onChange={(event) => setToken(event.target.value)} placeholder="CUT-..., PASS-... ou ITEM-..." autoComplete="off" /></Form.Group><Button className="w-100 mt-3" type="submit" disabled={!eventId || !token.trim() || loading || networkStatus === "offline"}>Validar QR Code</Button></Form><div className="cut-info-box mt-4"><strong>Proteção contra uso indevido</strong><span>O servidor confirma evento, operador, pagamento, validade do QR e utilização anterior antes de registrar entrada ou retirada.</span></div></Card.Body></Card></Col>
