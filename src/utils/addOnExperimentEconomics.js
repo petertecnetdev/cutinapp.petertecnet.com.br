@@ -319,7 +319,7 @@ export function recommendMonetizationBudgetAllocation({
                 ? "no_safe_headroom"
                 : (evidenceBoundIncrementalBudgetCap <= 0
                   ? "no_evidence_bound_headroom"
-                  : (projectedCost <= 0 ? "no_paid_budget_required" : "missing_return_signal"))))),
+                  : (projectedCost <= 0 ? "no_paid_budget_required" : "missing_return_signal")))))),
     };
   });
 
