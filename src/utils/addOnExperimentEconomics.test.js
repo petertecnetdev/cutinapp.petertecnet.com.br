@@ -13,6 +13,8 @@ describe("evaluateAddOnExperiment", () => {
     expect(result.netRevenuePerOrderUplift).toBeCloseTo(2.65);
     expect(result.projectedIncrementalNetRevenueAtBaselineVolume).toBeCloseTo(265);
     expect(result.projectedIncrementalContributionAtBaselineVolume).toBeCloseTo(265);
+    expect(result.netReturnOnIncrementalCost).toBeNull();
+    expect(result.capitalEfficiencyPreserved).toBe(true);
     expect(result.marginPreserved).toBe(true);
     expect(result.recommendation).toBe("prefer_variant");
   });
@@ -44,8 +46,11 @@ describe("evaluateAddOnExperiment", () => {
     expect(result.netRevenuePerOrderUplift).toBeCloseTo(3.2);
     expect(result.contributionPerOrderUplift).toBeCloseTo(-0.4);
     expect(result.incrementalExperimentCost).toBeCloseTo(360);
+    expect(result.incrementalExperimentCostPerOrder).toBeCloseTo(3.6);
+    expect(result.projectedIncrementalExperimentCostAtBaselineVolume).toBeCloseTo(360);
     expect(result.projectedIncrementalNetRevenueAtBaselineVolume).toBeCloseTo(320);
     expect(result.projectedIncrementalContributionAtBaselineVolume).toBeCloseTo(-40);
+    expect(result.netReturnOnIncrementalCost).toBeCloseTo(-40 / 360);
     expect(result.marginPreserved).toBe(false);
     expect(result.economicallyPositive).toBe(false);
     expect(result.recommendation).toBe("keep_baseline");
@@ -65,9 +70,75 @@ describe("evaluateAddOnExperiment", () => {
 
     expect(result.contributionPerOrderUplift).toBeCloseTo(2.32);
     expect(result.projectedIncrementalContributionAtBaselineVolume).toBeCloseTo(232);
+    expect(result.netReturnOnIncrementalCost).toBeCloseTo(232 / 112);
+    expect(result.capitalEfficiencyPreserved).toBe(true);
     expect(result.marginPreserved).toBe(true);
     expect(result.economicallyPositive).toBe(true);
     expect(result.recommendation).toBe("prefer_variant");
+  });
+
+  test("bloqueia escala quando o retorno líquido por real investido fica abaixo do piso configurado", () => {
+    const result = evaluateAddOnExperiment({
+      baseline: { paidOrders: 100, addOnOrders: 20, gmv: 10000, netPlatformRevenue: 1000 },
+      variant: {
+        paidOrders: 100,
+        addOnOrders: 40,
+        gmv: 11500,
+        netPlatformRevenue: 1380,
+        incrementalExperimentCost: 300,
+      },
+      minimumNetReturnOnIncrementalCost: 0.5,
+    });
+
+    expect(result.projectedIncrementalContributionAtBaselineVolume).toBeCloseTo(80);
+    expect(result.netReturnOnIncrementalCost).toBeCloseTo(80 / 300);
+    expect(result.marginPreserved).toBe(true);
+    expect(result.capitalEfficiencyPreserved).toBe(false);
+    expect(result.economicallyPositive).toBe(false);
+    expect(result.recommendation).toBe("keep_baseline");
+  });
+
+  test("mantém compatibilidade sem piso de retorno explícito", () => {
+    const result = evaluateAddOnExperiment({
+      baseline: { paidOrders: 100, addOnOrders: 20, gmv: 10000, netPlatformRevenue: 1000 },
+      variant: {
+        paidOrders: 100,
+        addOnOrders: 40,
+        gmv: 11500,
+        netPlatformRevenue: 1380,
+        incrementalExperimentCost: 300,
+      },
+    });
+
+    expect(result.minimumNetReturnOnIncrementalCost).toBe(0);
+    expect(result.netReturnOnIncrementalCost).toBeCloseTo(80 / 300);
+    expect(result.capitalEfficiencyPreserved).toBe(true);
+    expect(result.recommendation).toBe("prefer_variant");
+  });
+
+  test("normaliza custo por pedido antes de comparar braços com volumes diferentes", () => {
+    const result = evaluateAddOnExperiment({
+      baseline: {
+        paidOrders: 50,
+        addOnOrders: 10,
+        gmv: 5000,
+        netPlatformRevenue: 500,
+        incrementalExperimentCost: 50,
+      },
+      variant: {
+        paidOrders: 100,
+        addOnOrders: 30,
+        gmv: 11000,
+        netPlatformRevenue: 1200,
+        incrementalExperimentCost: 150,
+      },
+    });
+
+    expect(result.baseline.experimentCostPerOrder).toBeCloseTo(1);
+    expect(result.variant.experimentCostPerOrder).toBeCloseTo(1.5);
+    expect(result.incrementalExperimentCost).toBeCloseTo(100);
+    expect(result.incrementalExperimentCostPerOrder).toBeCloseTo(0.5);
+    expect(result.projectedIncrementalExperimentCostAtBaselineVolume).toBeCloseTo(25);
   });
 
   test("mantém coleta quando a amostra ainda é pequena", () => {
@@ -86,11 +157,13 @@ describe("evaluateAddOnExperiment", () => {
     const result = evaluateAddOnExperiment({
       baseline: { paidOrders: -2, addOnOrders: 9, gmv: "x", netPlatformRevenue: -1 },
       variant: { incrementalExperimentCost: -100 },
+      minimumNetReturnOnIncrementalCost: "x",
     });
 
     expect(result.baseline.paidOrders).toBe(0);
     expect(result.baseline.addOnOrders).toBe(0);
     expect(result.variant.incrementalExperimentCost).toBe(0);
+    expect(result.minimumNetReturnOnIncrementalCost).toBe(0);
     expect(result.projectedIncrementalNetRevenueAtBaselineVolume).toBe(0);
     expect(result.projectedIncrementalContributionAtBaselineVolume).toBe(0);
     expect(result.recommendation).toBe("collect_more_data");
