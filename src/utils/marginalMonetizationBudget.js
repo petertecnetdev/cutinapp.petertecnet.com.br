@@ -14,6 +14,35 @@ const sourceKey = (item = {}, index = 0) => (
   String(item.source || item.channel || item.name || `channel_${index + 1}`).trim().toLowerCase()
 );
 
+const normalizedString = (value) => String(value ?? "").trim();
+
+const analyticsEventId = (row = {}) => normalizedString(
+  row.eventId
+    ?? row.event_id
+    ?? row.eventUuid
+    ?? row.event_uuid
+    ?? row.event?.id
+    ?? row.event?.uuid,
+);
+
+const analyticsChannel = (row = {}) => normalizedString(
+  row.channel
+    ?? row.source
+    ?? row.attributionChannel
+    ?? row.attribution_channel
+    ?? row.campaignType
+    ?? row.campaign_type,
+).toLowerCase();
+
+const analyticsPeriod = (row = {}, index = 0) => normalizedString(
+  row.period
+    ?? row.bucket
+    ?? row.window
+    ?? row.windowStart
+    ?? row.window_start
+    ?? row.date,
+) || `period_${index + 1}`;
+
 export function buildMarginalPerformanceHistoryFromAnalytics(rows = []) {
   const input = Array.isArray(rows) ? rows : [];
 
@@ -69,6 +98,103 @@ export function buildMarginalPerformanceHistoryFromAnalytics(rows = []) {
       };
     })
     .filter(Boolean);
+}
+
+export function buildEventChannelMarginalPerformanceHistories(rows = []) {
+  const input = Array.isArray(rows) ? rows : [];
+  const grouped = new Map();
+
+  input.forEach((row = {}, index) => {
+    const eventId = analyticsEventId(row);
+    const channel = analyticsChannel(row);
+    if (!eventId || !channel) return;
+
+    const period = analyticsPeriod(row, index);
+    const normalized = buildMarginalPerformanceHistoryFromAnalytics([{ ...row, period }])[0];
+    if (!normalized) return;
+
+    const groupKey = `${eventId}::${channel}`;
+    if (!grouped.has(groupKey)) {
+      grouped.set(groupKey, {
+        eventId,
+        channel,
+        periods: new Map(),
+      });
+    }
+
+    const group = grouped.get(groupKey);
+    const current = group.periods.get(period) || {
+      period,
+      incrementalCost: 0,
+      incrementalGmv: 0,
+      incrementalNetRevenue: 0,
+      incrementalContribution: 0,
+      rowCount: 0,
+    };
+
+    current.incrementalCost += normalized.incrementalCost;
+    current.incrementalGmv += normalized.incrementalGmv;
+    current.incrementalNetRevenue += normalized.incrementalNetRevenue;
+    current.incrementalContribution += normalized.incrementalContribution;
+    current.rowCount += 1;
+    group.periods.set(period, current);
+  });
+
+  return Array.from(grouped.values()).map((group) => {
+    const history = Array.from(group.periods.values()).map((period, historyIndex) => ({
+      historyIndex,
+      period: period.period,
+      incrementalBudgetCapacity: period.incrementalCost,
+      incrementalCost: period.incrementalCost,
+      incrementalGmv: period.incrementalGmv,
+      incrementalNetRevenue: period.incrementalNetRevenue,
+      incrementalContribution: period.incrementalContribution,
+      netReturnOnIncrementalCost: period.incrementalContribution / period.incrementalCost,
+      observedFromAnalytics: true,
+      aggregatedAnalyticsRows: period.rowCount,
+    }));
+
+    return {
+      eventId: group.eventId,
+      channel: group.channel,
+      history,
+      periods: history.length,
+      totalIncrementalCost: history.reduce((sum, item) => sum + item.incrementalCost, 0),
+      totalIncrementalGmv: history.reduce((sum, item) => sum + item.incrementalGmv, 0),
+      totalIncrementalNetRevenue: history.reduce((sum, item) => sum + item.incrementalNetRevenue, 0),
+      totalIncrementalContribution: history.reduce((sum, item) => sum + item.incrementalContribution, 0),
+    };
+  });
+}
+
+export function hydrateChannelsWithRealizedAnalyticsHistory({
+  eventId,
+  channels = [],
+  analyticsRows = [],
+} = {}) {
+  const targetEventId = normalizedString(eventId);
+  const histories = buildEventChannelMarginalPerformanceHistories(analyticsRows);
+  const historyByChannel = new Map(
+    histories
+      .filter((group) => group.eventId === targetEventId)
+      .map((group) => [group.channel, group.history]),
+  );
+
+  return (Array.isArray(channels) ? channels : []).map((channel, index) => {
+    const key = sourceKey(channel, index);
+    const alreadyHasHistory = Array.isArray(channel.marginalPerformanceHistory)
+      || Array.isArray(channel.historicalMarginalPerformance)
+      || Array.isArray(channel.realizedAnalyticsHistory)
+      || Array.isArray(channel.analyticsHistory);
+
+    if (alreadyHasHistory || !historyByChannel.has(key)) return channel;
+
+    return {
+      ...channel,
+      realizedAnalyticsHistory: historyByChannel.get(key),
+      realizedAnalyticsHistorySource: "central_analytics_event_channel",
+    };
+  });
 }
 
 const deriveHistoricalBands = (original = {}, channel = {}) => {
