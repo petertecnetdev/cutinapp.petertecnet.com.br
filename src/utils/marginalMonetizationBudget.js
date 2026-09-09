@@ -14,17 +14,78 @@ const sourceKey = (item = {}, index = 0) => (
   String(item.source || item.channel || item.name || `channel_${index + 1}`).trim().toLowerCase()
 );
 
+export function buildMarginalPerformanceHistoryFromAnalytics(rows = []) {
+  const input = Array.isArray(rows) ? rows : [];
+
+  return input
+    .map((row = {}, historyIndex) => {
+      const incrementalCost = finiteNonNegative(
+        row.incrementalCost
+          ?? row.incremental_cost
+          ?? row.cost
+          ?? row.spend
+          ?? row.attributedCost
+          ?? row.attributed_cost,
+      );
+      const incrementalGmv = finiteNonNegative(
+        row.incrementalGmv
+          ?? row.incremental_gmv
+          ?? row.gmv
+          ?? row.grossMerchandiseValue
+          ?? row.gross_merchandise_value,
+      );
+      const incrementalNetRevenue = finiteNonNegative(
+        row.incrementalNetRevenue
+          ?? row.incremental_net_revenue
+          ?? row.netRevenue
+          ?? row.net_revenue
+          ?? row.platformNetRevenue
+          ?? row.platform_net_revenue,
+      );
+
+      const explicitContribution = Number(
+        row.incrementalContribution
+          ?? row.incremental_contribution
+          ?? row.contribution
+          ?? row.netContribution
+          ?? row.net_contribution,
+      );
+      const contribution = Number.isFinite(explicitContribution)
+        ? explicitContribution
+        : incrementalNetRevenue - incrementalCost;
+
+      if (incrementalCost <= 0 || !Number.isFinite(contribution)) return null;
+
+      return {
+        historyIndex,
+        period: row.period ?? row.bucket ?? row.window ?? null,
+        incrementalBudgetCapacity: incrementalCost,
+        incrementalCost,
+        incrementalGmv,
+        incrementalNetRevenue,
+        incrementalContribution: contribution,
+        netReturnOnIncrementalCost: contribution / incrementalCost,
+        observedFromAnalytics: true,
+      };
+    })
+    .filter(Boolean);
+}
+
 const deriveHistoricalBands = (original = {}, channel = {}) => {
-  const history = Array.isArray(original.marginalPerformanceHistory)
+  const rawHistory = Array.isArray(original.marginalPerformanceHistory)
     ? original.marginalPerformanceHistory
     : Array.isArray(original.historicalMarginalPerformance)
       ? original.historicalMarginalPerformance
-      : [];
+      : Array.isArray(original.realizedAnalyticsHistory)
+        ? buildMarginalPerformanceHistoryFromAnalytics(original.realizedAnalyticsHistory)
+        : Array.isArray(original.analyticsHistory)
+          ? buildMarginalPerformanceHistoryFromAnalytics(original.analyticsHistory)
+          : [];
 
   const totalRiskPenalty = finiteNonNegative(channel.volatilityPenalty)
     + finiteNonNegative(channel.decliningTrendPenalty);
 
-  return history
+  return rawHistory
     .map((observation = {}, historyIndex) => {
       const capacity = finiteNonNegative(
         observation.incrementalBudgetCapacity
@@ -45,6 +106,13 @@ const deriveHistoricalBands = (original = {}, channel = {}) => {
         capacity,
         rawReturn,
         marginalRiskAdjustedNetReturn: rawReturn - totalRiskPenalty,
+        incrementalGmv: finiteNonNegative(observation.incrementalGmv),
+        incrementalNetRevenue: finiteNonNegative(observation.incrementalNetRevenue),
+        incrementalContribution: Number.isFinite(Number(observation.incrementalContribution))
+          ? Number(observation.incrementalContribution)
+          : null,
+        observedFromAnalytics: observation.observedFromAnalytics === true,
+        period: observation.period ?? null,
       };
     })
     .filter(Boolean);
@@ -83,7 +151,9 @@ export function recommendMarginalMonetizationBudgetAllocation({
     const bandsSource = explicitBands.length > 0
       ? "explicit"
       : historicalBands.length > 0
-        ? "observed_history"
+        ? historicalBands.some((band) => band.observedFromAnalytics)
+          ? "central_analytics"
+          : "observed_history"
         : "observed_channel_return";
     const maximumChannelBudget = finiteNonNegative(channel.scalableSafeHeadroom);
     let remainingChannelCapacity = maximumChannelBudget;
@@ -129,6 +199,12 @@ export function recommendMarginalMonetizationBudgetAllocation({
         bandsSource,
         historyIndex: Number.isInteger(band.historyIndex) ? band.historyIndex : null,
         rawHistoricalNetReturn: Number.isFinite(band.rawReturn) ? band.rawReturn : null,
+        incrementalGmv: finiteNonNegative(band.incrementalGmv),
+        incrementalNetRevenue: finiteNonNegative(band.incrementalNetRevenue),
+        incrementalContribution: Number.isFinite(Number(band.incrementalContribution))
+          ? Number(band.incrementalContribution)
+          : null,
+        period: band.period ?? null,
       });
       remainingChannelCapacity -= capacity;
     });
