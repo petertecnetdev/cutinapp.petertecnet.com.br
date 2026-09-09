@@ -1,4 +1,9 @@
-const IMAGE_ACCEPT_TOKENS = ["image/", ".png", ".jpg", ".jpeg", ".webp", ".gif", ".avif"];
+const MEDIA_ACCEPT_TOKENS = [
+  "image/", ".png", ".jpg", ".jpeg", ".webp", ".gif", ".avif",
+  "audio/", ".mp3", ".m4a", ".aac", ".ogg", ".oga", ".wav", ".opus",
+  "video/", ".mp4", ".mov", ".m4v", ".webm",
+];
+
 const SENSITIVE_UPLOAD_TOKENS = [
   "documento",
   "document",
@@ -12,12 +17,21 @@ const SENSITIVE_UPLOAD_TOKENS = [
   "proof",
 ];
 
+export const mediaLibraryTypeForInput = (input) => {
+  const accept = String(input?.accept || "").toLowerCase();
+  const types = [];
+  if (accept.includes("image/") || /\.(png|jpe?g|webp|gif|avif)(,|$)/i.test(accept)) types.push("image");
+  if (accept.includes("audio/") || /\.(mp3|m4a|aac|ogg|oga|wav|opus)(,|$)/i.test(accept)) types.push("audio");
+  if (accept.includes("video/") || /\.(mp4|mov|m4v|webm)(,|$)/i.test(accept)) types.push("video");
+  return types.length === 1 ? types[0] : "";
+};
+
 export const isEligibleMediaLibraryInput = (input) => {
   if (!(input instanceof HTMLInputElement) || input.type !== "file") return false;
   if (input.dataset.mediaLibrary === "off") return false;
 
   const accept = String(input.accept || "").toLowerCase();
-  if (!IMAGE_ACCEPT_TOKENS.some((token) => accept.includes(token))) return false;
+  if (!MEDIA_ACCEPT_TOKENS.some((token) => accept.includes(token))) return false;
   if (accept.includes("application/pdf")) return false;
 
   const contextText = [

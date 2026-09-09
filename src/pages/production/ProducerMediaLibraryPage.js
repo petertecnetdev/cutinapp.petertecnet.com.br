@@ -28,17 +28,24 @@ const formatDate = (value) => {
   return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", year: "numeric" }).format(date);
 };
 
-const safeFilename = (value) => String(value || "evento")
+const safeFilename = (value) => String(value || "midia")
   .normalize("NFD")
   .replace(/[\u0300-\u036f]/g, "")
   .replace(/[^a-zA-Z0-9-_]+/g, "-")
-  .replace(/^-+|-+$/g, "") || "evento";
+  .replace(/^-+|-+$/g, "") || "midia";
 
 const mediaExtension = (item) => {
   const cleanPath = String(item?.path || "").split(/[?#]/)[0];
   const extension = cleanPath.includes(".") ? cleanPath.split(".").pop() : "";
-  return /^[a-z0-9]{2,5}$/i.test(extension) ? extension.toLowerCase() : "webp";
+  if (/^[a-z0-9]{2,5}$/i.test(extension)) return extension.toLowerCase();
+  return item?.type === "audio" ? "mp3" : item?.type === "video" ? "mp4" : "webp";
 };
+
+const mediaMeta = (item) => ({
+  image: { label: "Imagem do evento", icon: "fa-regular fa-image" },
+  audio: { label: "Áudio do evento", icon: "fa-solid fa-music" },
+  video: { label: "Vídeo", icon: "fa-solid fa-video" },
+}[item?.type] || { label: "Mídia", icon: "fa-solid fa-photo-film" });
 
 export default function ProducerMediaLibraryPage() {
   const navigate = useNavigate();
@@ -46,6 +53,7 @@ export default function ProducerMediaLibraryPage() {
   const [media, setMedia] = useState([]);
   const [query, setQuery] = useState("");
   const [productionId, setProductionId] = useState("");
+  const [mediaType, setMediaType] = useState("");
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -74,6 +82,7 @@ export default function ProducerMediaLibraryPage() {
         const response = await producerMediaLibraryService.list({
           q: query.trim() || undefined,
           production_id: productionId || undefined,
+          type: mediaType || undefined,
           page,
           per_page: 24,
         });
@@ -94,7 +103,7 @@ export default function ProducerMediaLibraryPage() {
       active = false;
       window.clearTimeout(timer);
     };
-  }, [query, productionId, page]);
+  }, [query, productionId, mediaType, page]);
 
   const selectedProductionName = useMemo(
     () => productions.find((item) => String(item.id) === String(productionId))?.name || "",
@@ -103,17 +112,19 @@ export default function ProducerMediaLibraryPage() {
 
   const changeQuery = (value) => { setQuery(value); setPage(1); };
   const changeProduction = (value) => { setProductionId(value); setPage(1); };
+  const changeMediaType = (value) => { setMediaType(value); setPage(1); };
+  const clearFilters = () => { setQuery(""); setProductionId(""); setMediaType(""); setPage(1); };
 
   const downloadMedia = async (item) => {
-    if (!item?.event_id || downloadingId) return;
-    setDownloadingId(item.event_id);
+    if (!item?.id || downloadingId) return;
+    setDownloadingId(item.id);
     setError("");
     try {
-      const blob = await producerMediaLibraryService.download(item.event_id);
+      const blob = await producerMediaLibraryService.downloadItem(item);
       const objectUrl = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = objectUrl;
-      anchor.download = `${safeFilename(item.event_title)}-capa.${mediaExtension(item)}`;
+      anchor.download = `${safeFilename(item.media_title || item.event_title)}.${mediaExtension(item)}`;
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
@@ -126,6 +137,7 @@ export default function ProducerMediaLibraryPage() {
   };
 
   const openDuplicate = (item) => {
+    if (item?.source !== "event_cover") return;
     setError("");
     setSuccess("");
     setDuplicateDate(tomorrowKey());
@@ -150,6 +162,8 @@ export default function ProducerMediaLibraryPage() {
     }
   };
 
+  const hasFilters = Boolean(query || productionId || mediaType);
+
   return <div className="cut-app-page cut-producer-media-page">
     <NavlogComponent />
     {loading && <ProcessingIndicatorComponent label="Carregando biblioteca de mídias" />}
@@ -159,7 +173,7 @@ export default function ProducerMediaLibraryPage() {
         <div>
           <span className="cut-eyebrow">Área do produtor</span>
           <h1>Biblioteca de mídias</h1>
-          <p>Reencontre as capas que você já usou nos seus eventos, baixe o arquivo ou crie outra edição reaproveitando a mesma identidade visual.</p>
+          <p>Reutilize imagens e áudios já usados nas suas produções, sem precisar enviar o mesmo arquivo novamente.</p>
         </div>
         <div className="cut-media-heading__actions">
           <Button variant="outline-light" onClick={() => navigate("/production/mine")}>
@@ -177,21 +191,31 @@ export default function ProducerMediaLibraryPage() {
       <Card className="cut-panel cut-media-toolbar mb-4">
         <Card.Body>
           <Row className="g-3 align-items-end">
-            <Col lg={7}>
+            <Col lg={6}>
               <Form.Group>
                 <Form.Label>Buscar mídia</Form.Label>
                 <div className="cut-media-search">
                   <i className="fa-solid fa-magnifying-glass" />
-                  <Form.Control value={query} onChange={(event) => changeQuery(event.target.value)} placeholder="Busque pelo nome do evento ou da produção" />
+                  <Form.Control value={query} onChange={(event) => changeQuery(event.target.value)} placeholder="Busque pela mídia, evento ou produção" />
                 </div>
               </Form.Group>
             </Col>
-            <Col lg={5}>
+            <Col md={6} lg={3}>
               <Form.Group>
                 <Form.Label>Produção</Form.Label>
                 <Form.Select value={productionId} onChange={(event) => changeProduction(event.target.value)}>
-                  <option value="">Todas as minhas produções</option>
+                  <option value="">Todas</option>
                   {productions.map((production) => <option key={production.id} value={production.id}>{production.name}</option>)}
+                </Form.Select>
+              </Form.Group>
+            </Col>
+            <Col md={6} lg={3}>
+              <Form.Group>
+                <Form.Label>Tipo</Form.Label>
+                <Form.Select value={mediaType} onChange={(event) => changeMediaType(event.target.value)}>
+                  <option value="">Todos</option>
+                  <option value="image">Imagens</option>
+                  <option value="audio">Áudios</option>
                 </Form.Select>
               </Form.Group>
             </Col>
@@ -206,40 +230,45 @@ export default function ProducerMediaLibraryPage() {
       {!loading && media.length === 0 ? (
         <Card className="cut-empty-state cut-media-empty">
           <Card.Body>
-            <div className="cut-media-empty__icon"><i className="fa-regular fa-images" /></div>
-            <h2>{query || productionId ? "Nenhuma mídia encontrada" : "Sua biblioteca ainda está vazia"}</h2>
-            <p>{query || productionId ? "Altere os filtros para procurar outra capa." : "As capas usadas nos seus eventos aparecerão aqui automaticamente. Não é necessário enviar o mesmo arquivo duas vezes."}</p>
-            {(query || productionId) ? <Button variant="outline-light" onClick={() => { setQuery(""); setProductionId(""); setPage(1); }}>Limpar filtros</Button> : <Button onClick={() => navigate("/event/create")}><i className="fa-solid fa-plus me-2" />Criar evento</Button>}
+            <div className="cut-media-empty__icon"><i className="fa-solid fa-photo-film" /></div>
+            <h2>{hasFilters ? "Nenhuma mídia encontrada" : "Sua biblioteca ainda está vazia"}</h2>
+            <p>{hasFilters ? "Altere os filtros para procurar outra mídia." : "As mídias reutilizáveis dos seus eventos aparecerão aqui automaticamente."}</p>
+            {hasFilters ? <Button variant="outline-light" onClick={clearFilters}>Limpar filtros</Button> : <Button onClick={() => navigate("/event/create")}><i className="fa-solid fa-plus me-2" />Criar evento</Button>}
           </Card.Body>
         </Card>
       ) : (
         <div className="cut-media-grid">
           {media.map((item) => {
             const unavailable = item.available === false;
+            const meta = mediaMeta(item);
+            const canDuplicate = item.source === "event_cover";
             return <Card key={item.id} className={`cut-media-card ${unavailable ? "is-unavailable" : ""}`}>
-              <div className="cut-media-card__preview">
-                {item.url ? <img src={item.url} alt={`Capa de ${item.event_title || "evento"}`} loading="lazy" /> : <div className="cut-media-card__fallback"><i className="fa-regular fa-image" /></div>}
-                <span className="cut-media-card__badge"><i className="fa-regular fa-image" /> Capa de evento</span>
+              <div className={`cut-media-card__preview is-${item.type || "file"}`}>
+                {item.type === "image" && item.url
+                  ? <img src={item.url} alt={item.media_title || item.event_title || "Mídia"} loading="lazy" />
+                  : <div className="cut-media-card__fallback"><i className={meta.icon} /></div>}
+                <span className="cut-media-card__badge"><i className={meta.icon} /> {meta.label}</span>
               </div>
               <Card.Body>
                 <div className="cut-media-card__meta">
                   <span>{item.production_name || "Produção"}</span>
                   {formatDate(item.event_start_date) && <span>{formatDate(item.event_start_date)}</span>}
                 </div>
-                <h2 title={item.event_title}>{item.event_title || "Evento"}</h2>
+                <h2 title={item.media_title || item.event_title}>{item.media_title || item.event_title || "Mídia"}</h2>
+                {item.media_title && item.media_title !== item.event_title && <small className="text-secondary mb-2">Evento: {item.event_title}</small>}
                 <div className="cut-media-card__file-info">
                   {formatBytes(item.size) && <span><i className="fa-solid fa-database" />{formatBytes(item.size)}</span>}
                   <span><i className="fa-solid fa-shield-halved" />Sua mídia</span>
                 </div>
                 {unavailable && <div className="cut-media-card__warning"><i className="fa-solid fa-triangle-exclamation" />Arquivo indisponível no armazenamento.</div>}
-                <div className="cut-media-card__actions">
-                  <Button variant="outline-light" disabled={unavailable || downloadingId === item.event_id} onClick={() => downloadMedia(item)}>
-                    <i className={`fa-solid ${downloadingId === item.event_id ? "fa-spinner fa-spin" : "fa-download"} me-2`} />
-                    {downloadingId === item.event_id ? "Baixando" : "Baixar"}
+                <div className={`cut-media-card__actions ${canDuplicate ? "" : "is-single"}`}>
+                  <Button variant="outline-light" disabled={unavailable || downloadingId === item.id} onClick={() => downloadMedia(item)}>
+                    <i className={`fa-solid ${downloadingId === item.id ? "fa-spinner fa-spin" : "fa-download"} me-2`} />
+                    {downloadingId === item.id ? "Baixando" : "Baixar"}
                   </Button>
-                  <Button disabled={unavailable} onClick={() => openDuplicate(item)}>
+                  {canDuplicate && <Button disabled={unavailable} onClick={() => openDuplicate(item)}>
                     <i className="fa-solid fa-copy me-2" />Criar semelhante
-                  </Button>
+                  </Button>}
                 </div>
               </Card.Body>
             </Card>;

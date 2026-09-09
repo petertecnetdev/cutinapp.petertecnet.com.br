@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Alert, Button, Form, Modal, Spinner } from "react-bootstrap";
 import producerMediaLibraryService from "../services/ProducerMediaLibraryService";
-import { isEligibleMediaLibraryInput } from "../utils/mediaLibraryInput";
+import { isEligibleMediaLibraryInput, mediaLibraryTypeForInput } from "../utils/mediaLibraryInput";
 import "./MediaLibraryInputEnhancer.css";
 
 const safeFilename = (value) => String(value || "midia")
@@ -20,22 +20,32 @@ const extensionFrom = (item, mimeType) => {
     "image/webp": "webp",
     "image/gif": "gif",
     "image/avif": "avif",
+    "audio/mpeg": "mp3",
+    "audio/mp4": "m4a",
+    "audio/aac": "aac",
+    "audio/ogg": "ogg",
+    "audio/wav": "wav",
+    "audio/webm": "webm",
+    "video/mp4": "mp4",
+    "video/quicktime": "mov",
+    "video/webm": "webm",
   };
-  return mimeMap[String(mimeType || "").toLowerCase()] || "webp";
+  return mimeMap[String(mimeType || "").toLowerCase()] || "bin";
 };
 
-const acceptsImageFile = (input, file) => {
+const fileMatchesInputAccept = (input, file) => {
   const accept = String(input?.accept || "").trim().toLowerCase();
   if (!accept || accept === "*/*") return true;
-  if (!String(file?.type || "").toLowerCase().startsWith("image/")) return false;
+
+  const fileType = String(file?.type || "").toLowerCase();
+  const fileName = String(file?.name || "").toLowerCase();
 
   return accept.split(",").some((token) => {
     const normalized = token.trim();
     if (!normalized) return false;
-    if (normalized === "image/*") return true;
-    if (normalized.startsWith("image/")) return normalized === String(file.type || "").toLowerCase();
-    if (normalized.startsWith(".")) return String(file.name || "").toLowerCase().endsWith(normalized);
-    return false;
+    if (normalized.endsWith("/*")) return fileType.startsWith(normalized.slice(0, -1));
+    if (normalized.startsWith(".")) return fileName.endsWith(normalized);
+    return normalized === fileType;
   });
 };
 
@@ -54,6 +64,12 @@ const formatDate = (value) => {
   return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", year: "numeric" }).format(date);
 };
 
+const mediaIcon = (type) => ({
+  audio: "fa-solid fa-music",
+  video: "fa-solid fa-video",
+  image: "fa-regular fa-image",
+}[type] || "fa-solid fa-photo-film");
+
 export default function MediaLibraryInputEnhancer() {
   const [targetInput, setTargetInput] = useState(null);
   const [query, setQuery] = useState("");
@@ -65,11 +81,12 @@ export default function MediaLibraryInputEnhancer() {
   const [error, setError] = useState("");
 
   const show = Boolean(targetInput);
+  const targetType = useMemo(() => mediaLibraryTypeForInput(targetInput), [targetInput]);
   const targetLabel = useMemo(() => {
-    if (!targetInput) return "imagem";
+    if (!targetInput) return "mídia";
     const group = targetInput.closest(".form-group, .mb-3, .card, fieldset");
     const label = group?.querySelector("label")?.textContent?.trim();
-    return label || targetInput.getAttribute("aria-label") || targetInput.name || "imagem";
+    return label || targetInput.getAttribute("aria-label") || targetInput.name || "mídia";
   }, [targetInput]);
 
   useEffect(() => {
@@ -95,16 +112,23 @@ export default function MediaLibraryInputEnhancer() {
         : Array.from(root.querySelectorAll?.('input[type="file"]') || []);
 
       candidates.forEach((input) => {
-        if (!isEligibleMediaLibraryInput(input) || input.dataset.mediaLibraryEnhanced === "true") return;
+        if (!isEligibleMediaLibraryInput(input)) return;
+
+        const existingId = input.dataset.mediaLibraryTriggerId;
+        if (existingId && document.getElementById(existingId)) return;
+        delete input.dataset.mediaLibraryEnhanced;
+        delete input.dataset.mediaLibraryTriggerId;
 
         const anchor = triggerTarget(input);
         if (!anchor?.parentNode) return;
 
         const button = document.createElement("button");
+        const triggerId = `cut-media-library-trigger-${Math.random().toString(36).slice(2, 10)}`;
+        button.id = triggerId;
         button.type = "button";
         button.className = "btn btn-outline-light btn-sm cut-media-library-trigger";
         button.dataset.mediaLibraryTrigger = "true";
-        button.innerHTML = '<i class="fa-regular fa-images" aria-hidden="true"></i><span>Escolher da biblioteca</span>';
+        button.innerHTML = '<i class="fa-solid fa-photo-film" aria-hidden="true"></i><span>Escolher da biblioteca</span>';
         button.disabled = input.disabled;
         button.addEventListener("click", (event) => {
           event.preventDefault();
@@ -114,6 +138,7 @@ export default function MediaLibraryInputEnhancer() {
 
         anchor.parentNode.insertBefore(button, anchor.nextSibling);
         input.dataset.mediaLibraryEnhanced = "true";
+        input.dataset.mediaLibraryTriggerId = triggerId;
         buttons.add(button);
       });
     };
@@ -126,6 +151,8 @@ export default function MediaLibraryInputEnhancer() {
           if (!(node instanceof HTMLElement)) return;
           enhance(node);
         });
+
+        if (mutation.target instanceof HTMLElement) enhance(mutation.target);
       });
     });
 
@@ -136,6 +163,7 @@ export default function MediaLibraryInputEnhancer() {
       buttons.forEach((button) => button.remove());
       document.querySelectorAll('input[data-media-library-enhanced="true"]').forEach((input) => {
         delete input.dataset.mediaLibraryEnhanced;
+        delete input.dataset.mediaLibraryTriggerId;
       });
     };
   }, []);
@@ -149,12 +177,12 @@ export default function MediaLibraryInputEnhancer() {
       try {
         const response = await producerMediaLibraryService.list({
           q: query.trim() || undefined,
+          type: targetType || undefined,
           page,
           per_page: 18,
         });
         if (!active) return;
-        const data = Array.isArray(response?.data) ? response.data : [];
-        setItems(data.filter((item) => item?.type === "image" || String(item?.mime_type || "").startsWith("image/")));
+        setItems(Array.isArray(response?.data) ? response.data : []);
         setLastPage(Math.max(1, Number(response?.last_page || 1)));
       } catch (err) {
         if (!active) return;
@@ -169,7 +197,7 @@ export default function MediaLibraryInputEnhancer() {
       active = false;
       window.clearTimeout(timer);
     };
-  }, [show, query, page]);
+  }, [show, query, page, targetType]);
 
   const close = () => {
     if (selectingId) return;
@@ -179,22 +207,22 @@ export default function MediaLibraryInputEnhancer() {
   };
 
   const choose = async (item) => {
-    if (!targetInput || !document.body.contains(targetInput) || !item?.event_id || selectingId) return;
+    if (!targetInput || !document.body.contains(targetInput) || !item?.id || selectingId) return;
 
-    setSelectingId(item.event_id);
+    setSelectingId(item.id);
     setError("");
     try {
-      const blob = await producerMediaLibraryService.download(item.event_id);
-      const mimeType = blob?.type || item.mime_type || "image/webp";
+      const blob = await producerMediaLibraryService.downloadItem(item);
+      const mimeType = blob?.type || item.mime_type || "application/octet-stream";
       const extension = extensionFrom(item, mimeType);
       const file = new File(
         [blob],
-        `${safeFilename(item.event_title || item.production_name || "midia")}.${extension}`,
+        `${safeFilename(item.media_title || item.event_title || item.production_name || "midia")}.${extension}`,
         { type: mimeType, lastModified: Date.now() }
       );
 
-      if (!acceptsImageFile(targetInput, file)) {
-        throw new Error("Esta imagem não é compatível com o formato aceito neste campo.");
+      if (!fileMatchesInputAccept(targetInput, file)) {
+        throw new Error("Esta mídia não é compatível com o formato aceito neste campo.");
       }
 
       if (typeof DataTransfer === "undefined") {
@@ -232,7 +260,7 @@ export default function MediaLibraryInputEnhancer() {
         <Form.Control
           type="search"
           value={query}
-          placeholder="Buscar por evento ou produção"
+          placeholder="Buscar por mídia, evento ou produção"
           onChange={(event) => { setQuery(event.target.value); setPage(1); }}
           autoFocus
         />
@@ -244,9 +272,9 @@ export default function MediaLibraryInputEnhancer() {
           </div>
         ) : items.length === 0 ? (
           <div className="cut-media-library-picker__empty">
-            <i className="fa-regular fa-images" />
-            <strong>Nenhuma imagem encontrada</strong>
-            <span>Use o envio de arquivo normalmente ou adicione imagens aos seus eventos para elas aparecerem aqui.</span>
+            <i className="fa-solid fa-photo-film" />
+            <strong>Nenhuma mídia compatível encontrada</strong>
+            <span>Você pode continuar enviando um arquivo novo. As mídias reutilizáveis aparecerão aqui automaticamente.</span>
           </div>
         ) : (
           <div className="cut-media-library-picker__grid">
@@ -258,12 +286,14 @@ export default function MediaLibraryInputEnhancer() {
                 disabled={item.available === false || Boolean(selectingId)}
                 onClick={() => choose(item)}
               >
-                <span className="cut-media-library-picker__thumb">
-                  {item.url ? <img src={item.url} alt="" loading="lazy" /> : <i className="fa-regular fa-image" />}
-                  {selectingId === item.event_id && <span className="cut-media-library-picker__selecting"><Spinner animation="border" size="sm" /></span>}
+                <span className={`cut-media-library-picker__thumb is-${item.type || "file"}`}>
+                  {item.type === "image" && item.url
+                    ? <img src={item.url} alt="" loading="lazy" />
+                    : <i className={mediaIcon(item.type)} />}
+                  {selectingId === item.id && <span className="cut-media-library-picker__selecting"><Spinner animation="border" size="sm" /></span>}
                 </span>
                 <span className="cut-media-library-picker__copy">
-                  <strong>{item.event_title || "Evento"}</strong>
+                  <strong>{item.media_title || item.event_title || "Mídia"}</strong>
                   <small>{item.production_name || "Produção"}{formatDate(item.event_start_date) ? ` · ${formatDate(item.event_start_date)}` : ""}</small>
                 </span>
               </button>

@@ -87,6 +87,11 @@
   opacity: .45;
 }
 
+.cut-media-card__preview.is-audio .cut-media-card__fallback,
+.cut-media-card__preview.is-video .cut-media-card__fallback {
+  font-size: 2.45rem;
+}
+
 .cut-media-card__badge {
   position: absolute;
   left: .8rem;
@@ -157,6 +162,10 @@
   gap: .6rem;
   margin-top: auto;
   padding-top: 1rem;
+}
+
+.cut-media-card__actions.is-single {
+  grid-template-columns: 1fr;
 }
 
 .cut-media-pagination {
