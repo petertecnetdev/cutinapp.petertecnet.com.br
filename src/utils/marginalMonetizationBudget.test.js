@@ -216,7 +216,7 @@ describe("marginal monetization budget allocation", () => {
               period: "week_2",
               incrementalCost: 100,
               incrementalGmv: 900,
-              incrementalNetRevenue: 160,
+              incrementalNetRevenue: 80,
             },
           ],
         },
