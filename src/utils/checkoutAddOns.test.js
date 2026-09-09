@@ -7,9 +7,9 @@ import {
 } from "./checkoutAddOns";
 
 describe("checkout quantity policy", () => {
-  test("keeps ticket and item limits explicit and shared", () => {
-    expect(CHECKOUT_QUANTITY_LIMITS).toEqual({ ticket: 20, item: 50 });
-    expect(checkoutQuantityLimit("ticket")).toBe(20);
+  test("keeps technical limits explicit without imposing a 20-ticket business cap", () => {
+    expect(CHECKOUT_QUANTITY_LIMITS).toEqual({ ticket: 100000, item: 50 });
+    expect(checkoutQuantityLimit("ticket")).toBe(100000);
     expect(checkoutQuantityLimit("item")).toBe(50);
     expect(checkoutQuantityLimit("unknown")).toBe(0);
   });
@@ -78,6 +78,15 @@ describe("rankCheckoutAddOns", () => {
 
     expect(rankCheckoutAddOns(items, new Set(), 3).map((item) => item.id)).toEqual([1, 2]);
   });
+
+  test("does not offer a ticket when the authenticated user reached the producer limit", () => {
+    const items = [
+      { id: 1, price: 30, remaining: 10, remaining_per_user: 0 },
+      { id: 2, price: 40, remaining: 10, remaining_per_user: 2 },
+    ];
+
+    expect(rankCheckoutAddOns(items, new Set(), 3).map((item) => item.id)).toEqual([2]);
+  });
 });
 
 describe("summarizeCheckoutAddOnOffer", () => {
@@ -121,6 +130,12 @@ describe("resolveCheckoutQuantity", () => {
     expect(resolveCheckoutQuantity({ id: 1, remaining: 0 }, 1, 10)).toBe(0);
     expect(resolveCheckoutQuantity({ id: 1, available: false }, 1, 10)).toBe(0);
     expect(resolveCheckoutQuantity({ id: 1, expired: true }, 1, 10)).toBe(0);
+  });
+
+  test("respects the producer cumulative allowance for the current user", () => {
+    expect(resolveCheckoutQuantity({ id: 1, remaining: 20, remaining_per_user: 3 }, 8, 100000)).toBe(3);
+    expect(resolveCheckoutQuantity({ id: 1, remaining: 20, remaining_per_user: 0 }, 1, 100000)).toBe(0);
+    expect(resolveCheckoutQuantity({ id: 1, remaining: 2, remaining_per_user: 8 }, 8, 100000)).toBe(2);
   });
 
   test("normalizes malformed quantities before they can reach checkout totals or payment payloads", () => {
