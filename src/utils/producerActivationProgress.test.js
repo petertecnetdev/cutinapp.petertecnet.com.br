@@ -57,6 +57,25 @@ describe("producerActivationNextStep", () => {
     });
   });
 
+  test("routes events with configured but unavailable lots back to ticket setup", () => {
+    expect(producerActivationNextStep({
+      productions: [{ id: 9 }],
+      events: [{
+        id: 23,
+        title: "Festival esgotado",
+        tickets_count: 2,
+        available_tickets_count: 0,
+        is_published: false,
+        start_date: "2026-09-22T20:00:00",
+      }],
+    })).toMatchObject({
+      stage: "ticket",
+      label: "Revisar ingressos para vender",
+      route: "/ticket/create?eventId=23",
+      eventId: 23,
+    });
+  });
+
   test("falls back to event management when no sellable published event exists", () => {
     expect(producerActivationNextStep({
       productions: [{ id: 9 }],
