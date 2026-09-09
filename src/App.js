@@ -64,6 +64,7 @@ const ArtistListPage = lazy(() => import("./pages/artist/ArtistListPage"));
 const ArtistViewPage = lazy(() => import("./pages/artist/ArtistViewPage"));
 const ArtistManagePage = lazy(() => import("./pages/artist/ArtistManagePage"));
 const EventPage = lazyWithPreload(() => import("./pages/event/EventPage"));
+const EventDiscoverySeoPage = lazyWithPreload(() => import("./pages/event/EventDiscoverySeoPage"));
 const EventCreatePage = lazy(() => import("./pages/event/EventCreatePage"));
 const EventManagePage = lazy(() => import("./pages/event/EventManagePage"));
 const EventUpdatePage = lazy(() => import("./pages/event/EventUpdatePage"));
@@ -91,6 +92,7 @@ function AppRoutes() {
     if (typeof window === "undefined") return undefined;
     const run = () => {
       EventPage.preload();
+      EventDiscoverySeoPage.preload();
       ProductionListPage.preload();
       BlogPage.preload();
       if (user) {
@@ -197,6 +199,10 @@ function AppRoutes() {
           <Route path="/production/:slug/public" element={<ProductionPublicPage />} />
           <Route path="/production/:id" element={protectedRoute(<ProductionViewPage />)} />
           <Route path="/production/edit/:id" element={protectedRoute(<ProductionUpdatePage />)} />
+          <Route path="/eventos" element={<EventDiscoverySeoPage />} />
+          <Route path="/eventos/:citySlug" element={<EventDiscoverySeoPage />} />
+          <Route path="/eventos/:citySlug/categoria/:categorySlug" element={<EventDiscoverySeoPage />} />
+          <Route path="/eventos/:citySlug/:periodSlug" element={<EventDiscoverySeoPage />} />
           <Route path="/event" element={<EventPage />} />
           <Route path="/event/create" element={protectedRoute(<EventCreatePage />)} />
           <Route path="/event/manage" element={protectedRoute(<EventManagePage />)} />
