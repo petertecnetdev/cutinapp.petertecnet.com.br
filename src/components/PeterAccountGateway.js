@@ -30,6 +30,53 @@ function dockLauncherInNavbar(launcher) {
 }
 export default function PeterAccountGateway({ apiBaseUrl, appSlug, children }) {
   const hostRef = useRef(null);
-  useEffect(() => { let active = true; let launcher = null; let cleanupDock = null; const host = hostRef.current; const api = apiBaseUrl || "https://api.petertecnet.com.br/api"; loadTelemetry(api, appSlug || "").catch((error) => console.error("[Peter Tecnet Telemetry]", error)).finally(() => loadSdk().then(() => { if (!active || !host) return; launcher = document.createElement("peter-ecosystem-launcher"); launcher.setAttribute("api-base", api); launcher.setAttribute("app-slug", appSlug || ""); launcher.setAttribute("sdk-version", SDK_VERSION); host.replaceChildren(launcher); cleanupDock = dockLauncherInNavbar(launcher); }).catch((error) => console.error("[Peter Tecnet Ecosystem]", error))); return () => { active = false; cleanupDock?.(); launcher?.remove(); host?.replaceChildren(); }; }, [apiBaseUrl, appSlug]);
+  useEffect(() => {
+    let active = true;
+    let launcher = null;
+    let cleanupDock = null;
+    let idleHandle = null;
+    let telemetryHandle = null;
+    const host = hostRef.current;
+    const api = apiBaseUrl || "https://api.petertecnet.com.br/api";
+
+    const loadSecondaryTelemetry = () => {
+      if (!active) return;
+      loadTelemetry(api, appSlug || "").catch((error) => console.error("[Peter Tecnet Telemetry]", error));
+    };
+
+    const start = () => {
+      if (!active) return;
+      loadSdk().then(() => {
+        if (!active || !host) return;
+        launcher = document.createElement("peter-ecosystem-launcher");
+        launcher.setAttribute("api-base", api);
+        launcher.setAttribute("app-slug", appSlug || "");
+        launcher.setAttribute("sdk-version", SDK_VERSION);
+        host.replaceChildren(launcher);
+        cleanupDock = dockLauncherInNavbar(launcher);
+
+        if (typeof window.requestIdleCallback === "function") telemetryHandle = window.requestIdleCallback(loadSecondaryTelemetry, { timeout: 1800 });
+        else telemetryHandle = window.setTimeout(loadSecondaryTelemetry, 600);
+      }).catch((error) => console.error("[Peter Tecnet Ecosystem]", error));
+    };
+
+    if (typeof window.requestIdleCallback === "function") idleHandle = window.requestIdleCallback(start, { timeout: 900 });
+    else idleHandle = window.setTimeout(start, 200);
+
+    return () => {
+      active = false;
+      cleanupDock?.();
+      launcher?.remove();
+      host?.replaceChildren();
+      if (idleHandle != null) {
+        if (typeof window.cancelIdleCallback === "function") window.cancelIdleCallback(idleHandle);
+        else window.clearTimeout(idleHandle);
+      }
+      if (telemetryHandle != null) {
+        if (typeof window.cancelIdleCallback === "function") window.cancelIdleCallback(telemetryHandle);
+        else window.clearTimeout(telemetryHandle);
+      }
+    };
+  }, [apiBaseUrl, appSlug]);
   return <>{children}<span ref={hostRef} style={{ display: "contents" }} /></>;
 }
