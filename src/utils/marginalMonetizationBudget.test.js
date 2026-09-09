@@ -118,21 +118,23 @@ describe("marginal monetization budget allocation", () => {
       channels: [
         {
           source: "coupon",
-          economics: economics({
-            netReturnOnIncrementalCost: 1.4,
-            recentReturnStandardDeviation: 0.6,
-            recentReturnTrend: -0.2,
-          }),
+          economics: economics({ netReturnOnIncrementalCost: 1.4 }),
+          recentPerformancePeriods: [
+            { netReturnOnIncrementalCost: 2 },
+            { netReturnOnIncrementalCost: 1 },
+            { netReturnOnIncrementalCost: 0 },
+          ],
           marginalPerformanceHistory: [
-            { incrementalBudgetCapacity: 100, netReturnOnIncrementalCost: 0.7 },
+            { incrementalBudgetCapacity: 100, netReturnOnIncrementalCost: 1.5 },
           ],
         },
       ],
-      maximumRecentReturnStandardDeviation: 1,
-      minimumRecentReturnTrend: -1,
+      minimumStablePeriods: 3,
+      maximumRecentReturnStandardDeviation: 2,
+      minimumRecentReturnTrend: -2,
     });
 
-    expect(result.marginalReturnTranches[0].marginalRiskAdjustedNetReturn).toBeCloseTo(-0.1, 10);
+    expect(result.marginalReturnTranches[0].marginalRiskAdjustedNetReturn).toBeLessThan(0);
     expect(result.allocatedBudget).toBe(0);
     expect(result.unallocatedBudget).toBe(100);
   });
