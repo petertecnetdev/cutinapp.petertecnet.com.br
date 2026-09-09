@@ -10,6 +10,7 @@ describe("payment failure retry policy", () => {
     "cc_rejected_card_type_not_allowed",
     "cc_rejected_card_expired",
     "cc_rejected_insufficient_amount",
+    "amount_limit_exceeded",
   ])("blocks an identical card retry for %s", (statusDetail) => {
     const result = paymentFailureGuidance({
       method: "card",
@@ -28,7 +29,8 @@ describe("payment failure retry policy", () => {
     "cc_rejected_invalid_installments",
     "cc_rejected_call_for_authorize",
     "cc_rejected_card_disabled",
-  ])("keeps retry available when the buyer can correct %s", (statusDetail) => {
+    "processing_error",
+  ])("keeps retry available when the buyer can correct or safely retry %s", (statusDetail) => {
     const result = paymentFailureGuidance({
       method: "card",
       pixAvailable: true,
@@ -37,6 +39,30 @@ describe("payment failure retry policy", () => {
 
     expect(result.retryAllowed).toBe(true);
     expect(result.statusCheckOnly).toBe(false);
+  });
+
+  test("classifies provider processing errors as transient instead of issuer or risk rejection", () => {
+    const result = paymentFailureGuidance({
+      method: "card",
+      pixAvailable: true,
+      payment: { status: "rejected", status_detail: "processing_error" },
+    });
+
+    expect(result.reason).toBe("processing_error");
+    expect(result.title).toBe("Houve uma falha temporária no processamento");
+    expect(result.retryAllowed).toBe(true);
+  });
+
+  test("classifies amount limit exceeded separately and avoids an identical retry", () => {
+    const result = paymentFailureGuidance({
+      method: "card",
+      pixAvailable: true,
+      payment: { status: "rejected", status_detail: "amount_limit_exceeded" },
+    });
+
+    expect(result.reason).toBe("amount_limit_exceeded");
+    expect(result.retryAllowed).toBe(false);
+    expect(result.title).toBe("O valor ultrapassou o limite permitido para este cartão");
   });
 
   test("reserves status-only recovery for duplicate payments", () => {
@@ -61,5 +87,16 @@ describe("payment failure retry policy", () => {
     expect(result.retryAllowed).toBe(true);
     expect(result.statusCheckOnly).toBe(false);
     expect(result.title).toBe("O prazo de autenticação do banco expirou");
+  });
+
+  test("recognizes the Orders API 3ds_challenge_expired detail", () => {
+    const result = paymentFailureGuidance({
+      method: "card",
+      pixAvailable: true,
+      payment: { status: "rejected", status_detail: "3ds_challenge_expired" },
+    });
+
+    expect(result.reason).toBe("card_authentication_expired");
+    expect(result.retryAllowed).toBe(true);
   });
 });
