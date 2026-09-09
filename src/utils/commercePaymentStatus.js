@@ -7,7 +7,15 @@ const terminalStatusAliases = {
 
 const normalizeEntityStatus = (entity) => {
   if (!entity || typeof entity !== "object") return entity;
-  const normalized = terminalStatusAliases[normalizeStatus(entity.status)];
+
+  const status = normalizeStatus(entity.status);
+  const detail = normalizeStatus(entity.status_detail || entity.statusDetail);
+
+  if (status === "processed" && detail === "accredited") {
+    return { ...entity, status: "paid" };
+  }
+
+  const normalized = terminalStatusAliases[status];
   if (!normalized) return entity;
   return { ...entity, status: normalized };
 };
