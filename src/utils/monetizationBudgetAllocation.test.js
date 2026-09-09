@@ -237,4 +237,83 @@ describe("recommendMonetizationBudgetAllocation", () => {
     expect(analysis.evidenceStatus).toBe("sufficient");
     expect(analysis.evidenceSampleMultiple).toBeCloseTo(5);
   });
+
+  test("bloqueia escala quando o retorno recente não é estável em períodos consecutivos", () => {
+    const result = recommendMonetizationBudgetAllocation({
+      availableIncrementalBudget: 500,
+      minimumStablePeriods: 2,
+      minimumStablePeriodNetReturn: 0.5,
+      channels: [
+        {
+          source: "boost",
+          recentPerformancePeriods: [
+            { netReturnOnIncrementalCost: 1.4, economicallyPositive: true },
+            { netReturnOnIncrementalCost: 0.2, economicallyPositive: true },
+          ],
+          economics: {
+            evidenceStatus: "sufficient",
+            evidenceSampleMultiple: 5,
+            economicallyPositive: true,
+            projectedIncrementalContributionAtBaselineVolume: 500,
+            projectedIncrementalExperimentCostAtBaselineVolume: 100,
+            remainingSafeIncrementalCostHeadroomAtBaselineVolume: 400,
+            netReturnOnIncrementalCost: 2,
+          },
+        },
+      ],
+    });
+
+    const boost = result.recommendations[0];
+    expect(boost.temporalStabilityStatus).toBe("unstable");
+    expect(boost.temporalStabilityPreserved).toBe(false);
+    expect(boost.exclusionReason).toBe("unstable_recent_performance");
+    expect(result.allocatedBudget).toBe(0);
+    expect(result.unallocatedBudget).toBe(500);
+  });
+
+  test("libera escala quando períodos recentes preservam o retorno mínimo e mantém compatibilidade sem histórico", () => {
+    const result = recommendMonetizationBudgetAllocation({
+      availableIncrementalBudget: 500,
+      minimumStablePeriods: 2,
+      minimumStablePeriodNetReturn: 0.5,
+      channels: [
+        {
+          source: "campaign",
+          recentPerformancePeriods: [
+            { netReturnOnIncrementalCost: 0.9, economicallyPositive: true },
+            { netReturnOnIncrementalCost: 1.1, economicallyPositive: true },
+          ],
+          economics: {
+            evidenceStatus: "sufficient",
+            evidenceSampleMultiple: 5,
+            economicallyPositive: true,
+            projectedIncrementalContributionAtBaselineVolume: 350,
+            projectedIncrementalExperimentCostAtBaselineVolume: 100,
+            remainingSafeIncrementalCostHeadroomAtBaselineVolume: 500,
+            netReturnOnIncrementalCost: 1.5,
+          },
+        },
+        {
+          source: "promoter",
+          economics: {
+            evidenceStatus: "sufficient",
+            evidenceSampleMultiple: 1,
+            economicallyPositive: true,
+            projectedIncrementalContributionAtBaselineVolume: 200,
+            projectedIncrementalExperimentCostAtBaselineVolume: 100,
+            remainingSafeIncrementalCostHeadroomAtBaselineVolume: 100,
+            netReturnOnIncrementalCost: 1,
+          },
+        },
+      ],
+    });
+
+    const campaign = result.recommendations.find((item) => item.source === "campaign");
+    const promoter = result.recommendations.find((item) => item.source === "promoter");
+    expect(campaign.temporalStabilityStatus).toBe("stable");
+    expect(campaign.temporalStabilityPreserved).toBe(true);
+    expect(promoter.temporalStabilityStatus).toBe("not_provided");
+    expect(promoter.temporalStabilityPreserved).toBe(true);
+    expect(result.allocationBySource).toEqual({ campaign: 300, promoter: 100 });
+  });
 });
