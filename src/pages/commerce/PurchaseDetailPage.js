@@ -5,7 +5,7 @@ import NavlogComponent from "../../components/NavlogComponent";
 import QrCodeComponent from "../../components/QrCodeComponent";
 import commerceService from "../../services/CommerceService";
 import { writeCheckoutRecovery } from "../../utils/checkoutRecovery";
-import { checkoutSelectionFromOrder, latestPaymentFromOrder, latestPendingPaymentFromOrder } from "../../utils/orderRecovery";
+import { checkoutSelectionFromOrder, latestPaymentFromOrder, latestPendingPaymentFromOrder, paymentMethodFromOrder } from "../../utils/orderRecovery";
 import { writePaymentRecoveryAttribution } from "../../utils/paymentRecoveryAttribution";
 import { safeSetSessionJson } from "../../utils/safeStorage";
 import "./CommerceHistory.css";
@@ -36,11 +36,12 @@ export default function PurchaseDetailPage() {
   }, [publicId]);
 
   const payment = useMemo(() => latestPaymentFromOrder(order), [order]);
+  const paymentMethod = useMemo(() => paymentMethodFromOrder(order), [order]);
   const itemLines = useMemo(() => (order?.items || []).filter((item) => item.type === "item"), [order]);
   const hasPickup = order?.status === "paid" && itemLines.length > 0;
   const expiresAt = Date.parse(order?.expires_at || "");
   const canResumePix = order?.status === "pending"
-    && String(order?.payment_method || payment?.method || "").toLowerCase() === "pix"
+    && paymentMethod === "pix"
     && Number.isFinite(expiresAt)
     && expiresAt > Date.now();
 
@@ -59,7 +60,7 @@ export default function PurchaseDetailPage() {
           order_id: Number(order?.id || 0),
           order_public_id: order?.public_id || publicId,
           amount: Number(order?.total || 0),
-          payment_method: String(order?.payment_method || payment?.method || "").toLowerCase(),
+          payment_method: paymentMethod,
           recovery_source: recoverySource,
           recovery_entrypoint: "purchase_detail",
           can_resume_pix: canResumePix,
@@ -68,7 +69,7 @@ export default function PurchaseDetailPage() {
     } catch (_) {
       // Attribution must never block purchase details or payment recovery.
     }
-  }, [canResumePix, order, payment?.method, publicId]);
+  }, [canResumePix, order, paymentMethod, publicId]);
 
   useEffect(() => {
     if (!hasPickup) {
@@ -168,7 +169,7 @@ export default function PurchaseDetailPage() {
           </div>
           <Row className="g-3 mt-1">
             <Col md={4}><div className="cut-commerce-stat"><small>Total</small><strong>{money(order.total)}</strong></div></Col>
-            <Col md={4}><div className="cut-commerce-stat"><small>Pagamento</small><strong>{String(order.payment_method || payment?.method || "-").toUpperCase()}</strong></div></Col>
+            <Col md={4}><div className="cut-commerce-stat"><small>Pagamento</small><strong>{paymentMethod ? paymentMethod.toUpperCase() : "-"}</strong></div></Col>
             <Col md={4}><div className="cut-commerce-stat"><small>Evento</small><strong>{dateTime(order.event?.start_date)}</strong></div></Col>
           </Row>
         </Card.Body></Card>
