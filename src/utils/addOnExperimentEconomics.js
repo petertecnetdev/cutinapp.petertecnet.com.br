@@ -70,7 +70,36 @@ export function evaluateAddOnExperiment({
   const netReturnOnIncrementalCost = positiveProjectedIncrementalCost > 0
     ? projectedIncrementalContributionAtBaselineVolume / positiveProjectedIncrementalCost
     : null;
-  const marginPreserved = treatment.contributionTakeRateAfterExperimentCost >= control.contributionTakeRateAfterExperimentCost;
+
+  const baselineContributionTakeRate = control.contributionTakeRateAfterExperimentCost;
+  const marginPreservingTreatmentCostPerOrderCap = Math.max(
+    0,
+    treatment.netRevenuePerOrder - (baselineContributionTakeRate * treatment.averageTicket),
+  );
+  const projectedBaselineExperimentCostAtBaselineVolume = control.experimentCostPerOrder * control.paidOrders;
+  const projectedMarginPreservingTreatmentCostAtBaselineVolume = marginPreservingTreatmentCostPerOrderCap * control.paidOrders;
+  const marginPreservingIncrementalCostCapAtBaselineVolume = Math.max(
+    0,
+    projectedMarginPreservingTreatmentCostAtBaselineVolume - projectedBaselineExperimentCostAtBaselineVolume,
+  );
+  const capitalEfficiencyIncrementalCostCapAtBaselineVolume = Math.max(
+    0,
+    projectedIncrementalNetRevenueAtBaselineVolume / (1 + minimumReturn),
+  );
+  const safeIncrementalCostCapAtBaselineVolume = Math.min(
+    marginPreservingIncrementalCostCapAtBaselineVolume,
+    capitalEfficiencyIncrementalCostCapAtBaselineVolume,
+  );
+  const remainingSafeIncrementalCostHeadroomAtBaselineVolume = Math.max(
+    0,
+    safeIncrementalCostCapAtBaselineVolume - positiveProjectedIncrementalCost,
+  );
+  const safeIncrementalCostOverrunAtBaselineVolume = Math.max(
+    0,
+    positiveProjectedIncrementalCost - safeIncrementalCostCapAtBaselineVolume,
+  );
+
+  const marginPreserved = treatment.contributionTakeRateAfterExperimentCost >= baselineContributionTakeRate;
   const capitalEfficiencyPreserved = positiveProjectedIncrementalCost === 0
     || netReturnOnIncrementalCost >= minimumReturn;
   const economicallyPositive = contributionPerOrderUplift > 0 && marginPreserved && capitalEfficiencyPreserved;
@@ -91,6 +120,12 @@ export function evaluateAddOnExperiment({
     projectedIncrementalContributionAtBaselineVolume,
     netReturnOnIncrementalCost,
     minimumNetReturnOnIncrementalCost: minimumReturn,
+    baselineContributionTakeRate,
+    marginPreservingIncrementalCostCapAtBaselineVolume,
+    capitalEfficiencyIncrementalCostCapAtBaselineVolume,
+    safeIncrementalCostCapAtBaselineVolume,
+    remainingSafeIncrementalCostHeadroomAtBaselineVolume,
+    safeIncrementalCostOverrunAtBaselineVolume,
     marginPreserved,
     capitalEfficiencyPreserved,
     economicallyPositive,
