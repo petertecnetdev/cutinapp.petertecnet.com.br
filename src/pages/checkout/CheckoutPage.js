@@ -14,6 +14,7 @@ import { checkoutQuantityLimit, rankCheckoutAddOns, resolveCheckoutQuantity, sum
 import { checkoutReconciliationMessage, summarizeCheckoutReconciliation } from "../../utils/checkoutReconciliation";
 import { getPaymentSyncDelay } from "../../utils/paymentSyncSchedule";
 import { isCheckoutInventoryConflict, isCheckoutOperationInProgress } from "../../utils/checkoutRetryPolicy";
+import { latestPaymentFromOrder } from "../../utils/orderRecovery";
 import { createKeyedSingleFlight } from "../../utils/singleFlight";
 import { safeGetSessionJson, safeRemoveSessionItem, safeSetSessionJson } from "../../utils/safeStorage";
 import "./CheckoutPage.css";
@@ -94,8 +95,7 @@ export default function CheckoutPage() {
     if (!fromState && !hasSessionPayment && recovery?.orderPublicId) {
       commerceService.order(recovery.orderPublicId).then((order) => {
         if (!active) return;
-        const payments = Array.isArray(order?.payments) ? order.payments : [];
-        const latestPayment = payments.length ? payments[payments.length - 1] : null;
+        const latestPayment = latestPaymentFromOrder(order);
         setMethod(resolveCheckoutPaymentMethod({ order, payment: latestPayment }));
         setResult({ order, payment: latestPayment });
         const recoveredCode = String(order?.metadata?.coupon_code || "");
@@ -285,7 +285,7 @@ export default function CheckoutPage() {
   const syncCurrentPayment = async ({ manual = false } = {}) => {
     const publicId = resultRef.current?.order?.public_id; if (!publicId) return; if (manual) setSyncingNow(true);
     try {
-      const order = await requestPaymentSync(publicId); const payments = Array.isArray(order?.payments) ? order.payments : []; const latestPayment = payments.length ? payments[payments.length - 1] : resultRef.current?.payment;
+      const order = await requestPaymentSync(publicId); const latestPayment = latestPaymentFromOrder(order) || resultRef.current?.payment;
       setResult((current) => ({ ...current, order, payment: latestPayment || current?.payment })); setError("");
     } catch (err) { if (err?.status === 403 || err?.status === 404) { safeRemoveSessionItem(paymentStorageKey); clearCheckoutRecovery(slug); } if (err?.status && err.status !== 429) setError(err?.message || "Não foi possível atualizar o status do pagamento."); }
     finally { if (manual) setSyncingNow(false); }
@@ -300,7 +300,7 @@ export default function CheckoutPage() {
       if (!active || syncing || document.visibilityState === "hidden") return;
       syncing = true; const startedAt = Date.now(); const currentAttempt = attempt + 1; let rateLimited = false;
       try {
-        const order = await requestPaymentSync(publicId); if (!active) return; const payments = Array.isArray(order?.payments) ? order.payments : []; const latestPayment = payments.length ? payments[payments.length - 1] : resultRef.current?.payment;
+        const order = await requestPaymentSync(publicId); if (!active) return; const latestPayment = latestPaymentFromOrder(order) || resultRef.current?.payment;
         setResult((current) => ({ ...current, order, payment: latestPayment || current?.payment })); setError("");
         trackCheckout("payment_sync_cycle", { label: "Status de pagamento sincronizado", target: slug, metadata: { source, attempt: currentAttempt, duration_ms: Date.now() - startedAt, order_status: order?.status || "unknown", fulfillment_status: order?.metadata?.fulfillment_status || "pending", outcome: "success" } });
       } catch (err) {
