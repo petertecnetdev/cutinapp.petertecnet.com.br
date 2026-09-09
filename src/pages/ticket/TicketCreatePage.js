@@ -33,6 +33,7 @@ const ticketSignature = (ticket) => [
   ticket?.ticket_type,
   Number(ticket?.price || 0).toFixed(2),
   Number(ticket?.quantity || 0),
+  ticket?.max_per_user ?? "unlimited",
   ticket?.sales_cutoff_mode || "legacy",
   Number(ticket?.sales_cutoff_offset_minutes || 0),
   ticket?.limit_date || "",
@@ -58,6 +59,7 @@ export default function TicketCreatePage() {
   const [name, setName] = useState("1º Lote");
   const [price, setPrice] = useState("");
   const [quantity, setQuantity] = useState(100);
+  const [maxPerUser, setMaxPerUser] = useState("");
   const [cutoffPreset, setCutoffPreset] = useState("at_start");
   const [customCutoffMode, setCustomCutoffMode] = useState("after_start");
   const [customCutoffAmount, setCustomCutoffAmount] = useState(2);
@@ -138,6 +140,7 @@ export default function TicketCreatePage() {
             setName(draft.name || "1º Lote");
             setPrice(draft.price ?? "");
             setQuantity(draft.quantity ?? 100);
+            setMaxPerUser(draft.maxPerUser ?? "");
             setCutoffPreset(draft.cutoffPreset || "at_start");
             setCustomCutoffMode(draft.customCutoffMode || "after_start");
             setCustomCutoffAmount(draft.customCutoffAmount || 2);
@@ -167,6 +170,7 @@ export default function TicketCreatePage() {
         name,
         price,
         quantity,
+        maxPerUser,
         cutoffPreset,
         customCutoffMode,
         customCutoffAmount,
@@ -184,6 +188,7 @@ export default function TicketCreatePage() {
     name,
     price,
     quantity,
+    maxPerUser,
     cutoffPreset,
     customCutoffMode,
     customCutoffAmount,
@@ -270,6 +275,8 @@ export default function TicketCreatePage() {
   const normalizedPrice = kind === "free" ? 0 : Number(price);
   const priceInvalid = mode === "new" && kind === "paid"
     && (!String(price).trim() || !Number.isFinite(normalizedPrice) || normalizedPrice < 0.01 || normalizedPrice > 999999.99);
+  const maxPerUserInvalid = mode === "new" && String(maxPerUser).trim() !== ""
+    && (!Number.isInteger(Number(maxPerUser)) || Number(maxPerUser) < 1 || Number(maxPerUser) > 1000000);
   const canSubmit = mode === "reuse"
     ? selectedEventIds.length > 0 && Boolean(sourceTicketId) && !cutoffInvalid && !loading
     : selectedEventIds.length > 0
@@ -277,6 +284,7 @@ export default function TicketCreatePage() {
       && Number(quantity) > 0
       && Number(quantity) <= 100000
       && !priceInvalid
+      && !maxPerUserInvalid
       && !cutoffInvalid
       && !loading;
 
@@ -291,6 +299,7 @@ export default function TicketCreatePage() {
       else if (mode === "reuse" && !sourceTicketId) setError("Escolha o ingresso que deseja reutilizar.");
       else if (cutoffInvalid) setError("Revise o encerramento das vendas. Todos os eventos precisam ter um prazo futuro e anterior ou igual ao término do evento.");
       else if (priceInvalid) setError("Informe um preço válido a partir de R$ 0,01.");
+      else if (maxPerUserInvalid) setError("O limite por usuário deve ser um número inteiro entre 1 e 1.000.000, ou ficar vazio para não limitar.");
       else setError("Revise os campos antes de continuar.");
       return;
     }
@@ -304,6 +313,7 @@ export default function TicketCreatePage() {
         event_ids: selectedEventIds.map(Number),
         name: name.trim(),
         quantity: Number(quantity),
+        max_per_user: String(maxPerUser).trim() === "" ? null : Number(maxPerUser),
         price: normalizedPrice,
         ticket_type: kind === "free" ? "courtesy" : "standard",
         sales_cutoff_mode: newCutoffRule.mode,
@@ -326,6 +336,7 @@ export default function TicketCreatePage() {
             source_ticket_id: mode === "reuse" ? Number(sourceTicketId) : null,
             created_count: Number(response?.created_count || 0),
             existing_count: Number(response?.existing_count || 0),
+            max_per_user: mode === "new" && String(maxPerUser).trim() !== "" ? Number(maxPerUser) : null,
             sales_cutoff_mode: activeCutoffRule.mode,
             sales_cutoff_offset_minutes: activeCutoffRule.offsetMinutes,
           },
@@ -444,7 +455,7 @@ export default function TicketCreatePage() {
                             <option value="">Selecione um ingresso</option>
                             {library.map((ticket) => (
                               <option key={ticket.id} value={ticket.id}>
-                                {ticket.name} · {money(ticket.price)} · {ticket.quantity} un. · {ticket.source_event?.title || "evento"}
+                                {ticket.name} · {money(ticket.price)} · {ticket.quantity} un. · {ticket.max_per_user ? `máx. ${ticket.max_per_user}/usuário · ` : ""}{ticket.source_event?.title || "evento"}
                               </option>
                             ))}
                           </Form.Select>
@@ -452,7 +463,7 @@ export default function TicketCreatePage() {
                         {selectedSourceTicket && (
                           <div className="cut-info-box mt-3">
                             <strong>{selectedSourceTicket.name} · {money(selectedSourceTicket.price)}</strong>
-                            <span>Quantidade por evento: {selectedSourceTicket.quantity}. Encerramento: {describeSalesCutoffRule(activeCutoffRule)}. A regra será recalculada para a data de cada evento, nunca depois do término.</span>
+                            <span>Quantidade por evento: {selectedSourceTicket.quantity}. Limite por usuário: {selectedSourceTicket.max_per_user || "sem limite"}. Encerramento: {describeSalesCutoffRule(activeCutoffRule)}. A regra será recalculada para a data de cada evento, nunca depois do término.</span>
                           </div>
                         )}
                       </div>
@@ -488,6 +499,23 @@ export default function TicketCreatePage() {
                             <Form.Label>Quantidade por evento *</Form.Label>
                             <Form.Control type="number" min={1} max={100000} value={quantity} onChange={(event) => setQuantity(event.target.value)} isInvalid={invalid("quantity", submitted && (Number(quantity) < 1 || Number(quantity) > 100000))} />
                             <Form.Control.Feedback type="invalid">{firstError(fieldErrors, "quantity") || "Informe de 1 a 100.000."}</Form.Control.Feedback>
+                          </Form.Group>
+                        </Col>
+                        <Col md={6}>
+                          <Form.Group>
+                            <Form.Label>Máximo de ingressos por usuário</Form.Label>
+                            <Form.Control
+                              type="number"
+                              min={1}
+                              max={1000000}
+                              step={1}
+                              value={maxPerUser}
+                              placeholder="Sem limite"
+                              onChange={(event) => setMaxPerUser(event.target.value)}
+                              isInvalid={invalid("max_per_user", submitted && maxPerUserInvalid)}
+                            />
+                            <Form.Text>Deixe vazio para permitir várias compras sem limite acumulado por usuário.</Form.Text>
+                            <Form.Control.Feedback type="invalid">{firstError(fieldErrors, "max_per_user") || "Informe um número inteiro a partir de 1 ou deixe vazio."}</Form.Control.Feedback>
                           </Form.Group>
                         </Col>
 
@@ -598,6 +626,7 @@ export default function TicketCreatePage() {
                     <div className="cut-info-box mt-4">
                       <strong>{mode === "reuse" ? "Um clique, vários eventos" : `${name || "Novo ingresso"} · ${kind === "free" ? "gratuito" : money(normalizedPrice)}`}</strong>
                       <span>{selectedEventIds.length > 1 ? `A configuração será aplicada a ${selectedEventIds.length} eventos. Cada cópia terá ID, estoque, vendas, reservas e QR Codes independentes.` : "Selecione mais eventos para aplicar a mesma configuração em massa."}</span>
+                      {mode === "new" && <span>Limite por usuário: {String(maxPerUser).trim() ? `${maxPerUser} ingresso(s)` : "sem limite"}.</span>}
                     </div>
 
                     <div className="cut-form-actions mt-4">
