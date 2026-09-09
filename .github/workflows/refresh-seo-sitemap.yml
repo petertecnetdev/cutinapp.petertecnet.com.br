@@ -47,15 +47,13 @@ jobs:
         if: steps.config.outputs.enabled == 'true'
         shell: bash
         env:
-          VPS_HOST: ${{ secrets.VPS_HOST }}
-          VPS_PORT: ${{ steps.config.outputs.port }}
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
         run: |
           set -euo pipefail
           install -d -m 700 "$HOME/.ssh"
           printf '%s\n' "$VPS_SSH_KEY" > "$HOME/.ssh/id_ed25519"
           chmod 600 "$HOME/.ssh/id_ed25519"
-          ssh-keyscan -p "$VPS_PORT" -H "$VPS_HOST" >> "$HOME/.ssh/known_hosts" 2>/dev/null
+          : > "$HOME/.ssh/known_hosts"
           chmod 600 "$HOME/.ssh/known_hosts"
 
       - name: Upload prerender generator
@@ -67,7 +65,13 @@ jobs:
           VPS_USER: ${{ secrets.VPS_USER }}
         run: |
           set -euo pipefail
-          scp -P "$VPS_PORT" scripts/generate-seo-snapshots.mjs "$VPS_USER@$VPS_HOST:/tmp/cutinapp-generate-seo-snapshots.mjs"
+          scp \
+            -o StrictHostKeyChecking=accept-new \
+            -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            -o ConnectTimeout=20 \
+            -P "$VPS_PORT" \
+            scripts/generate-seo-snapshots.mjs \
+            "$VPS_USER@$VPS_HOST:/tmp/cutinapp-generate-seo-snapshots.mjs"
 
       - name: Publish dynamic sitemap and prerender snapshots
         if: steps.config.outputs.enabled == 'true'
@@ -78,7 +82,14 @@ jobs:
           VPS_USER: ${{ secrets.VPS_USER }}
         run: |
           set -euo pipefail
-          ssh -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" 'bash -s' <<'REMOTE'
+          ssh \
+            -o StrictHostKeyChecking=accept-new \
+            -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            -o ConnectTimeout=20 \
+            -o ServerAliveInterval=30 \
+            -o ServerAliveCountMax=8 \
+            -p "$VPS_PORT" \
+            "$VPS_USER@$VPS_HOST" 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
           APP_ROOT="/var/www/cutinapp.petertecnet.com.br"
           LIVE_BUILD="$APP_ROOT/build"
