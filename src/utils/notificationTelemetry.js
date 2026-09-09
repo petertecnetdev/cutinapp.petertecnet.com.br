@@ -1,4 +1,25 @@
 const recoveryImpressionKeys = new Set();
+const RECOVERY_PROMINENCE_EXPERIMENT = "pix_recovery_navbar_prominence_v1";
+
+const stableBucket = (value) => {
+  const text = String(value || "");
+  let hash = 2166136261;
+
+  for (let index = 0; index < text.length; index += 1) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return Math.abs(hash >>> 0) % 100;
+};
+
+const recoveryProminenceVariant = (notification, surface) => {
+  if (surface !== "navbar_popover" || !notification?.reference_id) return null;
+
+  return stableBucket(`${RECOVERY_PROMINENCE_EXPERIMENT}:${notification.reference_id}`) < 50
+    ? "control"
+    : "prominent";
+};
 
 const recoveryMetadata = (notification, surface) => ({
   order_public_id: String(notification?.reference_id || ""),
@@ -7,6 +28,10 @@ const recoveryMetadata = (notification, surface) => ({
   recovery_action: "resume_pix",
   recovery_experiment: notification?.metadata?.recovery_experiment || null,
   recovery_timing_minutes: Number(notification?.metadata?.recovery_timing_minutes || 0) || null,
+  recovery_prominence_experiment: recoveryProminenceVariant(notification, surface)
+    ? RECOVERY_PROMINENCE_EXPERIMENT
+    : null,
+  recovery_prominence_variant: recoveryProminenceVariant(notification, surface),
 });
 
 const isRecoveryCta = (notification) => (
@@ -80,6 +105,14 @@ export function notificationTelemetryAttrs(notification, surface = "notification
     "data-peter-notification-read-at": notification.read_at || "",
     "data-peter-notification-surface": surface,
   };
+
+  const prominenceVariant = isRecoveryCta(notification)
+    ? recoveryProminenceVariant(notification, surface)
+    : null;
+  if (prominenceVariant) {
+    attrs["data-peter-recovery-prominence-experiment"] = RECOVERY_PROMINENCE_EXPERIMENT;
+    attrs["data-peter-recovery-prominence-variant"] = prominenceVariant;
+  }
 
   const onClickCapture = recoveryClickCapture(notification, surface);
   if (onClickCapture) attrs.onClickCapture = onClickCapture;
