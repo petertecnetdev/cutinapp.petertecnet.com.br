@@ -1,0 +1,30 @@
+/* Make zero-cost PIX recovery visually actionable in the navbar notification preview.
+   The whole notification remains the existing safe navigation target; this only improves
+   affordance for API-issued checkout_recovery notifications. */
+.cut-notification-popover__item[data-peter-notification-type="checkout_recovery"]::after {
+  content: "Retomar pagamento PIX";
+  grid-column: 2;
+  justify-self: start;
+  margin-top: 2px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cut-primary, #6f4cff) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cut-primary, #6f4cff) 42%, transparent);
+  color: var(--cut-text-strong, #fff);
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.01em;
+}
+
+.cut-notification-popover__item[data-peter-notification-type="checkout_recovery"]:hover::after,
+.cut-notification-popover__item[data-peter-notification-type="checkout_recovery"]:focus-visible::after {
+  background: color-mix(in srgb, var(--cut-primary, #6f4cff) 28%, transparent);
+}
+
+@media (max-width: 767.98px) {
+  .cut-notification-popover__item[data-peter-notification-type="checkout_recovery"]::after {
+    font-size: 0.7rem;
+    padding: 5px 8px;
+  }
+}
