@@ -7,6 +7,7 @@ import eventService from "../../services/EventService";
 import eventBulkService from "../../services/EventBulkService";
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
+import { sellableTicketCount } from "../../utils/eventSalesReadiness";
 import "./EventManagePage.css";
 import "./EventManagePageSorting.css";
 
@@ -119,14 +120,15 @@ const isBulkPublishable = (event) => Boolean(
   && !event.is_cancelled
   && !event.is_published
   && hasEventBasics(event)
-  && Number(event?.tickets_count || 0) > 0
+  && sellableTicketCount(event) > 0
 );
 
 const getSalesReadiness = (event) => {
   const hasBasics = hasEventBasics(event);
   const hasTickets = Number(event?.tickets_count || 0) > 0;
+  const hasSellableTickets = sellableTicketCount(event) > 0;
   const isPublished = Boolean(event?.is_published);
-  const completed = [hasBasics, hasTickets, isPublished].filter(Boolean).length;
+  const completed = [hasBasics, hasSellableTickets, isPublished].filter(Boolean).length;
 
   if (!hasBasics) {
     return {
@@ -145,6 +147,17 @@ const getSalesReadiness = (event) => {
       title: "Criar ingressos",
       label: "Crie o primeiro lote para vender.",
       action: "Criar lote",
+      icon: "fa-solid fa-ticket",
+      route: `/ticket/create?eventId=${event.id}`,
+    };
+  }
+
+  if (!hasSellableTickets) {
+    return {
+      completed,
+      title: "Revisar ingressos",
+      label: "Os lotes estão sem estoque ou com vendas encerradas.",
+      action: "Novo lote",
       icon: "fa-solid fa-ticket",
       route: `/ticket/create?eventId=${event.id}`,
     };
