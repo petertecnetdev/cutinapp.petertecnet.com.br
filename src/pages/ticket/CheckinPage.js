@@ -2,16 +2,13 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Badge, Button, Card, Col, Container, Form, Row } from "react-bootstrap";
 import { useLocation, useNavigate } from "react-router-dom";
 import Webcam from "react-webcam";
+import jsQR from "jsqr";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import commerceService from "../../services/CommerceService";
 import cutinappService from "../../services/CutinappService";
 import eventService from "../../services/EventService";
 import { getNetworkStatus, isNetworkFailure, subscribeToNetworkStatus } from "../../utils/networkStatus";
-
-const JSQR_URL = "https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js";
-const JSQR_INTEGRITY = "sha256-vEDIoVGWI2sjFNsIVvcsoLSZgM1UE7jIUqc0n1/uCFk=";
-const JSQR_LOAD_TIMEOUT_MS = 8000;
 
 const tokenKind = (value) => {
   const normalized = String(value || "").trim().toUpperCase();
@@ -37,50 +34,7 @@ const trackCheckinOperation = (type, { eventId, kind = null, readerMode = null, 
   }
 };
 
-const loadJsQr = () => new Promise((resolve, reject) => {
-  if (window.jsQR) return resolve(window.jsQR);
-
-  const existing = document.querySelector('script[data-cutinapp-jsqr="1"]');
-  const script = existing || document.createElement("script");
-  let settled = false;
-
-  const cleanup = () => {
-    window.clearTimeout(timeoutId);
-    script.removeEventListener("load", handleLoad);
-    script.removeEventListener("error", handleError);
-  };
-
-  const finish = (callback) => {
-    if (settled) return;
-    settled = true;
-    cleanup();
-    callback();
-  };
-
-  const handleLoad = () => finish(() => {
-    if (window.jsQR) resolve(window.jsQR);
-    else reject(new Error("Leitor QR alternativo indisponível."));
-  });
-
-  const handleError = () => finish(() => reject(new Error("Leitor QR alternativo não carregou.")));
-
-  const timeoutId = window.setTimeout(() => {
-    finish(() => reject(new Error("O leitor QR alternativo demorou demais para carregar. Verifique a conexão e tente novamente.")));
-  }, JSQR_LOAD_TIMEOUT_MS);
-
-  script.addEventListener("load", handleLoad);
-  script.addEventListener("error", handleError);
-
-  if (!existing) {
-    script.src = JSQR_URL;
-    script.async = true;
-    script.integrity = JSQR_INTEGRITY;
-    script.crossOrigin = "anonymous";
-    script.referrerPolicy = "no-referrer";
-    script.dataset.cutinappJsqr = "1";
-    document.head.appendChild(script);
-  }
-});
+const loadJsQr = () => Promise.resolve(jsQR);
 
 export default function CheckinPage() {
   const webcamRef = useRef(null);
@@ -98,7 +52,7 @@ export default function CheckinPage() {
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [cameraNotice, setCameraNotice] = useState("");
   const [readerMode, setReaderMode] = useState(window.BarcodeDetector ? "native" : "fallback");
-  const [fallbackReady, setFallbackReady] = useState(Boolean(window.jsQR));
+  const [fallbackReady, setFallbackReady] = useState(false);
   const [fallbackFailed, setFallbackFailed] = useState(false);
   const [stats, setStats] = useState(null);
   const [result, setResult] = useState(null);
@@ -291,14 +245,14 @@ export default function CheckinPage() {
         if (detector) {
           const codes = await detector.detect(video);
           rawValue = codes.find((code) => tokenKind(code.rawValue))?.rawValue || "";
-        } else if (window.jsQR && canvasRef.current) {
+        } else if (fallbackReady && canvasRef.current) {
           const canvas = canvasRef.current;
           const context = canvas.getContext("2d", { willReadFrequently: true });
           canvas.width = video.videoWidth;
           canvas.height = video.videoHeight;
           context.drawImage(video, 0, 0, canvas.width, canvas.height);
           const frame = context.getImageData(0, 0, canvas.width, canvas.height);
-          const code = window.jsQR(frame.data, frame.width, frame.height, { inversionAttempts: "attemptBoth" });
+          const code = jsQR(frame.data, frame.width, frame.height, { inversionAttempts: "attemptBoth" });
           rawValue = String(code?.data || "");
         }
 
