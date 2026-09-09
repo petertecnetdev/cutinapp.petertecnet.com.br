@@ -51,7 +51,7 @@ jobs:
                   f'{indent}<Link',
                   f'{indent}  to={{featuredProductionLink}}',
                   f'{indent}  className="cut-landing__floatingCard cut-landing__floatingCard--people"',
-                  f'{indent}  aria-label={{featuredProduction?.name ? `Abrir produção ${{featuredProduction.name}}` : "Explorar produções"}}',
+                  f'{indent}  aria-label="Abrir página da produção"',
                   f'{indent}  style={{{{ color: "inherit", textDecoration: "none", cursor: "pointer", pointerEvents: "auto", touchAction: "manipulation" }}}}',
                   f'{indent}>',
                   lines[index + 1],
