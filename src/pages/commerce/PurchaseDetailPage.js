@@ -5,7 +5,7 @@ import NavlogComponent from "../../components/NavlogComponent";
 import QrCodeComponent from "../../components/QrCodeComponent";
 import commerceService from "../../services/CommerceService";
 import { writeCheckoutRecovery } from "../../utils/checkoutRecovery";
-import { checkoutSelectionFromOrder, latestPaymentFromOrder, latestPendingPaymentFromOrder, paymentMethodFromOrder } from "../../utils/orderRecovery";
+import { checkoutSelectionFromOrder, isPendingPixRecoverable, latestPaymentFromOrder, latestPendingPaymentFromOrder, paymentMethodFromOrder } from "../../utils/orderRecovery";
 import { writePaymentRecoveryAttribution } from "../../utils/paymentRecoveryAttribution";
 import { safeSetSessionJson } from "../../utils/safeStorage";
 import "./CommerceHistory.css";
@@ -24,6 +24,7 @@ export default function PurchaseDetailPage() {
   const [credentialLoading, setCredentialLoading] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [recoveringPix, setRecoveringPix] = useState(false);
+  const [recoveryNow, setRecoveryNow] = useState(() => Date.now());
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -39,11 +40,17 @@ export default function PurchaseDetailPage() {
   const paymentMethod = useMemo(() => paymentMethodFromOrder(order), [order]);
   const itemLines = useMemo(() => (order?.items || []).filter((item) => item.type === "item"), [order]);
   const hasPickup = order?.status === "paid" && itemLines.length > 0;
-  const expiresAt = Date.parse(order?.expires_at || "");
-  const canResumePix = order?.status === "pending"
-    && paymentMethod === "pix"
-    && Number.isFinite(expiresAt)
-    && expiresAt > Date.now();
+  const canResumePix = isPendingPixRecoverable(order, recoveryNow);
+
+  useEffect(() => {
+    if (!order || !isPendingPixRecoverable(order, recoveryNow)) return undefined;
+
+    const expiresAt = Date.parse(order?.expires_at || "");
+    const remainingMs = Number.isFinite(expiresAt) ? Math.max(0, expiresAt - recoveryNow) : 0;
+    const refreshInMs = Math.max(250, Math.min(15000, remainingMs + 50));
+    const timeoutId = window.setTimeout(() => setRecoveryNow(Date.now()), refreshInMs);
+    return () => window.clearTimeout(timeoutId);
+  }, [order, recoveryNow]);
 
   useEffect(() => {
     if (!order || recoveryLandingTrackedRef.current) return;
