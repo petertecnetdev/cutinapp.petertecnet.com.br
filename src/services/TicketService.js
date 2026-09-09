@@ -9,9 +9,15 @@ const normalizePayload = (payload = {}) => {
     };
   }
 
+  const rawMaxPerUser = payload.max_per_user;
+  const maxPerUser = rawMaxPerUser === "" || rawMaxPerUser == null
+    ? null
+    : Math.max(1, Number(rawMaxPerUser));
+
   const normalized = {
     name: payload.name,
     quantity: payload.quantity,
+    max_per_user: Number.isFinite(maxPerUser) ? maxPerUser : null,
     description: payload.description || null,
     price: Number(payload.price || 0),
     ticket_type: payload.ticket_type || (Number(payload.price || 0) > 0 ? "standard" : "courtesy"),
