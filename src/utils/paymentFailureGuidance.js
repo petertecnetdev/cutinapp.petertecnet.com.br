@@ -27,6 +27,7 @@ export const classifyPaymentFailure = (payment = {}, method = "") => {
   if (detail.includes("bad_filled_date")) return { reason: "card_expiration_data", detail };
   if (detail.includes("bad_filled_card_number")) return { reason: "card_number", detail };
   if (detail.includes("bad_filled_other")) return { reason: "card_additional_data", detail };
+  if (detail.includes("3ds_challenge") || detail.includes("pending_challenge") || detail.includes("three_ds")) return { reason: "card_authentication", detail };
   if (detail.includes("invalid_installments") || detail.includes("installment")) return { reason: "invalid_installments", detail };
   if (detail.includes("insufficient_amount")) return { reason: "insufficient_funds", detail };
   if (detail.includes("card_disabled")) return { reason: "card_disabled", detail };
@@ -36,6 +37,7 @@ export const classifyPaymentFailure = (payment = {}, method = "") => {
   if (detail.includes("call_for_authorize")) return { reason: "issuer_authorization", detail };
   if (detail.includes("duplicated")) return { reason: "duplicate_payment", detail };
   if (detail.includes("blacklist")) return { reason: "security_block", detail };
+  if (detail.includes("rejected_by_issuer")) return { reason: "issuer_rejection", detail };
   if (detail.includes("other_reason")) return { reason: "issuer_or_risk_rejection", detail };
   if (detail.includes("high_risk") || detail.includes("fraud")) return { reason: "security_review", detail };
   if (detail.includes("max_attempts")) return { reason: "attempt_limit", detail };
@@ -64,6 +66,10 @@ export const paymentFailureGuidance = ({ payment = {}, method = "", pixAvailable
       title: "Revise os outros dados do cartão",
       message: `O provedor indicou erro em outro dado preenchido no cartão, diferente de número, validade ou CVV. Revise os demais campos solicitados no formulário antes de enviar novamente; sua seleção continua preservada.${pixAlternative}`,
     },
+    card_authentication: {
+      title: "A autenticação do cartão não foi concluída",
+      message: `O banco exigiu uma etapa extra de autenticação (3DS) e ela não foi concluída ou expirou. Volte ao fluxo do banco e conclua a confirmação antes de tentar novamente. Evite repetir imediatamente os mesmos dados sem concluir a autenticação.${pixRecommended}`,
+    },
     invalid_installments: {
       title: "Escolha outra quantidade de parcelas",
       message: `O provedor não aceitou o parcelamento selecionado para este cartão. Escolha outra quantidade de parcelas disponível e tente novamente; sua seleção e o valor da compra continuam preservados.${pixAlternative}`,
@@ -91,6 +97,10 @@ export const paymentFailureGuidance = ({ payment = {}, method = "", pixAvailable
     issuer_authorization: {
       title: "O banco precisa autorizar a compra",
       message: `O emissor pediu autorização para esta compra. Autorize no seu banco primeiro e só então tente novamente.${pixRecommended}`,
+    },
+    issuer_rejection: {
+      title: "O banco recusou esta tentativa",
+      message: `O banco emissor recusou o pagamento. Evite repetir imediatamente os mesmos dados; confirme com o banco se a compra está liberada ou escolha outro meio de pagamento.${pixRecommended}`,
     },
     duplicate_payment: {
       title: "Já existe um pagamento semelhante para esta compra",
