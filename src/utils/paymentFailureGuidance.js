@@ -58,6 +58,7 @@ const sameCardRetryBlockedReasons = new Set([
   "attempt_limit",
   "issuer_rejection",
   "issuer_or_risk_rejection",
+  "issuer_authorization",
   "card_rejected",
   "card_disabled",
   "card_type_not_allowed",
