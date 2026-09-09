@@ -99,4 +99,17 @@ describe("payment failure retry policy", () => {
     expect(result.reason).toBe("card_authentication_expired");
     expect(result.retryAllowed).toBe(true);
   });
+
+  test.each(["canceled", "cancelled"])("allows a new card attempt after terminal %s payment", (status) => {
+    const result = paymentFailureGuidance({
+      method: "card",
+      pixAvailable: true,
+      payment: { status, status_detail: status },
+    });
+
+    expect(result.reason).toBe("card_cancelled");
+    expect(result.retryAllowed).toBe(true);
+    expect(result.statusCheckOnly).toBe(false);
+    expect(result.title).toBe("A tentativa anterior foi encerrada");
+  });
 });
