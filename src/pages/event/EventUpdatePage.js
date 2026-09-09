@@ -8,6 +8,7 @@ import eventService from "../../services/EventService";
 import cutinappService from "../../services/CutinappService";
 import commerceService from "../../services/CommerceService";
 import { storageUrl } from "../../config";
+import { sellableTicketCount } from "../../utils/eventSalesReadiness";
 import "./EventUpdatePage.css";
 
 const pad = (number) => String(number).padStart(2, "0");
@@ -36,7 +37,6 @@ const formatDate = (value) => value
   : "Data não informada";
 
 const money = (value) => Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-
 const eventIsValid = (value) => {
   if (!value || value.title.trim().length < 2 || !value.description.trim() || !value.address.trim()) return false;
   if (!value.start_date || !value.end_date || new Date(value.end_date) <= new Date(value.start_date)) return false;
@@ -650,7 +650,7 @@ export default function EventUpdatePage() {
                   </div>
                   <div className="d-grid gap-2" style={{ minWidth: 250 }}>
                     {!eventData.is_published ? (
-                      <Button type="button" size="lg" onClick={publishFromActivation} disabled={publishing || eventData.is_cancelled || Number(eventData.tickets_count || 0) <= 0}>
+                      <Button type="button" size="lg" onClick={publishFromActivation} disabled={publishing || eventData.is_cancelled || sellableTicketCount(eventData) <= 0}>
                         <i className="fa-solid fa-rocket me-2" />Publicar e começar a vender
                       </Button>
                     ) : eventData.slug ? (
@@ -766,11 +766,11 @@ export default function EventUpdatePage() {
                   </div>
                   <div className="cut-info-box mt-3">
                     <strong>{eventData?.tickets_count || 0} lote(s) configurado(s)</strong>
-                    <span>{Number(eventData?.tickets_count || 0) > 0 ? "Revise os campos da view e publique quando estiver pronto." : "Crie pelo menos um lote de ingresso antes de publicar."}</span>
+                    <span>{sellableTicketCount(eventData) > 0 ? "Há ingresso disponível para venda. Revise os campos da página e publique quando estiver pronto." : Number(eventData?.tickets_count || 0) > 0 ? "Os lotes existentes estão sem estoque ou com vendas encerradas. Crie ou ajuste um lote antes de publicar." : "Crie pelo menos um lote de ingresso antes de publicar."}</span>
                   </div>
                   <div className="d-grid gap-2 mt-3">
                     <Button type="button" onClick={saveChanges} disabled={!canSave}><i className="fa-solid fa-check me-2" />{image ? "Salvar imagem agora" : "Salvar agora"}</Button>
-                    <Button type="button" variant="outline-light" onClick={togglePublication} disabled={publishing || eventData?.is_cancelled || (!eventData?.is_published && Number(eventData?.tickets_count || 0) <= 0)}>{eventData?.is_published ? "Retirar da publicação" : "Publicar evento"}</Button>
+                    <Button type="button" variant="outline-light" onClick={togglePublication} disabled={publishing || eventData?.is_cancelled || (!eventData?.is_published && sellableTicketCount(eventData) <= 0)}>{eventData?.is_published ? "Retirar da publicação" : "Publicar evento"}</Button>
                     {eventData?.is_published && eventData?.slug && <Button type="button" variant="outline-light" onClick={() => navigate(`/event/${eventData.slug}`)}>Abrir página pública</Button>}
                     {eventData?.is_published && <Button type="button" variant="outline-light" onClick={() => navigate(`/checkin?eventId=${id}`)}>Abrir portaria</Button>}
                   </div>
