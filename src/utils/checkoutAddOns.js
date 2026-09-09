@@ -1,5 +1,5 @@
 export const CHECKOUT_QUANTITY_LIMITS = Object.freeze({
-  ticket: 20,
+  ticket: 100000,
   item: 50,
 });
 
@@ -13,9 +13,17 @@ const numericPriority = (item) => {
 const isAvailableForCheckout = (item) => {
   if (!item || item.available === false || item.expired) return false;
   const stock = item.remaining ?? item.quantity;
-  if (stock == null || stock === "") return true;
-  const remaining = Number(stock);
-  return Number.isFinite(remaining) ? remaining > 0 : true;
+  if (stock != null && stock !== "") {
+    const remaining = Number(stock);
+    if (Number.isFinite(remaining) && remaining <= 0) return false;
+  }
+
+  if (item.remaining_per_user != null && item.remaining_per_user !== "") {
+    const remainingPerUser = Number(item.remaining_per_user);
+    if (Number.isFinite(remainingPerUser) && remainingPerUser <= 0) return false;
+  }
+
+  return true;
 };
 
 const spreadByPrice = (entries = [], slots = 0) => {
@@ -87,10 +95,19 @@ export const resolveCheckoutQuantity = (item, requestedQuantity, limit = 10) => 
   const normalizedLimit = nonNegativeInteger(limit);
   if (!requested || !normalizedLimit) return 0;
 
+  const constraints = [requested, normalizedLimit];
   const stock = item.remaining ?? item.quantity;
-  if (stock == null || stock === "") return Math.min(requested, normalizedLimit);
+  if (stock != null && stock !== "") {
+    const remaining = nonNegativeInteger(stock);
+    if (!remaining) return 0;
+    constraints.push(remaining);
+  }
 
-  const remaining = nonNegativeInteger(stock);
-  if (!remaining) return 0;
-  return Math.min(requested, normalizedLimit, remaining);
+  if (item.remaining_per_user != null && item.remaining_per_user !== "") {
+    const remainingPerUser = nonNegativeInteger(item.remaining_per_user);
+    if (!remainingPerUser) return 0;
+    constraints.push(remainingPerUser);
+  }
+
+  return Math.min(...constraints);
 };
