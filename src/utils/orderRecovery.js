@@ -24,4 +24,9 @@ export const latestPaymentFromOrder = (order = {}) => {
   ), payments[0]);
 };
 
+export const paymentMethodFromOrder = (order = {}) => {
+  const latestPayment = latestPaymentFromOrder(order);
+  return String(latestPayment?.method || order?.payment_method || "").trim().toLowerCase();
+};
+
 export const latestPendingPaymentFromOrder = (order = {}) => latestPaymentFromOrder(order);
