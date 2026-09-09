@@ -17,6 +17,8 @@ import { isPeterTecnetRoot } from "../../utils/applicationRoles";
 import { buildEventShareUrl } from "../../utils/eventShareUrl";
 import { safeExternalHref } from "../../utils/safeUrl";
 
+const EVENT_DESCRIPTION_PREVIEW_LENGTH = 240;
+
 const formatDate = (value) => value
   ? new Intl.DateTimeFormat("pt-BR", {
     weekday: "long",
@@ -139,6 +141,7 @@ export default function EventViewPage() {
   const [interested, setInterested] = useState(false);
   const [flyerOpen, setFlyerOpen] = useState(false);
   const [productionTicketCartOpen, setProductionTicketCartOpen] = useState(false);
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [clock, setClock] = useState(() => Date.now());
@@ -154,6 +157,7 @@ export default function EventViewPage() {
     setError("");
     setData(null);
     setArtists([]);
+    setDescriptionExpanded(false);
 
     eventService.view(slug)
       .then((response) => { if (active) setData(response); })
@@ -183,6 +187,11 @@ export default function EventViewPage() {
   const hasTickets = Number(event?.tickets_count || 0) > 0 || tickets.length > 0;
   const canMarkInterested = event?.allowed_actions?.mark_interested ?? !isPastEvent;
   const showPersistentBuyCta = !isPastEvent && hasTickets;
+  const eventDescription = String(event?.description || "").trim();
+  const hasLongDescription = eventDescription.length > EVENT_DESCRIPTION_PREVIEW_LENGTH;
+  const visibleDescription = descriptionExpanded || !hasLongDescription
+    ? eventDescription
+    : `${eventDescription.slice(0, EVENT_DESCRIPTION_PREVIEW_LENGTH).trimEnd()}…`;
 
   useEffect(() => {
     if (!event || isPastEvent) return undefined;
@@ -455,7 +464,7 @@ export default function EventViewPage() {
         </section>}
 
         <Row className="g-4"><Col lg={isOwner ? 8 : 12}>
-          <Card className="cut-panel mb-4"><Card.Body className="p-4 p-lg-5"><span className="cut-eyebrow">Sobre o evento</span><h2 className="cut-section-title mt-2">Informações</h2><p className="cut-body-copy">{event.description}</p><div className="cut-event-details"><div><i className="fa-regular fa-calendar" /><span><strong>Início</strong>{formatDate(event.start_date)}</span></div><div><i className="fa-regular fa-clock" /><span><strong>Término</strong>{formatDate(event.end_date)}</span></div><div><i className="fa-solid fa-location-dot" /><span><strong>Local</strong>{event.venue || event.address}</span></div>{event.city && <div><i className="fa-solid fa-map" /><span><strong>Cidade</strong>{event.city}{event.uf ? ` - ${event.uf}` : ""}</span></div>}</div></Card.Body></Card>
+          <Card className="cut-panel mb-4"><Card.Body className="p-4 p-lg-5"><span className="cut-eyebrow">Sobre o evento</span><h2 className="cut-section-title mt-2">Informações</h2>{eventDescription && <div className="mb-4"><p className="cut-body-copy mb-2">{visibleDescription}</p>{hasLongDescription && <Button variant="link" className="p-0 text-decoration-none" onClick={() => setDescriptionExpanded((current) => !current)} aria-expanded={descriptionExpanded}><i className={`fa-solid ${descriptionExpanded ? "fa-chevron-up" : "fa-chevron-down"} me-2`} aria-hidden="true" />{descriptionExpanded ? "Recolher descrição" : "Ver descrição completa"}</Button>}</div>}<div className="cut-event-details"><div><i className="fa-regular fa-calendar" /><span><strong>Início</strong>{formatDate(event.start_date)}</span></div><div><i className="fa-regular fa-clock" /><span><strong>Término</strong>{formatDate(event.end_date)}</span></div><div><i className="fa-solid fa-location-dot" /><span><strong>Local</strong>{event.venue || event.address}</span></div>{event.city && <div><i className="fa-solid fa-map" /><span><strong>Cidade</strong>{event.city}{event.uf ? ` - ${event.uf}` : ""}</span></div>}</div></Card.Body></Card>
           {event.production?.name && <Card className="cut-panel mb-4"><Card.Body className="p-4"><span className="cut-eyebrow">Responsável</span><div className="cut-production-inline"><div><h2>{event.production.name}</h2><p>Veja os próximos eventos e acompanhe esta produção.</p></div><div className="d-flex flex-wrap gap-2"><Button variant="success" onClick={() => setProductionTicketCartOpen(true)}><i className="fa-solid fa-cart-plus me-2" />Adquirir ingresso</Button><Button variant="outline-light" onClick={() => navigate(`/production/${event.production.slug}/public`)}>Ver página da produção</Button></div></div></Card.Body></Card>}
           {mapEmbedUrl && <Card className="cut-panel"><Card.Body className="p-0 overflow-hidden"><iframe title={`Mapa de ${event.title}`} src={mapEmbedUrl} width="100%" height="360" style={{ border: 0, display: "block" }} loading="lazy" referrerPolicy="no-referrer-when-downgrade" allowFullScreen /></Card.Body></Card>}
         </Col>
