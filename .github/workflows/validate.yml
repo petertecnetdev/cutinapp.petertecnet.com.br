@@ -26,3 +26,4 @@ jobs:
           fi
       - run: CI=true npm test -- --watchAll=false
       - run: npm run build
+      - run: npm run perf:budget

@@ -30,6 +30,7 @@ import "./styles/event-flyer-background.css";
 import "./styles/mobile-hamburger-recovery.css";
 import "./styles/desktop-navbar-overflow-fix.css";
 import "./styles/responsive-hardening.css";
+import "./styles/performance.css";
 import "./styles/event-view-shotgun-layout.css";
 import "./pages/checkout/Coupon.css";
 import App from "./App";
@@ -50,15 +51,29 @@ import { installEventFlyerBackground } from "./utils/eventFlyerBackground";
 import { trackTelemetry } from "./utils/telemetry";
 
 installGlobalImageFallbacks();
-installPasswordFieldEnhancer();
-installClipboardFallback();
-installPeterWhatsappFallback();
-installGlobalImagePerformance();
-installInstagramMobileShell();
 installNavigationRecovery();
 installEventViewScrollReset();
 installCheckoutResumePrompt();
-installEventFlyerBackground();
+
+const installDeferredEnhancers = () => {
+  installClipboardFallback();
+  installGlobalImagePerformance();
+
+  if (!window.location.pathname.startsWith("/checkout/")) {
+    installPasswordFieldEnhancer();
+    installPeterWhatsappFallback();
+    installInstagramMobileShell();
+    installEventFlyerBackground();
+  }
+};
+
+if (typeof window !== "undefined") {
+  if (typeof window.requestIdleCallback === "function") {
+    window.requestIdleCallback(installDeferredEnhancers, { timeout: 1200 });
+  } else {
+    window.setTimeout(installDeferredEnhancers, 350);
+  }
+}
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(

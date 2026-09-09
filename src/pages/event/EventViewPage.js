@@ -148,10 +148,18 @@ export default function EventViewPage() {
   useEffect(() => {
     let active = true;
     setLoading(true);
-    Promise.all([eventService.view(slug), cutinappService.publicEventArtists(slug).catch(() => [])])
-      .then(([response, lineup]) => { if (active) { setData(response); setArtists(lineup); } })
-      .catch((err) => active && setError(err?.message || "Não foi possível carregar este evento."))
-      .finally(() => active && setLoading(false));
+    setError("");
+    setData(null);
+    setArtists([]);
+
+    eventService.view(slug)
+      .then((response) => { if (active) setData(response); })
+      .catch((err) => { if (active) setError(err?.message || "Não foi possível carregar este evento."); })
+      .finally(() => { if (active) setLoading(false); });
+
+    cutinappService.publicEventArtists(slug)
+      .then((lineup) => { if (active) setArtists(lineup); })
+      .catch(() => {});
     return () => { active = false; };
   }, [slug]);
 

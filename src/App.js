@@ -11,8 +11,6 @@ import AppErrorBoundary from "./components/AppErrorBoundary";
 import ApplicationAdminGate from "./components/ApplicationAdminGate";
 import ConnectionStatus from "./components/ConnectionStatus";
 import CutinappVisualEffects from "./components/CutinappVisualEffects";
-import EventFlyerAssistant from "./components/EventFlyerAssistant";
-import EventSeriesLauncher from "./components/EventSeriesLauncher";
 import PeterTecnetSignature from "./components/PeterTecnetSignature";
 import ProcessingIndicatorComponent from "./components/ProcessingIndicatorComponent";
 import SeoManager from "./components/SeoManager";
@@ -20,6 +18,8 @@ import authService from "./services/AuthService";
 import { hasContextRole } from "./utils/applicationRoles";
 import lazyWithPreload from "./utils/lazyWithPreload";
 
+const EventFlyerAssistant = lazy(() => import("./components/EventFlyerAssistant"));
+const EventSeriesLauncher = lazy(() => import("./components/EventSeriesLauncher"));
 const HomePage = lazyWithPreload(() => import("./pages/LandingPageV2"));
 const FeedPage = lazyWithPreload(() => import("./pages/FeedPage"));
 const BlogPage = lazyWithPreload(() => import("./pages/blog/BlogPage"));
@@ -134,11 +134,14 @@ function AppRoutes() {
 
   const guestRoute = (element) => user ? <Navigate to="/dashboard" replace /> : element;
   const shellOwnsSignature = location.pathname === "/" || ["/login", "/register", "/password-email", "/email-verify", "/agent/activate"].includes(location.pathname);
+  const needsEventFlyerAssistant = location.pathname === "/event/create" || /^\/event\/edit\/[^/]+$/.test(location.pathname);
+  const needsEventSeriesLauncher = location.pathname === "/event/manage";
+  const performanceCriticalRoute = location.pathname.startsWith("/checkout/");
   const routeKey = `${location.pathname}${location.search}`;
 
   return <>
     <ConnectionStatus />
-    <CutinappVisualEffects />
+    {!performanceCriticalRoute && <CutinappVisualEffects />}
     <AppErrorBoundary resetKey={routeKey}>
       <Suspense fallback={<ProcessingIndicatorComponent label="Carregando página" />}>
         <SeoManager />
@@ -210,8 +213,8 @@ function AppRoutes() {
           <Route path="/checkin" element={protectedRoute(<CheckinPage />)} />
           <Route path="*" element={<Navigate to={user ? "/event" : "/"} replace />} />
         </Routes>
-        {user && <EventFlyerAssistant />}
-        {user && <EventSeriesLauncher />}
+        {user && needsEventFlyerAssistant && <Suspense fallback={null}><EventFlyerAssistant /></Suspense>}
+        {user && needsEventSeriesLauncher && <Suspense fallback={null}><EventSeriesLauncher /></Suspense>}
         {!shellOwnsSignature && <PeterTecnetSignature />}
       </Suspense>
     </AppErrorBoundary>

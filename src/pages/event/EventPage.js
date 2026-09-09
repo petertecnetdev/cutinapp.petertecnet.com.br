@@ -61,22 +61,19 @@ export default function EventPage() {
     }
 
     let active = true;
-    const controller = new AbortController();
     setLoading(true);
     setError("");
-    eventService.search({ ...current, view: "compact", per_page: 18 }, { signal: controller.signal })
+    cutinappService.publicEvents({ ...current, view: "compact", per_page: 18 })
       .then((response) => {
         if (!active) return;
         setEvents(response.events?.data || []);
         setPagination(response.events || null);
       })
       .catch((err) => {
-        if (active && err?.code !== "ERR_CANCELED" && err?.name !== "CanceledError") {
-          setError(err?.message || "Não foi possível buscar eventos agora.");
-        }
+        if (active) setError(err?.message || "Não foi possível buscar eventos agora.");
       })
       .finally(() => active && setLoading(false));
-    return () => { active = false; controller.abort(); };
+    return () => { active = false; };
   }, [searchParams, setSearchParams]);
 
   const update = (changes) => {
@@ -225,7 +222,7 @@ export default function EventPage() {
 
             <Row className="cut-event-discovery-grid">
               {events.map((event) => <Col xs={12} md={6} xl={4} key={event.id}>
-                <Card className="cut-event-card h-100" role="button" tabIndex={0} aria-label={`Abrir evento ${event.title}`} onClick={() => navigate(`/event/${event.slug}`)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/event/${event.slug}`); } }}>
+                <Card className="cut-event-card h-100" role="button" tabIndex={0} aria-label={`Abrir evento ${event.title}`} onMouseEnter={() => eventService.view(event.slug).catch(() => {})} onFocus={() => eventService.view(event.slug).catch(() => {})} onClick={() => navigate(`/event/${event.slug}`)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/event/${event.slug}`); } }}>
                   <div className="cut-event-card__media">
                     {event.image ? <img src={`${storageUrl}${String(event.image).replace(/^\//, "")}`} alt={event.title} loading="lazy" decoding="async" /> : <div className="cut-event-card__placeholder"><i className="fa-regular fa-calendar" /></div>}
                     {event.category && <Badge bg="dark" className="cut-event-card__category">{event.category}</Badge>}
