@@ -143,6 +143,8 @@ export function recommendMonetizationBudgetAllocation({
   evidenceSampleMultipleForMaximumScale = 5,
   minimumStablePeriods = 2,
   minimumStablePeriodNetReturn = 0,
+  maximumRecentReturnStandardDeviation = 0.5,
+  minimumRecentReturnTrend = -0.1,
 } = {}) {
   const budget = finiteNonNegative(availableIncrementalBudget);
   const defaultObservedCostMultiple = Math.max(1, finiteNonNegative(maximumTotalCostMultipleFromObserved));
@@ -153,6 +155,11 @@ export function recommendMonetizationBudgetAllocation({
   const sampleMultipleForMaximumScale = Math.max(1, finiteNonNegative(evidenceSampleMultipleForMaximumScale));
   const defaultMinimumStablePeriods = Math.max(1, Math.floor(finiteNonNegative(minimumStablePeriods)));
   const defaultMinimumStablePeriodReturn = finiteNonNegative(minimumStablePeriodNetReturn);
+  const defaultMaximumRecentReturnStandardDeviation = finiteNonNegative(maximumRecentReturnStandardDeviation);
+  const parsedMinimumRecentReturnTrend = Number(minimumRecentReturnTrend);
+  const defaultMinimumRecentReturnTrend = Number.isFinite(parsedMinimumRecentReturnTrend)
+    ? parsedMinimumRecentReturnTrend
+    : -0.1;
   let remainingBudget = budget;
 
   const normalizedChannels = (Array.isArray(channels) ? channels : []).map((item = {}, index) => {
@@ -198,6 +205,19 @@ export function recommendMonetizationBudgetAllocation({
         ?? economics.minimumStablePeriodNetReturn
         ?? defaultMinimumStablePeriodReturn,
     );
+    const channelMaximumRecentReturnStandardDeviation = finiteNonNegative(
+      item.maximumRecentReturnStandardDeviation
+        ?? economics.maximumRecentReturnStandardDeviation
+        ?? defaultMaximumRecentReturnStandardDeviation,
+    );
+    const rawMinimumRecentReturnTrend = Number(
+      item.minimumRecentReturnTrend
+        ?? economics.minimumRecentReturnTrend
+        ?? defaultMinimumRecentReturnTrend,
+    );
+    const channelMinimumRecentReturnTrend = Number.isFinite(rawMinimumRecentReturnTrend)
+      ? rawMinimumRecentReturnTrend
+      : defaultMinimumRecentReturnTrend;
     const normalizedPeriods = temporalStabilityProvided
       ? rawPeriods.map((period = {}) => {
         const periodReturn = Number(period.netReturnOnIncrementalCost ?? period.roi ?? period.netReturn);
@@ -209,7 +229,24 @@ export function recommendMonetizationBudgetAllocation({
       : [];
     const recentStablePeriods = normalizedPeriods.slice(-channelMinimumStablePeriods);
     const hasEnoughStablePeriods = recentStablePeriods.length >= channelMinimumStablePeriods;
-    const temporalStabilityPreserved = !temporalStabilityProvided || (
+    const validRecentReturns = recentStablePeriods
+      .map((period) => period.netReturnOnIncrementalCost)
+      .filter((value) => value !== null);
+    const recentReturnMean = validRecentReturns.length > 0
+      ? validRecentReturns.reduce((sum, value) => sum + value, 0) / validRecentReturns.length
+      : null;
+    const recentReturnStandardDeviation = validRecentReturns.length > 0
+      ? Math.sqrt(validRecentReturns.reduce((sum, value) => sum + ((value - recentReturnMean) ** 2), 0) / validRecentReturns.length)
+      : null;
+    const recentReturnTrend = validRecentReturns.length > 1
+      ? (validRecentReturns[validRecentReturns.length - 1] - validRecentReturns[0]) / (validRecentReturns.length - 1)
+      : null;
+    const returnVolatilityWithinLimit = !hasEnoughStablePeriods
+      || (recentReturnStandardDeviation !== null
+        && recentReturnStandardDeviation <= channelMaximumRecentReturnStandardDeviation);
+    const returnTrendPreserved = !hasEnoughStablePeriods
+      || (recentReturnTrend === null || recentReturnTrend >= channelMinimumRecentReturnTrend);
+    const periodReturnFloorPreserved = !temporalStabilityProvided || (
       hasEnoughStablePeriods
       && recentStablePeriods.every((period) => (
         period.economicallyPositive
@@ -217,6 +254,9 @@ export function recommendMonetizationBudgetAllocation({
         && period.netReturnOnIncrementalCost >= channelMinimumStablePeriodReturn
       ))
     );
+    const temporalStabilityPreserved = periodReturnFloorPreserved
+      && returnVolatilityWithinLimit
+      && returnTrendPreserved;
     const temporalStabilityStatus = !temporalStabilityProvided
       ? "not_provided"
       : (!hasEnoughStablePeriods ? "collecting" : (temporalStabilityPreserved ? "stable" : "unstable"));
@@ -228,6 +268,14 @@ export function recommendMonetizationBudgetAllocation({
       && projectedContribution > 0
       && projectedCost > 0
       && netReturnOnIncrementalCost !== null;
+
+    const temporalExclusionReason = !hasEnoughStablePeriods
+      ? "insufficient_temporal_evidence"
+      : (!periodReturnFloorPreserved
+        ? "unstable_recent_performance"
+        : (!returnVolatilityWithinLimit
+          ? "volatile_recent_performance"
+          : (!returnTrendPreserved ? "declining_recent_performance" : null)));
 
     return {
       source,
@@ -249,6 +297,13 @@ export function recommendMonetizationBudgetAllocation({
       temporalStabilityPreserved,
       minimumStablePeriods: channelMinimumStablePeriods,
       minimumStablePeriodNetReturn: channelMinimumStablePeriodReturn,
+      maximumRecentReturnStandardDeviation: channelMaximumRecentReturnStandardDeviation,
+      minimumRecentReturnTrend: channelMinimumRecentReturnTrend,
+      recentReturnMean,
+      recentReturnStandardDeviation,
+      recentReturnTrend,
+      returnVolatilityWithinLimit,
+      returnTrendPreserved,
       evaluatedStablePeriods: recentStablePeriods.length,
       eligibleForPaidBudget,
       suggestedIncrementalBudget: 0,
@@ -259,12 +314,12 @@ export function recommendMonetizationBudgetAllocation({
           : (!economicallyPositive
             ? "not_economically_positive"
             : (!temporalStabilityPreserved
-              ? (hasEnoughStablePeriods ? "unstable_recent_performance" : "insufficient_temporal_evidence")
+              ? temporalExclusionReason
               : (headroom <= 0
                 ? "no_safe_headroom"
                 : (evidenceBoundIncrementalBudgetCap <= 0
                   ? "no_evidence_bound_headroom"
-                  : (projectedCost <= 0 ? "no_paid_budget_required" : "missing_return_signal")))))),
+                  : (projectedCost <= 0 ? "no_paid_budget_required" : "missing_return_signal"))))),
     };
   });
 
@@ -314,6 +369,8 @@ export function recommendMonetizationBudgetAllocation({
     evidenceSampleMultipleForMaximumScale: sampleMultipleForMaximumScale,
     minimumStablePeriods: defaultMinimumStablePeriods,
     minimumStablePeriodNetReturn: defaultMinimumStablePeriodReturn,
+    maximumRecentReturnStandardDeviation: defaultMaximumRecentReturnStandardDeviation,
+    minimumRecentReturnTrend: defaultMinimumRecentReturnTrend,
     allocatedBudget,
     unallocatedBudget: remainingBudget,
     allocationBySource,
