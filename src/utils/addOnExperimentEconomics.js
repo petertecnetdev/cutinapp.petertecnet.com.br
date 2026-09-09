@@ -5,7 +5,12 @@ const finiteNonNegative = (value) => {
 
 const rate = (numerator, denominator) => denominator > 0 ? numerator / denominator : 0;
 
-export function evaluateAddOnExperiment({ baseline = {}, variant = {}, minimumOrdersPerArm = 20 } = {}) {
+export function evaluateAddOnExperiment({
+  baseline = {},
+  variant = {},
+  minimumOrdersPerArm = 20,
+  minimumNetReturnOnIncrementalCost = 0,
+} = {}) {
   const normalize = (arm) => {
     const paidOrders = finiteNonNegative(arm.paidOrders);
     const addOnOrders = Math.min(paidOrders, finiteNonNegative(arm.addOnOrders));
@@ -23,6 +28,7 @@ export function evaluateAddOnExperiment({ baseline = {}, variant = {}, minimumOr
       attachmentRate: rate(addOnOrders, paidOrders),
       averageTicket: rate(gmv, paidOrders),
       netRevenuePerOrder: rate(netPlatformRevenue, paidOrders),
+      experimentCostPerOrder: rate(incrementalExperimentCost, paidOrders),
       contributionAfterExperimentCostPerOrder: rate(contributionAfterExperimentCost, paidOrders),
       netTakeRate: rate(netPlatformRevenue, gmv),
       contributionTakeRateAfterExperimentCost: rate(contributionAfterExperimentCost, gmv),
@@ -32,16 +38,25 @@ export function evaluateAddOnExperiment({ baseline = {}, variant = {}, minimumOr
   const control = normalize(baseline);
   const treatment = normalize(variant);
   const evidenceTarget = Math.max(1, finiteNonNegative(minimumOrdersPerArm));
+  const minimumReturn = finiteNonNegative(minimumNetReturnOnIncrementalCost);
   const evidence = Math.min(1, Math.min(control.paidOrders, treatment.paidOrders) / evidenceTarget);
   const attachmentUplift = treatment.attachmentRate - control.attachmentRate;
   const ticketUplift = treatment.averageTicket - control.averageTicket;
   const netRevenuePerOrderUplift = treatment.netRevenuePerOrder - control.netRevenuePerOrder;
+  const incrementalExperimentCostPerOrder = treatment.experimentCostPerOrder - control.experimentCostPerOrder;
   const contributionPerOrderUplift = treatment.contributionAfterExperimentCostPerOrder - control.contributionAfterExperimentCostPerOrder;
   const projectedIncrementalNetRevenueAtBaselineVolume = netRevenuePerOrderUplift * control.paidOrders;
   const projectedIncrementalContributionAtBaselineVolume = contributionPerOrderUplift * control.paidOrders;
+  const projectedIncrementalExperimentCostAtBaselineVolume = incrementalExperimentCostPerOrder * control.paidOrders;
   const incrementalExperimentCost = treatment.incrementalExperimentCost - control.incrementalExperimentCost;
+  const positiveProjectedIncrementalCost = Math.max(0, projectedIncrementalExperimentCostAtBaselineVolume);
+  const netReturnOnIncrementalCost = positiveProjectedIncrementalCost > 0
+    ? projectedIncrementalContributionAtBaselineVolume / positiveProjectedIncrementalCost
+    : null;
   const marginPreserved = treatment.contributionTakeRateAfterExperimentCost >= control.contributionTakeRateAfterExperimentCost;
-  const economicallyPositive = contributionPerOrderUplift > 0 && marginPreserved;
+  const capitalEfficiencyPreserved = positiveProjectedIncrementalCost === 0
+    || netReturnOnIncrementalCost >= minimumReturn;
+  const economicallyPositive = contributionPerOrderUplift > 0 && marginPreserved && capitalEfficiencyPreserved;
 
   return {
     baseline: control,
@@ -53,9 +68,14 @@ export function evaluateAddOnExperiment({ baseline = {}, variant = {}, minimumOr
     netRevenuePerOrderUplift,
     contributionPerOrderUplift,
     incrementalExperimentCost,
+    incrementalExperimentCostPerOrder,
+    projectedIncrementalExperimentCostAtBaselineVolume,
     projectedIncrementalNetRevenueAtBaselineVolume,
     projectedIncrementalContributionAtBaselineVolume,
+    netReturnOnIncrementalCost,
+    minimumNetReturnOnIncrementalCost: minimumReturn,
     marginPreserved,
+    capitalEfficiencyPreserved,
     economicallyPositive,
     recommendation: evidence < 1 ? "collect_more_data" : (economicallyPositive ? "prefer_variant" : "keep_baseline"),
   };
