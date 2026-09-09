@@ -6,7 +6,7 @@ import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorCo
 import CollapsibleFilterPanel from "../../components/CollapsibleFilterPanel";
 import eventService from "../../services/EventService";
 import cutinappService from "../../services/CutinappService";
-import { storageUrl } from "../../config";
+import { eventImageUrl, eventMediaBackgroundStyle, fallbackToOriginalEventImage } from "../../utils/eventMedia";
 import { PERIOD_OPTIONS, paramsFromSearch, periodLabel, readDiscoveryPreference, readRecentCities, saveDiscoveryPreference } from "../../utils/discoveryFilters";
 import "./EventPage.css";
 
@@ -223,8 +223,8 @@ export default function EventPage() {
             <Row className="cut-event-discovery-grid">
               {events.map((event) => <Col xs={12} md={6} xl={4} key={event.id}>
                 <Card className="cut-event-card h-100" role="button" tabIndex={0} aria-label={`Abrir evento ${event.title}`} onMouseEnter={() => eventService.view(event.slug).catch(() => {})} onFocus={() => eventService.view(event.slug).catch(() => {})} onClick={() => navigate(`/event/${event.slug}`)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/event/${event.slug}`); } }}>
-                  <div className="cut-event-card__media">
-                    {event.image ? <img src={`${storageUrl}${String(event.image).replace(/^\//, "")}`} alt={event.title} loading="lazy" decoding="async" /> : <div className="cut-event-card__placeholder"><i className="fa-regular fa-calendar" /></div>}
+                  <div className="cut-event-card__media" style={eventMediaBackgroundStyle(event.image)}>
+                    {event.image ? <img src={eventImageUrl(event.image, "card")} alt={event.title} loading="lazy" decoding="async" onError={(imageEvent) => fallbackToOriginalEventImage(imageEvent, event.image)} /> : <div className="cut-event-card__placeholder"><i className="fa-regular fa-calendar" /></div>}
                     {event.category && <Badge bg="dark" className="cut-event-card__category">{event.category}</Badge>}
                     {event.free_ticket_lots_count > 0 && <Badge bg="success" className="cut-event-card__badge">Gratuito</Badge>}
                   </div>
