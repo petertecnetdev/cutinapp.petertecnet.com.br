@@ -112,4 +112,20 @@ describe("payment failure retry policy", () => {
     expect(result.statusCheckOnly).toBe(false);
     expect(result.title).toBe("A tentativa anterior foi encerrada");
   });
+
+  test.each([
+    ["cancelled", "by_collector"],
+    ["canceled", "cancelled_by_user"],
+    ["cancelled", ""],
+  ])("allows recovery after terminal %s card payment with provider detail %s", (status, statusDetail) => {
+    const result = paymentFailureGuidance({
+      method: "card",
+      pixAvailable: true,
+      payment: { status, status_detail: statusDetail },
+    });
+
+    expect(result.reason).toBe("card_cancelled");
+    expect(result.retryAllowed).toBe(true);
+    expect(result.statusCheckOnly).toBe(false);
+  });
 });

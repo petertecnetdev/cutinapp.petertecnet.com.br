@@ -25,7 +25,7 @@ export const classifyPaymentFailure = (payment = {}, method = "") => {
   }
   if ((status === "cancelled" || status === "canceled") && detail === "expired") return { reason: "card_authentication_expired", detail };
   if (detail.includes("3ds_challenge_expired")) return { reason: "card_authentication_expired", detail };
-  if ((status === "cancelled" || status === "canceled") && (!detail || detail === "cancelled" || detail === "canceled")) return { reason: "card_cancelled", detail };
+  if (status === "cancelled" || status === "canceled") return { reason: "card_cancelled", detail };
   if (detail.includes("bad_filled_security_code")) return { reason: "card_security_code", detail };
   if (detail.includes("bad_filled_date")) return { reason: "card_expiration_data", detail };
   if (detail.includes("bad_filled_card_number")) return { reason: "card_number", detail };
