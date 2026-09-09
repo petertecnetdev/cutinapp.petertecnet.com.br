@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import commerceService from "../../services/CommerceService";
 import { writeCheckoutRecovery } from "../../utils/checkoutRecovery";
-import { checkoutSelectionFromOrder, isPendingPixRecoverable, latestPaymentFromOrder, latestPendingPaymentFromOrder, paymentMethodFromOrder } from "../../utils/orderRecovery";
+import { checkoutSelectionFromOrder, isPendingPixRecoverable, latestPendingPaymentFromOrder, paymentMethodFromOrder } from "../../utils/orderRecovery";
 import { writePaymentRecoveryAttribution } from "../../utils/paymentRecoveryAttribution";
 import { safeSetSessionJson } from "../../utils/safeStorage";
 import "./CommerceHistory.css";
@@ -96,7 +96,6 @@ export default function PurchasesPage() {
 
       <div className="cut-commerce-list">
         {(data?.data || []).map((order) => {
-          const payment = latestPaymentFromOrder(order);
           const paymentMethod = paymentMethodFromOrder(order);
           const canResumePix = isPendingPixRecoverable(order, nowMs);
           return <Card className="cut-commerce-card" key={order.public_id}>
