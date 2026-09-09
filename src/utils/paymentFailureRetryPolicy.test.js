@@ -10,7 +10,6 @@ describe("payment failure retry policy", () => {
     "cc_rejected_card_type_not_allowed",
     "cc_rejected_card_expired",
     "cc_rejected_insufficient_amount",
-    "cc_rejected_card_disabled",
   ])("blocks an identical card retry for %s", (statusDetail) => {
     const result = paymentFailureGuidance({
       method: "card",
@@ -28,6 +27,7 @@ describe("payment failure retry policy", () => {
     "cc_rejected_bad_filled_card_number",
     "cc_rejected_invalid_installments",
     "cc_rejected_call_for_authorize",
+    "cc_rejected_card_disabled",
   ])("keeps retry available when the buyer can correct %s", (statusDetail) => {
     const result = paymentFailureGuidance({
       method: "card",
