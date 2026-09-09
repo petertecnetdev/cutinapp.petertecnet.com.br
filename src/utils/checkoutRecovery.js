@@ -2,8 +2,18 @@ import { safeGetLocalJson, safeRemoveLocalItem, safeSetLocalJson } from "./safeS
 
 const CHECKOUT_RECOVERY_PREFIX = "cutinapp_checkout_recovery_";
 export const CHECKOUT_RECOVERY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+export const CHECKOUT_RECOVERY_CHANGE_EVENT = "cutinapp:checkout-recovery-change";
 
 const storageKey = (slug) => `${CHECKOUT_RECOVERY_PREFIX}${String(slug || "").trim()}`;
+
+const notifyCheckoutRecoveryChange = (slug) => {
+  if (typeof window === "undefined") return;
+  try {
+    window.dispatchEvent(new CustomEvent(CHECKOUT_RECOVERY_CHANGE_EVENT, { detail: { slug: String(slug || "") } }));
+  } catch (_) {
+    // Storage recovery must keep working even when CustomEvent is unavailable.
+  }
+};
 
 const normalizeLines = (lines) => (Array.isArray(lines) ? lines : [])
   .map((item) => ({ id: Number(item?.id || 0), quantity: Number(item?.quantity || 0) }))
@@ -23,7 +33,9 @@ const normalizeCouponCode = (couponCode) => {
 
 export const clearCheckoutRecovery = (slug) => {
   if (!slug) return false;
-  return safeRemoveLocalItem(storageKey(slug));
+  const removed = safeRemoveLocalItem(storageKey(slug));
+  if (removed) notifyCheckoutRecoveryChange(slug);
+  return removed;
 };
 
 export const readCheckoutRecovery = (slug, now = Date.now()) => {
@@ -58,11 +70,13 @@ export const writeCheckoutRecovery = (slug, { selection, orderPublicId, couponCo
     return false;
   }
 
-  return safeSetLocalJson(storageKey(slug), {
-    version: 2,
+  const saved = safeSetLocalJson(storageKey(slug), {
+    version: 3,
     selection: normalizedSelection,
     orderPublicId: normalizedOrderPublicId || null,
     couponCode: normalizedCouponCode,
     savedAt: Number(now),
   });
+  if (saved) notifyCheckoutRecoveryChange(slug);
+  return saved;
 };
