@@ -1,4 +1,7 @@
-import { recommendMarginalMonetizationBudgetAllocation } from "./marginalMonetizationBudget";
+import {
+  buildMarginalPerformanceHistoryFromAnalytics,
+  recommendMarginalMonetizationBudgetAllocation,
+} from "./marginalMonetizationBudget";
 
 const economics = (overrides = {}) => ({
   evidenceStatus: "sufficient",
@@ -163,5 +166,75 @@ describe("marginal monetization budget allocation", () => {
       bandsSource: "explicit",
       marginalRiskAdjustedNetReturn: 3,
     });
+  });
+
+  test("normaliza métricas realizadas da API central em histórico marginal auditável", () => {
+    const history = buildMarginalPerformanceHistoryFromAnalytics([
+      {
+        period: "2026-09-01/2026-09-07",
+        incremental_cost: 100,
+        incremental_gmv: 1200,
+        platform_net_revenue: 260,
+      },
+      {
+        period: "2026-09-08/2026-09-09",
+        spend: 80,
+        gmv: 700,
+        net_revenue: 140,
+        contribution: 40,
+      },
+      { incremental_cost: 0, incremental_gmv: 500, platform_net_revenue: 100 },
+    ]);
+
+    expect(history).toHaveLength(2);
+    expect(history[0]).toMatchObject({
+      incrementalBudgetCapacity: 100,
+      incrementalGmv: 1200,
+      incrementalNetRevenue: 260,
+      incrementalContribution: 160,
+      netReturnOnIncrementalCost: 1.6,
+      observedFromAnalytics: true,
+    });
+    expect(history[1].netReturnOnIncrementalCost).toBe(0.5);
+  });
+
+  test("usa histórico econômico realizado da API central como faixas marginais", () => {
+    const result = recommendMarginalMonetizationBudgetAllocation({
+      availableIncrementalBudget: 150,
+      channels: [
+        {
+          source: "promoter",
+          economics: economics({ netReturnOnIncrementalCost: 2 }),
+          realizedAnalyticsHistory: [
+            {
+              period: "week_1",
+              incrementalCost: 50,
+              incrementalGmv: 600,
+              incrementalNetRevenue: 150,
+            },
+            {
+              period: "week_2",
+              incrementalCost: 100,
+              incrementalGmv: 900,
+              incrementalNetRevenue: 160,
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.recommendations[0]).toMatchObject({
+      marginalBandsSource: "central_analytics",
+      marginalBandsEvaluated: 2,
+    });
+    expect(result.marginalReturnTranches[0]).toMatchObject({
+      bandsSource: "central_analytics",
+      incrementalGmv: 600,
+      incrementalNetRevenue: 150,
+      incrementalContribution: 100,
+      period: "week_1",
+    });
+    expect(result.allocationBySource.promoter).toBe(50);
+    expect(result.unallocatedBudget).toBe(100);
   });
 });
