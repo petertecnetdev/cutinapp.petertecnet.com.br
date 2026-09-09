@@ -47,6 +47,7 @@ import { installGlobalImagePerformance } from "./utils/imagePerformance";
 import { installInstagramMobileShell } from "./utils/instagramMobileShell";
 import { installNavigationRecovery } from "./utils/navigationRecovery";
 import { installEventViewScrollReset } from "./utils/eventViewScrollReset";
+import { installCartCompletionCleanup } from "./utils/cartCompletionCleanup";
 import { installPersistentCart } from "./utils/persistentCart";
 import { installEventFlyerBackground } from "./utils/eventFlyerBackground";
 import { trackTelemetry } from "./utils/telemetry";
@@ -54,6 +55,7 @@ import { trackTelemetry } from "./utils/telemetry";
 installGlobalImageFallbacks();
 installNavigationRecovery();
 installEventViewScrollReset();
+installCartCompletionCleanup();
 installPersistentCart();
 
 const installDeferredEnhancers = () => {
