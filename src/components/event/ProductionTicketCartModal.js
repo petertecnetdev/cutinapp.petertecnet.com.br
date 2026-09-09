@@ -41,30 +41,43 @@ export default function ProductionTicketCartModal({ show, onHide, productionSlug
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState("");
 
+  const lockedToCurrentEvent = Boolean(currentEvent?.slug);
+
   useEffect(() => {
-    if (!show || !productionSlug) return undefined;
-    let active = true;
-    setLoadingEvents(true);
+    if (!show) return undefined;
+
     setError("");
     setCatalog(null);
     setQuantities({});
+
+    // Na página de um evento, o contexto já define qual evento receberá o ingresso.
+    // Não carregamos a agenda da produção nem exibimos seletor de evento.
+    if (lockedToCurrentEvent) {
+      setLoadingEvents(false);
+      setProduction(currentEvent?.production || null);
+      setEvents([currentEvent]);
+      setSelectedSlug(currentEvent.slug);
+      return undefined;
+    }
+
+    if (!productionSlug) {
+      setLoadingEvents(false);
+      setEvents([]);
+      setSelectedSlug("");
+      setError("Não foi possível identificar esta produção.");
+      return undefined;
+    }
+
+    let active = true;
+    setLoadingEvents(true);
 
     cutinappService.publicProduction(productionSlug)
       .then((response) => {
         if (!active) return;
         const upcoming = Array.isArray(response?.upcoming) ? response.upcoming : [];
-        const currentIsEligible = currentEvent
-          && currentEvent.slug
-          && currentEvent.temporal_status !== "past"
-          && !upcoming.some((item) => item.slug === currentEvent.slug);
-        const nextEvents = currentIsEligible ? [currentEvent, ...upcoming] : upcoming;
-        setProduction(response?.production || currentEvent?.production || null);
-        setEvents(nextEvents);
-
-        const preferredSlug = nextEvents.some((item) => item.slug === currentEvent?.slug)
-          ? currentEvent.slug
-          : nextEvents[0]?.slug || "";
-        setSelectedSlug(preferredSlug);
+        setProduction(response?.production || null);
+        setEvents(upcoming);
+        setSelectedSlug(upcoming[0]?.slug || "");
       })
       .catch((err) => {
         if (active) setError(err?.message || "Não foi possível carregar os próximos eventos desta produção.");
@@ -72,7 +85,7 @@ export default function ProductionTicketCartModal({ show, onHide, productionSlug
       .finally(() => active && setLoadingEvents(false));
 
     return () => { active = false; };
-  }, [show, productionSlug, currentEvent]);
+  }, [show, productionSlug, currentEvent, lockedToCurrentEvent]);
 
   useEffect(() => {
     if (!show || !selectedSlug) {
@@ -101,8 +114,8 @@ export default function ProductionTicketCartModal({ show, onHide, productionSlug
   }, [show, selectedSlug]);
 
   const selectedEvent = useMemo(
-    () => events.find((item) => item.slug === selectedSlug) || catalog?.event || null,
-    [events, selectedSlug, catalog],
+    () => events.find((item) => item.slug === selectedSlug) || catalog?.event || currentEvent || null,
+    [events, selectedSlug, catalog, currentEvent],
   );
 
   const ticketRows = useMemo(() => (catalog?.tickets || []).map((ticket) => {
@@ -158,6 +171,7 @@ export default function ProductionTicketCartModal({ show, onHide, productionSlug
           added_quantity: result.addedQuantity,
           cart_quantity: result.itemCount,
           amount: Number(subtotal.toFixed(2)),
+          source: lockedToCurrentEvent ? "event_page" : "production_page",
         },
       });
 
@@ -176,23 +190,35 @@ export default function ProductionTicketCartModal({ show, onHide, productionSlug
   };
 
   const salesClosed = Boolean(catalog?.sales_closed || catalog?.event?.sales_closed);
+  const modalTitle = lockedToCurrentEvent
+    ? `Ingressos para ${currentEvent?.title || "este evento"}`
+    : "Adquirir ingresso desta produção";
 
   return <Modal show={show} onHide={adding ? undefined : onHide} centered size="lg" scrollable>
     <Modal.Header closeButton={!adding}>
-      <Modal.Title>Adquirir ingresso desta produção</Modal.Title>
+      <Modal.Title>{modalTitle}</Modal.Title>
     </Modal.Header>
     <Modal.Body>
-      <p className="text-secondary">Escolha o evento, informe a quantidade e adicione os ingressos ao carrinho. Nenhuma cobrança é feita nesta etapa.</p>
+      <p className="text-secondary">
+        {lockedToCurrentEvent
+          ? "Escolha o ingresso e informe a quantidade para adicionar ao carrinho. Nenhuma cobrança é feita nesta etapa."
+          : "Escolha o evento, informe a quantidade e adicione os ingressos ao carrinho. Nenhuma cobrança é feita nesta etapa."}
+      </p>
 
       {error && <Alert variant="danger">{error}</Alert>}
 
       {loadingEvents ? <div className="d-flex align-items-center gap-2 py-4"><Spinner size="sm" /><span>Carregando eventos da produção...</span></div> : <>
-        {events.length > 0 ? <Form.Group className="mb-4">
+        {!lockedToCurrentEvent && (events.length > 0 ? <Form.Group className="mb-4">
           <Form.Label className="fw-semibold">Qual evento?</Form.Label>
           <Form.Select value={selectedSlug} onChange={(event) => setSelectedSlug(event.target.value)} disabled={adding || loadingCatalog}>
             {events.map((item) => <option key={item.id || item.slug} value={item.slug}>{item.title || item.name} · {dateLabel(item.start_date)}</option>)}
           </Form.Select>
-        </Form.Group> : <Alert variant="secondary" className="mb-0">Esta produção não possui próximos eventos com ingressos disponíveis no momento.</Alert>}
+        </Form.Group> : <Alert variant="secondary" className="mb-0">Esta produção não possui próximos eventos com ingressos disponíveis no momento.</Alert>)}
+
+        {lockedToCurrentEvent && selectedEvent && <div className="cut-ticket-shop__summary mb-4" aria-label="Evento selecionado">
+          <div className="cut-ticket-shop__summary-line"><span>Evento</span><strong>{selectedEvent.title || selectedEvent.name}</strong></div>
+          <div className="cut-ticket-shop__summary-line"><span>Data</span><strong>{dateLabel(selectedEvent.start_date)}</strong></div>
+        </div>}
 
         {selectedSlug && loadingCatalog && <div className="d-flex align-items-center gap-2 py-4"><Spinner size="sm" /><span>Carregando ingressos...</span></div>}
 
