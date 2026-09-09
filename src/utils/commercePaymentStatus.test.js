@@ -12,12 +12,23 @@ describe("commerce payment status normalization", () => {
     expect(result.payment.status_detail).toBe("expired");
   });
 
-  test("normalizes nested API data without changing pending states", () => {
+  test("normalizes failed commerce statuses to the internal rejected terminal state", () => {
     const result = normalizeCommercePaymentStatuses({
-      data: { order: { status: "canceled" }, payment: { status: "pending" } },
+      order: { id: 30, status: "failed" },
+      payment: { id: 40, status: "failed", status_detail: "cc_rejected_3ds_challenge" },
     });
 
-    expect(result.data.order.status).toBe("cancelled");
+    expect(result.order.status).toBe("rejected");
+    expect(result.payment.status).toBe("rejected");
+    expect(result.payment.status_detail).toBe("cc_rejected_3ds_challenge");
+  });
+
+  test("normalizes nested API data without changing pending states", () => {
+    const result = normalizeCommercePaymentStatuses({
+      data: { order: { status: "failed" }, payment: { status: "pending" } },
+    });
+
+    expect(result.data.order.status).toBe("rejected");
     expect(result.data.payment.status).toBe("pending");
   });
 
