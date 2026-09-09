@@ -1,5 +1,7 @@
 import {
+  buildEventChannelMarginalPerformanceHistories,
   buildMarginalPerformanceHistoryFromAnalytics,
+  hydrateChannelsWithRealizedAnalyticsHistory,
   recommendMarginalMonetizationBudgetAllocation,
 } from "./marginalMonetizationBudget";
 
@@ -196,6 +198,106 @@ describe("marginal monetization budget allocation", () => {
       observedFromAnalytics: true,
     });
     expect(history[1].netReturnOnIncrementalCost).toBe(0.5);
+  });
+
+  test("agrupa métricas realizadas por evento, canal e período sem contaminar eventos", () => {
+    const groups = buildEventChannelMarginalPerformanceHistories([
+      {
+        event_uuid: "event-1",
+        attribution_channel: "promoter",
+        period: "week_1",
+        incremental_cost: 40,
+        incremental_gmv: 500,
+        platform_net_revenue: 120,
+      },
+      {
+        event_uuid: "event-1",
+        attribution_channel: "PROMOTER",
+        period: "week_1",
+        incremental_cost: 60,
+        incremental_gmv: 700,
+        platform_net_revenue: 180,
+      },
+      {
+        event_uuid: "event-2",
+        attribution_channel: "promoter",
+        period: "week_1",
+        incremental_cost: 50,
+        incremental_gmv: 400,
+        platform_net_revenue: 90,
+      },
+      {
+        event_uuid: "event-1",
+        attribution_channel: "boost",
+        period: "week_2",
+        incremental_cost: 25,
+        incremental_gmv: 250,
+        platform_net_revenue: 70,
+      },
+    ]);
+
+    expect(groups).toHaveLength(3);
+    expect(groups.find((group) => group.eventId === "event-1" && group.channel === "promoter"))
+      .toMatchObject({
+        periods: 1,
+        totalIncrementalCost: 100,
+        totalIncrementalGmv: 1200,
+        totalIncrementalNetRevenue: 300,
+        totalIncrementalContribution: 200,
+      });
+    expect(groups.find((group) => group.eventId === "event-1" && group.channel === "promoter").history[0])
+      .toMatchObject({
+        incrementalBudgetCapacity: 100,
+        netReturnOnIncrementalCost: 2,
+        aggregatedAnalyticsRows: 2,
+      });
+  });
+
+  test("hidrata somente canais do evento alvo e preserva histórico explicitamente fornecido", () => {
+    const channels = hydrateChannelsWithRealizedAnalyticsHistory({
+      eventId: "event-1",
+      channels: [
+        { source: "promoter", economics: economics() },
+        { source: "boost", economics: economics(), marginalPerformanceHistory: [] },
+      ],
+      analyticsRows: [
+        {
+          event_id: "event-1",
+          source: "promoter",
+          period: "week_1",
+          spend: 50,
+          gmv: 600,
+          net_revenue: 150,
+        },
+        {
+          event_id: "event-2",
+          source: "promoter",
+          period: "week_1",
+          spend: 100,
+          gmv: 5000,
+          net_revenue: 1000,
+        },
+        {
+          event_id: "event-1",
+          source: "boost",
+          period: "week_1",
+          spend: 30,
+          gmv: 250,
+          net_revenue: 80,
+        },
+      ],
+    });
+
+    expect(channels[0].realizedAnalyticsHistorySource).toBe("central_analytics_event_channel");
+    expect(channels[0].realizedAnalyticsHistory).toHaveLength(1);
+    expect(channels[0].realizedAnalyticsHistory[0]).toMatchObject({
+      incrementalCost: 50,
+      incrementalGmv: 600,
+      incrementalNetRevenue: 150,
+      incrementalContribution: 100,
+    });
+    expect(channels[1].realizedAnalyticsHistory).toBeUndefined();
+    expect(channels[1].marginalPerformanceHistory).toEqual([]);
   });
 
   test("usa histórico econômico realizado da API central como faixas marginais", () => {
