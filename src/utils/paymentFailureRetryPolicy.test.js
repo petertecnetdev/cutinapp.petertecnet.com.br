@@ -49,4 +49,17 @@ describe("payment failure retry policy", () => {
     expect(result.retryAllowed).toBe(false);
     expect(result.statusCheckOnly).toBe(true);
   });
+
+  test("treats a cancelled expired card payment as an expired 3DS challenge, not an expired card", () => {
+    const result = paymentFailureGuidance({
+      method: "card",
+      pixAvailable: true,
+      payment: { status: "cancelled", status_detail: "expired" },
+    });
+
+    expect(result.reason).toBe("card_authentication_expired");
+    expect(result.retryAllowed).toBe(true);
+    expect(result.statusCheckOnly).toBe(false);
+    expect(result.title).toBe("O prazo de autenticação do banco expirou");
+  });
 });
