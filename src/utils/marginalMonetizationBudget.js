@@ -14,6 +14,42 @@ const sourceKey = (item = {}, index = 0) => (
   String(item.source || item.channel || item.name || `channel_${index + 1}`).trim().toLowerCase()
 );
 
+const deriveHistoricalBands = (original = {}, channel = {}) => {
+  const history = Array.isArray(original.marginalPerformanceHistory)
+    ? original.marginalPerformanceHistory
+    : Array.isArray(original.historicalMarginalPerformance)
+      ? original.historicalMarginalPerformance
+      : [];
+
+  const totalRiskPenalty = finiteNonNegative(channel.volatilityPenalty)
+    + finiteNonNegative(channel.decliningTrendPenalty);
+
+  return history
+    .map((observation = {}, historyIndex) => {
+      const capacity = finiteNonNegative(
+        observation.incrementalBudgetCapacity
+          ?? observation.incrementalBudget
+          ?? observation.incrementalCost
+          ?? observation.cost,
+      );
+      const rawReturn = Number(
+        observation.marginalNetReturnOnIncrementalCost
+          ?? observation.netReturnOnIncrementalCost
+          ?? observation.marginalReturn,
+      );
+
+      if (capacity <= 0 || !Number.isFinite(rawReturn)) return null;
+
+      return {
+        historyIndex,
+        capacity,
+        rawReturn,
+        marginalRiskAdjustedNetReturn: rawReturn - totalRiskPenalty,
+      };
+    })
+    .filter(Boolean);
+};
+
 export function recommendMarginalMonetizationBudgetAllocation({
   channels = [],
   availableIncrementalBudget = 0,
@@ -40,10 +76,19 @@ export function recommendMarginalMonetizationBudgetAllocation({
     const explicitBands = Array.isArray(original.marginalReturnBands)
       ? original.marginalReturnBands
       : [];
+    const historicalBands = explicitBands.length === 0
+      ? deriveHistoricalBands(original, channel)
+      : [];
+    const effectiveBands = explicitBands.length > 0 ? explicitBands : historicalBands;
+    const bandsSource = explicitBands.length > 0
+      ? "explicit"
+      : historicalBands.length > 0
+        ? "observed_history"
+        : "observed_channel_return";
     const maximumChannelBudget = finiteNonNegative(channel.scalableSafeHeadroom);
     let remainingChannelCapacity = maximumChannelBudget;
 
-    if (explicitBands.length === 0) {
+    if (effectiveBands.length === 0) {
       tranches.push({
         source: channel.source,
         bandIndex: 0,
@@ -51,11 +96,12 @@ export function recommendMarginalMonetizationBudgetAllocation({
         marginalRiskAdjustedNetReturn: channel.riskAdjustedNetReturn,
         baseRiskAdjustedNetReturn: channel.riskAdjustedNetReturn,
         modeledFromObservedReturn: true,
+        bandsSource,
       });
       return;
     }
 
-    explicitBands.forEach((band = {}, bandIndex) => {
+    effectiveBands.forEach((band = {}, bandIndex) => {
       if (remainingChannelCapacity <= 0) return;
       const requestedCapacity = finiteNonNegative(
         band.incrementalBudgetCapacity ?? band.budgetCapacity ?? band.capacity,
@@ -80,6 +126,9 @@ export function recommendMarginalMonetizationBudgetAllocation({
         marginalRiskAdjustedNetReturn,
         baseRiskAdjustedNetReturn: channel.riskAdjustedNetReturn,
         modeledFromObservedReturn: !Number.isFinite(directReturn),
+        bandsSource,
+        historyIndex: Number.isInteger(band.historyIndex) ? band.historyIndex : null,
+        rawHistoricalNetReturn: Number.isFinite(band.rawReturn) ? band.rawReturn : null,
       });
       remainingChannelCapacity -= capacity;
     });
@@ -106,10 +155,15 @@ export function recommendMarginalMonetizationBudgetAllocation({
     return { ...tranche, allocatedBudget };
   });
 
-  const recommendations = normalized.recommendations.map((channel) => ({
-    ...channel,
-    suggestedIncrementalBudget: allocationBySource[channel.source] || 0,
-  }));
+  const recommendations = normalized.recommendations.map((channel) => {
+    const channelTranches = allocatedTranches.filter((tranche) => tranche.source === channel.source);
+    return {
+      ...channel,
+      suggestedIncrementalBudget: allocationBySource[channel.source] || 0,
+      marginalBandsSource: channelTranches[0]?.bandsSource || "unavailable",
+      marginalBandsEvaluated: channelTranches.length,
+    };
+  });
 
   return {
     ...normalized,
