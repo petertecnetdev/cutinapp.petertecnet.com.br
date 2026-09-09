@@ -20,6 +20,23 @@ const tokenKind = (value) => {
   return null;
 };
 
+const trackCheckinOperation = (type, { eventId, kind = null, readerMode = null, status = 0 } = {}) => {
+  try {
+    window.PeterTecnetTelemetry?.track?.(type, {
+      label: kind === "item" ? "Retirada de item" : kind === "ticket" ? "Validação de ingresso" : "Leitura de QR Code",
+      target: String(eventId || ""),
+      metadata: {
+        event_id: Number(eventId || 0),
+        qr_kind: kind,
+        reader_mode: readerMode,
+        http_status: Number(status || 0),
+      },
+    });
+  } catch (_) {
+    // Observability must never interrupt gate operation.
+  }
+};
+
 const loadJsQr = () => new Promise((resolve, reject) => {
   if (window.jsQR) return resolve(window.jsQR);
 
@@ -177,10 +194,12 @@ export default function CheckinPage() {
     }
     if (!normalized || scanningRef.current) return;
     if (!kind) {
+      trackCheckinOperation("checkin_qr_unrecognized", { eventId, readerMode });
       setResult({ type: "danger", kind: null, message: "QR Code não reconhecido pela Cutinapp." });
       return;
     }
     if (getNetworkStatus() === "offline") {
+      trackCheckinOperation("checkin_validation_blocked_network", { eventId, kind, readerMode });
       setError("");
       setResult({
         type: "warning",
@@ -201,12 +220,20 @@ export default function CheckinPage() {
       const response = kind === "item"
         ? await commerceService.redeemEventItems(normalized, eventId)
         : await cutinappService.checkIn(normalized, eventId);
+      trackCheckinOperation("checkin_validation_succeeded", { eventId, kind, readerMode });
       setResult({ type: "success", kind, ...response });
       setToken("");
       disableCamera();
       await refreshStats(eventId);
     } catch (err) {
       const networkFailure = isNetworkFailure(err);
+      const status = Number(err?.status || err?.original?.response?.status || 0);
+      trackCheckinOperation(networkFailure ? "checkin_validation_uncertain" : "checkin_validation_rejected", {
+        eventId,
+        kind,
+        readerMode,
+        status,
+      });
       const pass = kind === "ticket" ? err?.original?.response?.data?.pass || null : null;
       setResult({
         type: networkFailure || err?.status === 409 ? "warning" : "danger",
@@ -222,7 +249,7 @@ export default function CheckinPage() {
       setLoading(false);
       window.setTimeout(() => { scanningRef.current = false; }, 700);
     }
-  }, [disableCamera, eventId, refreshStats]);
+  }, [disableCamera, eventId, readerMode, refreshStats]);
 
   useEffect(() => {
     if (!cameraEnabled || !eventId) return undefined;
