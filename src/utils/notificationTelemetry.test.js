@@ -75,4 +75,58 @@ describe("notificationTelemetryAttrs", () => {
 
     window.PeterTecnetTelemetry = previousTelemetry;
   });
+
+  it("records a recovery CTA impression only after the navbar item is actually visible", () => {
+    const track = jest.fn();
+    const observe = jest.fn();
+    const disconnect = jest.fn();
+    let observerCallback;
+    const previousTelemetry = window.PeterTecnetTelemetry;
+    const previousObserver = window.IntersectionObserver;
+
+    window.PeterTecnetTelemetry = { track };
+    window.IntersectionObserver = jest.fn((callback) => {
+      observerCallback = callback;
+      return { observe, disconnect };
+    });
+
+    const attrs = notificationTelemetryAttrs({
+      id: 88,
+      type: "checkout_recovery",
+      reference_id: "order-public-456",
+      metadata: {
+        recovery_action: "resume_pix",
+        recovery_cta_label: "Retomar pagamento PIX",
+        recovery_experiment: "pix_recovery_timing_v1",
+        recovery_timing_minutes: 30,
+      },
+    }, "navbar_popover");
+
+    const node = document.createElement("button");
+    expect(typeof attrs.ref).toBe("function");
+    attrs.ref(node);
+    expect(observe).toHaveBeenCalledWith(node);
+    expect(track).not.toHaveBeenCalled();
+
+    observerCallback([{ isIntersecting: true, intersectionRatio: 0.75 }]);
+    observerCallback([{ isIntersecting: true, intersectionRatio: 1 }]);
+
+    expect(track).toHaveBeenCalledTimes(1);
+    expect(track).toHaveBeenCalledWith("checkout_recovery_notification_cta_viewed", {
+      label: "Retomar pagamento PIX",
+      target: "navbar_popover",
+      metadata: {
+        order_public_id: "order-public-456",
+        recovery_source: "in_app",
+        recovery_entrypoint: "navbar_popover",
+        recovery_action: "resume_pix",
+        recovery_experiment: "pix_recovery_timing_v1",
+        recovery_timing_minutes: 30,
+      },
+    });
+    expect(disconnect).toHaveBeenCalled();
+
+    window.PeterTecnetTelemetry = previousTelemetry;
+    window.IntersectionObserver = previousObserver;
+  });
 });
