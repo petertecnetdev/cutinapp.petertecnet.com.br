@@ -6,6 +6,7 @@ export const EVENT_FLYER_RECOMMENDED_HEIGHT = 1920;
 export const EVENT_IMAGE_MAX_BYTES = 8 * 1024 * 1024;
 
 const absoluteUrl = (value) => /^https?:\/\//i.test(String(value || ""));
+const pipelineVariantPattern = /\/(?:original|thumbnail|card|feed|hero|background|og)\.webp$/i;
 
 export const eventMediaPath = (value, variant = "original") => {
   if (!value) return "";
@@ -13,11 +14,11 @@ export const eventMediaPath = (value, variant = "original") => {
   if (absoluteUrl(image)) return image;
 
   const normalized = image.replace(/^\/+/, "");
-  if (!/\/original\.webp$/i.test(normalized)) return normalized;
+  if (!pipelineVariantPattern.test(normalized)) return normalized;
 
   const supported = new Set(["original", "thumbnail", "card", "feed", "hero", "background", "og"]);
   const requested = supported.has(variant) ? variant : "original";
-  return normalized.replace(/\/original\.webp$/i, `/${requested}.webp`);
+  return normalized.replace(pipelineVariantPattern, `/${requested}.webp`);
 };
 
 export const eventImageUrl = (value, variant = "original") => {
