@@ -20,7 +20,13 @@ const normalizeCart = (value) => {
   if (!value || value.version !== 1 || !Array.isArray(value.events)) return emptyCart();
   return {
     version: 1,
-    events: value.events.filter((entry) => entry && Array.isArray(entry.tickets)),
+    events: value.events
+      .filter((entry) => entry && (Array.isArray(entry.tickets) || Array.isArray(entry.items)))
+      .map((entry) => ({
+        ...entry,
+        tickets: Array.isArray(entry.tickets) ? entry.tickets : [],
+        items: Array.isArray(entry.items) ? entry.items : [],
+      })),
     updatedAt: value.updatedAt || null,
   };
 };
@@ -28,7 +34,9 @@ const normalizeCart = (value) => {
 export const getCommerceCart = () => normalizeCart(safeGetLocalJson(COMMERCE_CART_STORAGE_KEY, null));
 
 export const getCommerceCartItemCount = (cart = getCommerceCart()) => (cart.events || []).reduce(
-  (total, eventEntry) => total + (eventEntry.tickets || []).reduce((sum, ticket) => sum + positiveInteger(ticket.quantity), 0),
+  (total, eventEntry) => total
+    + (eventEntry.tickets || []).reduce((sum, ticket) => sum + positiveInteger(ticket.quantity), 0)
+    + (eventEntry.items || []).reduce((sum, item) => sum + positiveInteger(item.quantity), 0),
   0,
 );
 
@@ -106,6 +114,7 @@ export const addTicketsToCommerceCart = ({ event, production, tickets }) => {
     productionSlug: String(production?.slug || event?.production?.slug || ""),
     productionName: String(production?.name || event?.production?.name || ""),
     tickets: mergedTickets,
+    items: [...(existing?.items || [])],
   };
 
   const events = [...cart.events];
