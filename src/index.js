@@ -35,6 +35,7 @@ import "./styles/event-view-shotgun-layout.css";
 import "./pages/checkout/Coupon.css";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
+import MediaLibraryInputEnhancer from "./components/MediaLibraryInputEnhancer";
 import PeterAccountGateway from "./components/PeterAccountGateway";
 import { apiBaseUrl, appSlug } from "./config";
 import reportWebVitals from "./reportWebVitals";
@@ -81,6 +82,7 @@ root.render(
     <PeterAccountGateway apiBaseUrl={apiBaseUrl} appSlug={appSlug}>
       <AuthProvider>
         <App />
+        <MediaLibraryInputEnhancer />
       </AuthProvider>
     </PeterAccountGateway>
   </React.StrictMode>
