@@ -231,6 +231,9 @@ export default function EventManagePage() {
   const [eventToDuplicate, setEventToDuplicate] = useState(null);
   const [duplicateDate, setDuplicateDate] = useState("");
   const [duplicateError, setDuplicateError] = useState("");
+  const [eventToDelete, setEventToDelete] = useState(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const [deleteError, setDeleteError] = useState("");
   const [publishedEvent, setPublishedEvent] = useState(null);
   const [copiedEventId, setCopiedEventId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -381,6 +384,45 @@ export default function EventManagePage() {
     } catch (err) {
       const dateMessage = Array.isArray(err?.errors?.date) ? err.errors.date[0] : err?.errors?.date;
       setDuplicateError(dateMessage || err?.message || "Não foi possível duplicar o evento.");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const openDeleteEvent = (event) => {
+    if (!event || busyId || bulkPublishing) return;
+    setEventToDelete(event);
+    setDeleteConfirmation("");
+    setDeleteError("");
+    setError("");
+    setSuccess("");
+  };
+
+  const closeDeleteEvent = () => {
+    if (/^delete-\d+$/.test(String(busyId))) return;
+    setEventToDelete(null);
+    setDeleteConfirmation("");
+    setDeleteError("");
+  };
+
+  const deleteEvent = async () => {
+    if (!eventToDelete || deleteConfirmation.trim().toUpperCase() !== "EXCLUIR") return;
+
+    const currentEvent = eventToDelete;
+    setBusyId(`delete-${currentEvent.id}`);
+    setDeleteError("");
+    setError("");
+    setSuccess("");
+
+    try {
+      const response = await eventService.destroy(currentEvent.id);
+      setEvents((current) => current.filter((item) => Number(item.id) !== Number(currentEvent.id)));
+      setEventToDelete(null);
+      setDeleteConfirmation("");
+      setDeleteError("");
+      setSuccess(response?.message || "Evento excluído com sucesso.");
+    } catch (err) {
+      setDeleteError(err?.response?.data?.message || err?.message || "Não foi possível excluir este evento.");
     } finally {
       setBusyId(null);
     }
@@ -589,44 +631,28 @@ export default function EventManagePage() {
   };
 
   const duplicating = String(busyId).startsWith("duplicate-");
+  const deletingOne = /^delete-\d+$/.test(String(busyId));
   const deletingAll = busyId === "delete-all";
 
   const renderActions = (event) => (
     <div className="cut-event-admin-actions">
-      <Button
-        size="sm"
-        variant="outline-light"
-        onClick={() => navigate(`/event/edit/${event.id}`)}
-        title="Editar evento"
-        aria-label={`Editar ${event.title}`}
-        disabled={bulkPublishing || deletingAll}
-      >
-        <i className="fa-solid fa-pen" />
-      </Button>
-      <Button
-        size="sm"
-        variant="outline-info"
-        onClick={() => openDuplicate(event)}
-        title="Copiar evento"
-        aria-label={`Copiar ${event.title}`}
-        disabled={Boolean(busyId) || bulkPublishing || deletingAll}
-      >
-        <i className="fa-regular fa-copy" />
-      </Button>
       <Dropdown align="end" className="cut-event-manager-more">
         <Dropdown.Toggle
           size="sm"
           variant="outline-light"
-          aria-label={`Mais ações para ${event.title}`}
-          disabled={bulkPublishing || deletingAll}
+          title="Ações do evento"
+          aria-label={`Ações para ${event.title}`}
+          disabled={Boolean(busyId) || bulkPublishing}
         >
           <i className="fa-solid fa-ellipsis" />
         </Dropdown.Toggle>
         <Dropdown.Menu>
+          <Dropdown.Item onClick={() => navigate(`/event/edit/${event.id}`)} disabled={Boolean(busyId)}><i className="fa-solid fa-pen" />Editar evento</Dropdown.Item>
+          <Dropdown.Item onClick={() => openDuplicate(event)} disabled={Boolean(busyId)}><i className="fa-regular fa-copy" />Duplicar evento</Dropdown.Item>
+          <Dropdown.Divider />
           <Dropdown.Item onClick={() => navigate(`/ticket/create?eventId=${event.id}`)}><i className="fa-solid fa-ticket" />Novo lote</Dropdown.Item>
           <Dropdown.Item onClick={() => navigate(`/event/${event.id}/participants`)}><i className="fa-solid fa-users" />Participantes</Dropdown.Item>
           <Dropdown.Item onClick={() => navigate(`/event/${event.id}/courtesies`)}><i className="fa-solid fa-gift" />Cortesias</Dropdown.Item>
-          <Dropdown.Item onClick={() => openDuplicate(event)} disabled={Boolean(busyId)}><i className="fa-regular fa-copy" />Duplicar evento</Dropdown.Item>
           {event.is_published && !event.is_cancelled && <Dropdown.Divider />}
           {event.is_published && !event.is_cancelled && <Dropdown.Item onClick={() => navigate(`/checkin?eventId=${event.id}`)}><i className="fa-solid fa-qrcode" />Portaria / check-in</Dropdown.Item>}
           {event.is_published && !event.is_cancelled && <Dropdown.Item onClick={() => navigate(`/event/${event.slug}`)}><i className="fa-solid fa-arrow-up-right-from-square" />Página pública</Dropdown.Item>}
@@ -639,6 +665,10 @@ export default function EventManagePage() {
               {event.is_published ? "Despublicar" : "Publicar"}
             </Dropdown.Item>
           )}
+          <Dropdown.Divider />
+          <Dropdown.Item className="text-danger" onClick={() => openDeleteEvent(event)} disabled={Boolean(busyId)}>
+            <i className="fa-regular fa-trash-can" />Excluir evento
+          </Dropdown.Item>
         </Dropdown.Menu>
       </Dropdown>
     </div>
@@ -648,11 +678,13 @@ export default function EventManagePage() {
     ? "Carregando eventos"
     : deletingAll
       ? "Excluindo todos os eventos"
-      : bulkPublishing
-        ? `Publicando ${bulkProgress.done} de ${bulkProgress.total} eventos`
-        : duplicating
-          ? "Duplicando evento"
-          : "Atualizando evento";
+      : deletingOne
+        ? `Excluindo ${eventToDelete?.title || "evento"}`
+        : bulkPublishing
+          ? `Publicando ${bulkProgress.done} de ${bulkProgress.total} eventos`
+          : duplicating
+            ? "Duplicando evento"
+            : "Atualizando evento";
 
   const bulkProgressPercent = bulkProgress.total
     ? Math.round((bulkProgress.done / bulkProgress.total) * 100)
@@ -958,6 +990,44 @@ export default function EventManagePage() {
           </>
         )}
       </Container>
+
+      <Modal show={Boolean(eventToDelete)} onHide={closeDeleteEvent} centered backdrop={deletingOne ? "static" : true} keyboard={!deletingOne}>
+        <Modal.Header closeButton={!deletingOne}>
+          <Modal.Title>Excluir evento</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Alert variant="danger">
+            Você está prestes a excluir <strong>{eventToDelete?.title || "este evento"}</strong>. Esta ação não pode ser desfeita.
+          </Alert>
+          <p className="text-secondary">
+            Se já existirem ingressos emitidos para este evento, a exclusão será bloqueada para preservar participantes, vendas e check-ins.
+          </p>
+          {deleteError && <Alert variant="danger">{deleteError}</Alert>}
+          <Form.Group>
+            <Form.Label>Digite <strong>EXCLUIR</strong> para confirmar</Form.Label>
+            <Form.Control
+              value={deleteConfirmation}
+              onChange={(event) => {
+                setDeleteConfirmation(event.target.value);
+                setDeleteError("");
+              }}
+              placeholder="EXCLUIR"
+              autoComplete="off"
+              disabled={deletingOne}
+            />
+          </Form.Group>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="outline-secondary" onClick={closeDeleteEvent} disabled={deletingOne}>Cancelar</Button>
+          <Button
+            variant="danger"
+            onClick={deleteEvent}
+            disabled={deletingOne || deleteConfirmation.trim().toUpperCase() !== "EXCLUIR"}
+          >
+            <i className="fa-solid fa-trash-can me-2" />Excluir evento
+          </Button>
+        </Modal.Footer>
+      </Modal>
 
       <Modal show={deleteAllOpen} onHide={closeDeleteAll} centered backdrop={deletingAll ? "static" : true} keyboard={!deletingAll}>
         <Modal.Header closeButton={!deletingAll}>
