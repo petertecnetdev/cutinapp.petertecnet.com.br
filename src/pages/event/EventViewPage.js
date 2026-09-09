@@ -15,6 +15,7 @@ import commerceService from "../../services/CommerceService";
 import { storageUrl } from "../../config";
 import { isPeterTecnetRoot } from "../../utils/applicationRoles";
 import { buildEventShareUrl } from "../../utils/eventShareUrl";
+import { safeExternalHref } from "../../utils/safeUrl";
 
 const formatDate = (value) => value
   ? new Intl.DateTimeFormat("pt-BR", {
@@ -174,6 +175,7 @@ export default function EventViewPage() {
   const productionId = Number(event?.production_id || event?.production?.id || 0);
   const productionSlug = event?.production?.slug || "";
   const mapEmbedUrl = useMemo(() => buildMapEmbedUrl(event), [event]);
+  const googleMapsHref = useMemo(() => safeExternalHref(event?.google_maps_url), [event?.google_maps_url]);
   const flyerUrl = useMemo(() => resolveImageUrl(event?.image), [event?.image]);
   const temporalState = useMemo(() => getEventTemporalState(event, clock), [event, clock]);
   const temporal = temporalMeta[temporalState];
@@ -423,7 +425,7 @@ export default function EventViewPage() {
               {canMarkInterested && <Button variant={interested ? "info" : "outline-light"} onClick={() => setEngagement("interested")} disabled={socialBusy || engagementLoading}><i className="fa-regular fa-star me-2" />Tenho interesse</Button>}
               <Button variant={favorite ? "danger" : "outline-light"} onClick={() => setEngagement("favorite")} disabled={socialBusy || engagementLoading}><i className={`${favorite ? "fa-solid" : "fa-regular"} fa-heart me-2`} />{favorite ? "Salvo" : "Salvar"}</Button>
               <Button variant="outline-light" href="#comunidade"><i className="fa-regular fa-comments me-2" />Conversa</Button>
-              {event.google_maps_url && <Button variant="outline-light" as="a" href={event.google_maps_url} target="_blank" rel="noreferrer"><i className="fa-solid fa-location-arrow me-2" />Maps</Button>}
+              {googleMapsHref && <Button variant="outline-light" as="a" href={googleMapsHref} target="_blank" rel="noopener noreferrer"><i className="fa-solid fa-location-arrow me-2" />Maps</Button>}
             </div>
           </div>
         </Container>
