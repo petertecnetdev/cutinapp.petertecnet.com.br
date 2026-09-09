@@ -141,6 +141,8 @@ export function recommendMonetizationBudgetAllocation({
   maximumTotalCostMultipleFromObserved = 2,
   maximumEvidenceScaledCostMultipleFromObserved = 4,
   evidenceSampleMultipleForMaximumScale = 5,
+  minimumStablePeriods = 2,
+  minimumStablePeriodNetReturn = 0,
 } = {}) {
   const budget = finiteNonNegative(availableIncrementalBudget);
   const defaultObservedCostMultiple = Math.max(1, finiteNonNegative(maximumTotalCostMultipleFromObserved));
@@ -149,6 +151,8 @@ export function recommendMonetizationBudgetAllocation({
     finiteNonNegative(maximumEvidenceScaledCostMultipleFromObserved),
   );
   const sampleMultipleForMaximumScale = Math.max(1, finiteNonNegative(evidenceSampleMultipleForMaximumScale));
+  const defaultMinimumStablePeriods = Math.max(1, Math.floor(finiteNonNegative(minimumStablePeriods)));
+  const defaultMinimumStablePeriodReturn = finiteNonNegative(minimumStablePeriodNetReturn);
   let remainingBudget = budget;
 
   const normalizedChannels = (Array.isArray(channels) ? channels : []).map((item = {}, index) => {
@@ -182,8 +186,44 @@ export function recommendMonetizationBudgetAllocation({
     const netReturnOnIncrementalCost = Number.isFinite(roi) ? roi : null;
     const evidenceStatus = economics.evidenceStatus || "collecting";
     const economicallyPositive = economics.economicallyPositive === true;
+
+    const rawPeriods = item.recentPerformancePeriods ?? economics.recentPerformancePeriods;
+    const temporalStabilityProvided = Array.isArray(rawPeriods) && rawPeriods.length > 0;
+    const channelMinimumStablePeriods = Math.max(
+      1,
+      Math.floor(finiteNonNegative(item.minimumStablePeriods ?? economics.minimumStablePeriods ?? defaultMinimumStablePeriods)),
+    );
+    const channelMinimumStablePeriodReturn = finiteNonNegative(
+      item.minimumStablePeriodNetReturn
+        ?? economics.minimumStablePeriodNetReturn
+        ?? defaultMinimumStablePeriodReturn,
+    );
+    const normalizedPeriods = temporalStabilityProvided
+      ? rawPeriods.map((period = {}) => {
+        const periodReturn = Number(period.netReturnOnIncrementalCost ?? period.roi ?? period.netReturn);
+        return {
+          netReturnOnIncrementalCost: Number.isFinite(periodReturn) ? periodReturn : null,
+          economicallyPositive: period.economicallyPositive !== false,
+        };
+      })
+      : [];
+    const recentStablePeriods = normalizedPeriods.slice(-channelMinimumStablePeriods);
+    const hasEnoughStablePeriods = recentStablePeriods.length >= channelMinimumStablePeriods;
+    const temporalStabilityPreserved = !temporalStabilityProvided || (
+      hasEnoughStablePeriods
+      && recentStablePeriods.every((period) => (
+        period.economicallyPositive
+        && period.netReturnOnIncrementalCost !== null
+        && period.netReturnOnIncrementalCost >= channelMinimumStablePeriodReturn
+      ))
+    );
+    const temporalStabilityStatus = !temporalStabilityProvided
+      ? "not_provided"
+      : (!hasEnoughStablePeriods ? "collecting" : (temporalStabilityPreserved ? "stable" : "unstable"));
+
     const eligibleForPaidBudget = evidenceStatus === "sufficient"
       && economicallyPositive
+      && temporalStabilityPreserved
       && scalableSafeHeadroom > 0
       && projectedContribution > 0
       && projectedCost > 0
@@ -204,6 +244,12 @@ export function recommendMonetizationBudgetAllocation({
       netReturnOnIncrementalCost,
       evidenceStatus,
       economicallyPositive,
+      temporalStabilityProvided,
+      temporalStabilityStatus,
+      temporalStabilityPreserved,
+      minimumStablePeriods: channelMinimumStablePeriods,
+      minimumStablePeriodNetReturn: channelMinimumStablePeriodReturn,
+      evaluatedStablePeriods: recentStablePeriods.length,
       eligibleForPaidBudget,
       suggestedIncrementalBudget: 0,
       exclusionReason: eligibleForPaidBudget
@@ -212,11 +258,13 @@ export function recommendMonetizationBudgetAllocation({
           ? "insufficient_evidence"
           : (!economicallyPositive
             ? "not_economically_positive"
-            : (headroom <= 0
-              ? "no_safe_headroom"
-              : (evidenceBoundIncrementalBudgetCap <= 0
-                ? "no_evidence_bound_headroom"
-                : (projectedCost <= 0 ? "no_paid_budget_required" : "missing_return_signal"))))),
+            : (!temporalStabilityPreserved
+              ? (hasEnoughStablePeriods ? "unstable_recent_performance" : "insufficient_temporal_evidence")
+              : (headroom <= 0
+                ? "no_safe_headroom"
+                : (evidenceBoundIncrementalBudgetCap <= 0
+                  ? "no_evidence_bound_headroom"
+                  : (projectedCost <= 0 ? "no_paid_budget_required" : "missing_return_signal")))))),
     };
   });
 
@@ -264,6 +312,8 @@ export function recommendMonetizationBudgetAllocation({
     maximumTotalCostMultipleFromObserved: defaultObservedCostMultiple,
     maximumEvidenceScaledCostMultipleFromObserved: defaultEvidenceScaledCostMultiple,
     evidenceSampleMultipleForMaximumScale: sampleMultipleForMaximumScale,
+    minimumStablePeriods: defaultMinimumStablePeriods,
+    minimumStablePeriodNetReturn: defaultMinimumStablePeriodReturn,
     allocatedBudget,
     unallocatedBudget: remainingBudget,
     allocationBySource,
