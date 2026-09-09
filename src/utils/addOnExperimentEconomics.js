@@ -136,8 +136,10 @@ export function evaluateAddOnExperiment({
 export function recommendMonetizationBudgetAllocation({
   channels = [],
   availableIncrementalBudget = 0,
+  maximumTotalCostMultipleFromObserved = 2,
 } = {}) {
   const budget = finiteNonNegative(availableIncrementalBudget);
+  const defaultObservedCostMultiple = Math.max(1, finiteNonNegative(maximumTotalCostMultipleFromObserved));
   let remainingBudget = budget;
 
   const normalizedChannels = (Array.isArray(channels) ? channels : []).map((item = {}, index) => {
@@ -146,13 +148,19 @@ export function recommendMonetizationBudgetAllocation({
     const projectedContribution = finiteNonNegative(economics.projectedIncrementalContributionAtBaselineVolume);
     const projectedCost = finiteNonNegative(economics.projectedIncrementalExperimentCostAtBaselineVolume);
     const headroom = finiteNonNegative(economics.remainingSafeIncrementalCostHeadroomAtBaselineVolume);
+    const configuredObservedCostMultiple = item.maximumTotalCostMultipleFromObserved
+      ?? economics.maximumTotalCostMultipleFromObserved
+      ?? defaultObservedCostMultiple;
+    const observedCostMultiple = Math.max(1, finiteNonNegative(configuredObservedCostMultiple));
+    const evidenceBoundIncrementalBudgetCap = projectedCost * Math.max(0, observedCostMultiple - 1);
+    const scalableSafeHeadroom = Math.min(headroom, evidenceBoundIncrementalBudgetCap);
     const roi = Number(economics.netReturnOnIncrementalCost);
     const netReturnOnIncrementalCost = Number.isFinite(roi) ? roi : null;
     const evidenceStatus = economics.evidenceStatus || "collecting";
     const economicallyPositive = economics.economicallyPositive === true;
     const eligibleForPaidBudget = evidenceStatus === "sufficient"
       && economicallyPositive
-      && headroom > 0
+      && scalableSafeHeadroom > 0
       && projectedContribution > 0
       && projectedCost > 0
       && netReturnOnIncrementalCost !== null;
@@ -162,6 +170,9 @@ export function recommendMonetizationBudgetAllocation({
       projectedIncrementalContributionAtBaselineVolume: projectedContribution,
       projectedIncrementalExperimentCostAtBaselineVolume: projectedCost,
       remainingSafeIncrementalCostHeadroomAtBaselineVolume: headroom,
+      maximumTotalCostMultipleFromObserved: observedCostMultiple,
+      evidenceBoundIncrementalBudgetCap,
+      scalableSafeHeadroom,
       netReturnOnIncrementalCost,
       evidenceStatus,
       economicallyPositive,
@@ -175,7 +186,9 @@ export function recommendMonetizationBudgetAllocation({
             ? "not_economically_positive"
             : (headroom <= 0
               ? "no_safe_headroom"
-              : (projectedCost <= 0 ? "no_paid_budget_required" : "missing_return_signal")))),
+              : (evidenceBoundIncrementalBudgetCap <= 0
+                ? "no_evidence_bound_headroom"
+                : (projectedCost <= 0 ? "no_paid_budget_required" : "missing_return_signal"))))),
     };
   });
 
@@ -196,7 +209,7 @@ export function recommendMonetizationBudgetAllocation({
     if (remainingBudget <= 0) return;
     const suggestedIncrementalBudget = Math.min(
       remainingBudget,
-      channel.remainingSafeIncrementalCostHeadroomAtBaselineVolume,
+      channel.scalableSafeHeadroom,
     );
     channel.suggestedIncrementalBudget = suggestedIncrementalBudget;
     allocationBySource[channel.source] = suggestedIncrementalBudget;
@@ -220,6 +233,7 @@ export function recommendMonetizationBudgetAllocation({
   return {
     decisionSupportOnly: true,
     availableIncrementalBudget: budget,
+    maximumTotalCostMultipleFromObserved: defaultObservedCostMultiple,
     allocatedBudget,
     unallocatedBudget: remainingBudget,
     allocationBySource,

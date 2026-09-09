@@ -3,7 +3,7 @@ import {
 } from "./addOnExperimentEconomics";
 
 describe("recommendMonetizationBudgetAllocation", () => {
-  test("prioriza o canal com maior retorno líquido e respeita o headroom seguro", () => {
+  test("prioriza o canal com maior retorno líquido e limita a escala ao custo observado", () => {
     const result = recommendMonetizationBudgetAllocation({
       availableIncrementalBudget: 300,
       channels: [
@@ -33,10 +33,13 @@ describe("recommendMonetizationBudgetAllocation", () => {
     });
 
     expect(result.decisionSupportOnly).toBe(true);
-    expect(result.allocationBySource).toEqual({ campaign: 220, promoter: 80 });
+    expect(result.maximumTotalCostMultipleFromObserved).toBe(2);
+    expect(result.allocationBySource).toEqual({ campaign: 120, promoter: 180 });
     expect(result.allocatedBudget).toBeCloseTo(300);
     expect(result.unallocatedBudget).toBeCloseTo(0);
     expect(result.recommendations.map((item) => item.source)).toEqual(["campaign", "promoter"]);
+    expect(result.recommendations.find((item) => item.source === "campaign").scalableSafeHeadroom)
+      .toBeCloseTo(120);
   });
 
   test("não recomenda verba paga sem evidência, margem econômica ou headroom", () => {
@@ -120,8 +123,49 @@ describe("recommendMonetizationBudgetAllocation", () => {
     });
 
     expect(result.recommendations.map((item) => item.source)).toEqual(["campaign", "promoter"]);
-    expect(result.allocationBySource).toEqual({ campaign: 180, promoter: 120 });
-    expect(result.allocatedBudget).toBeCloseTo(300);
-    expect(result.unallocatedBudget).toBeCloseTo(100);
+    expect(result.allocationBySource).toEqual({ campaign: 150, promoter: 100 });
+    expect(result.allocatedBudget).toBeCloseTo(250);
+    expect(result.unallocatedBudget).toBeCloseTo(150);
+  });
+
+  test("permite calibrar a escala por canal sem ultrapassar o headroom econômico", () => {
+    const result = recommendMonetizationBudgetAllocation({
+      availableIncrementalBudget: 1000,
+      maximumTotalCostMultipleFromObserved: 2,
+      channels: [
+        {
+          source: "boost",
+          maximumTotalCostMultipleFromObserved: 1.5,
+          economics: {
+            evidenceStatus: "sufficient",
+            economicallyPositive: true,
+            projectedIncrementalContributionAtBaselineVolume: 500,
+            projectedIncrementalExperimentCostAtBaselineVolume: 200,
+            remainingSafeIncrementalCostHeadroomAtBaselineVolume: 900,
+            netReturnOnIncrementalCost: 2.5,
+          },
+        },
+        {
+          source: "campaign",
+          maximumTotalCostMultipleFromObserved: 3,
+          economics: {
+            evidenceStatus: "sufficient",
+            economicallyPositive: true,
+            projectedIncrementalContributionAtBaselineVolume: 300,
+            projectedIncrementalExperimentCostAtBaselineVolume: 100,
+            remainingSafeIncrementalCostHeadroomAtBaselineVolume: 150,
+            netReturnOnIncrementalCost: 2,
+          },
+        },
+      ],
+    });
+
+    expect(result.allocationBySource).toEqual({ boost: 100, campaign: 150 });
+    expect(result.allocatedBudget).toBeCloseTo(250);
+    expect(result.unallocatedBudget).toBeCloseTo(750);
+    expect(result.recommendations.find((item) => item.source === "boost").evidenceBoundIncrementalBudgetCap)
+      .toBeCloseTo(100);
+    expect(result.recommendations.find((item) => item.source === "campaign").evidenceBoundIncrementalBudgetCap)
+      .toBeCloseTo(200);
   });
 });
