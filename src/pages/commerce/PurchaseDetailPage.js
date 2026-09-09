@@ -1,9 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Alert, Badge, Button, Card, Col, Container, Row, Spinner } from "react-bootstrap";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import QrCodeComponent from "../../components/QrCodeComponent";
 import commerceService from "../../services/CommerceService";
+import { writeCheckoutRecovery } from "../../utils/checkoutRecovery";
+import { checkoutSelectionFromOrder, latestPendingPaymentFromOrder } from "../../utils/orderRecovery";
+import { writePaymentRecoveryAttribution } from "../../utils/paymentRecoveryAttribution";
+import { safeSetSessionJson } from "../../utils/safeStorage";
 import "./CommerceHistory.css";
 
 const money = (value) => Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -12,11 +16,13 @@ const dateTime = (value) => value ? new Date(value).toLocaleString("pt-BR", { da
 
 export default function PurchaseDetailPage() {
   const { publicId } = useParams();
+  const navigate = useNavigate();
   const [order, setOrder] = useState(null);
   const [credential, setCredential] = useState(null);
   const [loading, setLoading] = useState(true);
   const [credentialLoading, setCredentialLoading] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [recoveringPix, setRecoveringPix] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -31,6 +37,11 @@ export default function PurchaseDetailPage() {
   const payment = useMemo(() => order?.payments?.[0], [order]);
   const itemLines = useMemo(() => (order?.items || []).filter((item) => item.type === "item"), [order]);
   const hasPickup = order?.status === "paid" && itemLines.length > 0;
+  const expiresAt = Date.parse(order?.expires_at || "");
+  const canResumePix = order?.status === "pending"
+    && String(order?.payment_method || payment?.method || "").toLowerCase() === "pix"
+    && Number.isFinite(expiresAt)
+    && expiresAt > Date.now();
 
   useEffect(() => {
     if (!hasPickup) {
@@ -47,6 +58,54 @@ export default function PurchaseDetailPage() {
 
     return () => { active = false; };
   }, [hasPickup, publicId]);
+
+  const resumePendingPix = async () => {
+    const orderId = Number(order?.id || 0);
+    const slug = String(order?.event?.slug || "").trim();
+    if (!orderId || !slug || !canResumePix) return;
+
+    setRecoveringPix(true);
+    setError("");
+    try {
+      const response = await commerceService.recoverPendingCheckout(orderId);
+      const recoveredOrder = response?.order;
+      const selection = checkoutSelectionFromOrder(recoveredOrder);
+      const recoveredPayment = latestPendingPaymentFromOrder(recoveredOrder);
+
+      safeSetSessionJson(`cutinapp_checkout_${slug}`, selection);
+      safeSetSessionJson(`cutinapp_payment_${slug}`, { order: recoveredOrder, payment: recoveredPayment });
+      writeCheckoutRecovery(slug, { selection, orderPublicId: recoveredOrder?.public_id || null });
+      writePaymentRecoveryAttribution({
+        orderPublicId: recoveredOrder?.public_id || "",
+        amount: Number(recoveredOrder?.total || 0),
+      });
+
+      try {
+        window.PeterTecnetTelemetry?.track?.("checkout_recovery_resumed", {
+          label: "PIX pendente retomado no detalhe da compra",
+          target: slug,
+          metadata: {
+            order_id: orderId,
+            order_public_id: recoveredOrder?.public_id || publicId,
+            amount: Number(recoveredOrder?.total || 0),
+            payment_method: "pix",
+            recovery_entrypoint: "purchase_detail",
+            seconds_remaining: Number(response?.payment_recovery_seconds_remaining || 0),
+          },
+        });
+      } catch (_) {
+        // Telemetry must never block payment recovery.
+      }
+
+      navigate(`/checkout/${encodeURIComponent(slug)}`);
+    } catch (err) {
+      setError(err?.status === 409
+        ? "Esse PIX não está mais disponível. Abra o evento para iniciar uma nova compra, se ainda houver vendas."
+        : err?.message || "Não foi possível retomar esse pagamento agora.");
+    } finally {
+      setRecoveringPix(false);
+    }
+  };
 
   const downloadReceipt = async () => {
     setDownloading(true); setError("");
@@ -93,6 +152,8 @@ export default function PurchaseDetailPage() {
           </Card.Body></Card></Col>
           <Col lg={5}><Card className="cut-commerce-card h-100"><Card.Body><h2>Pagamento</h2>
             <dl className="cut-commerce-dl"><div><dt>Status</dt><dd>{payment?.status || order.status}</dd></div><div><dt>Provedor</dt><dd>{payment?.provider || "Mercado Pago"}</dd></div><div><dt>ID da transação</dt><dd>{payment?.provider_payment_id || "-"}</dd></div><div><dt>Valor</dt><dd>{money(payment?.amount || order.total)}</dd></div></dl>
+            {canResumePix && <Alert variant="info">Seu PIX ainda está disponível. Você pode retomar o pagamento sem refazer o pedido.</Alert>}
+            {canResumePix && <Button variant="success" onClick={resumePendingPix} disabled={recoveringPix} className="w-100 mb-2"><i className="fa-brands fa-pix me-2" />{recoveringPix ? "Retomando PIX..." : "Retomar pagamento PIX"}</Button>}
             <Button onClick={downloadReceipt} disabled={downloading} className="w-100"><i className="fa-regular fa-file-pdf me-2" />{downloading ? "Gerando recibo..." : "Baixar recibo em PDF"}</Button>
             {order.status === "paid" && (order.items || []).some((item) => item.type === "ticket") && <Button as={Link} to="/passes" variant="outline-light" className="w-100 mt-2">Abrir meus ingressos</Button>}
           </Card.Body></Card></Col>
