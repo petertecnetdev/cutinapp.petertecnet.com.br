@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Badge, Button, Card, Col, Container, Row, Spinner } from "react-bootstrap";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
@@ -17,6 +17,7 @@ const dateTime = (value) => value ? new Date(value).toLocaleString("pt-BR", { da
 export default function PurchaseDetailPage() {
   const { publicId } = useParams();
   const navigate = useNavigate();
+  const recoveryLandingTrackedRef = useRef(false);
   const [order, setOrder] = useState(null);
   const [credential, setCredential] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -42,6 +43,32 @@ export default function PurchaseDetailPage() {
     && String(order?.payment_method || payment?.method || "").toLowerCase() === "pix"
     && Number.isFinite(expiresAt)
     && expiresAt > Date.now();
+
+  useEffect(() => {
+    if (!order || recoveryLandingTrackedRef.current) return;
+
+    const recoverySource = new URLSearchParams(window.location.search).get("recovery_source");
+    if (recoverySource !== "in_app") return;
+
+    recoveryLandingTrackedRef.current = true;
+    try {
+      window.PeterTecnetTelemetry?.track?.("checkout_recovery_landed", {
+        label: "Lembrete de PIX abriu o detalhe da compra",
+        target: String(order?.event?.slug || "purchase_detail"),
+        metadata: {
+          order_id: Number(order?.id || 0),
+          order_public_id: order?.public_id || publicId,
+          amount: Number(order?.total || 0),
+          payment_method: String(order?.payment_method || payment?.method || "").toLowerCase(),
+          recovery_source: recoverySource,
+          recovery_entrypoint: "purchase_detail",
+          can_resume_pix: canResumePix,
+        },
+      });
+    } catch (_) {
+      // Attribution must never block purchase details or payment recovery.
+    }
+  }, [canResumePix, order, payment?.method, publicId]);
 
   useEffect(() => {
     if (!hasPickup) {
