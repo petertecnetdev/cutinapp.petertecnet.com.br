@@ -20,6 +20,7 @@
     "aws-amplify": "^6.0.0",
     "axios": "^1.6.8",
     "bootstrap": "^5.3.3",
+    "jsqr": "^1.4.0",
     "prop-types": "^15.8.1",
     "qrcode": "^1.5.4",
     "react-bootstrap": "^2.10.2",
