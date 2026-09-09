@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import commerceService from "../../services/CommerceService";
 import { writeCheckoutRecovery } from "../../utils/checkoutRecovery";
-import { checkoutSelectionFromOrder, latestPendingPaymentFromOrder } from "../../utils/orderRecovery";
+import { checkoutSelectionFromOrder, isPendingPixRecoverable, latestPaymentFromOrder, latestPendingPaymentFromOrder, paymentMethodFromOrder } from "../../utils/orderRecovery";
 import { writePaymentRecoveryAttribution } from "../../utils/paymentRecoveryAttribution";
 import { safeSetSessionJson } from "../../utils/safeStorage";
 import "./CommerceHistory.css";
@@ -18,6 +18,7 @@ export default function PurchasesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [recoveringOrderId, setRecoveringOrderId] = useState(null);
+  const [nowMs, setNowMs] = useState(() => Date.now());
 
   useEffect(() => {
     let active = true;
@@ -28,10 +29,15 @@ export default function PurchasesPage() {
     return () => { active = false; };
   }, []);
 
+  useEffect(() => {
+    const intervalId = window.setInterval(() => setNowMs(Date.now()), 15000);
+    return () => window.clearInterval(intervalId);
+  }, []);
+
   const resumePendingPix = async (order) => {
     const orderId = Number(order?.id || 0);
     const slug = String(order?.event?.slug || "").trim();
-    if (!orderId || !slug) return;
+    if (!orderId || !slug || !isPendingPixRecoverable(order, Date.now())) return;
 
     setRecoveringOrderId(orderId);
     setError("");
@@ -90,12 +96,9 @@ export default function PurchasesPage() {
 
       <div className="cut-commerce-list">
         {(data?.data || []).map((order) => {
-          const payment = order.payments?.[0];
-          const expiresAt = Date.parse(order?.expires_at || "");
-          const canResumePix = order.status === "pending"
-            && String(order.payment_method || payment?.method || "").toLowerCase() === "pix"
-            && Number.isFinite(expiresAt)
-            && expiresAt > Date.now();
+          const payment = latestPaymentFromOrder(order);
+          const paymentMethod = paymentMethodFromOrder(order);
+          const canResumePix = isPendingPixRecoverable(order, nowMs);
           return <Card className="cut-commerce-card" key={order.public_id}>
             <Card.Body>
               <div className="cut-commerce-order-top">
@@ -104,7 +107,7 @@ export default function PurchasesPage() {
               </div>
               <div className="cut-commerce-order-grid">
                 <span><strong>{money(order.total)}</strong><small>Total</small></span>
-                <span><strong>{String(order.payment_method || payment?.method || "-").toUpperCase()}</strong><small>Pagamento</small></span>
+                <span><strong>{paymentMethod ? paymentMethod.toUpperCase() : "-"}</strong><small>Pagamento</small></span>
                 <span><strong>{order.items?.reduce((sum, item) => sum + Number(item.quantity || 0), 0) || 0}</strong><small>Itens</small></span>
               </div>
               <div className="cut-commerce-actions"><Button as={Link} to={`/purchases/${order.public_id}`}>Ver compra e recibo</Button>{canResumePix && <Button variant="success" onClick={() => resumePendingPix(order)} disabled={recoveringOrderId === Number(order.id)}>{recoveringOrderId === Number(order.id) ? "Retomando PIX..." : "Retomar PIX"}</Button>}{order.status === "paid" && <Button as={Link} to="/passes" variant="outline-light">Ver ingressos</Button>}</div>
