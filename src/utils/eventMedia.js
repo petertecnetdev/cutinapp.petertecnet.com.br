@@ -6,19 +6,20 @@ export const EVENT_FLYER_RECOMMENDED_HEIGHT = 1920;
 export const EVENT_IMAGE_MAX_BYTES = 8 * 1024 * 1024;
 
 const absoluteUrl = (value) => /^https?:\/\//i.test(String(value || ""));
-const pipelineVariantPattern = /\/(?:original|thumbnail|card|feed|hero|background|og)\.webp$/i;
+const pipelineVariantPattern = /\/(?:original|thumbnail|card|feed|hero|background|og)\.webp(?=$|[?#])/i;
+const supportedVariants = new Set(["original", "thumbnail", "card", "feed", "hero", "background", "og"]);
 
 export const eventMediaPath = (value, variant = "original") => {
   if (!value) return "";
   const image = String(value);
-  if (absoluteUrl(image)) return image;
+  const requested = supportedVariants.has(variant) ? variant : "original";
 
-  const normalized = image.replace(/^\/+/, "");
-  if (!pipelineVariantPattern.test(normalized)) return normalized;
+  if (!pipelineVariantPattern.test(image)) {
+    return absoluteUrl(image) ? image : image.replace(/^\/+/, "");
+  }
 
-  const supported = new Set(["original", "thumbnail", "card", "feed", "hero", "background", "og"]);
-  const requested = supported.has(variant) ? variant : "original";
-  return normalized.replace(pipelineVariantPattern, `/${requested}.webp`);
+  const resolved = image.replace(pipelineVariantPattern, `/${requested}.webp`);
+  return absoluteUrl(resolved) ? resolved : resolved.replace(/^\/+/, "");
 };
 
 export const eventImageUrl = (value, variant = "original") => {
@@ -28,8 +29,13 @@ export const eventImageUrl = (value, variant = "original") => {
 };
 
 export const eventMediaBackgroundStyle = (value) => {
-  const background = eventImageUrl(value, "background") || eventImageUrl(value, "original");
-  return background ? { "--cut-event-media-bg": `url("${background}")` } : undefined;
+  if (!value) return undefined;
+  const background = eventImageUrl(value, "background");
+  const fallback = eventImageUrl(value, "hero") || eventImageUrl(value, "original");
+  const layers = [background, fallback].filter((item, index, items) => item && items.indexOf(item) === index);
+  return layers.length > 0
+    ? { "--cut-event-media-bg": layers.map((item) => `url("${item}")`).join(", ") }
+    : undefined;
 };
 
 export const fallbackToOriginalEventImage = (event, originalValue) => {
