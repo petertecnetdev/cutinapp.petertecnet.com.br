@@ -16,10 +16,17 @@ export const checkoutSelectionFromOrder = (order = {}) => {
   return { tickets, items };
 };
 
-export const latestPendingPaymentFromOrder = (order = {}) => {
+export const latestPaymentFromOrder = (order = {}) => {
   const payments = Array.isArray(order?.payments) ? order.payments : [];
   if (!payments.length) return null;
   return payments.reduce((latest, payment) => (
     Number(payment?.id || 0) > Number(latest?.id || 0) ? payment : latest
   ), payments[0]);
 };
+
+export const paymentMethodFromOrder = (order = {}) => {
+  const latestPayment = latestPaymentFromOrder(order);
+  return String(latestPayment?.method || order?.payment_method || "").trim().toLowerCase();
+};
+
+export const latestPendingPaymentFromOrder = (order = {}) => latestPaymentFromOrder(order);
