@@ -1,0 +1,70 @@
+name: One-shot featured production link
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/one-shot-featured-production-link.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Link featured production card
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/pages/LandingPageV2.js')
+          text = path.read_text()
+
+          marker = '  const featuredProduction = productions[0] || null;\n'
+          link_line = '  const featuredProductionLink = featuredProduction?.slug ? `/production/${encodeURIComponent(featuredProduction.slug)}/public` : "/productions";\n'
+          if link_line not in text:
+              if marker not in text:
+                  raise SystemExit('featuredProduction marker not found')
+              text = text.replace(marker, marker + link_line, 1)
+
+          old = '''              <div className="cut-landing__floatingCard cut-landing__floatingCard--people" style={{ pointerEvents: "none" }}>
+                <small>QUEM FAZ ACONTECER</small>
+                <strong>{featuredProduction?.name || "Produções da sua cidade"}</strong>
+                <span>{featuredProduction?.city || "Descubra e acompanhe"}</span>
+              </div>'''
+          new = '''              <Link
+                to={featuredProductionLink}
+                className="cut-landing__floatingCard cut-landing__floatingCard--people"
+                aria-label={featuredProduction?.name ? `Abrir produção ${featuredProduction.name}` : "Explorar produções"}
+                style={{ color: "inherit", textDecoration: "none", cursor: "pointer", pointerEvents: "auto", touchAction: "manipulation" }}
+              >
+                <small>QUEM FAZ ACONTECER</small>
+                <strong>{featuredProduction?.name || "Produções da sua cidade"}</strong>
+                <span>{featuredProduction?.city || "Descubra e acompanhe"}</span>
+              </Link>'''
+
+          if new not in text:
+              if old not in text:
+                  raise SystemExit('featured production card block not found')
+              text = text.replace(old, new, 1)
+
+          path.write_text(text)
+          PY
+
+          if git diff --quiet -- src/pages/LandingPageV2.js; then
+            echo 'No changes required.'
+            exit 0
+          fi
+
+          git config user.name 'Peter Tecnet Automation'
+          git config user.email 'petertecnet@gmail.com'
+          git add src/pages/LandingPageV2.js
+          git commit -m 'fix(landing): link featured production to public page'
+          git push origin HEAD:main
