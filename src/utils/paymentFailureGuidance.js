@@ -31,6 +31,7 @@ export const classifyPaymentFailure = (payment = {}, method = "") => {
   if (detail.includes("bad_filled_date")) return { reason: "card_expiration_data", detail };
   if (detail.includes("bad_filled_card_number")) return { reason: "card_number", detail };
   if (detail.includes("bad_filled_other")) return { reason: "card_additional_data", detail };
+  if (detail.includes("cc_rejected_3ds_challenge")) return { reason: "card_authentication_failed", detail };
   if (detail.includes("3ds_challenge") || detail.includes("pending_challenge") || detail.includes("three_ds")) return { reason: "card_authentication", detail };
   if (detail.includes("invalid_installments") || detail.includes("installment")) return { reason: "invalid_installments", detail };
   if (detail.includes("amount_limit_exceeded")) return { reason: "amount_limit_exceeded", detail };
@@ -94,6 +95,10 @@ export const paymentFailureGuidance = ({ payment = {}, method = "", pixAvailable
     card_authentication: {
       title: "A autenticação do cartão não foi concluída",
       message: `O banco exigiu uma etapa extra de autenticação (3DS) e ela não foi concluída ou expirou. Volte ao fluxo do banco e conclua a confirmação antes de tentar novamente. Evite repetir imediatamente os mesmos dados sem concluir a autenticação.${pixRecommended}`,
+    },
+    card_authentication_failed: {
+      title: "A autenticação do cartão falhou",
+      message: `A etapa anterior de autenticação (3DS) foi encerrada sem aprovação e não pode ser retomada. Sua seleção continua preservada: inicie uma nova tentativa para abrir uma nova autenticação e conclua a confirmação no banco.${pixAlternative}`,
     },
     card_authentication_expired: {
       title: "O prazo de autenticação do banco expirou",
