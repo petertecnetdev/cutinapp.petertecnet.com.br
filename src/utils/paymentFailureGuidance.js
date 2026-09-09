@@ -25,6 +25,7 @@ export const classifyPaymentFailure = (payment = {}, method = "") => {
   }
   if ((status === "cancelled" || status === "canceled") && detail === "expired") return { reason: "card_authentication_expired", detail };
   if (detail.includes("3ds_challenge_expired")) return { reason: "card_authentication_expired", detail };
+  if (status === "rejected" && detail === "expired") return { reason: "payment_expired", detail };
   if ((status === "cancelled" || status === "canceled") && (!detail || detail === "cancelled" || detail === "canceled")) return { reason: "card_cancelled", detail };
   if (detail.includes("bad_filled_security_code")) return { reason: "card_security_code", detail };
   if (detail.includes("bad_filled_date")) return { reason: "card_expiration_data", detail };
@@ -96,6 +97,10 @@ export const paymentFailureGuidance = ({ payment = {}, method = "", pixAvailable
     card_authentication_expired: {
       title: "O prazo de autenticação do banco expirou",
       message: `A etapa de autenticação (3DS) expirou antes da confirmação. O cartão não está necessariamente vencido: inicie uma nova tentativa para abrir uma nova autenticação e conclua a confirmação no banco.${pixAlternative}`,
+    },
+    payment_expired: {
+      title: "A tentativa de pagamento expirou",
+      message: `Esta tentativa terminou antes de ser concluída e não será mais processada. Isso não significa que o cartão esteja vencido. Sua seleção continua preservada: inicie uma nova tentativa de pagamento com segurança.${pixAlternative}`,
     },
     card_cancelled: {
       title: "A tentativa anterior foi encerrada",
