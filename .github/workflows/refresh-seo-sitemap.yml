@@ -65,13 +65,15 @@ jobs:
           VPS_USER: ${{ secrets.VPS_USER }}
         run: |
           set -euo pipefail
-          scp \
+          test -s scripts/generate-seo-snapshots.mjs
+          ssh \
             -o StrictHostKeyChecking=accept-new \
             -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
             -o ConnectTimeout=20 \
-            -P "$VPS_PORT" \
-            scripts/generate-seo-snapshots.mjs \
-            "$VPS_USER@$VPS_HOST:/tmp/cutinapp-generate-seo-snapshots.mjs"
+            -p "$VPS_PORT" \
+            "$VPS_USER@$VPS_HOST" \
+            'umask 077; cat > /tmp/cutinapp-generate-seo-snapshots.mjs' \
+            < scripts/generate-seo-snapshots.mjs
 
       - name: Publish dynamic sitemap and prerender snapshots
         if: steps.config.outputs.enabled == 'true'
