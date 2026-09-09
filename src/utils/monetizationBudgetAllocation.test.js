@@ -1,4 +1,5 @@
 import {
+  evaluateAddOnExperiment,
   recommendMonetizationBudgetAllocation,
 } from "./addOnExperimentEconomics";
 
@@ -167,5 +168,73 @@ describe("recommendMonetizationBudgetAllocation", () => {
       .toBeCloseTo(100);
     expect(result.recommendations.find((item) => item.source === "campaign").evidenceBoundIncrementalBudgetCap)
       .toBeCloseTo(200);
+  });
+
+  test("aumenta gradualmente a escala permitida quando a amostra supera o mínimo", () => {
+    const result = recommendMonetizationBudgetAllocation({
+      availableIncrementalBudget: 1000,
+      maximumTotalCostMultipleFromObserved: 2,
+      maximumEvidenceScaledCostMultipleFromObserved: 4,
+      evidenceSampleMultipleForMaximumScale: 5,
+      channels: [
+        {
+          source: "promoter",
+          economics: {
+            evidenceStatus: "sufficient",
+            evidenceSampleMultiple: 1,
+            economicallyPositive: true,
+            projectedIncrementalContributionAtBaselineVolume: 400,
+            projectedIncrementalExperimentCostAtBaselineVolume: 100,
+            remainingSafeIncrementalCostHeadroomAtBaselineVolume: 500,
+            netReturnOnIncrementalCost: 2,
+          },
+        },
+        {
+          source: "campaign",
+          economics: {
+            evidenceStatus: "sufficient",
+            evidenceSampleMultiple: 5,
+            economicallyPositive: true,
+            projectedIncrementalContributionAtBaselineVolume: 350,
+            projectedIncrementalExperimentCostAtBaselineVolume: 100,
+            remainingSafeIncrementalCostHeadroomAtBaselineVolume: 500,
+            netReturnOnIncrementalCost: 1.5,
+          },
+        },
+      ],
+    });
+
+    const promoter = result.recommendations.find((item) => item.source === "promoter");
+    const campaign = result.recommendations.find((item) => item.source === "campaign");
+
+    expect(promoter.maximumTotalCostMultipleFromObserved).toBeCloseTo(2);
+    expect(promoter.evidenceBoundIncrementalBudgetCap).toBeCloseTo(100);
+    expect(campaign.maximumTotalCostMultipleFromObserved).toBeCloseTo(4);
+    expect(campaign.evidenceBoundIncrementalBudgetCap).toBeCloseTo(300);
+    expect(result.allocationBySource).toEqual({ promoter: 100, campaign: 300 });
+  });
+
+  test("expõe força de amostra acima do mínimo sem alterar o status de suficiência", () => {
+    const analysis = evaluateAddOnExperiment({
+      minimumOrdersPerArm: 20,
+      baseline: {
+        paidOrders: 100,
+        addOnOrders: 20,
+        gmv: 10000,
+        netPlatformRevenue: 1000,
+        incrementalExperimentCost: 100,
+      },
+      variant: {
+        paidOrders: 120,
+        addOnOrders: 36,
+        gmv: 12600,
+        netPlatformRevenue: 1380,
+        incrementalExperimentCost: 120,
+      },
+    });
+
+    expect(analysis.evidence).toBe(1);
+    expect(analysis.evidenceStatus).toBe("sufficient");
+    expect(analysis.evidenceSampleMultiple).toBeCloseTo(5);
   });
 });

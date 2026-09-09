@@ -56,7 +56,8 @@ export function evaluateAddOnExperiment({
   const treatment = normalize(variant);
   const evidenceTarget = Math.max(1, finiteNonNegative(minimumOrdersPerArm));
   const minimumReturn = finiteNonNegative(minimumNetReturnOnIncrementalCost);
-  const evidence = Math.min(1, Math.min(control.paidOrders, treatment.paidOrders) / evidenceTarget);
+  const evidenceSampleMultiple = Math.min(control.paidOrders, treatment.paidOrders) / evidenceTarget;
+  const evidence = Math.min(1, evidenceSampleMultiple);
   const attachmentUplift = treatment.attachmentRate - control.attachmentRate;
   const ticketUplift = treatment.averageTicket - control.averageTicket;
   const netRevenuePerOrderUplift = treatment.netRevenuePerOrder - control.netRevenuePerOrder;
@@ -108,6 +109,7 @@ export function evaluateAddOnExperiment({
     baseline: control,
     variant: treatment,
     evidence,
+    evidenceSampleMultiple,
     evidenceStatus: evidence >= 1 ? "sufficient" : "collecting",
     attachmentUplift,
     ticketUplift,
@@ -137,9 +139,16 @@ export function recommendMonetizationBudgetAllocation({
   channels = [],
   availableIncrementalBudget = 0,
   maximumTotalCostMultipleFromObserved = 2,
+  maximumEvidenceScaledCostMultipleFromObserved = 4,
+  evidenceSampleMultipleForMaximumScale = 5,
 } = {}) {
   const budget = finiteNonNegative(availableIncrementalBudget);
   const defaultObservedCostMultiple = Math.max(1, finiteNonNegative(maximumTotalCostMultipleFromObserved));
+  const defaultEvidenceScaledCostMultiple = Math.max(
+    defaultObservedCostMultiple,
+    finiteNonNegative(maximumEvidenceScaledCostMultipleFromObserved),
+  );
+  const sampleMultipleForMaximumScale = Math.max(1, finiteNonNegative(evidenceSampleMultipleForMaximumScale));
   let remainingBudget = budget;
 
   const normalizedChannels = (Array.isArray(channels) ? channels : []).map((item = {}, index) => {
@@ -151,7 +160,22 @@ export function recommendMonetizationBudgetAllocation({
     const configuredObservedCostMultiple = item.maximumTotalCostMultipleFromObserved
       ?? economics.maximumTotalCostMultipleFromObserved
       ?? defaultObservedCostMultiple;
-    const observedCostMultiple = Math.max(1, finiteNonNegative(configuredObservedCostMultiple));
+    const baseObservedCostMultiple = Math.max(1, finiteNonNegative(configuredObservedCostMultiple));
+    const configuredEvidenceScaledCostMultiple = item.maximumEvidenceScaledCostMultipleFromObserved
+      ?? economics.maximumEvidenceScaledCostMultipleFromObserved
+      ?? defaultEvidenceScaledCostMultiple;
+    const evidenceScaledCostMultipleCap = Math.max(
+      baseObservedCostMultiple,
+      finiteNonNegative(configuredEvidenceScaledCostMultiple),
+    );
+    const rawEvidenceSampleMultiple = Number(economics.evidenceSampleMultiple);
+    const hasEvidenceStrength = Number.isFinite(rawEvidenceSampleMultiple) && rawEvidenceSampleMultiple >= 1;
+    const evidenceSampleMultiple = hasEvidenceStrength ? rawEvidenceSampleMultiple : null;
+    const scaleProgress = hasEvidenceStrength && sampleMultipleForMaximumScale > 1
+      ? Math.min(1, Math.max(0, (evidenceSampleMultiple - 1) / (sampleMultipleForMaximumScale - 1)))
+      : 0;
+    const observedCostMultiple = baseObservedCostMultiple
+      + ((evidenceScaledCostMultipleCap - baseObservedCostMultiple) * scaleProgress);
     const evidenceBoundIncrementalBudgetCap = projectedCost * Math.max(0, observedCostMultiple - 1);
     const scalableSafeHeadroom = Math.min(headroom, evidenceBoundIncrementalBudgetCap);
     const roi = Number(economics.netReturnOnIncrementalCost);
@@ -170,7 +194,11 @@ export function recommendMonetizationBudgetAllocation({
       projectedIncrementalContributionAtBaselineVolume: projectedContribution,
       projectedIncrementalExperimentCostAtBaselineVolume: projectedCost,
       remainingSafeIncrementalCostHeadroomAtBaselineVolume: headroom,
+      baseMaximumTotalCostMultipleFromObserved: baseObservedCostMultiple,
       maximumTotalCostMultipleFromObserved: observedCostMultiple,
+      maximumEvidenceScaledCostMultipleFromObserved: evidenceScaledCostMultipleCap,
+      evidenceSampleMultiple,
+      evidenceScaleProgress: scaleProgress,
       evidenceBoundIncrementalBudgetCap,
       scalableSafeHeadroom,
       netReturnOnIncrementalCost,
@@ -234,6 +262,8 @@ export function recommendMonetizationBudgetAllocation({
     decisionSupportOnly: true,
     availableIncrementalBudget: budget,
     maximumTotalCostMultipleFromObserved: defaultObservedCostMultiple,
+    maximumEvidenceScaledCostMultipleFromObserved: defaultEvidenceScaledCostMultiple,
+    evidenceSampleMultipleForMaximumScale: sampleMultipleForMaximumScale,
     allocatedBudget,
     unallocatedBudget: remainingBudget,
     allocationBySource,
