@@ -129,4 +129,61 @@ describe("notificationTelemetryAttrs", () => {
     window.PeterTecnetTelemetry = previousTelemetry;
     window.IntersectionObserver = previousObserver;
   });
+
+  it("records a recovery CTA impression on the notifications page using the same visibility guard", () => {
+    const track = jest.fn();
+    const observe = jest.fn();
+    const disconnect = jest.fn();
+    let observerCallback;
+    const previousTelemetry = window.PeterTecnetTelemetry;
+    const previousObserver = window.IntersectionObserver;
+
+    window.PeterTecnetTelemetry = { track };
+    window.IntersectionObserver = jest.fn((callback) => {
+      observerCallback = callback;
+      return { observe, disconnect };
+    });
+
+    const attrs = notificationTelemetryAttrs({
+      id: 89,
+      type: "checkout_recovery",
+      reference_id: "order-public-789",
+      metadata: {
+        recovery_action: "resume_pix",
+        recovery_cta_label: "Retomar pagamento PIX",
+        recovery_experiment: "pix_recovery_timing_v1",
+        recovery_timing_minutes: 60,
+      },
+    }, "notifications_page");
+
+    const node = document.createElement("button");
+    expect(typeof attrs.ref).toBe("function");
+    attrs.ref(node);
+    expect(observe).toHaveBeenCalledWith(node);
+    expect(track).not.toHaveBeenCalled();
+
+    observerCallback([{ isIntersecting: true, intersectionRatio: 0.49 }]);
+    expect(track).not.toHaveBeenCalled();
+
+    observerCallback([{ isIntersecting: true, intersectionRatio: 0.5 }]);
+    observerCallback([{ isIntersecting: true, intersectionRatio: 1 }]);
+
+    expect(track).toHaveBeenCalledTimes(1);
+    expect(track).toHaveBeenCalledWith("checkout_recovery_notification_cta_viewed", {
+      label: "Retomar pagamento PIX",
+      target: "notifications_page",
+      metadata: {
+        order_public_id: "order-public-789",
+        recovery_source: "in_app",
+        recovery_entrypoint: "notifications_page",
+        recovery_action: "resume_pix",
+        recovery_experiment: "pix_recovery_timing_v1",
+        recovery_timing_minutes: 60,
+      },
+    });
+    expect(disconnect).toHaveBeenCalled();
+
+    window.PeterTecnetTelemetry = previousTelemetry;
+    window.IntersectionObserver = previousObserver;
+  });
 });

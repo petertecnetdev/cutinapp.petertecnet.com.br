@@ -31,7 +31,8 @@ const recoveryClickCapture = (notification, surface) => {
 };
 
 const recoveryImpressionRef = (notification, surface) => {
-  if (surface !== "navbar_popover" || !isRecoveryCta(notification)) return undefined;
+  const supportedSurface = surface === "navbar_popover" || surface === "notifications_page";
+  if (!supportedSurface || !isRecoveryCta(notification)) return undefined;
   if (typeof window === "undefined" || typeof window.IntersectionObserver !== "function") return undefined;
 
   const impressionKey = `${surface}:${String(notification.id)}`;
