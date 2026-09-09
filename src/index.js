@@ -19,6 +19,7 @@ import "./pages/HomeDiscovery.css";
 import "./styles/mobile-stability.css";
 import "./styles/peter-navbar-standard.css";
 import "./styles/cutinapp-mobile-final.css";
+import "./styles/checkout-recovery-cta.css";
 import "./styles/advanced-navbar.css";
 import "./styles/peter-branding-bridge.css";
 import "./styles/instagram-mobile-shell.css";
