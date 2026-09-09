@@ -44,6 +44,18 @@ export const classifyPaymentFailure = (payment = {}, method = "") => {
   return { reason: "card_rejected", detail };
 };
 
+const sameCardRetryBlockedReasons = new Set([
+  "duplicate_payment",
+  "security_block",
+  "security_review",
+  "attempt_limit",
+  "issuer_rejection",
+  "issuer_or_risk_rejection",
+  "card_rejected",
+  "card_type_not_allowed",
+  "expired_card",
+]);
+
 export const paymentFailureGuidance = ({ payment = {}, method = "", pixAvailable = false } = {}) => {
   const classification = classifyPaymentFailure(payment, method);
   const pixAlternative = pixAvailable ? " Você também pode usar PIX sem refazer sua seleção." : "";
@@ -147,6 +159,6 @@ export const paymentFailureGuidance = ({ payment = {}, method = "", pixAvailable
   return {
     ...classification,
     ...guidance[classification.reason],
-    retryAllowed: classification.reason !== "duplicate_payment",
+    retryAllowed: !sameCardRetryBlockedReasons.has(classification.reason),
   };
 };
