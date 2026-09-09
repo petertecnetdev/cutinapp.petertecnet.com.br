@@ -132,6 +132,17 @@ describe("paymentFailureGuidance", () => {
     expect(result.message).toContain("Não tente pagar novamente com outro cartão ou PIX agora");
     expect(result.message).toContain("Verifique o status da compra");
     expect(result.message).not.toContain("Recomendado: tente PIX");
+    expect(result.retryAllowed).toBe(false);
+  });
+
+  test("keeps recovery actions enabled for ordinary recoverable failures", () => {
+    const result = paymentFailureGuidance({
+      method: "card",
+      pixAvailable: true,
+      payment: { provider_payload: { status_detail: "cc_rejected_bad_filled_security_code" } },
+    });
+    expect(result.reason).toBe("card_security_code");
+    expect(result.retryAllowed).toBe(true);
   });
 
   test("does not recommend repeating identical data after a blacklist security block", () => {

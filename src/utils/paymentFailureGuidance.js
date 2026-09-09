@@ -134,5 +134,9 @@ export const paymentFailureGuidance = ({ payment = {}, method = "", pixAvailable
     },
   };
 
-  return { ...classification, ...guidance[classification.reason] };
+  return {
+    ...classification,
+    ...guidance[classification.reason],
+    retryAllowed: classification.reason !== "duplicate_payment",
+  };
 };
