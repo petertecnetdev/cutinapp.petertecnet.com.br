@@ -1,18 +1,10 @@
 import React from "react";
 import PropTypes from "prop-types";
+import { normalizeBrazilianWhatsappPhone } from "../utils/whatsappUrl";
 import "./WhatsAppFloatingButton.css";
 
-const normalizeBrazilianPhone = (value) => {
-  const digits = String(value || "").replace(/\D/g, "");
-  if (!digits) return "";
-
-  if (digits.startsWith("55") && digits.length >= 12) return digits;
-  if (digits.length === 10 || digits.length === 11) return `55${digits}`;
-  return digits;
-};
-
 export default function WhatsAppFloatingButton({ phone, message, label = "Falar no WhatsApp" }) {
-  const normalizedPhone = normalizeBrazilianPhone(phone);
+  const normalizedPhone = normalizeBrazilianWhatsappPhone(phone);
   if (!normalizedPhone) return null;
 
   const href = `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(message || "Olá! Vim pela Cutinapp e gostaria de mais informações.")}`;
