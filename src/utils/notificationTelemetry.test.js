@@ -39,4 +39,40 @@ describe("notificationTelemetryAttrs", () => {
       "data-peter-notification-surface": "notification_center",
     });
   });
+
+  it("attributes checkout recovery clicks from the navbar popover without blocking navigation", () => {
+    const track = jest.fn();
+    const previousTelemetry = window.PeterTecnetTelemetry;
+    window.PeterTecnetTelemetry = { track };
+
+    const attrs = notificationTelemetryAttrs({
+      id: 77,
+      type: "checkout_recovery",
+      reference_id: "order-public-123",
+      reference_url: "/purchases/order-public-123?recovery_source=in_app",
+      metadata: {
+        recovery_action: "resume_pix",
+        recovery_cta_label: "Retomar pagamento PIX",
+        recovery_experiment: "pix_recovery_timing_v1",
+        recovery_timing_minutes: 15,
+      },
+    }, "navbar_popover");
+
+    expect(typeof attrs.onClickCapture).toBe("function");
+    expect(() => attrs.onClickCapture()).not.toThrow();
+    expect(track).toHaveBeenCalledWith("checkout_recovery_notification_cta_clicked", {
+      label: "Retomar pagamento PIX",
+      target: "navbar_popover",
+      metadata: {
+        order_public_id: "order-public-123",
+        recovery_source: "in_app",
+        recovery_entrypoint: "navbar_popover",
+        recovery_action: "resume_pix",
+        recovery_experiment: "pix_recovery_timing_v1",
+        recovery_timing_minutes: 15,
+      },
+    });
+
+    window.PeterTecnetTelemetry = previousTelemetry;
+  });
 });
