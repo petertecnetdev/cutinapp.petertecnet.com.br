@@ -5,6 +5,18 @@ const finiteNonNegative = (value) => {
 
 const rate = (numerator, denominator) => denominator > 0 ? numerator / denominator : 0;
 
+const normalizeAttributedCosts = (costs) => {
+  if (!Array.isArray(costs)) return { total: 0, bySource: {} };
+
+  return costs.reduce((summary, item = {}) => {
+    const amount = finiteNonNegative(item.amount ?? item.cost ?? item.value);
+    const source = String(item.source || item.type || "other").trim().toLowerCase() || "other";
+    summary.total += amount;
+    summary.bySource[source] = (summary.bySource[source] || 0) + amount;
+    return summary;
+  }, { total: 0, bySource: {} });
+};
+
 export function evaluateAddOnExperiment({
   baseline = {},
   variant = {},
@@ -16,13 +28,18 @@ export function evaluateAddOnExperiment({
     const addOnOrders = Math.min(paidOrders, finiteNonNegative(arm.addOnOrders));
     const gmv = finiteNonNegative(arm.gmv);
     const netPlatformRevenue = finiteNonNegative(arm.netPlatformRevenue);
-    const incrementalExperimentCost = finiteNonNegative(arm.incrementalExperimentCost);
+    const directExperimentCost = finiteNonNegative(arm.incrementalExperimentCost);
+    const attributedCosts = normalizeAttributedCosts(arm.attributedCosts);
+    const incrementalExperimentCost = directExperimentCost + attributedCosts.total;
     const contributionAfterExperimentCost = Math.max(0, netPlatformRevenue - incrementalExperimentCost);
     return {
       paidOrders,
       addOnOrders,
       gmv,
       netPlatformRevenue,
+      directExperimentCost,
+      attributedExperimentCost: attributedCosts.total,
+      attributedCostsBySource: attributedCosts.bySource,
       incrementalExperimentCost,
       contributionAfterExperimentCost,
       attachmentRate: rate(addOnOrders, paidOrders),
