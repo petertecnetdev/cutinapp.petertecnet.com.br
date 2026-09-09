@@ -132,3 +132,97 @@ export function evaluateAddOnExperiment({
     recommendation: evidence < 1 ? "collect_more_data" : (economicallyPositive ? "prefer_variant" : "keep_baseline"),
   };
 }
+
+export function recommendMonetizationBudgetAllocation({
+  channels = [],
+  availableIncrementalBudget = 0,
+} = {}) {
+  const budget = finiteNonNegative(availableIncrementalBudget);
+  let remainingBudget = budget;
+
+  const normalizedChannels = (Array.isArray(channels) ? channels : []).map((item = {}, index) => {
+    const economics = item.economics || item.analysis || item;
+    const source = String(item.source || item.channel || item.name || `channel_${index + 1}`).trim().toLowerCase();
+    const projectedContribution = finiteNonNegative(economics.projectedIncrementalContributionAtBaselineVolume);
+    const projectedCost = finiteNonNegative(economics.projectedIncrementalExperimentCostAtBaselineVolume);
+    const headroom = finiteNonNegative(economics.remainingSafeIncrementalCostHeadroomAtBaselineVolume);
+    const roi = Number(economics.netReturnOnIncrementalCost);
+    const netReturnOnIncrementalCost = Number.isFinite(roi) ? roi : null;
+    const evidenceStatus = economics.evidenceStatus || "collecting";
+    const economicallyPositive = economics.economicallyPositive === true;
+    const eligibleForPaidBudget = evidenceStatus === "sufficient"
+      && economicallyPositive
+      && headroom > 0
+      && projectedContribution > 0
+      && projectedCost > 0
+      && netReturnOnIncrementalCost !== null;
+
+    return {
+      source,
+      projectedIncrementalContributionAtBaselineVolume: projectedContribution,
+      projectedIncrementalExperimentCostAtBaselineVolume: projectedCost,
+      remainingSafeIncrementalCostHeadroomAtBaselineVolume: headroom,
+      netReturnOnIncrementalCost,
+      evidenceStatus,
+      economicallyPositive,
+      eligibleForPaidBudget,
+      suggestedIncrementalBudget: 0,
+      exclusionReason: eligibleForPaidBudget
+        ? null
+        : (evidenceStatus !== "sufficient"
+          ? "insufficient_evidence"
+          : (!economicallyPositive
+            ? "not_economically_positive"
+            : (headroom <= 0
+              ? "no_safe_headroom"
+              : (projectedCost <= 0 ? "no_paid_budget_required" : "missing_return_signal")))),
+    };
+  });
+
+  const ranked = normalizedChannels
+    .filter((channel) => channel.eligibleForPaidBudget)
+    .sort((a, b) => {
+      if (b.netReturnOnIncrementalCost !== a.netReturnOnIncrementalCost) {
+        return b.netReturnOnIncrementalCost - a.netReturnOnIncrementalCost;
+      }
+      if (b.projectedIncrementalContributionAtBaselineVolume !== a.projectedIncrementalContributionAtBaselineVolume) {
+        return b.projectedIncrementalContributionAtBaselineVolume - a.projectedIncrementalContributionAtBaselineVolume;
+      }
+      return a.source.localeCompare(b.source);
+    });
+
+  const allocationBySource = {};
+  ranked.forEach((channel) => {
+    if (remainingBudget <= 0) return;
+    const suggestedIncrementalBudget = Math.min(
+      remainingBudget,
+      channel.remainingSafeIncrementalCostHeadroomAtBaselineVolume,
+    );
+    channel.suggestedIncrementalBudget = suggestedIncrementalBudget;
+    allocationBySource[channel.source] = suggestedIncrementalBudget;
+    remainingBudget -= suggestedIncrementalBudget;
+  });
+
+  const rankedBySource = new Map(ranked.map((channel) => [channel.source, channel]));
+  const recommendations = normalizedChannels
+    .map((channel) => rankedBySource.get(channel.source) || channel)
+    .sort((a, b) => {
+      if (a.eligibleForPaidBudget !== b.eligibleForPaidBudget) return a.eligibleForPaidBudget ? -1 : 1;
+      if (a.eligibleForPaidBudget && b.eligibleForPaidBudget) {
+        return ranked.findIndex((candidate) => candidate.source === a.source)
+          - ranked.findIndex((candidate) => candidate.source === b.source);
+      }
+      return a.source.localeCompare(b.source);
+    });
+
+  const allocatedBudget = budget - remainingBudget;
+
+  return {
+    decisionSupportOnly: true,
+    availableIncrementalBudget: budget,
+    allocatedBudget,
+    unallocatedBudget: remainingBudget,
+    allocationBySource,
+    recommendations,
+  };
+}
