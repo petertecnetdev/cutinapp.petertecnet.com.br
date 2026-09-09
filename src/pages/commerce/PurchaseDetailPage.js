@@ -7,6 +7,7 @@ import commerceService from "../../services/CommerceService";
 import { writeCheckoutRecovery } from "../../utils/checkoutRecovery";
 import { checkoutSelectionFromOrder, isPendingPixRecoverable, latestPaymentFromOrder, latestPendingPaymentFromOrder, paymentMethodFromOrder } from "../../utils/orderRecovery";
 import { writePaymentRecoveryAttribution } from "../../utils/paymentRecoveryAttribution";
+import { getPaymentSyncDelay } from "../../utils/paymentSyncSchedule";
 import { safeSetSessionJson } from "../../utils/safeStorage";
 import "./CommerceHistory.css";
 
@@ -39,7 +40,8 @@ export default function PurchaseDetailPage() {
   const payment = useMemo(() => latestPaymentFromOrder(order), [order]);
   const paymentMethod = useMemo(() => paymentMethodFromOrder(order), [order]);
   const itemLines = useMemo(() => (order?.items || []).filter((item) => item.type === "item"), [order]);
-  const hasPickup = order?.status === "paid" && itemLines.length > 0;
+  const orderStatus = order?.status || "";
+  const hasPickup = orderStatus === "paid" && itemLines.length > 0;
   const canResumePix = isPendingPixRecoverable(order, recoveryNow);
 
   useEffect(() => {
@@ -51,6 +53,88 @@ export default function PurchaseDetailPage() {
     const timeoutId = window.setTimeout(() => setRecoveryNow(Date.now()), refreshInMs);
     return () => window.clearTimeout(timeoutId);
   }, [order, recoveryNow]);
+
+  useEffect(() => {
+    if (orderStatus !== "pending" || paymentMethod !== "pix") return undefined;
+
+    let active = true;
+    let syncing = false;
+    let syncAttempt = 0;
+    let timeoutId = null;
+
+    const schedule = (delay = getPaymentSyncDelay(syncAttempt)) => {
+      if (!active) return;
+      timeoutId = window.setTimeout(syncPendingPayment, delay);
+    };
+
+    const syncPendingPayment = async () => {
+      if (!active || syncing) return;
+      if (document.visibilityState === "hidden" || navigator.onLine === false) {
+        schedule();
+        return;
+      }
+
+      syncing = true;
+      let nextDelay = null;
+      try {
+        const refreshedOrder = await commerceService.syncPayment(publicId);
+        if (!active || !refreshedOrder) return;
+
+        setOrder((currentOrder) => ({
+          ...currentOrder,
+          ...refreshedOrder,
+          production: refreshedOrder.production ?? currentOrder?.production,
+        }));
+        setRecoveryNow(Date.now());
+
+        if (refreshedOrder.status !== "pending") {
+          try {
+            window.PeterTecnetTelemetry?.track?.("purchase_payment_status_updated", {
+              label: refreshedOrder.status === "paid" ? "Pagamento confirmado no detalhe da compra" : "Pagamento atualizado no detalhe da compra",
+              target: String(refreshedOrder?.event?.slug || "purchase_detail"),
+              metadata: {
+                order_id: Number(refreshedOrder?.id || 0),
+                order_public_id: refreshedOrder?.public_id || publicId,
+                payment_method: "pix",
+                status: String(refreshedOrder.status || "unknown"),
+              },
+            });
+          } catch (_) {
+            // Telemetry must never block payment status updates.
+          }
+          return;
+        }
+
+        syncAttempt += 1;
+      } catch (err) {
+        // Background synchronization is best-effort; transient failures must not disrupt purchase details.
+        syncAttempt += 1;
+        const status = Number(err?.status || err?.response?.status || 0);
+        nextDelay = getPaymentSyncDelay(syncAttempt, { rateLimited: status === 429 });
+      } finally {
+        syncing = false;
+      }
+
+      schedule(nextDelay ?? getPaymentSyncDelay(syncAttempt));
+    };
+
+    const handleVisibilityOrOnline = () => {
+      if (!active || document.visibilityState === "hidden" || navigator.onLine === false) return;
+      if (timeoutId) window.clearTimeout(timeoutId);
+      schedule(250);
+    };
+
+    schedule();
+    document.addEventListener("visibilitychange", handleVisibilityOrOnline);
+    window.addEventListener("online", handleVisibilityOrOnline);
+
+    return () => {
+      active = false;
+      if (timeoutId) window.clearTimeout(timeoutId);
+      document.removeEventListener("visibilitychange", handleVisibilityOrOnline);
+      window.removeEventListener("online", handleVisibilityOrOnline);
+    };
+  }, [orderStatus, paymentMethod, publicId]);
 
   useEffect(() => {
     if (!order || recoveryLandingTrackedRef.current) return;
