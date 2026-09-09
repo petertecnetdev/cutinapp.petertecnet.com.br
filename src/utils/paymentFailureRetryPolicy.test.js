@@ -9,6 +9,8 @@ describe("payment failure retry policy", () => {
     "cc_rejected_other_reason",
     "cc_rejected_card_type_not_allowed",
     "cc_rejected_card_expired",
+    "cc_rejected_insufficient_amount",
+    "cc_rejected_card_disabled",
   ])("blocks an identical card retry for %s", (statusDetail) => {
     const result = paymentFailureGuidance({
       method: "card",
@@ -17,6 +19,7 @@ describe("payment failure retry policy", () => {
     });
 
     expect(result.retryAllowed).toBe(false);
+    expect(result.statusCheckOnly).toBe(false);
   });
 
   test.each([
@@ -33,5 +36,17 @@ describe("payment failure retry policy", () => {
     });
 
     expect(result.retryAllowed).toBe(true);
+    expect(result.statusCheckOnly).toBe(false);
+  });
+
+  test("reserves status-only recovery for duplicate payments", () => {
+    const result = paymentFailureGuidance({
+      method: "card",
+      pixAvailable: true,
+      payment: { provider_payload: { status_detail: "cc_rejected_duplicated_payment" } },
+    });
+
+    expect(result.retryAllowed).toBe(false);
+    expect(result.statusCheckOnly).toBe(true);
   });
 });
