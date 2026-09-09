@@ -1,0 +1,39 @@
+.cut-event-discovery-page .cut-event-card__media {
+  isolation: isolate;
+  background: #070918;
+}
+
+.cut-event-discovery-page .cut-event-card__media::before {
+  content: "";
+  position: absolute;
+  inset: -26px;
+  z-index: 0;
+  background-image: var(--cut-event-media-bg, none);
+  background-position: center;
+  background-size: cover;
+  filter: blur(24px) saturate(1.12) brightness(.48);
+  opacity: .9;
+  transform: scale(1.08);
+  pointer-events: none;
+}
+
+.cut-event-discovery-page .cut-event-card__media::after {
+  z-index: 2;
+}
+
+.cut-event-discovery-page .cut-event-card__media > img {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: contain !important;
+  object-position: center;
+  background: rgba(3, 4, 16, .16);
+  transform: none !important;
+}
+
+.cut-event-discovery-page .cut-event-card__category,
+.cut-event-discovery-page .cut-event-card__badge,
+.cut-event-discovery-page .cut-event-card__placeholder {
+  z-index: 3;
+}
