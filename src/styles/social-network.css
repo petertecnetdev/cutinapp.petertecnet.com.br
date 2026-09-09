@@ -85,7 +85,7 @@
 }
 
 .cut-feed-activity small,
-.cut-notification-item__content > span {
+.cut-notification-item__content > span:not(.cut-notification-item__cta) {
   overflow: hidden;
   color: var(--cut-text-muted);
   font-size: .8rem;
@@ -103,6 +103,27 @@
 .cut-notification-item {
   position: relative;
   grid-template-columns: 48px minmax(0, 1fr) auto auto;
+}
+
+.cut-notification-item__cta {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 5px;
+  padding: 7px 10px;
+  border: 1px solid rgba(86, 220, 233, .28);
+  border-radius: 999px;
+  background: rgba(86, 220, 233, .1);
+  color: var(--cut-primary);
+  font-size: .75rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.cut-notification-item:hover .cut-notification-item__cta {
+  border-color: rgba(86, 220, 233, .46);
+  background: rgba(86, 220, 233, .16);
 }
 
 .cut-notification-item__dot {
