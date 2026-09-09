@@ -22,9 +22,11 @@ describe("whatsappUrl", () => {
     expect(safeWhatsappHref("https://api.whatsapp.com/send?phone=5531999991234")).toBe("https://wa.me/5531999991234");
   });
 
-  test("rejects unsupported or malformed destinations", () => {
+  test("rejects unsupported hosts, schemes and malformed destinations", () => {
     expect(safeWhatsappHref("javascript:alert(5531999991234)")).toBe("");
+    expect(safeWhatsappHref("http://wa.me/5531999991234")).toBe("");
     expect(safeWhatsappHref("https://example.com/5531999991234")).toBe("");
+    expect(safeWhatsappHref("https://example.com/?phone=5531999991234")).toBe("");
     expect(safeWhatsappHref("123")).toBe("");
   });
 });
