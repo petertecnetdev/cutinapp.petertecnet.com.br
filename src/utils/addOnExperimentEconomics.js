@@ -11,15 +11,21 @@ export function evaluateAddOnExperiment({ baseline = {}, variant = {}, minimumOr
     const addOnOrders = Math.min(paidOrders, finiteNonNegative(arm.addOnOrders));
     const gmv = finiteNonNegative(arm.gmv);
     const netPlatformRevenue = finiteNonNegative(arm.netPlatformRevenue);
+    const incrementalExperimentCost = finiteNonNegative(arm.incrementalExperimentCost);
+    const contributionAfterExperimentCost = Math.max(0, netPlatformRevenue - incrementalExperimentCost);
     return {
       paidOrders,
       addOnOrders,
       gmv,
       netPlatformRevenue,
+      incrementalExperimentCost,
+      contributionAfterExperimentCost,
       attachmentRate: rate(addOnOrders, paidOrders),
       averageTicket: rate(gmv, paidOrders),
       netRevenuePerOrder: rate(netPlatformRevenue, paidOrders),
+      contributionAfterExperimentCostPerOrder: rate(contributionAfterExperimentCost, paidOrders),
       netTakeRate: rate(netPlatformRevenue, gmv),
+      contributionTakeRateAfterExperimentCost: rate(contributionAfterExperimentCost, gmv),
     };
   };
 
@@ -30,9 +36,12 @@ export function evaluateAddOnExperiment({ baseline = {}, variant = {}, minimumOr
   const attachmentUplift = treatment.attachmentRate - control.attachmentRate;
   const ticketUplift = treatment.averageTicket - control.averageTicket;
   const netRevenuePerOrderUplift = treatment.netRevenuePerOrder - control.netRevenuePerOrder;
+  const contributionPerOrderUplift = treatment.contributionAfterExperimentCostPerOrder - control.contributionAfterExperimentCostPerOrder;
   const projectedIncrementalNetRevenueAtBaselineVolume = netRevenuePerOrderUplift * control.paidOrders;
-  const marginPreserved = treatment.netTakeRate >= control.netTakeRate;
-  const economicallyPositive = netRevenuePerOrderUplift > 0 && marginPreserved;
+  const projectedIncrementalContributionAtBaselineVolume = contributionPerOrderUplift * control.paidOrders;
+  const incrementalExperimentCost = treatment.incrementalExperimentCost - control.incrementalExperimentCost;
+  const marginPreserved = treatment.contributionTakeRateAfterExperimentCost >= control.contributionTakeRateAfterExperimentCost;
+  const economicallyPositive = contributionPerOrderUplift > 0 && marginPreserved;
 
   return {
     baseline: control,
@@ -42,7 +51,10 @@ export function evaluateAddOnExperiment({ baseline = {}, variant = {}, minimumOr
     attachmentUplift,
     ticketUplift,
     netRevenuePerOrderUplift,
+    contributionPerOrderUplift,
+    incrementalExperimentCost,
     projectedIncrementalNetRevenueAtBaselineVolume,
+    projectedIncrementalContributionAtBaselineVolume,
     marginPreserved,
     economicallyPositive,
     recommendation: evidence < 1 ? "collect_more_data" : (economicallyPositive ? "prefer_variant" : "keep_baseline"),
