@@ -84,14 +84,14 @@ describe("evaluateAddOnExperiment", () => {
         paidOrders: 100,
         addOnOrders: 40,
         gmv: 11500,
-        netPlatformRevenue: 1380,
+        netPlatformRevenue: 1450,
         incrementalExperimentCost: 300,
       },
-      minimumNetReturnOnIncrementalCost: 0.5,
+      minimumNetReturnOnIncrementalCost: 0.75,
     });
 
-    expect(result.projectedIncrementalContributionAtBaselineVolume).toBeCloseTo(80);
-    expect(result.netReturnOnIncrementalCost).toBeCloseTo(80 / 300);
+    expect(result.projectedIncrementalContributionAtBaselineVolume).toBeCloseTo(150);
+    expect(result.netReturnOnIncrementalCost).toBeCloseTo(150 / 300);
     expect(result.marginPreserved).toBe(true);
     expect(result.capitalEfficiencyPreserved).toBe(false);
     expect(result.economicallyPositive).toBe(false);
@@ -105,13 +105,13 @@ describe("evaluateAddOnExperiment", () => {
         paidOrders: 100,
         addOnOrders: 40,
         gmv: 11500,
-        netPlatformRevenue: 1380,
+        netPlatformRevenue: 1450,
         incrementalExperimentCost: 300,
       },
     });
 
     expect(result.minimumNetReturnOnIncrementalCost).toBe(0);
-    expect(result.netReturnOnIncrementalCost).toBeCloseTo(80 / 300);
+    expect(result.netReturnOnIncrementalCost).toBeCloseTo(150 / 300);
     expect(result.capitalEfficiencyPreserved).toBe(true);
     expect(result.recommendation).toBe("prefer_variant");
   });
