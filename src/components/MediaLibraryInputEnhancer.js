@@ -1,21 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Alert, Button, Form, Modal, Spinner } from "react-bootstrap";
 import producerMediaLibraryService from "../services/ProducerMediaLibraryService";
+import { isEligibleMediaLibraryInput } from "../utils/mediaLibraryInput";
 import "./MediaLibraryInputEnhancer.css";
-
-const IMAGE_ACCEPT_TOKENS = ["image/", ".png", ".jpg", ".jpeg", ".webp", ".gif", ".avif"];
-const SENSITIVE_UPLOAD_TOKENS = [
-  "documento",
-  "document",
-  "identidade",
-  "identity",
-  "cnh",
-  "rg",
-  "cpf",
-  "kyc",
-  "comprovante",
-  "proof",
-];
 
 const safeFilename = (value) => String(value || "midia")
   .normalize("NFD")
@@ -50,24 +37,6 @@ const acceptsImageFile = (input, file) => {
     if (normalized.startsWith(".")) return String(file.name || "").toLowerCase().endsWith(normalized);
     return false;
   });
-};
-
-export const isEligibleMediaLibraryInput = (input) => {
-  if (!(input instanceof HTMLInputElement) || input.type !== "file") return false;
-  if (input.dataset.mediaLibrary === "off") return false;
-
-  const accept = String(input.accept || "").toLowerCase();
-  if (!IMAGE_ACCEPT_TOKENS.some((token) => accept.includes(token))) return false;
-  if (accept.includes("application/pdf")) return false;
-
-  const contextText = [
-    input.name,
-    input.id,
-    input.getAttribute("aria-label"),
-    input.closest(".form-group, .mb-3, .card, fieldset")?.textContent,
-  ].filter(Boolean).join(" ").toLowerCase();
-
-  return !SENSITIVE_UPLOAD_TOKENS.some((token) => contextText.includes(token));
 };
 
 const triggerTarget = (input) => {
