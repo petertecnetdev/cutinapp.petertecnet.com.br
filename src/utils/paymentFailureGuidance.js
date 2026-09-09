@@ -56,7 +56,6 @@ const sameCardRetryBlockedReasons = new Set([
   "card_type_not_allowed",
   "expired_card",
   "insufficient_funds",
-  "card_disabled",
 ]);
 
 const statusCheckOnlyReasons = new Set([
