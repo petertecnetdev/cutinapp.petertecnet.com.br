@@ -23,6 +23,28 @@ describe("commerce payment status normalization", () => {
     expect(result.payment.status_detail).toBe("cc_rejected_3ds_challenge");
   });
 
+  test("normalizes processed/accredited commerce statuses to paid", () => {
+    const result = normalizeCommercePaymentStatuses({
+      order: { id: 50, status: "processed", status_detail: "accredited" },
+      payment: { id: 60, status: "processed", statusDetail: "accredited" },
+    });
+
+    expect(result.order.status).toBe("paid");
+    expect(result.payment.status).toBe("paid");
+    expect(result.order.status_detail).toBe("accredited");
+    expect(result.payment.statusDetail).toBe("accredited");
+  });
+
+  test("does not treat other processed outcomes as paid", () => {
+    const result = normalizeCommercePaymentStatuses({
+      order: { status: "processed", status_detail: "partially_refunded" },
+      payment: { status: "processed", status_detail: "unknown" },
+    });
+
+    expect(result.order.status).toBe("processed");
+    expect(result.payment.status).toBe("processed");
+  });
+
   test("normalizes nested API data without changing pending states", () => {
     const result = normalizeCommercePaymentStatuses({
       data: { order: { status: "failed" }, payment: { status: "pending" } },
@@ -30,6 +52,17 @@ describe("commerce payment status normalization", () => {
 
     expect(result.data.order.status).toBe("rejected");
     expect(result.data.payment.status).toBe("pending");
+  });
+
+  test("normalizes nested processed/accredited states without changing the detail", () => {
+    const result = normalizeCommercePaymentStatuses({
+      data: { order: { status: "processed", status_detail: "accredited" }, payment: { status: "processing", status_detail: "in_review" } },
+    });
+
+    expect(result.data.order.status).toBe("paid");
+    expect(result.data.order.status_detail).toBe("accredited");
+    expect(result.data.payment.status).toBe("processing");
+    expect(result.data.payment.status_detail).toBe("in_review");
   });
 
   test("does not mutate the source payload", () => {
