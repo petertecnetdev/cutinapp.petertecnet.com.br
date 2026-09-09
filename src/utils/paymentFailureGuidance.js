@@ -24,13 +24,16 @@ export const classifyPaymentFailure = (payment = {}, method = "") => {
     return { reason: "pix_not_completed", detail };
   }
   if ((status === "cancelled" || status === "canceled") && detail === "expired") return { reason: "card_authentication_expired", detail };
+  if (detail.includes("3ds_challenge_expired")) return { reason: "card_authentication_expired", detail };
   if (detail.includes("bad_filled_security_code")) return { reason: "card_security_code", detail };
   if (detail.includes("bad_filled_date")) return { reason: "card_expiration_data", detail };
   if (detail.includes("bad_filled_card_number")) return { reason: "card_number", detail };
   if (detail.includes("bad_filled_other")) return { reason: "card_additional_data", detail };
   if (detail.includes("3ds_challenge") || detail.includes("pending_challenge") || detail.includes("three_ds")) return { reason: "card_authentication", detail };
   if (detail.includes("invalid_installments") || detail.includes("installment")) return { reason: "invalid_installments", detail };
+  if (detail.includes("amount_limit_exceeded")) return { reason: "amount_limit_exceeded", detail };
   if (detail.includes("insufficient_amount")) return { reason: "insufficient_funds", detail };
+  if (detail.includes("processing_error")) return { reason: "processing_error", detail };
   if (detail.includes("card_disabled")) return { reason: "card_disabled", detail };
   if (detail.includes("card_type_not_allowed")) return { reason: "card_type_not_allowed", detail };
   if (detail.includes("bad_filled") || detail.includes("invalid") || detail.includes("form")) return { reason: "card_data", detail };
@@ -56,6 +59,7 @@ const sameCardRetryBlockedReasons = new Set([
   "card_type_not_allowed",
   "expired_card",
   "insufficient_funds",
+  "amount_limit_exceeded",
 ]);
 
 const statusCheckOnlyReasons = new Set([
@@ -96,9 +100,17 @@ export const paymentFailureGuidance = ({ payment = {}, method = "", pixAvailable
       title: "Escolha outra quantidade de parcelas",
       message: `O provedor não aceitou o parcelamento selecionado para este cartão. Escolha outra quantidade de parcelas disponível e tente novamente; sua seleção e o valor da compra continuam preservados.${pixAlternative}`,
     },
+    amount_limit_exceeded: {
+      title: "O valor ultrapassou o limite permitido para este cartão",
+      message: `O banco ou o provedor informou que o valor desta compra excede o limite permitido para a transação. Não repita a mesma tentativa sem ajustar o limite; use outro cartão ou outra forma de pagamento.${pixRecommended}`,
+    },
     insufficient_funds: {
       title: "O cartão não conseguiu concluir o pagamento",
       message: `O provedor indicou saldo ou limite insuficiente. Não repita a mesma tentativa sem liberar limite; use outro cartão ou aguarde a atualização do limite.${pixRecommended}`,
+    },
+    processing_error: {
+      title: "Houve uma falha temporária no processamento",
+      message: `O provedor informou um erro técnico ao processar o cartão. Sua seleção continua preservada: aguarde alguns instantes e tente novamente. Se o erro persistir, use outro meio de pagamento.${pixAlternative}`,
     },
     card_disabled: {
       title: "O cartão está bloqueado para esta compra",
