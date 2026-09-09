@@ -3,6 +3,7 @@ const normalizeStatus = (value) => String(value || "").trim().toLowerCase();
 const terminalStatusAliases = {
   canceled: "cancelled",
   failed: "rejected",
+  expired: "rejected",
 };
 
 const normalizeEntityStatus = (entity) => {
