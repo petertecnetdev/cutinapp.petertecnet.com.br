@@ -1,5 +1,6 @@
 import { storageUrl } from "../config";
 import { SITE_URL } from "../components/SeoHead";
+import { eventImageUrl } from "./eventMedia";
 
 const schema = (name) => `https://schema.org/${name}`;
 
@@ -123,7 +124,8 @@ export const buildEventSeo = (event, { tickets = [], artists = [] } = {}) => {
   if (!event?.slug) return null;
 
   const canonical = `${SITE_URL}/event/${encodeURIComponent(event.slug)}`;
-  const image = absoluteAssetUrl(event.image) || `${SITE_URL}/images/logo.png`;
+  const structuredImage = eventImageUrl(event.image, "hero") || absoluteAssetUrl(event.image) || `${SITE_URL}/images/logo.png`;
+  const socialImage = eventImageUrl(event.image, "og") || structuredImage;
   const locationLabel = [event.city, event.uf].filter(Boolean).join(" - ");
   const title = `${event.title || "Evento"}${locationLabel ? ` em ${locationLabel}` : ""} | Cutinapp`;
   const description = truncate(
@@ -138,7 +140,7 @@ export const buildEventSeo = (event, { tickets = [], artists = [] } = {}) => {
     "@id": `${canonical}#event`,
     name: event.title || "Evento Cutinapp",
     description: stripText(event.description || description),
-    image: [image],
+    image: [structuredImage],
     url: canonical,
     startDate: event.start_date || undefined,
     endDate: event.end_date || undefined,
@@ -178,7 +180,7 @@ export const buildEventSeo = (event, { tickets = [], artists = [] } = {}) => {
     title,
     description,
     canonical,
-    image,
+    image: socialImage,
     type: "website",
     jsonLd: [eventJsonLd, breadcrumbJsonLd],
   };
