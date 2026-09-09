@@ -93,10 +93,12 @@ jobs:
           set -Eeuo pipefail
           APP_ROOT="/var/www/cutinapp.petertecnet.com.br"
           LIVE_BUILD="$APP_ROOT/build"
+          SEO_ROOT="$APP_ROOT/seo-snapshots"
           GENERATOR="/tmp/cutinapp-generate-seo-snapshots.mjs"
           SITEMAP_API="https://api.petertecnet.com.br/api/v1/discovery/sitemap.xml?origin=https%3A%2F%2Fcutinapp.petertecnet.com.br&application=cutinapp"
 
           [[ -d "$LIVE_BUILD" ]] || { echo "Cutinapp live build not found: $LIVE_BUILD" >&2; exit 1; }
+          [[ -f "$LIVE_BUILD/index.html" ]] || { echo "Cutinapp live index not found." >&2; exit 1; }
           [[ -f "$GENERATOR" ]] || { echo "SEO prerender generator was not uploaded." >&2; exit 1; }
           command -v node >/dev/null 2>&1 || { echo "Node.js is required for SEO prerender generation." >&2; exit 1; }
 
@@ -104,20 +106,33 @@ jobs:
           flock -w 180 9 || { echo "Could not acquire deployment lock for SEO refresh." >&2; exit 75; }
 
           tmp="$(mktemp)"
-          trap 'rm -f "$tmp" "$GENERATOR"' EXIT
+          next_root="${SEO_ROOT}.next.$$"
+          trap 'rm -f "$tmp" "$GENERATOR"; rm -rf "$next_root"' EXIT
           curl --fail --silent --show-error --location --retry 3 --retry-delay 2 "$SITEMAP_API" -o "$tmp"
           grep -q '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' "$tmp" || {
             echo "Dynamic sitemap response is not a valid sitemap." >&2
             exit 2
           }
-          grep -q 'https://cutinapp.petertecnet.com.br/' "$tmp" || {
-            echo "Dynamic sitemap does not contain the Cutinapp origin." >&2
+          grep -q 'https://cutinapp.petertecnet.com.br/event/' "$tmp" || {
+            echo "Dynamic sitemap does not contain public event URLs." >&2
             exit 3
           }
 
-          install -m 0644 "$tmp" "$LIVE_BUILD/sitemap.xml"
-          CUTINAPP_BUILD_DIR="$LIVE_BUILD" node "$GENERATOR" "$LIVE_BUILD"
+          rm -rf "$next_root"
+          mkdir -p "$next_root"
+          cp "$LIVE_BUILD/index.html" "$next_root/index.html"
+          install -m 0644 "$tmp" "$next_root/sitemap.xml"
+          CUTINAPP_BUILD_DIR="$next_root" node "$GENERATOR" "$next_root"
 
-          echo "Dynamic sitemap published: $(grep -c '<url>' "$LIVE_BUILD/sitemap.xml") URLs"
-          cat "$LIVE_BUILD/.cutinapp-seo-snapshots"
+          previous="${SEO_ROOT}.previous.$$"
+          rm -rf "$previous"
+          if [[ -d "$SEO_ROOT" ]]; then mv "$SEO_ROOT" "$previous"; fi
+          if ! mv "$next_root" "$SEO_ROOT"; then
+            [[ -d "$previous" ]] && mv "$previous" "$SEO_ROOT" || true
+            exit 4
+          fi
+          rm -rf "$previous"
+
+          echo "Dynamic sitemap published: $(grep -c '<url>' "$SEO_ROOT/sitemap.xml") URLs"
+          cat "$SEO_ROOT/.cutinapp-seo-snapshots"
           REMOTE
