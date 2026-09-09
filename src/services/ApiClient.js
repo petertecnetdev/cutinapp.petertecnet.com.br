@@ -4,6 +4,7 @@ import { humanizeApiErrorMessage } from "../utils/apiErrorMessage";
 import { getRetryDelayMs, shouldRetryRequest } from "../utils/apiRetryPolicy";
 import { createRequestId, getHeaderValue, resolveRequestId } from "../utils/requestCorrelation";
 import { clearAuthToken, getAuthToken } from "../utils/authTokenStorage";
+import { isRelativeApiRequestUrl } from "../utils/apiRequestUrl";
 
 const firstValidationMessage = (errors) => {
   if (!errors || typeof errors !== "object") return "";
@@ -50,6 +51,10 @@ export const createApiClient = (baseURL) => {
   });
 
   client.interceptors.request.use((config) => {
+    if (!isRelativeApiRequestUrl(config.url)) {
+      return Promise.reject(new Error("Blocked absolute API request URL."));
+    }
+
     const token = getAuthToken();
     if (token) config.headers.Authorization = `Bearer ${token}`;
 
