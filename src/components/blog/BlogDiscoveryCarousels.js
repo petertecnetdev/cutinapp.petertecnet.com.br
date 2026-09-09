@@ -5,6 +5,7 @@ import blogService from "../../services/BlogService";
 import cutinappService from "../../services/CutinappService";
 import eventService from "../../services/EventService";
 import { storageUrl } from "../../config";
+import { getImageFallbackInitials } from "../../utils/imageFallback";
 
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const eventDate = new Intl.DateTimeFormat("pt-BR", {
@@ -35,13 +36,7 @@ const itemImage = (item) => mediaUrl(
   item?.image || item?.cover_image || item?.photo || item?.thumbnail || firstFileUrl(item)
 );
 
-const initials = (value) => String(value || "C")
-  .trim()
-  .split(/\s+/)
-  .slice(0, 2)
-  .map((part) => part[0])
-  .join("")
-  .toUpperCase();
+const initials = (value) => getImageFallbackInitials(value);
 
 const extractBlogs = (payload) => {
   if (Array.isArray(payload)) return payload;
@@ -135,9 +130,13 @@ Carousel.propTypes = {
   className: PropTypes.string,
 };
 
-function Media({ src, alt, icon, className = "" }) {
+function Media({ src, alt, icon, className = "", fallbackText = "" }) {
   const [failed, setFailed] = useState(false);
-  if (!src || failed) return <div className={`cut-blog-discovery-fallback ${className}`} aria-hidden="true"><i className={icon} /></div>;
+  if (!src || failed) {
+    return <div className={`cut-blog-discovery-fallback ${className}`} role="img" aria-label={alt}>
+      {fallbackText ? <strong>{initials(fallbackText)}</strong> : <i className={icon} aria-hidden="true" />}
+    </div>;
+  }
   return <img className={className} src={src} alt={alt} loading="lazy" decoding="async" onError={() => setFailed(true)} />;
 }
 
@@ -146,6 +145,7 @@ Media.propTypes = {
   alt: PropTypes.string.isRequired,
   icon: PropTypes.string.isRequired,
   className: PropTypes.string,
+  fallbackText: PropTypes.string,
 };
 
 function ProductionLogo({ production }) {
@@ -242,7 +242,7 @@ export default function BlogDiscoveryCarousels({ currentSlug = "", blogEntries =
         const productionPath = production.slug ? `/production/${production.slug}/public` : "/productions";
         return <article className="cut-blog-slide cut-blog-slide--item" key={`item-${item.id || index}-${production.id || "production"}`}>
           <Link to={productionPath} className="cut-blog-slide-media" aria-label={`Ver ${production.name || "produção"}`}>
-            <Media src={itemImage(item)} alt={item.name || "Item da produção"} icon="fa-solid fa-bag-shopping" />
+            <Media src={itemImage(item)} alt={item.name || "Item da produção"} icon="fa-solid fa-bag-shopping" fallbackText={item.name || "Item"} />
             {item.type && <span>{item.type}</span>}
           </Link>
           <div className="cut-blog-slide-body">
