@@ -234,9 +234,9 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
   return <div className="cut-commerce-panel mt-4">
     <div className="cut-ticket-shop__heading">
       <div>
-        <span className="cut-eyebrow">Comprar</span>
-        <h3 className="mt-2">Escolha seus ingressos</h3>
-        <p>Selecione as quantidades e confira o resumo antes de seguir para o pagamento.</p>
+        <span className="cut-eyebrow">Compra única</span>
+        <h3 className="mt-2">Monte seu carrinho</h3>
+        <p>Você pode comprar vários ingressos, misturar lotes diferentes e incluir itens do evento no mesmo pagamento.</p>
       </div>
     </div>
 
@@ -260,7 +260,11 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
       <small className="text-secondary d-block mt-1">Ingressos e estoque são exclusivos da data selecionada.</small>
     </div>}
 
-    {(catalog.tickets || []).length > 0 && <div className="cut-ticket-shop__list">
+    {(catalog.tickets || []).length > 0 && <>
+      <div className="cut-ticket-shop__heading mt-1">
+        <div><span className="cut-eyebrow">Ingressos pagos</span><h3 className="mt-2">Escolha quantidade e tipo</h3><p>Use + e − em cada lote. Você pode selecionar mais de um tipo de ingresso na mesma compra.</p></div>
+      </div>
+      <div className="cut-ticket-shop__list">
       {(catalog.tickets || []).map((ticket) => {
         const maxQuantity = resolveCheckoutQuantity(ticket, checkoutQuantityLimit("ticket"), checkoutQuantityLimit("ticket"));
         const soldOut = maxQuantity <= 0;
@@ -278,11 +282,12 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
             : <QuantityStepper kind="ticket" id={ticket.id} value={quantity} max={maxQuantity} label={ticket.name} />}
         </div>;
       })}
-    </div>}
+    </div>
+    </>}
 
     {(catalog.items || []).length > 0 && <>
       <div className="cut-ticket-shop__heading mt-2">
-        <div><span className="cut-eyebrow">Extras</span><h3 className="mt-2">Itens para o evento</h3><p>Adicione itens antecipados para retirar no evento por QR Code.</p></div>
+        <div><span className="cut-eyebrow">Itens do estabelecimento</span><h3 className="mt-2">Itens disponíveis neste evento</h3><p>Adicione bebidas, combos, porções e outros itens liberados pelo estabelecimento para esta edição.</p></div>
       </div>
       <div className="cut-ticket-shop__list">
         {(catalog.items || []).map((item) => {
@@ -311,7 +316,7 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
       <aside className="cut-ticket-shop__summary" aria-label="Resumo da seleção">
       <div className="cut-ticket-shop__summary-head">
         <span className="cut-ticket-shop__summary-count">×{selectedQuantity || 0}</span>
-        <small>{selectedQuantity > 0 ? "Itens selecionados" : "Sua seleção"}</small>
+        <small>{selectedQuantity > 0 ? "Itens no carrinho" : "Carrinho vazio"}</small>
       </div>
 
       {selectedEntries.length > 0
@@ -326,13 +331,13 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
         <div className="cut-ticket-shop__summary-line"><span>Taxas</span><span>Calculadas no checkout</span></div>
         <div className="cut-ticket-shop__summary-line cut-ticket-shop__summary-line--total"><span>Total dos itens</span><strong>{money(total)}</strong></div>
         <p className="cut-ticket-shop__summary-note">O valor final, incluindo eventuais taxas de processamento, é confirmado antes do pagamento.</p>
-        <button type="button" className="cut-ticket-shop__checkout-btn" onClick={continueToCheckout} disabled={total <= 0 || !checkoutAvailable}>{user ? `Continuar · ${money(total)}` : "Entrar para comprar"}</button>
+        <button type="button" className="cut-ticket-shop__checkout-btn" onClick={continueToCheckout} disabled={total <= 0 || !checkoutAvailable}>{user ? `Finalizar carrinho · ${money(total)}` : "Entrar e finalizar carrinho"}</button>
       </div>
       </aside>
     </div>
 
     {selectedQuantity > 0 && <small className="d-block text-success text-center"><i className="fa-solid fa-clock-rotate-left me-1" />Sua seleção fica salva neste navegador e será revalidada ao retornar.</small>}
-    <div className="cut-ticket-shop__trust"><i className="fa-solid fa-shield-halved" /><span>Compra segura. Ingressos usam QR de entrada; itens antecipados usam QR de retirada.</span></div>
+    <div className="cut-ticket-shop__trust"><i className="fa-solid fa-shield-halved" /><span>Uma única compra, um único pagamento. Cada ingresso recebe QR de entrada e os itens antecipados ficam vinculados ao pedido para retirada no evento.</span></div>
   </div>;
 }
 
