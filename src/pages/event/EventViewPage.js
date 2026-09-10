@@ -7,7 +7,6 @@ import WhatsAppFloatingButton from "../../components/WhatsAppFloatingButton";
 import EventCommunitySection from "../../components/event/EventCommunitySection";
 import EventCommercePanel from "../../components/event/EventCommercePanel";
 import EventFlyerModal from "../../components/event/EventFlyerModal";
-import ProductionTicketCartModal from "../../components/event/ProductionTicketCartModal";
 import { AuthContext } from "../../context/AuthContext";
 import eventService from "../../services/EventService";
 import cutinappService from "../../services/CutinappService";
@@ -140,7 +139,6 @@ export default function EventViewPage() {
   const [favorite, setFavorite] = useState(false);
   const [interested, setInterested] = useState(false);
   const [flyerOpen, setFlyerOpen] = useState(false);
-  const [productionTicketCartOpen, setProductionTicketCartOpen] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -407,12 +405,6 @@ export default function EventViewPage() {
     }
   };
 
-  const handleProductionTicketAdded = ({ event: cartEvent, quantity, cartQuantity }) => {
-    const eventTitle = cartEvent?.title || cartEvent?.name || "evento selecionado";
-    setError("");
-    setSuccess(`${quantity} ingresso${quantity === 1 ? "" : "s"} de ${eventTitle} adicionado${quantity === 1 ? "" : "s"} ao carrinho. Carrinho: ${cartQuantity} ingresso${cartQuantity === 1 ? "" : "s"}.`);
-  };
-
   const attendanceIssued = Number(ownerResults?.attendance?.issued || 0);
   const attendanceCheckedIn = Number(ownerResults?.attendance?.checked_in || 0);
   const attendanceRate = attendanceIssued > 0 ? Math.round((attendanceCheckedIn / attendanceIssued) * 100) : 0;
@@ -438,8 +430,7 @@ export default function EventViewPage() {
               {event.production?.name && <button className="cut-inline-profile-link mt-3" onClick={() => navigate(`/production/${event.production.slug}/public`)}>Por {event.production.name} <i className="fa-solid fa-arrow-up-right-from-square" /></button>}
             </div>
             <div className="cut-card-actions cut-event-summary-card__actions">
-              {productionSlug && <Button size="lg" variant="success" className="fw-bold" onClick={() => setProductionTicketCartOpen(true)} aria-label={`Adquirir ingresso de um evento de ${event.production?.name || "esta produção"}`}><i className="fa-solid fa-cart-plus me-2" />Adquirir ingresso desta produção</Button>}
-              {showPersistentBuyCta && <Button as="a" href="#ingressos" size="lg" className="fw-bold" aria-label={`Comprar ingresso para ${event.title}`}><i className="fa-solid fa-ticket me-2" />Comprar ingresso</Button>}
+              {showPersistentBuyCta && <Button as="a" href="#ingressos" size="lg" variant="success" className="fw-bold" aria-label={`Montar carrinho para ${event.title}`}><i className="fa-solid fa-cart-shopping me-2" />Ingressos e itens</Button>}
               {canManageEvent && <Button variant="light" onClick={() => navigate(`/event/edit/${event.id}`)} aria-label={`Editar ${event.title}`} title="Editar evento"><i className="fa-solid fa-pen-to-square me-2" />Editar evento</Button>}
               <Button variant="outline-light" onClick={share} aria-label={`Compartilhar ${event.title}`}><i className="fa-solid fa-share-nodes me-2" />Compartilhar</Button>
               {flyerUrl && <Button variant="outline-light" onClick={() => setFlyerOpen(true)}><i className="fa-regular fa-image me-2" />Ver imagem</Button>}
@@ -467,17 +458,43 @@ export default function EventViewPage() {
 
         {showPersistentBuyCta && <section id="ingressos" className="cut-ticket-shop-section mb-5" style={{ scrollMarginTop: "calc(var(--cut-navbar-height) + 18px)" }}>
           <div className="cut-ticket-shop-section__heading">
-            <span className="cut-eyebrow">Tickets</span>
-            <h2 className="cut-section-title mt-2 mb-1">Ingressos</h2>
-            <p className="text-secondary mb-0">Escolha seus lotes, ajuste a quantidade e confira o resumo antes de seguir para o checkout.</p>
+            <span className="cut-eyebrow">Carrinho do evento</span>
+            <h2 className="cut-section-title mt-2 mb-1">Ingressos e itens</h2>
+            <p className="text-secondary mb-0">Escolha quantos ingressos quiser, combine lotes diferentes e adicione os itens disponibilizados para este evento. A compra é fechada uma única vez.</p>
           </div>
-          {tickets.length > 0 && <div className="cut-ticket-shop__list mb-4">{tickets.map((ticket) => { const remaining = Number(ticket.remaining ?? 0); const available = Boolean(ticket.available); return <div className={`cut-ticket-shop__option ${!available ? "cut-ticket-shop__option--sold-out" : ""}`} key={`courtesy-${ticket.id}`}><div className="cut-ticket-shop__option-copy"><span className="cut-ticket-kicker">{ticket.type || ticket.ticket_type || "Ingresso promocional"}</span><strong>{ticket.name}</strong><span>Grátis</span><small>{ticket.expired ? "Prazo encerrado" : available ? `${remaining} restante${remaining === 1 ? "" : "s"}` : "Esgotado"}</small>{ticket.limit_date && !ticket.expired && <small>Retirada até {formatDate(ticket.limit_date)}</small>}</div><Button onClick={() => claim(ticket)} disabled={!available || claimingId === ticket.id}>{available ? (user ? "Obter ingresso" : "Entrar para obter") : ticket.expired ? "Prazo encerrado" : "Esgotado"}</Button></div>; })}</div>}
+
           <EventCommercePanel slug={slug} eventId={event.id} user={user} onLoginRequired={(returnTo = `${location.pathname}${location.search}`) => navigate("/login", { state: { from: returnTo } })} />
+
+          {tickets.length > 0 && <div className="cut-ticket-shop__courtesies mt-4">
+            <div className="cut-ticket-shop__heading mb-3">
+              <div>
+                <span className="cut-eyebrow">Entradas gratuitas</span>
+                <h3 className="mt-2">Cortesias e listas</h3>
+                <p>Ingressos gratuitos continuam individuais: cada participante resgata o próprio QR Code na sua conta.</p>
+              </div>
+            </div>
+            <div className="cut-ticket-shop__list">{tickets.map((ticket) => {
+              const remaining = Number(ticket.remaining ?? 0);
+              const available = Boolean(ticket.available);
+              return <div className={`cut-ticket-shop__option ${!available ? "cut-ticket-shop__option--sold-out" : ""}`} key={`courtesy-${ticket.id}`}>
+                <div className="cut-ticket-shop__option-copy">
+                  <span className="cut-ticket-kicker">{ticket.type || ticket.ticket_type || "Ingresso promocional"}</span>
+                  <strong>{ticket.name}</strong>
+                  <span>Grátis</span>
+                  <small>{ticket.expired ? "Prazo encerrado" : available ? `${remaining} restante${remaining === 1 ? "" : "s"}` : "Esgotado"}</small>
+                  {ticket.limit_date && !ticket.expired && <small>Resgate até {formatDate(ticket.limit_date)}</small>}
+                </div>
+                <Button variant="outline-light" onClick={() => claim(ticket)} disabled={!available || claimingId === ticket.id}>
+                  {available ? (user ? "Resgatar 1 cortesia" : "Entrar para resgatar") : ticket.expired ? "Prazo encerrado" : "Esgotado"}
+                </Button>
+              </div>;
+            })}</div>
+          </div>}
         </section>}
 
         <Row className="g-4"><Col lg={isOwner ? 8 : 12}>
           <Card className="cut-panel mb-4"><Card.Body className="p-4 p-lg-5"><span className="cut-eyebrow">Sobre o evento</span><h2 className="cut-section-title mt-2">Informações</h2>{eventDescription && <div className="mb-4"><p className="cut-body-copy mb-2">{visibleDescription}</p>{hasLongDescription && <Button variant="link" className="p-0 text-decoration-none" onClick={() => setDescriptionExpanded((current) => !current)} aria-expanded={descriptionExpanded}><i className={`fa-solid ${descriptionExpanded ? "fa-chevron-up" : "fa-chevron-down"} me-2`} aria-hidden="true" />{descriptionExpanded ? "Recolher descrição" : "Ver descrição completa"}</Button>}</div>}<div className="cut-event-details"><div><i className="fa-regular fa-calendar" /><span><strong>Início</strong>{formatDate(event.start_date)}</span></div><div><i className="fa-regular fa-clock" /><span><strong>Término</strong>{formatDate(event.end_date)}</span></div><div><i className="fa-solid fa-location-dot" /><span><strong>Local</strong>{event.venue || event.address}</span></div>{event.city && <div><i className="fa-solid fa-map" /><span><strong>Cidade</strong>{event.city}{event.uf ? ` - ${event.uf}` : ""}</span></div>}</div></Card.Body></Card>
-          {event.production?.name && <Card className="cut-panel mb-4"><Card.Body className="p-4"><span className="cut-eyebrow">Responsável</span><div className="cut-production-inline"><div><h2>{event.production.name}</h2><p>Veja os próximos eventos e acompanhe esta produção.</p></div><div className="d-flex flex-wrap gap-2"><Button variant="success" onClick={() => setProductionTicketCartOpen(true)}><i className="fa-solid fa-cart-plus me-2" />Adquirir ingresso</Button><Button variant="outline-light" onClick={() => navigate(`/production/${event.production.slug}/public`)}>Ver página da produção</Button></div></div></Card.Body></Card>}
+          {event.production?.name && <Card className="cut-panel mb-4"><Card.Body className="p-4"><span className="cut-eyebrow">Responsável</span><div className="cut-production-inline"><div><h2>{event.production.name}</h2><p>Veja os próximos eventos e acompanhe esta produção.</p></div><div className="d-flex flex-wrap gap-2">{showPersistentBuyCta && <Button as="a" href="#ingressos" variant="success"><i className="fa-solid fa-cart-shopping me-2" />Comprar ingressos e itens</Button>}<Button variant="outline-light" onClick={() => navigate(`/production/${event.production.slug}/public`)}>Ver página da produção</Button></div></div></Card.Body></Card>}
           {mapEmbedUrl && <Card className="cut-panel"><Card.Body className="p-0 overflow-hidden"><iframe title={`Mapa de ${event.title}`} src={mapEmbedUrl} width="100%" height="360" style={{ border: 0, display: "block" }} loading="lazy" referrerPolicy="no-referrer-when-downgrade" allowFullScreen /></Card.Body></Card>}
         </Col>
         {isOwner && <Col lg={4}><Card className="cut-panel"><Card.Body className="p-4"><span className="cut-eyebrow">Gestão</span><h2 className="cut-section-title mt-2">Ferramentas do evento</h2><div className="cut-owner-actions mt-4"><Button variant="outline-light" onClick={() => navigate(`/event/edit/${event.id}`)}><i className="fa-solid fa-pen-to-square me-2" />Editar evento</Button><Button variant="outline-light" onClick={() => navigate(`/event/${event.id}/lineup`)}>Line-up</Button><Button variant="outline-light" onClick={() => navigate(`/event/${event.id}/artist-claims`)}>Reivindicações</Button>{!isPastEvent && <Button variant="outline-light" onClick={() => navigate(`/checkin?eventId=${event.id}`)}>Portaria</Button>}{!isPastEvent && <Button variant="outline-light" onClick={() => navigate(`/ticket/create?eventId=${event.id}`)}>Criar cortesia</Button>}</div></Card.Body></Card></Col>}</Row>
@@ -500,13 +517,6 @@ export default function EventViewPage() {
       />
 
       <EventFlyerModal show={flyerOpen} onHide={() => setFlyerOpen(false)} event={event} flyerUrl={flyerUrl} />
-      <ProductionTicketCartModal
-        show={productionTicketCartOpen}
-        onHide={() => setProductionTicketCartOpen(false)}
-        productionSlug={productionSlug}
-        currentEvent={event}
-        onAdded={handleProductionTicketAdded}
-      />
     </>}
     {!loading && !event && <Container className="cut-page-container py-5"><Alert variant="danger">{error || "Evento não encontrado ou não está publicado."}</Alert><Button variant="outline-light" onClick={() => navigate("/event")}>Voltar aos eventos</Button></Container>}
   </div>;
