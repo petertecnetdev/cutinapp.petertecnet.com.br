@@ -351,6 +351,28 @@ const search = async (params = {}, options = {}) => {
   return response;
 };
 
+const fetchAllMyEvents = async (params = {}) => {
+  const perPage = Math.min(100, Math.max(1, Number(params.per_page) || 100));
+  const baseParams = { ...params, per_page: perPage };
+  delete baseParams.page;
+
+  const items = [];
+  let page = 1;
+  let lastPage = 1;
+
+  do {
+    const response = await appApiClient.get("/events/mine", {
+      params: { ...baseParams, page },
+    });
+    const pagination = response?.data?.events;
+    items.push(...unwrap(pagination));
+    lastPage = Math.max(1, Number(pagination?.last_page) || 1);
+    page += 1;
+  } while (page <= lastPage);
+
+  return mergeUniqueEvents(items);
+};
+
 const eventService = {
   search,
   list: async (params = {}) => unwrap((await appApiClient.get("/events", { params })).data.events),
@@ -369,7 +391,7 @@ const eventService = {
     return updateJsonEvent(eventId, payload);
   },
   show: async (eventId) => (await appApiClient.get(`/events/${eventId}/manage`)).data.event,
-  myEvents: async (params = {}) => unwrap((await appApiClient.get("/events/mine", { params: { per_page: 100, ...params } })).data.events),
+  myEvents: fetchAllMyEvents,
   destroy: async (eventId) => (await appApiClient.delete(`/events/${Number(eventId)}`)).data,
   duplicate: (eventId, date) => duplicateEvent(eventId, { date }),
   series: (eventId, payload) => createEventSeries(eventId, payload),

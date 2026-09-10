@@ -400,3 +400,107 @@ th[aria-sort="descending"] .cut-event-sort-head i{color:var(--cut-primary)}
     width:100%
   }
 }
+
+
+/* Seleção e exclusão em massa de eventos do produtor */
+.cut-event-bulk-selection{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin:-2px 0 14px;
+  padding:10px 12px;
+  border:1px solid var(--cut-border);
+  border-radius:14px;
+  background:rgba(10,12,34,.78)
+}
+.cut-event-bulk-selection__summary,
+.cut-event-bulk-selection__actions{
+  display:flex;
+  align-items:center;
+  gap:10px
+}
+.cut-event-bulk-selection__summary .form-check{
+  margin:0
+}
+.cut-event-bulk-selection__summary label{
+  color:var(--cut-text-strong);
+  font-size:.78rem;
+  font-weight:850
+}
+.cut-event-bulk-selection__summary>span{
+  color:var(--cut-text-muted);
+  font-size:.72rem
+}
+.cut-event-bulk-selection__actions .btn{
+  min-height:38px;
+  border-radius:11px
+}
+.cut-event-sort-select-head,
+.cut-event-admin-select-cell{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-width:0
+}
+.cut-event-sort-select-head>.form-check,
+.cut-event-admin-select-cell>.form-check,
+.cut-event-mobile-card__select.form-check{
+  flex:0 0 auto;
+  margin:0
+}
+.cut-event-sort-select-head .form-check-input,
+.cut-event-admin-select-cell .form-check-input,
+.cut-event-mobile-card__select .form-check-input,
+.cut-event-bulk-selection .form-check-input{
+  width:18px;
+  height:18px;
+  margin-top:0;
+  cursor:pointer;
+  border-color:rgba(255,255,255,.34);
+  background-color:rgba(255,255,255,.06)
+}
+.cut-event-admin-select-cell>.cut-event-admin-identity{
+  flex:1 1 auto
+}
+.cut-event-admin-table tbody tr.is-selected,
+.cut-event-mobile-card.is-selected{
+  border-color:rgba(86,220,233,.55);
+  box-shadow:0 12px 30px rgba(0,0,0,.15), inset 0 0 0 1px rgba(86,220,233,.14)
+}
+.cut-event-mobile-card__badges .cut-event-mobile-card__select{
+  display:flex;
+  align-items:center
+}
+.cut-event-bulk-delete-preview{
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px
+}
+.cut-event-bulk-delete-preview span,
+.cut-event-bulk-delete-preview small{
+  display:inline-flex;
+  align-items:center;
+  min-height:30px;
+  padding:5px 9px;
+  border:1px solid var(--cut-border);
+  border-radius:999px;
+  background:var(--cut-surface-2);
+  color:var(--cut-text-soft);
+  font-size:.7rem
+}
+
+@media(max-width:767.98px){
+  .cut-event-bulk-selection{
+    align-items:stretch;
+    flex-direction:column
+  }
+  .cut-event-bulk-selection__summary,
+  .cut-event-bulk-selection__actions{
+    justify-content:space-between;
+    flex-wrap:wrap
+  }
+  .cut-event-bulk-selection__actions .btn:last-child{
+    flex:1 1 190px
+  }
+}

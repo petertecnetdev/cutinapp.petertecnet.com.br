@@ -90,6 +90,46 @@ describe("EventService event creation idempotency", () => {
   });
 });
 
+describe("EventService producer event listing", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test("loads every producer event page so bulk selection is not limited to 100 events", async () => {
+    appApiClient.get
+      .mockResolvedValueOnce({
+        data: {
+          events: {
+            data: Array.from({ length: 100 }, (_, index) => ({ id: index + 1 })),
+            current_page: 1,
+            last_page: 2,
+          },
+        },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          events: {
+            data: [{ id: 101 }, { id: 102 }, { id: 103 }],
+            current_page: 2,
+            last_page: 2,
+          },
+        },
+      });
+
+    const events = await eventService.myEvents();
+
+    expect(events).toHaveLength(103);
+    expect(events[0].id).toBe(1);
+    expect(events[102].id).toBe(103);
+    expect(appApiClient.get).toHaveBeenNthCalledWith(1, "/events/mine", {
+      params: { per_page: 100, page: 1 },
+    });
+    expect(appApiClient.get).toHaveBeenNthCalledWith(2, "/events/mine", {
+      params: { per_page: 100, page: 2 },
+    });
+  });
+});
+
 describe("EventService event update uploads", () => {
   beforeEach(() => {
     jest.clearAllMocks();

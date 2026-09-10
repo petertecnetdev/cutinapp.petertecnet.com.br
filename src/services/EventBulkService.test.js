@@ -18,6 +18,28 @@ describe("EventBulkService mutation reliability", () => {
     sessionStorage.clear();
   });
 
+  test("deletes only the selected event ids in one request", async () => {
+    appApiClient.delete.mockResolvedValue({ data: { deleted: 2, event_ids: [3, 9] } });
+
+    await expect(eventBulkService.deleteSelected([9, 3, 9])).resolves.toEqual({
+      deleted: 2,
+      event_ids: [3, 9],
+    });
+
+    expect(appApiClient.delete).toHaveBeenCalledWith(
+      "/events/bulk",
+      expect.objectContaining({
+        data: { event_ids: [3, 9] },
+        headers: { "Idempotency-Key": expect.any(String) },
+      })
+    );
+  });
+
+  test("rejects selected deletion without valid ids before calling the API", async () => {
+    await expect(eventBulkService.deleteSelected([])).rejects.toThrow("Selecione ao menos um evento");
+    expect(appApiClient.delete).not.toHaveBeenCalled();
+  });
+
   test("sends an idempotency key when deleting all owned events", async () => {
     appApiClient.delete.mockResolvedValue({ data: { deleted: 3 } });
 
