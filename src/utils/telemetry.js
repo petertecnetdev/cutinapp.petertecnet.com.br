@@ -29,22 +29,40 @@ const readAttribution = () => {
   }
 };
 
-const saveAttributionFromFeed = (details = {}) => {
+const saveAttribution = (attribution = {}) => {
   try {
-    if (!canUseSessionStorage()) return;
-    const metadata = details?.metadata || {};
-    if (metadata?.source !== "feed") return;
+    if (!canUseSessionStorage() || !attribution?.source) return;
+    const now = Date.now();
     window.sessionStorage.setItem(ATTRIBUTION_STORAGE_KEY, JSON.stringify({
-      source: "feed",
-      post_id: Number(metadata?.post_id || 0) || null,
-      event_id: Number(metadata?.event_id || 0) || null,
-      event_slug: metadata?.event_slug || null,
-      captured_at: Date.now(),
-      expires_at: Date.now() + ATTRIBUTION_TTL_MS,
+      ...attribution,
+      captured_at: now,
+      expires_at: now + ATTRIBUTION_TTL_MS,
     }));
   } catch (_) {
     // Attribution must never interrupt navigation or telemetry.
   }
+};
+
+const saveAttributionFromFeed = (details = {}) => {
+  const metadata = details?.metadata || {};
+  if (metadata?.source !== "feed") return;
+  saveAttribution({
+    source: "feed",
+    post_id: Number(metadata?.post_id || 0) || null,
+    event_id: Number(metadata?.event_id || 0) || null,
+    event_slug: metadata?.event_slug || null,
+  });
+};
+
+const saveAttributionFromRecovery = (details = {}) => {
+  saveAttribution({
+    source: "checkout_recovery",
+    event_id: Number(details?.event_id || 0) || null,
+    event_slug: details?.target || null,
+    recovery_surface: details?.surface || null,
+    recovery_source: details?.source || null,
+    recovery_has_pending_order: Boolean(details?.has_pending_order),
+  });
 };
 
 const shouldAttachAttribution = () => {
@@ -68,9 +86,12 @@ const ensureAttributionAwareTracker = () => {
         metadata: {
           ...(details?.metadata || {}),
           attribution_source: attribution.source,
-          attribution_post_id: attribution.post_id,
-          attribution_event_id: attribution.event_id,
-          attribution_event_slug: attribution.event_slug,
+          attribution_post_id: attribution.post_id || null,
+          attribution_event_id: attribution.event_id || null,
+          attribution_event_slug: attribution.event_slug || null,
+          attribution_recovery_surface: attribution.recovery_surface || null,
+          attribution_recovery_source: attribution.recovery_source || null,
+          attribution_recovery_has_pending_order: attribution.recovery_has_pending_order ?? null,
         },
       }
       : details;
@@ -89,6 +110,7 @@ export const trackTelemetry = (type, details = {}) => {
   try {
     if (typeof window === "undefined") return false;
     if (["feed_event_opened", "feed_ticket_intent_clicked"].includes(type)) saveAttributionFromFeed(details);
+    if (type === "checkout_resume_prompt_clicked") saveAttributionFromRecovery(details);
     const tracker = ensureAttributionAwareTracker();
     if (typeof tracker !== "function") return false;
     tracker(type, details);
