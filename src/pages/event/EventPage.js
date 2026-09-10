@@ -227,7 +227,13 @@ export default function EventPage() {
                   <div className="cut-event-card__media">
                     {event.image ? <img src={`${storageUrl}${String(event.image).replace(/^\//, "")}`} alt={event.title} loading="lazy" decoding="async" /> : <div className="cut-event-card__placeholder"><i className="fa-regular fa-calendar" /></div>}
                     {event.category && <Badge bg="dark" className="cut-event-card__category">{event.category}</Badge>}
-                    {event.free_ticket_lots_count > 0 && <Badge bg="success" className="cut-event-card__badge">Gratuito</Badge>}
+                    {Number(event.sellable_free_ticket_lots_count ?? event.free_ticket_lots_count ?? 0) > 0
+                      ? <Badge bg="success" className="cut-event-card__badge">Gratuito</Badge>
+                      : Number(event.sellable_ticket_lots_count ?? 0) > 0
+                        ? <Badge bg="primary" className="cut-event-card__badge">Ingressos disponíveis</Badge>
+                        : Number(event.ticket_lots_count ?? 0) > 0
+                          ? <Badge bg="secondary" className="cut-event-card__badge">Indisponível no momento</Badge>
+                          : <Badge bg="warning" text="dark" className="cut-event-card__badge">Ingressos em breve</Badge>}
                   </div>
                   <Card.Body>
                     <span className="cut-eyebrow">{event.production?.name || "Cutinapp"}</span>
