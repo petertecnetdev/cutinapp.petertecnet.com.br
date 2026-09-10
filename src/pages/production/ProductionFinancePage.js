@@ -30,6 +30,14 @@ const paymentMethodLabel = {
   debit_card: "Débito",
   unknown: "Não identificado",
 };
+const recoverySurfaceLabel = {
+  feed: "Feed",
+  event: "Página do evento",
+  discovery: "Descoberta",
+  navbar_popover: "Atalho da navegação",
+  notifications_page: "Central de notificações",
+  unknown: "Origem não identificada",
+};
 
 function StatusLine({ ok, title, detail }) {
   return <div className="d-flex align-items-start gap-3 py-2">
@@ -134,6 +142,15 @@ export default function ProductionFinancePage() {
   const recoveredGmvShare = grossRevenue > 0 ? (recoveredGmv / grossRevenue) * 100 : 0;
   const recoveredGmvPerAttempt = recoveryAttempts > 0 ? recoveredGmv / recoveryAttempts : 0;
   const recoveredPlatformRevenuePerAttempt = recoveryAttempts > 0 ? recoveredPlatformRevenue / recoveryAttempts : 0;
+  const recoverySurfaces = useMemo(() => {
+    const rows = Array.isArray(revenueFunnel?.checkout_recovery_surface_economics)
+      ? revenueFunnel.checkout_recovery_surface_economics
+      : [];
+    return [...rows].sort((left, right) => {
+      if (Boolean(left.sample_is_mature) !== Boolean(right.sample_is_mature)) return left.sample_is_mature ? -1 : 1;
+      return Number(right.observed_platform_revenue_per_impression || 0) - Number(left.observed_platform_revenue_per_impression || 0);
+    });
+  }, [revenueFunnel?.checkout_recovery_surface_economics]);
   const netEconomics = useMemo(() => estimateNetRevenueEconomics({
     grossRevenue,
     platformRevenue,
@@ -319,6 +336,18 @@ export default function ProductionFinancePage() {
           {recoveryAttempts > 0 && <Alert variant="info" className="mt-3 mb-0">
             Recuperação de checkout converteu <strong>{percent(recoveryConversionRate)}</strong> das tentativas e recuperou <strong>{money(recoveredGmv)}</strong> em GMV / <strong>{money(recoveredPlatformRevenue)}</strong> em receita de plataforma. Cada tentativa recuperou em média <strong>{money(recoveredGmvPerAttempt)}</strong> de GMV e <strong>{money(recoveredPlatformRevenuePerAttempt)}</strong> de receita bruta da plataforma, equivalente a aproximadamente <strong>{money(netEconomics.estimatedRecoveredNetRevenue)}</strong> de receita líquida total após processamento pela margem observada.
           </Alert>}
+
+          {recoverySurfaces.length > 0 && <div className="mt-4">
+            <div className="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+              <div>
+                <span className="cut-eyebrow">Recuperação por origem</span>
+                <h3 className="h5 mt-2 mb-1">Onde a recuperação realmente gera receita</h3>
+                <p className="text-secondary small mb-0">Ranking econômico das superfícies que retomam checkouts. Amostras pequenas ficam sinalizadas e não devem orientar decisões isoladamente.</p>
+              </div>
+            </div>
+            <div className="table-responsive"><Table variant="dark" hover className="align-middle mb-0"><thead><tr><th>Origem</th><th>Exibições</th><th>Cliques</th><th>Conversão</th><th>Pagos</th><th>GMV recuperado</th><th>Receita plataforma</th><th>Receita / exibição</th><th>Amostra</th></tr></thead><tbody>{recoverySurfaces.map((row) => <tr key={row.surface}><td><strong>{recoverySurfaceLabel[row.surface] || row.surface}</strong></td><td>{Number(row.impressions || 0).toLocaleString("pt-BR")}</td><td>{Number(row.cta_clicks || 0).toLocaleString("pt-BR")}</td><td>{row.click_to_paid_rate_percent == null ? "—" : percent(row.click_to_paid_rate_percent)}</td><td>{Number(row.paid_orders || 0).toLocaleString("pt-BR")}</td><td>{money(row.observed_gross_revenue)}</td><td>{money(row.observed_platform_revenue)}</td><td>{row.observed_platform_revenue_per_impression == null ? "—" : money(row.observed_platform_revenue_per_impression)}</td><td><Badge bg={row.sample_is_mature ? "success" : "secondary"}>{row.sample_is_mature ? "Madura" : "Em coleta"}</Badge></td></tr>)}</tbody></Table></div>
+            {recoverySurfaces.some((row) => !row.sample_is_mature) && <Alert variant="secondary" className="mt-3 mb-0">Superfícies marcadas como <strong>Em coleta</strong> ainda não atingiram a amostra mínima definida pela API central. Use esses números apenas como sinal inicial; priorize decisões comerciais quando a amostra estiver madura.</Alert>}
+          </div>}
 
           {(revenueFunnel.payment_methods || []).length > 0 && <div className="table-responsive mt-4"><Table variant="dark" hover className="align-middle mb-0"><thead><tr><th>Pagamento</th><th>Checkouts</th><th>Pagos</th><th>Conversão</th><th>GMV</th><th>Receita plataforma</th><th>Receita líquida</th><th>Margem/GMV</th><th>GMV em risco</th></tr></thead><tbody>{revenueFunnel.payment_methods.map((row) => <tr key={row.payment_method}><td>{paymentMethodLabel[row.payment_method] || row.payment_method}</td><td>{row.orders_created}</td><td>{row.orders_paid}</td><td>{percent(row.conversion_rate)}</td><td>{money(row.gross_revenue)}</td><td>{money(row.platform_revenue)}</td><td>{money(row.platform_contribution_after_processing ?? (Number(row.platform_revenue || 0) - Number((row.processor_fees_borne_by_platform ?? row.processor_fees) || 0)))}</td><td>{percent(row.platform_contribution_margin)}</td><td>{money(row.gross_at_risk)}</td></tr>)}</tbody></Table></div>}
         </Card.Body></Card>}
