@@ -66,12 +66,14 @@ export default function ProductionAgendaManager() {
   const [production, setProduction] = useState(null);
   const [loading, setLoading] = useState(true);
   const [agendaActive, setAgendaActive] = useState(true);
+  const [generationWeeks, setGenerationWeeks] = useState(1);
   const [schedules, setSchedules] = useState([]);
   const [availableEvents, setAvailableEvents] = useState([]);
   const [selections, setSelections] = useState({});
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(location.state?.agendaMessage || "");
   const [togglingAgenda, setTogglingAgenda] = useState(false);
+  const [savingHorizon, setSavingHorizon] = useState(false);
   const [savingDay, setSavingDay] = useState(null);
   const [removingDay, setRemovingDay] = useState(null);
 
@@ -105,6 +107,7 @@ export default function ProductionAgendaManager() {
         const loadedSchedules = Array.isArray(agendaData?.schedules) ? agendaData.schedules : [];
         setProduction(workspace?.organization || workspace?.production || null);
         setAgendaActive(agendaData?.agenda?.is_active !== false);
+        setGenerationWeeks(Math.max(1, Math.min(3, Number(agendaData?.agenda?.generation_weeks || 1))));
         setSchedules(loadedSchedules);
         setAvailableEvents(Array.isArray(agendaData?.available_events) ? agendaData.available_events : []);
 
@@ -139,6 +142,36 @@ export default function ProductionAgendaManager() {
     }
   };
 
+  const updateGenerationWeeks = async (value) => {
+    const nextWeeks = Math.max(1, Math.min(3, Number(value || 1)));
+    if (savingHorizon || nextWeeks === generationWeeks) return;
+
+    const previous = generationWeeks;
+    setGenerationWeeks(nextWeeks);
+    setSavingHorizon(true);
+    setError("");
+    setSuccess("");
+    try {
+      const response = await eventService.setAgendaSettings(productionId, nextWeeks);
+      const resolved = Math.max(1, Math.min(3, Number(response?.agenda?.generation_weeks || nextWeeks)));
+      setGenerationWeeks(resolved);
+      const created = Number(response?.generation?.created_count || 0);
+      const retired = Number(response?.generation?.retired_count || 0);
+      setSuccess(
+        created > 0
+          ? `Horizonte atualizado para ${resolved} semana(s). ${created} ocorrência(s) necessária(s) foram criadas.`
+          : retired > 0
+            ? `Horizonte atualizado para ${resolved} semana(s). Ocorrências automáticas excedentes sem vendas foram retiradas.`
+            : `Horizonte atualizado para ${resolved} semana(s).`
+      );
+    } catch (err) {
+      setGenerationWeeks(previous);
+      setError(apiError(err, "Não foi possível alterar o horizonte da agenda semanal."));
+    } finally {
+      setSavingHorizon(false);
+    }
+  };
+
   const saveDay = async (day) => {
     const eventId = Number(selections[day.value] || 0);
     if (!eventId || savingDay !== null) {
@@ -163,7 +196,12 @@ export default function ProductionAgendaManager() {
         ]);
         setSelections((current) => ({ ...current, [day.value]: String(eventId) }));
       }
-      setSuccess(response?.message || `${day.label} atualizada na agenda semanal.`);
+      const created = Number(response?.generation?.created_count || 0);
+      setSuccess(
+        created > 0
+          ? `${day.label} configurada. ${created} ocorrência(s) foram criadas para preencher o horizonte atual.`
+          : response?.message || `${day.label} atualizada na agenda semanal.`
+      );
     } catch (err) {
       setError(apiError(err, "Não foi possível adicionar este evento à agenda semanal."));
     } finally {
@@ -233,7 +271,7 @@ export default function ProductionAgendaManager() {
                 <h3>Agenda semanal</h3>
                 <Badge bg={agendaActive ? "success" : "secondary"}>{agendaActive ? "Ativa" : "Pausada"}</Badge>
               </div>
-              <p>{configuredDays} de 7 dia(s) configurado(s). A agenda usa os eventos reais da produção como programação fixa.</p>
+              <p>{configuredDays} de 7 dia(s) configurado(s). A agenda mantém somente {generationWeeks === 1 ? "a próxima semana" : `as próximas ${generationWeeks} semanas`} criada(s).</p>
             </div>
           </div>
           <div className="cut-agenda-control__actions">
@@ -256,10 +294,36 @@ export default function ProductionAgendaManager() {
         <div className="cut-agenda-help">
           <i className="fa-regular fa-lightbulb" />
           <div>
-            <strong>Um dia, um evento fixo</strong>
-            <span>Escolha um evento já criado para cada dia da semana. Alterar ou remover um slot da agenda não exclui o evento original.</span>
+            <strong>Sete modelos recorrentes, sem criar eventos em massa</strong>
+            <span>Escolha um evento já criado para cada dia. O sistema duplica somente o necessário para manter o horizonte escolhido e repõe cada dia depois que ele passa.</span>
           </div>
         </div>
+
+        <section className="cut-agenda-horizon">
+          <div className="cut-agenda-horizon__copy">
+            <span className="cut-eyebrow">Antecedência automática</span>
+            <h3>Quantas semanas devem ficar criadas?</h3>
+            <p>
+              Com 1 semana, ficam no máximo 7 próximas ocorrências. Depois que a segunda passa, por exemplo,
+              a próxima segunda é criada após a virada para terça. Com 2 ou 3 semanas, a mesma lógica mantém
+              somente 14 ou 21 próximas ocorrências.
+            </p>
+          </div>
+          <div className="cut-agenda-horizon__control">
+            <Form.Label htmlFor={`agenda-generation-weeks-${productionId}`}>Horizonte</Form.Label>
+            <Form.Select
+              id={`agenda-generation-weeks-${productionId}`}
+              value={generationWeeks}
+              disabled={savingHorizon}
+              onChange={(event) => updateGenerationWeeks(event.target.value)}
+            >
+              <option value={1}>1 semana · até 7 eventos futuros</option>
+              <option value={2}>2 semanas · até 14 eventos futuros</option>
+              <option value={3}>3 semanas · até 21 eventos futuros</option>
+            </Form.Select>
+            <small>{savingHorizon ? "Ajustando agenda..." : "O limite considera os 7 dias configurados."}</small>
+          </div>
+        </section>
 
         {availableEvents.length === 0 && (
           <Alert variant="info" className="cut-weekly-agenda-no-events">
