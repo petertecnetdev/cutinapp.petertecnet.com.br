@@ -127,6 +127,11 @@ export default function ProductionFinancePage() {
   const organizationProcessorFees = Number(revenueFunnel?.processor_fees_borne_by_organization || 0);
   const platformNetAfterProcessing = Number(revenueFunnel?.platform_contribution_after_processing ?? (platformRevenue - platformProcessorFees));
   const effectiveTakeRate = grossRevenue > 0 ? (platformRevenue / grossRevenue) * 100 : 0;
+  const recoveryAttempts = Number(revenueFunnel?.checkout_recovery_attempts || 0);
+  const recoveredGmv = Number(revenueFunnel?.recovered_gross_revenue || 0);
+  const recoveredPlatformRevenue = Number(revenueFunnel?.recovered_platform_revenue || 0);
+  const recoveryConversionRate = Number(revenueFunnel?.checkout_recovery_conversion_rate || 0);
+  const recoveredGmvShare = grossRevenue > 0 ? (recoveredGmv / grossRevenue) * 100 : 0;
   const netEconomics = useMemo(() => estimateNetRevenueEconomics({
     grossRevenue,
     platformRevenue,
@@ -291,6 +296,10 @@ export default function ProductionFinancePage() {
             <Col md={4} xl={3}><RevenueMetric label="Ticket médio" value={money(revenueFunnel.average_paid_order)} detail="Por pedido pago" /></Col>
             <Col md={4} xl={3}><RevenueMetric label="Conversão checkout" value={percent(revenueFunnel.checkout_conversion_rate)} detail={`${revenueFunnel.orders_created || 0} checkouts criados`} /></Col>
             <Col md={4} xl={3}><RevenueMetric label="Abandono" value={percent(revenueFunnel.abandonment_rate)} detail={money(revenueFunnel.gross_revenue_lost_to_abandonment) + " de GMV perdido"} /></Col>
+            <Col md={4} xl={3}><RevenueMetric label="Tentativas de recuperação" value={recoveryAttempts.toLocaleString("pt-BR")} detail="Checkouts retomados no período" /></Col>
+            <Col md={4} xl={3}><RevenueMetric label="Conversão da recuperação" value={percent(recoveryConversionRate)} detail="Retomadas que viraram pagamento" /></Col>
+            <Col md={4} xl={3}><RevenueMetric label="GMV recuperado" value={money(recoveredGmv)} detail={`${percent(recoveredGmvShare)} do GMV pago do período`} /></Col>
+            <Col md={4} xl={3}><RevenueMetric label="Receita líquida recuperada" value={money(netEconomics.estimatedRecoveredNetRevenue)} detail={`${money(recoveredPlatformRevenue)} de receita bruta da plataforma`} /></Col>
             <Col md={4} xl={3}><RevenueMetric label="Receita plataforma" value={money(platformRevenue)} detail={`Take rate efetivo ${percent(effectiveTakeRate)}`} /></Col>
             <Col md={4} xl={3}><RevenueMetric label="Processamento total" value={money(processorFees)} detail={`Peter Tecnet suporta ${money(platformProcessorFees)} • produtor ${money(organizationProcessorFees)}`} /></Col>
             <Col md={4} xl={3}><RevenueMetric label="Receita líquida Peter Tecnet" value={money(platformNetAfterProcessing)} detail={`Margem sobre GMV ${percent(revenueFunnel.platform_contribution_margin ?? netEconomics.netTakeRate)}`} /></Col>
@@ -303,8 +312,8 @@ export default function ProductionFinancePage() {
             Há <strong>{money(revenueFunnel.gross_revenue_at_risk)}</strong> em pedidos ainda pendentes, equivalentes a <strong>{money(revenueFunnel.platform_revenue_at_risk)}</strong> de receita de plataforma potencial e cerca de <strong>{money(netEconomics.estimatedNetRevenueAtRisk)}</strong> após processamento, usando a margem observada no período. Priorize recuperação de pagamento antes de aumentar desconto.
           </Alert>}
 
-          {Number(revenueFunnel.checkout_recovery_attempts || 0) > 0 && <Alert variant="info" className="mt-3 mb-0">
-            Recuperação de checkout converteu <strong>{percent(revenueFunnel.checkout_recovery_conversion_rate)}</strong> das tentativas e recuperou <strong>{money(revenueFunnel.recovered_gross_revenue)}</strong> em GMV / <strong>{money(revenueFunnel.recovered_platform_revenue)}</strong> em receita de plataforma, equivalente a aproximadamente <strong>{money(netEconomics.estimatedRecoveredNetRevenue)}</strong> de receita líquida após processamento pela margem observada.
+          {recoveryAttempts > 0 && <Alert variant="info" className="mt-3 mb-0">
+            Recuperação de checkout converteu <strong>{percent(recoveryConversionRate)}</strong> das tentativas e recuperou <strong>{money(recoveredGmv)}</strong> em GMV / <strong>{money(recoveredPlatformRevenue)}</strong> em receita de plataforma, equivalente a aproximadamente <strong>{money(netEconomics.estimatedRecoveredNetRevenue)}</strong> de receita líquida após processamento pela margem observada.
           </Alert>}
 
           {(revenueFunnel.payment_methods || []).length > 0 && <div className="table-responsive mt-4"><Table variant="dark" hover className="align-middle mb-0"><thead><tr><th>Pagamento</th><th>Checkouts</th><th>Pagos</th><th>Conversão</th><th>GMV</th><th>Receita plataforma</th><th>Receita líquida</th><th>Margem/GMV</th><th>GMV em risco</th></tr></thead><tbody>{revenueFunnel.payment_methods.map((row) => <tr key={row.payment_method}><td>{paymentMethodLabel[row.payment_method] || row.payment_method}</td><td>{row.orders_created}</td><td>{row.orders_paid}</td><td>{percent(row.conversion_rate)}</td><td>{money(row.gross_revenue)}</td><td>{money(row.platform_revenue)}</td><td>{money(row.platform_contribution_after_processing ?? (Number(row.platform_revenue || 0) - Number((row.processor_fees_borne_by_platform ?? row.processor_fees) || 0)))}</td><td>{percent(row.platform_contribution_margin)}</td><td>{money(row.gross_at_risk)}</td></tr>)}</tbody></Table></div>}
