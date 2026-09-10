@@ -148,7 +148,7 @@ export default function ProductionFinancePage() {
       : [];
     return [...rows].sort((left, right) => {
       if (Boolean(left.sample_is_mature) !== Boolean(right.sample_is_mature)) return left.sample_is_mature ? -1 : 1;
-      return Number(right.observed_platform_revenue_per_impression || 0) - Number(left.observed_platform_revenue_per_impression || 0);
+      return Number(right.observed_platform_contribution_per_impression || 0) - Number(left.observed_platform_contribution_per_impression || 0);
     });
   }, [revenueFunnel?.checkout_recovery_surface_economics]);
   const netEconomics = useMemo(() => estimateNetRevenueEconomics({
@@ -342,10 +342,10 @@ export default function ProductionFinancePage() {
               <div>
                 <span className="cut-eyebrow">Recuperação por origem</span>
                 <h3 className="h5 mt-2 mb-1">Onde a recuperação realmente gera receita</h3>
-                <p className="text-secondary small mb-0">Ranking econômico das superfícies que retomam checkouts. Amostras pequenas ficam sinalizadas e não devem orientar decisões isoladamente.</p>
+                <p className="text-secondary small mb-0">Ranking econômico das superfícies que retomam checkouts, priorizado pela contribuição líquida por exibição após processamento. Amostras pequenas ficam sinalizadas e não devem orientar decisões isoladamente.</p>
               </div>
             </div>
-            <div className="table-responsive"><Table variant="dark" hover className="align-middle mb-0"><thead><tr><th>Origem</th><th>Exibições</th><th>Cliques</th><th>Conversão</th><th>Pagos</th><th>GMV recuperado</th><th>Receita plataforma</th><th>Receita / exibição</th><th>Amostra</th></tr></thead><tbody>{recoverySurfaces.map((row) => <tr key={row.surface}><td><strong>{recoverySurfaceLabel[row.surface] || row.surface}</strong></td><td>{Number(row.impressions || 0).toLocaleString("pt-BR")}</td><td>{Number(row.cta_clicks || 0).toLocaleString("pt-BR")}</td><td>{row.click_to_paid_rate_percent == null ? "—" : percent(row.click_to_paid_rate_percent)}</td><td>{Number(row.paid_orders || 0).toLocaleString("pt-BR")}</td><td>{money(row.observed_gross_revenue)}</td><td>{money(row.observed_platform_revenue)}</td><td>{row.observed_platform_revenue_per_impression == null ? "—" : money(row.observed_platform_revenue_per_impression)}</td><td><Badge bg={row.sample_is_mature ? "success" : "secondary"}>{row.sample_is_mature ? "Madura" : "Em coleta"}</Badge></td></tr>)}</tbody></Table></div>
+            <div className="table-responsive"><Table variant="dark" hover className="align-middle mb-0"><thead><tr><th>Origem</th><th>Exibições</th><th>Cliques</th><th>Conversão</th><th>Pagos</th><th>GMV recuperado</th><th>Receita plataforma</th><th>Receita / exibição</th><th>Contribuição líquida</th><th>Líquido / exibição</th><th>Amostra</th></tr></thead><tbody>{recoverySurfaces.map((row) => <tr key={row.surface}><td><strong>{recoverySurfaceLabel[row.surface] || row.surface}</strong></td><td>{Number(row.impressions || 0).toLocaleString("pt-BR")}</td><td>{Number(row.cta_clicks || 0).toLocaleString("pt-BR")}</td><td>{row.click_to_paid_rate_percent == null ? "—" : percent(row.click_to_paid_rate_percent)}</td><td>{Number(row.paid_orders || 0).toLocaleString("pt-BR")}</td><td>{money(row.observed_gross_revenue)}</td><td>{money(row.observed_platform_revenue)}</td><td>{row.observed_platform_revenue_per_impression == null ? "—" : money(row.observed_platform_revenue_per_impression)}</td><td>{money(row.observed_platform_contribution)}</td><td>{row.observed_platform_contribution_per_impression == null ? "—" : money(row.observed_platform_contribution_per_impression)}</td><td><Badge bg={row.sample_is_mature ? "success" : "secondary"}>{row.sample_is_mature ? "Madura" : "Em coleta"}</Badge></td></tr>)}</tbody></Table></div>
             {recoverySurfaces.some((row) => !row.sample_is_mature) && <Alert variant="secondary" className="mt-3 mb-0">Superfícies marcadas como <strong>Em coleta</strong> ainda não atingiram a amostra mínima definida pela API central. Use esses números apenas como sinal inicial; priorize decisões comerciais quando a amostra estiver madura.</Alert>}
           </div>}
 
