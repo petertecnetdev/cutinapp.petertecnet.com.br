@@ -5,6 +5,7 @@ import { AuthContext } from "../context/AuthContext";
 import NavlogComponent from "../components/NavlogComponent";
 import SkeletonCard from "../components/SkeletonCard";
 import cutinappService from "../services/CutinappService";
+import ticketAvailabilityService from "../services/TicketAvailabilityService";
 import { storageUrl } from "../config";
 import "./FeedPage.css";
 
@@ -23,6 +24,20 @@ const ticketAvailabilityLabel = (post) => ({
 }[post?.ticket_availability_status] || "");
 const hasSellableTickets = (post) => sellableTicketStatuses.has(post?.ticket_availability_status)
   || Number(post?.sellable_ticket_lots_count || 0) > 0;
+const eventIdsFromActivity = (posts = []) => Array.from(new Set(posts.flatMap((post) => [
+  Number(post?.event_id || 0),
+  ...(Array.isArray(post?.replies) ? post.replies.map((reply) => Number(reply?.event_id || 0)) : []),
+]).filter((id) => id > 0)));
+const withTicketAvailability = (post, availability = {}) => {
+  const summary = post?.event_id ? availability[String(post.event_id)] || {} : {};
+  return {
+    ...post,
+    ...summary,
+    replies: Array.isArray(post?.replies)
+      ? post.replies.map((reply) => withTicketAvailability(reply, availability))
+      : post?.replies,
+  };
+};
 
 export default function FeedPage() {
   const navigate = useNavigate();
@@ -47,7 +62,20 @@ export default function FeedPage() {
     try {
       const response = await cutinappService.feed({ page: 1, per_page: 12 });
       if (requestId !== feedRequestRef.current) return;
-      setCommunityActivity(Array.isArray(response.community_activity) ? response.community_activity : []);
+
+      let activity = Array.isArray(response.community_activity) ? response.community_activity : [];
+      const eventIds = eventIdsFromActivity(activity);
+      if (eventIds.length > 0) {
+        try {
+          const availability = await ticketAvailabilityService.forEvents(eventIds);
+          if (requestId !== feedRequestRef.current) return;
+          activity = activity.map((post) => withTicketAvailability(post, availability));
+        } catch {
+          // Availability is supplemental. Keep the social feed usable and hide purchase CTAs on uncertainty.
+        }
+      }
+
+      setCommunityActivity(activity);
     } catch (err) {
       if (requestId !== feedRequestRef.current) return;
       setError(err?.response?.data?.message || err?.message || "Não foi possível montar seu feed agora.");
