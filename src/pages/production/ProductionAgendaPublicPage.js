@@ -39,6 +39,17 @@ const formatDate = (value) => {
   }).format(date);
 };
 
+const formatTime = (value) => {
+  if (!value) return "Horário a definir";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Horário a definir";
+  return new Intl.DateTimeFormat("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: SAO_PAULO_TZ,
+  }).format(date);
+};
+
 const dateKey = (value) => {
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return "";
@@ -318,7 +329,7 @@ export default function ProductionAgendaPublicPage() {
                           </div>
                           <div className="cut-public-weekly__event-copy">
                             <h3>{event.title}</h3>
-                            <p><i className="fa-regular fa-clock" />{formatDate(event.start_date)}</p>
+                            <p><i className="fa-regular fa-clock" />{formatTime(event.start_date)}</p>
                             <p><i className="fa-solid fa-location-dot" />{event.venue || event.city || "Local a definir"}</p>
                             {availability && <Badge bg={availability.bg} text={availability.text}>{availability.label}</Badge>}
                           </div>
@@ -343,7 +354,7 @@ export default function ProductionAgendaPublicPage() {
               <div className="cut-public-agenda-next__media">
                 {nextEvent.image
                   ? <img src={mediaUrl(nextEvent.image)} alt={nextEvent.title} />
-                  : <div className="cut-public-agenda-event__fallback"><span>{initials(event.title)}</span></div>}
+                  : <div className="cut-public-agenda-event__fallback"><span>{initials(nextEvent.title)}</span></div>}
               </div>
               <div className="cut-public-agenda-next__body">
                 <span className="cut-eyebrow">Próximo evento</span>
@@ -387,7 +398,7 @@ export default function ProductionAgendaPublicPage() {
                     <div className="cut-public-agenda-event__media">
                       {event.image
                         ? <img src={mediaUrl(event.image)} alt={event.title} loading="lazy" decoding="async" />
-                        : <div className="cut-public-agenda-event__fallback"><i className="fa-regular fa-calendar" /></div>}
+                        : <div className="cut-public-agenda-event__fallback"><span>{initials(event.title)}</span></div>}
                     </div>
                     <div className="cut-public-agenda-event__body">
                       <div className="cut-public-agenda-event__date">
