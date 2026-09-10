@@ -83,7 +83,7 @@ const signProducerContract = createIdempotentMutation({
   mutate: async ({ idempotencyKey }, organizationId, payload = {}) => (await appApiClient.post(
     `/organizations/${Number(organizationId)}/agreement/sign`,
     payload,
-    { headers: { "Idempotency-Key": idempotencyKey } },
+    { headers: { "Idempotency-Key": idempotencyKey },
   )).data,
 });
 
