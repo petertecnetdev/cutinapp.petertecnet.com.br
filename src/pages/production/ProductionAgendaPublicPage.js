@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Alert, Button, Container } from "react-bootstrap";
+import { Alert, Badge, Button, Container } from "react-bootstrap";
 import { useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
@@ -55,6 +55,24 @@ const sortEvents = (events, direction = "asc") => [...events].sort((left, right)
   const b = new Date(right?.start_date || 0).getTime();
   return direction === "desc" ? b - a : a - b;
 });
+
+const ticketAvailability = (event) => {
+  switch (event?.ticket_availability_status) {
+    case "free_available":
+      return { bg: "success", label: "Gratuito disponível", sellable: true };
+    case "available":
+      return { bg: "primary", label: "Ingressos disponíveis", sellable: true };
+    case "temporarily_reserved":
+      return { bg: "warning", text: "dark", label: "Reservado no momento", sellable: false };
+    case "sold_out":
+      return { bg: "secondary", label: "Esgotado", sellable: false };
+    case "sales_ended":
+      return { bg: "secondary", label: "Vendas encerradas", sellable: false };
+    case "tickets_pending":
+    default:
+      return { bg: "warning", text: "dark", label: "Ingressos em breve", sellable: false };
+  }
+};
 
 const setMeta = (selector, attributes) => {
   let element = document.head.querySelector(selector);
@@ -116,6 +134,7 @@ export default function ProductionAgendaPublicPage() {
   }, [filter, past, todayKey, upcoming]);
 
   const nextEvent = upcoming[0] || null;
+  const nextEventAvailability = nextEvent ? ticketAvailability(nextEvent) : null;
   const agendaUrl = typeof window !== "undefined" ? `${window.location.origin}/agenda/${encodeURIComponent(slug)}` : "";
 
   useEffect(() => {
@@ -255,8 +274,9 @@ export default function ProductionAgendaPublicPage() {
                 <h2>{nextEvent.title}</h2>
                 <p><i className="fa-regular fa-calendar me-2" />{formatDate(nextEvent.start_date)}</p>
                 <p><i className="fa-solid fa-location-dot me-2" />{nextEvent.venue || nextEvent.city || "Local a definir"}</p>
+                {nextEventAvailability && <Badge bg={nextEventAvailability.bg} text={nextEventAvailability.text} className="mb-3">{nextEventAvailability.label}</Badge>}
                 <Button onClick={() => navigate(`/event/${nextEvent.slug}`)}>
-                  Ver evento e ingressos <i className="fa-solid fa-arrow-right ms-2" />
+                  {nextEventAvailability?.sellable ? "Ver evento e ingressos" : "Ver evento"} <i className="fa-solid fa-arrow-right ms-2" />
                 </Button>
               </div>
             </section>
@@ -284,7 +304,9 @@ export default function ProductionAgendaPublicPage() {
               </div>
             ) : (
               <div className="cut-public-agenda-grid">
-                {filteredEvents.map((event) => (
+                {filteredEvents.map((event) => {
+                  const availability = filter === "past" ? null : ticketAvailability(event);
+                  return (
                   <article className="cut-public-agenda-event" key={event.id}>
                     <div className="cut-public-agenda-event__media">
                       {event.image
@@ -298,12 +320,14 @@ export default function ProductionAgendaPublicPage() {
                       </div>
                       <h3>{event.title}</h3>
                       <p><i className="fa-solid fa-location-dot" />{event.venue || event.city || "Local a definir"}</p>
+                      {availability && <Badge bg={availability.bg} text={availability.text} className="mb-3">{availability.label}</Badge>}
                       <Button onClick={() => navigate(`/event/${event.slug}`)}>
-                        {filter === "past" ? "Ver evento" : "Ver evento e ingressos"}
+                        {filter === "past" || !availability?.sellable ? "Ver evento" : "Ver evento e ingressos"}
                       </Button>
                     </div>
                   </article>
-                ))}
+                  );
+                })}
               </div>
             )}
           </section>
@@ -316,7 +340,7 @@ export default function ProductionAgendaPublicPage() {
             <small>Próximo evento</small>
             <strong>{nextEvent.title}</strong>
           </div>
-          <Button onClick={() => navigate(`/event/${nextEvent.slug}`)}>Ver ingressos</Button>
+          <Button onClick={() => navigate(`/event/${nextEvent.slug}`)}>{nextEventAvailability?.sellable ? "Ver ingressos" : "Ver evento"}</Button>
         </div>
       )}
     </div>
