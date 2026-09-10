@@ -16,6 +16,7 @@ import { getPaymentSyncDelay } from "../../utils/paymentSyncSchedule";
 import { isCheckoutInventoryConflict, isCheckoutOperationInProgress } from "../../utils/checkoutRetryPolicy";
 import { isPendingPixExpired, latestPaymentFromOrder, pendingPixExpirationState } from "../../utils/orderRecovery";
 import { createKeyedSingleFlight } from "../../utils/singleFlight";
+import { clearEventCart, readEventCart, writeEventCart } from "../../utils/eventCartStorage";
 import { safeGetSessionJson, safeRemoveSessionItem, safeSetSessionJson } from "../../utils/safeStorage";
 import "./CheckoutPage.css";
 
@@ -59,7 +60,6 @@ export default function CheckoutPage() {
   const couponValidationSequenceRef = useRef(0);
   resultRef.current = result;
 
-  const checkoutStorageKey = `cutinapp_checkout_${slug}`;
   const paymentStorageKey = `cutinapp_payment_${slug}`;
 
   useEffect(() => {
@@ -68,14 +68,14 @@ export default function CheckoutPage() {
     const recovery = readCheckoutRecovery(slug);
 
     if (fromState) {
-      safeSetSessionJson(checkoutStorageKey, fromState);
+      writeEventCart(slug, fromState);
       safeRemoveSessionItem(paymentStorageKey);
       writeCheckoutRecovery(slug, { selection: fromState, orderPublicId: null });
       trackCheckout("checkout_fresh_selection_started", { label: "Nova seleção substituiu pagamento anterior da sessão", target: slug, metadata: { event_id: Number(fromState?.eventId || 0), ticket_quantity: (fromState?.tickets || []).reduce((sum, item) => sum + Number(item?.quantity || 0), 0), item_quantity: (fromState?.items || []).reduce((sum, item) => sum + Number(item?.quantity || 0), 0) } });
     }
 
     let stored = fromState;
-    if (!stored) stored = safeGetSessionJson(checkoutStorageKey);
+    if (!stored) stored = readEventCart(slug);
     if (!stored) stored = recovery?.selection || null;
     setSelection(stored);
     if (!fromState && recovery?.couponCode) setCouponCode(recovery.couponCode);
@@ -137,7 +137,7 @@ export default function CheckoutPage() {
     }).catch((err) => active && setError(err?.message || "Não foi possível preparar o checkout.")).finally(() => active && setLoading(false));
 
     return () => { active = false; };
-  }, [slug, location.state, checkoutStorageKey, paymentStorageKey]);
+  }, [slug, location.state, paymentStorageKey]);
 
   useEffect(() => {
     if (result?.order?.public_id) {
@@ -226,12 +226,39 @@ export default function CheckoutPage() {
     const reconciliation = summarizeCheckoutReconciliation({ catalog, previousSelection: selection, nextSelection });
     const activeCouponCode = coupon?.code || null;
     setSelection(nextSelection);
-    safeSetSessionJson(checkoutStorageKey, nextSelection);
+    writeEventCart(slug, nextSelection);
     writeCheckoutRecovery(slug, { selection: nextSelection, orderPublicId: null, couponCode: activeCouponCode });
     setError(checkoutReconciliationMessage(reconciliation, money));
     trackCheckout("checkout_selection_reconciled", { label: "Seleção ajustada à disponibilidade atual", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), previous_ticket_quantity: (selection.tickets || []).reduce((sum, item) => sum + Number(item.quantity || 0), 0), ticket_quantity: tickets.reduce((sum, item) => sum + Number(item.quantity || 0), 0), previous_item_quantity: (selection.items || []).reduce((sum, item) => sum + Number(item.quantity || 0), 0), item_quantity: items.reduce((sum, item) => sum + Number(item.quantity || 0), 0), changed_lines: reconciliation.changed_lines, previous_gmv: reconciliation.previous_gmv, reconciled_gmv: reconciliation.reconciled_gmv, gmv_removed: reconciliation.gmv_removed, unpriced_removed_lines: reconciliation.unpriced_removed_lines } });
     if (activeCouponCode) revalidateCouponForSelection(nextSelection, "inventory_reconciliation");
-  }, [catalog, checkoutStorageKey, result, selection, slug]);
+  }, [catalog, result, selection, slug]);
+
+  useEffect(() => {
+    if (result) return undefined;
+    let active = true;
+
+    const refreshCatalog = async () => {
+      if (document.visibilityState === "hidden") return;
+      try {
+        const freshCatalog = await commerceService.catalog(slug, { force: true });
+        if (active) setCatalog(freshCatalog);
+      } catch (_) {
+        // Keep the last valid catalog. Submit performs a final inventory validation.
+      }
+    };
+
+    const timer = window.setInterval(refreshCatalog, 30000);
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") refreshCatalog();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [result, slug]);
 
   const paymentAvailable = Boolean(catalog?.payment_config?.available);
   const methods = Array.isArray(catalog?.payment_config?.methods) ? catalog.payment_config.methods : [];
@@ -242,6 +269,11 @@ export default function CheckoutPage() {
   const approved = orderStatus === "paid";
   const fulfilled = approved && fulfillmentStatus === "completed";
   const failed = failedStatuses.includes(orderStatus);
+
+  useEffect(() => {
+    if (!fulfilled) return;
+    clearEventCart(slug);
+  }, [fulfilled, slug]);
   const pixExpiration = pendingPixExpirationState(result?.order || {}, paymentNow);
   const pixExpired = isPendingPixExpired(result?.order || {}, paymentNow);
   const pixExpiresAtLabel = pixExpiration && !pixExpiration.expired
@@ -352,19 +384,45 @@ export default function CheckoutPage() {
     if (result || applyingCoupon || !item?.id) return;
     const nextSelection = { ...selection, items: [...(selection?.items || []), { id: Number(item.id), quantity: 1 }] };
     const activeCouponCode = coupon?.code || null;
-    setSelection(nextSelection); safeSetSessionJson(checkoutStorageKey, nextSelection); writeCheckoutRecovery(slug, { selection: nextSelection, orderPublicId: null, couponCode: activeCouponCode });
+    setSelection(nextSelection); writeEventCart(slug, nextSelection); writeCheckoutRecovery(slug, { selection: nextSelection, orderPublicId: null, couponCode: activeCouponCode });
     if (activeCouponCode) revalidateCouponForSelection(nextSelection, "addon_added");
     trackCheckout("checkout_addon_added", { label: "Adicional incluído no checkout", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), item_id: Number(item.id), item_name: item.name || "Item", addon_price: Number(item.price || 0), previous_amount: Number(total.toFixed(2)), new_amount: Number((total + Number(item.price || 0)).toFixed(2)) } });
   };
-  const updateItemQuantity = (item, nextQuantity) => {
-    if (result || applyingCoupon || !item?.id) return;
-    const quantity = resolveCheckoutQuantity(item, Number(nextQuantity || 0), checkoutQuantityLimit("item")); const currentItems = selection?.items || [];
-    const nextItems = quantity === 0 ? currentItems.filter((entry) => Number(entry.id) !== Number(item.id)) : currentItems.map((entry) => Number(entry.id) === Number(item.id) ? { ...entry, quantity } : entry);
-    const nextSelection = { ...selection, items: nextItems };
+  const updateLineQuantity = (line, nextQuantity) => {
+    if (result || applyingCoupon || !line?.id) return;
+    const kind = line.kind === "ticket" ? "ticket" : "item";
+    const collectionKey = kind === "ticket" ? "tickets" : "items";
+    const limit = checkoutQuantityLimit(kind);
+    const quantity = resolveCheckoutQuantity(line, Number(nextQuantity || 0), limit);
+    const currentLines = selection?.[collectionKey] || [];
+    const nextLines = quantity === 0
+      ? currentLines.filter((entry) => Number(entry.id) !== Number(line.id))
+      : currentLines.map((entry) => Number(entry.id) === Number(line.id) ? { ...entry, quantity } : entry);
+    const nextSelection = { ...selection, [collectionKey]: nextLines };
     const activeCouponCode = coupon?.code || null;
-    setSelection(nextSelection); safeSetSessionJson(checkoutStorageKey, nextSelection); writeCheckoutRecovery(slug, { selection: nextSelection, orderPublicId: null, couponCode: activeCouponCode });
-    if (activeCouponCode) revalidateCouponForSelection(nextSelection, "item_quantity_changed");
-    trackCheckout("checkout_item_quantity_changed", { label: quantity === 0 ? "Item removido do checkout" : "Quantidade de item alterada no checkout", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), item_id: Number(item.id), item_name: item.name || "Item", previous_quantity: Number(item.quantity || 0), new_quantity: quantity, unit_price: Number(item.price || 0), previous_amount: Number(total.toFixed(2)), new_amount: Number((total + (quantity - Number(item.quantity || 0)) * Number(item.price || 0)).toFixed(2)) } });
+
+    setSelection(nextSelection);
+    writeEventCart(slug, nextSelection);
+    writeCheckoutRecovery(slug, { selection: nextSelection, orderPublicId: null, couponCode: activeCouponCode });
+    if (activeCouponCode) revalidateCouponForSelection(nextSelection, `${kind}_quantity_changed`);
+
+    trackCheckout("checkout_line_quantity_changed", {
+      label: quantity === 0
+        ? (kind === "ticket" ? "Ingresso removido do checkout" : "Item removido do checkout")
+        : (kind === "ticket" ? "Quantidade de ingresso alterada no checkout" : "Quantidade de item alterada no checkout"),
+      target: slug,
+      metadata: {
+        event_id: Number(catalog?.event?.id || 0),
+        item_type: kind,
+        item_id: Number(line.id),
+        item_name: line.name || (kind === "ticket" ? "Ingresso" : "Item"),
+        previous_quantity: Number(line.quantity || 0),
+        new_quantity: quantity,
+        unit_price: Number(line.price || 0),
+        previous_amount: Number(total.toFixed(2)),
+        new_amount: Number((total + (quantity - Number(line.quantity || 0)) * Number(line.price || 0)).toFixed(2)),
+      },
+    });
   };
 
   const payload = (paymentMethod) => ({ event_id: catalog?.event?.id, payment_method: paymentMethod, coupon_code: coupon?.code || undefined, tickets: (selection?.tickets || []).map((item) => ({ id: Number(item.id), quantity: Number(item.quantity) })), items: (selection?.items || []).map((item) => ({ id: Number(item.id), quantity: Number(item.quantity) })) });
@@ -390,7 +448,7 @@ export default function CheckoutPage() {
       const activeCouponCode = coupon?.code || null;
       setCatalog(freshCatalog);
       setSelection(nextSelection);
-      safeSetSessionJson(checkoutStorageKey, nextSelection);
+      writeEventCart(slug, nextSelection);
       writeCheckoutRecovery(slug, { selection: nextSelection, orderPublicId: null, couponCode: activeCouponCode });
       setCouponError("");
       setError(`${checkoutReconciliationMessage(reconciliation, money)}${activeCouponCode ? " Seu cupom será revalidado automaticamente antes de uma nova tentativa." : " Revise o resumo antes de confirmar novamente."}`);
@@ -462,7 +520,7 @@ export default function CheckoutPage() {
           <section className="cut-checkout-section" data-telemetry-context="Pagamento"><div className="cut-checkout-section__head"><div className="cut-checkout-step">2</div><div><h2>Pagamento</h2><p>Seus dados são processados em ambiente seguro.</p></div></div>{!result && <div className="cut-payment-total"><span>{coupon ? "Total com desconto" : "Total a pagar"}</span><strong>{money(payableTotal)}</strong></div>}{!result && method === "pix" && pixAvailable && <div className="cut-pix-start"><div className="cut-pix-start__icon"><i className="fa-brands fa-pix" /></div><h3>Pagamento via PIX</h3><p>Geraremos um QR Code exclusivo para esta compra. A confirmação aparecerá automaticamente nesta tela.</p><Button data-track="Gerar PIX" className="cut-checkout-primary" onClick={checkoutPix} disabled={paying || applyingCoupon}>{applyingCoupon ? "Revalidando cupom..." : paying ? "Gerando PIX seguro..." : "Gerar QR Code PIX"}</Button></div>}{!result && method === "card" && cardAvailable && <MercadoPagoCardForm publicKey={catalog?.payment_config?.public_key || ""} amount={payableTotal} email={user?.email || ""} disabled={paying || applyingCoupon} onSubmit={checkoutCard} />}{approved && !fulfilled && <div className="cut-payment-waiting"><div className="cut-payment-waiting__pulse"><i className="fa-solid fa-ticket" /></div><h3>Pagamento confirmado</h3><p>O dinheiro já foi reconhecido. Estamos finalizando a emissão do seu ingresso. Você não precisa pagar novamente.</p><Button className="cut-checkout-primary w-100" onClick={() => syncCurrentPayment({ manual: true })} disabled={syncingNow}>{syncingNow ? "Verificando..." : "Verificar emissão agora"}</Button><div className="cut-checkout-live"><span /><strong>Recuperação automática ativa</strong></div></div>}{pixExpired && <Alert variant="warning" className="mb-0" role="status" aria-live="polite"><strong>Este PIX expirou.</strong><div className="mt-1">Para proteger você contra cobrança duplicada, vamos confirmar o status desta mesma compra antes de liberar um novo QR Code.</div><Button className="cut-checkout-primary w-100 mt-3" onClick={restartExpiredPix} disabled={syncingNow}>{syncingNow ? "Confirmando pagamento anterior..." : "Gerar novo PIX com segurança"}</Button></Alert>}{result && !failed && !approved && !pixExpired && <div className="cut-payment-waiting"><div className="cut-payment-waiting__pulse"><i className="fa-solid fa-shield-halved" /></div><h3>{paymentUnderReview ? "Pagamento em análise" : "Aguardando confirmação"}</h3><p>{paymentUnderReview ? "Seu pagamento já foi enviado e está passando por uma análise de segurança. Não faça uma nova cobrança. Atualizaremos esta mesma compra automaticamente assim que houver uma decisão." : <>Assim que o Mercado Pago confirmar o pagamento, esta página será atualizada automaticamente. {method === "pix" ? "Se você já pagou, não gere outro PIX." : "Se você já enviou o pagamento, não envie novamente."}</>}</p>{method === "pix" && result.payment?.qr_code && <div className="cut-pix-mobile-first">{pixExpiresAtLabel && <><div className="cut-pix-amount" role="status" aria-live="polite" aria-label={`PIX válido até ${pixExpiresAtLabel}`}><span>PIX válido até</span><strong>{pixExpiresAtLabel}</strong></div><small className="text-start text-secondary">Depois desse horário, gere um novo código nesta mesma compra. Não é necessário refazer o pedido.</small></>}<div className="cut-pix-amount"><span>Valor do PIX</span><strong>{money(result?.order?.total || payableTotal)}</strong></div><p className="cut-pix-mobile-hint"><i className="fa-solid fa-mobile-screen-button" /> No celular, copie o código e pague no app do seu banco.</p><Button className="cut-checkout-primary w-100" onClick={copyPix} aria-live="polite"><i className={`fa-regular ${pixCopyStatus === "copied" ? "fa-circle-check" : "fa-copy"} me-2`} />{pixCopyStatus === "copied" ? "Código PIX copiado" : pixCopyStatus === "error" ? "Tentar copiar código PIX" : "Copiar código PIX"}</Button></div>}{method === "pix" && result.payment?.qr_code_image && <div className="cut-pix-qr"><img src={result.payment.qr_code_image} alt="QR Code PIX" /></div>}{method === "pix" && result.payment?.qr_code && <div className="cut-pix-code">{result.payment.qr_code}</div>}<Button className="cut-checkout-primary w-100 mt-3" onClick={() => syncCurrentPayment({ manual: true })} disabled={syncingNow}>{syncingNow ? "Verificando pagamento..." : paymentUnderReview ? "Verificar análise agora" : "Já paguei — verificar agora"}</Button><div className="cut-checkout-live"><span /><strong>{paymentUnderReview ? "Análise protegida — confirmação automática ativa" : "Confirmação automática ativa"}</strong></div></div>}{failed && <Alert variant="danger" className="mb-0" role="alert" aria-live="assertive"><strong>{failedPaymentGuidance.title}</strong><div>{failedPaymentGuidance.message}</div><div className="d-grid gap-2 mt-3">{failedPaymentGuidance.statusCheckOnly ? <Button variant="light" onClick={() => { trackCheckout("duplicate_payment_status_check", { label: "Status verificado após recusa por duplicidade", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(result?.order?.total || payableTotal || 0), payment_method: method, previous_status: orderStatus || "rejected" } }); syncCurrentPayment({ manual: true }); }} disabled={syncingNow}>{syncingNow ? "Verificando status..." : "Verificar status da compra"}</Button> : <>{method === "card" && pixAvailable && <Button variant="light" onClick={() => recoverFailedPayment("pix")}><i className="fa-brands fa-pix me-2" />Pagar esta compra com PIX</Button>}<Button variant="outline-light" onClick={() => recoverFailedPayment(method)}>{method === "card" && failedPaymentGuidance.retryAllowed === false ? "Usar outro cartão" : `Tentar novamente com ${method === "pix" ? "PIX" : "cartão"}`}</Button>{method === "pix" && cardAvailable && <Button variant="light" onClick={() => recoverFailedPayment("card")}><i className="fa-regular fa-credit-card me-2" />Tentar com cartão</Button>}</>}</div></Alert>}</section>
         </>}
         <div className="cut-checkout-trustbar"><div><i className="fa-solid fa-lock" /><span><strong>Conexão segura</strong>Dados criptografados</span></div><div><i className="fa-solid fa-shield-halved" /><span><strong>Mercado Pago </strong>Processamento protegido</span></div><div><i className="fa-solid fa-ticket" /><span><strong>Liberação automática</strong>Ingresso após aprovação</span></div></div>
-      </main><aside className="cut-checkout-summary"><span className="cut-eyebrow">Resumo do pedido</span><h2>Sua compra</h2><div className="cut-checkout-summary__event"><i className="fa-regular fa-calendar-check" /><div><strong>{catalog?.event?.title}</strong><span>Compra pela Cutinapp</span></div></div><div className="cut-checkout-summary__lines">{lines.map((line) => <div key={`${line.kind}-${line.id}`}><div><small>{line.kind === "ticket" ? "Ingresso" : "Item"}</small><strong>{line.name}</strong>{!result && line.kind === "item" ? <div className="d-flex flex-row align-items-center gap-2 mt-2" aria-label={`Quantidade de ${line.name}`}><Button type="button" variant="outline-light" size="sm" onClick={() => updateItemQuantity(line, line.quantity - 1)} disabled={applyingCoupon} aria-label={`Diminuir quantidade de ${line.name}`}><i className="fa-solid fa-minus" /></Button><span aria-live="polite">{line.quantity}</span><Button type="button" variant="outline-light" size="sm" onClick={() => updateItemQuantity(line, line.quantity + 1)} disabled={applyingCoupon || line.quantity >= checkoutQuantityLimit("item")} aria-label={`Aumentar quantidade de ${line.name}`}><i className="fa-solid fa-plus" /></Button></div> : <span>Qtd. {line.quantity}</span>}</div><strong>{money(Number(line.price) * line.quantity)}</strong></div>)}</div>{coupon && !result && <div className="cut-checkout-summary__discount"><span><i className="fa-solid fa-tag" /> Cupom {coupon.code}</span><strong>- {money(discountAmount)}</strong></div>}<div className="cut-checkout-summary__total"><span>Total</span><strong>{money(result?.order?.total ?? payableTotal)}</strong></div><div className="cut-checkout-summary__security"><i className="fa-solid fa-shield-halved" /><span>Pagamento processado com segurança pelo Mercado Pago.</span></div></aside></div>
+      </main><aside className="cut-checkout-summary"><span className="cut-eyebrow">Resumo do pedido</span><h2>Sua compra</h2><div className="cut-checkout-summary__event"><i className="fa-regular fa-calendar-check" /><div><strong>{catalog?.event?.title}</strong><span>Compra pela Cutinapp</span></div></div><div className="cut-checkout-summary__lines">{lines.map((line) => <div key={`${line.kind}-${line.id}`}><div><small>{line.kind === "ticket" ? "Ingresso" : "Item"}</small><strong>{line.name}</strong>{!result ? <div className="cut-checkout-line-controls" aria-label={`Quantidade de ${line.name}`}><Button type="button" variant="outline-light" size="sm" onClick={() => updateLineQuantity(line, line.quantity - 1)} disabled={applyingCoupon} aria-label={`Diminuir quantidade de ${line.name}`}><i className="fa-solid fa-minus" /></Button><span aria-live="polite">{line.quantity}</span><Button type="button" variant="outline-light" size="sm" onClick={() => updateLineQuantity(line, line.quantity + 1)} disabled={applyingCoupon || line.quantity >= resolveCheckoutQuantity(line, checkoutQuantityLimit(line.kind), checkoutQuantityLimit(line.kind))} aria-label={`Aumentar quantidade de ${line.name}`}><i className="fa-solid fa-plus" /></Button><Button type="button" variant="link" size="sm" className="cut-checkout-line-remove" onClick={() => updateLineQuantity(line, 0)} disabled={applyingCoupon} aria-label={`Remover ${line.name} do carrinho`}><i className="fa-regular fa-trash-can" /></Button></div> : <span>Qtd. {line.quantity}</span>}</div><strong>{money(Number(line.price) * line.quantity)}</strong></div>)}</div>{coupon && !result && <div className="cut-checkout-summary__discount"><span><i className="fa-solid fa-tag" /> Cupom {coupon.code}</span><strong>- {money(discountAmount)}</strong></div>}<div className="cut-checkout-summary__total"><span>Total</span><strong>{money(result?.order?.total ?? payableTotal)}</strong></div><div className="cut-checkout-summary__security"><i className="fa-solid fa-shield-halved" /><span>Pagamento processado com segurança pelo Mercado Pago.</span></div></aside></div>
     </Container>
   </div>;
 }

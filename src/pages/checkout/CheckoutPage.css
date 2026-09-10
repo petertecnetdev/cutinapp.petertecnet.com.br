@@ -46,3 +46,33 @@
     width: 100%;
   }
 }
+
+.cut-checkout-line-controls {
+  display: inline-grid;
+  grid-template-columns: 32px 28px 32px 32px;
+  align-items: center;
+  gap: 6px;
+  margin-top: 9px;
+}
+.cut-checkout-line-controls .btn {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 10px;
+}
+.cut-checkout-line-controls > span {
+  color: #f8fafc;
+  text-align: center;
+  font-size: .82rem;
+  font-weight: 900;
+}
+.cut-checkout-line-remove {
+  color: #fca5a5 !important;
+  text-decoration: none !important;
+}
+.cut-checkout-line-remove:hover {
+  color: #fecaca !important;
+  background: rgba(239,68,68,.1) !important;
+}
