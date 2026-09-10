@@ -132,6 +132,8 @@ export default function ProductionFinancePage() {
   const recoveredPlatformRevenue = Number(revenueFunnel?.recovered_platform_revenue || 0);
   const recoveryConversionRate = Number(revenueFunnel?.checkout_recovery_conversion_rate || 0);
   const recoveredGmvShare = grossRevenue > 0 ? (recoveredGmv / grossRevenue) * 100 : 0;
+  const recoveredGmvPerAttempt = recoveryAttempts > 0 ? recoveredGmv / recoveryAttempts : 0;
+  const recoveredPlatformRevenuePerAttempt = recoveryAttempts > 0 ? recoveredPlatformRevenue / recoveryAttempts : 0;
   const netEconomics = useMemo(() => estimateNetRevenueEconomics({
     grossRevenue,
     platformRevenue,
@@ -299,6 +301,8 @@ export default function ProductionFinancePage() {
             <Col md={4} xl={3}><RevenueMetric label="Tentativas de recuperação" value={recoveryAttempts.toLocaleString("pt-BR")} detail="Checkouts retomados no período" /></Col>
             <Col md={4} xl={3}><RevenueMetric label="Conversão da recuperação" value={percent(recoveryConversionRate)} detail="Retomadas que viraram pagamento" /></Col>
             <Col md={4} xl={3}><RevenueMetric label="GMV recuperado" value={money(recoveredGmv)} detail={`${percent(recoveredGmvShare)} do GMV pago do período`} /></Col>
+            <Col md={4} xl={3}><RevenueMetric label="GMV por tentativa recuperada" value={money(recoveredGmvPerAttempt)} detail="Valor recuperado por tentativa de retomada" /></Col>
+            <Col md={4} xl={3}><RevenueMetric label="Receita plataforma / tentativa" value={money(recoveredPlatformRevenuePerAttempt)} detail="Retorno bruto médio de cada tentativa de recuperação" /></Col>
             <Col md={4} xl={3}><RevenueMetric label="Receita líquida recuperada" value={money(netEconomics.estimatedRecoveredNetRevenue)} detail={`${money(recoveredPlatformRevenue)} de receita bruta da plataforma`} /></Col>
             <Col md={4} xl={3}><RevenueMetric label="Receita plataforma" value={money(platformRevenue)} detail={`Take rate efetivo ${percent(effectiveTakeRate)}`} /></Col>
             <Col md={4} xl={3}><RevenueMetric label="Processamento total" value={money(processorFees)} detail={`Peter Tecnet suporta ${money(platformProcessorFees)} • produtor ${money(organizationProcessorFees)}`} /></Col>
@@ -313,7 +317,7 @@ export default function ProductionFinancePage() {
           </Alert>}
 
           {recoveryAttempts > 0 && <Alert variant="info" className="mt-3 mb-0">
-            Recuperação de checkout converteu <strong>{percent(recoveryConversionRate)}</strong> das tentativas e recuperou <strong>{money(recoveredGmv)}</strong> em GMV / <strong>{money(recoveredPlatformRevenue)}</strong> em receita de plataforma, equivalente a aproximadamente <strong>{money(netEconomics.estimatedRecoveredNetRevenue)}</strong> de receita líquida após processamento pela margem observada.
+            Recuperação de checkout converteu <strong>{percent(recoveryConversionRate)}</strong> das tentativas e recuperou <strong>{money(recoveredGmv)}</strong> em GMV / <strong>{money(recoveredPlatformRevenue)}</strong> em receita de plataforma. Cada tentativa recuperou em média <strong>{money(recoveredGmvPerAttempt)}</strong> de GMV e <strong>{money(recoveredPlatformRevenuePerAttempt)}</strong> de receita bruta da plataforma, equivalente a aproximadamente <strong>{money(netEconomics.estimatedRecoveredNetRevenue)}</strong> de receita líquida total após processamento pela margem observada.
           </Alert>}
 
           {(revenueFunnel.payment_methods || []).length > 0 && <div className="table-responsive mt-4"><Table variant="dark" hover className="align-middle mb-0"><thead><tr><th>Pagamento</th><th>Checkouts</th><th>Pagos</th><th>Conversão</th><th>GMV</th><th>Receita plataforma</th><th>Receita líquida</th><th>Margem/GMV</th><th>GMV em risco</th></tr></thead><tbody>{revenueFunnel.payment_methods.map((row) => <tr key={row.payment_method}><td>{paymentMethodLabel[row.payment_method] || row.payment_method}</td><td>{row.orders_created}</td><td>{row.orders_paid}</td><td>{percent(row.conversion_rate)}</td><td>{money(row.gross_revenue)}</td><td>{money(row.platform_revenue)}</td><td>{money(row.platform_contribution_after_processing ?? (Number(row.platform_revenue || 0) - Number((row.processor_fees_borne_by_platform ?? row.processor_fees) || 0)))}</td><td>{percent(row.platform_contribution_margin)}</td><td>{money(row.gross_at_risk)}</td></tr>)}</tbody></Table></div>}
