@@ -16,6 +16,10 @@ const input = () => ({
   uf: " go ",
   format: "  portrait  ",
   brandContext: "  Food | Music | Drinks  ",
+  brandColors: ["#ff00aa", "invalid"],
+  referenceNotes: "  editorial premium  ",
+  referenceImages: ["data:image/jpeg;base64,abc"],
+  creativeMemory: [" hero à direita ", " fundo magenta "],
   promotions: [" Mulheres FREE ", " Homens R$ 10 ", ""],
   featuredItems: [" Combo de vodka ", " Porção de frango "],
 });
@@ -28,8 +32,8 @@ describe("CreativeService flyer generation idempotency", () => {
     sessionStorage.clear();
   });
 
-  test("normalizes the structured creative brief and sends an idempotency key", async () => {
-    appApiClient.post.mockResolvedValueOnce({ data: { image_url: "https://example.test/flyer.webp" } });
+  test("normalizes the structured creative brief and starts with preview candidates", async () => {
+    appApiClient.post.mockResolvedValueOnce({ data: { image: { data_uri: "data:image/webp;base64,abc" } } });
 
     await creativeService.generateEventFlyerBackground(input());
 
@@ -47,10 +51,45 @@ describe("CreativeService flyer generation idempotency", () => {
       uf: "GO",
       format: "portrait",
       brand_context: "Food | Music | Drinks",
+      brand_colors: ["#ff00aa"],
+      reference_notes: "editorial premium",
+      reference_images: ["data:image/jpeg;base64,abc"],
+      creative_memory: ["hero à direita", "fundo magenta"],
       promotions: ["Mulheres FREE", "Homens R$ 10"],
       featured_items: ["Combo de vodka", "Porção de frango"],
+      generation_mode: "preview",
+      candidate_count: 3,
+      candidate_variation: undefined,
+      regeneration_mode: undefined,
+      include_candidates: true,
     }, { headers: { "Idempotency-Key": expect.any(String) } });
     expect(keyAt(0)).toBeTruthy();
+  });
+
+  test("finalizes one selected candidate with the premium profile", async () => {
+    appApiClient.post.mockResolvedValueOnce({ data: { image: { data_uri: "data:image/webp;base64,final" } } });
+
+    await creativeService.finalizeEventFlyerBackground(input(), "editorial");
+
+    expect(appApiClient.post.mock.calls[0][1]).toMatchObject({
+      generation_mode: "final",
+      candidate_count: 1,
+      candidate_variation: "editorial",
+      include_candidates: false,
+    });
+  });
+
+  test("supports directed regeneration in preview mode", async () => {
+    appApiClient.post.mockResolvedValueOnce({ data: { image: { data_uri: "data:image/webp;base64,abc" } } });
+
+    await creativeService.regenerateEventFlyerBackground(input(), "more_premium");
+
+    expect(appApiClient.post.mock.calls[0][1]).toMatchObject({
+      generation_mode: "preview",
+      regeneration_mode: "more_premium",
+      candidate_count: 3,
+      include_candidates: true,
+    });
   });
 
   test("loads the creative preset catalog from the central API", async () => {
@@ -65,7 +104,7 @@ describe("CreativeService flyer generation idempotency", () => {
   test("reuses the key after an uncertain network failure", async () => {
     appApiClient.post
       .mockRejectedValueOnce({ code: "ERR_NETWORK", message: "Network Error" })
-      .mockResolvedValueOnce({ data: { image_url: "https://example.test/flyer.webp" } });
+      .mockResolvedValueOnce({ data: { image: { data_uri: "data:image/webp;base64,abc" } } });
 
     await expect(creativeService.generateEventFlyerBackground(input())).rejects.toMatchObject({ code: "ERR_NETWORK" });
     const first = keyAt(0);
@@ -77,7 +116,7 @@ describe("CreativeService flyer generation idempotency", () => {
   test("uses a fresh key after a definitive validation failure", async () => {
     appApiClient.post
       .mockRejectedValueOnce({ response: { status: 422 } })
-      .mockResolvedValueOnce({ data: { image_url: "https://example.test/flyer.webp" } });
+      .mockResolvedValueOnce({ data: { image: { data_uri: "data:image/webp;base64,abc" } } });
 
     await expect(creativeService.generateEventFlyerBackground(input())).rejects.toMatchObject({ response: { status: 422 } });
     const rejected = keyAt(0);
@@ -96,7 +135,7 @@ describe("CreativeService flyer generation idempotency", () => {
     expect(second).toBe(first);
     expect(appApiClient.post).toHaveBeenCalledTimes(1);
 
-    resolveRequest({ data: { image_url: "https://example.test/flyer.webp" } });
+    resolveRequest({ data: { image: { data_uri: "data:image/webp;base64,abc" } } });
     await first;
   });
 });

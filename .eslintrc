@@ -14,10 +14,9 @@
   },
   "plugins": ["react"],
   "rules": {
-    // Aqui você pode adicionar regras específicas do ESLint para o seu projeto
+    "no-unused-vars": ["error", { "argsIgnorePattern": "^intensityKey$" }]
   },
   "globals": {
-    // Aqui você pode adicionar variáveis globais que não devem ser sinalizadas como não definidas
     "$": true,
     "jQuery": true
   }
