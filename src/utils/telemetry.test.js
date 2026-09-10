@@ -4,10 +4,13 @@ const loadTelemetry = async () => {
 };
 
 describe("checkout recovery attribution", () => {
+  let rawTrack;
+
   beforeEach(() => {
     window.sessionStorage.clear();
     window.history.replaceState({}, "", "/feed");
-    window.PeterTecnetTelemetry = { track: jest.fn() };
+    rawTrack = jest.fn();
+    window.PeterTecnetTelemetry = { track: rawTrack };
   });
 
   afterEach(() => {
@@ -28,7 +31,7 @@ describe("checkout recovery attribution", () => {
     window.history.replaceState({}, "", "/checkout/evento-teste");
     trackTelemetry("payment_approved", { metadata: { payment_method: "pix" } });
 
-    const approvedCall = window.PeterTecnetTelemetry.track.mock.calls.find(([type]) => type === "payment_approved");
+    const approvedCall = rawTrack.mock.calls.find(([type]) => type === "payment_approved");
     expect(approvedCall[1].metadata).toEqual(expect.objectContaining({
       attribution_source: "checkout_recovery",
       attribution_event_id: 42,
@@ -41,7 +44,7 @@ describe("checkout recovery attribution", () => {
     trackTelemetry("checkout_fulfilled", {});
     trackTelemetry("payment_approved", {});
 
-    const approvedCalls = window.PeterTecnetTelemetry.track.mock.calls.filter(([type]) => type === "payment_approved");
+    const approvedCalls = rawTrack.mock.calls.filter(([type]) => type === "payment_approved");
     expect(approvedCalls[1][1].metadata).toBeUndefined();
   });
 });
