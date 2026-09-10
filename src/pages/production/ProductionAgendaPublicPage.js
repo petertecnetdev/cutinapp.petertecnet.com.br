@@ -9,6 +9,16 @@ import "./production-agenda-public.css";
 
 const SAO_PAULO_TZ = "America/Sao_Paulo";
 
+const WEEK_DAYS = [
+  { value: 1, label: "Segunda-feira", short: "SEG" },
+  { value: 2, label: "Terça-feira", short: "TER" },
+  { value: 3, label: "Quarta-feira", short: "QUA" },
+  { value: 4, label: "Quinta-feira", short: "QUI" },
+  { value: 5, label: "Sexta-feira", short: "SEX" },
+  { value: 6, label: "Sábado", short: "SÁB" },
+  { value: 0, label: "Domingo", short: "DOM" },
+];
+
 const mediaUrl = (value) => {
   if (!value) return "";
   if (/^https?:\/\//i.test(value)) return value;
@@ -115,6 +125,19 @@ export default function ProductionAgendaPublicPage() {
   }, [slug]);
 
   const production = data?.production || null;
+  const weeklyAgenda = useMemo(
+    () => Array.isArray(data?.weekly_agenda) ? data.weekly_agenda : (Array.isArray(data?.weeklyAgenda) ? data.weeklyAgenda : []),
+    [data]
+  );
+  const weeklyByDay = useMemo(() => {
+    const map = {};
+    weeklyAgenda.forEach((slot) => {
+      if (slot?.event && map[Number(slot.day_of_week)] === undefined) {
+        map[Number(slot.day_of_week)] = slot.event;
+      }
+    });
+    return map;
+  }, [weeklyAgenda]);
   const upcoming = useMemo(() => sortEvents(Array.isArray(data?.upcoming) ? data.upcoming : []), [data]);
   const past = useMemo(() => sortEvents(Array.isArray(data?.past) ? data.past : [], "desc"), [data]);
   const todayKey = dateKey(new Date());
@@ -262,12 +285,65 @@ export default function ProductionAgendaPublicPage() {
         <Container className="cut-page-container py-4 py-lg-5">
           {error && <Alert variant="danger">{error}</Alert>}
 
+          <section className="cut-public-weekly">
+            <div className="cut-public-agenda-heading">
+              <div>
+                <span className="cut-eyebrow">Agenda semanal</span>
+                <h2>Programação fixa de segunda a domingo</h2>
+              </div>
+              <Badge bg="secondary">{weeklyAgenda.length}/7 dias configurados</Badge>
+            </div>
+
+            <div className="cut-public-weekly__grid">
+              {WEEK_DAYS.map((day) => {
+                const event = weeklyByDay[day.value] || null;
+                const availability = event ? ticketAvailability(event) : null;
+                return (
+                  <article key={day.value} className={`cut-public-weekly__day ${event ? "is-configured" : "is-empty"}`}>
+                    <div className="cut-public-weekly__day-head">
+                      <div className="cut-public-weekly__day-label">
+                        <strong>{day.short}</strong>
+                        <span>{day.label}</span>
+                      </div>
+                      <Badge bg={event ? "success" : "secondary"}>{event ? "Evento fixo" : "Sem evento"}</Badge>
+                    </div>
+
+                    {event ? (
+                      <>
+                        <div className="cut-public-weekly__event">
+                          <div className="cut-public-weekly__event-media">
+                            {event.image
+                              ? <img src={mediaUrl(event.image)} alt={event.title} loading="lazy" decoding="async" />
+                              : <span>{initials(event.title)}</span>}
+                          </div>
+                          <div className="cut-public-weekly__event-copy">
+                            <h3>{event.title}</h3>
+                            <p><i className="fa-regular fa-clock" />{formatDate(event.start_date)}</p>
+                            <p><i className="fa-solid fa-location-dot" />{event.venue || event.city || "Local a definir"}</p>
+                            {availability && <Badge bg={availability.bg} text={availability.text}>{availability.label}</Badge>}
+                          </div>
+                        </div>
+                        <Button onClick={() => navigate(`/event/${event.slug}`)}>
+                          {availability?.sellable ? "Ver evento e ingressos" : "Ver evento"}
+                        </Button>
+                      </>
+                    ) : (
+                      <div className="cut-public-weekly__empty">
+                        <span>Programação ainda não definida para este dia.</span>
+                      </div>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+
           {nextEvent && (
             <section className="cut-public-agenda-next" aria-label="Próximo evento">
               <div className="cut-public-agenda-next__media">
                 {nextEvent.image
                   ? <img src={mediaUrl(nextEvent.image)} alt={nextEvent.title} />
-                  : <div className="cut-public-agenda-event__fallback"><i className="fa-regular fa-calendar" /></div>}
+                  : <div className="cut-public-agenda-event__fallback"><span>{initials(event.title)}</span></div>}
               </div>
               <div className="cut-public-agenda-next__body">
                 <span className="cut-eyebrow">Próximo evento</span>
@@ -285,8 +361,8 @@ export default function ProductionAgendaPublicPage() {
           <section className="cut-public-agenda-list-section">
             <div className="cut-public-agenda-heading">
               <div>
-                <span className="cut-eyebrow">Programação</span>
-                <h2>Eventos de {production.name}</h2>
+                <span className="cut-eyebrow">Eventos por data</span>
+                <h2>Próximos e anteriores de {production.name}</h2>
               </div>
               <div className="cut-public-agenda-filters" role="tablist" aria-label="Filtrar agenda">
                 <button type="button" className={filter === "upcoming" ? "is-active" : ""} onClick={() => setFilter("upcoming")}>Próximos</button>
