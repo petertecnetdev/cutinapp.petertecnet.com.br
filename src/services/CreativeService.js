@@ -7,6 +7,12 @@ const compactStrings = (items = []) => (
     : []
 );
 
+const normalizeBrandColors = (items = []) => (
+  Array.isArray(items)
+    ? items.map((item) => String(item || "").trim()).filter((item) => /^#[0-9a-f]{6}$/i.test(item)).slice(0, 5)
+    : []
+);
+
 const normalizeFlyerPayload = ({
   title,
   description,
@@ -20,8 +26,15 @@ const normalizeFlyerPayload = ({
   uf,
   format,
   brandContext,
+  brandColors,
+  referenceNotes,
+  creativeMemory,
   promotions,
   featuredItems,
+  candidateCount = 3,
+  candidateVariation,
+  regenerationMode,
+  includeCandidates = true,
 }) => ({
   purpose: "event_flyer_background",
   subject: String(title || "").trim(),
@@ -36,8 +49,15 @@ const normalizeFlyerPayload = ({
   uf: String(uf || "").trim().toUpperCase() || undefined,
   format: String(format || "cover").trim(),
   brand_context: String(brandContext || "").trim().slice(0, 500) || undefined,
+  brand_colors: normalizeBrandColors(brandColors),
+  reference_notes: String(referenceNotes || "").trim().slice(0, 500) || undefined,
+  creative_memory: compactStrings(creativeMemory),
   promotions: compactStrings(promotions),
   featured_items: compactStrings(featuredItems),
+  candidate_count: Math.max(1, Math.min(4, Number(candidateCount) || 3)),
+  candidate_variation: String(candidateVariation || "").trim() || undefined,
+  regeneration_mode: String(regenerationMode || "").trim() || undefined,
+  include_candidates: Boolean(includeCandidates),
 });
 
 const generateEventFlyerBackgroundIdempotently = createIdempotentMutation({
@@ -54,6 +74,13 @@ const generateEventFlyerBackgroundIdempotently = createIdempotentMutation({
 const creativeService = {
   generateEventFlyerBackground: (input) => (
     generateEventFlyerBackgroundIdempotently(normalizeFlyerPayload(input))
+  ),
+
+  regenerateEventFlyerBackground: (input, regenerationMode) => (
+    generateEventFlyerBackgroundIdempotently(normalizeFlyerPayload({
+      ...input,
+      regenerationMode,
+    }))
   ),
 
   getEventCreativePresets: async () => (
