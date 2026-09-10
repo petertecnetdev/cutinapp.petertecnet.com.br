@@ -168,6 +168,22 @@ const setAgendaStatusIdempotently = createIdempotentMutation({
   ).data,
 });
 
+const setAgendaSettingsIdempotently = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_agenda_settings_attempt_",
+  keyPrefix: "event-agenda-settings",
+  requestKeyFor: (productionId, generationWeeks) => createMutationRequestKey({
+    production_id: Number(productionId),
+    generation_weeks: Number(generationWeeks),
+  }),
+  mutate: async ({ idempotencyKey }, productionId, generationWeeks) => (
+    await appApiClient.patch(`/event-agenda/productions/${Number(productionId)}/settings`, {
+      generation_weeks: Number(generationWeeks),
+    }, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    })
+  ).data,
+});
+
 const setAgendaItemStatusIdempotently = createIdempotentMutation({
   storagePrefix: "cutinapp_event_agenda_item_status_attempt_",
   keyPrefix: "event-agenda-item-status",
@@ -360,6 +376,7 @@ const eventService = {
 
   agenda: async (productionId) => (await appApiClient.get(`/event-agenda/productions/${productionId}`)).data,
   setAgendaStatus: (productionId, isActive) => setAgendaStatusIdempotently(productionId, isActive),
+  setAgendaSettings: (productionId, generationWeeks) => setAgendaSettingsIdempotently(productionId, generationWeeks),
   createAgendaItem,
   updateAgendaItem,
   setAgendaItemStatus: (scheduleId, isActive) => setAgendaItemStatusIdempotently(scheduleId, isActive),
