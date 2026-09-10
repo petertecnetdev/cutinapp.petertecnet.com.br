@@ -13,6 +13,12 @@ const normalizeBrandColors = (items = []) => (
     : []
 );
 
+const normalizeReferences = (items = []) => (
+  Array.isArray(items)
+    ? items.map((item) => String(item || "").trim()).filter(Boolean).slice(0, 4)
+    : []
+);
+
 const normalizeFlyerPayload = ({
   title,
   description,
@@ -28,9 +34,11 @@ const normalizeFlyerPayload = ({
   brandContext,
   brandColors,
   referenceNotes,
+  referenceImages,
   creativeMemory,
   promotions,
   featuredItems,
+  generationMode = "preview",
   candidateCount = 3,
   candidateVariation,
   regenerationMode,
@@ -51,13 +59,15 @@ const normalizeFlyerPayload = ({
   brand_context: String(brandContext || "").trim().slice(0, 500) || undefined,
   brand_colors: normalizeBrandColors(brandColors),
   reference_notes: String(referenceNotes || "").trim().slice(0, 500) || undefined,
+  reference_images: normalizeReferences(referenceImages),
   creative_memory: compactStrings(creativeMemory),
   promotions: compactStrings(promotions),
   featured_items: compactStrings(featuredItems),
-  candidate_count: Math.max(1, Math.min(4, Number(candidateCount) || 3)),
+  generation_mode: generationMode === "final" ? "final" : "preview",
+  candidate_count: generationMode === "final" ? 1 : Math.max(1, Math.min(4, Number(candidateCount) || 3)),
   candidate_variation: String(candidateVariation || "").trim() || undefined,
   regeneration_mode: String(regenerationMode || "").trim() || undefined,
-  include_candidates: Boolean(includeCandidates),
+  include_candidates: generationMode === "final" ? false : Boolean(includeCandidates),
 });
 
 const generateEventFlyerBackgroundIdempotently = createIdempotentMutation({
@@ -73,12 +83,26 @@ const generateEventFlyerBackgroundIdempotently = createIdempotentMutation({
 
 const creativeService = {
   generateEventFlyerBackground: (input) => (
-    generateEventFlyerBackgroundIdempotently(normalizeFlyerPayload(input))
+    generateEventFlyerBackgroundIdempotently(normalizeFlyerPayload({
+      ...input,
+      generationMode: input?.generationMode || "preview",
+    }))
+  ),
+
+  finalizeEventFlyerBackground: (input, candidateVariation) => (
+    generateEventFlyerBackgroundIdempotently(normalizeFlyerPayload({
+      ...input,
+      generationMode: "final",
+      candidateCount: 1,
+      candidateVariation: candidateVariation || input?.candidateVariation,
+      includeCandidates: false,
+    }))
   ),
 
   regenerateEventFlyerBackground: (input, regenerationMode) => (
     generateEventFlyerBackgroundIdempotently(normalizeFlyerPayload({
       ...input,
+      generationMode: "preview",
       regenerationMode,
     }))
   ),
