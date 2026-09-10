@@ -175,7 +175,6 @@ export default function EventViewPage() {
   const isOwner = Boolean(event?.production?.user_id && Number(event.production.user_id) === Number(user?.id));
   const canManageEvent = isOwner || isPeterTecnetRoot(user);
   const productionId = Number(event?.production_id || event?.production?.id || 0);
-  const productionSlug = event?.production?.slug || "";
   const mapEmbedUrl = useMemo(() => buildMapEmbedUrl(event), [event]);
   const googleMapsHref = useMemo(() => safeExternalHref(event?.google_maps_url), [event?.google_maps_url]);
   const flyerUrl = useMemo(() => resolveImageUrl(event?.image), [event?.image]);
