@@ -525,3 +525,183 @@
     width: 100%;
   }
 }
+
+
+/* Weekly agenda: one existing production event per weekday */
+.cut-weekly-agenda-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.cut-weekly-agenda-day {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(12, 17, 31, 0.76);
+  overflow: hidden;
+}
+
+.cut-weekly-agenda-day.is-configured {
+  border-color: rgba(62, 214, 152, 0.35);
+}
+
+.cut-weekly-agenda-day .card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.15rem;
+}
+
+.cut-weekly-agenda-day__header,
+.cut-weekly-agenda-day__actions,
+.cut-weekly-agenda-current,
+.cut-weekly-agenda-no-events {
+  display: flex;
+  align-items: center;
+}
+
+.cut-weekly-agenda-day__header {
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.cut-weekly-agenda-day__badge {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.cut-weekly-agenda-day__badge strong {
+  display: inline-grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  border-radius: 15px;
+  background: rgba(93, 97, 255, 0.15);
+  border: 1px solid rgba(124, 128, 255, 0.3);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+}
+
+.cut-weekly-agenda-day__badge span {
+  font-weight: 700;
+}
+
+.cut-weekly-agenda-current {
+  gap: 0.9rem;
+  min-height: 74px;
+  padding: 0.75rem;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.cut-weekly-agenda-current__image {
+  width: 62px;
+  height: 62px;
+  flex: 0 0 62px;
+  border-radius: 14px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: rgba(93, 97, 255, 0.2);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.cut-weekly-agenda-current__image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cut-weekly-agenda-current__content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 0.2rem;
+}
+
+.cut-weekly-agenda-current__content strong,
+.cut-weekly-agenda-current__content small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cut-weekly-agenda-current__content strong {
+  white-space: nowrap;
+}
+
+.cut-weekly-agenda-current__content small {
+  color: var(--bs-secondary-color);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.cut-weekly-agenda-current__eyebrow {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.68;
+}
+
+.cut-weekly-agenda-select {
+  margin-top: auto;
+}
+
+.cut-weekly-agenda-select .form-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  opacity: 0.82;
+}
+
+.cut-weekly-agenda-day__actions {
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.cut-weekly-agenda-day__actions .btn:first-child {
+  flex: 1 1 auto;
+}
+
+.cut-weekly-agenda-counter {
+  padding: 0.45rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.cut-weekly-agenda-no-events {
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.cut-weekly-agenda-no-events > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+@media (max-width: 991.98px) {
+  .cut-weekly-agenda-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .cut-weekly-agenda-day__actions .btn {
+    flex: 1 1 100%;
+  }
+
+  .cut-weekly-agenda-day__actions .btn.btn-outline-danger {
+    flex: 0 0 auto;
+  }
+
+  .cut-weekly-agenda-no-events {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
