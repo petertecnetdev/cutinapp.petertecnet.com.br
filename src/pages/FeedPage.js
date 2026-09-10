@@ -5,6 +5,7 @@ import { AuthContext } from "../context/AuthContext";
 import NavlogComponent from "../components/NavlogComponent";
 import SkeletonCard from "../components/SkeletonCard";
 import cutinappService from "../services/CutinappService";
+import ticketAvailabilityService from "../services/TicketAvailabilityService";
 import { storageUrl } from "../config";
 import "./FeedPage.css";
 
@@ -12,6 +13,31 @@ const fmt = (value) => value ? new Intl.DateTimeFormat("pt-BR", { weekday: "shor
 const imageUrl = (value) => !value ? "" : /^https?:/.test(value) ? value : `${storageUrl}${String(value).replace(/^\//, "")}`;
 const authorName = (post) => [post?.first_name, post?.last_name].filter(Boolean).join(" ") || post?.name || "Participante Cutinapp";
 const initials = (post) => `${post?.first_name?.[0] || post?.name?.[0] || "U"}${post?.last_name?.[0] || ""}`.toUpperCase();
+const sellableTicketStatuses = new Set(["available", "free_available"]);
+const ticketAvailabilityLabel = (post) => ({
+  free_available: "Gratuito disponível",
+  available: "Ingressos disponíveis",
+  temporarily_reserved: "Reservado no momento",
+  sold_out: "Esgotado",
+  sales_ended: "Vendas encerradas",
+  tickets_pending: "Ingressos em breve",
+}[post?.ticket_availability_status] || "");
+const hasSellableTickets = (post) => sellableTicketStatuses.has(post?.ticket_availability_status)
+  || Number(post?.sellable_ticket_lots_count || 0) > 0;
+const eventIdsFromActivity = (posts = []) => Array.from(new Set(posts.flatMap((post) => [
+  Number(post?.event_id || 0),
+  ...(Array.isArray(post?.replies) ? post.replies.map((reply) => Number(reply?.event_id || 0)) : []),
+]).filter((id) => id > 0)));
+const withTicketAvailability = (post, availability = {}) => {
+  const summary = post?.event_id ? availability[String(post.event_id)] || {} : {};
+  return {
+    ...post,
+    ...summary,
+    replies: Array.isArray(post?.replies)
+      ? post.replies.map((reply) => withTicketAvailability(reply, availability))
+      : post?.replies,
+  };
+};
 
 export default function FeedPage() {
   const navigate = useNavigate();
@@ -36,7 +62,20 @@ export default function FeedPage() {
     try {
       const response = await cutinappService.feed({ page: 1, per_page: 12 });
       if (requestId !== feedRequestRef.current) return;
-      setCommunityActivity(Array.isArray(response.community_activity) ? response.community_activity : []);
+
+      let activity = Array.isArray(response.community_activity) ? response.community_activity : [];
+      const eventIds = eventIdsFromActivity(activity);
+      if (eventIds.length > 0) {
+        try {
+          const availability = await ticketAvailabilityService.forEvents(eventIds);
+          if (requestId !== feedRequestRef.current) return;
+          activity = activity.map((post) => withTicketAvailability(post, availability));
+        } catch {
+          // Availability is supplemental. Keep the social feed usable and hide purchase CTAs on uncertainty.
+        }
+      }
+
+      setCommunityActivity(activity);
     } catch (err) {
       if (requestId !== feedRequestRef.current) return;
       setError(err?.response?.data?.message || err?.message || "Não foi possível montar seu feed agora.");
@@ -135,7 +174,11 @@ export default function FeedPage() {
   const composerInitial = String(user?.first_name || user?.name || "U").trim().slice(0, 1).toUpperCase() || "U";
   const composerPlaceholder = user?.first_name ? `No que você está pensando, ${user.first_name}?` : "No que você está pensando?";
 
-  const renderPost = (post, depth = 0) => <article className={`cut-feed-post${depth ? " cut-feed-post--reply" : ""}`} key={`${depth}-${post.id}`}>
+  const renderPost = (post, depth = 0) => {
+    const availabilityLabel = ticketAvailabilityLabel(post);
+    const canBuyTickets = hasSellableTickets(post);
+
+    return <article className={`cut-feed-post${depth ? " cut-feed-post--reply" : ""}`} key={`${depth}-${post.id}`}>
     <div className="cut-feed-post__header">
       <button type="button" className="cut-feed-post__avatar cut-feed-post__profile-link" onClick={() => openProfile(post)} aria-label={`Abrir perfil de ${authorName(post)}`}>
         {post.avatar ? <img src={imageUrl(post.avatar)} alt="" /> : <span>{initials(post)}</span>}
@@ -147,7 +190,8 @@ export default function FeedPage() {
     </div>
 
     {(post.event_slug || post.production_slug) && <div className="cut-feed-post__context">
-      {post.event_slug && <button type="button" onClick={() => navigate(`/event/${post.event_slug}`)}><i className="fa-regular fa-calendar" /> {post.event_title || "Ver evento"}</button>}
+      {post.event_slug && <button type="button" onClick={() => navigate(`/event/${post.event_slug}`)}><i className="fa-regular fa-calendar" /> {post.event_title || "Ver evento"}{availabilityLabel ? ` · ${availabilityLabel}` : ""}</button>}
+      {post.event_slug && canBuyTickets && <button type="button" onClick={() => navigate(`/event/${post.event_slug}#ingressos`)}><i className="fa-solid fa-ticket" /> {Number(post.sellable_free_ticket_lots_count || 0) > 0 ? "Pegar ingresso" : "Comprar ingresso"}</button>}
       {post.production_slug && <button type="button" onClick={() => navigate(`/production/${post.production_slug}/public`)}><i className="fa-regular fa-building" /> {post.production_name || "Ver produção"}</button>}
     </div>}
 
@@ -161,6 +205,7 @@ export default function FeedPage() {
     {replyTo === post.id && <div className="cut-feed-replybox"><Form.Control as="textarea" rows={2} maxLength={3000} value={replyBody} onChange={(e) => setReplyBody(e.target.value)} placeholder={`Comentar na publicação de ${authorName(post)}...`} /><div><Button variant="outline-light" size="sm" onClick={() => { setReplyTo(null); setReplyBody(""); }}>Cancelar</Button><Button size="sm" disabled={busyPosts.has(post.id) || replyBody.trim().length < 2} onClick={() => publishReply(post)}>{busyPosts.has(post.id) ? "Publicando..." : "Comentar"}</Button></div></div>}
     {Array.isArray(post.replies) && post.replies.length > 0 && <div className="cut-feed-thread">{post.replies.map((reply) => renderPost(reply, depth + 1))}</div>}
   </article>;
+  };
 
   return <div className="cut-app-page"><NavlogComponent />
     <Container className="cut-page-container py-4 py-lg-5 cut-feed-page">
