@@ -32,6 +32,7 @@ export default function ProductionPublicPage() {
   const [busy, setBusy] = useState(false);
   const [showViewers, setShowViewers] = useState(false);
   const [ticketCartOpen, setTicketCartOpen] = useState(false);
+  const [sellableUpcoming, setSellableUpcoming] = useState([]);
 
   const loadCore = useCallback(async () => {
     const response = await cutinappService.publicProduction(slug);
@@ -47,6 +48,13 @@ export default function ProductionPublicPage() {
         const core = await cutinappService.publicProduction(slug);
         if (!active) return;
         setData(core);
+        const productionId = Number(core?.production?.id || 0);
+        if (productionId > 0) {
+          try {
+            const sellable = await cutinappService.publicEvents({ production_id: productionId, available: 1, view: "compact", per_page: 24, sort: "soonest" });
+            if (active) setSellableUpcoming(sellable?.events?.data || []);
+          } catch { if (active) setSellableUpcoming([]); }
+        }
         try {
           const details = await cutinappService.productionExperience(slug);
           if (active) setExperience(details);
@@ -94,7 +102,7 @@ export default function ProductionPublicPage() {
   const pageStyle = pageBackground ? { "--cut-production-page-bg": `url(${JSON.stringify(pageBackground)})` } : undefined;
 
   return <div className="cut-app-page cut-production-themed-page" style={pageStyle}><NavlogComponent />
-    <section className="cut-profile-hero cut-production-themed-page__hero"><Container className="cut-page-container"><div className="cut-profile-hero__content"><div className="cut-profile-avatar cut-profile-avatar--square">{production.logo ? <img src={mediaUrl(production.logo)} alt={production.name} /> : <span>{initials(production.name)}</span>}</div><div><span className="cut-eyebrow">Produção Cutinapp</span><h1>{production.name}</h1><p>{production.city ? `${production.city}${production.uf ? ` - ${production.uf}` : ""}` : ""}</p><div className="cut-social-stats"><span>{production.followers_count || 0} seguidores</span><button type="button" className="cut-inline-profile-link" onClick={() => setShowViewers(true)}><i className="fa-regular fa-eye" /> {analytics.total_views || 0} visualizações</button><span>{upcoming.length} próximos eventos</span></div><div className="cut-card-actions mt-3"><Button onClick={toggleFollow} disabled={busy}>{production.is_following ? "Seguindo" : "Seguir produção"}</Button>{upcoming.length > 0 && <Button variant="success" onClick={() => setTicketCartOpen(true)}><i className="fa-solid fa-cart-plus me-2" />Adquirir ingresso</Button>}<Button variant="outline-light" onClick={() => navigate(`/agenda/${slug}`)}><i className="fa-regular fa-calendar-days me-2" />Ver agenda</Button>{instagramHref && <Button as="a" href={instagramHref} target="_blank" rel="noopener noreferrer" variant="outline-light" className="cut-production-icon-link cut-production-icon-link--instagram" aria-label="Instagram" title="Instagram"><i className="fa-brands fa-instagram" /></Button>}{websiteHref && <Button as="a" href={websiteHref} target="_blank" rel="noopener noreferrer" variant="outline-light" className="cut-production-icon-link" aria-label="Site" title="Site"><i className="fa-solid fa-globe" /></Button>}</div></div></div></Container></section>
+    <section className="cut-profile-hero cut-production-themed-page__hero"><Container className="cut-page-container"><div className="cut-profile-hero__content"><div className="cut-profile-avatar cut-profile-avatar--square">{production.logo ? <img src={mediaUrl(production.logo)} alt={production.name} /> : <span>{initials(production.name)}</span>}</div><div><span className="cut-eyebrow">Produção Cutinapp</span><h1>{production.name}</h1><p>{production.city ? `${production.city}${production.uf ? ` - ${production.uf}` : ""}` : ""}</p><div className="cut-social-stats"><span>{production.followers_count || 0} seguidores</span><button type="button" className="cut-inline-profile-link" onClick={() => setShowViewers(true)}><i className="fa-regular fa-eye" /> {analytics.total_views || 0} visualizações</button><span>{upcoming.length} próximos eventos</span></div><div className="cut-card-actions mt-3"><Button onClick={toggleFollow} disabled={busy}>{production.is_following ? "Seguindo" : "Seguir produção"}</Button>{sellableUpcoming.length > 0 && <Button variant="success" onClick={() => setTicketCartOpen(true)}><i className="fa-solid fa-cart-plus me-2" />Adquirir ingresso</Button>}<Button variant="outline-light" onClick={() => navigate(`/agenda/${slug}`)}><i className="fa-regular fa-calendar-days me-2" />Ver agenda</Button>{instagramHref && <Button as="a" href={instagramHref} target="_blank" rel="noopener noreferrer" variant="outline-light" className="cut-production-icon-link cut-production-icon-link--instagram" aria-label="Instagram" title="Instagram"><i className="fa-brands fa-instagram" /></Button>}{websiteHref && <Button as="a" href={websiteHref} target="_blank" rel="noopener noreferrer" variant="outline-light" className="cut-production-icon-link" aria-label="Site" title="Site"><i className="fa-solid fa-globe" /></Button>}</div></div></div></Container></section>
 
     <Container className="cut-page-container py-5">{error && <Alert variant="danger" dismissible onClose={() => setError("")}>{error}</Alert>}
       <div className="cut-production-public-about">
