@@ -151,6 +151,18 @@ export default function ProductionFinancePage() {
       return Number(right.observed_platform_contribution_per_impression || 0) - Number(left.observed_platform_contribution_per_impression || 0);
     });
   }, [revenueFunnel?.checkout_recovery_surface_economics]);
+  const recoveryExperiment = revenueFunnel?.checkout_recovery_prominence_experiment || {};
+  const recoveryExperimentVariants = Array.isArray(recoveryExperiment.variants) ? recoveryExperiment.variants : [];
+  const recoveryExperimentComparison = recoveryExperiment.comparison || {};
+  const recoveryControl = recoveryExperimentVariants.find((row) => row.variant === "control");
+  const recoveryProminent = recoveryExperimentVariants.find((row) => row.variant === "prominent");
+  const recoveryExperimentMature = Boolean(recoveryExperimentComparison.sample_is_mature);
+  const recoveryIncrementalContribution = recoveryExperimentMature
+    ? Number(recoveryExperimentComparison.incremental_platform_contribution_per_exposed_order || 0)
+    : null;
+  const recoveryIncrementalPaidRate = recoveryExperimentMature
+    ? Number(recoveryExperimentComparison.incremental_paid_orders_per_100_exposed_orders || 0)
+    : null;
   const netEconomics = useMemo(() => estimateNetRevenueEconomics({
     grossRevenue,
     platformRevenue,
@@ -347,6 +359,26 @@ export default function ProductionFinancePage() {
             </div>
             <div className="table-responsive"><Table variant="dark" hover className="align-middle mb-0"><thead><tr><th>Origem</th><th>Exibições</th><th>Cliques</th><th>Conversão</th><th>Pagos</th><th>GMV recuperado</th><th>Receita plataforma</th><th>Receita / exibição</th><th>Contribuição líquida</th><th>Líquido / exibição</th><th>Amostra</th></tr></thead><tbody>{recoverySurfaces.map((row) => <tr key={row.surface}><td><strong>{recoverySurfaceLabel[row.surface] || row.surface}</strong></td><td>{Number(row.impressions || 0).toLocaleString("pt-BR")}</td><td>{Number(row.cta_clicks || 0).toLocaleString("pt-BR")}</td><td>{row.click_to_paid_rate_percent == null ? "—" : percent(row.click_to_paid_rate_percent)}</td><td>{Number(row.paid_orders || 0).toLocaleString("pt-BR")}</td><td>{money(row.observed_gross_revenue)}</td><td>{money(row.observed_platform_revenue)}</td><td>{row.observed_platform_revenue_per_impression == null ? "—" : money(row.observed_platform_revenue_per_impression)}</td><td>{money(row.observed_platform_contribution)}</td><td>{row.observed_platform_contribution_per_impression == null ? "—" : money(row.observed_platform_contribution_per_impression)}</td><td><Badge bg={row.sample_is_mature ? "success" : "secondary"}>{row.sample_is_mature ? "Madura" : "Em coleta"}</Badge></td></tr>)}</tbody></Table></div>
             {recoverySurfaces.some((row) => !row.sample_is_mature) && <Alert variant="secondary" className="mt-3 mb-0">Superfícies marcadas como <strong>Em coleta</strong> ainda não atingiram a amostra mínima definida pela API central. Use esses números apenas como sinal inicial; priorize decisões comerciais quando a amostra estiver madura.</Alert>}
+          </div>}
+
+          {recoveryExperimentVariants.length > 0 && <div className="mt-4">
+            <div className="mb-3">
+              <span className="cut-eyebrow">Teste controlado de recuperação</span>
+              <h3 className="h5 mt-2 mb-1">O destaque realmente aumenta pagamentos e margem?</h3>
+              <p className="text-secondary small mb-0">Comparamos participantes expostos ao tratamento destacado com o grupo de controle. O resultado só vira recomendação quando os dois grupos atingem a amostra mínima definida pela API central.</p>
+            </div>
+            <Row className="g-3">
+              <Col md={6} xl={3}><RevenueMetric label="Controle • pagamentos / 100" value={recoveryControl?.paid_orders_per_100_exposed_orders == null ? "—" : percent(recoveryControl.paid_orders_per_100_exposed_orders)} detail={`${Number(recoveryControl?.exposed_orders || 0).toLocaleString("pt-BR")} pedidos expostos`} /></Col>
+              <Col md={6} xl={3}><RevenueMetric label="Destaque • pagamentos / 100" value={recoveryProminent?.paid_orders_per_100_exposed_orders == null ? "—" : percent(recoveryProminent.paid_orders_per_100_exposed_orders)} detail={`${Number(recoveryProminent?.exposed_orders || 0).toLocaleString("pt-BR")} pedidos expostos`} /></Col>
+              <Col md={6} xl={3}><RevenueMetric label="Controle • margem / exposto" value={recoveryControl?.platform_contribution_per_exposed_order == null ? "—" : money(recoveryControl.platform_contribution_per_exposed_order)} detail="Contribuição líquida por pedido exposto" /></Col>
+              <Col md={6} xl={3}><RevenueMetric label="Destaque • margem / exposto" value={recoveryProminent?.platform_contribution_per_exposed_order == null ? "—" : money(recoveryProminent.platform_contribution_per_exposed_order)} detail="Contribuição líquida por pedido exposto" /></Col>
+            </Row>
+            {!recoveryExperimentMature && <Alert variant="secondary" className="mt-3 mb-0">
+              Experimento ainda <strong>em coleta</strong>. Faltam {Number(recoveryControl?.remaining_exposed_orders_to_maturity || 0).toLocaleString("pt-BR")} exposições no controle e {Number(recoveryProminent?.remaining_exposed_orders_to_maturity || 0).toLocaleString("pt-BR")} no destaque para a leitura mínima. Não altere a estratégia com base nesta amostra parcial.
+            </Alert>}
+            {recoveryExperimentMature && <Alert variant={recoveryIncrementalContribution > 0 ? "success" : "warning"} className="mt-3 mb-0">
+              O destaque gerou <strong>{recoveryIncrementalPaidRate >= 0 ? "+" : ""}{percent(recoveryIncrementalPaidRate)}</strong> pagamentos por 100 pedidos expostos e <strong>{recoveryIncrementalContribution >= 0 ? "+" : ""}{money(recoveryIncrementalContribution)}</strong> de contribuição líquida por pedido exposto versus controle. {recoveryIncrementalContribution > 0 ? "Há evidência operacional para priorizar o tratamento destacado." : "O tratamento destacado não demonstrou ganho líquido; mantenha o controle como padrão enquanto reavalia a abordagem."}
+            </Alert>}
           </div>}
 
           {(revenueFunnel.payment_methods || []).length > 0 && <div className="table-responsive mt-4"><Table variant="dark" hover className="align-middle mb-0"><thead><tr><th>Pagamento</th><th>Checkouts</th><th>Pagos</th><th>Conversão</th><th>GMV</th><th>Receita plataforma</th><th>Receita líquida</th><th>Margem/GMV</th><th>GMV em risco</th></tr></thead><tbody>{revenueFunnel.payment_methods.map((row) => <tr key={row.payment_method}><td>{paymentMethodLabel[row.payment_method] || row.payment_method}</td><td>{row.orders_created}</td><td>{row.orders_paid}</td><td>{percent(row.conversion_rate)}</td><td>{money(row.gross_revenue)}</td><td>{money(row.platform_revenue)}</td><td>{money(row.platform_contribution_after_processing ?? (Number(row.platform_revenue || 0) - Number((row.processor_fees_borne_by_platform ?? row.processor_fees) || 0)))}</td><td>{percent(row.platform_contribution_margin)}</td><td>{money(row.gross_at_risk)}</td></tr>)}</tbody></Table></div>}
