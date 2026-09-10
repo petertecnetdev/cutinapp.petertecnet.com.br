@@ -45,6 +45,7 @@ export const resumePromptSlugForRoute = (pathname = "") => {
 export const isResumePromptRoute = (pathname = "") => pathname === "/"
   || pathname === "/home"
   || pathname === "/event"
+  || pathname === "/feed"
   || Boolean(resumePromptSlugForRoute(pathname));
 
 export const findPendingCheckout = (storage, now = Date.now(), recoveryStorage = null, targetSlug = null) => {
@@ -135,7 +136,7 @@ const renderPrompt = () => {
   }
   if (!pending) return;
 
-  const surface = contextualSlug ? "event_detail" : "discovery";
+  const surface = contextualSlug ? "event_detail" : pathname === "/feed" ? "feed" : "discovery";
   const prompt = document.createElement("aside");
   prompt.id = PROMPT_ID;
   prompt.setAttribute("role", "status");
