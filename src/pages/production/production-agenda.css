@@ -705,3 +705,51 @@
     flex-direction: column;
   }
 }
+
+
+/* Rolling weekly horizon */
+.cut-agenda-horizon {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(260px, .65fr);
+  gap: 1rem;
+  align-items: center;
+  margin: 1rem 0 1.4rem;
+  padding: 1rem 1.1rem;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,.09);
+  background: rgba(255,255,255,.035);
+}
+
+.cut-agenda-horizon__copy h3 {
+  margin: .25rem 0 .45rem;
+  font-size: 1.08rem;
+}
+
+.cut-agenda-horizon__copy p {
+  margin: 0;
+  color: var(--bs-secondary-color);
+  line-height: 1.55;
+}
+
+.cut-agenda-horizon__control {
+  display: flex;
+  flex-direction: column;
+  gap: .4rem;
+}
+
+.cut-agenda-horizon__control .form-label {
+  margin: 0;
+  font-size: .8rem;
+  font-weight: 700;
+  opacity: .78;
+}
+
+.cut-agenda-horizon__control small {
+  color: var(--bs-secondary-color);
+}
+
+@media (max-width: 767.98px) {
+  .cut-agenda-horizon {
+    grid-template-columns: 1fr;
+  }
+}
