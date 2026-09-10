@@ -37,6 +37,25 @@ describe("EventService agenda lifecycle idempotency", () => {
     expect(appApiClient.patch.mock.calls[1]?.[2]?.headers?.["Idempotency-Key"]).toBe(firstKey);
   });
 
+  test("updates weekly agenda generation horizon idempotently", async () => {
+    appApiClient.patch.mockResolvedValueOnce({
+      data: {
+        agenda: { generation_weeks: 2, max_future_occurrences: 14 },
+        generation: { created_count: 7 },
+      },
+    });
+
+    await expect(eventService.setAgendaSettings(42, 2)).resolves.toMatchObject({
+      agenda: { generation_weeks: 2, max_future_occurrences: 14 },
+    });
+
+    expect(appApiClient.patch).toHaveBeenCalledWith(
+      "/event-agenda/productions/42/settings",
+      { generation_weeks: 2 },
+      { headers: { "Idempotency-Key": expect.any(String) } }
+    );
+  });
+
   test("rotates item status key after a definitive validation error", async () => {
     appApiClient.patch
       .mockRejectedValueOnce({ response: { status: 422 } })
