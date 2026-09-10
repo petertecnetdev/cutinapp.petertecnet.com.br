@@ -7,6 +7,7 @@ import SkeletonCard from "../components/SkeletonCard";
 import cutinappService from "../services/CutinappService";
 import ticketAvailabilityService from "../services/TicketAvailabilityService";
 import { storageUrl } from "../config";
+import { trackTelemetry } from "../utils/telemetry";
 import "./FeedPage.css";
 
 const fmt = (value) => value ? new Intl.DateTimeFormat("pt-BR", { weekday: "short", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" }).format(new Date(value)) : "";
@@ -24,6 +25,11 @@ const ticketAvailabilityLabel = (post) => ({
 }[post?.ticket_availability_status] || "");
 const hasSellableTickets = (post) => sellableTicketStatuses.has(post?.ticket_availability_status)
   || Number(post?.sellable_ticket_lots_count || 0) > 0;
+const feedEventTelemetryDetails = (post, action) => ({
+  label: `Feed - ${action}`,
+  target: String(post?.event_slug ?? post?.event_id ?? "event"),
+  metadata: { source: "feed", post_id: Number(post?.id ?? 0) || null, event_id: Number(post?.event_id ?? 0) || null, event_slug: post?.event_slug ?? null, availability_status: post?.ticket_availability_status ?? null, sellable_ticket_lots_count: Number(post?.sellable_ticket_lots_count ?? 0), sellable_free_ticket_lots_count: Number(post?.sellable_free_ticket_lots_count ?? 0) },
+});
 const eventIdsFromActivity = (posts = []) => Array.from(new Set(posts.flatMap((post) => [
   Number(post?.event_id || 0),
   ...(Array.isArray(post?.replies) ? post.replies.map((reply) => Number(reply?.event_id || 0)) : []),
@@ -76,6 +82,8 @@ export default function FeedPage() {
       }
 
       setCommunityActivity(activity);
+      const sellableEventPosts = activity.filter((post) => post?.event_slug && hasSellableTickets(post));
+      if (sellableEventPosts.length > 0) trackTelemetry("feed_sellable_event_offers_loaded", { label: "Ofertas vendáveis carregadas no Feed", target: "feed", metadata: { source: "feed", posts_count: activity.length, sellable_event_posts_count: sellableEventPosts.length, unique_sellable_events_count: new Set(sellableEventPosts.map((post) => post.event_id ?? post.event_slug)).size } });
     } catch (err) {
       if (requestId !== feedRequestRef.current) return;
       setError(err?.response?.data?.message || err?.message || "Não foi possível montar seu feed agora.");
@@ -169,6 +177,11 @@ export default function FeedPage() {
   const openProfile = (post) => {
     if (post?.user_id) navigate(`/profile/${post.user_id}`);
   };
+  const openEventFromFeed = (post, ticketIntent = false) => {
+    if (!post?.event_slug) return;
+    trackTelemetry(ticketIntent ? "feed_ticket_intent_clicked" : "feed_event_opened", feedEventTelemetryDetails(post, ticketIntent ? "ingresso" : "evento"));
+    navigate(`/event/${post.event_slug}${ticketIntent ? "#ingressos" : ""}`);
+  };
 
   const composerAvatar = imageUrl(user?.avatar);
   const composerInitial = String(user?.first_name || user?.name || "U").trim().slice(0, 1).toUpperCase() || "U";
@@ -190,8 +203,8 @@ export default function FeedPage() {
     </div>
 
     {(post.event_slug || post.production_slug) && <div className="cut-feed-post__context">
-      {post.event_slug && <button type="button" onClick={() => navigate(`/event/${post.event_slug}`)}><i className="fa-regular fa-calendar" /> {post.event_title || "Ver evento"}{availabilityLabel ? ` · ${availabilityLabel}` : ""}</button>}
-      {post.event_slug && canBuyTickets && <button type="button" onClick={() => navigate(`/event/${post.event_slug}#ingressos`)}><i className="fa-solid fa-ticket" /> {Number(post.sellable_free_ticket_lots_count || 0) > 0 ? "Pegar ingresso" : "Comprar ingresso"}</button>}
+      {post.event_slug && <button type="button" onClick={() => openEventFromFeed(post)}><i className="fa-regular fa-calendar" /> {post.event_title || "Ver evento"}{availabilityLabel ? ` · ${availabilityLabel}` : ""}</button>}
+      {post.event_slug && canBuyTickets && <button type="button" onClick={() => openEventFromFeed(post, true)}><i className="fa-solid fa-ticket" /> {Number(post.sellable_free_ticket_lots_count || 0) > 0 ? "Pegar ingresso" : "Comprar ingresso"}</button>}
       {post.production_slug && <button type="button" onClick={() => navigate(`/production/${post.production_slug}/public`)}><i className="fa-regular fa-building" /> {post.production_name || "Ver produção"}</button>}
     </div>}
 
