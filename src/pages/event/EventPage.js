@@ -63,7 +63,7 @@ export default function EventPage() {
     let active = true;
     setLoading(true);
     setError("");
-    cutinappService.publicEvents({ ...current, view: "compact", per_page: 18 })
+    cutinappService.publicEvents({ ...current, available: current.available ?? 1, view: "compact", per_page: 18 })
       .then((response) => {
         if (!active) return;
         setEvents(response.events?.data || []);
@@ -118,13 +118,14 @@ export default function EventPage() {
     setSearchParams(new URLSearchParams());
   };
 
+  const sellableOnly = filters.available !== "0";
+
   const activeChips = [
     filters.city && { key: "city", label: `${filters.city}${filters.uf ? ` - ${filters.uf}` : ""}` },
     filters.period && { key: "period", label: periodLabel(filters.period) },
     filters.category && { key: "category", label: filters.category },
     filters.q && { key: "q", label: `“${filters.q}”` },
     filters.free && { key: "free", label: "Gratuitos" },
-    filters.available && { key: "available", label: "Com ingressos" },
     filters.lat && { key: "lat", label: `Perto de mim · ${filters.radius_km || 50} km` },
   ].filter(Boolean);
 
@@ -178,7 +179,7 @@ export default function EventPage() {
                 <button type="button" key={key} className={filters.period === key ? "active" : ""} onClick={() => update({ period: filters.period === key ? "" : key, date: "", from: "", to: "" })}>{label}</button>
               )}
               <button type="button" className={filters.free ? "active" : ""} onClick={() => update({ free: filters.free ? "" : 1 })}>Gratuitos</button>
-              <button type="button" className={filters.available ? "active" : ""} onClick={() => update({ available: filters.available ? "" : 1 })}>Com ingressos</button>
+              <button type="button" className={sellableOnly ? "active" : ""} onClick={() => update({ available: sellableOnly ? "0" : "1" })}>Só com ingressos</button>
             </div>
 
             <div className="cut-discovery-secondary">
