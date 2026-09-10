@@ -72,12 +72,18 @@ export default function ProductionTicketCartModal({ show, onHide, productionSlug
     setLoadingEvents(true);
 
     cutinappService.publicProduction(productionSlug)
-      .then((response) => {
+      .then(async (response) => {
         if (!active) return;
-        const upcoming = Array.isArray(response?.upcoming) ? response.upcoming : [];
-        setProduction(response?.production || null);
-        setEvents(upcoming);
-        setSelectedSlug(upcoming[0]?.slug || "");
+        const production = response?.production || null;
+        const productionId = Number(production?.id || 0);
+        const sellableResponse = productionId > 0
+          ? await cutinappService.publicEvents({ production_id: productionId, available: 1, view: "compact", per_page: 24, sort: "soonest" })
+          : null;
+        const sellableUpcoming = sellableResponse?.events?.data || [];
+        if (!active) return;
+        setProduction(production);
+        setEvents(sellableUpcoming);
+        setSelectedSlug(sellableUpcoming[0]?.slug || "");
       })
       .catch((err) => {
         if (active) setError(err?.message || "Não foi possível carregar os próximos eventos desta produção.");
