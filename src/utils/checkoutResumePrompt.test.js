@@ -11,10 +11,11 @@ const storageOf = (entries = {}) => {
 };
 
 describe("checkout resume prompt", () => {
-  test("shows on discovery routes and on a specific event page, but never inside checkout", () => {
+  test("shows on discovery routes, feed and a specific event page, but never inside checkout", () => {
     expect(isResumePromptRoute("/")).toBe(true);
     expect(isResumePromptRoute("/home")).toBe(true);
     expect(isResumePromptRoute("/event")).toBe(true);
+    expect(isResumePromptRoute("/feed")).toBe(true);
     expect(isResumePromptRoute("/event/festival-x")).toBe(true);
     expect(isResumePromptRoute("/event/festival-x/")).toBe(true);
     expect(isResumePromptRoute("/checkout/festival-x")).toBe(false);
@@ -168,7 +169,7 @@ describe("checkout resume prompt", () => {
     const recoveryStorage = storageOf({
       "cutinapp_checkout_recovery_stale": JSON.stringify({
         version: 1,
-        selection: { tickets: [{ id: 1, quantity: 1 }] },
+        selection: { tickets: [{ id: 1, quantity: 1 }], items: [] },
         orderPublicId: null,
         savedAt: now - CHECKOUT_RECOVERY_TTL_MS - 1,
       }),
