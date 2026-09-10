@@ -160,7 +160,7 @@ export default function LandingPageV2() {
     setUsingFallback(false);
     try {
       const [eventResult, productionResult, artistResult, facetResult] = await Promise.allSettled([
-        eventService.search({ ...params, per_page: 12, sort: "soonest" }),
+        eventService.search({ ...params, available: 1, per_page: 12, sort: "soonest" }),
         cutinappService.publicProductions({ ...params, per_page: 10 }),
         cutinappService.artists({ ...(params.city ? { city: params.city, ...(params.uf ? { uf: params.uf } : {}) } : {}), per_page: 12 }),
         cutinappService.discoveryFacets(),
@@ -183,7 +183,7 @@ export default function LandingPageV2() {
 
       if (Object.keys(params).length > 0 && localEvents.length === 0) {
         const fallback = await Promise.allSettled([
-          eventService.search({ per_page: 12, sort: "soonest" }),
+          eventService.search({ available: 1, per_page: 12, sort: "soonest" }),
           cutinappService.publicProductions({ per_page: 10 }),
           cutinappService.artists({ per_page: 12 }),
         ]);
