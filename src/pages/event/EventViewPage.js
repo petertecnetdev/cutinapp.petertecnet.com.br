@@ -185,8 +185,20 @@ export default function EventViewPage() {
   const temporal = temporalMeta[temporalState];
   const isPastEvent = temporalState === "past";
   const hasTickets = Number(event?.tickets_count || 0) > 0 || tickets.length > 0;
+  const ticketAvailabilityStatus = event?.ticket_availability_status || null;
+  const hasSellableTickets = ticketAvailabilityStatus
+    ? ["free_available", "available"].includes(ticketAvailabilityStatus)
+    : hasTickets;
+  const ticketAvailabilityLabel = ({
+    free_available: "Ingresso gratuito disponível",
+    available: "Ingressos disponíveis",
+    temporarily_reserved: "Ingressos reservados no momento",
+    sold_out: "Ingressos esgotados",
+    sales_ended: "Vendas encerradas",
+    tickets_pending: "Ingressos em breve",
+  })[ticketAvailabilityStatus] || (hasTickets ? "Ingressos disponíveis" : "Ingressos em breve");
   const canMarkInterested = event?.allowed_actions?.mark_interested ?? !isPastEvent;
-  const showPersistentBuyCta = !isPastEvent && hasTickets;
+  const showPersistentBuyCta = !isPastEvent && hasSellableTickets;
   const eventDescription = String(event?.description || "").trim();
   const hasLongDescription = eventDescription.length > EVENT_DESCRIPTION_PREVIEW_LENGTH;
   const visibleDescription = descriptionExpanded || !hasLongDescription
@@ -417,7 +429,7 @@ export default function EventViewPage() {
         <Container className="cut-page-container">
           <div className="cut-event-summary-card">
             <div className="cut-event-summary-card__content">
-              <div className="d-flex flex-wrap gap-2 mb-3">{event.category && <Badge bg="dark">{event.category}</Badge>}<Badge bg={temporal.badgeVariant}>{temporal.badge}</Badge>{!isPastEvent && hasTickets && <Badge bg="info" text="dark">Ingressos disponíveis</Badge>}</div>
+              <div className="d-flex flex-wrap gap-2 mb-3">{event.category && <Badge bg="dark">{event.category}</Badge>}<Badge bg={temporal.badgeVariant}>{temporal.badge}</Badge>{!isPastEvent && <Badge bg={hasSellableTickets ? "info" : "secondary"} text={hasSellableTickets ? "dark" : undefined}>{ticketAvailabilityLabel}</Badge>}</div>
               <h1>{event.title}</h1>
               <div className="cut-event-summary-card__meta">
                 <span><i className="fa-regular fa-calendar" aria-hidden="true" />{formatDate(event.start_date)}</span>
