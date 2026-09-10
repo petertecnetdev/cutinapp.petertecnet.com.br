@@ -1,6 +1,7 @@
 import {
   buildSalesCutoffRule,
   calculateSalesCutoffForEvent,
+  cutoffEditorStateFromRule,
   describeSalesCutoffRule,
 } from "./ticketSalesCutoff";
 
@@ -52,4 +53,16 @@ test("rejects a rule whose calculated cutoff already passed", () => {
 
   expect(result.valid).toBe(false);
   expect(result.reason).toContain("já passou");
+});
+
+test("maps stored cutoff rules back to bulk editor presets", () => {
+  expect(cutoffEditorStateFromRule({ mode: "after_start", offsetMinutes: 120 })).toMatchObject({
+    preset: "after_start_120",
+  });
+  expect(cutoffEditorStateFromRule({ mode: "before_end", offsetMinutes: 90 })).toEqual({
+    preset: "custom",
+    customMode: "before_end",
+    customAmount: 90,
+    customUnit: "minutes",
+  });
 });

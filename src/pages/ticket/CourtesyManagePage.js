@@ -257,7 +257,11 @@ export default function CourtesyManagePage() {
                   <Col xs={12}><Form.Group><Form.Label>Disponível até</Form.Label><Form.Control type="datetime-local" value={values.limit_date || ""} onChange={(e) => change(ticket.id, "limit_date", e.target.value)} /></Form.Group></Col>
                   <Col xs={12}><Form.Group><Form.Label>Orientações</Form.Label><Form.Control as="textarea" rows={3} value={values.description || ""} onChange={(e) => change(ticket.id, "description", e.target.value)} /></Form.Group></Col>
                 </Row>
-                <div className="cut-card-actions mt-4"><Button onClick={() => save(ticket.id)} disabled={busyId === ticket.id}>Salvar</Button><Button variant="outline-danger" onClick={() => remove(ticket)} disabled={issued > 0 || busyId === ticket.id}>Excluir</Button></div>
+                <div className="cut-card-actions mt-4">
+                  <Button onClick={() => save(ticket.id)} disabled={busyId === ticket.id}>Salvar</Button>
+                  <Button variant="outline-light" onClick={() => navigate(`/ticket/bulk-edit/${ticket.id}`)}>Editar semelhantes</Button>
+                  <Button variant="outline-danger" onClick={() => remove(ticket)} disabled={issued > 0 || busyId === ticket.id}>Excluir</Button>
+                </div>
                 {issued > 0 && <div className="cut-info-box mt-3"><strong>Exclusão protegida</strong><span>Este lote já emitiu ingressos. Você pode aumentar a quantidade, mas não apagar o histórico nem reduzir abaixo de {issued}.</span></div>}
               </Card.Body></Card></Col>;
             })}
