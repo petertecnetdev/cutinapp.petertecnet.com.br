@@ -16,6 +16,9 @@ const input = () => ({
   uf: " go ",
   format: "  portrait  ",
   brandContext: "  Food | Music | Drinks  ",
+  brandColors: ["#ff00aa", "invalid"],
+  referenceNotes: "  editorial premium  ",
+  creativeMemory: [" hero à direita ", " fundo magenta "],
   promotions: [" Mulheres FREE ", " Homens R$ 10 ", ""],
   featuredItems: [" Combo de vodka ", " Porção de frango "],
 });
@@ -28,7 +31,7 @@ describe("CreativeService flyer generation idempotency", () => {
     sessionStorage.clear();
   });
 
-  test("normalizes the structured creative brief and sends an idempotency key", async () => {
+  test("normalizes the structured creative brief and sends premium candidate controls", async () => {
     appApiClient.post.mockResolvedValueOnce({ data: { image_url: "https://example.test/flyer.webp" } });
 
     await creativeService.generateEventFlyerBackground(input());
@@ -47,10 +50,29 @@ describe("CreativeService flyer generation idempotency", () => {
       uf: "GO",
       format: "portrait",
       brand_context: "Food | Music | Drinks",
+      brand_colors: ["#ff00aa"],
+      reference_notes: "editorial premium",
+      creative_memory: ["hero à direita", "fundo magenta"],
       promotions: ["Mulheres FREE", "Homens R$ 10"],
       featured_items: ["Combo de vodka", "Porção de frango"],
+      candidate_count: 3,
+      candidate_variation: undefined,
+      regeneration_mode: undefined,
+      include_candidates: true,
     }, { headers: { "Idempotency-Key": expect.any(String) } });
     expect(keyAt(0)).toBeTruthy();
+  });
+
+  test("supports directed regeneration without changing the endpoint contract", async () => {
+    appApiClient.post.mockResolvedValueOnce({ data: { image: { data_uri: "data:image/webp;base64,abc" } } });
+
+    await creativeService.regenerateEventFlyerBackground(input(), "more_premium");
+
+    expect(appApiClient.post.mock.calls[0][1]).toMatchObject({
+      regeneration_mode: "more_premium",
+      candidate_count: 3,
+      include_candidates: true,
+    });
   });
 
   test("loads the creative preset catalog from the central API", async () => {
