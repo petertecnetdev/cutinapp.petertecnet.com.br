@@ -31,6 +31,34 @@ const formatEventLocation = (event) => {
   return venue || cityState || "Local a confirmar";
 };
 
+const ticketAvailabilityBadge = (event) => {
+  switch (event?.ticket_availability_status) {
+    case "free_available":
+      return { bg: "success", label: "Gratuito" };
+    case "available":
+      return { bg: "primary", label: "Ingressos disponíveis" };
+    case "temporarily_reserved":
+      return { bg: "secondary", label: "Reservado no momento" };
+    case "sold_out":
+      return { bg: "secondary", label: "Esgotado" };
+    case "sales_ended":
+      return { bg: "secondary", label: "Vendas encerradas" };
+    case "tickets_pending":
+      return { bg: "warning", text: "dark", label: "Ingressos em breve" };
+    default:
+      if (Number(event?.sellable_free_ticket_lots_count ?? event?.free_ticket_lots_count ?? 0) > 0) {
+        return { bg: "success", label: "Gratuito" };
+      }
+      if (Number(event?.sellable_ticket_lots_count ?? 0) > 0) {
+        return { bg: "primary", label: "Ingressos disponíveis" };
+      }
+      if (Number(event?.ticket_lots_count ?? 0) > 0) {
+        return { bg: "secondary", label: "Indisponível no momento" };
+      }
+      return { bg: "warning", text: "dark", label: "Ingressos em breve" };
+  }
+};
+
 export default function EventPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -222,31 +250,28 @@ export default function EventPage() {
             )}
 
             <Row className="cut-event-discovery-grid">
-              {events.map((event) => <Col xs={12} md={6} xl={4} key={event.id}>
-                <Card className="cut-event-card h-100" role="button" tabIndex={0} aria-label={`Abrir evento ${event.title}`} onMouseEnter={() => eventService.view(event.slug).catch(() => {})} onFocus={() => eventService.view(event.slug).catch(() => {})} onClick={() => navigate(`/event/${event.slug}`)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/event/${event.slug}`); } }}>
-                  <div className="cut-event-card__media">
-                    {event.image ? <img src={`${storageUrl}${String(event.image).replace(/^\//, "")}`} alt={event.title} loading="lazy" decoding="async" /> : <div className="cut-event-card__placeholder"><i className="fa-regular fa-calendar" /></div>}
-                    {event.category && <Badge bg="dark" className="cut-event-card__category">{event.category}</Badge>}
-                    {Number(event.sellable_free_ticket_lots_count ?? event.free_ticket_lots_count ?? 0) > 0
-                      ? <Badge bg="success" className="cut-event-card__badge">Gratuito</Badge>
-                      : Number(event.sellable_ticket_lots_count ?? 0) > 0
-                        ? <Badge bg="primary" className="cut-event-card__badge">Ingressos disponíveis</Badge>
-                        : Number(event.ticket_lots_count ?? 0) > 0
-                          ? <Badge bg="secondary" className="cut-event-card__badge">Indisponível no momento</Badge>
-                          : <Badge bg="warning" text="dark" className="cut-event-card__badge">Ingressos em breve</Badge>}
-                  </div>
-                  <Card.Body>
-                    <span className="cut-eyebrow">{event.production?.name || "Cutinapp"}</span>
-                    <h2>{event.title}</h2>
-                    <div className="cut-event-card__meta">
-                      <span><i className="fa-regular fa-calendar" />{formatDate(event.start_date)}</span>
-                      <span><i className="fa-solid fa-location-dot" />{formatEventLocation(event)}</span>
-                      {event.artists?.length > 0 && <span><i className="fa-solid fa-music" />{event.artists.slice(0, 3).map((a) => a.stage_name).join(" · ")}</span>}
-                      {event.distance_km != null && <span><i className="fa-solid fa-route" />{Number(event.distance_km).toFixed(1)} km de você</span>}
+              {events.map((event) => {
+                const availabilityBadge = ticketAvailabilityBadge(event);
+                return <Col xs={12} md={6} xl={4} key={event.id}>
+                  <Card className="cut-event-card h-100" role="button" tabIndex={0} aria-label={`Abrir evento ${event.title}`} onMouseEnter={() => eventService.view(event.slug).catch(() => {})} onFocus={() => eventService.view(event.slug).catch(() => {})} onClick={() => navigate(`/event/${event.slug}`)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/event/${event.slug}`); } }}>
+                    <div className="cut-event-card__media">
+                      {event.image ? <img src={`${storageUrl}${String(event.image).replace(/^\//, "")}`} alt={event.title} loading="lazy" decoding="async" /> : <div className="cut-event-card__placeholder"><i className="fa-regular fa-calendar" /></div>}
+                      {event.category && <Badge bg="dark" className="cut-event-card__category">{event.category}</Badge>}
+                      <Badge bg={availabilityBadge.bg} text={availabilityBadge.text} className="cut-event-card__badge">{availabilityBadge.label}</Badge>
                     </div>
-                  </Card.Body>
-                </Card>
-              </Col>)}
+                    <Card.Body>
+                      <span className="cut-eyebrow">{event.production?.name || "Cutinapp"}</span>
+                      <h2>{event.title}</h2>
+                      <div className="cut-event-card__meta">
+                        <span><i className="fa-regular fa-calendar" />{formatDate(event.start_date)}</span>
+                        <span><i className="fa-solid fa-location-dot" />{formatEventLocation(event)}</span>
+                        {event.artists?.length > 0 && <span><i className="fa-solid fa-music" />{event.artists.slice(0, 3).map((a) => a.stage_name).join(" · ")}</span>}
+                        {event.distance_km != null && <span><i className="fa-solid fa-route" />{Number(event.distance_km).toFixed(1)} km de você</span>}
+                      </div>
+                    </Card.Body>
+                  </Card>
+                </Col>;
+              })}
             </Row>
           </>
         )}
