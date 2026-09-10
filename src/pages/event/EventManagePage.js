@@ -258,6 +258,10 @@ export default function EventManagePage() {
   const [bulkResult, setBulkResult] = useState(null);
   const [deleteAllOpen, setDeleteAllOpen] = useState(false);
   const [deleteAllConfirmation, setDeleteAllConfirmation] = useState("");
+  const [selectedEventIds, setSelectedEventIds] = useState([]);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkDeleteConfirmation, setBulkDeleteConfirmation] = useState("");
+  const [bulkDeleteError, setBulkDeleteError] = useState("");
 
   const load = async () => setEvents(await eventService.myEvents());
 
@@ -285,6 +289,11 @@ export default function EventManagePage() {
     window.addEventListener("cutinapp:event-series-created", handleSeriesCreated);
     return () => window.removeEventListener("cutinapp:event-series-created", handleSeriesCreated);
   }, []);
+
+  useEffect(() => {
+    const existingIds = new Set(events.map((event) => Number(event.id)));
+    setSelectedEventIds((current) => current.filter((id) => existingIds.has(Number(id))));
+  }, [events]);
 
   const publication = async (event) => {
     setBusyId(event.id);
@@ -539,6 +548,95 @@ export default function EventManagePage() {
     });
   }, [events, searchTerm, sortConfig, statusFilter]);
 
+  const selectedEventIdSet = useMemo(
+    () => new Set(selectedEventIds.map((id) => Number(id))),
+    [selectedEventIds],
+  );
+
+  const selectedEvents = useMemo(
+    () => events.filter((event) => selectedEventIdSet.has(Number(event.id))),
+    [events, selectedEventIdSet],
+  );
+
+  const visibleEventIds = useMemo(
+    () => visibleEvents.map((event) => Number(event.id)),
+    [visibleEvents],
+  );
+
+  const allVisibleSelected = visibleEventIds.length > 0
+    && visibleEventIds.every((id) => selectedEventIdSet.has(id));
+
+  const toggleEventSelection = (eventId) => {
+    const id = Number(eventId);
+    setSelectedEventIds((current) => (
+      current.some((item) => Number(item) === id)
+        ? current.filter((item) => Number(item) !== id)
+        : [...current, id]
+    ));
+  };
+
+  const toggleVisibleSelection = () => {
+    setSelectedEventIds((current) => {
+      const currentSet = new Set(current.map((id) => Number(id)));
+      if (allVisibleSelected) {
+        visibleEventIds.forEach((id) => currentSet.delete(id));
+      } else {
+        visibleEventIds.forEach((id) => currentSet.add(id));
+      }
+      return [...currentSet];
+    });
+  };
+
+  const openBulkDelete = () => {
+    if (!selectedEventIds.length || bulkPublishing || busyId) return;
+    setBulkDeleteConfirmation("");
+    setBulkDeleteError("");
+    setError("");
+    setSuccess("");
+    setBulkDeleteOpen(true);
+  };
+
+  const closeBulkDelete = () => {
+    if (busyId === "delete-selected") return;
+    setBulkDeleteOpen(false);
+    setBulkDeleteConfirmation("");
+    setBulkDeleteError("");
+  };
+
+  const deleteSelectedEvents = async () => {
+    if (!selectedEventIds.length || bulkDeleteConfirmation.trim().toUpperCase() !== "EXCLUIR" || busyId === "delete-selected") return;
+
+    const ids = [...selectedEventIds];
+    const deletedIdSet = new Set(ids.map((id) => Number(id)));
+    setBusyId("delete-selected");
+    setBulkDeleteError("");
+    setError("");
+    setSuccess("");
+
+    try {
+      const response = await eventBulkService.deleteSelected(ids);
+      setEvents((current) => current.filter((event) => !deletedIdSet.has(Number(event.id))));
+      setSelectedEventIds([]);
+      setBulkDeleteOpen(false);
+      setBulkDeleteConfirmation("");
+      setSuccess(response?.message || `${ids.length} evento(s) excluído(s) com sucesso.`);
+      try {
+        window.PeterTecnetTelemetry?.track?.("producer_events_bulk_deleted", {
+          label: "Produtor excluiu eventos selecionados",
+          target: "event-management",
+          metadata: { event_ids: ids, count: ids.length },
+        });
+      } catch (_) {
+        // Telemetria não deve interromper a gestão de eventos.
+      }
+    } catch (err) {
+      const message = err?.response?.data?.message || err?.message || "Não foi possível excluir os eventos selecionados.";
+      setBulkDeleteError(message);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const openBulkPublish = () => {
     if (!bulkCandidates.length || bulkPublishing) return;
     setBulkResult(null);
@@ -646,6 +744,7 @@ export default function EventManagePage() {
   const duplicating = String(busyId).startsWith("duplicate-");
   const deletingOne = /^delete-\d+$/.test(String(busyId));
   const deletingAll = busyId === "delete-all";
+  const deletingMany = busyId === "delete-selected";
 
   const renderActions = (event) => (
     <div className="cut-event-admin-actions">
@@ -790,6 +889,46 @@ export default function EventManagePage() {
               </div>
             </section>
 
+            {visibleEvents.length > 0 && (
+              <section className="cut-event-bulk-selection" aria-label="Seleção de eventos para ações em massa">
+                <div className="cut-event-bulk-selection__summary">
+                  <Form.Check
+                    type="checkbox"
+                    id="select-visible-events"
+                    checked={allVisibleSelected}
+                    onChange={toggleVisibleSelection}
+                    disabled={Boolean(busyId) || bulkPublishing}
+                    label={allVisibleSelected ? "Desmarcar eventos exibidos" : "Selecionar eventos exibidos"}
+                  />
+                  <span>
+                    <strong>{selectedEventIds.length}</strong> selecionado(s)
+                    {visibleEvents.length !== events.length ? ` · ${visibleEvents.length} exibido(s) pelo filtro` : ""}
+                  </span>
+                </div>
+                <div className="cut-event-bulk-selection__actions">
+                  {selectedEventIds.length > 0 && (
+                    <Button
+                      size="sm"
+                      variant="outline-light"
+                      onClick={() => setSelectedEventIds([])}
+                      disabled={Boolean(busyId) || bulkPublishing}
+                    >
+                      Limpar seleção
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    onClick={openBulkDelete}
+                    disabled={!selectedEventIds.length || Boolean(busyId) || bulkPublishing}
+                  >
+                    <i className="fa-solid fa-trash-can me-2" />
+                    Excluir selecionado(s) ({selectedEventIds.length})
+                  </Button>
+                </div>
+              </section>
+            )}
+
             {visibleEvents.length === 0 ? (
               <div className="cut-event-manager-no-results">
                 <i className="fa-solid fa-filter-circle-xmark" />
@@ -805,7 +944,16 @@ export default function EventManagePage() {
                       <thead>
                         <tr>
                           <th className="cut-event-admin-table__event" aria-sort={ariaSort("event")}>
-                            <button type="button" className="cut-event-sort-head" onClick={() => handleSort("event")}>Evento <i className={sortIcon("event")} /></button>
+                            <div className="cut-event-sort-select-head">
+                              <Form.Check
+                                type="checkbox"
+                                checked={allVisibleSelected}
+                                onChange={toggleVisibleSelection}
+                                disabled={Boolean(busyId) || bulkPublishing}
+                                aria-label={allVisibleSelected ? "Desmarcar eventos exibidos" : "Selecionar eventos exibidos"}
+                              />
+                              <button type="button" className="cut-event-sort-head" onClick={() => handleSort("event")}>Evento <i className={sortIcon("event")} /></button>
+                            </div>
                           </th>
                           <th aria-sort={ariaSort("production")}>
                             <button type="button" className="cut-event-sort-head" onClick={() => handleSort("production")}>Produção <i className={sortIcon("production")} /></button>
@@ -840,15 +988,24 @@ export default function EventManagePage() {
                           const eventImage = event.image || event.production?.logo;
 
                           return (
-                            <tr key={event.id} className={needsAttention ? "is-attention" : ""}>
+                            <tr key={event.id} className={`${needsAttention ? "is-attention " : ""}${selectedEventIdSet.has(Number(event.id)) ? "is-selected" : ""}`.trim()}>
                               <td className="cut-event-admin-table__event">
-                                <div className="cut-event-admin-identity">
-                                  <button type="button" className="cut-event-admin-identity__media" onClick={() => navigate(`/event/edit/${event.id}`)} aria-label={`Editar ${event.title}`}>
-                                    {eventImage ? <img src={mediaUrl(eventImage)} alt="" loading="lazy" /> : <i className="fa-regular fa-calendar" />}
-                                  </button>
-                                  <div>
-                                    <button type="button" className="cut-event-admin-table__title" onClick={() => navigate(`/event/edit/${event.id}`)}>{event.title}</button>
-                                    <span className="cut-event-admin-table__production">{event.category || `#${event.id}`}</span>
+                                <div className="cut-event-admin-select-cell">
+                                  <Form.Check
+                                    type="checkbox"
+                                    checked={selectedEventIdSet.has(Number(event.id))}
+                                    onChange={() => toggleEventSelection(event.id)}
+                                    disabled={Boolean(busyId) || bulkPublishing}
+                                    aria-label={`Selecionar ${event.title}`}
+                                  />
+                                  <div className="cut-event-admin-identity">
+                                    <button type="button" className="cut-event-admin-identity__media" onClick={() => navigate(`/event/edit/${event.id}`)} aria-label={`Editar ${event.title}`}>
+                                      {eventImage ? <img src={mediaUrl(eventImage)} alt="" loading="lazy" /> : <i className="fa-regular fa-calendar" />}
+                                    </button>
+                                    <div>
+                                      <button type="button" className="cut-event-admin-table__title" onClick={() => navigate(`/event/edit/${event.id}`)}>{event.title}</button>
+                                      <span className="cut-event-admin-table__production">{event.category || `#${event.id}`}</span>
+                                    </div>
                                   </div>
                                 </div>
                               </td>
@@ -935,13 +1092,21 @@ export default function EventManagePage() {
                       const eventImage = event.image || event.production?.logo;
 
                       return (
-                        <article key={event.id} className={`cut-event-mobile-card${needsAttention ? " is-attention" : ""}`}>
+                        <article key={event.id} className={`cut-event-mobile-card${needsAttention ? " is-attention" : ""}${selectedEventIdSet.has(Number(event.id)) ? " is-selected" : ""}`}>
                           <div className="cut-event-mobile-card__top">
                             <button type="button" className="cut-event-mobile-card__media" onClick={() => navigate(`/event/edit/${event.id}`)} aria-label={`Editar ${event.title}`}>
                               {eventImage ? <img src={mediaUrl(eventImage)} alt="" loading="lazy" /> : <i className="fa-regular fa-calendar" />}
                             </button>
                             <div className="cut-event-mobile-card__heading">
                               <div className="cut-event-mobile-card__badges">
+                                <Form.Check
+                                  type="checkbox"
+                                  checked={selectedEventIdSet.has(Number(event.id))}
+                                  onChange={() => toggleEventSelection(event.id)}
+                                  disabled={Boolean(busyId) || bulkPublishing}
+                                  aria-label={`Selecionar ${event.title}`}
+                                  className="cut-event-mobile-card__select"
+                                />
                                 <Badge bg={status.variant}>{status.label}</Badge>
                                 <span>{Number(event.tickets_count || 0)} lote(s)</span>
                               </div>
@@ -1038,6 +1203,51 @@ export default function EventManagePage() {
             disabled={deletingOne || deleteConfirmation.trim().toUpperCase() !== "EXCLUIR"}
           >
             <i className="fa-solid fa-trash-can me-2" />Excluir evento
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      <Modal show={bulkDeleteOpen} onHide={closeBulkDelete} centered backdrop={deletingMany ? "static" : true} keyboard={!deletingMany}>
+        <Modal.Header closeButton={!deletingMany}>
+          <Modal.Title>Excluir eventos selecionados</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Alert variant="danger">
+            Você está prestes a excluir <strong>{selectedEventIds.length} evento(s)</strong> de uma vez. Esta ação não pode ser desfeita.
+          </Alert>
+          <p className="text-secondary">
+            A exclusão é atômica: se algum evento não pertencer à sua produção ou já possuir ingresso emitido, nenhum dos selecionados será apagado.
+          </p>
+          {selectedEvents.length > 0 && (
+            <div className="cut-event-bulk-delete-preview">
+              {selectedEvents.slice(0, 5).map((event) => <span key={event.id}>{event.title}</span>)}
+              {selectedEvents.length > 5 && <small>+ {selectedEvents.length - 5} outro(s)</small>}
+            </div>
+          )}
+          {bulkDeleteError && <Alert variant="danger" className="mt-3">{bulkDeleteError}</Alert>}
+          <Form.Group className="mt-3">
+            <Form.Label>Digite <strong>EXCLUIR</strong> para confirmar</Form.Label>
+            <Form.Control
+              value={bulkDeleteConfirmation}
+              onChange={(event) => {
+                setBulkDeleteConfirmation(event.target.value);
+                setBulkDeleteError("");
+              }}
+              placeholder="EXCLUIR"
+              autoComplete="off"
+              disabled={deletingMany}
+            />
+          </Form.Group>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="outline-secondary" onClick={closeBulkDelete} disabled={deletingMany}>Cancelar</Button>
+          <Button
+            variant="danger"
+            onClick={deleteSelectedEvents}
+            disabled={deletingMany || !selectedEventIds.length || bulkDeleteConfirmation.trim().toUpperCase() !== "EXCLUIR"}
+          >
+            <i className="fa-solid fa-trash-can me-2" />
+            {deletingMany ? "Excluindo..." : `Excluir ${selectedEventIds.length} evento(s)`}
           </Button>
         </Modal.Footer>
       </Modal>
