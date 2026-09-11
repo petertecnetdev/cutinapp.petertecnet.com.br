@@ -42,9 +42,61 @@ describe("checkout recovery attribution", () => {
     }));
 
     trackTelemetry("checkout_fulfilled", {});
+    window.history.replaceState({}, "", "/event/evento-teste");
     trackTelemetry("payment_approved", {});
 
     const approvedCalls = rawTrack.mock.calls.filter(([type]) => type === "payment_approved");
     expect(approvedCalls[1][1].metadata).toBeUndefined();
+  });
+
+  test("keeps one anonymous journey id across checkout funnel events", async () => {
+    const { trackTelemetry } = await loadTelemetry();
+    window.history.replaceState({}, "", "/checkout/evento-teste");
+
+    trackTelemetry("checkout_opened", { target: "evento-teste", metadata: { event_id: 42 } });
+    trackTelemetry("checkout_mobile_payment_cta_clicked", { target: "evento-teste", metadata: { payment_method: "pix" } });
+    trackTelemetry("payment_attempted", { target: "evento-teste", metadata: { payment_method: "pix" } });
+
+    const funnelCalls = rawTrack.mock.calls.filter(([type]) => [
+      "checkout_opened",
+      "checkout_mobile_payment_cta_clicked",
+      "payment_attempted",
+    ].includes(type));
+    const journeyIds = funnelCalls.map(([, details]) => details.metadata.checkout_journey_id);
+
+    expect(funnelCalls).toHaveLength(3);
+    expect(journeyIds[0]).toBeTruthy();
+    expect(new Set(journeyIds).size).toBe(1);
+    expect(funnelCalls[0][1].metadata.checkout_journey_started_at).toEqual(expect.any(Number));
+  });
+
+  test("starts a new journey when checkout switches to another event", async () => {
+    const { trackTelemetry } = await loadTelemetry();
+    window.history.replaceState({}, "", "/checkout/evento-a");
+    trackTelemetry("checkout_opened", { target: "evento-a" });
+    const firstId = rawTrack.mock.calls.at(-1)[1].metadata.checkout_journey_id;
+
+    window.history.replaceState({}, "", "/checkout/evento-b");
+    trackTelemetry("checkout_opened", { target: "evento-b" });
+    const secondId = rawTrack.mock.calls.at(-1)[1].metadata.checkout_journey_id;
+
+    expect(firstId).toBeTruthy();
+    expect(secondId).toBeTruthy();
+    expect(secondId).not.toBe(firstId);
+  });
+
+  test("clears a completed journey before the next purchase", async () => {
+    const { trackTelemetry } = await loadTelemetry();
+    window.history.replaceState({}, "", "/checkout/evento-teste");
+    trackTelemetry("checkout_opened", { target: "evento-teste" });
+    const firstId = rawTrack.mock.calls.at(-1)[1].metadata.checkout_journey_id;
+
+    trackTelemetry("checkout_fulfilled", { target: "evento-teste", metadata: { outcome: "success" } });
+    expect(window.sessionStorage.getItem("cutinapp_checkout_journey")).toBeNull();
+
+    trackTelemetry("checkout_opened", { target: "evento-teste" });
+    const nextId = rawTrack.mock.calls.at(-1)[1].metadata.checkout_journey_id;
+    expect(nextId).toBeTruthy();
+    expect(nextId).not.toBe(firstId);
   });
 });
