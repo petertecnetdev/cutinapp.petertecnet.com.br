@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Badge, Button, Card, Container, Dropdown, Form, Modal, ProgressBar } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
@@ -311,7 +311,7 @@ export default function EventManagePage() {
   const [sortConfig, setSortConfig] = useState({ key: "smart", direction: "asc" });
   const [pinnedEventIds, setPinnedEventIds] = useState([]);
   const [quickEvent, setQuickEvent] = useState(null);
-  const [displayLimit, setDisplayLimit] = useState(24);
+  const [displayLimit, setDisplayLimit] = useState(24);\n  const loadMoreRef = useRef(null);
   const [bulkMoveOpen, setBulkMoveOpen] = useState(false);
   const [bulkTargetProductionId, setBulkTargetProductionId] = useState("");
   const [bulkActionError, setBulkActionError] = useState("");
@@ -413,6 +413,20 @@ export default function EventManagePage() {
   useEffect(() => {
     setDisplayLimit(24);
   }, [searchTerm, statusFilter, productionFilter, cityFilter, periodFilter, performanceFilter, sortConfig, groupByPeriod]);
+
+  useEffect(() => {
+    const target = loadMoreRef.current;
+    if (!target || displayLimit >= visibleEvents.length || typeof IntersectionObserver === "undefined") return undefined;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        setDisplayLimit((current) => Math.min(current + 24, visibleEvents.length));
+      }
+    }, { rootMargin: "320px 0px" });
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [displayLimit, visibleEvents.length]);
 
   const togglePinnedEvent = (eventId) => {
     const id = Number(eventId);
@@ -1408,7 +1422,10 @@ export default function EventManagePage() {
                   ))}
                   <footer className="cut-event-incremental-footer">
                     <span>Exibindo <strong>{renderedEvents.length}</strong> de <strong>{visibleEvents.length}</strong> evento(s) filtrado(s) · {events.length} no total</span>
-                    {renderedEvents.length < visibleEvents.length && <Button variant="outline-light" onClick={() => setDisplayLimit((current) => current + 24)}><i className="fa-solid fa-chevron-down me-2" />Carregar mais 24</Button>}
+                    {renderedEvents.length < visibleEvents.length && <>
+                      <span ref={loadMoreRef} className="cut-event-infinite-sentinel" aria-hidden="true" />
+                      <Button variant="outline-light" onClick={() => setDisplayLimit((current) => Math.min(current + 24, visibleEvents.length))}><i className="fa-solid fa-chevron-down me-2" />Carregar mais</Button>
+                    </>}
                   </footer>
                 </section>
               </>
