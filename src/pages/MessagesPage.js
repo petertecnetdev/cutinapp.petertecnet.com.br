@@ -379,7 +379,7 @@ export default function MessagesPage() {
     try {
       const response = await messagingService.conversation(conversationId);
       if (response?.data) setActive(response.data);
-    } catch (_) {}
+    } catch (_) { return undefined; }
   }, []);
 
   const handleRealtime = useCallback((eventName, payload) => {
@@ -587,7 +587,9 @@ export default function MessagesPage() {
       try {
         const response = await messagingService.presence(targetId);
         if (!cancelled) setPresence(response?.data || null);
-      } catch (_) {}
+      } catch (_) {
+        if (!cancelled) setPresence(null);
+      }
     };
     update();
     const timer = window.setInterval(update, PRESENCE_POLL_MS);
@@ -783,7 +785,9 @@ export default function MessagesPage() {
         ? await messagingService.removeReaction(active.id, message.id, emoji)
         : await messagingService.react(active.id, message.id, emoji);
       setMessages((current) => current.map((item) => Number(item.id) === Number(message.id) ? { ...item, reactions: response?.data || [] } : item));
-    } catch (_) {}
+    } catch (_) {
+      setError("Não foi possível atualizar a reação.");
+    }
   };
 
   const editMessage = async (message) => {
