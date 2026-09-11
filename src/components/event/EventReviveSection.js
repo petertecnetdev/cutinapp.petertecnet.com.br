@@ -10,8 +10,31 @@ const stars = [1, 2, 3, 4, 5];
 const nameOf = (item) => [item?.first_name, item?.last_name].filter(Boolean).join(" ") || item?.user_name || "Participante";
 const initialsOf = (item) => ((item?.first_name?.[0] || "U") + (item?.last_name?.[0] || "")).toUpperCase();
 const fmt = (value) => value ? new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value)) : "";
+const reviveInteractionTypes = {
+  event_revive_view: "revive_view",
+  event_revive_shared: "revive_share",
+  event_revive_moment_shared: "revive_moment_share",
+  event_revive_next_event_clicked: "revive_next_click",
+  event_revive_related_event_clicked: "revive_related_click",
+  event_revive_production_followed: "revive_follow",
+  event_revive_review_created: "revive_review",
+  event_revive_post_created: "revive_post",
+  event_revive_reply_created: "revive_reply",
+  event_revive_reaction_added: "revive_reaction",
+  event_revive_reaction_removed: "revive_reaction",
+  event_revive_media_uploaded: "revive_media_upload",
+};
+
 const track = (type, event, metadata) => {
   try { window.PeterTecnetTelemetry?.track?.(type, { label: "Reviva o evento", target: String(event?.id || ""), metadata: { event_id: Number(event?.id || 0), ...(metadata || {}) } }); } catch (_) {}
+  const interactionType = reviveInteractionTypes[type];
+  if (interactionType && Number(event?.id || 0) > 0) {
+    cutinappService.trackEventReviveInteraction(event.id, {
+      type: interactionType,
+      target_id: Number(metadata?.target_event_id || metadata?.file_id || metadata?.post_id || 0) || undefined,
+      metadata: metadata || undefined,
+    }).catch(() => {});
+  }
 };
 
 function Stars({ value, onChange, disabled, compact, label }) {
@@ -50,6 +73,7 @@ export default function EventReviveSection({ event, isOwner }) {
   }, [event.slug]);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { track("event_revive_view", event); }, [event]);
   useEffect(() => {
     if (!data || typeof document === "undefined") return undefined;
     const id = "cut-revive-schema-" + event.id;
@@ -139,6 +163,7 @@ export default function EventReviveSection({ event, isOwner }) {
     try {
       if (post.is_liked) await cutinappService.unlikeEventPost(post.id);
       else await cutinappService.likeEventPost(post.id);
+      track(post.is_liked ? "event_revive_reaction_removed" : "event_revive_reaction_added", event, { post_id: Number(post.id) });
       await load();
     } catch (err) { setNotice({ type: "danger", text: err?.message || "Não foi possível atualizar a reação." }); }
   };
