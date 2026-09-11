@@ -38,6 +38,8 @@ export default function EventReviveSection({ event, isOwner }) {
   const [caption, setCaption] = useState("");
   const [lightbox, setLightbox] = useState(null);
   const [responses, setResponses] = useState({});
+  const [moderation, setModeration] = useState(null);
+  const [moderationOpen, setModerationOpen] = useState(false);
   const [review, setReview] = useState({ rating: 0, organization_rating: 0, service_rating: 0, music_rating: 0, value_rating: 0, comment: "" });
 
   const load = useCallback(async () => {
@@ -48,6 +50,40 @@ export default function EventReviveSection({ event, isOwner }) {
   }, [event.slug]);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    if (!data || typeof document === "undefined") return undefined;
+    const id = "cut-revive-schema-" + event.id;
+    document.getElementById(id)?.remove();
+    const schema = {
+      "@context": "https://schema.org",
+      "@type": "Event",
+      name: event.title,
+      startDate: event.start_date || undefined,
+      endDate: event.end_date || undefined,
+      eventStatus: "https://schema.org/EventCompleted",
+      image: (data.revive?.gallery || []).slice(0, 6).map((item) => item.url).filter(Boolean),
+      aggregateRating: Number(data.rating?.total || 0) > 0 ? {
+        "@type": "AggregateRating",
+        ratingValue: Number(data.rating.average || 0),
+        ratingCount: Number(data.rating.total || 0),
+        bestRating: 5,
+        worstRating: 1,
+      } : undefined,
+      review: (data.reviews || []).filter((item) => item.comment).slice(0, 10).map((item) => ({
+        "@type": "Review",
+        reviewRating: { "@type": "Rating", ratingValue: Number(item.rating), bestRating: 5, worstRating: 1 },
+        author: { "@type": "Person", name: nameOf(item) },
+        reviewBody: item.comment,
+      })),
+    };
+    const script = document.createElement("script");
+    script.id = id;
+    script.type = "application/ld+json";
+    script.textContent = JSON.stringify(schema);
+    document.head.appendChild(script);
+    return () => document.getElementById(id)?.remove();
+  }, [data, event.end_date, event.id, event.start_date, event.title]);
+
   useEffect(() => {
     const mine = data?.rating?.mine;
     if (!mine) return;
@@ -188,6 +224,50 @@ export default function EventReviveSection({ event, isOwner }) {
     finally { setBusy(false); }
   };
 
+  const reportContent = async (targetType, targetId) => {
+    if (!user) return login();
+    const details = window.prompt("Descreva rapidamente o problema com este conteúdo:");
+    if (details === null) return;
+    try {
+      await cutinappService.reportEvent(event.id, {
+        reason: "inappropriate",
+        details: String(details || "").trim() || undefined,
+        target_type: targetType,
+        target_id: Number(targetId),
+      });
+      setNotice({ type: "success", text: "Conteúdo enviado para moderação." });
+      track("event_revive_content_reported", event, { target_type: targetType, target_id: Number(targetId) });
+    } catch (err) {
+      setNotice({ type: "danger", text: err?.message || "Não foi possível enviar a denúncia." });
+    }
+  };
+
+  const loadModeration = async () => {
+    if (!isManager) return;
+    setBusy(true);
+    try {
+      const response = await cutinappService.eventReviveModeration(event.id, { per_page: 50 });
+      setModeration(response.reports || null);
+      setModerationOpen(true);
+    } catch (err) {
+      setNotice({ type: "danger", text: err?.message || "Não foi possível abrir a moderação." });
+    } finally { setBusy(false); }
+  };
+
+  const moderate = async (item, status, hideContent) => {
+    setBusy(true);
+    try {
+      await cutinappService.moderateEventReviveContent(event.id, item.id, {
+        status,
+        hide_content: Boolean(hideContent),
+      });
+      await loadModeration();
+      await load();
+    } catch (err) {
+      setNotice({ type: "danger", text: err?.message || "Não foi possível concluir a moderação." });
+    } finally { setBusy(false); }
+  };
+
   const nextEvent = () => {
     if (!revive.next_event?.slug) return;
     const query = new URLSearchParams({ source_event_id: String(event.id), conversion_source: "post_event" });
@@ -250,7 +330,7 @@ export default function EventReviveSection({ event, isOwner }) {
       <button type="button" onClick={() => setLightbox(media)}><img src={media.url} alt={media.caption || "Momento do evento"} loading="lazy" /></button>
       {media.is_primary && <Badge bg="warning" text="dark">Destaque</Badge>}
       {media.caption && <p>{media.caption}</p>}
-      {(isManager || Number(media.created_by) === Number(user?.id)) && <div className="cut-revive-inline-actions">{isManager && !media.is_primary && <button type="button" onClick={() => featureMedia(media)}>Destacar</button>}<button type="button" className="danger" onClick={() => removeMedia(media)}>Remover</button></div>}
+      <div className="cut-revive-inline-actions">{(isManager || Number(media.created_by) === Number(user?.id)) && <>{isManager && !media.is_primary && <button type="button" onClick={() => featureMedia(media)}>Destacar</button>}<button type="button" className="danger" onClick={() => removeMedia(media)}>Remover</button></>}{user && Number(media.created_by) !== Number(user.id) && <button type="button" onClick={() => reportContent("media", media.id)}>Denunciar</button>}</div>
     </article>)}</div> : <div className="cut-revive-empty">Os primeiros momentos ainda vão aparecer aqui.</div>}
 
     <div className="cut-revive-grid">
@@ -276,7 +356,7 @@ export default function EventReviveSection({ event, isOwner }) {
     <header className="cut-revive-section-head"><div><span className="cut-eyebrow">O que a galera achou</span><h3>Avaliações verificadas</h3></div></header>
     <div className="cut-revive-reviews">{reviews.length ? reviews.map((item) => <article key={item.user_id} className="cut-revive-review">
       <div className="cut-revive-review__author">{avatar(item)}<div><strong>{nameOf(item)}</strong><small>Participante verificado</small></div><b>{item.rating} <i className="fa-solid fa-star" /></b></div>
-      {item.comment && <p>{item.comment}</p>}<div className="cut-revive-review__meta"><span>{fmt(item.updated_at || item.created_at)}</span>{Number(item.user_id) !== Number(user?.id) && <button type="button" disabled={!canInteract} className={item.is_helpful ? "active" : ""} onClick={() => helpful(item)}>Útil {item.helpful_count || 0}</button>}</div>
+      {item.comment && <p>{item.comment}</p>}<div className="cut-revive-review__meta"><span>{fmt(item.updated_at || item.created_at)}</span><div>{Number(item.user_id) !== Number(user?.id) && <button type="button" disabled={!canInteract} className={item.is_helpful ? "active" : ""} onClick={() => helpful(item)}>Útil {item.helpful_count || 0}</button>}{user && Number(item.user_id) !== Number(user.id) && <button type="button" onClick={() => reportContent("rating", item.user_id)}>Denunciar</button>}</div></div>
       {item.producer_response && <div className="cut-revive-producer-response"><strong>Resposta da produção</strong><p>{item.producer_response}</p></div>}
       {isManager && <div className="cut-revive-response-form"><Form.Control as="textarea" rows={2} value={responses[item.user_id] || ""} onChange={(e) => setResponses((r) => ({ ...r, [item.user_id]: e.target.value }))} placeholder="Responder como produção..." /><Button size="sm" disabled={busy} onClick={() => respond(item)}>Responder</Button></div>}
     </article>) : <div className="cut-revive-empty">Ainda não há avaliações.</div>}</div>
@@ -285,7 +365,7 @@ export default function EventReviveSection({ event, isOwner }) {
     {canInteract && <div className="cut-revive-composer">{avatar(user)}<div><Form.Control as="textarea" rows={3} maxLength={3000} value={postText} onChange={(e) => setPostText(e.target.value)} placeholder="Conte uma história ou diga o que mais curtiu..." /><Button disabled={busy || postText.trim().length < 2} onClick={() => publish(null)}>Publicar</Button></div></div>}
     <div className="cut-revive-posts">{posts.length ? posts.map((post) => <article key={post.id} className="cut-revive-post">
       {avatar(post)}<div><header><strong>{nameOf(post)}</strong><time>{fmt(post.created_at)}</time></header>{post.media?.url && <button type="button" className="cut-revive-post__media" onClick={() => setLightbox(post.media)}><img src={post.media.url} alt="Momento" loading="lazy" /></button>}<p>{post.body}</p>
-      <div className="cut-revive-inline-actions"><button type="button" disabled={!canInteract} className={post.is_liked ? "active" : ""} onClick={() => toggleLike(post)}>♥ {post.likes_count || 0}</button><button type="button" disabled={!canInteract} onClick={() => setReplyId(replyId === post.id ? null : post.id)}>Responder {post.comments_count || 0}</button>{user && (Number(post.user_id) === Number(user.id) || isManager) && <button type="button" className="danger" onClick={() => removePost(post)}>Remover</button>}</div>
+      <div className="cut-revive-inline-actions"><button type="button" disabled={!canInteract} className={post.is_liked ? "active" : ""} onClick={() => toggleLike(post)}>♥ {post.likes_count || 0}</button><button type="button" disabled={!canInteract} onClick={() => setReplyId(replyId === post.id ? null : post.id)}>Responder {post.comments_count || 0}</button>{user && (Number(post.user_id) === Number(user.id) || isManager) && <button type="button" className="danger" onClick={() => removePost(post)}>Remover</button>}{user && Number(post.user_id) !== Number(user.id) && <button type="button" onClick={() => reportContent("post", post.id)}>Denunciar</button>}</div>
       {replyId === post.id && canInteract && <div className="cut-revive-replybox"><Form.Control as="textarea" rows={2} value={replyText} onChange={(e) => setReplyText(e.target.value)} /><Button size="sm" disabled={busy || replyText.trim().length < 2} onClick={() => publish(post.id)}>Responder</Button></div>}
       {post.replies?.length > 0 && <div className="cut-revive-replies">{post.replies.map((reply) => <div key={reply.id} className="cut-revive-reply">{avatar(reply, true)}<div><strong>{nameOf(reply)}</strong><p>{reply.body}</p></div></div>)}</div>}
       </div></article>) : <div className="cut-revive-empty">A conversa está começando.</div>}</div>
@@ -295,9 +375,14 @@ export default function EventReviveSection({ event, isOwner }) {
       <div><span className="cut-eyebrow">{verified ? "Vamos de novo?" : "Não fique de fora da próxima"}</span><h3>{revive.next_event.title}</h3><p>{fmt(revive.next_event.start_date)}{revive.next_event.venue ? " · " + revive.next_event.venue : ""}</p><div className="cut-revive-hero__actions"><Button size="lg" onClick={nextEvent}>Ver próxima edição</Button><Button variant="outline-light" onClick={follow}>Seguir produção</Button></div></div>
     </div>}
 
-    {isManager && revive.metrics && <div className="cut-revive-owner-metrics">
+    {isManager && revive.metrics && <><div className="cut-revive-owner-metrics">
       <div><span>Publicações</span><strong>{revive.metrics.posts || 0}</strong></div><div><span>Avaliações</span><strong>{revive.metrics.reviews || 0}</strong></div><div><span>Compras atribuídas</span><strong>{revive.metrics.attributed_orders || 0}</strong></div><div><span>GMV pós-evento</span><strong>{Number(revive.metrics.attributed_gmv || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong></div>
-    </div>}
+    </div><div className="cut-revive-moderation-launch"><Button variant="outline-light" onClick={loadModeration}>Abrir moderação do Reviva</Button></div></>}
+
+    <Modal show={moderationOpen} onHide={() => setModerationOpen(false)} centered size="lg" className="cut-revive-lightbox">
+      <Modal.Header closeButton closeVariant="white"><Modal.Title>Moderação do Reviva</Modal.Title></Modal.Header>
+      <Modal.Body><div className="cut-revive-moderation-list">{(moderation?.data || []).length ? (moderation.data || []).map((item) => <article key={item.id}><div><strong>{item.target_type} #{item.target_id}</strong><span>{item.reason} · {fmt(item.created_at)}</span>{item.details && <p>{item.details}</p>}</div><div>{item.status === "open" ? <><Button size="sm" variant="outline-light" onClick={() => moderate(item, "dismissed", false)}>Descartar denúncia</Button>{item.target_type !== "rating" && <Button size="sm" variant="danger" onClick={() => moderate(item, "actioned", true)}>Ocultar conteúdo</Button>}</> : <Badge bg="secondary">{item.status}</Badge>}</div></article>) : <div className="cut-revive-empty">Nenhuma denúncia pendente.</div>}</div></Modal.Body>
+    </Modal>
 
     <Modal show={Boolean(lightbox)} onHide={() => setLightbox(null)} centered size="xl" className="cut-revive-lightbox"><Modal.Body>{lightbox?.url && <img src={lightbox.url} alt={lightbox.caption || "Momento"} />}{lightbox?.caption && <p>{lightbox.caption}</p>}</Modal.Body><Modal.Footer><Button variant="outline-light" onClick={() => setLightbox(null)}>Fechar</Button></Modal.Footer></Modal>
   </section>;
