@@ -338,11 +338,15 @@ const followSocialTarget = createIdempotentMutation({
   storagePrefix: "cutinapp_social_follow_attempt_",
   keyPrefix: "social-follow",
   requestKeyFor: (targetType, targetId) => `${normalizeSocialTargetType(targetType)}:${String(targetId)}`,
-  mutate: async ({ idempotencyKey }, targetType, targetId) => (await appApiClient.post(
-    "/social/follow",
-    { target_type: normalizeSocialTargetType(targetType), target_id: targetId },
-    { headers: { "Idempotency-Key": idempotencyKey } },
-  )).data,
+  mutate: async ({ idempotencyKey }, targetType, targetId) => {
+    const response = await appApiClient.post(
+      "/social/follow",
+      { target_type: normalizeSocialTargetType(targetType), target_id: targetId },
+      { headers: { "Idempotency-Key": idempotencyKey } },
+    );
+    void trackSearchConversion("follow", targetId).catch(() => false);
+    return response.data;
+  },
 });
 
 const unfollowSocialTarget = createIdempotentMutation({
@@ -544,7 +548,7 @@ const cutinappService = {
   eventArtists: async (eventId) => (await appApiClient.get(`/events/${eventId}/artists`)).data,
   attachArtist,
   detachArtist,
-  follow: async (targetType, targetId) => { const data = await followSocialTarget(targetType, targetId); await trackSearchConversion("follow", targetId).catch(() => false); return data; },
+  follow: followSocialTarget,
   unfollow: unfollowSocialTarget,
   preferences: async () => (await appApiClient.get("/social/preferences")).data.preferences,
   savePreferences: saveSocialPreferencesMutation,

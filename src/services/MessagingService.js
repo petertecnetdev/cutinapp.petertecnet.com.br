@@ -8,13 +8,15 @@ const openDirectIdempotently = createIdempotentMutation({
   requestKeyFor: (userId) => createMutationRequestKey({
     user_id: Number(userId),
   }),
-  mutate: async ({ idempotencyKey }, userId) => (
-    await appApiClient.post("/messaging/direct", {
+  mutate: async ({ idempotencyKey }, userId) => {
+    const response = await appApiClient.post("/messaging/direct", {
       user_id: Number(userId),
     }, {
       headers: { "Idempotency-Key": idempotencyKey },
-    })
-  ).data,
+    });
+    void trackSearchConversion("direct_open", userId).catch(() => false);
+    return response.data;
+  },
 });
 
 const sendMessageIdempotently = createIdempotentMutation({
@@ -60,7 +62,7 @@ const archiveConversationIdempotently = createIdempotentMutation({
 const messagingService = {
   conversations: async (params = {}) => (await appApiClient.get("/messaging/conversations", { params })).data,
   searchPeople: async (query) => (await appApiClient.get("/messaging/people", { params: { q: query } })).data,
-  openDirect: async (userId) => { const data = await openDirectIdempotently(userId); await trackSearchConversion("direct_open", userId).catch(() => false); return data; },
+  openDirect: (userId) => openDirectIdempotently(userId),
   conversation: async (conversationId) => (await appApiClient.get(`/messaging/conversations/${Number(conversationId)}`)).data,
   messages: async (conversationId, params = {}) => (await appApiClient.get(`/messaging/conversations/${Number(conversationId)}/messages`, { params })).data,
   send: (conversationId, body, replyToId = null) => sendMessageIdempotently(conversationId, body, replyToId),
