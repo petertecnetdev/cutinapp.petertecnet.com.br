@@ -800,6 +800,28 @@ export default function MessagesPage() {
     }
   };
 
+  const acceptMessageRequest = async () => {
+    if (!active?.id) return;
+    try {
+      const response = await messagingService.acceptRequest(active.id);
+      if (response?.data) setActive(response.data);
+      loadConversations(conversationQuery, { quiet: true });
+    } catch (requestError) {
+      setError(requestError?.response?.data?.message || "Não foi possível aceitar a solicitação.");
+    }
+  };
+
+  const rejectMessageRequest = async () => {
+    if (!active?.id || !window.confirm("Recusar esta solicitação de mensagem?")) return;
+    try {
+      await messagingService.rejectRequest(active.id);
+      closeThread();
+      loadConversations(conversationQuery);
+    } catch (requestError) {
+      setError(requestError?.response?.data?.message || "Não foi possível recusar a solicitação.");
+    }
+  };
+
   const archiveConversation = async () => {
     if (!active?.id) return;
     try {
@@ -1006,7 +1028,14 @@ export default function MessagesPage() {
               {hasNewMessages && <button type="button" className="cut-chat-new-messages" onClick={() => scrollToBottom("smooth")}>Novas mensagens <i className="fa-solid fa-arrow-down" /></button>}
               {error && <div className="cut-chat-error" role="alert" aria-live="polite">{error}<button type="button" onClick={() => setError("")}><i className="fa-solid fa-xmark" /></button></div>}
 
-              <div className="cut-direct-composer-zone">
+              {active.request_state === "pending" && (
+                <div className="cut-direct-request-banner">
+                  <div><i className="fa-regular fa-message" /><span><strong>Solicitação de mensagem</strong><small>Aceite para responder e mover esta conversa para a caixa principal.</small></span></div>
+                  <div><button type="button" className="is-secondary" onClick={rejectMessageRequest}>Recusar</button><button type="button" className="is-primary" onClick={acceptMessageRequest}>Aceitar</button></div>
+                </div>
+              )}
+
+              <div className={`cut-direct-composer-zone ${active.request_state === "pending" ? "is-request-locked" : ""}`}>
                 {replyTo && (
                   <div className="cut-direct-composer-reply">
                     <i className="fa-solid fa-reply" />
@@ -1037,7 +1066,7 @@ export default function MessagesPage() {
                   <div className="cut-direct-composer-actions">
                     <button type="button" className="cut-direct-composer__action" onClick={() => fileInputRef.current?.click()} aria-label="Adicionar foto, vídeo, áudio ou arquivo"><i className="fa-regular fa-image" /></button>
                     <button type="button" className="cut-direct-composer__action is-camera" onClick={() => cameraInputRef.current?.click()} aria-label="Abrir câmera"><i className="fa-solid fa-camera" /></button>
-                    <AudioRecorder disabled={sending} onRecordingChange={setRecording} onReady={(file) => selectFiles([file])} />
+                    <AudioRecorder disabled={sending || active.request_state === "pending"} onRecordingChange={setRecording} onReady={(file) => selectFiles([file])} />
                   </div>
 
                   <textarea
@@ -1060,13 +1089,13 @@ export default function MessagesPage() {
                     aria-label="Mensagem"
                     autoComplete="off"
                     enterKeyHint="send"
-                    disabled={recording}
+                    disabled={recording || active.request_state === "pending"}
                   />
 
                   <div className="cut-direct-composer-actions is-end">
                     <button type="button" className="cut-direct-composer__action" onClick={sendLocation} aria-label="Compartilhar localização"><i className="fa-solid fa-location-arrow" /></button>
                     <button type="button" className="cut-direct-composer__action" onClick={() => setScheduleOpen((value) => !value)} aria-label="Agendar ou definir mensagem temporária"><i className="fa-regular fa-clock" /></button>
-                    <button type="submit" className="cut-direct-send" disabled={(!composer.trim() && files.length === 0) || sending || recording} aria-label={scheduleAt ? "Agendar mensagem" : "Enviar"}>
+                    <button type="submit" className="cut-direct-send" disabled={active.request_state === "pending" || (!composer.trim() && files.length === 0) || sending || recording} aria-label={scheduleAt ? "Agendar mensagem" : "Enviar"}>
                       <i className={scheduleAt ? "fa-regular fa-clock" : "fa-solid fa-arrow-up"} />
                     </button>
                   </div>
