@@ -24,15 +24,24 @@ export default function MessagingPreferencesPanel({ onClose }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [metrics, setMetrics] = useState(null);
 
   useEffect(() => {
     let active = true;
-    messagingService.settings()
-      .then((response) => {
-        if (active) setSettings({ ...DEFAULTS, ...(response?.data || {}) });
-      })
-      .catch(() => { if (active) setMessage("Não foi possível carregar suas preferências."); })
-      .finally(() => { if (active) setLoading(false); });
+    Promise.allSettled([
+      messagingService.settings(),
+      messagingService.metrics(30),
+    ]).then(([settingsResult, metricsResult]) => {
+      if (!active) return;
+      if (settingsResult.status === "fulfilled") {
+        setSettings({ ...DEFAULTS, ...(settingsResult.value?.data || {}) });
+      } else {
+        setMessage("Não foi possível carregar suas preferências.");
+      }
+      if (metricsResult.status === "fulfilled") {
+        setMetrics(metricsResult.value?.data || null);
+      }
+    }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, []);
 
@@ -82,6 +91,20 @@ export default function MessagingPreferencesPanel({ onClose }) {
                 <label className="cut-chat-field"><span>Primeiro lembrete</span><select value={settings.first_reminder_minutes} onChange={(event) => change("first_reminder_minutes", Number(event.target.value))}><option value={30}>30 minutos</option><option value={60}>1 hora</option><option value={120}>2 horas</option><option value={240}>4 horas</option></select></label>
                 <label className="cut-chat-field"><span>Segundo e último lembrete</span><select value={settings.second_reminder_minutes} onChange={(event) => change("second_reminder_minutes", Number(event.target.value))}><option value={360}>6 horas</option><option value={720}>12 horas</option><option value={1440}>24 horas</option><option value={2880}>48 horas</option></select></label>
               </div>
+
+              {metrics && (
+                <div className="cut-chat-preferences__section">
+                  <h3>Eficiência do Direct · últimos 30 dias</h3>
+                  <div className="cut-chat-metrics-grid">
+                    <div><strong>{metrics.read_rate ?? 0}%</strong><small>mensagens lidas</small></div>
+                    <div><strong>{metrics.response_rate ?? 0}%</strong><small>com resposta</small></div>
+                    <div><strong>{Math.round((metrics.avg_read_seconds || 0) / 60)} min</strong><small>tempo médio até leitura</small></div>
+                    <div><strong>{Math.round((metrics.avg_response_seconds || 0) / 60)} min</strong><small>tempo médio até resposta</small></div>
+                    <div><strong>{metrics.email_click_rate ?? 0}%</strong><small>cliques nos e-mails</small></div>
+                    <div><strong>{metrics.emails_sent ?? 0}</strong><small>e-mails enviados</small></div>
+                  </div>
+                </div>
+              )}
 
               <div className="cut-chat-preferences__section">
                 <h3>Privacidade e Direct</h3>
