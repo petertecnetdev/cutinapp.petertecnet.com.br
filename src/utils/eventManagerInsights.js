@@ -45,7 +45,7 @@ export const eventOperationalMetrics = (event) => ({
 export const eventHealth = (event) => {
   const metrics = eventOperationalMetrics(event);
   const hasBasics = Boolean(String(event?.title || "").trim() && event?.start_date && String(event?.venue || event?.address || "").trim());
-  const hasImage = Boolean(event?.image || event?.production?.logo);
+  const hasImage = Boolean(event?.image);
   const hasLocation = Boolean(event?.venue || event?.address || event?.city || event?.online_url);
   const hasTickets = number(event?.tickets_count) > 0;
   const hasSellableTickets = number(event?.available_tickets_count) > 0;
