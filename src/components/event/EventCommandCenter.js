@@ -188,7 +188,7 @@ export default function EventCommandCenter({
     if (!event) return;
     setActiveTab(eventStage(event).key);
     setFeedback("");
-  }, [event?.id]);
+  }, [event]);
 
   if (!event) return null;
 
