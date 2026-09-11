@@ -16,6 +16,17 @@
   "rules": {
     "no-unused-vars": ["error", { "argsIgnorePattern": "^intensityKey$" }]
   },
+  "overrides": [
+    {
+      "files": [
+        "src/components/editor/EntityEditorShell.js",
+        "src/pages/search/GlobalSearchPage.js"
+      ],
+      "rules": {
+        "react/prop-types": "off"
+      }
+    }
+  ],
   "globals": {
     "$": true,
     "jQuery": true
