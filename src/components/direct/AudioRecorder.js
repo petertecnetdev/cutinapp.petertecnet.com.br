@@ -103,7 +103,7 @@ export default function AudioRecorder({ disabled, onReady, onRecordingChange }) 
     const recorder = recorderRef.current;
     if (!recorder) return;
     recorder.onstop = null;
-    try { recorder.stop(); } catch (_) {}
+    try { recorder.stop(); } catch (_) { recorderRef.current = null; }
     setState("idle");
     setSeconds(0);
     cleanup();
