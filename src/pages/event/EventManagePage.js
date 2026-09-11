@@ -1,12 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Badge, Button, Card, Container, Dropdown, Form, Modal, ProgressBar } from "react-bootstrap";
+import { Alert, Button, Card, Container, Dropdown, Form, Modal, ProgressBar } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import eventService from "../../services/EventService";
 import eventBulkService from "../../services/EventBulkService";
 import cutinappService from "../../services/CutinappService";
-import { storageUrl } from "../../config";
 import { sellableTicketCount } from "../../utils/eventSalesReadiness";
 import ProducerEventCard from "../../components/event/ProducerEventCard";
 import { EventQuickView } from "../../components/event/EventManagerEnhancements";
@@ -69,26 +68,7 @@ const toDateInput = (value) => {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 };
 
-const mediaUrl = (path) => {
-  if (!path) return "";
-  const value = String(path);
-  if (/^https?:\/\//i.test(value)) return value;
-  return `${storageUrl}${value.replace(/^\//, "")}`;
-};
-
 const eventLocation = (event) => event?.venue || event?.address || event?.city || "Não informado";
-
-const initialsFor = (value, fallback = "EV") => {
-  const initials = String(value || "")
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part.charAt(0).toUpperCase())
-    .join("");
-
-  return initials || fallback;
-};
 
 const suggestedDuplicateDate = (event) => {
   const source = new Date(event?.start_date);
@@ -994,7 +974,11 @@ export default function EventManagePage() {
   };
 
   const runBulkMutation = async (label, targets, mutate) => {
-    if (!targets.length || busyId || bulkPublishing) return;
+    if (busyId || bulkPublishing) return;
+    if (!targets.length) {
+      setBulkActionError("Nenhum dos eventos selecionados está apto para esta ação.");
+      return;
+    }
     setBusyId("bulk-action");
     setBulkActionError("");
     setError("");
@@ -1006,7 +990,7 @@ export default function EventManagePage() {
       try {
         await mutate(event);
         completed += 1;
-      } catch (err) {
+      } catch {
         failed.push(event.title || `Evento #${event.id}`);
       }
     }
@@ -1112,11 +1096,6 @@ export default function EventManagePage() {
   const sortIcon = (key) => {
     if (sortConfig.key !== key) return "fa-solid fa-sort";
     return sortConfig.direction === "asc" ? "fa-solid fa-arrow-up" : "fa-solid fa-arrow-down";
-  };
-
-  const ariaSort = (key) => {
-    if (sortConfig.key !== key) return "none";
-    return sortConfig.direction === "asc" ? "ascending" : "descending";
   };
 
   const duplicating = String(busyId).startsWith("duplicate-");
@@ -1385,7 +1364,14 @@ export default function EventManagePage() {
                 <i className="fa-solid fa-filter-circle-xmark" />
                 <strong>Nenhum evento encontrado</strong>
                 <span>Ajuste a busca ou remova o filtro para ver seus eventos.</span>
-                <Button size="sm" variant="outline-light" onClick={() => { setSearchTerm(""); setStatusFilter("all"); }}>Limpar filtros</Button>
+                <Button size="sm" variant="outline-light" onClick={() => {
+                  setSearchTerm("");
+                  setStatusFilter("all");
+                  setProductionFilter("all");
+                  setCityFilter("all");
+                  setPeriodFilter("all");
+                  setPerformanceFilter("all");
+                }}>Limpar filtros</Button>
               </div>
             ) : (
               <>
