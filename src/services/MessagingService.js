@@ -70,6 +70,15 @@ const messagingService = {
   send: (conversationId, body, replyToId = null) => sendMessageIdempotently(conversationId, body, replyToId),
   markRead: (conversationId) => markConversationReadIdempotently(conversationId),
   archive: (conversationId) => archiveConversationIdempotently(conversationId),
+  heartbeat: async () => (await appApiClient.post("/messaging/presence/heartbeat")).data,
+  conversationActivity: async (conversationId, active) => (await appApiClient.post(`/messaging/conversations/${Number(conversationId)}/activity`, { active: Boolean(active) })).data,
+  settings: async () => (await appApiClient.get("/messaging/settings")).data,
+  updateSettings: async (payload) => (await appApiClient.put("/messaging/settings", payload)).data,
+  pushPublicKey: async () => (await appApiClient.get("/messaging/push-key")).data,
+  subscribePush: async (subscription) => (await appApiClient.post("/messaging/push-subscriptions", subscription)).data,
+  unsubscribePush: async (endpoint) => (await appApiClient.delete("/messaging/push-subscriptions", { data: { endpoint } })).data,
+  engagementClick: async (token) => (await appApiClient.post("/messaging/engagement/click", { token })).data,
+  metrics: async (days = 30) => (await appApiClient.get("/messaging/metrics", { params: { days } })).data,
 };
 
 export default messagingService;
