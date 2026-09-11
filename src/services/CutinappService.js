@@ -1,8 +1,23 @@
 import appApiClient from "./AppApiClient";
 import { createIdempotentMutation, createMutationRequestKey } from "../utils/idempotencyAttempts";
 import { cachedPublicGet, invalidatePublicRequestCache } from "../utils/publicRequestCache";
+import { trackSearchConversion } from "../utils/searchAttribution";
 
 const unwrap = (value) => Array.isArray(value) ? value : Array.isArray(value?.data) ? value.data : [];
+const SEARCH_SESSION_KEY = "cutinapp:search-session:v1";
+const searchSessionHeaders = () => {
+  if (typeof window === "undefined") return {};
+  try {
+    let value = window.sessionStorage.getItem(SEARCH_SESSION_KEY);
+    if (!value) {
+      value = window.crypto?.randomUUID?.() || `search-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      window.sessionStorage.setItem(SEARCH_SESSION_KEY, value);
+    }
+    return { "X-Search-Session": value };
+  } catch (_) {
+    return {};
+  }
+};
 const rename = (data, from, to) => {
   if (!data || typeof data !== "object" || !(from in data)) return data;
   const result = { ...data, [to]: data[from] };
@@ -467,7 +482,23 @@ const cutinappService = {
   locationCities: async (uf, q = "") => (await appApiClient.get("/locations/cities", { params: { uf, q } })).data.cities || [],
   lookupCep: async (cep) => (await appApiClient.get(`/locations/cep/${String(cep).replace(/\D/g, "")}`)).data.address,
 
-  globalSearch: async (params = {}) => (await appApiClient.get("/global-search", { params })).data,
+  globalSearch: async (params = {}, signal = undefined) => (await appApiClient.get("/global-search", { params, signal, headers: searchSessionHeaders() })).data,
+  globalSearchSuggestions: async (params = {}, signal = undefined) => (await appApiClient.get("/global-search/suggestions", { params, signal, headers: searchSessionHeaders() })).data,
+  globalSearchDiscover: async (params = {}, signal = undefined) => (await appApiClient.get("/global-search/discover", { params, signal, headers: searchSessionHeaders() })).data,
+  globalSearchTrending: async (params = {}, signal = undefined) => (await appApiClient.get("/global-search/trending", { params, signal, headers: searchSessionHeaders() })).data,
+  trackGlobalSearchClick: async (payload = {}) => (await appApiClient.post("/global-search/click", payload, { headers: searchSessionHeaders() })).data,
+  trackGlobalSearchConversion: async (payload = {}) => (await appApiClient.post("/global-search/convert", payload)).data,
+  globalSearchRecent: async (params = {}) => (await appApiClient.get("/global-search/recent", { params })).data,
+  clearGlobalSearchRecent: async (params = {}) => (await appApiClient.delete("/global-search/recent", { params })).data,
+  globalSearchSaved: async () => (await appApiClient.get("/global-search/saved")).data,
+  saveGlobalSearch: async (payload = {}) => (await appApiClient.post("/global-search/saved", payload)).data,
+  deleteSavedGlobalSearch: async (id) => (await appApiClient.delete(`/global-search/saved/${Number(id)}`)).data,
+  producerSearchInsights: async (params = {}) => (await appApiClient.get("/global-search/producer-insights", { params })).data,
+  adminSearchAnalytics: async (params = {}) => (await appApiClient.get("/global-search/admin/analytics", { params })).data,
+  adminSearchCampaigns: async () => (await appApiClient.get("/global-search/admin/campaigns")).data,
+  createAdminSearchCampaign: async (payload = {}) => (await appApiClient.post("/global-search/admin/campaigns", payload)).data,
+  updateAdminSearchCampaign: async (id, payload = {}) => (await appApiClient.patch(`/global-search/admin/campaigns/${Number(id)}`, payload)).data,
+  deleteAdminSearchCampaign: async (id) => (await appApiClient.delete(`/global-search/admin/campaigns/${Number(id)}`)).data,
   profileOverview: async () => (await appApiClient.get("/profile/overview")).data,
   publicProfile: async (userId) => (await appApiClient.get(`/profiles/${Number(userId)}`)).data,
   myProductions: async () => unwrap((await appApiClient.get("/organizations/mine")).data.organizations),
@@ -527,7 +558,11 @@ const cutinappService = {
   eventArtists: async (eventId) => (await appApiClient.get(`/events/${eventId}/artists`)).data,
   attachArtist,
   detachArtist,
-  follow: followSocialTarget,
+  follow: (targetType, targetId) => {
+    const request = followSocialTarget(targetType, targetId);
+    request.then(() => trackSearchConversion("follow", targetId)).catch(() => false);
+    return request;
+  },
   unfollow: unfollowSocialTarget,
   preferences: async () => (await appApiClient.get("/social/preferences")).data.preferences,
   savePreferences: saveSocialPreferencesMutation,

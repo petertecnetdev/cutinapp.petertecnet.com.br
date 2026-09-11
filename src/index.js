@@ -34,6 +34,7 @@ import "./styles/responsive-hardening.css";
 import "./styles/performance.css";
 import "./styles/event-view-shotgun-layout.css";
 import "./styles/messages-mobile-composer-spacing.css";
+import "./styles/global-search-overlay.css";
 import "./pages/checkout/Coupon.css";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";

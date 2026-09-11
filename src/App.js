@@ -11,6 +11,7 @@ import AppErrorBoundary from "./components/AppErrorBoundary";
 import ApplicationAdminGate from "./components/ApplicationAdminGate";
 import ConnectionStatus from "./components/ConnectionStatus";
 import CutinappVisualEffects from "./components/CutinappVisualEffects";
+import GlobalSearchOverlay from "./components/GlobalSearchOverlay";
 import PeterTecnetSignature from "./components/PeterTecnetSignature";
 import ProcessingIndicatorComponent from "./components/ProcessingIndicatorComponent";
 import SeoManager from "./components/SeoManager";
@@ -40,6 +41,7 @@ const AcquisitionActivationPage = lazy(() => import("./pages/acquisition/Acquisi
 const AdminCenterPage = lazy(() => import("./pages/admin/AdminCenterPage"));
 const ApplicationAdminAccessPage = lazy(() => import("./pages/admin/ApplicationAdminAccessPage"));
 const AdminBlogPage = lazy(() => import("./pages/admin/AdminBlogPage"));
+const AdminSearchAnalyticsPage = lazy(() => import("./pages/admin/AdminSearchAnalyticsPage"));
 const ApplicationAdminEventsPage = lazy(() => import("./pages/admin/ApplicationAdminEventsPage"));
 const ApplicationAdminTicketsPage = lazy(() => import("./pages/admin/ApplicationAdminTicketsPage"));
 const ApplicationAdminUsersPage = lazy(() => import("./pages/admin/ApplicationAdminUsersPage"));
@@ -53,6 +55,7 @@ const ProductionListPage = lazyWithPreload(() => import("./pages/production/Prod
 const ProductionCreatePage = lazy(() => import("./pages/production/ProductionCreatePage"));
 const ProductionMinePage = lazy(() => import("./pages/production/ProductionMinePage"));
 const ProducerMediaLibraryPage = lazy(() => import("./pages/production/ProducerMediaLibraryPage"));
+const ProducerSearchInsightsPage = lazy(() => import("./pages/production/ProducerSearchInsightsPage"));
 const ProductionViewPage = lazy(() => import("./pages/production/ProductionViewPage"));
 const ProductionPublicPage = lazy(() => import("./pages/production/ProductionPublicPage"));
 const ProductionAgendaPublicPage = lazy(() => import("./pages/production/ProductionAgendaPublicPage"));
@@ -144,6 +147,7 @@ function AppRoutes() {
 
   return <>
     <ConnectionStatus />
+    <GlobalSearchOverlay />
     {!performanceCriticalRoute && <CutinappVisualEffects />}
     <AppErrorBoundary resetKey={routeKey}>
       <Suspense fallback={<ProcessingIndicatorComponent label="Carregando página" />}>
@@ -161,6 +165,7 @@ function AppRoutes() {
           <Route path="/agent" element={acquisitionRoute(<AcquisitionDashboardPage />)} />
           <Route path="/admin" element={adminRoute(<AdminCenterPage />, "dashboard.view")} />
           <Route path="/admin/blog" element={adminRoute(<AdminBlogPage />)} />
+          <Route path="/admin/search" element={adminRoute(<AdminSearchAnalyticsPage />)} />
           <Route path="/admin/users" element={adminRoute(<ApplicationAdminUsersPage />, "users.view")} />
           <Route path="/admin/access" element={adminRoute(<ApplicationAdminAccessPage />, "admin.access.manage")} />
           <Route path="/admin/productions" element={adminRoute(<ApplicationAdminProductionsPage />, "establishments.view")} />
@@ -191,6 +196,7 @@ function AppRoutes() {
           <Route path="/producer/media" element={protectedRoute(<ProducerMediaLibraryPage />)} />
           <Route path="/producer/contracts" element={protectedRoute(<ProducerContractsPage />)} />
           <Route path="/producer/finance" element={protectedRoute(<ProductionFinancePage />)} />
+          <Route path="/producer/search-insights" element={protectedRoute(<ProducerSearchInsightsPage />)} />
           <Route path="/producer/sales" element={protectedRoute(<ProducerSalesPage />)} />
           <Route path="/producer/sales/:productionId/:publicId" element={protectedRoute(<ProducerSaleDetailPage />)} />
           <Route path="/production/:productionId/coupons" element={protectedRoute(<CouponManagePage />)} />

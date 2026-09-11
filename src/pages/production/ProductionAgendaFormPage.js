@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Alert, Button, Card, Col, Container, Form, Row, Spinner } from "react-bootstrap";
+import { Alert, Button, Col, Form, Row, Spinner } from "react-bootstrap";
 import { useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
+import EntityEditorShell, { EditorSection } from "../../components/editor/EntityEditorShell";
 import cutinappService from "../../services/CutinappService";
 import eventService from "../../services/EventService";
 import { storageUrl } from "../../config";
@@ -16,6 +17,13 @@ const DAYS = [
   { value: 5, label: "Sexta-feira" },
   { value: 6, label: "Sábado" },
   { value: 0, label: "Domingo" },
+];
+
+const SECTIONS = [
+  { key: "agenda-editor-info", label: "Informações", icon: "fa-regular fa-pen-to-square" },
+  { key: "agenda-editor-schedule", label: "Dia e horário", icon: "fa-regular fa-clock" },
+  { key: "agenda-editor-location", label: "Local e acesso", icon: "fa-solid fa-location-dot" },
+  { key: "agenda-editor-media", label: "Contato e mídia", icon: "fa-regular fa-image" },
 ];
 
 const emptyForm = () => ({
@@ -93,6 +101,7 @@ export default function ProductionAgendaFormPage() {
   const editing = Boolean(scheduleId);
   const [production, setProduction] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  const [activeSection, setActiveSection] = useState(SECTIONS[0].key);
   const [existingImage, setExistingImage] = useState("");
   const [preview, setPreview] = useState("");
   const [loading, setLoading] = useState(true);
@@ -130,6 +139,10 @@ export default function ProductionAgendaFormPage() {
     return () => { active = false; };
   }, [editing, productionId, scheduleId]);
 
+  useEffect(() => () => {
+    if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
+  }, [preview]);
+
   const physical = ["in_person", "hybrid"].includes(form.event_format);
   const online = ["online", "hybrid"].includes(form.event_format);
   const dayLabel = useMemo(
@@ -148,7 +161,10 @@ export default function ProductionAgendaFormPage() {
   const chooseImage = (event) => {
     const file = event.target.files?.[0] || null;
     setForm((current) => ({ ...current, image: file }));
-    setPreview(file ? URL.createObjectURL(file) : "");
+    setPreview((current) => {
+      if (current?.startsWith("blob:")) URL.revokeObjectURL(current);
+      return file ? URL.createObjectURL(file) : "";
+    });
   };
 
   const applyProduction = () => {
@@ -205,121 +221,100 @@ export default function ProductionAgendaFormPage() {
     return <div className="cut-app-page"><NavlogComponent /><ProcessingIndicatorComponent label="Carregando formulário" /></div>;
   }
 
+  const previewImage = preview || imageUrl(existingImage);
+  const previewLocation = [form.venue, form.city, form.uf].filter(Boolean).join(" · ");
+  const eventPreview = (
+    <>
+      <div className="cut-editor-preview-hero" style={previewImage ? { backgroundImage: `url("${previewImage}")` } : undefined}>
+        <div className="cut-editor-preview-hero__content">
+          <div className="cut-editor-preview-copy">
+            <span className="cut-eyebrow">{form.category || "Evento semanal"}</span>
+            <h3>{form.title || "Nome do evento"}</h3>
+            <p>{dayLabel} · {form.start_time || "--:--"} – {form.end_time || "--:--"}</p>
+            <div className="cut-editor-preview-meta">
+              <span><i className="fa-solid fa-repeat me-1" />Agenda semanal</span>
+              <span><i className="fa-solid fa-eye me-1" />{form.is_private ? "Privado" : "Público"}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="cut-editor-preview-body">
+        <h4>{previewLocation || "Local do evento"}</h4>
+        <p>{form.description?.trim() || "A descrição padrão aparecerá aqui nas ocorrências criadas pela agenda."}</p>
+      </div>
+    </>
+  );
+
   return (
     <div className="cut-app-page cut-agenda-page cut-agenda-form-page">
       <NavlogComponent />
       {saving && <ProcessingIndicatorComponent label={editing ? "Salvando alterações" : "Adicionando à agenda"} />}
+      {error && <div className="container cut-page-container pt-3"><Alert variant="danger" dismissible onClose={() => setError("")}>{error}</Alert></div>}
 
-      <Container className="cut-page-container py-4 py-lg-5">
-        <div className="cut-page-heading cut-agenda-page__heading">
-          <div>
-            <span className="cut-eyebrow">{editing ? "Editar evento fixo" : "Novo evento fixo"}</span>
-            <h1>{editing ? "Editar programação semanal" : "Cadastrar programação semanal"}</h1>
-            <p>{production?.name ? `${production.name} · ` : ""}Preencha o modelo completo deste evento. Depois, cada edição será criada como um evento normal da Cutinapp.</p>
-          </div>
-          <Button variant="outline-light" disabled={saving} onClick={() => navigate(`/production/${productionId}/agenda`)}>
-            <i className="fa-solid fa-arrow-left me-2" />Voltar para agenda
-          </Button>
-        </div>
+      <Form onSubmit={save}>
+        <EntityEditorShell
+          eyebrow={editing ? "Editar evento fixo" : "Novo evento fixo"}
+          title={form.title || (editing ? "Editar programação semanal" : "Cadastrar programação semanal")}
+          description={`${production?.name ? `${production.name} · ` : ""}Edite o modelo vendo como a próxima ocorrência será apresentada como evento na Cutinapp.`}
+          sections={SECTIONS}
+          activeSection={activeSection}
+          onSectionChange={setActiveSection}
+          status={saving ? "saving" : "saved"}
+          statusLabel={saving ? "Salvando..." : "Modelo pronto para editar"}
+          preview={eventPreview}
+          previewLabel="Prévia da ocorrência"
+          secondaryActions={<Button type="button" variant="outline-light" disabled={saving} onClick={() => navigate(`/production/${productionId}/agenda`)}><i className="fa-solid fa-arrow-left me-2" />Agenda</Button>}
+          primaryAction={<Button type="submit" disabled={saving}>{saving ? <><Spinner size="sm" className="me-2" />Salvando...</> : <><i className="fa-regular fa-floppy-disk me-2" />{editing ? "Salvar alterações" : "Adicionar à agenda"}</>}</Button>}
+        >
+          <EditorSection id="agenda-editor-info" eyebrow="Topo e seção Sobre" title="Informações principais" hint="Nome, categoria e descrição seguem a mesma leitura da página do evento.">
+            <Row className="g-3">
+              <Col md={8}><Form.Group><Form.Label>Nome do evento *</Form.Label><Form.Control name="title" value={form.title} onChange={change} required minLength={2} placeholder="Ex.: Sexta Open Bar" /></Form.Group></Col>
+              <Col md={4}><Form.Group><Form.Label>Categoria</Form.Label><Form.Control name="category" value={form.category} onChange={change} placeholder="Ex.: Festa, show, pagode" /></Form.Group></Col>
+              <Col xs={12}><Form.Group><Form.Label>Descrição *</Form.Label><Form.Control as="textarea" rows={5} name="description" value={form.description} onChange={change} required placeholder="Descrição padrão deste evento semanal" /></Form.Group></Col>
+            </Row>
+          </EditorSection>
 
-        {error && <Alert variant="danger">{error}</Alert>}
+          <EditorSection id="agenda-editor-schedule" eyebrow="Data da view" title="Dia e horário" hint="Define quando cada ocorrência semanal aparece para os participantes.">
+            <Row className="g-3">
+              <Col md={4}><Form.Group><Form.Label>Dia da semana *</Form.Label><Form.Select name="day_of_week" value={form.day_of_week} onChange={change} required>{DAYS.map((day) => <option key={day.value} value={day.value}>{day.label}</option>)}</Form.Select></Form.Group></Col>
+              <Col md={4}><Form.Group><Form.Label>Horário de início *</Form.Label><Form.Control type="time" name="start_time" value={form.start_time} onChange={change} required /></Form.Group></Col>
+              <Col md={4}><Form.Group><Form.Label>Horário de término *</Form.Label><Form.Control type="time" name="end_time" value={form.end_time} onChange={change} required /><Form.Text>Se terminar depois da meia-noite, use um horário menor que o início.</Form.Text></Form.Group></Col>
+            </Row>
+          </EditorSection>
 
-        <Form onSubmit={save}>
-          <Row className="g-4 align-items-start">
-            <Col xl={8}>
-              <Card className="cut-agenda-form-card cut-agenda-form-section">
-                <Card.Body>
-                  <div className="cut-agenda-section-heading">
-                    <div><span>Informações principais</span><h3>Dados do evento</h3></div>
-                  </div>
-                  <Row className="g-3">
-                    <Col md={8}><Form.Group><Form.Label>Nome do evento *</Form.Label><Form.Control name="title" value={form.title} onChange={change} required minLength={2} placeholder="Ex.: Sexta Open Bar" /></Form.Group></Col>
-                    <Col md={4}><Form.Group><Form.Label>Categoria</Form.Label><Form.Control name="category" value={form.category} onChange={change} placeholder="Ex.: Festa, show, pagode" /></Form.Group></Col>
-                    <Col xs={12}><Form.Group><Form.Label>Descrição *</Form.Label><Form.Control as="textarea" rows={5} name="description" value={form.description} onChange={change} required placeholder="Descrição padrão deste evento semanal" /></Form.Group></Col>
-                  </Row>
-                </Card.Body>
-              </Card>
+          <EditorSection id="agenda-editor-location" eyebrow="Localização da view" title="Onde o evento acontece" hint="Local, endereço e formato aparecem no contexto principal de cada ocorrência.">
+            <div className="cut-agenda-template-action mb-4">
+              <div><strong>Usar dados da produção</strong><span>Preenche endereço, cidade, contato e capacidade já cadastrados em {production?.name || "esta produção"}.</span></div>
+              <Button type="button" variant="outline-light" onClick={applyProduction}>Preencher automaticamente</Button>
+            </div>
+            <Row className="g-3">
+              <Col md={4}><Form.Group><Form.Label>Formato</Form.Label><Form.Select name="event_format" value={form.event_format} onChange={change}><option value="in_person">Presencial</option><option value="online">Online</option><option value="hybrid">Híbrido</option></Form.Select></Form.Group></Col>
+              <Col md={5}><Form.Group><Form.Label>Local / espaço</Form.Label><Form.Control name="venue" value={form.venue} onChange={change} placeholder="Nome do local" /></Form.Group></Col>
+              <Col md={3}><Form.Group><Form.Label>Capacidade</Form.Label><Form.Control type="number" min="1" name="max_attendees" value={form.max_attendees} onChange={change} placeholder="Opcional" /></Form.Group></Col>
 
-              <Card className="cut-agenda-form-card cut-agenda-form-section">
-                <Card.Body>
-                  <div className="cut-agenda-section-heading">
-                    <div><span>Recorrência</span><h3>Dia e horário</h3></div>
-                  </div>
-                  <Row className="g-3">
-                    <Col md={4}><Form.Group><Form.Label>Dia da semana *</Form.Label><Form.Select name="day_of_week" value={form.day_of_week} onChange={change} required>{DAYS.map((day) => <option key={day.value} value={day.value}>{day.label}</option>)}</Form.Select></Form.Group></Col>
-                    <Col md={4}><Form.Group><Form.Label>Horário de início *</Form.Label><Form.Control type="time" name="start_time" value={form.start_time} onChange={change} required /></Form.Group></Col>
-                    <Col md={4}><Form.Group><Form.Label>Horário de término *</Form.Label><Form.Control type="time" name="end_time" value={form.end_time} onChange={change} required /><Form.Text>Se terminar depois da meia-noite, use um horário menor que o início.</Form.Text></Form.Group></Col>
-                  </Row>
-                </Card.Body>
-              </Card>
+              {physical && <>
+                <Col md={8}><Form.Group><Form.Label>Endereço *</Form.Label><Form.Control name="address" value={form.address} onChange={change} required placeholder="Rua, número e complemento" /></Form.Group></Col>
+                <Col md={4}><Form.Group><Form.Label>CEP</Form.Label><Form.Control name="cep" value={form.cep} onChange={change} /></Form.Group></Col>
+                <Col md={6}><Form.Group><Form.Label>Cidade *</Form.Label><Form.Control name="city" value={form.city} onChange={change} required /></Form.Group></Col>
+                <Col md={2}><Form.Group><Form.Label>UF *</Form.Label><Form.Control name="uf" value={form.uf} onChange={change} required maxLength={2} /></Form.Group></Col>
+                <Col md={4}><Form.Group><Form.Label>Google Maps</Form.Label><Form.Control type="url" name="google_maps_url" value={form.google_maps_url} onChange={change} placeholder="https://..." /></Form.Group></Col>
+              </>}
 
-              <Card className="cut-agenda-form-card cut-agenda-form-section">
-                <Card.Body>
-                  <div className="cut-agenda-section-heading">
-                    <div><span>Local e acesso</span><h3>Onde o evento acontece</h3></div>
-                  </div>
+              {online && <Col xs={12}><Form.Group><Form.Label>Link de acesso online *</Form.Label><Form.Control type="url" name="online_url" value={form.online_url} onChange={change} required placeholder="https://..." /></Form.Group></Col>}
+            </Row>
+          </EditorSection>
 
-                  <div className="cut-agenda-template-action mb-4">
-                    <div><strong>Usar dados da produção</strong><span>Preenche endereço, cidade, contato e capacidade já cadastrados em {production?.name || "esta produção"}.</span></div>
-                    <Button type="button" variant="outline-light" onClick={applyProduction}>Preencher automaticamente</Button>
-                  </div>
-
-                  <Row className="g-3">
-                    <Col md={4}><Form.Group><Form.Label>Formato</Form.Label><Form.Select name="event_format" value={form.event_format} onChange={change}><option value="in_person">Presencial</option><option value="online">Online</option><option value="hybrid">Híbrido</option></Form.Select></Form.Group></Col>
-                    <Col md={5}><Form.Group><Form.Label>Local / espaço</Form.Label><Form.Control name="venue" value={form.venue} onChange={change} placeholder="Nome do local" /></Form.Group></Col>
-                    <Col md={3}><Form.Group><Form.Label>Capacidade</Form.Label><Form.Control type="number" min="1" name="max_attendees" value={form.max_attendees} onChange={change} placeholder="Opcional" /></Form.Group></Col>
-
-                    {physical && <>
-                      <Col md={8}><Form.Group><Form.Label>Endereço *</Form.Label><Form.Control name="address" value={form.address} onChange={change} required placeholder="Rua, número e complemento" /></Form.Group></Col>
-                      <Col md={4}><Form.Group><Form.Label>CEP</Form.Label><Form.Control name="cep" value={form.cep} onChange={change} /></Form.Group></Col>
-                      <Col md={6}><Form.Group><Form.Label>Cidade *</Form.Label><Form.Control name="city" value={form.city} onChange={change} required /></Form.Group></Col>
-                      <Col md={2}><Form.Group><Form.Label>UF *</Form.Label><Form.Control name="uf" value={form.uf} onChange={change} required maxLength={2} /></Form.Group></Col>
-                      <Col md={4}><Form.Group><Form.Label>Google Maps</Form.Label><Form.Control type="url" name="google_maps_url" value={form.google_maps_url} onChange={change} placeholder="https://..." /></Form.Group></Col>
-                    </>}
-
-                    {online && <Col xs={12}><Form.Group><Form.Label>Link de acesso online *</Form.Label><Form.Control type="url" name="online_url" value={form.online_url} onChange={change} required placeholder="https://..." /></Form.Group></Col>}
-                  </Row>
-                </Card.Body>
-              </Card>
-
-              <Card className="cut-agenda-form-card cut-agenda-form-section">
-                <Card.Body>
-                  <div className="cut-agenda-section-heading">
-                    <div><span>Contato e mídia</span><h3>Divulgação padrão</h3></div>
-                  </div>
-                  <Row className="g-3">
-                    <Col md={6}><Form.Group><Form.Label>E-mail de contato</Form.Label><Form.Control type="email" name="contact_email" value={form.contact_email} onChange={change} /></Form.Group></Col>
-                    <Col md={6}><Form.Group><Form.Label>Telefone de contato</Form.Label><Form.Control name="contact_phone" value={form.contact_phone} onChange={change} /></Form.Group></Col>
-                    <Col xs={12}><Form.Group><Form.Label>Imagem padrão</Form.Label><Form.Control type="file" accept="image/jpeg,image/png,image/webp" onChange={chooseImage} /><Form.Text>Até 5 MB. A imagem será copiada para cada ocorrência criada.</Form.Text></Form.Group></Col>
-                    {(preview || existingImage) && <Col xs={12}><img className="cut-agenda-form-image-preview" src={preview || imageUrl(existingImage)} alt="Prévia do evento" /></Col>}
-                    <Col xs={12}><Form.Check type="switch" id="agenda-private" name="is_private" checked={form.is_private} onChange={change} label="Evento privado por padrão" /></Col>
-                  </Row>
-                </Card.Body>
-              </Card>
-            </Col>
-
-            <Col xl={4}>
-              <div className="cut-agenda-form-sidebar">
-                <Card className="cut-agenda-form-card cut-agenda-form-summary">
-                  <Card.Body>
-                    <span className="cut-eyebrow">Resumo da agenda</span>
-                    <h3>{form.title || "Novo evento fixo"}</h3>
-                    <div className="cut-agenda-form-summary__row"><i className="fa-solid fa-repeat" /><span>{dayLabel}</span></div>
-                    <div className="cut-agenda-form-summary__row"><i className="fa-regular fa-clock" /><span>{form.start_time || "--:--"} – {form.end_time || "--:--"}</span></div>
-                    {(form.venue || form.city) && <div className="cut-agenda-form-summary__row"><i className="fa-solid fa-location-dot" /><span>{[form.venue, form.city].filter(Boolean).join(" · ")}</span></div>}
-                    <div className="cut-agenda-form-summary__row"><i className="fa-solid fa-eye" /><span>{form.is_private ? "Privado" : "Público"}</span></div>
-                    <p>Ao gerar a próxima edição, esse modelo cria um evento normal em rascunho. Alterações específicas daquela data não mudam a agenda semanal.</p>
-                    <Button type="submit" className="w-100" disabled={saving}>
-                      {saving ? <><Spinner size="sm" className="me-2" />Salvando...</> : <><i className="fa-regular fa-floppy-disk me-2" />{editing ? "Salvar alterações" : "Adicionar à agenda"}</>}
-                    </Button>
-                    <Button type="button" variant="outline-light" className="w-100 mt-2" disabled={saving} onClick={() => navigate(`/production/${productionId}/agenda`)}>Cancelar</Button>
-                  </Card.Body>
-                </Card>
-              </div>
-            </Col>
-          </Row>
-        </Form>
-      </Container>
+          <EditorSection id="agenda-editor-media" eyebrow="Divulgação da view" title="Contato, imagem e visibilidade" hint="A imagem padrão será reutilizada nas ocorrências e a visibilidade define quem poderá encontrá-las.">
+            <Row className="g-3">
+              <Col md={6}><Form.Group><Form.Label>E-mail de contato</Form.Label><Form.Control type="email" name="contact_email" value={form.contact_email} onChange={change} /></Form.Group></Col>
+              <Col md={6}><Form.Group><Form.Label>Telefone de contato</Form.Label><Form.Control name="contact_phone" value={form.contact_phone} onChange={change} /></Form.Group></Col>
+              <Col xs={12}><Form.Group><Form.Label>Imagem padrão</Form.Label><Form.Control type="file" accept="image/jpeg,image/png,image/webp" onChange={chooseImage} /><Form.Text>Até 5 MB. A imagem será copiada para cada ocorrência criada.</Form.Text></Form.Group></Col>
+              {previewImage && <Col xs={12}><img className="cut-agenda-form-image-preview" src={previewImage} alt="Prévia do evento" /></Col>}
+              <Col xs={12}><Form.Check type="switch" id="agenda-private" name="is_private" checked={form.is_private} onChange={change} label="Evento privado por padrão" /></Col>
+            </Row>
+          </EditorSection>
+        </EntityEditorShell>
+      </Form>
     </div>
   );
 }

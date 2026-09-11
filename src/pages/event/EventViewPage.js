@@ -132,7 +132,6 @@ export default function EventViewPage() {
   const [data, setData] = useState(null);
   const [artists, setArtists] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [claimingId, setClaimingId] = useState(null);
   const [artistClaimingId, setArtistClaimingId] = useState(null);
   const [socialBusy, setSocialBusy] = useState(false);
   const [engagementLoading, setEngagementLoading] = useState(false);
@@ -283,22 +282,6 @@ export default function EventViewPage() {
     return () => { active = false; };
   }, [isPastEvent, isOwner, event?.id, productionId]);
 
-  const claim = async (ticket) => {
-    if (isPastEvent || event?.allowed_actions?.claim_courtesy === false) {
-      setError("Este evento já terminou. Não é mais possível emitir ou retirar ingressos.");
-      return;
-    }
-    if (!user) return navigate("/login", { state: { from: `${location.pathname}${location.search}` } });
-    if (!ticket.available) return;
-    setClaimingId(ticket.id); setError(""); setSuccess("");
-    try {
-      const response = await cutinappService.claimCourtesy(ticket.id);
-      setSuccess(response.already_issued ? "Você já tinha este ingresso. Abrindo sua carteira..." : "Ingresso emitido. Seu QR Code já está disponível.");
-      window.setTimeout(() => navigate(`/passes/${response.pass?.id || ""}`.replace(/\/$/, "")), 450);
-    } catch (err) { setError(err?.message || "Não foi possível retirar este ingresso."); }
-    finally { setClaimingId(null); }
-  };
-
   const claimArtist = async (artist) => {
     const from = `${location.pathname}${location.search}`;
     if (!user) {
@@ -408,7 +391,7 @@ export default function EventViewPage() {
   const attendanceCheckedIn = Number(ownerResults?.attendance?.checked_in || 0);
   const attendanceRate = attendanceIssued > 0 ? Math.round((attendanceCheckedIn / attendanceIssued) * 100) : 0;
 
-  return <div className={`cut-app-page cut-event-view-page ${showPersistentBuyCta ? "cut-event-view-page--buyable" : ""}`}><NavlogComponent />{(loading || claimingId || artistClaimingId || duplicating) && <ProcessingIndicatorComponent label={claimingId ? "Emitindo ingresso" : artistClaimingId ? "Enviando reivindicação" : duplicating ? "Criando próxima edição" : "Carregando evento"} />}
+  return <div className={`cut-app-page cut-event-view-page ${showPersistentBuyCta ? "cut-event-view-page--buyable" : ""}`}><NavlogComponent />{(loading || artistClaimingId || duplicating) && <ProcessingIndicatorComponent label={artistClaimingId ? "Enviando reivindicação" : duplicating ? "Criando próxima edição" : "Carregando evento"} />}
     {!loading && event && <>
       <section className="cut-event-banner-stage" aria-label={`Imagem do evento ${event.title}`}>
         <Container className="cut-page-container">
@@ -464,31 +447,6 @@ export default function EventViewPage() {
 
           <EventCommercePanel slug={slug} eventId={event.id} user={user} onLoginRequired={(returnTo = `${location.pathname}${location.search}`) => navigate("/login", { state: { from: returnTo } })} />
 
-          {tickets.length > 0 && <div className="cut-ticket-shop__courtesies mt-4">
-            <div className="cut-ticket-shop__heading mb-3">
-              <div>
-                <span className="cut-eyebrow">Entradas gratuitas</span>
-                <h3 className="mt-2">Cortesias e listas</h3>
-                <p>Ingressos gratuitos continuam individuais: cada participante resgata o próprio QR Code na sua conta.</p>
-              </div>
-            </div>
-            <div className="cut-ticket-shop__list">{tickets.map((ticket) => {
-              const remaining = Number(ticket.remaining ?? 0);
-              const available = Boolean(ticket.available);
-              return <div className={`cut-ticket-shop__option ${!available ? "cut-ticket-shop__option--sold-out" : ""}`} key={`courtesy-${ticket.id}`}>
-                <div className="cut-ticket-shop__option-copy">
-                  <span className="cut-ticket-kicker">{ticket.type || ticket.ticket_type || "Ingresso promocional"}</span>
-                  <strong>{ticket.name}</strong>
-                  <span>Grátis</span>
-                  <small>{ticket.expired ? "Prazo encerrado" : available ? `${remaining} restante${remaining === 1 ? "" : "s"}` : "Esgotado"}</small>
-                  {ticket.limit_date && !ticket.expired && <small>Resgate até {formatDate(ticket.limit_date)}</small>}
-                </div>
-                <Button variant="outline-light" onClick={() => claim(ticket)} disabled={!available || claimingId === ticket.id}>
-                  {available ? (user ? "Resgatar 1 cortesia" : "Entrar para resgatar") : ticket.expired ? "Prazo encerrado" : "Esgotado"}
-                </Button>
-              </div>;
-            })}</div>
-          </div>}
         </section>}
 
         <Row className="g-4"><Col lg={isOwner ? 8 : 12}>
