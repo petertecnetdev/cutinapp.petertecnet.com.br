@@ -9,7 +9,7 @@ import {
   EventPerformanceBadge,
 } from "./EventManagerEnhancements";
 import { storageUrl } from "../../config";
-import { eventOperationalMetrics } from "../../utils/eventManagerInsights";
+import { eventHealth, eventOperationalMetrics, eventPerformance } from "../../utils/eventManagerInsights";
 
 const mediaUrl = (path) => {
   if (!path) return "";
@@ -54,7 +54,10 @@ export default function ProducerEventCard({
 }) {
   const metrics = eventOperationalMetrics(event);
   const eventImage = event.image;
-  const needsAttention = !event.is_cancelled && (readiness?.completed || 0) < 3;
+  const health = eventHealth(event);
+  const performance = eventPerformance(event);
+  const needsAttention = !event.is_cancelled && !event.has_ended
+    && ((readiness?.completed || 0) < 3 || health.score < 55 || performance.rank <= 3);
   const compact = viewMode === "compact";
 
   return <article className={[
@@ -89,7 +92,7 @@ export default function ProducerEventCard({
       </div>
 
       <div className="cut-producer-event-card__title-row">
-        <button type="button" className="cut-producer-event-card__title" onClick={() => onEdit?.(event)}>{event.title}</button>
+        <button type="button" className="cut-producer-event-card__title" onClick={() => onQuickView?.(event)} title="Abrir Central do Evento">{event.title}</button>
         <button type="button" className={`cut-event-pin${pinned ? " is-active" : ""}`} onClick={() => onTogglePin?.(event.id)} aria-label={pinned ? "Desafixar evento" : "Fixar evento"} title={pinned ? "Desafixar evento" : "Fixar evento"}>
           <i className="fa-solid fa-thumbtack" />
         </button>
@@ -135,7 +138,7 @@ export default function ProducerEventCard({
       </div>}
 
       <div className="cut-producer-event-card__quick-actions">
-        <Button variant="outline-light" size="sm" onClick={() => onQuickView?.(event)} title="Visão rápida"><i className="fa-regular fa-eye" /></Button>
+        <Button variant="outline-light" size="sm" onClick={() => onQuickView?.(event)} title="Central do Evento"><i className="fa-solid fa-gauge-high" /></Button>
         <Button variant="outline-light" size="sm" onClick={() => onEdit?.(event)} title="Editar"><i className="fa-solid fa-pen" /></Button>
         <Button variant="outline-light" size="sm" onClick={() => onDuplicate?.(event)} title="Duplicar +7 dias"><i className="fa-regular fa-copy" /></Button>
         {actions}
