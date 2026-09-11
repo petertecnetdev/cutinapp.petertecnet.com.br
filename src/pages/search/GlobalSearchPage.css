@@ -232,7 +232,7 @@
   align-items: center;
 }
 
-.cut-global-search__recent-actions button {
+.cut-global-search__recent-actions > span {
   width: 36px;
   height: 36px;
   display: grid;
