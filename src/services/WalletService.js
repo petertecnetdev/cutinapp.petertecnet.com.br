@@ -8,6 +8,7 @@ const walletService = {
     return {
       passes: unwrap(data.passes),
       transfers: unwrap(data.transfers),
+      summary: data?.summary && typeof data.summary === "object" ? data.summary : {},
     };
   },
 };
