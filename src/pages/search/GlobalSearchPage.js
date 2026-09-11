@@ -10,6 +10,8 @@ import "./GlobalSearchPage.css";
 
 const RECENT_KEY = "cutinapp:global-search:recent:v2";
 const ATTRIBUTION_KEY = "cutinapp:search-attribution:v1";
+const SEARCH_CACHE = new Map();
+const SEARCH_CACHE_TTL_MS = 20000;
 
 const TABS = [
   ["all", "Tudo"],
@@ -79,6 +81,16 @@ const imageUrl = (value) => {
 };
 
 const typeLabel = (type) => TYPE_LABELS[type] || "Resultado";
+const formatRecentTime = (value) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const delta = Date.now() - date.getTime();
+  if (delta < 60 * 60 * 1000) return "Agora há pouco";
+  if (delta < 24 * 60 * 60 * 1000) return "Hoje";
+  if (delta < 48 * 60 * 60 * 1000) return "Ontem";
+  return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short" }).format(date);
+};
 
 const normalizedFilters = (params) => ({
   city: params.get("city") || "",
@@ -87,6 +99,7 @@ const normalizedFilters = (params) => ({
   free: params.get("free") === "1",
   available: params.get("available") === "1",
   format: params.get("format") || "",
+  genre: params.get("genre") || "",
   max_price: params.get("max_price") || "",
   radius_km: params.get("radius_km") || "50",
   sort: params.get("sort") || "relevance",
@@ -117,6 +130,7 @@ function SearchResultRow({ item, index, selected, onOpen, onPrefetch, onRemove }
       <span className="cut-global-search__badges">
         {(item.badges || []).slice(0, 3).map((badge) => <em key={badge}>{badge}</em>)}
         {!item.badges?.length && <em>{typeLabel(item.type)}</em>}
+        {onRemove && item.searched_at && <em>{formatRecentTime(item.searched_at)}</em>}
       </span>
     </span>
   </>;
@@ -260,7 +274,13 @@ export default function GlobalSearchPage() {
       setLoading(true);
       setError("");
       try {
-        const data = await cutinappService.globalSearch(searchParamsPayload(1), controller.signal);
+        const payload = searchParamsPayload(1);
+        const cacheKey = JSON.stringify(payload);
+        const cached = SEARCH_CACHE.get(cacheKey);
+        const data = cached && cached.expiresAt > Date.now()
+          ? cached.data
+          : await cutinappService.globalSearch(payload, controller.signal);
+        if (!cached || cached.expiresAt <= Date.now()) SEARCH_CACHE.set(cacheKey, { data, expiresAt: Date.now() + SEARCH_CACHE_TTL_MS });
         setResponse(data || emptyResponse());
         setSelectedIndex(-1);
         trackTelemetry("global_search_performed", {
@@ -427,7 +447,7 @@ export default function GlobalSearchPage() {
   const updateFilter = (key, value) => setFilters((current) => ({ ...current, [key]: value }));
 
   const resetFilters = () => setFilters({
-    city: "", uf: "", period: "", free: false, available: false, format: "",
+    city: "", uf: "", period: "", free: false, available: false, format: "", genre: "",
     max_price: "", radius_km: "50", sort: "relevance", lat: "", lng: "",
   });
 
@@ -517,10 +537,11 @@ export default function GlobalSearchPage() {
 
   const loadMore = useCallback(async () => {
     if (activeType === "all" || !response?.has_more || moreLoading) return;
-    const nextPage = Number(response.page || 1) + 1;
+    const nextCursor = response?.next_cursor;
+    if (!nextCursor) return;
     setMoreLoading(true);
     try {
-      const data = await cutinappService.globalSearch(searchParamsPayload(nextPage));
+      const data = await cutinappService.globalSearch({ ...searchParamsPayload(1), cursor: nextCursor });
       const groupKey = GROUPS.find(([, , type]) => type === activeType)?.[0];
       if (!groupKey) return;
       setResponse((current) => ({
@@ -632,6 +653,7 @@ export default function GlobalSearchPage() {
             <Form.Group><Form.Label>Até</Form.Label><Form.Control type="number" min="0" step="1" value={filters.max_price} onChange={(event) => updateFilter("max_price", event.target.value)} placeholder="R$" /></Form.Group>
             <Form.Group><Form.Label>Raio</Form.Label><Form.Select value={filters.radius_km} onChange={(event) => updateFilter("radius_km", event.target.value)}><option value="5">5 km</option><option value="10">10 km</option><option value="25">25 km</option><option value="50">50 km</option><option value="100">100 km</option></Form.Select></Form.Group>
             <Form.Group><Form.Label>Formato</Form.Label><Form.Select value={filters.format} onChange={(event) => updateFilter("format", event.target.value)}><option value="">Todos</option><option value="in_person">Presencial</option><option value="online">Online</option><option value="hybrid">Híbrido</option></Form.Select></Form.Group>
+            <Form.Group><Form.Label>Gênero</Form.Label><Form.Control value={filters.genre} onChange={(event) => updateFilter("genre", event.target.value)} placeholder="Ex.: sertanejo" /></Form.Group>
             <Form.Group><Form.Label>Ordenar</Form.Label><Form.Select value={filters.sort} onChange={(event) => updateFilter("sort", event.target.value)}><option value="relevance">Relevância</option><option value="nearby">Perto de mim</option><option value="popular">Mais populares</option><option value="newest">Mais novos</option><option value="soonest">Mais próximos</option></Form.Select></Form.Group>
             <button type="button" onClick={resetFilters}>Limpar filtros</button>
           </div>
