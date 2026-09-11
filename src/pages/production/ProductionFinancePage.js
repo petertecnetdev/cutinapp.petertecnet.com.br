@@ -194,6 +194,7 @@ export default function ProductionFinancePage() {
   const recoveryDecisionStatus = recoveryDecision.status || "inconclusive";
   const recoveryDecisionUi = recoveryDecisionMeta[recoveryDecisionStatus] || recoveryDecisionMeta.inconclusive;
   const recoveryConfidence = recoveryExperimentComparison.paid_conversion_difference_confidence_95 || null;
+  const recoveryObservedProjection = recoveryExperimentMature ? recoveryExperimentComparison.observed_volume_projection : null;
   const checkoutJourneyFunnel = revenueFunnel?.checkout_journey_funnel || {};
   const checkoutJourneyStages = checkoutJourneyFunnel.stages || {};
   const checkoutJourneyConversion = checkoutJourneyFunnel.conversion || {};
@@ -500,12 +501,17 @@ export default function ProductionFinancePage() {
               <Col md={6} xl={3}><RevenueMetric label="Controle • margem / exposto" value={recoveryControl?.platform_contribution_per_exposed_order == null ? "—" : money(recoveryControl.platform_contribution_per_exposed_order)} detail="Contribuição líquida por pedido exposto" /></Col>
               <Col md={6} xl={3}><RevenueMetric label="Destaque • margem / exposto" value={recoveryProminent?.platform_contribution_per_exposed_order == null ? "—" : money(recoveryProminent.platform_contribution_per_exposed_order)} detail="Contribuição líquida por pedido exposto" /></Col>
               <Col md={6} xl={3}><RevenueMetric label="Efeito na conversão • IC 95%" value={recoveryConfidence ? `${recoveryConfidence.lower_paid_orders_per_100_exposed_orders >= 0 ? "+" : ""}${percent(recoveryConfidence.lower_paid_orders_per_100_exposed_orders)} a ${recoveryConfidence.upper_paid_orders_per_100_exposed_orders >= 0 ? "+" : ""}${percent(recoveryConfidence.upper_paid_orders_per_100_exposed_orders)}` : "—"} detail={recoveryConfidence?.excludes_zero ? "Faixa não cruza zero" : "Ainda compatível com ausência de efeito"} /></Col>
+              {recoveryObservedProjection && <Col md={6} xl={3}><RevenueMetric label="Pagamentos incrementais projetados" value={`${Number(recoveryObservedProjection.projected_incremental_paid_orders || 0) >= 0 ? "+" : ""}${Number(recoveryObservedProjection.projected_incremental_paid_orders || 0).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}`} detail={`No volume observado de ${Number(recoveryObservedProjection.observed_exposed_orders || 0).toLocaleString("pt-BR")} pedidos expostos`} /></Col>}
+              {recoveryObservedProjection && <Col md={6} xl={3}><RevenueMetric label="Contribuição incremental projetada" value={`${Number(recoveryObservedProjection.projected_incremental_platform_contribution || 0) >= 0 ? "+" : ""}${money(recoveryObservedProjection.projected_incremental_platform_contribution)}`} detail="Projeção sobre o volume observado; não é receita realizada" /></Col>}
             </Row>
             {!recoveryExperimentMature && <Alert variant="secondary" className="mt-3 mb-0">
               Experimento ainda <strong>em coleta</strong>. Faltam {Number(recoveryControl?.remaining_exposed_orders_to_maturity || 0).toLocaleString("pt-BR")} exposições no controle e {Number(recoveryProminent?.remaining_exposed_orders_to_maturity || 0).toLocaleString("pt-BR")} no destaque para a leitura mínima. Não altere a estratégia com base nesta amostra parcial.
             </Alert>}
             {recoveryExperimentMature && <Alert variant={recoveryDecisionStatus === "winner" ? "success" : recoveryDecisionStatus === "harmful" ? "danger" : "warning"} className="mt-3 mb-0">
               <strong>{recoveryDecisionUi.label}.</strong> {recoveryDecisionReason[recoveryDecision.reason] || "A API central ainda não encontrou evidência suficiente para mudar o padrão."} O efeito observado foi de <strong>{recoveryIncrementalPaidRate >= 0 ? "+" : ""}{percent(recoveryIncrementalPaidRate)}</strong> pagamentos por 100 pedidos expostos e <strong>{recoveryIncrementalContribution >= 0 ? "+" : ""}{money(recoveryIncrementalContribution)}</strong> de contribuição líquida por pedido exposto. {recoveryDecision.requires_manual_review ? "A mudança continua exigindo revisão humana antes de qualquer rollout." : ""}
+            </Alert>}
+            {recoveryObservedProjection && <Alert variant="info" className="mt-2 mb-0">
+              <strong>Impacto econômico no volume observado:</strong> se o efeito incremental medido se mantivesse nos {Number(recoveryObservedProjection.observed_exposed_orders || 0).toLocaleString("pt-BR")} pedidos já expostos, a estimativa seria de <strong>{Number(recoveryObservedProjection.projected_incremental_paid_orders || 0) >= 0 ? "+" : ""}{Number(recoveryObservedProjection.projected_incremental_paid_orders || 0).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} pagamentos</strong> e <strong>{Number(recoveryObservedProjection.projected_incremental_platform_contribution || 0) >= 0 ? "+" : ""}{money(recoveryObservedProjection.projected_incremental_platform_contribution)}</strong> de contribuição líquida. É uma projeção diagnóstica, não receita realizada; o rollout continua dependente dos guardrails e de revisão humana.
             </Alert>}
           </div>}
 
