@@ -97,6 +97,14 @@ export default function AdminCenterPage() {
             </Card.Body>
           </Card>
         </Col>
+        <Col xs={12} md={6} lg={4}>
+          <Card as={Link} to="/admin/search" className="cut-panel h-100 text-decoration-none text-reset" style={{ cursor: "pointer" }} aria-label="Abrir inteligência de busca">
+            <Card.Body className="d-flex align-items-center justify-content-between gap-3">
+              <div><span className="cut-eyebrow">Descoberta & receita</span><h2 className="h4 mb-1">Busca & demanda</h2><small className="text-secondary">Termos, zero results, CTR, conversão e campanhas patrocinadas</small></div>
+              <i className="fa-solid fa-magnifying-glass-chart fs-2 opacity-75" aria-hidden="true" />
+            </Card.Body>
+          </Card>
+        </Col>
       </Row>
 
       {loading ? <div className="text-center py-5"><Spinner /><p className="mt-2">Carregando administração global da Cutinapp...</p></div> : <>
