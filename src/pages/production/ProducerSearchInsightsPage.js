@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Alert, Badge, Card, Col, Container, Form, Row, Spinner } from "react-bootstrap";
-import { useSearchParams } from "react-router-dom";
+import { Alert, Badge, Button, Card, Col, Container, Form, Row, Spinner } from "react-bootstrap";
+import { Link, useSearchParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import cutinappService from "../../services/CutinappService";
 
@@ -69,7 +69,7 @@ export default function ProducerSearchInsightsPage() {
       {loading ? <div className="text-center py-5"><Spinner /><p className="mt-2">Analisando demanda…</p></div> : <>
         <Row className="g-4 mb-4">
           <Col lg={7}><Card className="cut-panel h-100"><Card.Body><span className="cut-eyebrow">Oportunidades</span><h2 className="h4 mt-2">Ações sugeridas pela demanda</h2>
-            <div className="d-grid gap-3 mt-3">{(data?.opportunities || []).map((item) => <div key={item.query} className="border rounded-3 p-3"><div className="d-flex justify-content-between align-items-center gap-3"><strong>{item.query}</strong><Badge bg={item.zero_results > 0 ? "warning" : "info"} text={item.zero_results > 0 ? "dark" : undefined}>{item.searches} buscas</Badge></div><p className="text-secondary small mb-0 mt-2">{item.message}</p></div>)}
+            <div className="d-grid gap-3 mt-3">{(data?.opportunities || []).map((item) => <div key={item.query} className="border rounded-3 p-3"><div className="d-flex justify-content-between align-items-center gap-3"><strong>{item.query}</strong><Badge bg={item.zero_results > 0 ? "warning" : "info"} text={item.zero_results > 0 ? "dark" : undefined}>{item.searches} buscas</Badge></div><p className="text-secondary small mb-2 mt-2">{item.message}</p><Button as={Link} size="sm" variant="outline-light" to={`/event/create?search_demand=${encodeURIComponent(item.query)}`}><i className="fa-solid fa-calendar-plus me-2" />Criar evento para esta demanda</Button></div>)}
               {!data?.opportunities?.length && <div className="text-secondary">Ainda não há volume suficiente para gerar oportunidades confiáveis.</div>}
             </div>
           </Card.Body></Card></Col>
