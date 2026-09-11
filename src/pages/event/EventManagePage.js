@@ -61,6 +61,18 @@ const mediaUrl = (path) => {
 
 const eventLocation = (event) => event?.venue || event?.address || event?.city || "Não informado";
 
+const initialsFor = (value, fallback = "EV") => {
+  const initials = String(value || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join("");
+
+  return initials || fallback;
+};
+
 const suggestedDuplicateDate = (event) => {
   const source = new Date(event?.start_date);
   const candidate = Number.isNaN(source.getTime()) ? new Date() : new Date(source);
@@ -893,12 +905,12 @@ export default function EventManagePage() {
 
       <Container className="cut-page-container py-4 py-lg-5">
         <header className="cut-event-manager-hero">
-          <div>
-            <span className="cut-eyebrow">Área do produtor</span>
+          <div className="cut-event-manager-hero__copy">
+            <span className="cut-eyebrow">Central do produtor</span>
             <h1>Meus eventos</h1>
-            <p>Gerencie seus eventos em uma visão única, rápida e operacional.</p>
+            <p>Acompanhe publicação, ingressos e preparação de cada evento sem perder o que precisa da sua atenção.</p>
           </div>
-          <div className="d-flex flex-wrap gap-2 justify-content-end">
+          <div className="cut-event-manager-hero__actions d-flex flex-wrap gap-2 justify-content-end">
             {bulkCandidates.length > 0 && (
               <Button
                 variant="success"
@@ -940,11 +952,33 @@ export default function EventManagePage() {
         ) : (
           <>
             <section className="cut-event-manager-summary" aria-label="Resumo dos eventos">
-              <button type="button" className={statusFilter === "all" ? "is-active" : ""} onClick={() => setStatusFilter("all")}><span>Todos</span><strong>{stats.total}</strong></button>
-              <button type="button" className={statusFilter === "published" ? "is-active" : ""} onClick={() => setStatusFilter("published")}><span>Publicados</span><strong>{stats.published}</strong></button>
-              <button type="button" className={statusFilter === "draft" ? "is-active" : ""} onClick={() => setStatusFilter("draft")}><span>Rascunhos</span><strong>{stats.draft}</strong></button>
-              <button type="button" className={statusFilter === "attention" ? "is-active" : ""} onClick={() => setStatusFilter("attention")}><span>Precisam de ação</span><strong>{stats.attention}</strong></button>
-              {stats.cancelled > 0 && <button type="button" className={statusFilter === "cancelled" ? "is-active" : ""} onClick={() => setStatusFilter("cancelled")}><span>Cancelados</span><strong>{stats.cancelled}</strong></button>}
+              <button type="button" className={statusFilter === "all" ? "is-active" : ""} onClick={() => setStatusFilter("all")}>
+                <span className="cut-event-manager-summary__icon"><i className="fa-solid fa-layer-group" /></span>
+                <span className="cut-event-manager-summary__copy"><small>Portfólio</small><span>Todos os eventos</span></span>
+                <strong>{stats.total}</strong>
+              </button>
+              <button type="button" className={statusFilter === "published" ? "is-active" : ""} onClick={() => setStatusFilter("published")}>
+                <span className="cut-event-manager-summary__icon"><i className="fa-solid fa-circle-check" /></span>
+                <span className="cut-event-manager-summary__copy"><small>No ar</small><span>Publicados</span></span>
+                <strong>{stats.published}</strong>
+              </button>
+              <button type="button" className={statusFilter === "draft" ? "is-active" : ""} onClick={() => setStatusFilter("draft")}>
+                <span className="cut-event-manager-summary__icon"><i className="fa-solid fa-pen-ruler" /></span>
+                <span className="cut-event-manager-summary__copy"><small>Em construção</small><span>Rascunhos</span></span>
+                <strong>{stats.draft}</strong>
+              </button>
+              <button type="button" className={statusFilter === "attention" ? "is-active" : ""} onClick={() => setStatusFilter("attention")}>
+                <span className="cut-event-manager-summary__icon"><i className="fa-solid fa-bolt" /></span>
+                <span className="cut-event-manager-summary__copy"><small>Prioridade</small><span>Precisam de ação</span></span>
+                <strong>{stats.attention}</strong>
+              </button>
+              {stats.cancelled > 0 && (
+                <button type="button" className={statusFilter === "cancelled" ? "is-active" : ""} onClick={() => setStatusFilter("cancelled")}>
+                  <span className="cut-event-manager-summary__icon"><i className="fa-solid fa-ban" /></span>
+                  <span className="cut-event-manager-summary__copy"><small>Fora da agenda</small><span>Cancelados</span></span>
+                  <strong>{stats.cancelled}</strong>
+                </button>
+              )}
             </section>
 
             <section className="cut-event-manager-toolbar">
@@ -1084,7 +1118,7 @@ export default function EventManagePage() {
                                   />
                                   <div className="cut-event-admin-identity">
                                     <button type="button" className="cut-event-admin-identity__media" onClick={() => navigate(`/event/edit/${event.id}`)} aria-label={`Editar ${event.title}`}>
-                                      {eventImage ? <img src={mediaUrl(eventImage)} alt="" loading="lazy" /> : <i className="fa-regular fa-calendar" />}
+                                      {eventImage ? <img src={mediaUrl(eventImage)} alt="" loading="lazy" /> : <span className="cut-event-admin-identity__initials">{initialsFor(event.title)}</span>}
                                     </button>
                                     <div>
                                       <button type="button" className="cut-event-admin-table__title" onClick={() => navigate(`/event/edit/${event.id}`)}>{event.title}</button>
@@ -1095,7 +1129,7 @@ export default function EventManagePage() {
                               </td>
                               <td>
                                 <span className="cut-event-admin-production-cell">
-                                  {event.production?.logo ? <img src={mediaUrl(event.production.logo)} alt="" loading="lazy" /> : <i className="fa-solid fa-clapperboard" />}
+                                  {event.production?.logo ? <img src={mediaUrl(event.production.logo)} alt="" loading="lazy" /> : <span className="cut-event-admin-production-cell__initials">{initialsFor(event.production?.name || "Produção", "PR")}</span>}
                                   {event.production?.name || "Produção não informada"}
                                 </span>
                               </td>
@@ -1196,7 +1230,9 @@ export default function EventManagePage() {
                               </div>
                               <button type="button" className="cut-event-mobile-card__title" onClick={() => navigate(`/event/edit/${event.id}`)}>{event.title}</button>
                               <span className="cut-event-mobile-card__production">
-                                {event.production?.logo && <img src={mediaUrl(event.production.logo)} alt="" loading="lazy" />}
+                                {event.production?.logo
+                                  ? <img src={mediaUrl(event.production.logo)} alt="" loading="lazy" />
+                                  : <span className="cut-event-mobile-card__production-initials">{initialsFor(event.production?.name || "Produção", "PR")}</span>}
                                 {event.production?.name || "Produção não informada"}
                               </span>
                             </div>
