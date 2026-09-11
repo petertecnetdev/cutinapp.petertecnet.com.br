@@ -6,6 +6,7 @@ import { shouldKeepCheckoutAttempt } from "../utils/checkoutRetryPolicy";
 import { clearPaymentRecoveryAttribution, readPaymentRecoveryAttribution } from "../utils/paymentRecoveryAttribution";
 import { createIdempotentMutation, createMutationRequestKey } from "../utils/idempotencyAttempts";
 import { isBrowserOffline, waitForOnline } from "../utils/checkoutConnectivity";
+import { trackSearchConversion } from "../utils/searchAttribution";
 
 const pendingCheckouts = new Map();
 const fallbackAttempts = new Map();
@@ -72,7 +73,7 @@ const checkout = (payload) => {
     }
     throw error;
   });
-  const request = postCheckout().then((response) => { clearAttempt(requestKey); return response.data; }).catch((error) => { if (!shouldKeepCheckoutAttempt(error)) clearAttempt(requestKey); throw error; }).finally(() => { if (pendingCheckouts.get(requestKey) === request) pendingCheckouts.delete(requestKey); });
+  const request = postCheckout().then(async (response) => { clearAttempt(requestKey); const data = response.data; const order = data?.order; const status = String(order?.status || data?.payment?.status || "").toLowerCase(); if (["paid","approved","completed"].includes(status)) await trackSearchConversion("ticket_purchase", payload?.event_id).catch(() => false); return data; }).catch((error) => { if (!shouldKeepCheckoutAttempt(error)) clearAttempt(requestKey); throw error; }).finally(() => { if (pendingCheckouts.get(requestKey) === request) pendingCheckouts.delete(requestKey); });
   pendingCheckouts.set(requestKey, request); return request;
 };
 
@@ -98,6 +99,7 @@ const disableCouponIdempotently = createIdempotentMutation({ storagePrefix: "cut
 const syncPayment = async (publicId) => {
   const order = await syncPaymentIdempotently(publicId); const recoveryAttribution = readPaymentRecoveryAttribution(order?.public_id || publicId);
   if (order?.status === "paid" && recoveryAttribution) { trackTelemetry("checkout_recovery_paid", { label: "PIX recuperado convertido em pagamento", target: String(order?.event?.slug || order?.event_id || "checkout"), metadata: { event_id: Number(order?.event?.id || order?.event_id || 0), order_public_id: order?.public_id || publicId, recovered_gmv: Number(order?.total || recoveryAttribution.amount || 0), payment_method: String(order?.payment_method || "pix").toLowerCase(), recovery_started_at: new Date(recoveryAttribution.startedAt).toISOString(), outcome: "success" } }); clearPaymentRecoveryAttribution(order?.public_id || publicId); }
+  if (String(order?.status || "").toLowerCase() === "paid") await trackSearchConversion("ticket_purchase", Number(order?.event?.id || order?.event_id || 0)).catch(() => false);
   return order;
 };
 
