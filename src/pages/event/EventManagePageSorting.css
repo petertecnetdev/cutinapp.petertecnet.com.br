@@ -1926,3 +1926,11 @@ th[aria-sort="descending"] .cut-event-sort-head i{color:var(--cut-primary)}
   .cut-event-metrics>span:nth-child(3){display:none}
   .cut-event-quickview__actions{grid-template-columns:1fr}
 }
+
+.cut-event-infinite-sentinel{
+  width:1px;
+  height:1px;
+  flex:0 0 1px;
+  opacity:0;
+  pointer-events:none
+}
