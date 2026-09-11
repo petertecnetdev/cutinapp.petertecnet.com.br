@@ -76,15 +76,30 @@ function ResultAvatar({ item }) {
   </span>;
 }
 
-function ResultRow({ item, onOpen, trailing = null }) {
-  return <button type="button" className="cut-global-search__result" onClick={() => onOpen(item)}>
+function ResultRow({ item, onOpen, onRemove = null }) {
+  const content = <>
     <ResultAvatar item={item} />
     <span className="cut-global-search__result-copy">
       <strong>{item.title}</strong>
       <small>{item.subtitle || typeLabel(item.type)}</small>
       <em>{typeLabel(item.type)}</em>
     </span>
-    {trailing || <i className="fa-solid fa-chevron-right" aria-hidden="true" />}
+  </>;
+
+  if (onRemove) {
+    return <div className="cut-global-search__result cut-global-search__result--split">
+      <button type="button" className="cut-global-search__result-open" onClick={() => onOpen(item)}>
+        {content}
+      </button>
+      <button type="button" className="cut-global-search__recent-remove" onClick={() => onRemove(item)} aria-label={`Remover ${item.title} dos recentes`}>
+        <i className="fa-solid fa-xmark" />
+      </button>
+    </div>;
+  }
+
+  return <button type="button" className="cut-global-search__result" onClick={() => onOpen(item)}>
+    {content}
+    <i className="fa-solid fa-chevron-right" aria-hidden="true" />
   </button>;
 }
 
@@ -250,7 +265,7 @@ export default function GlobalSearchPage() {
                   key={`${item.type}:${item.id}`}
                   item={item}
                   onOpen={openResult}
-                  trailing={<span className="cut-global-search__recent-actions"><span role="button" tabIndex={0} onClick={(event) => { event.stopPropagation(); removeRecent(item); }} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); event.stopPropagation(); removeRecent(item); } }} aria-label={`Remover ${item.title} dos recentes`}><i className="fa-solid fa-xmark" /></span></span>}
+                  onRemove={removeRecent}
                 />)}
               </div>}
         </section>}
