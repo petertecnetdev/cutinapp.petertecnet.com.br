@@ -62,6 +62,15 @@ export default function CheckoutPage() {
   resultRef.current = result;
 
   const paymentStorageKey = `cutinapp_payment_${slug}`;
+  const attribution = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    const sourceEventId = Number(params.get("source_event_id") || 0);
+    const conversionSource = String(params.get("conversion_source") || "").trim();
+    return {
+      source_event_id: sourceEventId > 0 ? sourceEventId : undefined,
+      conversion_source: sourceEventId > 0 ? (conversionSource || "post_event") : undefined,
+    };
+  }, [location.search]);
 
   useEffect(() => {
     let active = true;
@@ -426,7 +435,7 @@ export default function CheckoutPage() {
     });
   };
 
-  const payload = (paymentMethod) => ({ event_id: catalog?.event?.id, payment_method: paymentMethod, coupon_code: coupon?.code || undefined, tickets: (selection?.tickets || []).map((item) => ({ id: Number(item.id), quantity: Number(item.quantity) })), items: (selection?.items || []).map((item) => ({ id: Number(item.id), quantity: Number(item.quantity) })) });
+  const payload = (paymentMethod) => ({ event_id: catalog?.event?.id, payment_method: paymentMethod, coupon_code: coupon?.code || undefined, source_event_id: attribution.source_event_id, conversion_source: attribution.conversion_source, tickets: (selection?.tickets || []).map((item) => ({ id: Number(item.id), quantity: Number(item.quantity) })), items: (selection?.items || []).map((item) => ({ id: Number(item.id), quantity: Number(item.quantity) })) });
   const ensurePaymentAvailable = (requestedMethod) => { if (paymentAvailable && methods.includes(requestedMethod)) return true; setError(catalog?.payment_config?.message || "As vendas deste evento ainda não estão habilitadas."); return false; };
   const refreshAvailabilityAfterCheckoutConflict = async (err, paymentMethod) => {
     if (!isCheckoutInventoryConflict(err)) return false;
