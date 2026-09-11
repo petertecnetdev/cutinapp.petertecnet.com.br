@@ -244,7 +244,7 @@ export default function ArtistManagePage() {
               <Col md={6}><Form.Group><Form.Label>Entrada na formação</Form.Label><Form.Control type="date" value={memberForm.joined_at} onChange={(e) => setMemberForm({ ...memberForm, joined_at: e.target.value })} /></Form.Group></Col>
               <Col xs={12}><Button type="button" disabled={busy} onClick={addMember}>Adicionar integrante</Button></Col>
             </Row>
-          </Form>
+          </div>
           <div className="d-grid gap-2">
             {members.length === 0 ? <p className="text-secondary mb-0">Nenhum integrante cadastrado.</p> : members.map((member) => <div className="cut-info-box p-3" key={member.id}><div className="d-flex justify-content-between gap-3 align-items-center flex-wrap"><div className="d-flex gap-3 align-items-center"><div className="cut-artist-card__photo" style={{ width: 54, height: 54 }}>{member.photo || member.linked_artist?.photo ? <img src={media(member.photo || member.linked_artist?.photo)} alt={member.display_name} /> : <span>{initials(member.display_name)}</span>}</div><div><div className="d-flex gap-2 align-items-center flex-wrap"><strong>{member.display_name}</strong><Badge bg={member.is_current ? "success" : "secondary"}>{member.is_current ? "Atual" : "Histórico"}</Badge></div><small className="text-secondary">{member.role || "Integrante"}</small></div></div><div className="d-flex gap-2">{member.is_current && <Button type="button" size="sm" variant="outline-warning" onClick={() => finishMember(member)}>Encerrar</Button>}<Button type="button" size="sm" variant="outline-danger" onClick={() => removeMember(member.id)}>Remover</Button></div></div></div>)}
           </div>
