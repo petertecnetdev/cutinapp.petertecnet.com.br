@@ -8,7 +8,7 @@ import eventBulkService from "../../services/EventBulkService";
 import cutinappService from "../../services/CutinappService";
 import { sellableTicketCount } from "../../utils/eventSalesReadiness";
 import ProducerEventCard from "../../components/event/ProducerEventCard";
-import { EventQuickView } from "../../components/event/EventManagerEnhancements";
+import EventCommandCenter, { EventAttentionCenter } from "../../components/event/EventCommandCenter";
 import {
   EVENT_MANAGER_PINS_KEY,
   EVENT_MANAGER_PREFERENCES_KEY,
@@ -22,6 +22,7 @@ import {
 } from "../../utils/eventManagerInsights";
 import "./EventManagePage.css";
 import "./EventManagePageSorting.css";
+import "./EventCommandCenter.css";
 
 const collator = new Intl.Collator("pt-BR", { numeric: true, sensitivity: "base" });
 
@@ -110,6 +111,36 @@ const writeClipboard = async (text) => {
   document.body.removeChild(textarea);
 
   if (!copied) throw new Error("Clipboard indisponível");
+};
+
+const csvCell = (value) => `"${String(value ?? "").replace(/"/g, '""')}"`;
+
+const exportEventsCsv = (events) => {
+  const header = ["Evento", "Produção", "Data", "Cidade", "Status", "Ingressos vendidos", "Faturamento", "Visualizações", "Conversão"];
+  const rows = events.map((event) => {
+    const metrics = eventOperationalMetrics(event);
+    return [
+      event.title,
+      event.production?.name || "",
+      event.start_date || "",
+      event.city || "",
+      getStatus(event).label,
+      metrics.ticketsSold,
+      metrics.grossSales,
+      metrics.views,
+      metrics.conversionRate,
+    ];
+  });
+  const csv = [header, ...rows].map((row) => row.map(csvCell).join(";")).join("\n");
+  const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = `cutinapp-meus-eventos-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  URL.revokeObjectURL(url);
 };
 
 const trackProducerActivation = (type, event, metadata = {}) => {
@@ -207,6 +238,8 @@ const getSalesReadiness = (event) => {
 
 const getStatus = (event) => {
   if (event?.is_cancelled) return { key: "cancelled", label: "Cancelado", variant: "danger" };
+  if (event?.has_ended) return { key: "past", label: "Encerrado", variant: "secondary" };
+  if (event?.is_happening_now) return { key: "ongoing", label: "Em andamento", variant: "warning" };
   if (event?.is_published) return { key: "published", label: "Publicado", variant: "success" };
   return { key: "draft", label: "Rascunho", variant: "secondary" };
 };
@@ -295,6 +328,7 @@ export default function EventManagePage() {
   const [quickEvent, setQuickEvent] = useState(null);
   const [displayLimit, setDisplayLimit] = useState(24);
   const loadMoreRef = useRef(null);
+  const searchInputRef = useRef(null);
   const [bulkMoveOpen, setBulkMoveOpen] = useState(false);
   const [bulkTargetProductionId, setBulkTargetProductionId] = useState("");
   const [bulkActionError, setBulkActionError] = useState("");
@@ -353,7 +387,7 @@ export default function EventManagePage() {
         if (typeof saved.dateFrom === "string") setDateFrom(saved.dateFrom);
         if (typeof saved.dateTo === "string") setDateTo(saved.dateTo);
         if (typeof saved.performanceFilter === "string") setPerformanceFilter(saved.performanceFilter);
-        if (saved.viewMode === "compact" || saved.viewMode === "visual") setViewMode(saved.viewMode);
+        if (["compact", "visual", "calendar", "timeline"].includes(saved.viewMode)) setViewMode(saved.viewMode);
         if (typeof saved.groupByPeriod === "boolean") setGroupByPeriod(saved.groupByPeriod);
         if (saved.sortConfig?.key) setSortConfig(saved.sortConfig);
       }
@@ -400,6 +434,36 @@ export default function EventManagePage() {
   useEffect(() => {
     setDisplayLimit(24);
   }, [searchTerm, statusFilter, productionFilter, cityFilter, periodFilter, dateFrom, dateTo, performanceFilter, sortConfig, groupByPeriod]);
+
+  useEffect(() => {
+    const restore = Number(window.sessionStorage.getItem("cutinapp.eventManager.scrollY") || 0);
+    if (restore > 0) window.requestAnimationFrame(() => window.scrollTo({ top: restore, behavior: "auto" }));
+    const persist = () => window.sessionStorage.setItem("cutinapp.eventManager.scrollY", String(window.scrollY || 0));
+    window.addEventListener("beforeunload", persist);
+    return () => {
+      persist();
+      window.removeEventListener("beforeunload", persist);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleKeyboard = (event) => {
+      const tag = String(event.target?.tagName || "").toLowerCase();
+      const typing = ["input", "textarea", "select"].includes(tag) || event.target?.isContentEditable;
+      if (event.key === "/" && !typing) {
+        event.preventDefault();
+        searchInputRef.current?.focus();
+        return;
+      }
+      if (event.key.toLowerCase() === "n" && !typing && !event.ctrlKey && !event.metaKey && !event.altKey) {
+        event.preventDefault();
+        navigate("/event/create");
+      }
+      if (event.key === "Escape" && quickEvent) setQuickEvent(null);
+    };
+    window.addEventListener("keydown", handleKeyboard);
+    return () => window.removeEventListener("keydown", handleKeyboard);
+  }, [navigate, quickEvent]);
 
   const togglePinnedEvent = (eventId) => {
     const id = Number(eventId);
@@ -1216,7 +1280,12 @@ export default function EventManagePage() {
                 <i className="fa-solid fa-trash-can me-2" />Excluir todos
               </Button>
             )}
-            <Button className="cut-event-manager-new" onClick={() => navigate("/event/create")} disabled={bulkPublishing || deletingAll}>
+            {events.length > 0 && (
+              <Button variant="outline-light" className="cut-event-manager-new" onClick={() => exportEventsCsv(visibleEvents.length ? visibleEvents : events)} disabled={bulkPublishing || deletingAll}>
+                <i className="fa-solid fa-file-csv me-2" />Exportar
+              </Button>
+            )}
+            <Button className="cut-event-manager-new" onClick={() => navigate("/event/create")} disabled={bulkPublishing || deletingAll} title="Atalho: N">
               <i className="fa-solid fa-plus me-2" />Novo evento
             </Button>
           </div>
@@ -1282,12 +1351,15 @@ export default function EventManagePage() {
               {portfolioMetrics.pendingOrders > 0 && <div className="is-warning"><span><i className="fa-regular fa-clock" />Checkouts pendentes</span><strong>{portfolioMetrics.pendingOrders}</strong></div>}
             </section>
 
+            <EventAttentionCenter events={events} onOpen={setQuickEvent} />
+
             <section className="cut-event-manager-toolbar">
               <div className="cut-event-manager-search">
                 <i className="fa-solid fa-magnifying-glass" aria-hidden="true" />
                 <Form.Control
+                  ref={searchInputRef}
                   type="search"
-                  placeholder="Buscar evento, produção ou local"
+                  placeholder="Buscar evento, produção ou local · atalho /"
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
                   aria-label="Buscar meus eventos"
@@ -1309,6 +1381,8 @@ export default function EventManagePage() {
                 <div className="cut-event-view-switch" role="group" aria-label="Modo de visualização">
                   <button type="button" className={viewMode === "visual" ? "is-active" : ""} onClick={() => setViewMode("visual")} title="Modo visual"><i className="fa-solid fa-table-cells-large" /></button>
                   <button type="button" className={viewMode === "compact" ? "is-active" : ""} onClick={() => setViewMode("compact")} title="Modo compacto"><i className="fa-solid fa-list" /></button>
+                  <button type="button" className={viewMode === "calendar" ? "is-active" : ""} onClick={() => setViewMode("calendar")} title="Modo calendário"><i className="fa-regular fa-calendar-days" /></button>
+                  <button type="button" className={viewMode === "timeline" ? "is-active" : ""} onClick={() => setViewMode("timeline")} title="Linha do tempo"><i className="fa-solid fa-timeline" /></button>
                 </div>
                 <button type="button" className={`cut-event-group-toggle${groupByPeriod ? " is-active" : ""}`} onClick={() => setGroupByPeriod((current) => !current)} title="Agrupar por período">
                   <i className="fa-solid fa-layer-group" />
@@ -1444,7 +1518,17 @@ export default function EventManagePage() {
         )}
       </Container>
 
-      <EventQuickView event={quickEvent} show={Boolean(quickEvent)} onHide={() => setQuickEvent(null)} onDuplicate={openDuplicate} onAgenda={openAgenda} />
+      <EventCommandCenter
+        event={quickEvent}
+        show={Boolean(quickEvent)}
+        onHide={() => setQuickEvent(null)}
+        onDuplicate={openDuplicate}
+        onAgenda={openAgenda}
+        onPublication={publication}
+        onCopyLink={copyLink}
+        onShare={share}
+        onShareWhatsApp={shareWhatsApp}
+      />
 
       <Modal show={bulkMoveOpen} onHide={() => setBulkMoveOpen(false)} centered>
         <Modal.Header closeButton><Modal.Title>Mover eventos para outra produção</Modal.Title></Modal.Header>
