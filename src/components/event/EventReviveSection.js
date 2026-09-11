@@ -4,11 +4,18 @@ import { Alert, Badge, Button, Form, Modal } from "react-bootstrap";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import cutinappService from "../../services/CutinappService";
+import { storageUrl } from "../../config";
 import "./EventReviveSection.css";
 
 const stars = [1, 2, 3, 4, 5];
 const nameOf = (item) => [item?.first_name, item?.last_name].filter(Boolean).join(" ") || item?.user_name || "Participante";
 const initialsOf = (item) => ((item?.first_name?.[0] || "U") + (item?.last_name?.[0] || "")).toUpperCase();
+const resolveImageUrl = (value) => {
+  const source = String(value || "").trim();
+  if (!source) return "";
+  if (/^(?:https?:|data:|blob:)/i.test(source)) return source;
+  return storageUrl + source.replace(/^\/?storage\//i, "").replace(/^\/+/, "");
+};
 const fmt = (value) => value ? new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value)) : "";
 const reviveInteractionTypes = {
   event_revive_view: "revive_view",
@@ -126,9 +133,17 @@ export default function EventReviveSection({ event, isOwner }) {
   const rating = data?.rating || {};
   const attendance = revive.attendance || {};
   const gallery = revive.gallery || [];
+  const momentId = Number(new URLSearchParams(location.search).get("moment") || 0);
   const reviews = data?.reviews || [];
   const posts = data?.posts?.data || [];
   const isManager = Boolean(access.is_manager || isOwner);
+
+  useEffect(() => {
+    if (!momentId || !gallery.length) return;
+    const requested = gallery.find((item) => Number(item.id) === momentId);
+    if (requested) setLightbox(requested);
+  }, [gallery, momentId]);
+
   const verified = Boolean(access.is_verified_attendee);
   const canInteract = Boolean(access.can_interact);
   const canRate = Boolean(access.can_rate);
@@ -197,6 +212,36 @@ export default function EventReviveSection({ event, isOwner }) {
     try { await cutinappService.deleteEventReviveMedia(event.id, media.id); setLightbox(null); await load(); }
     catch (err) { setNotice({ type: "danger", text: err?.message || "Não foi possível remover a imagem." }); }
     finally { setBusy(false); }
+  };
+
+  const editMediaCaption = async (media) => {
+    const nextCaption = window.prompt("Legenda deste momento:", media.caption || "");
+    if (nextCaption === null) return;
+    setBusy(true);
+    try {
+      await cutinappService.updateEventReviveMedia(event.id, media.id, { caption: String(nextCaption).trim() || null });
+      await load();
+    } catch (err) {
+      setNotice({ type: "danger", text: err?.message || "Não foi possível atualizar a legenda." });
+    } finally { setBusy(false); }
+  };
+
+  const moveMedia = async (media, direction) => {
+    if (!isManager) return;
+    const index = gallery.findIndex((item) => Number(item.id) === Number(media.id));
+    const target = index + direction;
+    if (index < 0 || target < 0 || target >= gallery.length) return;
+
+    const ordered = gallery.map((item) => Number(item.id));
+    [ordered[index], ordered[target]] = [ordered[target], ordered[index]];
+
+    setBusy(true);
+    try {
+      await cutinappService.reorderEventReviveMedia(event.id, ordered);
+      await load();
+    } catch (err) {
+      setNotice({ type: "danger", text: err?.message || "Não foi possível reorganizar a galeria." });
+    } finally { setBusy(false); }
   };
 
   const featureMedia = async (media) => {
@@ -308,6 +353,10 @@ export default function EventReviveSection({ event, isOwner }) {
     catch (err) { setNotice({ type: "info", text: Number(err?.status || 0) === 409 ? "Você já segue esta produção." : (err?.message || "Não foi possível seguir.") }); }
   };
 
+  const shareWhatsApp = (url, text) => {
+    window.open("https://wa.me/?text=" + encodeURIComponent((text || "Veja este momento na Cutinapp") + " " + url), "_blank", "noopener,noreferrer");
+  };
+
   const shareMoment = async (media) => {
     const params = new URLSearchParams();
     params.set('moment', String(media.id));
@@ -381,10 +430,21 @@ export default function EventReviveSection({ event, isOwner }) {
       {files.length > 0 && <><Form.Control as="textarea" rows={2} maxLength={180} value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Legenda..." /><Button disabled={busy} onClick={upload}>Publicar {files.length} imagem(ns)</Button></>}
     </div>}
     {gallery.length > 0 ? <div className="cut-revive-gallery">{gallery.map((media) => <article key={media.id} className={"cut-revive-gallery__item" + (media.is_primary ? " is-primary" : "")}>
-      <button type="button" onClick={() => setLightbox(media)}><img src={media.url} alt={media.caption || "Momento do evento"} loading="lazy" /></button>
+      <button type="button" onClick={() => setLightbox(media)}><img src={media.variants?.thumbnail?.url || media.url} alt={media.caption || "Momento do evento"} loading="lazy" /></button>
       {media.is_primary && <Badge bg="warning" text="dark">Destaque</Badge>}
       {media.caption && <p>{media.caption}</p>}
-      <div className="cut-revive-inline-actions"><button type="button" onClick={() => shareMoment(media)}>Compartilhar</button>{(isManager || Number(media.created_by) === Number(user?.id)) && <>{isManager && !media.is_primary && <button type="button" onClick={() => featureMedia(media)}>Destacar</button>}<button type="button" className="danger" onClick={() => removeMedia(media)}>Remover</button></>}{user && Number(media.created_by) !== Number(user.id) && <button type="button" onClick={() => reportContent("media", media.id)}>Denunciar</button>}</div>
+      <div className="cut-revive-inline-actions">
+        <button type="button" onClick={() => shareMoment(media)}>Compartilhar</button>
+        <button type="button" onClick={() => shareWhatsApp(window.location.origin + location.pathname + "?moment=" + media.id + "#reviva", media.caption || ("Momento de " + event.title))}>WhatsApp</button>
+        {(isManager || Number(media.created_by) === Number(user?.id)) && <>
+          <button type="button" onClick={() => editMediaCaption(media)}>Editar legenda</button>
+          {isManager && !media.is_primary && <button type="button" onClick={() => featureMedia(media)}>Destacar</button>}
+          {isManager && <button type="button" disabled={gallery[0]?.id === media.id || busy} onClick={() => moveMedia(media, -1)}>↑</button>}
+          {isManager && <button type="button" disabled={gallery[gallery.length - 1]?.id === media.id || busy} onClick={() => moveMedia(media, 1)}>↓</button>}
+          <button type="button" className="danger" onClick={() => removeMedia(media)}>Remover</button>
+        </>}
+        {user && Number(media.created_by) !== Number(user.id) && <button type="button" onClick={() => reportContent("media", media.id)}>Denunciar</button>}
+      </div>
     </article>)}</div> : <div className="cut-revive-empty">Os primeiros momentos ainda vão aparecer aqui.</div>}
 
     <div className="cut-revive-grid">
@@ -426,14 +486,14 @@ export default function EventReviveSection({ event, isOwner }) {
 
     {(revive.related_events || []).length > 0 && <><header className="cut-revive-section-head"><div><span className="cut-eyebrow">Continue vivendo</span><h3>Eventos que combinam com você</h3><p>Próximas edições e experiências relacionadas ao que você acabou de reviver.</p></div></header>
       <div className="cut-revive-related">{(revive.related_events || []).map((related) => <button key={related.id} type="button" onClick={() => openRelated(related)}>
-        <div className="cut-revive-related__image">{related.image ? <img src={related.image} alt={related.title} loading="lazy" /> : <span>{String(related.title || 'E').slice(0, 1)}</span>}</div>
+        <div className="cut-revive-related__image">{related.image ? <img src={resolveImageUrl(related.image)} alt={related.title} loading="lazy" /> : <span>{String(related.title || 'E').slice(0, 1)}</span>}</div>
         <div><strong>{related.title}</strong><small>{fmt(related.start_date)}{related.venue ? ' · ' + related.venue : ''}</small></div>
         <i className="fa-solid fa-chevron-right" />
       </button>)}</div>
     </>}
 
     {revive.next_event && <div className="cut-revive-next">
-      <div className="cut-revive-next__visual">{revive.next_event.image ? <img src={revive.next_event.image} alt={revive.next_event.title} /> : <i className="fa-regular fa-calendar-plus" />}</div>
+      <div className="cut-revive-next__visual">{revive.next_event.image ? <img src={resolveImageUrl(revive.next_event.image)} alt={revive.next_event.title} /> : <i className="fa-regular fa-calendar-plus" />}</div>
       <div><span className="cut-eyebrow">{verified ? "Vamos de novo?" : "Não fique de fora da próxima"}</span><h3>{revive.next_event.title}</h3><p>{fmt(revive.next_event.start_date)}{revive.next_event.venue ? " · " + revive.next_event.venue : ""}</p><div className="cut-revive-hero__actions"><Button size="lg" onClick={nextEvent}>Ver próxima edição</Button><Button variant="outline-light" onClick={follow}>Seguir produção</Button></div></div>
     </div>}
 
@@ -446,7 +506,7 @@ export default function EventReviveSection({ event, isOwner }) {
       <Modal.Body><div className="cut-revive-moderation-list">{(moderation?.data || []).length ? (moderation.data || []).map((item) => <article key={item.id}><div><strong>{item.target_type} #{item.target_id}</strong><span>{item.reason} · {fmt(item.created_at)}</span>{item.details && <p>{item.details}</p>}</div><div>{item.status === "open" ? <><Button size="sm" variant="outline-light" onClick={() => moderate(item, "dismissed", false)}>Descartar denúncia</Button>{item.target_type !== "rating" && <Button size="sm" variant="danger" onClick={() => moderate(item, "actioned", true)}>Ocultar conteúdo</Button>}</> : <Badge bg="secondary">{item.status}</Badge>}</div></article>) : <div className="cut-revive-empty">Nenhuma denúncia pendente.</div>}</div></Modal.Body>
     </Modal>
 
-    <Modal show={Boolean(lightbox)} onHide={() => setLightbox(null)} centered size="xl" className="cut-revive-lightbox"><Modal.Body>{lightbox?.url && <img src={lightbox.url} alt={lightbox.caption || "Momento"} />}{lightbox?.caption && <p>{lightbox.caption}</p>}</Modal.Body><Modal.Footer><Button variant="outline-light" onClick={() => setLightbox(null)}>Fechar</Button></Modal.Footer></Modal>
+    <Modal show={Boolean(lightbox)} onHide={() => setLightbox(null)} centered size="xl" className="cut-revive-lightbox"><Modal.Body>{lightbox?.url && <img src={lightbox.variants?.display?.url || lightbox.url} alt={lightbox.caption || "Momento"} />}{lightbox?.caption && <p>{lightbox.caption}</p>}</Modal.Body><Modal.Footer><Button variant="outline-light" onClick={() => setLightbox(null)}>Fechar</Button></Modal.Footer></Modal>
   </section>;
 }
 
