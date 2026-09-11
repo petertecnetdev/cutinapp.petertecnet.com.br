@@ -1011,7 +1011,11 @@ export default function EventManagePage() {
       }
     }
 
-    try { await load(); } catch (_) {}
+    try {
+      await load();
+    } catch {
+      // A ação principal já foi concluída; falha de refresh não deve ocultar o resultado.
+    }
 
     if (failed.length) {
       setBulkActionError(`${completed} concluído(s). Falharam: ${failed.slice(0, 4).join(", ")}${failed.length > 4 ? "…" : ""}`);
