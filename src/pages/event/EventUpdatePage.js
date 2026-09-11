@@ -1,15 +1,28 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Alert, Badge, Button, Card, Col, Container, Form, Row } from "react-bootstrap";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { Alert, Button, Container, Form, Modal, ProgressBar, Spinner } from "react-bootstrap";
+import { useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
+import { EventHealthBadge, EventMetrics } from "../../components/event/EventManagerEnhancements";
 import useAutoSave from "../../hooks/useAutoSave";
 import eventService from "../../services/EventService";
 import cutinappService from "../../services/CutinappService";
 import commerceService from "../../services/CommerceService";
 import { storageUrl } from "../../config";
-import { sellableTicketCount } from "../../utils/eventSalesReadiness";
-import "./EventUpdatePage.css";
+import { eventHealth, eventOperationalMetrics } from "../../utils/eventManagerInsights";
+import "./EventUpdatePageV2.css";
+
+const SECTIONS = [
+  ["overview", "Visão geral", "fa-solid fa-gauge-high"],
+  ["info", "Informações", "fa-regular fa-pen-to-square"],
+  ["media", "Arte e mídia", "fa-regular fa-image"],
+  ["tickets", "Ingressos", "fa-solid fa-ticket"],
+  ["products", "Produtos", "fa-solid fa-bag-shopping"],
+  ["program", "Programação", "fa-regular fa-clock"],
+  ["team", "Equipe", "fa-solid fa-people-group"],
+  ["promotion", "Divulgação", "fa-solid fa-bullhorn"],
+  ["settings", "Configurações", "fa-solid fa-sliders"],
+];
 
 const pad = (number) => String(number).padStart(2, "0");
 const toLocalInput = (value) => {
@@ -18,116 +31,57 @@ const toLocalInput = (value) => {
   if (Number.isNaN(date.getTime())) return "";
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 };
-const minNow = () => {
-  const date = new Date();
-  date.setMinutes(date.getMinutes() + 1);
-  return toLocalInput(date);
-};
-
-const formatDate = (value) => value
-  ? new Intl.DateTimeFormat("pt-BR", {
-    weekday: "long",
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "America/Sao_Paulo",
-  }).format(new Date(value))
-  : "Data não informada";
-
 const money = (value) => Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const eventIsValid = (value) => {
-  if (!value || value.title.trim().length < 2 || !value.description.trim() || !value.address.trim()) return false;
-  if (!value.start_date || !value.end_date || new Date(value.end_date) <= new Date(value.start_date)) return false;
-  if (value.max_attendees !== "" && Number(value.max_attendees) < 1) return false;
-  if (value.uf && value.uf.trim().length !== 2) return false;
-  return true;
+const coverUrl = (image) => {
+  if (!image) return "";
+  const value = String(image);
+  return /^https?:\/\//i.test(value) ? value : `${storageUrl}${value.replace(/^\//, "")}`;
 };
-
-const autosaveLabel = (status) => {
-  if (status === "saving") return "Salvando...";
-  if (status === "saved") return "Salvo automaticamente";
-  if (status === "dirty") return "Alterações pendentes";
-  if (status === "error") return "Falha ao salvar";
-  return "Salvamento automático ativo";
-};
-
-const buildFirstSaleShareUrl = (event) => {
-  if (!event?.slug) return "";
-  const url = new URL(`/event/${event.slug}`, window.location.origin);
-  url.searchParams.set("utm_source", "cutinapp_producer");
-  url.searchParams.set("utm_medium", "whatsapp");
-  url.searchParams.set("utm_campaign", "first_sale");
-  url.searchParams.set("utm_content", String(event.id || event.slug));
-  return url.toString();
-};
-
-const buildMapEmbedUrl = (event) => {
-  if (!event) return "";
-  let query = "";
-  if (event.google_maps_url) {
-    try {
-      const url = new URL(event.google_maps_url);
-      query = url.searchParams.get("q") || url.searchParams.get("query") || "";
-      if (!query && url.pathname.includes("/place/")) {
-        query = decodeURIComponent(url.pathname.split("/place/")[1]?.split("/")[0] || "").replace(/\+/g, " ");
-      }
-    } catch (_) {
-      query = "";
-    }
-  }
-  if (!query) query = [event.venue, event.address, event.city, event.uf].filter(Boolean).join(", ");
-  return query ? `https://www.google.com/maps?q=${encodeURIComponent(query)}&output=embed` : "";
+const validForm = (form) => Boolean(
+  form?.title?.trim().length >= 2
+  && form?.description?.trim()
+  && form?.address?.trim()
+  && form?.start_date
+  && form?.end_date
+  && new Date(form.end_date) > new Date(form.start_date)
+  && (!form.uf || form.uf.trim().length === 2)
+  && (form.max_attendees === "" || Number(form.max_attendees) >= 1)
+);
+const friendlyError = (error, fallback) => {
+  const status = Number(error?.status || error?.response?.status || 0);
+  if (status === 404) return fallback;
+  if (status === 429) return "Muitas solicitações agora. Aguarde alguns segundos e tente novamente.";
+  if (status >= 500 || status === 0) return "O serviço está temporariamente indisponível. Tente novamente em instantes.";
+  return error?.message || fallback;
 };
 
 export default function EventUpdatePage() {
   const { id } = useParams();
-  const location = useLocation();
   const navigate = useNavigate();
-  const queryParams = new URLSearchParams(location.search);
-  const activation = queryParams.get("activation") || "";
-  const isFirstTicketActivation = activation === "first-ticket";
-  const suggestedAddOnPrice = Number(queryParams.get("addonSuggested") || 0);
-  const suggestedAddOnStock = Number(queryParams.get("addonStock") || 0);
-  const requestedAddOnNetMargin = Number(queryParams.get("addonNetMargin") || 0);
-  const requestedAddOnSource = queryParams.get("addonSource");
-  const suggestedAddOnSource = ["event", "production"].includes(requestedAddOnSource) ? requestedAddOnSource : "";
-  const hasSuggestedAddOnPrice = Number.isFinite(suggestedAddOnPrice) && suggestedAddOnPrice > 0 && Boolean(suggestedAddOnSource);
-  const hasSuggestedAddOnStock = Number.isInteger(suggestedAddOnStock) && suggestedAddOnStock > 0 && suggestedAddOnStock <= 100;
-  const suggestedAddOnNetMargin = Number.isFinite(requestedAddOnNetMargin)
-    ? Math.min(100, Math.max(0, requestedAddOnNetMargin))
-    : 0;
-  const hasSuggestedAddOnNetMargin = suggestedAddOnNetMargin > 0;
-
-  const [form, setForm] = useState(null);
+  const [section, setSection] = useState("overview");
   const [eventData, setEventData] = useState(null);
+  const [form, setForm] = useState(null);
   const [image, setImage] = useState(null);
   const [preview, setPreview] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
-  const [eventItems, setEventItems] = useState([]);
   const [productionItems, setProductionItems] = useState([]);
-  const [productionItemsLoading, setProductionItemsLoading] = useState(false);
+  const [productionItemsState, setProductionItemsState] = useState("idle");
   const [productionItemsError, setProductionItemsError] = useState("");
-  const [itemForm, setItemForm] = useState({
-    source_item_id: "",
-    price: hasSuggestedAddOnPrice ? suggestedAddOnPrice.toFixed(2) : "",
-    quantity: hasSuggestedAddOnStock ? String(suggestedAddOnStock) : "",
-  });
-  const [itemLoading, setItemLoading] = useState(false);
+  const [eventItems, setEventItems] = useState([]);
+  const [eventItemsLoading, setEventItemsLoading] = useState(false);
+  const [itemForm, setItemForm] = useState({ source_item_id: "", price: "", quantity: "" });
   const [itemSaving, setItemSaving] = useState(false);
-  const [itemBusyId, setItemBusyId] = useState(null);
-  const [success, setSuccess] = useState(
-    isFirstTicketActivation
-      ? "Primeiro lote criado. Seu próximo passo é publicar o evento para liberar a página de vendas."
-      : queryParams.get("courtesyCreated") === "1"
-        ? "Cortesia criada. Revise o evento e publique quando estiver pronto."
-        : location.state?.success || ""
-  );
+  const [busyItemId, setBusyItemId] = useState(null);
+  const [coupons, setCoupons] = useState([]);
+  const [couponForm, setCouponForm] = useState({ code: "", discount_type: "percentage", discount_value: "" });
+  const [couponSaving, setCouponSaving] = useState(false);
+  const [auditRows, setAuditRows] = useState([]);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const applyEvent = (item) => {
     setEventData(item);
@@ -146,29 +100,13 @@ export default function EventUpdatePage() {
       contact_email: item.contact_email || "",
       contact_phone: item.contact_phone || "",
     });
-    setPreview(item.image ? `${storageUrl}${String(item.image).replace(/^\//, "")}` : "");
+    setPreview(coverUrl(item.image));
   };
 
-  const loadEvent = async () => applyEvent(await eventService.show(id));
-  const loadEventItems = async () => {
-    if (!eventData?.is_published || eventData?.is_private || eventData?.is_cancelled || !eventData?.slug) {
-      setEventItems([]);
-      return;
-    }
-
-    setItemLoading(true);
-    try {
-      const catalog = await commerceService.catalog(eventData.slug, { force: true });
-      setEventItems(Array.isArray(catalog?.items) ? catalog.items : []);
-    } catch (err) {
-      if (Number(err?.status || 0) === 404) {
-        setEventItems([]);
-        return;
-      }
-      setError(err?.message || "Não foi possível carregar os adicionais deste evento.");
-    } finally {
-      setItemLoading(false);
-    }
+  const loadEvent = async () => {
+    const item = await eventService.show(id);
+    applyEvent(item);
+    return item;
   };
 
   useEffect(() => {
@@ -176,294 +114,183 @@ export default function EventUpdatePage() {
     setLoading(true);
     eventService.show(id)
       .then((item) => active && applyEvent(item))
-      .catch((err) => active && setError(err?.message || "Não foi possível carregar o evento."))
+      .catch((err) => active && setError(friendlyError(err, "Não foi possível carregar o evento.")))
       .finally(() => active && setLoading(false));
     return () => { active = false; };
   }, [id]);
 
-  useEffect(() => {
-    if (eventData?.id) loadEventItems();
-  }, [eventData?.id, eventData?.is_published, eventData?.is_private, eventData?.is_cancelled, eventData?.slug]);
-
-  useEffect(() => {
+  const loadProductionItems = async () => {
     const productionId = Number(eventData?.production_id || form?.production_id || 0);
-    if (!productionId) {
-      setProductionItems([]);
-      setProductionItemsError("");
-      return undefined;
-    }
-
-    let active = true;
-    setProductionItemsLoading(true);
+    if (!productionId) return;
+    setProductionItemsState("loading");
     setProductionItemsError("");
-    cutinappService.productionItems(productionId)
-      .then((items) => {
-        if (!active) return;
-        setProductionItems((Array.isArray(items) ? items : [])
-          .filter((item) => item?.status === undefined || Boolean(item.status))
-          .sort((left, right) => String(left?.name || "").localeCompare(String(right?.name || ""), "pt-BR")));
-      })
-      .catch((err) => {
-        if (!active) return;
-        setProductionItems([]);
-        setProductionItemsError(err?.message || "Não foi possível carregar o catálogo desta produção.");
-      })
-      .finally(() => active && setProductionItemsLoading(false));
+    try {
+      const items = await cutinappService.productionItems(productionId);
+      setProductionItems((Array.isArray(items) ? items : []).filter((item) => item?.status === undefined || Boolean(item.status)));
+      setProductionItemsState("ready");
+    } catch (err) {
+      setProductionItems([]);
+      setProductionItemsError(friendlyError(err, "Não conseguimos carregar os itens desta produção."));
+      setProductionItemsState("error");
+    }
+  };
 
-    return () => { active = false; };
-  }, [eventData?.production_id, form?.production_id]);
+  const loadEventItems = async () => {
+    if (!eventData?.slug || !eventData?.is_published) {
+      setEventItems([]);
+      return;
+    }
+    setEventItemsLoading(true);
+    try {
+      const catalog = await commerceService.catalog(eventData.slug, { force: true });
+      setEventItems(Array.isArray(catalog?.items) ? catalog.items : []);
+    } catch (err) {
+      if (Number(err?.status || err?.response?.status || 0) !== 404) setError(friendlyError(err, "Não foi possível carregar os adicionais do evento."));
+    } finally {
+      setEventItemsLoading(false);
+    }
+  };
+
+  useEffect(() => { if (eventData?.production_id) loadProductionItems(); }, [eventData?.production_id]);
+  useEffect(() => { if (eventData?.id) loadEventItems(); }, [eventData?.id, eventData?.slug, eventData?.is_published]);
+  useEffect(() => {
+    const organizationId = Number(eventData?.production_id || 0);
+    if (!organizationId) return;
+    commerceService.producerCoupons(organizationId).then((rows) => setCoupons(Array.isArray(rows) ? rows : rows?.data || [])).catch(() => setCoupons([]));
+  }, [eventData?.production_id]);
 
   useEffect(() => {
-    if (!isFirstTicketActivation || !eventData?.id) return;
-    try {
-      window.PeterTecnetTelemetry?.track?.("producer_publication_step_opened", {
-        label: "Produtor chegou à publicação após criar o primeiro lote",
-        target: String(eventData.id),
-        metadata: {
-          event_id: Number(eventData.id),
-          activation_stage: "publish_event",
-          next_step: eventData.is_published ? "first_sale" : "publish_event",
-          ticket_lots: Number(eventData.tickets_count || 0),
-        },
+    const onGeneratedCover = (generatedEvent) => {
+      const file = generatedEvent?.detail?.file;
+      if (!(file instanceof File)) return;
+      if (file.size > 5 * 1024 * 1024) {
+        setError("A arte gerada ficou acima de 5 MB. Gere outra versão ou envie uma imagem menor.");
+        return;
+      }
+      setImage(file);
+      setPreview((current) => {
+        if (current?.startsWith("blob:")) URL.revokeObjectURL(current);
+        return URL.createObjectURL(file);
       });
-    } catch { /* Telemetria nunca bloqueia ativação. */ }
-  }, [isFirstTicketActivation, eventData?.id, eventData?.is_published, eventData?.tickets_count]);
+      setSection("media");
+      setSuccess("Arte selecionada. Salve para aplicá-la ao evento.");
+    };
+    window.addEventListener("cutinapp:event-cover-selected", onGeneratedCover);
+    return () => window.removeEventListener("cutinapp:event-cover-selected", onGeneratedCover);
+  }, []);
 
-  useEffect(() => () => {
-    if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
-  }, [preview]);
+  useEffect(() => () => { if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview); }, [preview]);
 
+  const metrics = useMemo(() => eventOperationalMetrics(eventData || {}), [eventData]);
+  const health = useMemo(() => eventHealth(eventData || {}), [eventData]);
   const selectedProductionItem = useMemo(
     () => productionItems.find((item) => String(item.id) === String(itemForm.source_item_id)) || null,
     [productionItems, itemForm.source_item_id]
   );
+  const publicUrl = eventData?.slug ? `${window.location.origin}/event/${eventData.slug}` : "";
+  const hasSales = Number(metrics?.ticketsSold || 0) > 0 || Number(eventData?.orders_count || 0) > 0;
 
-  const mapEmbedUrl = useMemo(() => buildMapEmbedUrl(form), [form]);
-  const dateInvalid = Boolean(form?.start_date && form?.end_date && new Date(form.end_date) <= new Date(form.start_date));
-  const capacityInvalid = Boolean(form?.max_attendees !== "" && Number(form?.max_attendees) < 1);
-  const ufInvalid = Boolean(form?.uf && form.uf.trim().length !== 2);
+  const checks = useMemo(() => [
+    [Boolean(form?.title?.trim()), "Nome definido"],
+    [Boolean(preview || eventData?.image), "Flyer definido"],
+    [Boolean(form?.start_date && form?.end_date), "Data e horário definidos"],
+    [Boolean(form?.venue || form?.address), "Local definido"],
+    [Number(eventData?.tickets_count || 0) > 0, "Pelo menos um ingresso"],
+    [Boolean(form?.contact_email || form?.contact_phone), "Contato informado"],
+    [Boolean(eventData?.is_published), "Evento publicado"],
+  ], [form, preview, eventData]);
+  const readiness = Math.round((checks.filter(([ok]) => ok).length / checks.length) * 100);
 
-  const canSave = useMemo(() => Boolean(eventIsValid(form) && !saving), [form, saving]);
-
-  const persistEvent = async (nextForm, { includeImage = false, silent = false } = {}) => {
-    if (!eventIsValid(nextForm)) return false;
-
+  const persist = async (nextForm, { includeImage = false, silent = false } = {}) => {
+    if (!validForm(nextForm)) return false;
     setSaving(true);
-    setError("");
-    setFieldErrors({});
-    if (!silent) setSuccess("");
+    if (!silent) { setError(""); setSuccess(""); }
     try {
-      const data = new FormData();
-      Object.entries(nextForm).forEach(([key, value]) => {
-        if (value !== null && value !== "") data.append(key, value);
-      });
-      if (includeImage && image) data.append("image", image);
-
-      const response = await eventService.update(id, data);
-      if (includeImage) {
+      const payload = new FormData();
+      Object.entries(nextForm).forEach(([key, value]) => { if (value !== null && value !== "") payload.append(key, value); });
+      if (includeImage && image) payload.append("image", image);
+      const response = await eventService.update(id, payload);
+      const updated = response?.event || { ...eventData, ...nextForm };
+      setEventData((current) => ({ ...(current || {}), ...updated }));
+      if (includeImage && image) {
         setImage(null);
-        applyEvent(response.event);
-        setSuccess("Alterações salvas com sucesso.");
-      } else {
-        setEventData((current) => ({ ...(current || {}), ...(response?.event || {}) }));
+        if (updated.image) setPreview(coverUrl(updated.image));
       }
+      setAuditRows((rows) => [{ at: new Date(), label: includeImage && image ? "Dados e arte salvos" : "Alterações salvas" }, ...rows].slice(0, 8));
+      if (!silent) setSuccess("Evento salvo com sucesso.");
       return true;
     } catch (err) {
       setFieldErrors(err?.errors || {});
-      setError(err?.message || "Não foi possível salvar o evento.");
+      setError(friendlyError(err, "Não foi possível salvar o evento."));
       throw err;
     } finally {
       setSaving(false);
     }
   };
 
-  const {
-    status: autoSaveStatus,
-    lastSavedAt,
-    saveError: autoSaveError,
-    flush: flushAutoSave,
-  } = useAutoSave({
+  const { status: autoSaveStatus, lastSavedAt, flush: flushAutoSave } = useAutoSave({
     value: form,
-    enabled: Boolean(form) && Boolean(eventData?.id) && !loading,
-    delay: 800,
-    validate: eventIsValid,
-    onSave: (nextForm) => persistEvent(nextForm, { includeImage: false, silent: true }),
+    enabled: Boolean(form && eventData?.id && !loading),
+    delay: 900,
+    validate: validForm,
+    onSave: (nextForm) => persist(nextForm, { silent: true }),
   });
-
-  useEffect(() => {
-    if (!autoSaveError) return;
-    setError(autoSaveError?.message || "Não foi possível salvar automaticamente.");
-  }, [autoSaveError]);
 
   const change = (event) => {
     const { name, value } = event.target;
+    if (hasSales && ["start_date", "end_date"].includes(name)) {
+      const ok = window.confirm("Este evento já possui vendas. Alterar data ou horário pode afetar participantes. Deseja continuar?");
+      if (!ok) return;
+    }
     setForm((current) => ({ ...current, [name]: name === "uf" ? value.toUpperCase().slice(0, 2) : value }));
-    setFieldErrors((current) => {
-      if (!current[name]) return current;
-      const next = { ...current };
-      delete next[name];
-      return next;
-    });
+    setFieldErrors((current) => ({ ...current, [name]: undefined }));
   };
 
   const chooseImage = (event) => {
     const file = event.target.files?.[0] || null;
-    if (file && file.size > 5 * 1024 * 1024) {
-      setFieldErrors((current) => ({ ...current, image: ["A imagem do evento deve ter no máximo 5 MB."] }));
-      return;
-    }
-    if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { setError("A imagem deve ter no máximo 5 MB."); return; }
     setImage(file);
-    if (file) setPreview(URL.createObjectURL(file));
+    setPreview((current) => {
+      if (current?.startsWith("blob:")) URL.revokeObjectURL(current);
+      return URL.createObjectURL(file);
+    });
   };
 
-  useEffect(() => {
-    const handleGeneratedCover = (event) => {
-      const file = event?.detail?.file;
-      if (!(file instanceof File)) return;
-      if (file.size > 5 * 1024 * 1024) {
-        setFieldErrors((current) => ({ ...current, image: ["A imagem do evento deve ter no máximo 5 MB."] }));
-        return;
-      }
-      setImage(file);
-      setFieldErrors((current) => {
-        if (!current.image) return current;
-        const next = { ...current };
-        delete next.image;
-        return next;
-      });
-      setPreview((current) => {
-        if (current?.startsWith("blob:")) URL.revokeObjectURL(current);
-        return URL.createObjectURL(file);
-      });
-    };
-    window.addEventListener("cutinapp:event-cover-selected", handleGeneratedCover);
-    return () => window.removeEventListener("cutinapp:event-cover-selected", handleGeneratedCover);
-  }, []);
-
-  const saveChanges = async () => {
-    setError("");
-    setSuccess("");
-    setFieldErrors({});
-    if (!eventIsValid(form)) {
-      setError(dateInvalid ? "O término do evento precisa ser posterior ao início." : "Revise os campos destacados antes de salvar.");
-      return;
-    }
-
-    try {
-      await persistEvent(form, { includeImage: true, silent: false });
-    } catch {
-      // persistEvent já apresenta o erro correto na tela.
-    }
-  };
-
-  const submit = async (event) => {
-    event.preventDefault();
-    await saveChanges();
-  };
-
-  const handleFormBlur = (event) => {
-    const element = event.target;
-    if (!element || element.type === "file" || element.type === "submit" || element.type === "button") return;
-    flushAutoSave();
+  const saveNow = async () => {
+    if (!validForm(form)) { setError("Revise nome, descrição, endereço, datas, UF e capacidade antes de salvar."); return; }
+    try { await persist(form, { includeImage: true }); } catch { /* exibido por persist */ }
   };
 
   const togglePublication = async () => {
-    setPublishing(true);
-    setError("");
-    setSuccess("");
+    setPublishing(true); setError(""); setSuccess("");
     try {
-      const response = eventData?.is_published
-        ? await cutinappService.unpublishEvent(id)
-        : await cutinappService.publishEvent(id);
-      setEventData(response.event);
-      setSuccess(response.message || (response.event?.is_published ? "Evento publicado." : "Evento retirado da publicação."));
-      await loadEvent();
+      if (!eventData?.is_published && readiness < 70) {
+        setError("Conclua os itens essenciais do evento antes de publicar.");
+        return;
+      }
+      const response = eventData?.is_published ? await cutinappService.unpublishEvent(id) : await cutinappService.publishEvent(id);
+      applyEvent(response?.event || await eventService.show(id));
+      setSuccess(response?.message || (eventData?.is_published ? "Evento retirado da publicação." : "Evento publicado."));
     } catch (err) {
-      setFieldErrors(err?.errors || {});
-      setError(err?.message || "Não foi possível alterar a publicação do evento.");
-    } finally {
-      setPublishing(false);
-    }
-  };
-
-  const publishFromActivation = () => {
-    try {
-      window.PeterTecnetTelemetry?.track?.("producer_fast_publish_started", {
-        label: "Produtor iniciou publicação direta após criar o primeiro lote",
-        target: String(eventData?.id || id),
-        metadata: {
-          event_id: Number(eventData?.id || id),
-          activation_stage: "publish_event",
-          next_step: "first_sale",
-          ticket_lots: Number(eventData?.tickets_count || 0),
-        },
-      });
-    } catch {
-      // Telemetry must never interrupt producer activation.
-    }
-    togglePublication();
-  };
-
-  const shareForFirstSale = () => {
-    const url = buildFirstSaleShareUrl(eventData);
-    if (!url) {
-      setError("Publique o evento antes de compartilhar a página de vendas.");
-      return;
-    }
-
-    const message = `${eventData?.title || "Meu evento"} já está na Cutinapp. Garanta seu ingresso: ${url}`;
-    try {
-      window.PeterTecnetTelemetry?.track?.("producer_first_sale_share_started", {
-        label: "Produtor iniciou divulgação após publicar o primeiro evento",
-        target: eventData?.slug || String(eventData?.id || id),
-        metadata: {
-          event_id: Number(eventData?.id || id),
-          activation_stage: "first_sale",
-          next_step: "first_sale",
-          channel: "whatsapp",
-        },
-      });
-    } catch {
-      // Telemetry must never interrupt producer activation.
-    }
-
-    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
+      setError(friendlyError(err, "Não foi possível alterar a publicação do evento."));
+    } finally { setPublishing(false); }
   };
 
   const selectProductionItem = (value) => {
-    const selected = productionItems.find((item) => String(item.id) === String(value));
-    setItemForm((current) => {
-      if (!selected) return { ...current, source_item_id: value };
-      const catalogPrice = Number(selected.price);
-      const catalogStock = Number(selected.stock);
-      return {
-        source_item_id: value,
-        price: current.price || (Number.isFinite(catalogPrice) && catalogPrice > 0 ? catalogPrice.toFixed(2) : ""),
-        quantity: current.quantity || (Number.isInteger(catalogStock) && catalogStock >= 0 ? String(catalogStock) : ""),
-      };
+    const item = productionItems.find((row) => String(row.id) === String(value));
+    setItemForm({
+      source_item_id: value,
+      price: item?.price !== undefined ? Number(item.price || 0).toFixed(2) : "",
+      quantity: item?.stock !== undefined && item?.stock !== null ? String(item.stock) : "",
     });
   };
 
   const saveAddOn = async () => {
-    const price = Number(itemForm.price);
-    const quantity = Number(itemForm.quantity);
-    if (!selectedProductionItem) {
-      setError("Selecione um item já cadastrado no catálogo da produção.");
-      return;
-    }
-    if (!Number.isFinite(price) || price < 0.01 || !Number.isInteger(quantity) || quantity < 0) {
-      setError("Informe preço válido e estoque inteiro para o item selecionado.");
-      return;
-    }
-    if (eventItems.some((item) => String(item.name || "").trim().toLowerCase() === String(selectedProductionItem.name || "").trim().toLowerCase())) {
-      setError("Este item já está disponível neste evento.");
-      return;
-    }
-
-    setItemSaving(true);
-    setError("");
-    setSuccess("");
+    const price = Number(itemForm.price); const quantity = Number(itemForm.quantity);
+    if (!selectedProductionItem) { setError("Selecione um item da produção."); return; }
+    if (!Number.isFinite(price) || price < 0 || !Number.isInteger(quantity) || quantity < 0) { setError("Informe preço e estoque válidos."); return; }
+    setItemSaving(true); setError("");
     try {
       const response = await commerceService.saveEventItem(id, {
         source_item_id: Number(selectedProductionItem.id),
@@ -473,395 +300,162 @@ export default function EventUpdatePage() {
         quantity,
         is_active: true,
       });
+      if (response?.item) setEventItems((rows) => [...rows.filter((row) => row.id !== response.item.id), response.item]);
       setItemForm({ source_item_id: "", price: "", quantity: "" });
-      if (eventData?.is_published && eventData?.slug) await loadEventItems();
-      else if (response?.item) setEventItems((current) => [...current.filter((item) => item.id !== response.item.id), response.item]);
-      setSuccess("Item do catálogo disponível para pré-venda neste evento.");
-      try {
-        window.PeterTecnetTelemetry?.track?.("producer_event_addon_created", {
-          label: "Item do catálogo vinculado ao evento",
-          target: String(id),
-          metadata: {
-            event_id: Number(id),
-            source_item_id: Number(selectedProductionItem.id),
-            price,
-            quantity,
-            gross_potential: Number((price * quantity).toFixed(2)),
-            suggested_price: hasSuggestedAddOnPrice ? suggestedAddOnPrice : null,
-            suggestion_source: hasSuggestedAddOnPrice ? suggestedAddOnSource : null,
-            accepted_suggested_price: hasSuggestedAddOnPrice ? Math.abs(price - suggestedAddOnPrice) < 0.01 : null,
-            suggested_stock: hasSuggestedAddOnStock ? suggestedAddOnStock : null,
-            accepted_suggested_stock: hasSuggestedAddOnStock ? quantity === suggestedAddOnStock : null,
-            suggested_net_margin: hasSuggestedAddOnNetMargin ? suggestedAddOnNetMargin : null,
-            estimated_net_platform_revenue: hasSuggestedAddOnNetMargin
-              ? Number((price * quantity * (suggestedAddOnNetMargin / 100)).toFixed(2))
-              : null,
-          },
-        });
-      } catch { /* Telemetria nunca bloqueia monetização. */ }
-    } catch (err) {
-      setError(err?.message || "Não foi possível disponibilizar o item neste evento.");
-    } finally {
-      setItemSaving(false);
-    }
+      setSuccess("Item adicionado à pré-venda e ao checkout deste evento.");
+      if (eventData?.slug && eventData?.is_published) await loadEventItems();
+    } catch (err) { setError(friendlyError(err, "Não foi possível adicionar este item ao evento.")); }
+    finally { setItemSaving(false); }
   };
 
   const removeAddOn = async (item) => {
-    setItemBusyId(item.id);
-    setError("");
-    setSuccess("");
+    setBusyItemId(item.id); setError("");
     try {
       await commerceService.deleteEventItem(id, item.id);
-      setEventItems((current) => current.filter((entry) => entry.id !== item.id));
-      if (eventData?.is_published && eventData?.slug) await loadEventItems();
-      setSuccess("Item removido das novas vendas deste evento.");
-    } catch (err) {
-      setError(err?.message || "Não foi possível remover o item do evento.");
-    } finally {
-      setItemBusyId(null);
-    }
+      setEventItems((rows) => rows.filter((row) => row.id !== item.id));
+      setSuccess("Item removido das novas vendas.");
+    } catch (err) { setError(friendlyError(err, "Não foi possível remover o item.")); }
+    finally { setBusyItemId(null); }
   };
 
-  const fieldError = (field) => {
-    const value = fieldErrors?.[field];
-    return Array.isArray(value) ? value[0] : value || "";
+  const createCoupon = async () => {
+    const organizationId = Number(eventData?.production_id || 0);
+    const value = Number(couponForm.discount_value);
+    if (!organizationId || !couponForm.code.trim() || !Number.isFinite(value) || value <= 0) { setError("Informe código e desconto válidos."); return; }
+    setCouponSaving(true); setError("");
+    try {
+      const coupon = await commerceService.createCoupon(organizationId, {
+        code: couponForm.code.trim().toUpperCase(),
+        discount_type: couponForm.discount_type,
+        discount_value: value,
+        event_id: Number(id),
+        is_active: true,
+      });
+      setCoupons((rows) => [coupon, ...rows]);
+      setCouponForm({ code: "", discount_type: "percentage", discount_value: "" });
+      setSuccess("Cupom criado para a divulgação do evento.");
+    } catch (err) { setError(friendlyError(err, "Não foi possível criar o cupom.")); }
+    finally { setCouponSaving(false); }
   };
 
-  if (loading) return <div className="cut-app-page"><NavlogComponent /><ProcessingIndicatorComponent label="Carregando evento" /></div>;
+  const duplicateNextWeek = async () => {
+    const base = new Date(eventData?.start_date || Date.now()); base.setDate(base.getDate() + 7);
+    try {
+      const response = await eventService.duplicate(id, base.toISOString().slice(0, 10));
+      const nextId = response?.event?.id || response?.id;
+      setSuccess("Evento duplicado para a próxima semana.");
+      if (nextId) navigate(`/event/edit/${nextId}`);
+    } catch (err) { setError(friendlyError(err, "Não foi possível duplicar o evento.")); }
+  };
 
-  return (
-    <div className="cut-app-page cut-event-view-page cut-event-editor-page" onBlur={handleFormBlur}>
-      <NavlogComponent />
-      {(publishing || (saving && image)) && <ProcessingIndicatorComponent label={publishing ? "Atualizando publicação" : "Salvando imagem do evento"} />}
+  const copyLink = async () => {
+    if (!publicUrl) { setError("Publique o evento para gerar o link público."); return; }
+    try { await navigator.clipboard.writeText(publicUrl); setSuccess("Link copiado."); }
+    catch { setError("Não foi possível copiar automaticamente. Abra a página pública e copie o endereço."); }
+  };
+  const shareWhatsapp = () => {
+    if (!publicUrl) { setError("Publique o evento antes de compartilhar."); return; }
+    window.open(`https://wa.me/?text=${encodeURIComponent(`${form?.title || "Evento"} — ${publicUrl}`)}`, "_blank", "noopener,noreferrer");
+  };
 
-      {form && <>
-        <section className="cut-event-banner-stage cut-event-editor-banner-stage" aria-label="Editar imagem do evento">
-          <Container className="cut-page-container">
-            <div className={`cut-event-banner-frame cut-event-editor-media ${fieldError("image") ? "is-invalid" : ""}`}>
-              {preview ? (
-                <img src={preview} alt={`Banner de ${form.title || "evento"}`} />
-              ) : (
-                <div className="cut-event-banner-placeholder"><i className="fa-regular fa-image" aria-hidden="true" /></div>
-              )}
-              <div className="cut-event-editor-media__actions">
-                <label className="btn btn-light mb-0">
-                  <i className="fa-solid fa-camera me-2" />Trocar imagem
-                  <input name="image" data-event-image-input="true" type="file" accept="image/png,image/jpeg,image/webp" onChange={chooseImage} hidden />
-                </label>
-                <Button type="button" variant="outline-light" onClick={() => window.dispatchEvent(new CustomEvent("cutinapp:open-event-flyer"))}>
-                  <i className="fa-solid fa-wand-magic-sparkles me-2" />Gerar com IA
-                </Button>
-              </div>
-              {fieldError("image") && <div className="cut-event-editor-media__error">{fieldError("image")}</div>}
-            </div>
-          </Container>
-        </section>
+  const scrollSection = (key) => {
+    setSection(key);
+    requestAnimationFrame(() => document.getElementById(`event-editor-${key}`)?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  };
 
-        <section className="cut-event-summary-strip">
-          <Container className="cut-page-container">
-            <div className="cut-event-summary-card cut-event-editor-summary-card">
-              <div className="cut-event-summary-card__content">
-                <div className="d-flex flex-wrap gap-2 mb-3">
-                  <Badge bg="info" text="dark"><i className="fa-solid fa-pen me-1" />Modo de edição</Badge>
-                  <Badge bg={autoSaveStatus === "error" ? "danger" : autoSaveStatus === "dirty" ? "warning" : autoSaveStatus === "saving" ? "info" : "success"}>{autosaveLabel(autoSaveStatus)}</Badge>
-                  {eventData?.category && <Badge bg="dark">{eventData.category}</Badge>}
-                  <Badge bg={eventData?.is_published ? "success" : "secondary"}>{eventData?.is_published ? "Publicado" : "Rascunho"}</Badge>
-                </div>
+  if (loading) return <div className="cut-app-page"><NavlogComponent /><ProcessingIndicatorComponent label="Carregando gerenciador do evento" /></div>;
+  if (!form) return <div className="cut-app-page"><NavlogComponent /><Container className="py-5"><Alert variant="danger">{error || "Evento não encontrado."}</Alert></Container></div>;
 
-                <div className="cut-event-editor-field cut-event-editor-field--hero">
-                  <span className="cut-event-editor-field__label">Nome do evento</span>
-                  <Form.Control
-                    className="cut-event-editor-title"
-                    name="title"
-                    value={form.title}
-                    onChange={change}
-                    placeholder="Nome do evento"
-                    isInvalid={Boolean(fieldError("title"))}
-                    aria-label="Nome do evento"
-                  />
-                  {fieldError("title") && <div className="invalid-feedback d-block">{fieldError("title")}</div>}
-                </div>
+  return <div className="cut-app-page cut-event-manager-v2" onBlur={(e) => { if (!e.target?.closest("button") && e.target?.type !== "file") flushAutoSave(); }}>
+    <NavlogComponent />
+    {(publishing || (saving && image)) && <ProcessingIndicatorComponent label={publishing ? "Atualizando publicação" : "Salvando evento"} />}
 
-                {eventData?.production?.name && <div className="cut-inline-profile-link cut-event-editor-production">Por {eventData.production.name}</div>}
+    <header className="cev2-hero">
+      <Container className="cut-page-container">
+        <div className="cev2-hero-grid">
+          <div><span className="cev2-eyebrow">Gerenciador do evento</span><h1 className="cev2-title">{form.title || "Evento sem nome"}</h1><p className="cev2-sub">Edite, monetize, divulgue e acompanhe tudo em um só lugar.</p></div>
+          <div className="cev2-status"><span className="cev2-pill">{eventData?.is_published ? "Publicado" : "Rascunho"}</span><span className="cev2-pill">{autoSaveStatus === "saving" ? "Salvando…" : autoSaveStatus === "error" ? "Falha no autosave" : "Autosave ativo"}</span><EventHealthBadge event={eventData || {}} /></div>
+        </div>
+      </Container>
+    </header>
 
-                <div className="cut-event-summary-card__meta cut-event-editor-summary-meta">
-                  <div className="cut-event-editor-meta-row">
-                    <i className="fa-regular fa-calendar" aria-hidden="true" />
-                    <div className="cut-event-editor-field">
-                      <span className="cut-event-editor-field__label">Data e hora que aparecem no topo</span>
-                      <Form.Control
-                        type="datetime-local"
-                        min={!eventData?.is_published ? minNow() : undefined}
-                        name="start_date"
-                        value={form.start_date}
-                        onChange={change}
-                        isInvalid={Boolean(fieldError("start_date"))}
-                      />
-                      <small>{form.start_date ? formatDate(form.start_date) : "Defina o início do evento"}</small>
-                      {fieldError("start_date") && <div className="invalid-feedback d-block">{fieldError("start_date")}</div>}
-                    </div>
-                  </div>
-                  <div className="cut-event-editor-meta-row">
-                    <i className="fa-solid fa-location-dot" aria-hidden="true" />
-                    <div className="cut-event-editor-field">
-                      <span className="cut-event-editor-field__label">Local que aparece no topo</span>
-                      <Form.Control name="venue" value={form.venue} onChange={change} placeholder="Nome do local" />
-                      <div className="cut-event-editor-inline-location">
-                        <Form.Control name="city" value={form.city} onChange={change} placeholder="Cidade" />
-                        <Form.Control name="uf" maxLength={2} value={form.uf} onChange={change} placeholder="UF" isInvalid={ufInvalid} />
-                      </div>
-                      {ufInvalid && <div className="invalid-feedback d-block">Informe a UF com 2 letras.</div>}
-                    </div>
-                  </div>
-                </div>
-                {lastSavedAt && <small className="cut-event-editor-last-saved">Último salvamento: {lastSavedAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</small>}
-              </div>
+    <nav className="cev2-tabs" aria-label="Seções do evento"><Container className="cut-page-container"><div className="cev2-tabs-inner">{SECTIONS.map(([key,label,icon]) => <button key={key} type="button" className={`cev2-tab ${section===key?"is-active":""}`} onClick={() => scrollSection(key)}><i className={`${icon} me-2`} />{label}</button>)}</div></Container></nav>
 
-              <div className="cut-card-actions cut-event-summary-card__actions cut-event-editor-actions">
-                <Button type="button" variant="light" onClick={saveChanges} disabled={!canSave}>
-                  <i className="fa-solid fa-check me-2" />{image ? "Salvar imagem agora" : autoSaveStatus === "saving" ? "Salvando..." : "Salvar agora"}
-                </Button>
-                {eventData?.is_published && eventData?.slug && <Button type="button" variant="outline-light" onClick={() => navigate(`/event/${eventData.slug}`)}><i className="fa-solid fa-arrow-up-right-from-square me-2" />Ver página pública</Button>}
-                <Button type="button" variant="outline-light" onClick={() => navigate("/event/manage")}><i className="fa-solid fa-arrow-left me-2" />Voltar</Button>
-              </div>
-            </div>
-          </Container>
-        </section>
+    <Container className="cut-page-container cev2-main">
+      {error && <Alert variant="danger" dismissible onClose={() => setError("")}>{error}</Alert>}
+      {!error && success && <Alert variant="success" dismissible onClose={() => setSuccess("")}>{success}</Alert>}
+      {hasSales && <div className="cev2-card cev2-danger-note"><strong>Evento com vendas.</strong> Alterações críticas de data e horário exigem confirmação para proteger quem já comprou.</div>}
 
-        <Container className="cut-page-container py-4 py-lg-5">
-          <Alert variant="info" className="cut-event-editor-guide mb-4">
-            <i className="fa-solid fa-eye me-2" />Você está editando o evento na mesma hierarquia da página pública. Cada campo está no bloco em que o participante verá essa informação.
-          </Alert>
-          {error && <Alert variant="danger">{error}</Alert>}
-          {success && <Alert variant="success">{success}</Alert>}
-
-          {isFirstTicketActivation && eventData && (
-            <Card className="cut-panel mb-4">
-              <Card.Body className="p-4 p-lg-5">
-                <div className="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-4">
-                  <div>
-                    <span className="cut-eyebrow">Próximo passo</span>
-                    <h2 className="cut-section-title mt-2 mb-2">{eventData.is_published ? "Seu evento já está à venda" : "Seu primeiro lote está pronto"}</h2>
-                    <p className="text-secondary mb-0">
-                      {eventData.is_published
-                        ? "A página pública está liberada. Agora compartilhe o evento para acelerar a primeira venda."
-                        : "Publique agora para liberar a página de vendas. Você pode continuar ajustando os detalhes do evento depois."}
-                    </p>
-                  </div>
-                  <div className="d-grid gap-2" style={{ minWidth: 250 }}>
-                    {!eventData.is_published ? (
-                      <Button type="button" size="lg" onClick={publishFromActivation} disabled={publishing || eventData.is_cancelled || sellableTicketCount(eventData) <= 0}>
-                        <i className="fa-solid fa-rocket me-2" />Publicar e começar a vender
-                      </Button>
-                    ) : eventData.slug ? (
-                      <>
-                        <Button type="button" size="lg" variant="success" onClick={shareForFirstSale}><i className="fa-brands fa-whatsapp me-2" />Compartilhar e buscar a primeira venda</Button>
-                        <Button type="button" variant="outline-light" onClick={() => navigate(`/event/${eventData.slug}`)}>Abrir página de vendas</Button>
-                      </>
-                    ) : null}
-                  </div>
-                </div>
-              </Card.Body>
-            </Card>
-          )}
-
-          <section id="ingressos" className="cut-ticket-shop-section mb-5">
-            <div className="cut-ticket-shop-section__heading">
-              <span className="cut-eyebrow">Tickets</span>
-              <h2 className="cut-section-title mt-2 mb-1">Ingressos</h2>
-              <p className="text-secondary mb-0">Este bloco ocupa o mesmo lugar em que os participantes escolhem seus ingressos na página pública.</p>
-            </div>
-            <Card className="cut-panel cut-event-editor-ticket-card mt-3">
-              <Card.Body className="p-4">
-                <div className="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
-                  <div>
-                    <strong className="d-block fs-5">{eventData?.tickets_count || 0} lote(s) configurado(s)</strong>
-                    <span className="text-secondary">Gerencie os lotes sem perder a referência de onde a compra aparece na view do evento.</span>
-                  </div>
-                  <div className="cut-card-actions">
-                    <Button type="button" variant="outline-light" onClick={() => navigate(`/event/${id}/courtesies`)}>Gerenciar ingressos</Button>
-                    <Button type="button" onClick={() => navigate(`/ticket/create?eventId=${id}`)}>Criar novo lote</Button>
-                  </div>
-                </div>
-              </Card.Body>
-            </Card>
+      <div className="cev2-grid">
+        <main>
+          <section id="event-editor-overview" className="cev2-card">
+            <div className="cev2-kicker"><div><span className="cev2-eyebrow">Visão geral</span><h2>Saúde e operação</h2></div><strong>{readiness}% pronto</strong></div>
+            <div className="cev2-progress mb-4"><span style={{ width: `${readiness}%` }} /></div>
+            <div className="cev2-metrics mb-4"><div className="cev2-metric"><small>Faturamento</small><strong>{money(metrics.grossSales)}</strong></div><div className="cev2-metric"><small>Ingressos vendidos</small><strong>{metrics.ticketsSold || 0}</strong></div><div className="cev2-metric"><small>Visualizações</small><strong>{metrics.views || 0}</strong></div><div className="cev2-metric"><small>Conversão</small><strong>{Number(metrics.conversionRate || 0).toLocaleString("pt-BR",{maximumFractionDigits:1})}%</strong></div></div>
+            <div className="cev2-health"><div className="cev2-health-score" style={{ "--health": `${health.score}%` }}><span>{health.score}</span></div><div><h2>Checklist de publicação</h2><div className="cev2-checklist">{checks.map(([ok,label]) => <span key={label} className={`cev2-check ${ok?"is-ok":""}`}><i className={ok?"fa-solid fa-circle-check":"fa-regular fa-circle"} />{label}</span>)}</div></div></div>
           </section>
 
-          <Row className="g-4">
-            <Col lg={8}>
-              <Card className="cut-panel mb-4 cut-event-editor-panel">
-                <Card.Body className="p-4 p-lg-5">
-                  <span className="cut-eyebrow">Sobre o evento</span>
-                  <h2 className="cut-section-title mt-2">Informações</h2>
-                  <div className="cut-event-editor-field mb-4">
-                    <span className="cut-event-editor-field__label">Descrição exibida neste bloco</span>
-                    <Form.Control
-                      as="textarea"
-                      rows={8}
-                      name="description"
-                      value={form.description}
-                      onChange={change}
-                      isInvalid={Boolean(fieldError("description"))}
-                      placeholder="Conte a experiência do evento"
-                    />
-                    <Form.Control.Feedback type="invalid">{fieldError("description")}</Form.Control.Feedback>
-                  </div>
+          <section id="event-editor-info" className="cev2-card">
+            <span className="cev2-eyebrow">Informações</span><h2>Dados essenciais</h2><p>Validação acontece enquanto você edita; dados válidos são salvos automaticamente.</p>
+            <div className="cev2-form-grid">
+              <div className="cev2-field is-wide"><label>Nome do evento</label><Form.Control name="title" value={form.title} onChange={change} isInvalid={Boolean(fieldErrors?.title)} /></div>
+              <div className="cev2-field is-wide"><label>Descrição</label><Form.Control as="textarea" name="description" value={form.description} onChange={change} /></div>
+              <div className="cev2-field"><label>Início</label><Form.Control type="datetime-local" name="start_date" value={form.start_date} onChange={change} /></div>
+              <div className="cev2-field"><label>Término</label><Form.Control type="datetime-local" name="end_date" value={form.end_date} onChange={change} /></div>
+              <div className="cev2-field"><label>Local</label><Form.Control name="venue" value={form.venue} onChange={change} placeholder="Nome do espaço" /></div>
+              <div className="cev2-field"><label>Endereço</label><Form.Control name="address" value={form.address} onChange={change} /></div>
+              <div className="cev2-field"><label>Cidade</label><Form.Control name="city" value={form.city} onChange={change} /></div>
+              <div className="cev2-field"><label>UF</label><Form.Control name="uf" maxLength={2} value={form.uf} onChange={change} /></div>
+              <div className="cev2-field is-wide"><label>Google Maps</label><Form.Control name="google_maps_url" value={form.google_maps_url} onChange={change} placeholder="Link do mapa" /></div>
+            </div>
+          </section>
 
-                  <div className="cut-event-details cut-event-editor-details">
-                    <div><i className="fa-regular fa-calendar" /><span><strong>Início</strong>{form.start_date ? formatDate(form.start_date) : "Não informado"}</span></div>
-                    <div className="cut-event-editor-detail-input">
-                      <i className="fa-regular fa-clock" />
-                      <span>
-                        <strong>Término</strong>
-                        <Form.Control type="datetime-local" min={form.start_date || undefined} name="end_date" value={form.end_date} onChange={change} isInvalid={dateInvalid || Boolean(fieldError("end_date"))} />
-                        {(dateInvalid || fieldError("end_date")) && <small className="text-danger">{fieldError("end_date") || "O término precisa ser posterior ao início."}</small>}
-                      </span>
-                    </div>
-                    <div><i className="fa-solid fa-location-dot" /><span><strong>Local</strong>{form.venue || form.address || "Não informado"}</span></div>
-                    <div><i className="fa-solid fa-map" /><span><strong>Cidade</strong>{form.city ? `${form.city}${form.uf ? ` - ${form.uf}` : ""}` : "Não informada"}</span></div>
-                  </div>
-                </Card.Body>
-              </Card>
+          <section id="event-editor-media" className="cev2-card cev2-flyer-safe-zone">
+            <span className="cev2-eyebrow">Arte e mídia</span><h2>Flyer e capa</h2><p>Use IA ou envie sua própria arte. A IA agora tolera gerações longas e repete falhas transitórias sem duplicar a solicitação.</p>
+            <div className="cev2-cover">{preview ? <img src={preview} alt={`Capa de ${form.title}`} /> : <span className="cev2-cover-placeholder"><i className="fa-regular fa-image" /></span>}</div>
+            <div className="cev2-actions"><Button onClick={() => window.dispatchEvent(new CustomEvent("cutinapp:open-event-flyer"))}><i className="fa-solid fa-wand-magic-sparkles me-2" />Creative Studio</Button><Form.Label className="btn btn-outline-light mb-0"><i className="fa-solid fa-upload me-2" />Enviar imagem<Form.Control type="file" accept="image/png,image/jpeg,image/webp" onChange={chooseImage} hidden /></Form.Label>{image && <Button variant="success" onClick={saveNow}>Aplicar arte</Button>}</div>
+            <small className="cev2-help d-block mt-3">Capa recomendada 16:9. No Creative Studio você pode gerar propostas e escolher a melhor versão.</small>
+          </section>
 
-              <Card className="cut-panel cut-event-editor-map-card">
-                <Card.Body className="p-4 p-lg-5">
-                  <div className="d-flex flex-column flex-lg-row justify-content-between gap-3 mb-4">
-                    <div>
-                      <span className="cut-eyebrow">Localização</span>
-                      <h2 className="cut-section-title mt-2 mb-1">Mapa do evento</h2>
-                      <p className="text-secondary mb-0">O mapa abaixo é o mesmo bloco exibido ao participante.</p>
-                    </div>
-                  </div>
-                  <Row className="g-3 mb-4">
-                    <Col xs={12}>
-                      <Form.Group>
-                        <Form.Label>Endereço *</Form.Label>
-                        <Form.Control name="address" value={form.address} onChange={change} isInvalid={Boolean(fieldError("address"))} placeholder="Rua, número, bairro" />
-                        <Form.Control.Feedback type="invalid">{fieldError("address")}</Form.Control.Feedback>
-                      </Form.Group>
-                    </Col>
-                    <Col xs={12}>
-                      <Form.Group>
-                        <Form.Label>Link do Google Maps</Form.Label>
-                        <Form.Control type="url" name="google_maps_url" value={form.google_maps_url} onChange={change} placeholder="https://maps.app.goo.gl/..." isInvalid={Boolean(fieldError("google_maps_url"))} />
-                        <Form.Control.Feedback type="invalid">{fieldError("google_maps_url")}</Form.Control.Feedback>
-                      </Form.Group>
-                    </Col>
-                  </Row>
-                  {mapEmbedUrl ? (
-                    <iframe title={`Mapa de ${form.title || "evento"}`} src={mapEmbedUrl} width="100%" height="360" style={{ border: 0, display: "block" }} loading="lazy" referrerPolicy="no-referrer-when-downgrade" allowFullScreen />
-                  ) : (
-                    <div className="cut-event-editor-map-placeholder"><i className="fa-solid fa-map-location-dot" /><span>Preencha o endereço para visualizar o mapa.</span></div>
-                  )}
-                </Card.Body>
-              </Card>
-            </Col>
+          <section id="event-editor-tickets" className="cev2-card">
+            <span className="cev2-eyebrow">Ingressos</span><h2>Lotes e acesso</h2><p>Ingresso gratuito usa o mesmo fluxo do pagante, com preço zero. Gerencie lotes, limites e disponibilidade sem criar um fluxo paralelo.</p>
+            <EventMetrics event={eventData || {}} />
+            <div className="cev2-actions mt-3"><Button onClick={() => navigate(`/ticket/create?eventId=${id}`)}>Criar lote</Button><Button variant="outline-light" onClick={() => navigate(`/event/${id}/courtesies`)}>Gerenciar ingressos</Button><Button variant="outline-light" onClick={() => navigate(`/event/${id}/participants`)}>Participantes</Button></div>
+          </section>
 
-            <Col lg={4}>
-              <Card className="cut-panel mb-4 cut-event-editor-management">
-                <Card.Body className="p-4">
-                  <div className="d-flex justify-content-between gap-3 align-items-start">
-                    <div><span className="cut-eyebrow">Gestão</span><h2 className="cut-section-title mt-2">Publicação</h2></div>
-                    <Badge bg={eventData?.is_published ? "success" : "secondary"}>{eventData?.is_published ? "Publicado" : "Rascunho"}</Badge>
-                  </div>
-                  <div className="cut-info-box mt-3">
-                    <strong>{eventData?.tickets_count || 0} lote(s) configurado(s)</strong>
-                    <span>{sellableTicketCount(eventData) > 0 ? "Há ingresso disponível para venda. Revise os campos da página e publique quando estiver pronto." : Number(eventData?.tickets_count || 0) > 0 ? "Os lotes existentes estão sem estoque ou com vendas encerradas. Crie ou ajuste um lote antes de publicar." : "Crie pelo menos um lote de ingresso antes de publicar."}</span>
-                  </div>
-                  <div className="d-grid gap-2 mt-3">
-                    <Button type="button" onClick={saveChanges} disabled={!canSave}><i className="fa-solid fa-check me-2" />{image ? "Salvar imagem agora" : "Salvar agora"}</Button>
-                    <Button type="button" variant="outline-light" onClick={togglePublication} disabled={publishing || eventData?.is_cancelled || (!eventData?.is_published && sellableTicketCount(eventData) <= 0)}>{eventData?.is_published ? "Retirar da publicação" : "Publicar evento"}</Button>
-                    {eventData?.is_published && eventData?.slug && <Button type="button" variant="outline-light" onClick={() => navigate(`/event/${eventData.slug}`)}>Abrir página pública</Button>}
-                    {eventData?.is_published && <Button type="button" variant="outline-light" onClick={() => navigate(`/checkin?eventId=${id}`)}>Abrir portaria</Button>}
-                  </div>
-                </Card.Body>
-              </Card>
+          <section id="event-editor-products" className="cev2-card">
+            <span className="cev2-eyebrow">Monetização</span><h2>Adicionais, pré-venda, combos e upsell</h2><p>Selecione itens já cadastrados na produção para aparecerem no mesmo checkout do ingresso.</p>
+            {productionItemsState === "loading" && <div className="cev2-state is-info"><Spinner size="sm" className="me-2" />Carregando catálogo da produção…</div>}
+            {productionItemsState === "error" && <div className="cev2-state is-error"><strong>{productionItemsError}</strong><div className="mt-2"><Button size="sm" variant="outline-light" onClick={loadProductionItems}>Tentar novamente</Button></div></div>}
+            {productionItemsState === "ready" && productionItems.length === 0 && <div className="cev2-state is-empty"><strong>Nenhum item cadastrado nesta produção.</strong><div>Cadastre itens no catálogo da produção e volte aqui para ativá-los no evento.</div></div>}
+            {productionItemsState === "ready" && productionItems.length > 0 && <div className="cev2-form-grid"><div className="cev2-field is-wide"><label>Item da produção</label><Form.Select value={itemForm.source_item_id} onChange={(e)=>selectProductionItem(e.target.value)}><option value="">Selecione…</option>{productionItems.map((item)=><option key={item.id} value={item.id}>{item.name}</option>)}</Form.Select></div><div className="cev2-field"><label>Preço no evento</label><Form.Control type="number" min="0" step="0.01" value={itemForm.price} onChange={(e)=>setItemForm((v)=>({...v,price:e.target.value}))} /></div><div className="cev2-field"><label>Estoque para pré-venda</label><Form.Control type="number" min="0" step="1" value={itemForm.quantity} onChange={(e)=>setItemForm((v)=>({...v,quantity:e.target.value}))} /></div><div className="is-wide"><Button onClick={saveAddOn} disabled={itemSaving}>{itemSaving?"Adicionando…":"Adicionar ao checkout"}</Button></div></div>}
+            {eventItemsLoading ? <div className="cev2-state is-info mt-3">Atualizando itens ativos…</div> : eventItems.length > 0 && <div className="cev2-item-list">{eventItems.map((item)=><div className="cev2-item" key={item.id}><div><strong>{item.name}</strong><small>{money(item.price)} · estoque {item.quantity ?? item.stock ?? "—"}</small></div><Button size="sm" variant="outline-danger" disabled={busyItemId===item.id} onClick={()=>removeAddOn(item)}>Remover</Button></div>)}</div>}
+          </section>
 
-              <Card className="cut-panel cut-event-editor-management">
-                <Card.Body className="p-4">
-                  <span className="cut-eyebrow">Dados complementares</span>
-                  <h2 className="cut-section-title mt-2">Contato e capacidade</h2>
-                  <div className="d-grid gap-3 mt-3">
-                    <Form.Group>
-                      <Form.Label>Capacidade</Form.Label>
-                      <Form.Control type="number" min="1" max="1000000" name="max_attendees" value={form.max_attendees} onChange={change} isInvalid={capacityInvalid || Boolean(fieldError("max_attendees"))} />
-                      <Form.Control.Feedback type="invalid">{fieldError("max_attendees") || "Use um valor maior que zero."}</Form.Control.Feedback>
-                    </Form.Group>
-                    <Form.Group>
-                      <Form.Label>E-mail de contato</Form.Label>
-                      <Form.Control type="email" name="contact_email" value={form.contact_email} onChange={change} isInvalid={Boolean(fieldError("contact_email"))} />
-                      <Form.Control.Feedback type="invalid">{fieldError("contact_email")}</Form.Control.Feedback>
-                    </Form.Group>
-                    <Form.Group>
-                      <Form.Label>Telefone de contato</Form.Label>
-                      <Form.Control name="contact_phone" value={form.contact_phone} onChange={change} />
-                    </Form.Group>
-                  </div>
-                </Card.Body>
-              </Card>
-            </Col>
-          </Row>
+          <section id="event-editor-program" className="cev2-card"><span className="cev2-eyebrow">Programação</span><h2>Horários e agenda semanal</h2><p>Organize atrações e reutilize o evento nas rotinas semanais da produção.</p><div className="cev2-actions"><Button onClick={()=>navigate(`/event/${id}/lineup`)}>Gerenciar programação e atrações</Button><Button variant="outline-light" onClick={()=>navigate("/event/manage")}>Agenda semanal</Button><Button variant="outline-light" onClick={duplicateNextWeek}>Duplicar +7 dias</Button></div></section>
 
-          <Form onSubmit={submit} noValidate>
-            <input type="hidden" name="production_id" value={form.production_id || ""} />
-            <Card className="cut-panel mt-4"><Card.Body className="p-4 p-lg-5">
-              <div className="d-flex flex-column flex-lg-row justify-content-between gap-3 align-items-lg-start mb-4">
-                <div>
-                  <span className="cut-eyebrow">Monetização do evento</span>
-                  <h2 className="cut-section-title mt-2">Adicionais e pré-venda</h2>
-                  <p className="text-secondary mb-0">Selecione itens e serviços já cadastrados na produção para vendê-los junto do ingresso. O valor entra no mesmo checkout e segue as taxas vigentes, sem cobrança escondida.</p>
-                </div>
-                <Badge bg={eventItems.length ? "success" : "secondary"}>{eventItems.length} adicional(is) ativo(s)</Badge>
-              </div>
+          <section id="event-editor-team" className="cev2-card"><span className="cev2-eyebrow">Equipe</span><h2>Artistas, promoters e colaboradores</h2><p>Centralize quem participa da operação e quem está associado artisticamente ao evento.</p><div className="cev2-actions"><Button onClick={()=>navigate(`/event/${id}/lineup`)}>Artistas e DJs</Button><Button variant="outline-light" onClick={()=>navigate(`/event/${id}/artist-claims`)}>Solicitações de artistas</Button><Button variant="outline-light" onClick={()=>navigate(`/event/${id}/participants`)}>Participantes</Button></div></section>
 
-              {hasSuggestedAddOnPrice && <Alert variant="info" className="mb-3"><strong>Sugestão baseada em vendas reais: {money(suggestedAddOnPrice)}{hasSuggestedAddOnStock ? ` com estoque inicial de ${suggestedAddOnStock}` : ""}.</strong> {suggestedAddOnSource === "event" ? "Usamos o valor médio dos adicionais já vendidos neste evento." : "Usamos o valor médio dos adicionais vendidos nos outros eventos desta produção."} {hasSuggestedAddOnStock ? "O estoque sugerido usa a oportunidade incremental estimada no painel e é limitado a 100 unidades." : ""} Preço e estoque são apenas pré-preenchidos: revise livremente antes de vincular o item.</Alert>}
+          <section id="event-editor-promotion" className="cev2-card">
+            <span className="cev2-eyebrow">Divulgação</span><h2>Compartilhamento, cupons e preview social</h2>
+            <div className="cev2-actions mb-4"><Button onClick={shareWhatsapp} disabled={!publicUrl}><i className="fa-brands fa-whatsapp me-2" />WhatsApp</Button><Button variant="outline-light" onClick={copyLink}>Copiar link</Button>{publicUrl && <Button variant="outline-light" onClick={()=>window.open(publicUrl,"_blank","noopener,noreferrer")}>Página pública</Button>}</div>
+            <div className="cev2-social-preview mb-4">{preview ? <img src={preview} alt="Prévia social" /> : <div style={{aspectRatio:"1.91/1",display:"grid",placeItems:"center"}}>Sem capa</div>}<div><small>cutinapp.petertecnet.com.br</small><strong className="d-block">{form.title || "Seu evento"}</strong><span>{String(form.description||"").slice(0,110)}{String(form.description||"").length>110?"…":""}</span></div></div>
+            <h2>Cupons</h2><div className="cev2-form-grid"><div className="cev2-field"><label>Código</label><Form.Control value={couponForm.code} onChange={(e)=>setCouponForm((v)=>({...v,code:e.target.value.toUpperCase()}))} placeholder="SEXTOU10" /></div><div className="cev2-field"><label>Tipo</label><Form.Select value={couponForm.discount_type} onChange={(e)=>setCouponForm((v)=>({...v,discount_type:e.target.value}))}><option value="percentage">Percentual</option><option value="fixed">Valor fixo</option></Form.Select></div><div className="cev2-field"><label>Desconto</label><Form.Control type="number" min="0" step="0.01" value={couponForm.discount_value} onChange={(e)=>setCouponForm((v)=>({...v,discount_value:e.target.value}))} /></div><div className="cev2-field d-flex align-items-end"><Button onClick={createCoupon} disabled={couponSaving}>{couponSaving?"Criando…":"Criar cupom"}</Button></div></div>{coupons.length>0 && <div className="cev2-item-list">{coupons.slice(0,6).map((coupon)=><div className="cev2-item" key={coupon.id||coupon.code}><div><strong>{coupon.code}</strong><small>{coupon.discount_type==="percentage"?`${coupon.discount_value}%`:money(coupon.discount_value)}</small></div><span className="cev2-pill">{coupon.is_active===false?"Inativo":"Ativo"}</span></div>)}</div>}
+          </section>
 
-              {productionItemsError && <Alert variant="danger">{productionItemsError}</Alert>}
-              {productionItemsLoading ? (
-                <div className="text-secondary">Carregando catálogo da produção...</div>
-              ) : productionItems.length === 0 ? (
-                <Alert variant="warning" className="mb-0"><strong>Nenhum item cadastrado na produção.</strong> Cadastre itens no catálogo da produção antes de disponibilizá-los neste evento. A criação de itens não é feita pela tela do evento.</Alert>
-              ) : (
-                <>
-                  <Row className="g-3 align-items-end">
-                    <Col lg={5} md={6}>
-                      <Form.Group>
-                        <Form.Label>Item da produção *</Form.Label>
-                        <Form.Select value={itemForm.source_item_id} onChange={(e) => selectProductionItem(e.target.value)}>
-                          <option value="">Selecione um item do catálogo</option>
-                          {productionItems.map((item) => {
-                            const alreadyAdded = eventItems.some((eventItem) => String(eventItem.name || "").trim().toLowerCase() === String(item.name || "").trim().toLowerCase());
-                            return <option key={item.id} value={item.id} disabled={alreadyAdded}>{item.name}{alreadyAdded ? " — já adicionado" : ""}</option>;
-                          })}
-                        </Form.Select>
-                        <Form.Text>Somente itens ativos e pertencentes a esta produção podem ser vinculados.</Form.Text>
-                      </Form.Group>
-                    </Col>
-                    <Col lg={3} md={3}><Form.Group><Form.Label>Preço no evento *</Form.Label><Form.Control type="number" min="0.01" step="0.01" value={itemForm.price} onChange={(e) => setItemForm((current) => ({ ...current, price: e.target.value }))} placeholder="0,00" /></Form.Group></Col>
-                    <Col lg={2} md={3}><Form.Group><Form.Label>Estoque no evento *</Form.Label><Form.Control type="number" min="0" step="1" value={itemForm.quantity} onChange={(e) => setItemForm((current) => ({ ...current, quantity: e.target.value }))} placeholder="0" /></Form.Group></Col>
-                    <Col lg={2} xs={12}><Button type="button" className="w-100" onClick={saveAddOn} disabled={itemSaving || !selectedProductionItem}>{itemSaving ? "Adicionando..." : "Adicionar ao evento"}</Button></Col>
-                  </Row>
+          <section id="event-editor-settings" className="cev2-card"><span className="cev2-eyebrow">Configurações avançadas</span><h2>Capacidade, contato e controles</h2><p>Opções menos usadas ficam agrupadas para manter a edição principal limpa.</p><div className="cev2-form-grid"><div className="cev2-field"><label>Capacidade máxima</label><Form.Control type="number" min="1" name="max_attendees" value={form.max_attendees} onChange={change} /></div><div className="cev2-field"><label>E-mail de contato</label><Form.Control type="email" name="contact_email" value={form.contact_email} onChange={change} /></div><div className="cev2-field"><label>Telefone de contato</label><Form.Control name="contact_phone" value={form.contact_phone} onChange={change} /></div></div><div className="cev2-actions mt-4"><Button variant={eventData?.is_published?"outline-warning":"success"} onClick={togglePublication} disabled={publishing}>{eventData?.is_published?"Retirar da publicação":"Publicar evento"}</Button></div></section>
+        </main>
 
-                  {selectedProductionItem && (
-                    <div className="cut-info-box mt-3">
-                      <strong>{selectedProductionItem.name}</strong>
-                      <span>Catálogo da produção: {money(selectedProductionItem.price)}{selectedProductionItem.stock !== null && selectedProductionItem.stock !== undefined ? ` · estoque ${Number(selectedProductionItem.stock || 0)}` : ""}</span>
-                      {selectedProductionItem.description && <small className="d-block text-secondary mt-1">{selectedProductionItem.description}</small>}
-                      <small className="d-block text-secondary mt-2">Nome e descrição vêm do catálogo da produção. Alterar preço ou estoque aqui afeta apenas a oferta deste evento e não modifica o item original.</small>
-                    </div>
-                  )}
+        <aside className="cev2-sidebar">
+          <div className="cev2-card"><h2>Atalhos</h2><div className="cev2-section-nav">{SECTIONS.map(([key,label,icon])=><button type="button" key={key} className={section===key?"is-active":""} onClick={()=>scrollSection(key)}><i className={`${icon} me-2`} />{label}</button>)}</div></div>
+          <div className="cev2-card"><h2>Operação</h2><div className="cev2-checklist"><span className="cev2-check is-ok"><i className="fa-solid fa-floppy-disk" />Autosave: {autoSaveStatus}</span>{lastSavedAt && <span className="cev2-check"><i className="fa-regular fa-clock" />Último save {lastSavedAt.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}</span>}<span className="cev2-check"><i className="fa-solid fa-layer-group" />{eventData?.tickets_count||0} lote(s)</span><span className="cev2-check"><i className="fa-solid fa-bag-shopping" />{eventItems.length} adicional(is)</span></div></div>
+          <div className="cev2-card"><h2>Histórico desta sessão</h2>{auditRows.length===0?<p className="mb-0">As alterações salvas aparecerão aqui.</p>:<div className="cev2-audit">{auditRows.map((row,index)=><div className="cev2-audit-row" key={`${row.at}-${index}`}><span>{row.label}</span><time>{row.at.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}</time></div>)}</div>}</div>
+        </aside>
+      </div>
+    </Container>
 
-                  {Number(itemForm.price) > 0 && Number(itemForm.quantity) >= 0 && <div className="cut-info-box mt-3"><strong>Potencial bruto deste estoque: {money(Number(itemForm.price) * Number(itemForm.quantity || 0))}</strong>{hasSuggestedAddOnNetMargin && <span>Receita líquida Peter Tecnet estimada: {money(Number(itemForm.price) * Number(itemForm.quantity || 0) * (suggestedAddOnNetMargin / 100))} · margem líquida observada {suggestedAddOnNetMargin.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%.</span>}<span>É apenas uma referência econômica se todo o estoque for vendido; usa a margem observada no painel quando disponível, não é garantia de receita e não altera preço, taxa ou take rate.</span></div>}
-                </>
-              )}
+    <div className="cev2-mobile-actions"><Button variant="outline-light" onClick={()=>setPreviewOpen(true)}><i className="fa-regular fa-eye me-2" />Prévia</Button><Button onClick={saveNow} disabled={saving}><i className="fa-solid fa-check me-2" />Salvar</Button><Button variant={eventData?.is_published?"outline-warning":"success"} onClick={togglePublication} disabled={publishing}>{eventData?.is_published?"Despublicar":"Publicar"}</Button></div>
 
-              <div className="mt-4">
-                {itemLoading ? <div className="text-secondary">Carregando adicionais...</div> : eventItems.length === 0 ? <Alert variant="info" className="mb-0">Nenhum adicional ativo neste evento. Selecione acima um item já cadastrado na produção para começar a pré-venda.</Alert> : <Row className="g-3">{eventItems.map((item) => <Col md={6} key={item.id}><div className="cut-info-box h-100"><div className="d-flex justify-content-between gap-3"><div><strong>{item.name}</strong><span>{money(item.price)} · estoque {Number(item.quantity || 0)}</span>{item.description && <small className="d-block text-secondary mt-1">{item.description}</small>}</div><Button type="button" size="sm" variant="outline-danger" disabled={itemBusyId === item.id} onClick={() => removeAddOn(item)}>{itemBusyId === item.id ? "Removendo..." : "Remover"}</Button></div></div></Col>)}</Row>}
-              </div>
-            </Card.Body></Card>
-          </Form>
-        </Container>
-      </>}
-    </div>
-  );
+    <Modal show={previewOpen} onHide={()=>setPreviewOpen(false)} size="lg" centered scrollable><Modal.Header closeButton><Modal.Title>Prévia para o participante</Modal.Title></Modal.Header><Modal.Body style={{background:"#090a14",color:"#fff"}}>{preview && <img src={preview} alt="" className="w-100 rounded mb-3" />}<h2>{form.title}</h2><p>{form.description}</p><p><i className="fa-regular fa-calendar me-2" />{form.start_date?new Date(form.start_date).toLocaleString("pt-BR"):"Data pendente"}</p><p><i className="fa-solid fa-location-dot me-2" />{form.venue||form.address}</p><ProgressBar now={readiness} label={`${readiness}% pronto`} /></Modal.Body><Modal.Footer><Button variant="secondary" onClick={()=>setPreviewOpen(false)}>Fechar</Button>{publicUrl&&<Button onClick={()=>window.open(publicUrl,"_blank","noopener,noreferrer")}>Abrir página real</Button>}</Modal.Footer></Modal>
+  </div>;
 }
