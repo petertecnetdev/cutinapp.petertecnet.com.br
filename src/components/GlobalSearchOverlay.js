@@ -3,10 +3,16 @@ import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import cutinappService from "../services/CutinappService";
+import { storageUrl } from "../config";
 
 const EVENT_NAME = "cutinapp:open-global-search";
 
 const initials = (value) => String(value || "C").trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
+const resolveImageUrl = (value) => {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  return /^https?:\/\//i.test(raw) ? raw : `${storageUrl}${raw.replace(/^\/+/, "")}`;
+};
 
 export const openGlobalSearchOverlay = () => {
   if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent(EVENT_NAME));
@@ -123,7 +129,7 @@ export default function GlobalSearchOverlay() {
           </button>)}
 
           {(data.entities || []).map((item) => <button type="button" className="cut-search-overlay__entity" key={`${item.type}:${item.id}`} onClick={() => go(item.url)}>
-            <span className="cut-search-overlay__avatar">{item.image ? <img src={item.image} alt="" /> : initials(item.title)}</span>
+            <span className="cut-search-overlay__avatar">{item.image ? <img src={resolveImageUrl(item.image)} alt="" onError={(event) => { event.currentTarget.style.display = "none"; event.currentTarget.parentElement.textContent = initials(item.title); }} /> : initials(item.title)}</span>
             <span><strong>{item.title}</strong><small>{item.subtitle || item.type}</small></span>
             <i className="fa-solid fa-arrow-right" />
           </button>)}
