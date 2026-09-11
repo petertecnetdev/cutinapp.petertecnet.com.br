@@ -283,6 +283,34 @@ export default function EventReviveSection({ event, isOwner }) {
     catch (err) { setNotice({ type: "info", text: Number(err?.status || 0) === 409 ? "Você já segue esta produção." : (err?.message || "Não foi possível seguir.") }); }
   };
 
+  const shareMoment = async (media) => {
+    const params = new URLSearchParams();
+    params.set('moment', String(media.id));
+    const url = window.location.origin + location.pathname + '?' + params.toString() + '#reviva';
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: 'Momento de ' + event.title,
+          text: media.caption || 'Veja este momento no Reviva da Cutinapp.',
+          url,
+        });
+      } else {
+        await navigator.clipboard?.writeText?.(url);
+        setNotice({ type: 'success', text: 'Link do momento copiado.' });
+      }
+      track('event_revive_moment_shared', event, { file_id: Number(media.id) });
+    } catch (_) {}
+  };
+
+  const openRelated = (related) => {
+    const query = new URLSearchParams({
+      source_event_id: String(event.id),
+      conversion_source: 'recommendation',
+    });
+    track('event_revive_related_event_clicked', event, { target_event_id: Number(related.id || 0) });
+    navigate('/event/' + related.slug + '?' + query.toString());
+  };
+
   const share = async () => {
     const url = window.location.origin + location.pathname + "#reviva";
     try {
@@ -304,6 +332,7 @@ export default function EventReviveSection({ event, isOwner }) {
           {verified && <Badge bg="success">Participante verificado</Badge>}
           {access.presence_confirmed && <Badge bg="info" text="dark">Presença confirmada</Badge>}
           {isManager && <Badge bg="warning" text="dark">Produção</Badge>}
+          {(revive.event_badges || []).map((item) => <Badge bg="dark" key={item.key}>{item.label}</Badge>)}
         </div>
       </div>
       <div className="cut-revive-hero__actions"><Button variant="outline-light" onClick={share}>Compartilhar</Button><Button variant="outline-light" onClick={follow}>Seguir produção</Button></div>
@@ -330,7 +359,7 @@ export default function EventReviveSection({ event, isOwner }) {
       <button type="button" onClick={() => setLightbox(media)}><img src={media.url} alt={media.caption || "Momento do evento"} loading="lazy" /></button>
       {media.is_primary && <Badge bg="warning" text="dark">Destaque</Badge>}
       {media.caption && <p>{media.caption}</p>}
-      <div className="cut-revive-inline-actions">{(isManager || Number(media.created_by) === Number(user?.id)) && <>{isManager && !media.is_primary && <button type="button" onClick={() => featureMedia(media)}>Destacar</button>}<button type="button" className="danger" onClick={() => removeMedia(media)}>Remover</button></>}{user && Number(media.created_by) !== Number(user.id) && <button type="button" onClick={() => reportContent("media", media.id)}>Denunciar</button>}</div>
+      <div className="cut-revive-inline-actions"><button type="button" onClick={() => shareMoment(media)}>Compartilhar</button>{(isManager || Number(media.created_by) === Number(user?.id)) && <>{isManager && !media.is_primary && <button type="button" onClick={() => featureMedia(media)}>Destacar</button>}<button type="button" className="danger" onClick={() => removeMedia(media)}>Remover</button></>}{user && Number(media.created_by) !== Number(user.id) && <button type="button" onClick={() => reportContent("media", media.id)}>Denunciar</button>}</div>
     </article>)}</div> : <div className="cut-revive-empty">Os primeiros momentos ainda vão aparecer aqui.</div>}
 
     <div className="cut-revive-grid">
@@ -355,7 +384,7 @@ export default function EventReviveSection({ event, isOwner }) {
 
     <header className="cut-revive-section-head"><div><span className="cut-eyebrow">O que a galera achou</span><h3>Avaliações verificadas</h3></div></header>
     <div className="cut-revive-reviews">{reviews.length ? reviews.map((item) => <article key={item.user_id} className="cut-revive-review">
-      <div className="cut-revive-review__author">{avatar(item)}<div><strong>{nameOf(item)}</strong><small>Participante verificado</small></div><b>{item.rating} <i className="fa-solid fa-star" /></b></div>
+      <div className="cut-revive-review__author">{avatar(item)}<div><strong>{nameOf(item)}</strong><small>{item.presence_confirmed ? "Presença confirmada" : "Participante verificado"}</small></div><b>{item.rating} <i className="fa-solid fa-star" /></b></div>
       {item.comment && <p>{item.comment}</p>}<div className="cut-revive-review__meta"><span>{fmt(item.updated_at || item.created_at)}</span><div>{Number(item.user_id) !== Number(user?.id) && <button type="button" disabled={!canInteract} className={item.is_helpful ? "active" : ""} onClick={() => helpful(item)}>Útil {item.helpful_count || 0}</button>}{user && Number(item.user_id) !== Number(user.id) && <button type="button" onClick={() => reportContent("rating", item.user_id)}>Denunciar</button>}</div></div>
       {item.producer_response && <div className="cut-revive-producer-response"><strong>Resposta da produção</strong><p>{item.producer_response}</p></div>}
       {isManager && <div className="cut-revive-response-form"><Form.Control as="textarea" rows={2} value={responses[item.user_id] || ""} onChange={(e) => setResponses((r) => ({ ...r, [item.user_id]: e.target.value }))} placeholder="Responder como produção..." /><Button size="sm" disabled={busy} onClick={() => respond(item)}>Responder</Button></div>}
@@ -369,6 +398,14 @@ export default function EventReviveSection({ event, isOwner }) {
       {replyId === post.id && canInteract && <div className="cut-revive-replybox"><Form.Control as="textarea" rows={2} value={replyText} onChange={(e) => setReplyText(e.target.value)} /><Button size="sm" disabled={busy || replyText.trim().length < 2} onClick={() => publish(post.id)}>Responder</Button></div>}
       {post.replies?.length > 0 && <div className="cut-revive-replies">{post.replies.map((reply) => <div key={reply.id} className="cut-revive-reply">{avatar(reply, true)}<div><strong>{nameOf(reply)}</strong><p>{reply.body}</p></div></div>)}</div>}
       </div></article>) : <div className="cut-revive-empty">A conversa está começando.</div>}</div>
+
+    {(revive.related_events || []).length > 0 && <><header className="cut-revive-section-head"><div><span className="cut-eyebrow">Continue vivendo</span><h3>Eventos que combinam com você</h3><p>Próximas edições e experiências relacionadas ao que você acabou de reviver.</p></div></header>
+      <div className="cut-revive-related">{(revive.related_events || []).map((related) => <button key={related.id} type="button" onClick={() => openRelated(related)}>
+        <div className="cut-revive-related__image">{related.image ? <img src={related.image} alt={related.title} loading="lazy" /> : <span>{String(related.title || 'E').slice(0, 1)}</span>}</div>
+        <div><strong>{related.title}</strong><small>{fmt(related.start_date)}{related.venue ? ' · ' + related.venue : ''}</small></div>
+        <i className="fa-solid fa-chevron-right" />
+      </button>)}</div>
+    </>}
 
     {revive.next_event && <div className="cut-revive-next">
       <div className="cut-revive-next__visual">{revive.next_event.image ? <img src={revive.next_event.image} alt={revive.next_event.title} /> : <i className="fa-regular fa-calendar-plus" />}</div>
