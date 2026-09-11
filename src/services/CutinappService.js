@@ -354,11 +354,96 @@ const unfollowSocialTarget = createIdempotentMutation({
   )).data,
 });
 
+const normalizeEventRatingPayload = (value) => (
+  value && typeof value === "object"
+    ? { ...value, rating: Number(value.rating) }
+    : { rating: Number(value) }
+);
+
 const rateEventMutation = createIdempotentMutation({
   storagePrefix: "cutinapp_event_rating_attempt_",
   keyPrefix: "event-rating",
-  requestKeyFor: (eventId, rating) => `${Number(eventId)}:${createMutationRequestKey({ rating: Number(rating) })}`,
-  mutate: async ({ idempotencyKey }, eventId, rating) => (await appApiClient.put(`/events/${Number(eventId)}/rating`, { rating: Number(rating) }, { headers: { "Idempotency-Key": idempotencyKey } })).data,
+  requestKeyFor: (eventId, value) => `${Number(eventId)}:${createMutationRequestKey(normalizeEventRatingPayload(value))}`,
+  mutate: async ({ idempotencyKey }, eventId, value) => (await appApiClient.put(
+    `/events/${Number(eventId)}/rating`,
+    normalizeEventRatingPayload(value),
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
+const uploadEventReviveMediaMutation = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_revive_media_attempt_",
+  keyPrefix: "event-revive-media",
+  requestKeyFor: (eventId, formData) => `${Number(eventId)}:${createMutationRequestKey(formData)}`,
+  mutate: async ({ idempotencyKey }, eventId, formData) => (await appApiClient.post(
+    `/events/${Number(eventId)}/revive/media`,
+    formData,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
+const updateEventReviveMediaMutation = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_revive_media_update_attempt_",
+  keyPrefix: "event-revive-media-update",
+  requestKeyFor: (eventId, fileId, payload = {}) => `${Number(eventId)}:${Number(fileId)}:${createMutationRequestKey(payload)}`,
+  mutate: async ({ idempotencyKey }, eventId, fileId, payload = {}) => (await appApiClient.patch(
+    `/events/${Number(eventId)}/revive/media/${Number(fileId)}`,
+    payload,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
+const deleteEventReviveMediaMutation = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_revive_media_delete_attempt_",
+  keyPrefix: "event-revive-media-delete",
+  requestKeyFor: (eventId, fileId) => `${Number(eventId)}:${Number(fileId)}`,
+  mutate: async ({ idempotencyKey }, eventId, fileId) => (await appApiClient.delete(
+    `/events/${Number(eventId)}/revive/media/${Number(fileId)}`,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
+const saveEventRevivePreferencesMutation = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_revive_preferences_attempt_",
+  keyPrefix: "event-revive-preferences",
+  requestKeyFor: (eventId, payload = {}) => `${Number(eventId)}:${createMutationRequestKey(payload)}`,
+  mutate: async ({ idempotencyKey }, eventId, payload = {}) => (await appApiClient.put(
+    `/events/${Number(eventId)}/revive/preferences`,
+    payload,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
+const markEventRatingHelpfulMutation = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_rating_helpful_attempt_",
+  keyPrefix: "event-rating-helpful",
+  requestKeyFor: (eventId, ratingUserId) => `${Number(eventId)}:${Number(ratingUserId)}`,
+  mutate: async ({ idempotencyKey }, eventId, ratingUserId) => (await appApiClient.post(
+    `/events/${Number(eventId)}/ratings/${Number(ratingUserId)}/helpful`,
+    undefined,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
+const unmarkEventRatingHelpfulMutation = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_rating_unhelpful_attempt_",
+  keyPrefix: "event-rating-unhelpful",
+  requestKeyFor: (eventId, ratingUserId) => `${Number(eventId)}:${Number(ratingUserId)}`,
+  mutate: async ({ idempotencyKey }, eventId, ratingUserId) => (await appApiClient.delete(
+    `/events/${Number(eventId)}/ratings/${Number(ratingUserId)}/helpful`,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
+const respondEventRatingMutation = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_rating_response_attempt_",
+  keyPrefix: "event-rating-response",
+  requestKeyFor: (eventId, ratingUserId, response) => `${Number(eventId)}:${Number(ratingUserId)}:${String(response || "").trim()}`,
+  mutate: async ({ idempotencyKey }, eventId, ratingUserId, response) => (await appApiClient.put(
+    `/events/${Number(eventId)}/ratings/${Number(ratingUserId)}/response`,
+    { response: String(response || "").trim() },
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
 });
 
 const updateModerationReportMutation = createIdempotentMutation({
@@ -506,6 +591,13 @@ const cutinappService = {
   likeEventPost: likeEventCommunityPost,
   unlikeEventPost: unlikeEventCommunityPost,
   rateEvent: rateEventMutation,
+  uploadEventReviveMedia: uploadEventReviveMediaMutation,
+  updateEventReviveMedia: updateEventReviveMediaMutation,
+  deleteEventReviveMedia: deleteEventReviveMediaMutation,
+  saveEventRevivePreferences: saveEventRevivePreferencesMutation,
+  markEventRatingHelpful: markEventRatingHelpfulMutation,
+  unmarkEventRatingHelpful: unmarkEventRatingHelpfulMutation,
+  respondEventRating: respondEventRatingMutation,
   reportEvent,
 
   moderationReports: async (params = {}) => (await appApiClient.get("/moderation/reports", { params })).data,
