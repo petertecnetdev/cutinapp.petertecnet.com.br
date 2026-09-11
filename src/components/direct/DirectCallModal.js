@@ -21,7 +21,6 @@ const iceServers = () => {
 
 export default function DirectCallModal({
   conversationId,
-  currentUserId,
   remoteUser,
   mode,
   type,
@@ -337,7 +336,6 @@ export default function DirectCallModal({
 
 DirectCallModal.propTypes = {
   conversationId: PropTypes.number.isRequired,
-  currentUserId: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
   remoteUser: PropTypes.object,
   mode: PropTypes.oneOf(["incoming", "outgoing"]).isRequired,
   type: PropTypes.oneOf(["audio", "video"]).isRequired,
