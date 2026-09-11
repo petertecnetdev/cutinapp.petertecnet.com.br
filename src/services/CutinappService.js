@@ -594,6 +594,10 @@ const cutinappService = {
   uploadEventReviveMedia: uploadEventReviveMediaMutation,
   updateEventReviveMedia: updateEventReviveMediaMutation,
   deleteEventReviveMedia: deleteEventReviveMediaMutation,
+  reorderEventReviveMedia: async (eventId, fileIds = []) => (await appApiClient.put(
+    `/events/${Number(eventId)}/revive/media-order`,
+    { file_ids: fileIds.map(Number) },
+  )).data,
   saveEventRevivePreferences: saveEventRevivePreferencesMutation,
   markEventRatingHelpful: markEventRatingHelpfulMutation,
   unmarkEventRatingHelpful: unmarkEventRatingHelpfulMutation,
