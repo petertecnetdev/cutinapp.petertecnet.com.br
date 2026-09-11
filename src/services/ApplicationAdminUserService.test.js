@@ -45,6 +45,35 @@ describe("ApplicationAdminUserService", () => {
     });
   });
 
+  test("starts an app-scoped impersonation session with a reason", async () => {
+    appApiClient.post.mockResolvedValue({ data: { handoff_url: "https://cutinapp.petertecnet.com.br/?pt_impersonation=abc" } });
+
+    await expect(applicationAdminUserService.impersonate(42, "  configurar produção  ")).resolves.toEqual({
+      handoff_url: "https://cutinapp.petertecnet.com.br/?pt_impersonation=abc",
+    });
+
+    expect(appApiClient.post).toHaveBeenCalledWith("/admin/users/42/impersonate", {
+      reason: "configurar produção",
+    });
+  });
+
+  test("loads and ends app-scoped impersonation sessions", async () => {
+    appApiClient.get.mockResolvedValue({ data: { sessions: [{ id: 9, active: true }] } });
+    appApiClient.post.mockResolvedValue({ data: { message: "Sessão encerrada." } });
+
+    await expect(applicationAdminUserService.impersonationHistory({ per_page: 10 })).resolves.toEqual({
+      sessions: [{ id: 9, active: true }],
+    });
+    expect(appApiClient.get).toHaveBeenCalledWith("/admin/impersonations", {
+      params: { per_page: 10 },
+    });
+
+    await expect(applicationAdminUserService.endImpersonation(9)).resolves.toEqual({
+      message: "Sessão encerrada.",
+    });
+    expect(appApiClient.post).toHaveBeenCalledWith("/admin/impersonations/9/end");
+  });
+
   test("normalizes creation data and sends an idempotency key", async () => {
     appApiClient.post.mockResolvedValue({ data: { message: "Usuário cadastrado" } });
 
