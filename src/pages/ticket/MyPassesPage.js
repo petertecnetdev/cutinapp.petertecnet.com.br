@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import PropTypes from "prop-types";
 import { Alert, Badge, Button, Card, Container, Form, Spinner } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
@@ -60,6 +61,26 @@ const eventLocation = (event) => [
 
 const productionName = (event) => event?.production?.name || "Produção Cutinapp";
 
+const eventPropType = PropTypes.shape({
+  id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+  title: PropTypes.string,
+  image: PropTypes.string,
+  slug: PropTypes.string,
+  start_date: PropTypes.string,
+  end_date: PropTypes.string,
+  venue: PropTypes.string,
+  city: PropTypes.string,
+  uf: PropTypes.string,
+  address: PropTypes.string,
+  formatted_address: PropTypes.string,
+  google_maps_url: PropTypes.string,
+  production: PropTypes.shape({
+    id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    name: PropTypes.string,
+    slug: PropTypes.string,
+  }),
+});
+
 const EventArtwork = ({ event, large = false }) => (
   <div className={large ? "cut-wallet-next__art" : "cut-wallet-event-art"} aria-hidden="true">
     {event?.image
@@ -68,6 +89,11 @@ const EventArtwork = ({ event, large = false }) => (
   </div>
 );
 
+EventArtwork.propTypes = {
+  event: eventPropType,
+  large: PropTypes.bool,
+};
+
 const EventMeta = ({ event }) => (
   <div className="cut-wallet-card__meta">
     <span><i className="fa-regular fa-calendar" />{dateTime(event?.start_date)}</span>
@@ -75,11 +101,27 @@ const EventMeta = ({ event }) => (
   </div>
 );
 
+EventMeta.propTypes = {
+  event: eventPropType,
+};
+
 const PriceBadge = ({ pass }) => {
   const complimentary = Boolean(pass?.is_complimentary) || Number(pass?.ticket?.price || 0) <= 0;
   if (complimentary) return <Badge bg="primary">Cortesia</Badge>;
   if (!shouldShowPrice(pass)) return null;
   return <Badge bg="dark">{money(pass?.purchase?.line_unit_price ?? pass?.ticket?.price)}</Badge>;
+};
+
+PriceBadge.propTypes = {
+  pass: PropTypes.shape({
+    is_complimentary: PropTypes.bool,
+    ticket: PropTypes.shape({
+      price: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    }),
+    purchase: PropTypes.shape({
+      line_unit_price: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    }),
+  }),
 };
 
 const secureQrLabel = (
@@ -204,12 +246,6 @@ export default function MyPassesPage() {
 
   const openEvent = (event) => {
     if (event?.slug) navigate(`/event/${event.slug}`);
-  };
-
-  const openProduction = (event) => {
-    const production = event?.production;
-    if (production?.slug) navigate(`/production/${production.slug}/public`);
-    else if (production?.id) navigate(`/production/${production.id}`);
   };
 
   const openPurchase = (purchase) => {
