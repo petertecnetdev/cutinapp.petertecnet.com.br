@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import PropTypes from "prop-types";
 import { Container, Spinner } from "react-bootstrap";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
@@ -76,6 +77,14 @@ function ResultAvatar({ item }) {
   </span>;
 }
 
+ResultAvatar.propTypes = {
+  item: PropTypes.shape({
+    image: PropTypes.string,
+    type: PropTypes.string,
+    title: PropTypes.string,
+  }).isRequired,
+};
+
 function ResultRow({ item, onOpen, onRemove = null }) {
   const content = <>
     <ResultAvatar item={item} />
@@ -102,6 +111,17 @@ function ResultRow({ item, onOpen, onRemove = null }) {
     <i className="fa-solid fa-chevron-right" aria-hidden="true" />
   </button>;
 }
+
+ResultRow.propTypes = {
+  item: PropTypes.shape({
+    image: PropTypes.string,
+    type: PropTypes.string,
+    title: PropTypes.string,
+    subtitle: PropTypes.string,
+  }).isRequired,
+  onOpen: PropTypes.func.isRequired,
+  onRemove: PropTypes.func,
+};
 
 export default function GlobalSearchPage() {
   const navigate = useNavigate();
