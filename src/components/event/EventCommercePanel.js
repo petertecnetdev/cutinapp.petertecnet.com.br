@@ -106,7 +106,9 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
   const selectedQuantity = useMemo(() => selectedEntries.reduce((sum, entry) => sum + entry.quantity, 0), [selectedEntries]);
 
   const salesClosed = Boolean(catalog?.sales_closed || catalog?.event?.sales_closed);
-  const checkoutAvailable = !salesClosed && (catalog?.payment_config?.available ?? catalog?.payment_config?.connected ?? false);
+  const paymentConnected = catalog?.payment_config?.available ?? catalog?.payment_config?.connected ?? false;
+  const requiresPayment = total > 0;
+  const checkoutAvailable = !salesClosed && (!requiresPayment || paymentConnected);
   const activeEventId = Number(catalog?.event?.id || eventId);
   const activeSlug = catalog?.event?.slug || slug;
   const availableDates = catalog?.available_dates || [];
@@ -270,19 +272,19 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
       <div>
         <span className="cut-eyebrow">Compra única</span>
         <h3 className="mt-2">Monte seu carrinho</h3>
-        <p>Você pode comprar vários ingressos, misturar lotes diferentes e incluir itens do evento no mesmo pagamento.</p>
+        <p>Você pode selecionar vários ingressos, misturar lotes diferentes e incluir itens do evento no mesmo pedido.</p>
       </div>
     </div>
 
     {error && <Alert variant="danger" className="mb-0">{error}</Alert>}
-    {!checkoutAvailable && <Alert variant="warning" className="mb-0">Pagamentos temporariamente indisponíveis para esta data.</Alert>}
+    {requiresPayment && !paymentConnected && <Alert variant="warning" className="mb-0">Pagamentos temporariamente indisponíveis para esta data.</Alert>}
 
     <div className="cut-ticket-shop__layout">
       <div className="cut-ticket-shop__catalog">
     {restoredSelection && selectedQuantity > 0 && checkoutAvailable && <Alert variant="success" className="mb-0">
       <div className="d-flex flex-column gap-2">
-        <div><strong>Compra em andamento recuperada.</strong><span className="d-block small">{selectedQuantity} selecionado{selectedQuantity === 1 ? "" : "s"} · {money(total)}. Preço e disponibilidade serão revalidados antes do pagamento.</span></div>
-        <Button type="button" variant="success" size="sm" onClick={resumeRestoredCheckout}>{user ? `Continuar compra · ${money(total)}` : "Entrar e continuar"}</Button>
+        <div><strong>Pedido em andamento recuperado.</strong><span className="d-block small">{selectedQuantity} selecionado{selectedQuantity === 1 ? "" : "s"} · {money(total)}. Preço e disponibilidade serão revalidados antes da finalização.</span></div>
+        <Button type="button" variant="success" size="sm" onClick={resumeRestoredCheckout}>{user ? `Continuar pedido · ${money(total)}` : "Entrar e continuar"}</Button>
       </div>
     </Alert>}
 
@@ -296,7 +298,7 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
 
     {(catalog.tickets || []).length > 0 && <>
       <div className="cut-ticket-shop__heading mt-1">
-        <div><span className="cut-eyebrow">Ingressos pagos</span><h3 className="mt-2">Escolha quantidade e tipo</h3><p>Use + e − em cada lote. Você pode selecionar mais de um tipo de ingresso na mesma compra.</p></div>
+        <div><span className="cut-eyebrow">Ingressos</span><h3 className="mt-2">Escolha quantidade e tipo</h3><p>Ingressos gratuitos e pagos seguem o mesmo fluxo. Use + e − em cada lote e combine tipos diferentes no mesmo pedido.</p></div>
       </div>
       <div className="cut-ticket-shop__list">
       {(catalog.tickets || []).map((ticket) => {
@@ -304,7 +306,7 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
         const soldOut = maxQuantity <= 0;
         const quantity = Number(quantities[`ticket:${ticket.id}`] || 0);
         const subtotal = Number(ticket.price || 0) * quantity;
-        return <div className={`cut-ticket-shop__option ${soldOut ? "cut-ticket-shop__option--sold-out" : ""}`} key={`paid-ticket-${ticket.id}`} aria-disabled={soldOut}>
+        return <div className={`cut-ticket-shop__option ${soldOut ? "cut-ticket-shop__option--sold-out" : ""}`} key={`ticket-${ticket.id}`} aria-disabled={soldOut}>
           <div className="cut-ticket-shop__option-copy">
             <span className="cut-ticket-kicker">Ingresso · {dateLabel(catalog?.event?.start_date)}</span>
             <strong>{ticket.name}</strong>
@@ -363,15 +365,15 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
       <div className="cut-ticket-shop__summary-footer">
         <div className="cut-ticket-shop__summary-line"><span>Subtotal</span><strong>{money(total)}</strong></div>
         <div className="cut-ticket-shop__summary-line"><span>Taxa adicional ao participante</span><span>{money(0)}</span></div>
-        <div className="cut-ticket-shop__summary-line cut-ticket-shop__summary-line--total"><span>Total dos itens</span><strong>{money(total)}</strong></div>
-        <p className="cut-ticket-shop__summary-note">Este é o total antes de cupons. Não adicionamos taxa surpresa ao participante no pagamento.</p>
-        <button type="button" className="cut-ticket-shop__checkout-btn" onClick={continueToCheckout} disabled={total <= 0 || !checkoutAvailable}>{user ? `Finalizar carrinho · ${money(total)}` : "Entrar e finalizar carrinho"}</button>
+        <div className="cut-ticket-shop__summary-line cut-ticket-shop__summary-line--total"><span>Total do pedido</span><strong>{money(total)}</strong></div>
+        <p className="cut-ticket-shop__summary-note">Ingressos de cortesia entram no pedido como qualquer outro ingresso, com valor de {money(0)} e emissão normal de QR Code.</p>
+        <button type="button" className="cut-ticket-shop__checkout-btn" onClick={continueToCheckout} disabled={selectedQuantity <= 0 || !checkoutAvailable}>{user ? `${requiresPayment ? "Finalizar carrinho" : "Finalizar pedido"} · ${money(total)}` : "Entrar e finalizar carrinho"}</button>
       </div>
       </aside>
     </div>
 
     {selectedQuantity > 0 && <small className="d-block text-success text-center"><i className="fa-solid fa-clock-rotate-left me-1" />Sua seleção fica salva neste navegador e será revalidada ao retornar.</small>}
-    <div className="cut-ticket-shop__trust"><i className="fa-solid fa-shield-halved" /><span>Uma única compra, um único pagamento. Cada ingresso recebe QR de entrada e os itens antecipados ficam vinculados ao pedido para retirada no evento.</span></div>
+    <div className="cut-ticket-shop__trust"><i className="fa-solid fa-shield-halved" /><span>Um único pedido. Cada ingresso recebe QR de entrada e os itens antecipados ficam vinculados ao pedido para retirada no evento.</span></div>
 
     {selectedQuantity > 0 && <>
       <button
@@ -397,7 +399,7 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
           <Offcanvas.Title>Carrinho do evento</Offcanvas.Title>
         </Offcanvas.Header>
         <Offcanvas.Body>
-          <p className="cut-event-cart-drawer__hint">Altere quantidades ou remova itens antes de seguir para o pagamento.</p>
+          <p className="cut-event-cart-drawer__hint">Altere quantidades ou remova itens antes de finalizar o pedido.</p>
           <div className="cut-event-cart-drawer__items">
             {selectedEntries.map((entry) => {
               const maxQuantity = resolveCheckoutQuantity(entry.item, checkoutQuantityLimit(entry.kind), checkoutQuantityLimit(entry.kind));
@@ -414,11 +416,11 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
           </div>
 
           <div className="cut-event-cart-drawer__footer">
-            <div><span>Total a pagar</span><strong>{money(total)}</strong></div>
-            <small>Sem taxa adicional surpresa. Preço e estoque são revalidados antes da cobrança.</small>
-            <Button type="button" className="w-100" onClick={continueToCheckout} disabled={total <= 0 || !checkoutAvailable}>
-              <i className="fa-solid fa-lock me-2" />
-              {user ? "Ir para pagamento" : "Entrar e continuar"}
+            <div><span>Total do pedido</span><strong>{money(total)}</strong></div>
+            <small>{requiresPayment ? "Sem taxa adicional surpresa. Preço e estoque são revalidados antes da cobrança." : "Pedido gratuito. Nenhuma forma de pagamento será exigida."}</small>
+            <Button type="button" className="w-100" onClick={continueToCheckout} disabled={selectedQuantity <= 0 || !checkoutAvailable}>
+              <i className={`fa-solid ${requiresPayment ? "fa-lock" : "fa-ticket"} me-2`} />
+              {user ? (requiresPayment ? "Ir para pagamento" : "Finalizar pedido gratuito") : "Entrar e continuar"}
             </Button>
             <button type="button" className="cut-event-cart-drawer__continue" onClick={() => setCartOpen(false)}>Continuar comprando</button>
           </div>
