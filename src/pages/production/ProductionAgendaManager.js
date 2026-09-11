@@ -66,14 +66,13 @@ export default function ProductionAgendaManager() {
   const [production, setProduction] = useState(null);
   const [loading, setLoading] = useState(true);
   const [agendaActive, setAgendaActive] = useState(true);
-  const [generationWeeks, setGenerationWeeks] = useState(1);
   const [schedules, setSchedules] = useState([]);
+  const [strategies, setStrategies] = useState({});
   const [availableEvents, setAvailableEvents] = useState([]);
   const [selections, setSelections] = useState({});
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(location.state?.agendaMessage || "");
   const [togglingAgenda, setTogglingAgenda] = useState(false);
-  const [savingHorizon, setSavingHorizon] = useState(false);
   const [savingDay, setSavingDay] = useState(null);
   const [removingDay, setRemovingDay] = useState(null);
 
@@ -107,18 +106,27 @@ export default function ProductionAgendaManager() {
         const loadedSchedules = Array.isArray(agendaData?.schedules) ? agendaData.schedules : [];
         setProduction(workspace?.organization || workspace?.production || null);
         setAgendaActive(agendaData?.agenda?.is_active !== false);
-        setGenerationWeeks(Math.max(1, Math.min(3, Number(agendaData?.agenda?.generation_weeks || 1))));
         setSchedules(loadedSchedules);
         setAvailableEvents(Array.isArray(agendaData?.available_events) ? agendaData.available_events : []);
 
         const nextSelections = {};
+        const nextStrategies = {};
         loadedSchedules.forEach((schedule) => {
+          const day = Number(schedule.day_of_week);
           const eventId = Number(schedule?.source_event_id || schedule?.source_event?.id || 0);
-          if (eventId > 0 && nextSelections[Number(schedule.day_of_week)] === undefined) {
-            nextSelections[Number(schedule.day_of_week)] = String(eventId);
+          if (eventId > 0 && nextSelections[day] === undefined) {
+            nextSelections[day] = String(eventId);
+          }
+          if (nextStrategies[day] === undefined) {
+            nextStrategies[day] = {
+              generation_mode: schedule?.generation_mode === "delayed" ? "delayed" : "immediate",
+              generation_delay_days: Math.max(1, Math.min(7, Number(schedule?.generation_delay_days || 1))),
+              generation_weeks: Math.max(1, Math.min(52, Number(schedule?.generation_weeks || 1))),
+            };
           }
         });
         setSelections(nextSelections);
+        setStrategies(nextStrategies);
       })
       .catch((err) => active && setError(apiError(err, "Não foi possível carregar a agenda semanal.")))
       .finally(() => active && setLoading(false));
@@ -142,36 +150,6 @@ export default function ProductionAgendaManager() {
     }
   };
 
-  const updateGenerationWeeks = async (value) => {
-    const nextWeeks = Math.max(1, Math.min(3, Number(value || 1)));
-    if (savingHorizon || nextWeeks === generationWeeks) return;
-
-    const previous = generationWeeks;
-    setGenerationWeeks(nextWeeks);
-    setSavingHorizon(true);
-    setError("");
-    setSuccess("");
-    try {
-      const response = await eventService.setAgendaSettings(productionId, nextWeeks);
-      const resolved = Math.max(1, Math.min(3, Number(response?.agenda?.generation_weeks || nextWeeks)));
-      setGenerationWeeks(resolved);
-      const created = Number(response?.generation?.created_count || 0);
-      const retired = Number(response?.generation?.retired_count || 0);
-      setSuccess(
-        created > 0
-          ? `Horizonte atualizado para ${resolved} semana(s). ${created} ocorrência(s) necessária(s) foram criadas.`
-          : retired > 0
-            ? `Horizonte atualizado para ${resolved} semana(s). Ocorrências automáticas excedentes sem vendas foram retiradas.`
-            : `Horizonte atualizado para ${resolved} semana(s).`
-      );
-    } catch (err) {
-      setGenerationWeeks(previous);
-      setError(apiError(err, "Não foi possível alterar o horizonte da agenda semanal."));
-    } finally {
-      setSavingHorizon(false);
-    }
-  };
-
   const saveDay = async (day) => {
     const eventId = Number(selections[day.value] || 0);
     if (!eventId || savingDay !== null) {
@@ -183,9 +161,17 @@ export default function ProductionAgendaManager() {
     setError("");
     setSuccess("");
     try {
+      const strategy = strategies[day.value] || {
+        generation_mode: "delayed",
+        generation_delay_days: 1,
+        generation_weeks: 1,
+      };
       const response = await eventService.createAgendaItem(productionId, {
         event_id: eventId,
         day_of_week: day.value,
+        generation_mode: strategy.generation_mode,
+        generation_delay_days: Number(strategy.generation_delay_days),
+        generation_weeks: Number(strategy.generation_weeks),
         is_active: true,
       });
       const updated = response?.schedule;
@@ -271,7 +257,7 @@ export default function ProductionAgendaManager() {
                 <h3>Agenda semanal</h3>
                 <Badge bg={agendaActive ? "success" : "secondary"}>{agendaActive ? "Ativa" : "Pausada"}</Badge>
               </div>
-              <p>{configuredDays} de 7 dia(s) configurado(s). A agenda mantém somente {generationWeeks === 1 ? "a próxima semana" : `as próximas ${generationWeeks} semanas`} criada(s).</p>
+              <p>{configuredDays} de 7 dia(s) configurado(s). Cada dia possui seu próprio evento e sua própria regra de geração.</p>
             </div>
           </div>
           <div className="cut-agenda-control__actions">
@@ -294,36 +280,10 @@ export default function ProductionAgendaManager() {
         <div className="cut-agenda-help">
           <i className="fa-regular fa-lightbulb" />
           <div>
-            <strong>Sete modelos recorrentes, sem criar eventos em massa</strong>
-            <span>Escolha um evento já criado para cada dia. O sistema duplica somente o necessário para manter o horizonte escolhido e repõe cada dia depois que ele passa.</span>
+            <strong>Sete eventos fixos independentes</strong>
+            <span>Segunda, terça, quarta e os demais dias podem usar eventos diferentes. Cada dia também pode ter quantidade de semanas e intervalo de geração diferentes.</span>
           </div>
         </div>
-
-        <section className="cut-agenda-horizon">
-          <div className="cut-agenda-horizon__copy">
-            <span className="cut-eyebrow">Antecedência automática</span>
-            <h3>Quantas semanas devem ficar criadas?</h3>
-            <p>
-              Com 1 semana, ficam no máximo 7 próximas ocorrências. Depois que a segunda passa, por exemplo,
-              a próxima segunda é criada após a virada para terça. Com 2 ou 3 semanas, a mesma lógica mantém
-              somente 14 ou 21 próximas ocorrências.
-            </p>
-          </div>
-          <div className="cut-agenda-horizon__control">
-            <Form.Label htmlFor={`agenda-generation-weeks-${productionId}`}>Horizonte</Form.Label>
-            <Form.Select
-              id={`agenda-generation-weeks-${productionId}`}
-              value={generationWeeks}
-              disabled={savingHorizon}
-              onChange={(event) => updateGenerationWeeks(event.target.value)}
-            >
-              <option value={1}>1 semana · até 7 eventos futuros</option>
-              <option value={2}>2 semanas · até 14 eventos futuros</option>
-              <option value={3}>3 semanas · até 21 eventos futuros</option>
-            </Form.Select>
-            <small>{savingHorizon ? "Ajustando agenda..." : "O limite considera os 7 dias configurados."}</small>
-          </div>
-        </section>
 
         {availableEvents.length === 0 && (
           <Alert variant="info" className="cut-weekly-agenda-no-events">
@@ -351,6 +311,15 @@ export default function ProductionAgendaManager() {
             const hasCurrentInOptions = currentEvent?.id
               && !availableEvents.some((event) => Number(event.id) === Number(currentEvent.id));
             const busy = savingDay === day.value || removingDay === day.value;
+            const strategy = strategies[day.value] || {
+              generation_mode: schedule?.generation_mode === "delayed" ? "delayed" : "immediate",
+              generation_delay_days: Math.max(1, Math.min(7, Number(schedule?.generation_delay_days || 1))),
+              generation_weeks: Math.max(1, Math.min(52, Number(schedule?.generation_weeks || 1))),
+            };
+            const updateStrategy = (patch) => setStrategies((current) => ({
+              ...current,
+              [day.value]: { ...strategy, ...patch },
+            }));
 
             return (
               <Card key={day.value} className={`cut-weekly-agenda-day ${schedule ? "is-configured" : "is-empty"}`}>
@@ -399,6 +368,49 @@ export default function ProductionAgendaManager() {
                       ))}
                     </Form.Select>
                   </Form.Group>
+
+                  <div className="cut-weekly-agenda-strategy">
+                    <Form.Group>
+                      <Form.Label>Semanas para este dia</Form.Label>
+                      <Form.Control
+                        type="number"
+                        min={1}
+                        max={52}
+                        value={strategy.generation_weeks}
+                        disabled={busy}
+                        onChange={(event) => updateStrategy({
+                          generation_weeks: Math.max(1, Math.min(52, Number(event.target.value) || 1)),
+                        })}
+                      />
+                    </Form.Group>
+
+                    <Form.Group>
+                      <Form.Label>Criação</Form.Label>
+                      <Form.Select
+                        value={strategy.generation_mode}
+                        disabled={busy}
+                        onChange={(event) => updateStrategy({ generation_mode: event.target.value })}
+                      >
+                        <option value="immediate">Criar semanas de uma vez</option>
+                        <option value="delayed">Criar depois que o dia passar</option>
+                      </Form.Select>
+                    </Form.Group>
+
+                    {strategy.generation_mode === "delayed" && (
+                      <Form.Group>
+                        <Form.Label>Esperar depois do dia</Form.Label>
+                        <Form.Select
+                          value={strategy.generation_delay_days}
+                          disabled={busy}
+                          onChange={(event) => updateStrategy({ generation_delay_days: Number(event.target.value) })}
+                        >
+                          {[1,2,3,4,5,6,7].map((days) => (
+                            <option key={days} value={days}>{days} dia{days > 1 ? "s" : ""}</option>
+                          ))}
+                        </Form.Select>
+                      </Form.Group>
+                    )}
+                  </div>
 
                   <div className="cut-weekly-agenda-day__actions">
                     <Button
