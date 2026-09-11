@@ -57,6 +57,7 @@ export default function AdminSearchAnalyticsPage() {
     ["Conversão", `${Number(analytics.conversion_rate || 0).toFixed(1)}%`, "fa-solid fa-bullseye"],
     ["Usuários", analytics.unique_users || 0, "fa-solid fa-users"],
     ["Conversões", analytics.conversions || 0, "fa-solid fa-bolt"],
+    ["Até o clique", analytics.avg_seconds_to_click ? `${Number(analytics.avg_seconds_to_click).toFixed(0)}s` : "—", "fa-regular fa-clock"],
   ] : [], [analytics]);
 
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
@@ -147,6 +148,8 @@ export default function AdminSearchAnalyticsPage() {
             <div className="table-responsive"><Table variant="dark" hover size="sm" className="align-middle"><thead><tr><th>Tipo</th><th>ID</th><th>Cliques</th><th>Conversões</th></tr></thead><tbody>{(analytics?.top_targets || []).slice(0, 20).map((target) => <tr key={`${target.target_type}:${target.target_id}`}><td>{target.target_type}</td><td>#{target.target_id}</td><td>{target.clicks}</td><td>{target.conversions}</td></tr>)}</tbody></Table></div>
           </Card.Body></Card></Col>
         </Row>
+
+        {(analytics?.category_signals || []).length > 0 && <Card className="cut-panel mb-4"><Card.Body><span className="cut-eyebrow">Preferências</span><h2 className="h4 mt-2">Sinais por gênero/categoria</h2><div className="d-flex flex-wrap gap-2 mt-3">{analytics.category_signals.map((signal) => <Badge bg="secondary" key={signal.label} className="px-3 py-2">{signal.label} · {signal.searches}</Badge>)}</div></Card.Body></Card>}
 
         <Card className="cut-panel"><Card.Body>
           <div className="d-flex flex-wrap justify-content-between gap-3 align-items-center mb-3"><div><span className="cut-eyebrow">Monetização</span><h2 className="h4 mt-2 mb-1">Campanhas patrocinadas</h2><small className="text-secondary">Resultados pagos sempre aparecem identificados como Patrocinado e separados do ranking orgânico.</small></div><Button variant="outline-light" onClick={() => setCampaignOpen(true)}>Criar campanha</Button></div>
