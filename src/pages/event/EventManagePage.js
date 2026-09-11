@@ -285,6 +285,8 @@ export default function EventManagePage() {
   const [productionFilter, setProductionFilter] = useState("all");
   const [cityFilter, setCityFilter] = useState("all");
   const [periodFilter, setPeriodFilter] = useState("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [performanceFilter, setPerformanceFilter] = useState("all");
   const [viewMode, setViewMode] = useState("visual");
   const [groupByPeriod, setGroupByPeriod] = useState(true);
@@ -347,6 +349,8 @@ export default function EventManagePage() {
         if (typeof saved.productionFilter === "string") setProductionFilter(saved.productionFilter);
         if (typeof saved.cityFilter === "string") setCityFilter(saved.cityFilter);
         if (typeof saved.periodFilter === "string") setPeriodFilter(saved.periodFilter);
+        if (typeof saved.dateFrom === "string") setDateFrom(saved.dateFrom);
+        if (typeof saved.dateTo === "string") setDateTo(saved.dateTo);
         if (typeof saved.performanceFilter === "string") setPerformanceFilter(saved.performanceFilter);
         if (saved.viewMode === "compact" || saved.viewMode === "visual") setViewMode(saved.viewMode);
         if (typeof saved.groupByPeriod === "boolean") setGroupByPeriod(saved.groupByPeriod);
@@ -372,6 +376,8 @@ export default function EventManagePage() {
         productionFilter,
         cityFilter,
         periodFilter,
+        dateFrom,
+        dateTo,
         performanceFilter,
         viewMode,
         groupByPeriod,
@@ -380,7 +386,7 @@ export default function EventManagePage() {
     } catch (_) {
       // Persistência local é opcional.
     }
-  }, [searchTerm, statusFilter, productionFilter, cityFilter, periodFilter, performanceFilter, viewMode, groupByPeriod, sortConfig]);
+  }, [searchTerm, statusFilter, productionFilter, cityFilter, periodFilter, dateFrom, dateTo, performanceFilter, viewMode, groupByPeriod, sortConfig]);
 
   useEffect(() => {
     try {
@@ -392,7 +398,7 @@ export default function EventManagePage() {
 
   useEffect(() => {
     setDisplayLimit(24);
-  }, [searchTerm, statusFilter, productionFilter, cityFilter, periodFilter, performanceFilter, sortConfig, groupByPeriod]);
+  }, [searchTerm, statusFilter, productionFilter, cityFilter, periodFilter, dateFrom, dateTo, performanceFilter, sortConfig, groupByPeriod]);
 
   const togglePinnedEvent = (eventId) => {
     const id = Number(eventId);
@@ -728,9 +734,14 @@ export default function EventManagePage() {
       const matchesProduction = productionFilter === "all" || productionId === String(productionFilter);
       const matchesCity = cityFilter === "all" || String(event?.city || "") === cityFilter;
       const matchesPeriod = periodFilter === "all" || temporal.key === periodFilter;
+      const eventStart = new Date(event?.start_date || "");
+      const fromDate = dateFrom ? new Date(`${dateFrom}T00:00:00`) : null;
+      const toDate = dateTo ? new Date(`${dateTo}T23:59:59`) : null;
+      const matchesDateFrom = !fromDate || (Number.isFinite(eventStart.getTime()) && eventStart >= fromDate);
+      const matchesDateTo = !toDate || (Number.isFinite(eventStart.getTime()) && eventStart <= toDate);
       const matchesPerformance = performanceFilter === "all" || performance.key === performanceFilter;
 
-      if (!matchesStatus || !matchesProduction || !matchesCity || !matchesPeriod || !matchesPerformance) return false;
+      if (!matchesStatus || !matchesProduction || !matchesCity || !matchesPeriod || !matchesDateFrom || !matchesDateTo || !matchesPerformance) return false;
       if (!normalizedSearch) return true;
 
       return [
@@ -772,6 +783,8 @@ export default function EventManagePage() {
     productionFilter,
     cityFilter,
     periodFilter,
+    dateFrom,
+    dateTo,
     performanceFilter,
     sortConfig,
     pinnedEventIds,
@@ -785,14 +798,17 @@ export default function EventManagePage() {
   const renderedGroups = useMemo(() => {
     if (!groupByPeriod) return [{ key: "all", label: "Eventos", events: renderedEvents }];
     const groups = new Map();
+    const pinned = new Set(pinnedEventIds.map(Number));
     renderedEvents.forEach((event) => {
-      const group = eventTemporalGroup(event);
+      const group = pinned.has(Number(event.id))
+        ? { key: "pinned", label: "Fixados", order: -10 }
+        : eventTemporalGroup(event);
       const current = groups.get(group.key) || { ...group, events: [] };
       current.events.push(event);
       groups.set(group.key, current);
     });
     return [...groups.values()].sort((a, b) => a.order - b.order);
-  }, [renderedEvents, groupByPeriod]);
+  }, [renderedEvents, groupByPeriod, pinnedEventIds]);
 
   useEffect(() => {
     const target = loadMoreRef.current;
@@ -1296,13 +1312,15 @@ export default function EventManagePage() {
                 <button type="button" className={`cut-event-group-toggle${groupByPeriod ? " is-active" : ""}`} onClick={() => setGroupByPeriod((current) => !current)} title="Agrupar por período">
                   <i className="fa-solid fa-layer-group" />
                 </button>
-                {(searchTerm || statusFilter !== "all" || productionFilter !== "all" || cityFilter !== "all" || periodFilter !== "all" || performanceFilter !== "all") && (
+                {(searchTerm || statusFilter !== "all" || productionFilter !== "all" || cityFilter !== "all" || periodFilter !== "all" || dateFrom || dateTo || performanceFilter !== "all") && (
                   <Button variant="outline-light" onClick={() => {
                     setSearchTerm("");
                     setStatusFilter("all");
                     setProductionFilter("all");
                     setCityFilter("all");
                     setPeriodFilter("all");
+                    setDateFrom("");
+                    setDateTo("");
                     setPerformanceFilter("all");
                   }}>
                     <i className="fa-solid fa-filter-circle-xmark me-2" />Limpar
@@ -1317,6 +1335,8 @@ export default function EventManagePage() {
                 <Form.Group><Form.Label>Produção</Form.Label><Form.Select value={productionFilter} onChange={(event) => setProductionFilter(event.target.value)}><option value="all">Todas as produções</option>{filterOptions.productions.map((production) => <option key={production.id} value={production.id}>{production.name}</option>)}</Form.Select></Form.Group>
                 <Form.Group><Form.Label>Cidade</Form.Label><Form.Select value={cityFilter} onChange={(event) => setCityFilter(event.target.value)}><option value="all">Todas as cidades</option>{filterOptions.cities.map((city) => <option key={city} value={city}>{city}</option>)}</Form.Select></Form.Group>
                 <Form.Group><Form.Label>Período</Form.Label><Form.Select value={periodFilter} onChange={(event) => setPeriodFilter(event.target.value)}><option value="all">Qualquer período</option><option value="today">Hoje</option><option value="tomorrow">Amanhã</option><option value="week">Próximos 7 dias</option><option value="upcoming">Próximos</option><option value="past">Encerrados</option><option value="cancelled">Cancelados</option></Form.Select></Form.Group>
+                <Form.Group><Form.Label>De</Form.Label><Form.Control type="date" value={dateFrom} max={dateTo || undefined} onChange={(event) => setDateFrom(event.target.value)} /></Form.Group>
+                <Form.Group><Form.Label>Até</Form.Label><Form.Control type="date" value={dateTo} min={dateFrom || undefined} onChange={(event) => setDateTo(event.target.value)} /></Form.Group>
                 <Form.Group><Form.Label>Performance</Form.Label><Form.Select value={performanceFilter} onChange={(event) => setPerformanceFilter(event.target.value)}><option value="all">Qualquer desempenho</option><option value="strong">Vendendo bem</option><option value="selling">Com vendas</option><option value="almost_sold_out">Quase esgotado</option><option value="sold_out">Esgotado</option><option value="no_sales">Sem vendas</option><option value="low_conversion">Baixa conversão</option><option value="critical">Crítico</option><option value="draft">Não publicado</option></Form.Select></Form.Group>
               </div>
             </details>
@@ -1370,6 +1390,8 @@ export default function EventManagePage() {
                   setProductionFilter("all");
                   setCityFilter("all");
                   setPeriodFilter("all");
+                  setDateFrom("");
+                  setDateTo("");
                   setPerformanceFilter("all");
                 }}>Limpar filtros</Button>
               </div>
