@@ -467,6 +467,7 @@ const cutinappService = {
   locationCities: async (uf, q = "") => (await appApiClient.get("/locations/cities", { params: { uf, q } })).data.cities || [],
   lookupCep: async (cep) => (await appApiClient.get(`/locations/cep/${String(cep).replace(/\D/g, "")}`)).data.address,
 
+  globalSearch: async (params = {}) => (await appApiClient.get("/search", { params })).data,
   profileOverview: async () => (await appApiClient.get("/profile/overview")).data,
   publicProfile: async (userId) => (await appApiClient.get(`/profiles/${Number(userId)}`)).data,
   myProductions: async () => unwrap((await appApiClient.get("/organizations/mine")).data.organizations),
