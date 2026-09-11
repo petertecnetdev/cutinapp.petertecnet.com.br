@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import NavlogComponent from "../components/NavlogComponent";
+import MessagingPreferencesPanel from "../components/MessagingPreferencesPanel";
 import messagingService from "../services/MessagingService";
 import { reconcileMessageSnapshot } from "../utils/messageReconciliation";
 import "./MessagesPage.css";
@@ -42,6 +43,7 @@ export default function MessagesPage() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [newChatOpen, setNewChatOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [hasNewMessages, setHasNewMessages] = useState(false);
   const messagesRef = useRef(null);
   const composerRef = useRef(null);
@@ -136,6 +138,69 @@ export default function MessagesPage() {
       .finally(() => { if (!cancelled) setThreadLoading(false); });
     return () => { cancelled = true; };
   }, [user?.id, loadConversations]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const conversationId = Number(params.get("conversation") || 0);
+    const engagementToken = String(params.get("engagement") || "").trim();
+    let cancelled = false;
+
+    if (engagementToken) {
+      messagingService.engagementClick(engagementToken).catch(() => undefined);
+    }
+
+    if (!conversationId) {
+      if (engagementToken) window.history.replaceState({}, "", "/messages");
+      return () => { cancelled = true; };
+    }
+
+    setError("");
+    setThreadLoading(true);
+    messagingService.conversation(conversationId)
+      .then((response) => {
+        if (cancelled) return;
+        setActive({ ...response?.data, unread_count: 0 });
+        loadConversations("", { quiet: true });
+        window.history.replaceState({}, "", "/messages");
+      })
+      .catch((requestError) => {
+        if (!cancelled) setError(requestError?.response?.data?.message || "Não foi possível abrir esta conversa.");
+      })
+      .finally(() => { if (!cancelled) setThreadLoading(false); });
+
+    return () => { cancelled = true; };
+  }, [loadConversations]);
+
+  useEffect(() => {
+    const conversationId = Number(active?.id || 0);
+    if (!conversationId) {
+      window.sessionStorage.removeItem("cutinapp:activeConversationId");
+      return undefined;
+    }
+
+    let stopped = false;
+    const sync = (isActive) => {
+      if (stopped && isActive) return;
+      if (isActive) window.sessionStorage.setItem("cutinapp:activeConversationId", String(conversationId));
+      else window.sessionStorage.removeItem("cutinapp:activeConversationId");
+      messagingService.conversationActivity(conversationId, isActive).catch(() => undefined);
+    };
+
+    const updateVisibility = () => sync(document.visibilityState === "visible");
+    updateVisibility();
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === "visible") sync(true);
+    }, 30000);
+    document.addEventListener("visibilitychange", updateVisibility);
+
+    return () => {
+      stopped = true;
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", updateVisibility);
+      window.sessionStorage.removeItem("cutinapp:activeConversationId");
+      messagingService.conversationActivity(conversationId, false).catch(() => undefined);
+    };
+  }, [active?.id]);
 
   useEffect(() => {
     threadRequestSequence.current += 1;
@@ -253,7 +318,7 @@ export default function MessagesPage() {
     <NavlogComponent />
     <main className={`cut-chat-shell ${active ? "has-thread" : ""}`}>
       <aside className="cut-chat-inbox">
-        <header className="cut-chat-inbox__header"><div><span className="cut-chat-eyebrow">Direct</span><h1>Mensagens</h1></div><button type="button" className="cut-chat-icon-button" onClick={() => setNewChatOpen(true)} aria-label="Nova mensagem"><i className="fa-regular fa-pen-to-square" /></button></header>
+        <header className="cut-chat-inbox__header"><div><span className="cut-chat-eyebrow">Direct</span><h1>Mensagens</h1></div><div className="cut-chat-inbox__actions"><button type="button" className="cut-chat-icon-button" onClick={() => setSettingsOpen(true)} aria-label="Preferências do Direct"><i className="fa-solid fa-sliders" /></button><button type="button" className="cut-chat-icon-button" onClick={() => setNewChatOpen(true)} aria-label="Nova mensagem"><i className="fa-regular fa-pen-to-square" /></button></div></header>
         <label className="cut-chat-search"><i className="fa-solid fa-magnifying-glass" /><input value={conversationQuery} onChange={(event) => setConversationQuery(event.target.value)} placeholder="Pesquisar conversas" autoComplete="off" /></label>
         <div className="cut-chat-list">
           {loading && <div className="cut-chat-state">Carregando conversas…</div>}
@@ -290,5 +355,6 @@ export default function MessagesPage() {
     </main>
 
     {newChatOpen && <div className="cut-chat-modal-backdrop" role="presentation" onMouseDown={() => setNewChatOpen(false)}><section className="cut-chat-modal" role="dialog" aria-modal="true" aria-label="Nova mensagem" onMouseDown={(event) => event.stopPropagation()}><header><button type="button" onClick={() => setNewChatOpen(false)} aria-label="Fechar"><i className="fa-solid fa-xmark" /></button><strong>Nova mensagem</strong><span /></header><label><span>Para:</span><input autoFocus value={peopleQuery} onChange={(event) => setPeopleQuery(event.target.value)} placeholder="Nome, @usuário ou e-mail" autoComplete="off" /></label><div className="cut-chat-people">{peopleQuery.trim().length < 2 && <div className="cut-chat-state">Digite pelo menos 2 caracteres.</div>}{people.map((person) => <button type="button" key={person.id} onClick={() => startChat(person)}><Avatar user={person} /><span><strong>{person.name || person.user_name}</strong><small>@{person.user_name}{person.email ? ` · ${person.email}` : ""}</small></span></button>)}{peopleQuery.trim().length >= 2 && people.length === 0 && <div className="cut-chat-state">Nenhuma pessoa encontrada.</div>}</div></section></div>}
+    {settingsOpen && <MessagingPreferencesPanel onClose={() => setSettingsOpen(false)} />}
   </div>;
 }
