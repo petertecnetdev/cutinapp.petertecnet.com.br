@@ -21,7 +21,7 @@ const formatDate = (value) => value
 
 const invalidStatuses = ["cancelled", "refunded", "charged_back"];
 
-const ticketStatus = (pass, { used, invalid, eventEnded }) => {
+const ticketStatus = (pass, { used, eventEnded }) => {
   if (pass?.status === "refunded") return { label: "Reembolsado", variant: "info" };
   if (pass?.status === "charged_back") return { label: "Pagamento contestado", variant: "danger" };
   if (pass?.status === "cancelled" || pass?.event?.is_cancelled) return { label: "Cancelado", variant: "danger" };
@@ -89,7 +89,7 @@ export default function PassDetailPage() {
       ? pass.wallet_state.transferable
       : !used && !invalid && !eventEnded)
   );
-  const status = ticketStatus(pass, { used, invalid, eventEnded });
+  const status = ticketStatus(pass, { used, eventEnded });
   const routeToMap = mapsUrl(pass?.event);
   const purchase = pass?.purchase || null;
   const complimentary = Boolean(pass?.is_complimentary) || Number(pass?.ticket?.price || 0) <= 0;
