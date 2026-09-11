@@ -1,5 +1,5 @@
 import React from "react";
-import { Badge, Button, Container } from "react-bootstrap";
+import { Badge, Container } from "react-bootstrap";
 import "./EntityEditorShell.css";
 
 const tone = (status) => {
