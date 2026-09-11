@@ -208,6 +208,8 @@ export default function ProductionFinancePage() {
   const checkoutPeriodComparison = checkoutJourneyFunnel.period_comparison || {};
   const checkoutPeriodConversion = checkoutPeriodComparison.conversion || {};
   const checkoutPeriodRisk = checkoutPeriodComparison.platform_contribution_risk || {};
+  const checkoutActionEffectiveness = checkoutPeriodComparison.recommended_action_effectiveness || null;
+  const checkoutActionEffectivenessUi = checkoutRemediationMeta[checkoutActionEffectiveness?.action_code] || null;
   const checkoutJourneyMethods = Array.isArray(checkoutJourneyFunnel.by_payment_method) ? checkoutJourneyFunnel.by_payment_method : [];
   const checkoutStepLabel = {
     checkout_opened: "Checkout aberto",
@@ -438,6 +440,29 @@ export default function ProductionFinancePage() {
                 Conversão checkout → aprovado: {checkoutPeriodConversion.opened_to_approved_delta_percentage_points == null ? "—" : `${Number(checkoutPeriodConversion.opened_to_approved_delta_percentage_points) >= 0 ? "+" : ""}${Number(checkoutPeriodConversion.opened_to_approved_delta_percentage_points).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} p.p.`}
                 {checkoutPeriodRisk.largest_step_amount_delta == null ? "" : ` • variação da contribuição em risco: ${money(checkoutPeriodRisk.largest_step_amount_delta)}`}
               </span>
+            </Alert>}
+            {checkoutActionEffectiveness && <Alert variant={checkoutActionEffectiveness.status === "improving" ? "success" : checkoutActionEffectiveness.status === "regressing" ? "danger" : checkoutActionEffectiveness.status === "mixed" ? "warning" : "secondary"} className="mt-3 mb-0">
+              <strong>Eficácia da ação recomendada{checkoutActionEffectivenessUi?.title ? ` — ${checkoutActionEffectivenessUi.title}` : ""}:</strong>{" "}
+              {checkoutActionEffectiveness.status === "improving"
+                ? "a mesma etapa melhorou versus o período anterior."
+                : checkoutActionEffectiveness.status === "regressing"
+                  ? "a mesma etapa piorou; revise a intervenção antes de ampliar tráfego ou incentivos."
+                  : checkoutActionEffectiveness.status === "mixed"
+                    ? "há sinais mistos; mantenha a medição antes de atribuir ganho ou perda à intervenção."
+                    : "ainda em coleta; não há amostra comparável suficiente para avaliar a ação."}
+              <span className="d-block mt-1 small">
+                {checkoutStepLabel[checkoutActionEffectiveness.step?.from] || checkoutActionEffectiveness.step?.from || "Etapa"} → {checkoutStepLabel[checkoutActionEffectiveness.step?.to] || checkoutActionEffectiveness.step?.to || "próxima etapa"}
+                {checkoutActionEffectiveness.target_metric_previous_percent == null || checkoutActionEffectiveness.target_metric_current_percent == null
+                  ? ""
+                  : ` • conversão: ${percent(checkoutActionEffectiveness.target_metric_previous_percent)} → ${percent(checkoutActionEffectiveness.target_metric_current_percent)}`}
+                {checkoutActionEffectiveness.target_metric_delta_percentage_points == null
+                  ? ""
+                  : ` (${Number(checkoutActionEffectiveness.target_metric_delta_percentage_points) >= 0 ? "+" : ""}${Number(checkoutActionEffectiveness.target_metric_delta_percentage_points).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} p.p.)`}
+              </span>
+              {(checkoutActionEffectiveness.platform_contribution_at_risk_previous_same_step != null || checkoutActionEffectiveness.platform_contribution_at_risk_current != null) && <span className="d-block mt-1 small">
+                Contribuição em risco na mesma etapa: {checkoutActionEffectiveness.platform_contribution_at_risk_previous_same_step == null ? "—" : money(checkoutActionEffectiveness.platform_contribution_at_risk_previous_same_step)} → {checkoutActionEffectiveness.platform_contribution_at_risk_current == null ? "—" : money(checkoutActionEffectiveness.platform_contribution_at_risk_current)}
+                {checkoutActionEffectiveness.platform_contribution_at_risk_delta == null ? "" : ` • variação: ${money(checkoutActionEffectiveness.platform_contribution_at_risk_delta)}`}
+              </span>}
             </Alert>}
             {checkoutLargestEconomicDropoff && checkoutLargestContributionDropoff && Number(checkoutLargestEconomicDropoff.gmv_at_risk || 0) > 0 && <p className="text-secondary small mt-2 mb-0">
               Maior risco por GMV bruto: <strong>{checkoutStepLabel[checkoutLargestEconomicDropoff.from] || checkoutLargestEconomicDropoff.from}</strong> → <strong>{checkoutStepLabel[checkoutLargestEconomicDropoff.to] || checkoutLargestEconomicDropoff.to}</strong>, com <strong>{money(checkoutLargestEconomicDropoff.gmv_at_risk)}</strong>. O ranking principal usa contribuição líquida para evitar priorizar volume que deixa pouca margem.
