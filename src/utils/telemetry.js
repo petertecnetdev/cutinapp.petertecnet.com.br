@@ -1,6 +1,8 @@
 const ATTRIBUTION_STORAGE_KEY = "cutinapp_telemetry_attribution";
 const ATTRIBUTION_TTL_MS = 60 * 60 * 1000;
 const ATTRIBUTION_TERMINAL_EVENT = "checkout_fulfilled";
+const CHECKOUT_JOURNEY_STORAGE_KEY = "cutinapp_checkout_journey";
+const CHECKOUT_JOURNEY_TTL_MS = 2 * 60 * 60 * 1000;
 
 const canUseSessionStorage = () => typeof window !== "undefined" && Boolean(window.sessionStorage);
 
@@ -70,6 +72,62 @@ const shouldAttachAttribution = () => {
   return /^\/(event|checkout)\//.test(window.location?.pathname || "");
 };
 
+const clearCheckoutJourney = () => {
+  try {
+    if (canUseSessionStorage()) window.sessionStorage.removeItem(CHECKOUT_JOURNEY_STORAGE_KEY);
+  } catch (_) {
+    // Checkout analytics must never interrupt the purchase flow.
+  }
+};
+
+const readCheckoutJourney = () => {
+  try {
+    if (!canUseSessionStorage()) return null;
+    const raw = window.sessionStorage.getItem(CHECKOUT_JOURNEY_STORAGE_KEY);
+    if (!raw) return null;
+    const journey = JSON.parse(raw);
+    if (!journey?.id || !Number.isFinite(Number(journey?.expires_at)) || Number(journey.expires_at) <= Date.now()) {
+      clearCheckoutJourney();
+      return null;
+    }
+    return journey;
+  } catch (_) {
+    clearCheckoutJourney();
+    return null;
+  }
+};
+
+const createCheckoutJourneyId = () => {
+  try {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  } catch (_) {
+    // Fall through to a non-identifying local random id.
+  }
+  return `cj_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 12)}`;
+};
+
+const resolveCheckoutJourney = (details = {}) => {
+  if (typeof window === "undefined" || !/^\/checkout\//.test(window.location?.pathname || "")) return null;
+  const eventSlug = String(details?.target || window.location.pathname.split("/").filter(Boolean)[1] || "").trim() || null;
+  const existing = readCheckoutJourney();
+  if (existing && (!eventSlug || existing.event_slug === eventSlug)) return existing;
+
+  try {
+    if (!canUseSessionStorage()) return null;
+    const now = Date.now();
+    const journey = {
+      id: createCheckoutJourneyId(),
+      event_slug: eventSlug,
+      started_at: now,
+      expires_at: now + CHECKOUT_JOURNEY_TTL_MS,
+    };
+    window.sessionStorage.setItem(CHECKOUT_JOURNEY_STORAGE_KEY, JSON.stringify(journey));
+    return journey;
+  } catch (_) {
+    return null;
+  }
+};
+
 const ensureAttributionAwareTracker = () => {
   if (typeof window === "undefined") return null;
   const telemetry = window.PeterTecnetTelemetry;
@@ -80,24 +138,34 @@ const ensureAttributionAwareTracker = () => {
   const originalTrack = tracker.bind(telemetry);
   const wrappedTrack = (type, details = {}) => {
     const attribution = shouldAttachAttribution() ? readAttribution() : null;
-    const enriched = attribution
+    const checkoutJourney = resolveCheckoutJourney(details);
+    const enriched = attribution || checkoutJourney
       ? {
         ...details,
         metadata: {
           ...(details?.metadata || {}),
-          attribution_source: attribution.source,
-          attribution_post_id: attribution.post_id || null,
-          attribution_event_id: attribution.event_id || null,
-          attribution_event_slug: attribution.event_slug || null,
-          attribution_recovery_surface: attribution.recovery_surface || null,
-          attribution_recovery_source: attribution.recovery_source || null,
-          attribution_recovery_has_pending_order: attribution.recovery_has_pending_order ?? null,
+          ...(attribution ? {
+            attribution_source: attribution.source,
+            attribution_post_id: attribution.post_id || null,
+            attribution_event_id: attribution.event_id || null,
+            attribution_event_slug: attribution.event_slug || null,
+            attribution_recovery_surface: attribution.recovery_surface || null,
+            attribution_recovery_source: attribution.recovery_source || null,
+            attribution_recovery_has_pending_order: attribution.recovery_has_pending_order ?? null,
+          } : {}),
+          ...(checkoutJourney ? {
+            checkout_journey_id: checkoutJourney.id,
+            checkout_journey_started_at: checkoutJourney.started_at,
+          } : {}),
         },
       }
       : details;
 
     const result = originalTrack(type, enriched);
-    if (type === ATTRIBUTION_TERMINAL_EVENT) clearAttribution();
+    if (type === ATTRIBUTION_TERMINAL_EVENT) {
+      clearAttribution();
+      clearCheckoutJourney();
+    }
     return result;
   };
 
