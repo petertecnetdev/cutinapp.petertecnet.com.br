@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import NavlogComponent from "../components/NavlogComponent";
 import AudioRecorder from "../components/direct/AudioRecorder";
+import DirectCallModal from "../components/direct/DirectCallModal";
 import SecureMessageAttachment from "../components/direct/SecureMessageAttachment";
 import messagingService from "../services/MessagingService";
 import { subscribeToConversation } from "../services/RealtimeMessagingService";
@@ -67,6 +68,12 @@ const messagePreview = (message) => {
   if (message.type === "location") return "Localização";
   if (message.type === "share") return "Conteúdo compartilhado";
   return "Mensagem";
+};
+
+const parseCallMetadata = (value) => {
+  if (!value) return {};
+  if (typeof value === "object") return value;
+  try { return JSON.parse(value); } catch (_) { return {}; }
 };
 
 const inferMessageType = (files, metadata) => {
@@ -288,6 +295,8 @@ export default function MessagesPage() {
   const [realtimeState, setRealtimeState] = useState("idle");
   const [lightbox, setLightbox] = useState(null);
   const [recording, setRecording] = useState(false);
+  const [callUi, setCallUi] = useState(null);
+  const [callSignal, setCallSignal] = useState(null);
   const messagesRef = useRef(null);
   const composerRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -413,6 +422,24 @@ export default function MessagesPage() {
 
     if (eventName === "messaging.message.read") {
       if (Number(payload.user_id) !== Number(user?.id)) loadThread(active.id, { quiet: true });
+      return;
+    }
+
+    if (eventName === "messaging.call.updated" && payload.call) {
+      const call = payload.call;
+      const metadata = parseCallMetadata(call.metadata);
+      setCallSignal(call);
+      if (
+        call.status === "ringing"
+        && metadata.kind === "offer"
+        && Number(call.started_by) !== Number(user?.id)
+      ) {
+        setCallUi((current) => current || {
+          mode: "incoming",
+          type: call.type === "video" ? "video" : "audio",
+          initialCall: call,
+        });
+      }
       return;
     }
 
@@ -966,6 +993,12 @@ export default function MessagesPage() {
                 </button>
                 <div className="cut-direct-header-actions">
                   <span className={`cut-direct-live-state is-${realtimeState}`} title={realtimeState === "subscribed" ? "Tempo real conectado" : "Reconectando"} />
+                  {active.type === "direct" && active.request_state !== "pending" && (
+                    <>
+                      <button type="button" onClick={() => { setCallSignal(null); setCallUi({ mode: "outgoing", type: "audio", initialCall: null }); }} aria-label="Chamada de áudio"><i className="fa-solid fa-phone" /></button>
+                      <button type="button" onClick={() => { setCallSignal(null); setCallUi({ mode: "outgoing", type: "video", initialCall: null }); }} aria-label="Chamada de vídeo"><i className="fa-solid fa-video" /></button>
+                    </>
+                  )}
                   <button type="button" onClick={() => setDetailsOpen((value) => !value)} aria-label="Detalhes da conversa"><i className="fa-solid fa-circle-info" /></button>
                 </div>
               </header>
@@ -1188,6 +1221,18 @@ export default function MessagesPage() {
             </div>
           </section>
         </div>
+      )}
+
+      {callUi && active?.id && (
+        <DirectCallModal
+          conversationId={Number(active.id)}
+          remoteUser={active.user}
+          mode={callUi.mode}
+          type={callUi.type}
+          initialCall={callUi.initialCall}
+          signal={callSignal}
+          onClose={() => { setCallUi(null); setCallSignal(null); }}
+        />
       )}
 
       {lightbox && (
