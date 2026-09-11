@@ -212,7 +212,7 @@ export default function NavlogComponent() {
         <Container className="cut-navbar__inner">
           <Navbar.Brand as={Link} to="/" className="cut-navbar__brand"><img src="/images/logo.png" alt="Cutinapp" /><div><strong>Cutinapp</strong><small>Rede social de eventos</small></div></Navbar.Brand>
           <Navbar.Toggle aria-controls="cut-navbar-public" aria-label={open ? "Fechar menu" : "Abrir menu"} />
-          <Navbar.Collapse id="cut-navbar-public"><Nav className="ms-auto cut-navbar__links"><Nav.Link as={Link} to="/event">Eventos</Nav.Link><Nav.Link as={Link} to="/productions">Produções</Nav.Link><Nav.Link as={Link} to="/artists">Artistas</Nav.Link><Nav.Link as={Link} to="/login">Entrar</Nav.Link></Nav><span data-peter-ecosystem-slot className="cut-navbar__ecosystem-slot" /></Navbar.Collapse>
+          <Navbar.Collapse id="cut-navbar-public"><Nav className="ms-auto cut-navbar__links"><Nav.Link as={Link} to="/search"><i className="fa-solid fa-magnifying-glass me-2" />Buscar</Nav.Link><Nav.Link as={Link} to="/event">Eventos</Nav.Link><Nav.Link as={Link} to="/productions">Produções</Nav.Link><Nav.Link as={Link} to="/artists">Artistas</Nav.Link><Nav.Link as={Link} to="/login">Entrar</Nav.Link></Nav><span data-peter-ecosystem-slot className="cut-navbar__ecosystem-slot" /></Navbar.Collapse>
         </Container>
       </Navbar>
     );
@@ -230,6 +230,7 @@ export default function NavlogComponent() {
             <div className="cut-navbar__drawer-heading"><strong>Navegação</strong><small>{actorMenus.length ? `${actorMenus.length} área${actorMenus.length > 1 ? "s" : ""} de trabalho disponível${actorMenus.length > 1 ? "is" : ""}` : "Sua experiência Cutinapp"}</small></div>
 
             <Nav className="cut-navbar__links mx-auto" aria-label="Navegação principal">
+              <Nav.Link as={Link} to="/search" aria-current={active("/search") ? "page" : undefined} className={`cut-navbar__primary-link cut-navbar__search-link ${active("/search") ? "active" : ""}`} onClick={() => { closeMenu(); trackTelemetry("navigation_item_selected", { id: "global-search", route: "/search", source: "global_search" }); }}><i className="fa-solid fa-magnifying-glass" /><span>Buscar</span></Nav.Link>
               {commonNavigation.map((entry) => <Nav.Link key={entry.id} as={Link} to={entry.to} aria-current={active(entry.to) ? "page" : undefined} onClick={() => recordUsage(entry, "common_primary")} className={`cut-navbar__primary-link ${active(entry.to) ? "active" : ""}`}><i className={entry.icon} /><span>{entry.label}</span></Nav.Link>)}
 
               {actorMenus.map((area) => <NavDropdown key={area.id} title={<span className="cut-actor-menu__title"><i className={area.icon} /><span>{area.label}</span>{area.id === "producer" && productions.length > 0 && <span className="cut-actor-menu__badge">{productions.length}</span>}</span>} id={`cut-actor-${area.id}`} className={`cut-actor-menu ${area.items.some((entry) => active(entry.to)) ? "active" : ""}`}>
@@ -262,9 +263,9 @@ export default function NavlogComponent() {
 
       <nav className="cut-mobile-bottom-nav" aria-label="Navegação principal mobile">
         <Link to="/feed" className={active("/feed") ? "active" : ""} aria-current={active("/feed") ? "page" : undefined}><i className="fa-solid fa-bolt" /><span>Feed</span></Link>
+        <Link to="/search" className={active("/search") ? "active" : ""} aria-current={active("/search") ? "page" : undefined}><i className="fa-solid fa-magnifying-glass" /><span>Buscar</span></Link>
         <Link to="/event" className={active("/event") ? "active" : ""} aria-current={active("/event") ? "page" : undefined}><i className="fa-regular fa-calendar-days" /><span>Eventos</span></Link>
         <Link to="/messages" className={active("/messages") ? "active" : ""} aria-current={active("/messages") ? "page" : undefined} aria-label="Mensagens"><i className="fa-regular fa-paper-plane" /><span>Mensagens</span></Link>
-        <Link to="/passes" className={active("/passes") ? "active" : ""} aria-current={active("/passes") ? "page" : undefined}><i className="fa-solid fa-ticket" /><span>Ingressos</span></Link>
         <Link to="/profile" className={active("/profile") ? "active" : ""} aria-current={active("/profile") ? "page" : undefined}><i className="fa-regular fa-user" /><span>Perfil</span></Link>
       </nav>
     </>
