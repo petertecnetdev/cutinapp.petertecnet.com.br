@@ -227,6 +227,19 @@ body.cut-chat-open .cut-event-cart-fab{display:none!important}
 .cut-direct-lightbox{position:fixed;inset:0;z-index:1400;display:grid;place-items:center;padding:40px;background:rgba(0,0,0,.92)}
 .cut-direct-lightbox>button{position:absolute;top:max(18px,env(safe-area-inset-top));right:18px;width:42px;height:42px;border:1px solid rgba(255,255,255,.14);border-radius:50%;background:rgba(255,255,255,.07);color:#fff}
 .cut-direct-lightbox img{max-width:96vw;max-height:92vh;object-fit:contain;border-radius:8px}
+
+.cut-direct-request-banner{padding:11px 14px;display:flex;align-items:center;justify-content:space-between;gap:14px;border-top:1px solid rgba(255,255,255,.06);background:linear-gradient(90deg,rgba(124,92,255,.11),rgba(124,92,255,.035))}
+.cut-direct-request-banner>div:first-child{min-width:0;display:flex;align-items:center;gap:9px}
+.cut-direct-request-banner>div:first-child>i{width:34px;height:34px;display:grid;place-items:center;border-radius:50%;background:rgba(124,92,255,.14);color:#bcaeff}
+.cut-direct-request-banner span{min-width:0;display:grid}
+.cut-direct-request-banner strong{font-size:.7rem;color:#eeeaff}
+.cut-direct-request-banner small{color:#8e95a5;font-size:.6rem}
+.cut-direct-request-banner>div:last-child{display:flex;gap:6px}
+.cut-direct-request-banner button{min-height:33px;padding:0 11px;border-radius:10px;font-size:.65rem;font-weight:850}
+.cut-direct-request-banner button.is-secondary{border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.035);color:#c7cbd4}
+.cut-direct-request-banner button.is-primary{border:0;background:#f2efff;color:#1a1230}
+.cut-direct-composer-zone.is-request-locked{opacity:.38;pointer-events:none}
+
 @keyframes cutDirectPulse{0%,100%{opacity:.45}50%{opacity:1}}
 @keyframes cutDirectShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
@@ -272,6 +285,8 @@ body.cut-chat-open .cut-event-cart-fab{display:none!important}
   .cut-chat-error{bottom:78px}
   .cut-chat-new-messages{bottom:80px}
   .cut-direct-details{position:fixed;inset:0;z-index:80;width:100%;border:0}
+  .cut-direct-request-banner{align-items:flex-start;flex-direction:column}
+  .cut-direct-request-banner>div:last-child{width:100%;justify-content:flex-end}
   .cut-chat-modal-backdrop{padding:0;align-items:end}
   .cut-chat-modal{width:100%;max-height:88dvh;border-radius:24px 24px 0 0;border-bottom:0}
   .cut-direct-lightbox{padding:15px}
