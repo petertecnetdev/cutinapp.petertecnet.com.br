@@ -1,4 +1,5 @@
 import React from "react";
+import PropTypes from "prop-types";
 import { Button, Offcanvas, ProgressBar } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { storageUrl } from "../../config";
@@ -29,7 +30,6 @@ const initials = (value) => String(value || "EV")
 const percent = (value) => `${Number(value || 0).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
 
 export function EventPerformanceBadge({ event }) {
-  const performance = eventPerformance(event);
   return <span className={`cut-event-performance is-${performance.tone}`}><i className="fa-solid fa-chart-simple" />{performance.label}</span>;
 }
 
@@ -128,3 +128,34 @@ export function EventQuickView({ event, show, onHide, onDuplicate, onAgenda }) {
     </Offcanvas.Body>
   </Offcanvas>;
 }
+
+
+EventPerformanceBadge.propTypes = {
+  event: PropTypes.object.isRequired,
+};
+
+EventHealthBadge.propTypes = {
+  event: PropTypes.object.isRequired,
+  showLabel: PropTypes.bool,
+};
+
+EventAgendaDays.propTypes = {
+  event: PropTypes.object.isRequired,
+};
+
+EventMetrics.propTypes = {
+  event: PropTypes.object.isRequired,
+  compact: PropTypes.bool,
+};
+
+EventAlertChips.propTypes = {
+  event: PropTypes.object.isRequired,
+};
+
+EventQuickView.propTypes = {
+  event: PropTypes.object,
+  show: PropTypes.bool,
+  onHide: PropTypes.func,
+  onDuplicate: PropTypes.func,
+  onAgenda: PropTypes.func,
+};

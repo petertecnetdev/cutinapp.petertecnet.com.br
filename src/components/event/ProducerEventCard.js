@@ -1,4 +1,5 @@
 import React from "react";
+import PropTypes from "prop-types";
 import { Badge, Button, Form } from "react-bootstrap";
 import {
   EventAgendaDays,
@@ -142,3 +143,21 @@ export default function ProducerEventCard({
     </aside>
   </article>;
 }
+
+
+ProducerEventCard.propTypes = {
+  event: PropTypes.object.isRequired,
+  readiness: PropTypes.object,
+  status: PropTypes.object.isRequired,
+  selected: PropTypes.bool,
+  pinned: PropTypes.bool,
+  viewMode: PropTypes.oneOf(["visual", "compact"]),
+  disabled: PropTypes.bool,
+  actions: PropTypes.node,
+  onToggleSelected: PropTypes.func,
+  onTogglePin: PropTypes.func,
+  onQuickView: PropTypes.func,
+  onEdit: PropTypes.func,
+  onPrimaryAction: PropTypes.func,
+  onDuplicate: PropTypes.func,
+};

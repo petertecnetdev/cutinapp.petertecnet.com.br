@@ -293,7 +293,8 @@ export default function EventManagePage() {
   const [sortConfig, setSortConfig] = useState({ key: "smart", direction: "asc" });
   const [pinnedEventIds, setPinnedEventIds] = useState([]);
   const [quickEvent, setQuickEvent] = useState(null);
-  const [displayLimit, setDisplayLimit] = useState(24);\n  const loadMoreRef = useRef(null);
+  const [displayLimit, setDisplayLimit] = useState(24);
+  const loadMoreRef = useRef(null);
   const [bulkMoveOpen, setBulkMoveOpen] = useState(false);
   const [bulkTargetProductionId, setBulkTargetProductionId] = useState("");
   const [bulkActionError, setBulkActionError] = useState("");
@@ -1011,7 +1012,11 @@ export default function EventManagePage() {
       }
     }
 
-    try { await load(); } catch (_) {}
+    try {
+      await load();
+    } catch {
+      // A ação principal já foi concluída; falha de refresh não deve ocultar o resultado.
+    }
 
     if (failed.length) {
       setBulkActionError(`${completed} concluído(s). Falharam: ${failed.slice(0, 4).join(", ")}${failed.length > 4 ? "…" : ""}`);
