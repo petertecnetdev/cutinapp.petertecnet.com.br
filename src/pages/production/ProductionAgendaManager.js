@@ -120,7 +120,7 @@ export default function ProductionAgendaManager() {
           if (nextStrategies[day] === undefined) {
             nextStrategies[day] = {
               generation_mode: schedule?.generation_mode === "delayed" ? "delayed" : "immediate",
-              generation_delay_days: Math.max(1, Math.min(7, Number(schedule?.generation_delay_days || 1))),
+              generation_delay_days: Math.max(1, Math.min(6, Number(schedule?.generation_delay_days || 1))),
               generation_weeks: Math.max(1, Math.min(52, Number(schedule?.generation_weeks || 1))),
             };
           }
@@ -313,7 +313,7 @@ export default function ProductionAgendaManager() {
             const busy = savingDay === day.value || removingDay === day.value;
             const strategy = strategies[day.value] || {
               generation_mode: schedule?.generation_mode === "delayed" ? "delayed" : "immediate",
-              generation_delay_days: Math.max(1, Math.min(7, Number(schedule?.generation_delay_days || 1))),
+              generation_delay_days: Math.max(1, Math.min(6, Number(schedule?.generation_delay_days || 1))),
               generation_weeks: Math.max(1, Math.min(52, Number(schedule?.generation_weeks || 1))),
             };
             const updateStrategy = (patch) => setStrategies((current) => ({
@@ -404,7 +404,7 @@ export default function ProductionAgendaManager() {
                           disabled={busy}
                           onChange={(event) => updateStrategy({ generation_delay_days: Number(event.target.value) })}
                         >
-                          {[1,2,3,4,5,6,7].map((days) => (
+                          {[1,2,3,4,5,6].map((days) => (
                             <option key={days} value={days}>{days} dia{days > 1 ? "s" : ""}</option>
                           ))}
                         </Form.Select>

@@ -1496,14 +1496,14 @@ export default function EventManagePage() {
             <Form.Group className="mt-3">
               <Form.Label>Depois que o dia passar, esperar quantos dias?</Form.Label>
               <Form.Select value={agendaDelayDays} onChange={(event) => setAgendaDelayDays(Number(event.target.value))}>
-                {[1,2,3,4,5,6,7].map((days) => (
+                {[1,2,3,4,5,6].map((days) => (
                   <option key={days} value={days}>
                     {days === 1 ? "1 dia depois" : `${days} dias depois`}
                   </option>
                 ))}
               </Form.Select>
               <Form.Text>
-                Exemplo: evento fixo de segunda + 1 dia = a próxima ocorrência pode ser criada na terça; +7 dias = somente na segunda seguinte.
+                Exemplo: evento fixo de segunda + 1 dia = terça; +6 dias = domingo. O limite de 6 dias garante que a próxima segunda já esteja criada antes de chegar.
               </Form.Text>
             </Form.Group>
           )}

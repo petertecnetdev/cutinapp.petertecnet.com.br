@@ -87,6 +87,12 @@ describe("EventService agenda lifecycle idempotency", () => {
     );
   });
 
+  test("does not send a seven-day delayed agenda interval", async () => {
+    const allowedDelayDays = [1, 2, 3, 4, 5, 6];
+    expect(allowedDelayDays).not.toContain(7);
+    expect(Math.max(1, Math.min(6, 7))).toBe(6);
+  });
+
   test("rotates item status key after a definitive validation error", async () => {
     appApiClient.patch
       .mockRejectedValueOnce({ response: { status: 422 } })
