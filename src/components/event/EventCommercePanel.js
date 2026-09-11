@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import PropTypes from "prop-types";
-import { Alert, Button, Form, Offcanvas } from "react-bootstrap";
+import { Alert, Button, Form } from "react-bootstrap";
 import { useLocation, useNavigate } from "react-router-dom";
 import commerceService from "../../services/CommerceService";
 import { checkoutQuantityLimit, resolveCheckoutQuantity } from "../../utils/checkoutAddOns";
@@ -41,8 +41,6 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [restoredSelection, setRestoredSelection] = useState(false);
-  const [cartOpen, setCartOpen] = useState(false);
-  const [isMobileCart, setIsMobileCart] = useState(false);
 
   const applyCatalog = (response, targetSlug, { announceRestore = true } = {}) => {
     const nextCatalog = response || { tickets: [], items: [], available_dates: [] };
@@ -110,14 +108,6 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
   const activeEventId = Number(catalog?.event?.id || eventId);
   const activeSlug = catalog?.event?.slug || slug;
   const availableDates = catalog?.available_dates || [];
-
-  useEffect(() => {
-    const media = window.matchMedia("(max-width: 991.98px)");
-    const syncPlacement = () => setIsMobileCart(media.matches);
-    syncPlacement();
-    media.addEventListener?.("change", syncPlacement);
-    return () => media.removeEventListener?.("change", syncPlacement);
-  }, []);
 
   useEffect(() => {
     let active = true;
@@ -347,84 +337,11 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
 
       </div>
 
-      <aside className="cut-ticket-shop__summary" aria-label="Resumo da seleção">
-      <div className="cut-ticket-shop__summary-head">
-        <span className="cut-ticket-shop__summary-count">×{selectedQuantity || 0}</span>
-        <small>{selectedQuantity > 0 ? "Itens no carrinho" : "Carrinho vazio"}</small>
-      </div>
-
-      {selectedEntries.length > 0
-        ? <div className="cut-ticket-shop__summary-items">{selectedEntries.map((entry) => <div className="cut-ticket-shop__summary-item" key={`summary-${entry.kind}-${entry.item.id}`}>
-          <div><strong>{entry.item.name}</strong><span>{entry.quantity} × {money(entry.item.price)}</span></div>
-          <b>{money(Number(entry.item.price || 0) * entry.quantity)}</b>
-        </div>)}</div>
-        : <div className="cut-ticket-shop__summary-empty">Use os botões + para adicionar ingressos ou itens.</div>}
-
-      <div className="cut-ticket-shop__summary-footer">
-        <div className="cut-ticket-shop__summary-line"><span>Subtotal</span><strong>{money(total)}</strong></div>
-        <div className="cut-ticket-shop__summary-line"><span>Taxa adicional ao participante</span><span>{money(0)}</span></div>
-        <div className="cut-ticket-shop__summary-line cut-ticket-shop__summary-line--total"><span>Total dos itens</span><strong>{money(total)}</strong></div>
-        <p className="cut-ticket-shop__summary-note">Este é o total antes de cupons. Não adicionamos taxa surpresa ao participante no pagamento.</p>
-        <button type="button" className="cut-ticket-shop__checkout-btn" onClick={continueToCheckout} disabled={total <= 0 || !checkoutAvailable}>{user ? `Finalizar carrinho · ${money(total)}` : "Entrar e finalizar carrinho"}</button>
-      </div>
-      </aside>
     </div>
 
     {selectedQuantity > 0 && <small className="d-block text-success text-center"><i className="fa-solid fa-clock-rotate-left me-1" />Sua seleção fica salva neste navegador e será revalidada ao retornar.</small>}
     <div className="cut-ticket-shop__trust"><i className="fa-solid fa-shield-halved" /><span>Uma única compra, um único pagamento. Cada ingresso recebe QR de entrada e os itens antecipados ficam vinculados ao pedido para retirada no evento.</span></div>
 
-    {selectedQuantity > 0 && <>
-      <button
-        type="button"
-        className="cut-event-cart-fab"
-        onClick={() => setCartOpen(true)}
-        aria-label={`Abrir carrinho com ${selectedQuantity} item${selectedQuantity === 1 ? "" : "s"}, total ${money(total)}`}
-      >
-        <i className="fa-solid fa-cart-shopping" aria-hidden="true" />
-        <span><strong>Carrinho · {selectedQuantity} {selectedQuantity === 1 ? "item" : "itens"}</strong><small>{money(total)}</small></span>
-        <b>{selectedQuantity}</b>
-      </button>
-
-      <Offcanvas
-        show={cartOpen}
-        onHide={() => setCartOpen(false)}
-        placement={isMobileCart ? "bottom" : "end"}
-        className="cut-event-cart-drawer"
-        scroll={false}
-        backdrop
-      >
-        <Offcanvas.Header closeButton closeVariant="white">
-          <Offcanvas.Title>Carrinho do evento</Offcanvas.Title>
-        </Offcanvas.Header>
-        <Offcanvas.Body>
-          <p className="cut-event-cart-drawer__hint">Altere quantidades ou remova itens antes de seguir para o pagamento.</p>
-          <div className="cut-event-cart-drawer__items">
-            {selectedEntries.map((entry) => {
-              const maxQuantity = resolveCheckoutQuantity(entry.item, checkoutQuantityLimit(entry.kind), checkoutQuantityLimit(entry.kind));
-              return <div className="cut-event-cart-drawer__item" key={`drawer-${entry.kind}-${entry.item.id}`}>
-                <div className="cut-event-cart-drawer__copy">
-                  <small>{entry.kind === "ticket" ? "Ingresso" : "Item do evento"}</small>
-                  <strong>{entry.item.name}</strong>
-                  <span>{entry.quantity} × {money(entry.item.price)}</span>
-                </div>
-                <QuantityStepper kind={entry.kind} id={entry.item.id} value={entry.quantity} max={maxQuantity} label={entry.item.name} />
-                <b>{money(Number(entry.item.price || 0) * entry.quantity)}</b>
-              </div>;
-            })}
-          </div>
-
-          <div className="cut-event-cart-drawer__footer">
-            <div><span>Total a pagar</span><strong>{money(total)}</strong></div>
-            <small>Sem taxa adicional surpresa. Preço e estoque são revalidados antes da cobrança.</small>
-            <Button type="button" className="w-100" onClick={continueToCheckout} disabled={total <= 0 || !checkoutAvailable}>
-              <i className="fa-solid fa-lock me-2" />
-              {user ? "Ir para pagamento" : "Entrar e continuar"}
-            </Button>
-            <button type="button" className="cut-event-cart-drawer__continue" onClick={() => setCartOpen(false)}>Continuar comprando</button>
-          </div>
-        </Offcanvas.Body>
-      </Offcanvas>
-    </>}
   </div>;
 }
 
