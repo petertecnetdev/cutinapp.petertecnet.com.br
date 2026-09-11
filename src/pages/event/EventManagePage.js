@@ -414,20 +414,6 @@ export default function EventManagePage() {
     setDisplayLimit(24);
   }, [searchTerm, statusFilter, productionFilter, cityFilter, periodFilter, performanceFilter, sortConfig, groupByPeriod]);
 
-  useEffect(() => {
-    const target = loadMoreRef.current;
-    if (!target || displayLimit >= visibleEvents.length || typeof IntersectionObserver === "undefined") return undefined;
-
-    const observer = new IntersectionObserver((entries) => {
-      if (entries.some((entry) => entry.isIntersecting)) {
-        setDisplayLimit((current) => Math.min(current + 24, visibleEvents.length));
-      }
-    }, { rootMargin: "320px 0px" });
-
-    observer.observe(target);
-    return () => observer.disconnect();
-  }, [displayLimit, visibleEvents.length]);
-
   const togglePinnedEvent = (eventId) => {
     const id = Number(eventId);
     setPinnedEventIds((current) => current.includes(id)
@@ -827,6 +813,21 @@ export default function EventManagePage() {
     });
     return [...groups.values()].sort((a, b) => a.order - b.order);
   }, [renderedEvents, groupByPeriod]);
+
+  useEffect(() => {
+    const target = loadMoreRef.current;
+    if (!target || displayLimit >= visibleEvents.length || typeof IntersectionObserver === "undefined") return undefined;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        setDisplayLimit((current) => Math.min(current + 24, visibleEvents.length));
+      }
+    }, { rootMargin: "320px 0px" });
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [displayLimit, visibleEvents.length]);
+
 
   const selectedEventIdSet = useMemo(
     () => new Set(selectedEventIds.map((id) => Number(id))),
