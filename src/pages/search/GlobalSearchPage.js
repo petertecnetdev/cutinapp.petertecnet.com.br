@@ -386,23 +386,21 @@ export default function GlobalSearchPage() {
     };
     try { window.sessionStorage.setItem(ATTRIBUTION_KEY, JSON.stringify(attribution)); } catch (_) { /* optional */ }
 
-    if (user) {
-      cutinappService.trackGlobalSearchClick({
-        search_id: response?.search_id || undefined,
-        target_type: item.type,
-        target_id: Number(item.id),
-        position: Number(index) + 1,
-        sponsored: Boolean(item.sponsored),
-        item: {
-          type: item.type,
-          id: item.id,
-          title: item.title,
-          subtitle: item.subtitle || "",
-          image: item.image || "",
-          url: item.url,
-        },
-      }).catch(() => {});
-    }
+    cutinappService.trackGlobalSearchClick({
+      search_id: response?.search_id || undefined,
+      target_type: item.type,
+      target_id: Number(item.id),
+      position: Number(index) + 1,
+      sponsored: Boolean(item.sponsored),
+      item: {
+        type: item.type,
+        id: item.id,
+        title: item.title,
+        subtitle: item.subtitle || "",
+        image: item.image || "",
+        url: item.url,
+      },
+    }).catch(() => {});
 
     trackTelemetry("global_search_result_selected", {
       type: item.type,
