@@ -1,0 +1,133 @@
+name: Apply courtesy normal ticket frontend fix
+
+on:
+  push:
+    branches:
+      - fix/cortesia-ingresso-normal
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/cortesia-ingresso-normal
+          fetch-depth: 0
+
+      - name: Remove legacy courtesy redemption and enable free checkout
+        shell: python
+        run: |
+          from pathlib import Path
+
+          event_path = Path('src/pages/event/EventViewPage.js')
+          event = event_path.read_text()
+
+          event = event.replace('  const [claimingId, setClaimingId] = useState(null);\n', '', 1)
+
+          claim_start = event.find('  const claim = async (ticket) => {')
+          claim_end = event.find('  const claimArtist = async (artist) => {', claim_start)
+          if claim_start < 0 or claim_end < 0:
+              raise SystemExit('Legacy courtesy claim handler not found')
+          event = event[:claim_start] + event[claim_end:]
+
+          courtesy_start = event.find('          {tickets.length > 0 && <div className="cut-ticket-shop__courtesies mt-4">')
+          courtesy_end_marker = '        </section>}'
+          if courtesy_start < 0:
+              raise SystemExit('Legacy courtesy UI not found')
+          courtesy_end = event.find(courtesy_end_marker, courtesy_start)
+          if courtesy_end < 0:
+              raise SystemExit('Courtesy section end not found')
+          event = event[:courtesy_start] + event[courtesy_end:]
+
+          old_processing = '  return <div className={`cut-app-page cut-event-view-page ${showPersistentBuyCta ? "cut-event-view-page--buyable" : ""}`}><NavlogComponent />{(loading || claimingId || artistClaimingId || duplicating) && <ProcessingIndicatorComponent label={claimingId ? "Emitindo ingresso" : artistClaimingId ? "Enviando reivindicação" : duplicating ? "Criando próxima edição" : "Carregando evento"} />}'
+          new_processing = '  return <div className={`cut-app-page cut-event-view-page ${showPersistentBuyCta ? "cut-event-view-page--buyable" : ""}`}><NavlogComponent />{(loading || artistClaimingId || duplicating) && <ProcessingIndicatorComponent label={artistClaimingId ? "Enviando reivindicação" : duplicating ? "Criando próxima edição" : "Carregando evento"} />}'
+          if old_processing not in event:
+              raise SystemExit('Processing indicator source not found')
+          event = event.replace(old_processing, new_processing, 1)
+          event_path.write_text(event)
+
+          checkout_path = Path('src/pages/checkout/CheckoutPage.js')
+          checkout = checkout_path.read_text()
+
+          total_marker = '  const payableTotal = coupon ? Math.max(0, Number(coupon.total ?? total - discountAmount)) : total;\n'
+          if total_marker not in checkout:
+              raise SystemExit('payableTotal marker not found')
+          checkout = checkout.replace(total_marker, total_marker + '  const isFreeOrder = payableTotal <= 0;\n', 1)
+
+          pix_marker = '  const checkoutPix = async () => {\n'
+          if pix_marker not in checkout:
+              raise SystemExit('checkoutPix marker not found')
+          free_handler = '''  const checkoutFree = async () => {
+    if (paymentSubmissionRef.current || paying || applyingCoupon || !isFreeOrder) return;
+    paymentSubmissionRef.current = true; paymentAttemptedRef.current = true;
+    setMethod("free");
+    trackCheckout("free_order_attempted", { label: "Pedido gratuito solicitado", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: 0, discount_amount: discountAmount, coupon_code: coupon?.code || null, payment_method: "free", checkout_elapsed_ms: Math.max(0, Date.now() - checkoutOpenedAtRef.current) } });
+    setPaying(true); setError("");
+    try {
+      const checkoutResult = await commerceService.checkout(payload("free"));
+      setResult(checkoutResult);
+      safeSetSessionJson(paymentStorageKey, checkoutResult);
+      trackCheckout("free_order_completed", { label: "Pedido gratuito concluído", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), order_public_id: checkoutResult?.order?.public_id || null, outcome: "success" } });
+    } catch (err) {
+      const reconciled = await refreshAvailabilityAfterCheckoutConflict(err, "free");
+      trackCheckout("free_order_failed", { label: "Falha ao concluir pedido gratuito", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), status: Number(err?.status || err?.response?.status || 0), inventory_reconciled: reconciled, outcome: "error" } });
+      if (!reconciled) setError(checkoutSubmissionErrorMessage(err, "Não foi possível concluir o pedido gratuito."));
+    } finally {
+      paymentSubmissionRef.current = false;
+      setPaying(false);
+    }
+  };
+'''
+          checkout = checkout.replace(pix_marker, free_handler + pix_marker, 1)
+
+          checkout = checkout.replace(
+              '<div className="cut-checkout-heading"><span>Finalizar compra</span><h1>{catalog?.event?.title || "Seu pedido"}</h1><p>Revise seu pedido e escolha uma forma de pagamento.</p></div>',
+              '<div className="cut-checkout-heading"><span>Finalizar pedido</span><h1>{catalog?.event?.title || "Seu pedido"}</h1><p>{isFreeOrder ? "Revise seu pedido gratuito. Nenhuma forma de pagamento será necessária." : "Revise seu pedido e escolha uma forma de pagamento."}</p></div>',
+              1,
+          )
+          checkout = checkout.replace(
+              '{!paymentAvailable && !result && <Alert variant="warning">{catalog?.payment_config?.message || "As vendas deste evento ainda não estão habilitadas. Tente novamente mais tarde."}</Alert>}',
+              '{!paymentAvailable && !result && !isFreeOrder && <Alert variant="warning">{catalog?.payment_config?.message || "As vendas deste evento ainda não estão habilitadas. Tente novamente mais tarde."}</Alert>}',
+              1,
+          )
+
+          payment_section = '<section className="cut-checkout-section" data-telemetry-context="Forma de pagamento"><div className="cut-checkout-section__head"><div className="cut-checkout-step">1</div><div><h2>Forma de pagamento</h2>'
+          if payment_section not in checkout:
+              raise SystemExit('Payment method section not found')
+          checkout = checkout.replace(payment_section, '{!isFreeOrder && <section className="cut-checkout-section" data-telemetry-context="Forma de pagamento"><div className="cut-checkout-section__head"><div className="cut-checkout-step">1</div><div><h2>Forma de pagamento</h2>', 1)
+          methods_end = '</div></section>\n          {!result && availableAddOns.length > 0'
+          if methods_end not in checkout:
+              raise SystemExit('Payment method section end not found')
+          checkout = checkout.replace(methods_end, '</div></section>}\n          {!result && availableAddOns.length > 0', 1)
+
+          total_block = '{!result && <div className="cut-payment-total"><span>{coupon ? "Total com desconto" : "Total a pagar"}</span><strong>{money(payableTotal)}</strong></div>}'
+          if total_block not in checkout:
+              raise SystemExit('Payment total block not found')
+          free_cta = total_block + '{!result && isFreeOrder && <div className="cut-pix-start"><div className="cut-pix-start__icon"><i className="fa-solid fa-ticket" /></div><h3>Pedido gratuito</h3><p>Este ingresso custa R$ 0,00 e será emitido como qualquer outro ingresso, com QR Code e check-in normal, sem passar pelo gateway de pagamento.</p><Button data-track="Finalizar pedido gratuito" className="cut-checkout-primary" onClick={checkoutFree} disabled={paying || applyingCoupon}>{paying ? "Emitindo ingresso..." : "Finalizar pedido gratuito"}</Button></div>}'
+          checkout = checkout.replace(total_block, free_cta, 1)
+
+          checkout = checkout.replace(
+              '<span>Pagamento aprovado</span><h2>Compra confirmada!</h2><p>Seu pagamento foi reconhecido e seus ingressos já estão liberados.</p>',
+              '<span>{Number(result.order?.total || 0) <= 0 ? "Pedido confirmado" : "Pagamento aprovado"}</span><h2>Compra confirmada!</h2><p>{Number(result.order?.total || 0) <= 0 ? "Seu pedido gratuito foi concluído e seus ingressos já estão liberados." : "Seu pagamento foi reconhecido e seus ingressos já estão liberados."}</p>',
+              1,
+          )
+
+          checkout_path.write_text(checkout)
+
+      - name: Install and test build
+        run: |
+          npm ci
+          npm run build
+
+      - name: Commit patch and remove helper workflow
+        run: |
+          rm .github/workflows/apply-cortesia-normal.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: unificar cortesia ao checkout normal"
+          git push origin HEAD:fix/cortesia-ingresso-normal
