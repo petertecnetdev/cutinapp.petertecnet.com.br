@@ -30,6 +30,7 @@ const initials = (value) => String(value || "EV")
 const percent = (value) => `${Number(value || 0).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
 
 export function EventPerformanceBadge({ event }) {
+  const performance = eventPerformance(event);
   return <span className={`cut-event-performance is-${performance.tone}`}><i className="fa-solid fa-chart-simple" />{performance.label}</span>;
 }
 
@@ -72,7 +73,6 @@ export function EventQuickView({ event, show, onHide, onDuplicate, onAgenda }) {
 
   const metrics = eventOperationalMetrics(event);
   const health = eventHealth(event);
-  const performance = eventPerformance(event);
   const alerts = eventAlerts(event);
   const cover = event.image;
 
