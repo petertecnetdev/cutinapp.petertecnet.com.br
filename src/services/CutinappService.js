@@ -4,6 +4,20 @@ import { cachedPublicGet, invalidatePublicRequestCache } from "../utils/publicRe
 import { trackSearchConversion } from "../utils/searchAttribution";
 
 const unwrap = (value) => Array.isArray(value) ? value : Array.isArray(value?.data) ? value.data : [];
+const SEARCH_SESSION_KEY = "cutinapp:search-session:v1";
+const searchSessionHeaders = () => {
+  if (typeof window === "undefined") return {};
+  try {
+    let value = window.sessionStorage.getItem(SEARCH_SESSION_KEY);
+    if (!value) {
+      value = window.crypto?.randomUUID?.() || `search-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      window.sessionStorage.setItem(SEARCH_SESSION_KEY, value);
+    }
+    return { "X-Search-Session": value };
+  } catch (_) {
+    return {};
+  }
+};
 const rename = (data, from, to) => {
   if (!data || typeof data !== "object" || !(from in data)) return data;
   const result = { ...data, [to]: data[from] };
@@ -468,11 +482,11 @@ const cutinappService = {
   locationCities: async (uf, q = "") => (await appApiClient.get("/locations/cities", { params: { uf, q } })).data.cities || [],
   lookupCep: async (cep) => (await appApiClient.get(`/locations/cep/${String(cep).replace(/\D/g, "")}`)).data.address,
 
-  globalSearch: async (params = {}, signal = undefined) => (await appApiClient.get("/global-search", { params, signal })).data,
-  globalSearchSuggestions: async (params = {}, signal = undefined) => (await appApiClient.get("/global-search/suggestions", { params, signal })).data,
-  globalSearchDiscover: async (params = {}, signal = undefined) => (await appApiClient.get("/global-search/discover", { params, signal })).data,
-  globalSearchTrending: async (params = {}, signal = undefined) => (await appApiClient.get("/global-search/trending", { params, signal })).data,
-  trackGlobalSearchClick: async (payload = {}) => (await appApiClient.post("/global-search/click", payload)).data,
+  globalSearch: async (params = {}, signal = undefined) => (await appApiClient.get("/global-search", { params, signal, headers: searchSessionHeaders() })).data,
+  globalSearchSuggestions: async (params = {}, signal = undefined) => (await appApiClient.get("/global-search/suggestions", { params, signal, headers: searchSessionHeaders() })).data,
+  globalSearchDiscover: async (params = {}, signal = undefined) => (await appApiClient.get("/global-search/discover", { params, signal, headers: searchSessionHeaders() })).data,
+  globalSearchTrending: async (params = {}, signal = undefined) => (await appApiClient.get("/global-search/trending", { params, signal, headers: searchSessionHeaders() })).data,
+  trackGlobalSearchClick: async (payload = {}) => (await appApiClient.post("/global-search/click", payload, { headers: searchSessionHeaders() })).data,
   trackGlobalSearchConversion: async (payload = {}) => (await appApiClient.post("/global-search/convert", payload)).data,
   globalSearchRecent: async (params = {}) => (await appApiClient.get("/global-search/recent", { params })).data,
   clearGlobalSearchRecent: async (params = {}) => (await appApiClient.delete("/global-search/recent", { params })).data,
