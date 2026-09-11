@@ -56,6 +56,7 @@ export default function AdminSearchAnalyticsPage() {
     ["Sem resultado", `${Number(analytics.zero_result_rate || 0).toFixed(1)}%`, "fa-regular fa-face-meh"],
     ["Conversão", `${Number(analytics.conversion_rate || 0).toFixed(1)}%`, "fa-solid fa-bullseye"],
     ["Usuários", analytics.unique_users || 0, "fa-solid fa-users"],
+    ["Sessões", analytics.unique_sessions || 0, "fa-solid fa-fingerprint"],
     ["Conversões", analytics.conversions || 0, "fa-solid fa-bolt"],
     ["Até o clique", analytics.avg_seconds_to_click ? `${Number(analytics.avg_seconds_to_click).toFixed(0)}s` : "—", "fa-regular fa-clock"],
   ] : [], [analytics]);
