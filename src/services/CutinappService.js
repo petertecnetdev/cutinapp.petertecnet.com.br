@@ -558,7 +558,11 @@ const cutinappService = {
   eventArtists: async (eventId) => (await appApiClient.get(`/events/${eventId}/artists`)).data,
   attachArtist,
   detachArtist,
-  follow: async (targetType, targetId) => { const data = await followSocialTarget(targetType, targetId); await trackSearchConversion("follow", targetId).catch(() => false); return data; },
+  follow: (targetType, targetId) => {
+    const request = followSocialTarget(targetType, targetId);
+    request.then(() => trackSearchConversion("follow", targetId)).catch(() => false);
+    return request;
+  },
   unfollow: unfollowSocialTarget,
   preferences: async () => (await appApiClient.get("/social/preferences")).data.preferences,
   savePreferences: saveSocialPreferencesMutation,
