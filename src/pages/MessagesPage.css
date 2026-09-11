@@ -126,3 +126,33 @@
     border-radius: 22px 22px 0 0;
   }
 }
+
+.cut-chat-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.cut-chat-metrics-grid > div {
+  display: grid;
+  gap: 3px;
+  padding: 12px;
+  border: 1px solid rgba(148, 163, 184, .18);
+  border-radius: 12px;
+  background: rgba(148, 163, 184, .06);
+}
+
+.cut-chat-metrics-grid strong {
+  font-size: 1.05rem;
+}
+
+.cut-chat-metrics-grid small {
+  font-size: .72rem;
+  color: var(--bs-secondary-color, #718096);
+}
+
+@media (max-width: 420px) {
+  .cut-chat-metrics-grid {
+    grid-template-columns: 1fr;
+  }
+}
