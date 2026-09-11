@@ -1,38 +1,30 @@
 export function evaluateRecoveryRolloutReadiness({ comparison = {} } = {}) {
-  const decision = comparison?.decision || {};
-  const confidence = comparison?.paid_conversion_difference_confidence_95 || null;
-  const projection = comparison?.observed_volume_projection || null;
-  const mature = Boolean(comparison?.sample_is_mature);
-  const conversionGuardrail = Boolean(decision?.confidence?.paid_conversion_guardrail_satisfied);
-  const contributionGuardrail = decision?.guardrails?.platform_contribution_positive === true;
-  const eligible = decision?.eligible_for_rollout === true;
-  const requiresManualReview = decision?.requires_manual_review !== false;
+  const rollout = comparison?.rollout_readiness;
 
-  let status = "collecting";
-  let recommendedAction = "collect_more_data";
-
-  if (mature && decision?.status === "harmful") {
-    status = "blocked";
-    recommendedAction = "keep_control";
-  } else if (mature && decision?.status === "winner" && eligible && conversionGuardrail && contributionGuardrail) {
-    status = requiresManualReview ? "ready_for_review" : "ready";
-    recommendedAction = requiresManualReview ? "review_rollout" : "rollout_prominent";
-  } else if (mature) {
-    status = "hold";
-    recommendedAction = "keep_control";
+  if (!rollout || typeof rollout !== "object") {
+    return {
+      status: "collecting",
+      recommendedAction: "collect_more_data",
+      mature: false,
+      eligible: false,
+      requiresManualReview: true,
+      guardrails: { conversion: false, contribution: false },
+      confidence: null,
+      projection: null,
+    };
   }
 
   return {
-    status,
-    recommendedAction,
-    mature,
-    eligible,
-    requiresManualReview,
+    status: rollout.status || "collecting",
+    recommendedAction: rollout.recommended_action || "collect_more_data",
+    mature: Boolean(rollout.sample_is_mature),
+    eligible: rollout.eligible_for_rollout === true,
+    requiresManualReview: rollout.requires_manual_review !== false,
     guardrails: {
-      conversion: conversionGuardrail,
-      contribution: contributionGuardrail,
+      conversion: rollout.guardrails?.conversion === true,
+      contribution: rollout.guardrails?.contribution === true,
     },
-    confidence,
-    projection,
+    confidence: rollout.confidence ?? null,
+    projection: rollout.projection ?? null,
   };
 }

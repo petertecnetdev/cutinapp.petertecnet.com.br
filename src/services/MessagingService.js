@@ -60,7 +60,11 @@ const archiveConversationIdempotently = createIdempotentMutation({
 const messagingService = {
   conversations: async (params = {}) => (await appApiClient.get("/messaging/conversations", { params })).data,
   searchPeople: async (query) => (await appApiClient.get("/messaging/people", { params: { q: query } })).data,
-  openDirect: async (userId) => { const data = await openDirectIdempotently(userId); await trackSearchConversion("direct_open", userId).catch(() => false); return data; },
+  openDirect: (userId) => {
+    const request = openDirectIdempotently(userId);
+    request.then(() => trackSearchConversion("direct_open", userId)).catch(() => false);
+    return request;
+  },
   conversation: async (conversationId) => (await appApiClient.get(`/messaging/conversations/${Number(conversationId)}`)).data,
   messages: async (conversationId, params = {}) => (await appApiClient.get(`/messaging/conversations/${Number(conversationId)}/messages`, { params })).data,
   send: (conversationId, body, replyToId = null) => sendMessageIdempotently(conversationId, body, replyToId),
