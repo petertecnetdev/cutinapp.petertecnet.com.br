@@ -14,7 +14,9 @@ const iceServers = () => {
     try {
       const parsed = JSON.parse(configured);
       if (Array.isArray(parsed) && parsed.length) return parsed;
-    } catch (_) {}
+    } catch (_) {
+      return [{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }];
+    }
   }
   return [{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }];
 };
@@ -49,7 +51,7 @@ export default function DirectCallModal({
     localStreamRef.current = null;
     remoteStreamRef.current = null;
     if (peerRef.current) {
-      try { peerRef.current.close(); } catch (_) {}
+      try { peerRef.current.close(); } catch (_) { peerRef.current = null; }
     }
     peerRef.current = null;
   }, []);
@@ -69,7 +71,9 @@ export default function DirectCallModal({
     for (const candidate of candidates) {
       try {
         await updateCall(statusRef.current || "ringing", { kind: "candidate", candidate });
-      } catch (_) {}
+      } catch (_) {
+        pendingLocalCandidatesRef.current.push(candidate);
+      }
     }
   }, [updateCall]);
 
@@ -82,7 +86,9 @@ export default function DirectCallModal({
     }
     try {
       await peer.addIceCandidate(new RTCIceCandidate(candidate));
-    } catch (_) {}
+    } catch (_) {
+      pendingRemoteCandidatesRef.current.push(candidate);
+    }
   }, []);
 
   const flushRemoteCandidates = useCallback(async () => {
@@ -91,7 +97,11 @@ export default function DirectCallModal({
     const candidates = [...pendingRemoteCandidatesRef.current];
     pendingRemoteCandidatesRef.current = [];
     for (const candidate of candidates) {
-      try { await peer.addIceCandidate(new RTCIceCandidate(candidate)); } catch (_) {}
+      try {
+        await peer.addIceCandidate(new RTCIceCandidate(candidate));
+      } catch (_) {
+        pendingRemoteCandidatesRef.current.push(candidate);
+      }
     }
   }, []);
 
@@ -252,7 +262,9 @@ export default function DirectCallModal({
   const endCall = async () => {
     try {
       if (callIdRef.current) await updateCall("ended", { kind: "hangup" });
-    } catch (_) {}
+    } catch (_) {
+      setError("A chamada foi encerrada localmente.");
+    }
     stopMedia();
     onClose?.();
   };
@@ -261,7 +273,9 @@ export default function DirectCallModal({
     callIdRef.current = initialCall?.id || signal?.id || callIdRef.current;
     try {
       if (callIdRef.current) await updateCall("declined", { kind: "decline" });
-    } catch (_) {}
+    } catch (_) {
+      setError("A chamada foi recusada localmente.");
+    }
     stopMedia();
     onClose?.();
   };
