@@ -1213,7 +1213,7 @@ export default function EventManagePage() {
                         <article key={event.id} className={`cut-event-mobile-card${needsAttention ? " is-attention" : ""}${selectedEventIdSet.has(Number(event.id)) ? " is-selected" : ""}`}>
                           <div className="cut-event-mobile-card__top">
                             <button type="button" className="cut-event-mobile-card__media" onClick={() => navigate(`/event/edit/${event.id}`)} aria-label={`Editar ${event.title}`}>
-                              {eventImage ? <img src={mediaUrl(eventImage)} alt="" loading="lazy" /> : <i className="fa-regular fa-calendar" />}
+                              {eventImage ? <img src={mediaUrl(eventImage)} alt="" loading="lazy" /> : <span className="cut-event-admin-identity__initials">{initialsFor(event.title)}</span>}
                             </button>
                             <div className="cut-event-mobile-card__heading">
                               <div className="cut-event-mobile-card__badges">
