@@ -55,6 +55,7 @@ const ProductionListPage = lazyWithPreload(() => import("./pages/production/Prod
 const ProductionCreatePage = lazy(() => import("./pages/production/ProductionCreatePage"));
 const ProductionMinePage = lazy(() => import("./pages/production/ProductionMinePage"));
 const ProducerMediaLibraryPage = lazy(() => import("./pages/production/ProducerMediaLibraryPage"));
+const ProducerSearchInsightsPage = lazy(() => import("./pages/production/ProducerSearchInsightsPage"));
 const ProductionViewPage = lazy(() => import("./pages/production/ProductionViewPage"));
 const ProductionPublicPage = lazy(() => import("./pages/production/ProductionPublicPage"));
 const ProductionAgendaPublicPage = lazy(() => import("./pages/production/ProductionAgendaPublicPage"));
@@ -195,6 +196,7 @@ function AppRoutes() {
           <Route path="/producer/media" element={protectedRoute(<ProducerMediaLibraryPage />)} />
           <Route path="/producer/contracts" element={protectedRoute(<ProducerContractsPage />)} />
           <Route path="/producer/finance" element={protectedRoute(<ProductionFinancePage />)} />
+          <Route path="/producer/search-insights" element={protectedRoute(<ProducerSearchInsightsPage />)} />
           <Route path="/producer/sales" element={protectedRoute(<ProducerSalesPage />)} />
           <Route path="/producer/sales/:productionId/:publicId" element={protectedRoute(<ProducerSaleDetailPage />)} />
           <Route path="/production/:productionId/coupons" element={protectedRoute(<CouponManagePage />)} />
