@@ -180,6 +180,19 @@ export default function ProductionFinancePage() {
   const recoveryDecisionStatus = recoveryDecision.status || "inconclusive";
   const recoveryDecisionUi = recoveryDecisionMeta[recoveryDecisionStatus] || recoveryDecisionMeta.inconclusive;
   const recoveryConfidence = recoveryExperimentComparison.paid_conversion_difference_confidence_95 || null;
+  const checkoutJourneyFunnel = revenueFunnel?.checkout_journey_funnel || {};
+  const checkoutJourneyStages = checkoutJourneyFunnel.stages || {};
+  const checkoutJourneyConversion = checkoutJourneyFunnel.conversion || {};
+  const checkoutJourneyDropoff = checkoutJourneyFunnel.dropoff || {};
+  const checkoutJourneyGmv = checkoutJourneyFunnel.gmv || {};
+  const checkoutLargestDropoff = checkoutJourneyDropoff.largest_step || null;
+  const checkoutJourneyMethods = Array.isArray(checkoutJourneyFunnel.by_payment_method) ? checkoutJourneyFunnel.by_payment_method : [];
+  const checkoutStepLabel = {
+    checkout_opened: "Checkout aberto",
+    payment_attempted: "Tentativa de pagamento",
+    payment_approved: "Pagamento aprovado",
+    checkout_fulfilled: "Ingresso emitido",
+  };
   const netEconomics = useMemo(() => estimateNetRevenueEconomics({
     grossRevenue,
     platformRevenue,
@@ -365,6 +378,27 @@ export default function ProductionFinancePage() {
           {recoveryAttempts > 0 && <Alert variant="info" className="mt-3 mb-0">
             Recuperação de checkout converteu <strong>{percent(recoveryConversionRate)}</strong> das tentativas e recuperou <strong>{money(recoveredGmv)}</strong> em GMV / <strong>{money(recoveredPlatformRevenue)}</strong> em receita de plataforma. Cada tentativa recuperou em média <strong>{money(recoveredGmvPerAttempt)}</strong> de GMV e <strong>{money(recoveredPlatformRevenuePerAttempt)}</strong> de receita bruta da plataforma, equivalente a aproximadamente <strong>{money(netEconomics.estimatedRecoveredNetRevenue)}</strong> de receita líquida total após processamento pela margem observada.
           </Alert>}
+
+          {Number(checkoutJourneyFunnel.journeys || 0) > 0 && <div className="mt-4">
+            <div className="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+              <div>
+                <span className="cut-eyebrow">Funil real de checkout</span>
+                <h3 className="h5 mt-2 mb-1">Onde compradores e GMV estão sendo perdidos</h3>
+                <p className="text-secondary small mb-0">Jornadas anônimas correlacionadas pela API central, do checkout aberto até pagamento aprovado e emissão do ingresso.</p>
+              </div>
+              <Badge bg="info">{Number(checkoutJourneyFunnel.journeys || 0).toLocaleString("pt-BR")} jornadas</Badge>
+            </div>
+            <Row className="g-3">
+              <Col md={6} xl={3}><RevenueMetric label="Checkout → tentativa" value={checkoutJourneyConversion.opened_to_attempted_percent == null ? "—" : percent(checkoutJourneyConversion.opened_to_attempted_percent)} detail={`${Number(checkoutJourneyStages.payment_attempted || 0).toLocaleString("pt-BR")} tentativas`} /></Col>
+              <Col md={6} xl={3}><RevenueMetric label="Checkout → aprovado" value={checkoutJourneyConversion.opened_to_approved_percent == null ? "—" : percent(checkoutJourneyConversion.opened_to_approved_percent)} detail={`${Number(checkoutJourneyStages.payment_approved || 0).toLocaleString("pt-BR")} pagamentos`} /></Col>
+              <Col md={6} xl={3}><RevenueMetric label="Aprovado → ingresso" value={checkoutJourneyConversion.approved_to_fulfilled_percent == null ? "—" : percent(checkoutJourneyConversion.approved_to_fulfilled_percent)} detail={`${Number(checkoutJourneyStages.fulfilled || 0).toLocaleString("pt-BR")} emissões`} /></Col>
+              <Col md={6} xl={3}><RevenueMetric label="GMV explicitamente abandonado" value={money(checkoutJourneyGmv.explicit_abandoned_at_risk)} detail={`${Number(checkoutJourneyDropoff.explicit_abandoned_journeys || 0).toLocaleString("pt-BR")} jornadas abandonadas`} /></Col>
+            </Row>
+            {checkoutLargestDropoff && Number(checkoutLargestDropoff.dropoff_journeys || 0) > 0 && <Alert variant="warning" className="mt-3 mb-0">
+              O maior gargalo está entre <strong>{checkoutStepLabel[checkoutLargestDropoff.from] || checkoutLargestDropoff.from}</strong> e <strong>{checkoutStepLabel[checkoutLargestDropoff.to] || checkoutLargestDropoff.to}</strong>: <strong>{Number(checkoutLargestDropoff.dropoff_journeys || 0).toLocaleString("pt-BR")}</strong> jornadas não avançaram ({checkoutLargestDropoff.dropoff_percent == null ? "—" : percent(checkoutLargestDropoff.dropoff_percent)}). Priorize esta etapa antes de aumentar descontos ou tráfego.
+            </Alert>}
+            {checkoutJourneyMethods.length > 0 && <div className="table-responsive mt-3"><Table variant="dark" hover className="align-middle mb-0"><thead><tr><th>Pagamento</th><th>Jornadas</th><th>Tentativas</th><th>Aprovados</th><th>Ingressos</th><th>Tentativa → aprovado</th></tr></thead><tbody>{checkoutJourneyMethods.map((row) => <tr key={row.payment_method}><td><strong>{paymentMethodLabel[row.payment_method] || row.payment_method}</strong></td><td>{Number(row.journeys || 0).toLocaleString("pt-BR")}</td><td>{Number(row.attempted || 0).toLocaleString("pt-BR")}</td><td>{Number(row.approved || 0).toLocaleString("pt-BR")}</td><td>{Number(row.fulfilled || 0).toLocaleString("pt-BR")}</td><td>{row.attempt_to_approved_rate_percent == null ? "—" : percent(row.attempt_to_approved_rate_percent)}</td></tr>)}</tbody></Table></div>}
+          </div>}
 
           {recoverySurfaces.length > 0 && <div className="mt-4">
             <div className="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
