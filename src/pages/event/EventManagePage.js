@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Alert, Badge, Button, Card, Container, Dropdown, Form, Modal, ProgressBar, Table } from "react-bootstrap";
+import { Alert, Badge, Button, Card, Container, Dropdown, Form, Modal, ProgressBar } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
@@ -8,6 +8,19 @@ import eventBulkService from "../../services/EventBulkService";
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
 import { sellableTicketCount } from "../../utils/eventSalesReadiness";
+import ProducerEventCard from "../../components/event/ProducerEventCard";
+import { EventQuickView } from "../../components/event/EventManagerEnhancements";
+import {
+  EVENT_MANAGER_PINS_KEY,
+  EVENT_MANAGER_PREFERENCES_KEY,
+  compareSmartRanks,
+  eventHealth,
+  eventOperationalMetrics,
+  eventPerformance,
+  eventTemporalGroup,
+  moneyBR,
+  smartEventRank,
+} from "../../utils/eventManagerInsights";
 import "./EventManagePage.css";
 import "./EventManagePageSorting.css";
 
@@ -24,12 +37,16 @@ const WEEK_DAYS = [
 ];
 
 const SORT_COLUMNS = [
+  { key: "smart", label: "Prioridade" },
   { key: "event", label: "Evento" },
   { key: "production", label: "Produção" },
   { key: "date", label: "Data" },
   { key: "location", label: "Local" },
   { key: "status", label: "Status" },
   { key: "tickets", label: "Ingressos" },
+  { key: "revenue", label: "Faturamento" },
+  { key: "sales", label: "Vendas" },
+  { key: "health", label: "Saúde" },
   { key: "readiness", label: "Preparação" },
   { key: "nextAction", label: "Próxima ação" },
 ];
@@ -231,6 +248,12 @@ const sortValue = (event, key) => {
       return getStatus(event).label;
     case "tickets":
       return Number(event?.tickets_count || 0);
+    case "revenue":
+      return eventOperationalMetrics(event).grossSales;
+    case "sales":
+      return eventOperationalMetrics(event).ticketsSold;
+    case "health":
+      return eventHealth(event).score;
     case "readiness":
       return Number(readiness.completed || 0);
     case "nextAction":
@@ -279,7 +302,19 @@ export default function EventManagePage() {
   const [copiedEventId, setCopiedEventId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [sortConfig, setSortConfig] = useState({ key: "date", direction: "asc" });
+  const [productionFilter, setProductionFilter] = useState("all");
+  const [cityFilter, setCityFilter] = useState("all");
+  const [periodFilter, setPeriodFilter] = useState("all");
+  const [performanceFilter, setPerformanceFilter] = useState("all");
+  const [viewMode, setViewMode] = useState("visual");
+  const [groupByPeriod, setGroupByPeriod] = useState(true);
+  const [sortConfig, setSortConfig] = useState({ key: "smart", direction: "asc" });
+  const [pinnedEventIds, setPinnedEventIds] = useState([]);
+  const [quickEvent, setQuickEvent] = useState(null);
+  const [displayLimit, setDisplayLimit] = useState(24);
+  const [bulkMoveOpen, setBulkMoveOpen] = useState(false);
+  const [bulkTargetProductionId, setBulkTargetProductionId] = useState("");
+  const [bulkActionError, setBulkActionError] = useState("");
   const [bulkPublishOpen, setBulkPublishOpen] = useState(false);
   const [bulkPublishing, setBulkPublishing] = useState(false);
   const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0, current: "" });
@@ -322,6 +357,69 @@ export default function EventManagePage() {
     const existingIds = new Set(events.map((event) => Number(event.id)));
     setSelectedEventIds((current) => current.filter((id) => existingIds.has(Number(id))));
   }, [events]);
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(window.localStorage.getItem(EVENT_MANAGER_PREFERENCES_KEY) || "null");
+      if (saved && typeof saved === "object") {
+        if (typeof saved.searchTerm === "string") setSearchTerm(saved.searchTerm);
+        if (typeof saved.statusFilter === "string") setStatusFilter(saved.statusFilter);
+        if (typeof saved.productionFilter === "string") setProductionFilter(saved.productionFilter);
+        if (typeof saved.cityFilter === "string") setCityFilter(saved.cityFilter);
+        if (typeof saved.periodFilter === "string") setPeriodFilter(saved.periodFilter);
+        if (typeof saved.performanceFilter === "string") setPerformanceFilter(saved.performanceFilter);
+        if (saved.viewMode === "compact" || saved.viewMode === "visual") setViewMode(saved.viewMode);
+        if (typeof saved.groupByPeriod === "boolean") setGroupByPeriod(saved.groupByPeriod);
+        if (saved.sortConfig?.key) setSortConfig(saved.sortConfig);
+      }
+    } catch (_) {
+      // Preferências locais não podem bloquear a gestão dos eventos.
+    }
+
+    try {
+      const pins = JSON.parse(window.localStorage.getItem(EVENT_MANAGER_PINS_KEY) || "[]");
+      if (Array.isArray(pins)) setPinnedEventIds(pins.map(Number).filter(Number.isFinite));
+    } catch (_) {
+      // Pins são conveniência local.
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(EVENT_MANAGER_PREFERENCES_KEY, JSON.stringify({
+        searchTerm,
+        statusFilter,
+        productionFilter,
+        cityFilter,
+        periodFilter,
+        performanceFilter,
+        viewMode,
+        groupByPeriod,
+        sortConfig,
+      }));
+    } catch (_) {
+      // Persistência local é opcional.
+    }
+  }, [searchTerm, statusFilter, productionFilter, cityFilter, periodFilter, performanceFilter, viewMode, groupByPeriod, sortConfig]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(EVENT_MANAGER_PINS_KEY, JSON.stringify(pinnedEventIds));
+    } catch (_) {
+      // Persistência local é opcional.
+    }
+  }, [pinnedEventIds]);
+
+  useEffect(() => {
+    setDisplayLimit(24);
+  }, [searchTerm, statusFilter, productionFilter, cityFilter, periodFilter, performanceFilter, sortConfig, groupByPeriod]);
+
+  const togglePinnedEvent = (eventId) => {
+    const id = Number(eventId);
+    setPinnedEventIds((current) => current.includes(id)
+      ? current.filter((item) => item !== id)
+      : [id, ...current]);
+  };
 
   const publication = async (event) => {
     setBusyId(event.id);
@@ -586,8 +684,42 @@ export default function EventManagePage() {
     total: events.length,
     published: events.filter((event) => event.is_published && !event.is_cancelled).length,
     draft: events.filter((event) => !event.is_published && !event.is_cancelled).length,
-    attention: events.filter((event) => !event.is_cancelled && getSalesReadiness(event).completed < 3).length,
+    attention: events.filter((event) => !event.is_cancelled && (getSalesReadiness(event).completed < 3 || eventPerformance(event).rank <= 3)).length,
     cancelled: events.filter((event) => event.is_cancelled).length,
+  }), [events]);
+
+  const filterOptions = useMemo(() => {
+    const productionMap = new Map();
+    const cities = new Set();
+    events.forEach((event) => {
+      const id = Number(event?.production?.id || event?.production_id || 0);
+      const name = event?.production?.name;
+      if (id && name) productionMap.set(id, name);
+      if (event?.city) cities.add(String(event.city));
+    });
+    return {
+      productions: [...productionMap.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => collator.compare(a.name, b.name)),
+      cities: [...cities].sort(collator.compare),
+    };
+  }, [events]);
+
+  const portfolioMetrics = useMemo(() => events.reduce((summary, event) => {
+    const metrics = eventOperationalMetrics(event);
+    const upcoming = !event.is_cancelled && !event.has_ended && new Date(event.end_date || event.start_date || 0).getTime() >= Date.now();
+    summary.grossSales += metrics.grossSales;
+    summary.salesToday += metrics.grossSalesToday;
+    summary.ticketsSold += metrics.ticketsSold;
+    summary.ticketsRemaining += metrics.ticketsRemaining;
+    summary.pendingOrders += metrics.pendingOrders;
+    if (upcoming) summary.upcomingGrossSales += metrics.grossSales;
+    return summary;
+  }, {
+    grossSales: 0,
+    upcomingGrossSales: 0,
+    salesToday: 0,
+    ticketsSold: 0,
+    ticketsRemaining: 0,
+    pendingOrders: 0,
   }), [events]);
 
   const bulkCandidates = useMemo(
@@ -602,14 +734,23 @@ export default function EventManagePage() {
 
   const visibleEvents = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLocaleLowerCase("pt-BR");
+    const pinned = new Set(pinnedEventIds.map(Number));
+
     const filtered = events.filter((event) => {
       const status = getStatus(event);
       const readiness = getSalesReadiness(event);
+      const performance = eventPerformance(event);
+      const temporal = eventTemporalGroup(event);
+      const productionId = String(event?.production?.id || event?.production_id || "");
       const matchesStatus = statusFilter === "all"
         || status.key === statusFilter
-        || (statusFilter === "attention" && !event.is_cancelled && readiness.completed < 3);
+        || (statusFilter === "attention" && !event.is_cancelled && (readiness.completed < 3 || performance.rank <= 3));
+      const matchesProduction = productionFilter === "all" || productionId === String(productionFilter);
+      const matchesCity = cityFilter === "all" || String(event?.city || "") === cityFilter;
+      const matchesPeriod = periodFilter === "all" || temporal.key === periodFilter;
+      const matchesPerformance = performanceFilter === "all" || performance.key === performanceFilter;
 
-      if (!matchesStatus) return false;
+      if (!matchesStatus || !matchesProduction || !matchesCity || !matchesPeriod || !matchesPerformance) return false;
       if (!normalizedSearch) return true;
 
       return [
@@ -620,12 +761,21 @@ export default function EventManagePage() {
         event.uf,
         status.label,
         readiness.title,
+        performance.label,
       ]
         .filter(Boolean)
         .some((value) => String(value).toLocaleLowerCase("pt-BR").includes(normalizedSearch));
     });
 
     return [...filtered].sort((a, b) => {
+      if (sortConfig.key === "smart") {
+        const result = compareSmartRanks(
+          smartEventRank(a, pinned.has(Number(a.id))),
+          smartEventRank(b, pinned.has(Number(b.id))),
+        );
+        return sortConfig.direction === "desc" ? -result : result;
+      }
+
       const result = compareSortValues(
         sortValue(a, sortConfig.key),
         sortValue(b, sortConfig.key),
@@ -635,7 +785,34 @@ export default function EventManagePage() {
       if (result !== 0) return result;
       return collator.compare(String(a?.title || ""), String(b?.title || ""));
     });
-  }, [events, searchTerm, sortConfig, statusFilter]);
+  }, [
+    events,
+    searchTerm,
+    statusFilter,
+    productionFilter,
+    cityFilter,
+    periodFilter,
+    performanceFilter,
+    sortConfig,
+    pinnedEventIds,
+  ]);
+
+  const renderedEvents = useMemo(
+    () => visibleEvents.slice(0, displayLimit),
+    [visibleEvents, displayLimit],
+  );
+
+  const renderedGroups = useMemo(() => {
+    if (!groupByPeriod) return [{ key: "all", label: "Eventos", events: renderedEvents }];
+    const groups = new Map();
+    renderedEvents.forEach((event) => {
+      const group = eventTemporalGroup(event);
+      const current = groups.get(group.key) || { ...group, events: [] };
+      current.events.push(event);
+      groups.set(group.key, current);
+    });
+    return [...groups.values()].sort((a, b) => a.order - b.order);
+  }, [renderedEvents, groupByPeriod]);
 
   const selectedEventIdSet = useMemo(
     () => new Set(selectedEventIds.map((id) => Number(id))),
@@ -801,6 +978,103 @@ export default function EventManagePage() {
     }
   };
 
+  const runBulkMutation = async (label, targets, mutate) => {
+    if (!targets.length || busyId || bulkPublishing) return;
+    setBusyId("bulk-action");
+    setBulkActionError("");
+    setError("");
+    setSuccess("");
+
+    let completed = 0;
+    const failed = [];
+    for (const event of targets) {
+      try {
+        await mutate(event);
+        completed += 1;
+      } catch (err) {
+        failed.push(event.title || `Evento #${event.id}`);
+      }
+    }
+
+    try { await load(); } catch (_) {}
+
+    if (failed.length) {
+      setBulkActionError(`${completed} concluído(s). Falharam: ${failed.slice(0, 4).join(", ")}${failed.length > 4 ? "…" : ""}`);
+    } else {
+      setSuccess(`${label}: ${completed} evento(s) processado(s).`);
+      setSelectedEventIds([]);
+    }
+    setBusyId(null);
+  };
+
+  const bulkPublishSelected = () => runBulkMutation(
+    "Publicação concluída",
+    selectedEvents.filter(isBulkPublishable),
+    (event) => cutinappService.publishEvent(event.id),
+  );
+
+  const bulkUnpublishSelected = () => runBulkMutation(
+    "Despublicação concluída",
+    selectedEvents.filter((event) => event.is_published && !event.is_cancelled),
+    (event) => cutinappService.unpublishEvent(event.id),
+  );
+
+  const bulkDuplicateSelected = () => runBulkMutation(
+    "Duplicação concluída",
+    selectedEvents.filter((event) => !event.is_cancelled),
+    (event) => eventService.duplicate(event.id, suggestedDuplicateDate(event)),
+  );
+
+  const bulkAgendaSelected = async () => {
+    const targets = selectedEvents.filter((event) => !event.is_cancelled);
+    const slots = new Set();
+    const collision = targets.find((event) => {
+      const date = new Date(event.start_date || "");
+      const day = Number.isNaN(date.getTime()) ? 1 : date.getDay();
+      const slot = `${Number(event?.production?.id || event?.production_id || 0)}:${day}`;
+      if (slots.has(slot)) return true;
+      slots.add(slot);
+      return false;
+    });
+
+    if (collision) {
+      setBulkActionError("Há mais de um evento selecionado para o mesmo dia da semana na mesma produção. Mantenha somente um evento por dia antes de adicionar em massa à agenda.");
+      return;
+    }
+
+    await runBulkMutation("Agenda semanal atualizada", targets, (event) => {
+      const sourceDate = new Date(event.start_date || "");
+      const day = Number.isNaN(sourceDate.getTime()) ? 1 : sourceDate.getDay();
+      const productionId = Number(event?.production?.id || event?.production_id || 0);
+      return eventService.createAgendaItem(productionId, {
+        event_id: Number(event.id),
+        day_of_week: day,
+        generation_mode: "delayed",
+        generation_delay_days: 1,
+        generation_weeks: 1,
+        is_active: true,
+      });
+    });
+  };
+
+  const openBulkMove = () => {
+    const firstDifferent = filterOptions.productions.find((production) => !selectedEvents.every((event) => Number(event?.production?.id || event?.production_id) === production.id));
+    setBulkTargetProductionId(firstDifferent ? String(firstDifferent.id) : String(filterOptions.productions[0]?.id || ""));
+    setBulkActionError("");
+    setBulkMoveOpen(true);
+  };
+
+  const bulkMoveSelected = async () => {
+    const target = Number(bulkTargetProductionId);
+    if (!target) return;
+    setBulkMoveOpen(false);
+    await runBulkMutation(
+      "Eventos movidos",
+      selectedEvents.filter((event) => Number(event?.production?.id || event?.production_id || 0) !== target),
+      (event) => eventService.update(event.id, { production_id: target }),
+    );
+  };
+
   const runPrimaryAction = (event, readiness) => {
     if (readiness.mode === "publish") {
       publication(event);
@@ -901,7 +1175,7 @@ export default function EventManagePage() {
   return (
     <div className="cut-app-page cut-event-manager-page">
       <NavlogComponent />
-      {(loading || busyId || bulkPublishing) && <ProcessingIndicatorComponent label={processingLabel} />}
+      {(busyId || bulkPublishing) && <ProcessingIndicatorComponent label={processingLabel} />}
 
       <Container className="cut-page-container py-4 py-lg-5">
         <header className="cut-event-manager-hero">
@@ -940,7 +1214,15 @@ export default function EventManagePage() {
         {error && <Alert variant="danger">{error}</Alert>}
         {success && <Alert variant="success">{success}</Alert>}
 
-        {!loading && events.length === 0 ? (
+        {loading ? (
+          <section className="cut-event-manager-skeleton" aria-label="Carregando eventos">
+            {[1, 2, 3, 4].map((item) => <div key={item} className="cut-event-manager-skeleton__card">
+              <span className="cut-event-manager-skeleton__media" />
+              <div><span /><span /><span /></div>
+              <aside><span /><span /></aside>
+            </div>)}
+          </section>
+        ) : events.length === 0 ? (
           <Card className="cut-empty-state cut-event-manager-empty">
             <Card.Body>
               <div className="cut-event-manager-empty__icon"><i className="fa-solid fa-calendar-plus" /></div>
@@ -981,6 +1263,14 @@ export default function EventManagePage() {
               )}
             </section>
 
+            <section className="cut-event-portfolio-metrics" aria-label="Resumo comercial dos eventos">
+              <div><span><i className="fa-solid fa-chart-line" />Faturamento próximos eventos</span><strong>{moneyBR(portfolioMetrics.upcomingGrossSales)}</strong></div>
+              <div><span><i className="fa-solid fa-bolt" />Vendas hoje</span><strong>{moneyBR(portfolioMetrics.salesToday)}</strong></div>
+              <div><span><i className="fa-solid fa-ticket" />Ingressos vendidos</span><strong>{portfolioMetrics.ticketsSold.toLocaleString("pt-BR")}</strong></div>
+              <div><span><i className="fa-solid fa-layer-group" />Ingressos restantes</span><strong>{portfolioMetrics.ticketsRemaining.toLocaleString("pt-BR")}</strong></div>
+              {portfolioMetrics.pendingOrders > 0 && <div className="is-warning"><span><i className="fa-regular fa-clock" />Checkouts pendentes</span><strong>{portfolioMetrics.pendingOrders}</strong></div>}
+            </section>
+
             <section className="cut-event-manager-toolbar">
               <div className="cut-event-manager-search">
                 <i className="fa-solid fa-magnifying-glass" aria-hidden="true" />
@@ -994,18 +1284,50 @@ export default function EventManagePage() {
               </div>
 
               <div className="cut-event-manager-toolbar__right">
-                <span className="cut-event-manager-sort-summary" aria-live="polite">
-                  <i className="fa-solid fa-arrow-down-a-z" />
-                  {SORT_COLUMNS.find((item) => item.key === sortConfig.key)?.label || "Data"}
-                  <b>{sortConfig.direction === "asc" ? "↑" : "↓"}</b>
-                </span>
-                {(searchTerm || statusFilter !== "all") && (
-                  <Button variant="outline-light" onClick={() => { setSearchTerm(""); setStatusFilter("all"); }}>
+                <Dropdown align="end">
+                  <Dropdown.Toggle variant="outline-light" className="cut-event-toolbar-control">
+                    <i className="fa-solid fa-arrow-down-wide-short me-2" />
+                    {SORT_COLUMNS.find((item) => item.key === sortConfig.key)?.label || "Prioridade"}
+                  </Dropdown.Toggle>
+                  <Dropdown.Menu className="cut-event-toolbar-menu">
+                    {SORT_COLUMNS.map((column) => <Dropdown.Item key={column.key} active={sortConfig.key === column.key} onClick={() => handleSort(column.key)}>
+                      {column.label}{sortConfig.key === column.key && <i className={`${sortIcon(column.key)} ms-auto`} />}
+                    </Dropdown.Item>)}
+                  </Dropdown.Menu>
+                </Dropdown>
+                <div className="cut-event-view-switch" role="group" aria-label="Modo de visualização">
+                  <button type="button" className={viewMode === "visual" ? "is-active" : ""} onClick={() => setViewMode("visual")} title="Modo visual"><i className="fa-solid fa-table-cells-large" /></button>
+                  <button type="button" className={viewMode === "compact" ? "is-active" : ""} onClick={() => setViewMode("compact")} title="Modo compacto"><i className="fa-solid fa-list" /></button>
+                </div>
+                <button type="button" className={`cut-event-group-toggle${groupByPeriod ? " is-active" : ""}`} onClick={() => setGroupByPeriod((current) => !current)} title="Agrupar por período">
+                  <i className="fa-solid fa-layer-group" />
+                </button>
+                {(searchTerm || statusFilter !== "all" || productionFilter !== "all" || cityFilter !== "all" || periodFilter !== "all" || performanceFilter !== "all") && (
+                  <Button variant="outline-light" onClick={() => {
+                    setSearchTerm("");
+                    setStatusFilter("all");
+                    setProductionFilter("all");
+                    setCityFilter("all");
+                    setPeriodFilter("all");
+                    setPerformanceFilter("all");
+                  }}>
                     <i className="fa-solid fa-filter-circle-xmark me-2" />Limpar
                   </Button>
                 )}
               </div>
             </section>
+
+            <details className="cut-event-advanced-filters">
+              <summary><span><i className="fa-solid fa-sliders" />Filtros avançados</span><small>Produção, cidade, período e desempenho</small></summary>
+              <div className="cut-event-advanced-filters__grid">
+                <Form.Group><Form.Label>Produção</Form.Label><Form.Select value={productionFilter} onChange={(event) => setProductionFilter(event.target.value)}><option value="all">Todas as produções</option>{filterOptions.productions.map((production) => <option key={production.id} value={production.id}>{production.name}</option>)}</Form.Select></Form.Group>
+                <Form.Group><Form.Label>Cidade</Form.Label><Form.Select value={cityFilter} onChange={(event) => setCityFilter(event.target.value)}><option value="all">Todas as cidades</option>{filterOptions.cities.map((city) => <option key={city} value={city}>{city}</option>)}</Form.Select></Form.Group>
+                <Form.Group><Form.Label>Período</Form.Label><Form.Select value={periodFilter} onChange={(event) => setPeriodFilter(event.target.value)}><option value="all">Qualquer período</option><option value="today">Hoje</option><option value="tomorrow">Amanhã</option><option value="week">Próximos 7 dias</option><option value="upcoming">Próximos</option><option value="past">Encerrados</option><option value="cancelled">Cancelados</option></Form.Select></Form.Group>
+                <Form.Group><Form.Label>Performance</Form.Label><Form.Select value={performanceFilter} onChange={(event) => setPerformanceFilter(event.target.value)}><option value="all">Qualquer desempenho</option><option value="strong">Vendendo bem</option><option value="selling">Com vendas</option><option value="almost_sold_out">Quase esgotado</option><option value="sold_out">Esgotado</option><option value="no_sales">Sem vendas</option><option value="low_conversion">Baixa conversão</option><option value="critical">Crítico</option><option value="draft">Não publicado</option></Form.Select></Form.Group>
+              </div>
+            </details>
+
+            {bulkActionError && <Alert variant="warning" className="cut-event-bulk-feedback">{bulkActionError}</Alert>}
 
             {visibleEvents.length > 0 && (
               <section className="cut-event-bulk-selection" aria-label="Seleção de eventos para ações em massa">
@@ -1024,25 +1346,21 @@ export default function EventManagePage() {
                   </span>
                 </div>
                 <div className="cut-event-bulk-selection__actions">
-                  {selectedEventIds.length > 0 && (
-                    <Button
-                      size="sm"
-                      variant="outline-light"
-                      onClick={() => setSelectedEventIds([])}
-                      disabled={Boolean(busyId) || bulkPublishing}
-                    >
-                      Limpar seleção
-                    </Button>
-                  )}
-                  <Button
-                    size="sm"
-                    variant="danger"
-                    onClick={openBulkDelete}
-                    disabled={!selectedEventIds.length || Boolean(busyId) || bulkPublishing}
-                  >
-                    <i className="fa-solid fa-trash-can me-2" />
-                    Excluir selecionado(s) ({selectedEventIds.length})
-                  </Button>
+                  {selectedEventIds.length > 0 && <Button size="sm" variant="outline-light" onClick={() => setSelectedEventIds([])} disabled={Boolean(busyId) || bulkPublishing}>Limpar seleção</Button>}
+                  <Dropdown align="end">
+                    <Dropdown.Toggle size="sm" variant="outline-light" disabled={!selectedEventIds.length || Boolean(busyId) || bulkPublishing}>
+                      <i className="fa-solid fa-wand-magic-sparkles me-2" />Ações em massa
+                    </Dropdown.Toggle>
+                    <Dropdown.Menu className="cut-event-toolbar-menu">
+                      <Dropdown.Item onClick={bulkPublishSelected}><i className="fa-solid fa-rocket" />Publicar selecionados</Dropdown.Item>
+                      <Dropdown.Item onClick={bulkUnpublishSelected}><i className="fa-solid fa-eye-slash" />Despublicar selecionados</Dropdown.Item>
+                      <Dropdown.Item onClick={bulkDuplicateSelected}><i className="fa-regular fa-copy" />Duplicar +7 dias</Dropdown.Item>
+                      <Dropdown.Item onClick={bulkAgendaSelected}><i className="fa-solid fa-calendar-week" />Adicionar à agenda pelo dia original</Dropdown.Item>
+                      <Dropdown.Item onClick={openBulkMove}><i className="fa-solid fa-arrow-right-arrow-left" />Mover para outra produção</Dropdown.Item>
+                      <Dropdown.Divider />
+                      <Dropdown.Item className="text-danger" onClick={openBulkDelete}><i className="fa-solid fa-trash-can" />Excluir selecionados</Dropdown.Item>
+                    </Dropdown.Menu>
+                  </Dropdown>
                 </div>
               </section>
             )}
@@ -1056,231 +1374,41 @@ export default function EventManagePage() {
               </div>
             ) : (
               <>
-                <section className="cut-event-admin-desktop cut-event-admin-table-shell" aria-label="Tabela de gerenciamento de eventos">
-                  <div className="cut-event-admin-table-scroll table-responsive">
-                    <Table className="cut-event-admin-table cut-event-admin-table--sortable align-middle mb-0" hover>
-                      <thead>
-                        <tr>
-                          <th className="cut-event-admin-table__event" aria-sort={ariaSort("event")}>
-                            <div className="cut-event-sort-select-head">
-                              <Form.Check
-                                type="checkbox"
-                                checked={allVisibleSelected}
-                                onChange={toggleVisibleSelection}
-                                disabled={Boolean(busyId) || bulkPublishing}
-                                aria-label={allVisibleSelected ? "Desmarcar eventos exibidos" : "Selecionar eventos exibidos"}
-                              />
-                              <button type="button" className="cut-event-sort-head" onClick={() => handleSort("event")}>Evento <i className={sortIcon("event")} /></button>
-                            </div>
-                          </th>
-                          <th aria-sort={ariaSort("production")}>
-                            <button type="button" className="cut-event-sort-head" onClick={() => handleSort("production")}>Produção <i className={sortIcon("production")} /></button>
-                          </th>
-                          <th aria-sort={ariaSort("date")}>
-                            <button type="button" className="cut-event-sort-head" onClick={() => handleSort("date")}>Data <i className={sortIcon("date")} /></button>
-                          </th>
-                          <th aria-sort={ariaSort("location")}>
-                            <button type="button" className="cut-event-sort-head" onClick={() => handleSort("location")}>Local <i className={sortIcon("location")} /></button>
-                          </th>
-                          <th aria-sort={ariaSort("status")}>
-                            <button type="button" className="cut-event-sort-head" onClick={() => handleSort("status")}>Status <i className={sortIcon("status")} /></button>
-                          </th>
-                          <th aria-sort={ariaSort("tickets")}>
-                            <button type="button" className="cut-event-sort-head" onClick={() => handleSort("tickets")}>Ingressos <i className={sortIcon("tickets")} /></button>
-                          </th>
-                          <th aria-sort={ariaSort("readiness")}>
-                            <button type="button" className="cut-event-sort-head" onClick={() => handleSort("readiness")}>Preparação <i className={sortIcon("readiness")} /></button>
-                          </th>
-                          <th aria-sort={ariaSort("nextAction")}>
-                            <button type="button" className="cut-event-sort-head" onClick={() => handleSort("nextAction")}>Próxima ação <i className={sortIcon("nextAction")} /></button>
-                          </th>
-                          <th className="cut-event-admin-table__actions">Gestão</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {visibleEvents.map((event) => {
+                <section className={`cut-producer-event-groups is-${viewMode}`} aria-label="Gerenciamento de eventos">
+                  {renderedGroups.map((group) => (
+                    <div className="cut-producer-event-group" key={group.key}>
+                      <header className="cut-producer-event-group__heading">
+                        <div><span>{group.label}</span><strong>{group.events.length}</strong></div>
+                        {group.key !== "all" && <small>Organizado automaticamente pela data do evento</small>}
+                      </header>
+                      <div className="cut-producer-event-list">
+                        {group.events.map((event) => {
                           const readiness = getSalesReadiness(event);
                           const status = getStatus(event);
-                          const progress = Math.round((readiness.completed / 3) * 100);
-                          const needsAttention = !event.is_cancelled && readiness.completed < 3;
-                          const eventImage = event.image || event.production?.logo;
-
-                          return (
-                            <tr key={event.id} className={`${needsAttention ? "is-attention " : ""}${selectedEventIdSet.has(Number(event.id)) ? "is-selected" : ""}`.trim()}>
-                              <td className="cut-event-admin-table__event">
-                                <div className="cut-event-admin-select-cell">
-                                  <Form.Check
-                                    type="checkbox"
-                                    checked={selectedEventIdSet.has(Number(event.id))}
-                                    onChange={() => toggleEventSelection(event.id)}
-                                    disabled={Boolean(busyId) || bulkPublishing}
-                                    aria-label={`Selecionar ${event.title}`}
-                                  />
-                                  <div className="cut-event-admin-identity">
-                                    <button type="button" className="cut-event-admin-identity__media" onClick={() => navigate(`/event/edit/${event.id}`)} aria-label={`Editar ${event.title}`}>
-                                      {eventImage ? <img src={mediaUrl(eventImage)} alt="" loading="lazy" /> : <span className="cut-event-admin-identity__initials">{initialsFor(event.title)}</span>}
-                                    </button>
-                                    <div>
-                                      <button type="button" className="cut-event-admin-table__title" onClick={() => navigate(`/event/edit/${event.id}`)}>{event.title}</button>
-                                      <span className="cut-event-admin-table__production">{event.category || `#${event.id}`}</span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </td>
-                              <td>
-                                <span className="cut-event-admin-production-cell">
-                                  {event.production?.logo ? <img src={mediaUrl(event.production.logo)} alt="" loading="lazy" /> : <span className="cut-event-admin-production-cell__initials">{initialsFor(event.production?.name || "Produção", "PR")}</span>}
-                                  {event.production?.name || "Produção não informada"}
-                                </span>
-                              </td>
-                              <td><span className="cut-event-admin-table__date"><i className="fa-regular fa-calendar" />{formatDate(event.start_date)}</span></td>
-                              <td><span className="cut-event-admin-table__location"><i className="fa-solid fa-location-dot" />{eventLocation(event)}</span></td>
-                              <td><Badge bg={status.variant}>{status.label}</Badge></td>
-                              <td>
-                                <button type="button" className="cut-event-admin-table__link" onClick={() => navigate(`/ticket/create?eventId=${event.id}`)}>
-                                  <i className="fa-solid fa-ticket" />{Number(event.tickets_count || 0)} lote(s)
-                                </button>
-                              </td>
-                              <td>
-                                {event.is_cancelled ? (
-                                  <span className="cut-event-admin-table__muted">—</span>
-                                ) : (
-                                  <div className="cut-event-admin-progress" title={`${readiness.completed} de 3 etapas concluídas`}>
-                                    <div className="cut-event-admin-progress__top"><strong>{readiness.completed}/3</strong><span>{progress}%</span></div>
-                                    <div className="cut-event-admin-progress__track"><span style={{ width: `${progress}%` }} /></div>
-                                  </div>
-                                )}
-                              </td>
-                              <td>
-                                {event.is_cancelled ? (
-                                  <span className="cut-event-admin-table__muted">Evento cancelado</span>
-                                ) : (
-                                  <div className="cut-event-admin-next">
-                                    <strong>{readiness.title}</strong>
-                                    <span>{readiness.label}</span>
-                                    <Button
-                                      size="sm"
-                                      variant={readiness.mode === "whatsapp" ? "success" : "light"}
-                                      onClick={() => runPrimaryAction(event, readiness)}
-                                      disabled={busyId === event.id || bulkPublishing || deletingAll}
-                                    >
-                                      <i className={`${readiness.icon} me-2`} />{readiness.action}
-                                    </Button>
-                                  </div>
-                                )}
-                              </td>
-                              <td className="cut-event-admin-table__actions">{renderActions(event)}</td>
-                            </tr>
-                          );
+                          return <ProducerEventCard
+                            key={event.id}
+                            event={event}
+                            readiness={readiness}
+                            status={status}
+                            selected={selectedEventIdSet.has(Number(event.id))}
+                            pinned={pinnedEventIds.includes(Number(event.id))}
+                            viewMode={viewMode}
+                            disabled={Boolean(busyId) || bulkPublishing || deletingAll}
+                            actions={renderActions(event)}
+                            onToggleSelected={toggleEventSelection}
+                            onTogglePin={togglePinnedEvent}
+                            onQuickView={setQuickEvent}
+                            onEdit={(item) => navigate(`/event/edit/${item.id}`)}
+                            onPrimaryAction={runPrimaryAction}
+                            onDuplicate={openDuplicate}
+                          />;
                         })}
-                      </tbody>
-                    </Table>
-                  </div>
-                  <footer className="cut-event-admin-table-footer">
-                    <span>Exibindo <strong>{visibleEvents.length}</strong> de <strong>{events.length}</strong> evento(s)</span>
-                    <span><i className="fa-solid fa-arrow-pointer" /> Clique no nome de qualquer coluna para ordenar.</span>
-                  </footer>
-                </section>
-
-                <section className="cut-event-admin-mobile" aria-label="Gerenciamento de eventos no celular">
-                  <div className="cut-event-mobile-sort" aria-label="Ordenar eventos">
-                    <span>Ordenar:</span>
-                    <div>
-                      {SORT_COLUMNS.map((column) => (
-                        <button
-                          key={column.key}
-                          type="button"
-                          className={sortConfig.key === column.key ? "is-active" : ""}
-                          onClick={() => handleSort(column.key)}
-                          aria-pressed={sortConfig.key === column.key}
-                        >
-                          {column.label}
-                          {sortConfig.key === column.key && <i className={sortIcon(column.key)} />}
-                        </button>
-                      ))}
+                      </div>
                     </div>
-                  </div>
-
-                  <div className="cut-event-mobile-list">
-                    {visibleEvents.map((event) => {
-                      const readiness = getSalesReadiness(event);
-                      const status = getStatus(event);
-                      const progress = Math.round((readiness.completed / 3) * 100);
-                      const needsAttention = !event.is_cancelled && readiness.completed < 3;
-                      const eventImage = event.image || event.production?.logo;
-
-                      return (
-                        <article key={event.id} className={`cut-event-mobile-card${needsAttention ? " is-attention" : ""}${selectedEventIdSet.has(Number(event.id)) ? " is-selected" : ""}`}>
-                          <div className="cut-event-mobile-card__top">
-                            <button type="button" className="cut-event-mobile-card__media" onClick={() => navigate(`/event/edit/${event.id}`)} aria-label={`Editar ${event.title}`}>
-                              {eventImage ? <img src={mediaUrl(eventImage)} alt="" loading="lazy" /> : <span className="cut-event-admin-identity__initials">{initialsFor(event.title)}</span>}
-                            </button>
-                            <div className="cut-event-mobile-card__heading">
-                              <div className="cut-event-mobile-card__badges">
-                                <Form.Check
-                                  type="checkbox"
-                                  checked={selectedEventIdSet.has(Number(event.id))}
-                                  onChange={() => toggleEventSelection(event.id)}
-                                  disabled={Boolean(busyId) || bulkPublishing}
-                                  aria-label={`Selecionar ${event.title}`}
-                                  className="cut-event-mobile-card__select"
-                                />
-                                <Badge bg={status.variant}>{status.label}</Badge>
-                                <span>{Number(event.tickets_count || 0)} lote(s)</span>
-                              </div>
-                              <button type="button" className="cut-event-mobile-card__title" onClick={() => navigate(`/event/edit/${event.id}`)}>{event.title}</button>
-                              <span className="cut-event-mobile-card__production">
-                                {event.production?.logo
-                                  ? <img src={mediaUrl(event.production.logo)} alt="" loading="lazy" />
-                                  : <span className="cut-event-mobile-card__production-initials">{initialsFor(event.production?.name || "Produção", "PR")}</span>}
-                                {event.production?.name || "Produção não informada"}
-                              </span>
-                            </div>
-                            {renderActions(event)}
-                          </div>
-
-                          <div className="cut-event-mobile-card__meta">
-                            <span><i className="fa-regular fa-calendar" />{formatDate(event.start_date)}</span>
-                            <span><i className="fa-solid fa-location-dot" />{eventLocation(event)}</span>
-                          </div>
-
-                          {!event.is_cancelled && (
-                            <div className="cut-event-mobile-card__readiness">
-                              <div className="cut-event-mobile-card__readiness-head">
-                                <span>Preparação</span>
-                                <strong>{readiness.completed}/3 · {progress}%</strong>
-                              </div>
-                              <div className="cut-event-admin-progress__track"><span style={{ width: `${progress}%` }} /></div>
-                            </div>
-                          )}
-
-                          <div className="cut-event-mobile-card__footer">
-                            {event.is_cancelled ? (
-                              <span className="cut-event-admin-table__muted">Evento cancelado</span>
-                            ) : (
-                              <>
-                                <div>
-                                  <small>Próxima ação</small>
-                                  <strong>{readiness.title}</strong>
-                                </div>
-                                <Button
-                                  size="sm"
-                                  variant={readiness.mode === "whatsapp" ? "success" : "light"}
-                                  onClick={() => runPrimaryAction(event, readiness)}
-                                  disabled={busyId === event.id || bulkPublishing || deletingAll}
-                                >
-                                  <i className={`${readiness.icon} me-2`} />{readiness.action}
-                                </Button>
-                              </>
-                            )}
-                          </div>
-                        </article>
-                      );
-                    })}
-                  </div>
-
-                  <footer className="cut-event-mobile-footer">
-                    Exibindo <strong>{visibleEvents.length}</strong> de <strong>{events.length}</strong> evento(s)
+                  ))}
+                  <footer className="cut-event-incremental-footer">
+                    <span>Exibindo <strong>{renderedEvents.length}</strong> de <strong>{visibleEvents.length}</strong> evento(s) filtrado(s) · {events.length} no total</span>
+                    {renderedEvents.length < visibleEvents.length && <Button variant="outline-light" onClick={() => setDisplayLimit((current) => current + 24)}><i className="fa-solid fa-chevron-down me-2" />Carregar mais 24</Button>}
                   </footer>
                 </section>
               </>
@@ -1288,6 +1416,26 @@ export default function EventManagePage() {
           </>
         )}
       </Container>
+
+      <EventQuickView event={quickEvent} show={Boolean(quickEvent)} onHide={() => setQuickEvent(null)} onDuplicate={openDuplicate} onAgenda={openAgenda} />
+
+      <Modal show={bulkMoveOpen} onHide={() => setBulkMoveOpen(false)} centered>
+        <Modal.Header closeButton><Modal.Title>Mover eventos para outra produção</Modal.Title></Modal.Header>
+        <Modal.Body>
+          <p className="text-secondary">Os eventos selecionados serão vinculados à produção escolhida. Ingressos, vendas e histórico permanecem no evento.</p>
+          <Form.Group>
+            <Form.Label>Produção de destino</Form.Label>
+            <Form.Select value={bulkTargetProductionId} onChange={(event) => setBulkTargetProductionId(event.target.value)}>
+              <option value="">Selecione</option>
+              {filterOptions.productions.map((production) => <option key={production.id} value={production.id}>{production.name}</option>)}
+            </Form.Select>
+          </Form.Group>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="outline-secondary" onClick={() => setBulkMoveOpen(false)}>Cancelar</Button>
+          <Button onClick={bulkMoveSelected} disabled={!bulkTargetProductionId || Boolean(busyId)}>Mover {selectedEventIds.length} evento(s)</Button>
+        </Modal.Footer>
+      </Modal>
 
       <Modal show={Boolean(eventToAgenda)} onHide={closeAgenda} centered backdrop={String(busyId).startsWith("agenda-") ? "static" : true}>
         <Modal.Header closeButton={!String(busyId).startsWith("agenda-")}>
