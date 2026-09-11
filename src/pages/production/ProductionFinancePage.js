@@ -11,6 +11,7 @@ import commerceService from "../../services/CommerceService";
 import cutinappService from "../../services/CutinappService";
 import financeService from "../../services/FinanceService";
 import { estimateNetRevenueEconomics } from "../../utils/netRevenueEconomics";
+import { evaluateRecoveryRolloutReadiness } from "../../utils/recoveryRolloutReadiness";
 
 const money = (value) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
 const percent = (value) => `${Number(value || 0).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 2 })}%`;
@@ -195,6 +196,7 @@ export default function ProductionFinancePage() {
   const recoveryDecisionUi = recoveryDecisionMeta[recoveryDecisionStatus] || recoveryDecisionMeta.inconclusive;
   const recoveryConfidence = recoveryExperimentComparison.paid_conversion_difference_confidence_95 || null;
   const recoveryObservedProjection = recoveryExperimentMature ? recoveryExperimentComparison.observed_volume_projection : null;
+  const recoveryRolloutReadiness = evaluateRecoveryRolloutReadiness({ comparison: recoveryExperimentComparison });
   const checkoutJourneyFunnel = revenueFunnel?.checkout_journey_funnel || {};
   const checkoutJourneyStages = checkoutJourneyFunnel.stages || {};
   const checkoutJourneyConversion = checkoutJourneyFunnel.conversion || {};
@@ -513,6 +515,26 @@ export default function ProductionFinancePage() {
             {recoveryObservedProjection && <Alert variant="info" className="mt-2 mb-0">
               <strong>Impacto econômico no volume observado:</strong> se o efeito incremental medido se mantivesse nos {Number(recoveryObservedProjection.observed_exposed_orders || 0).toLocaleString("pt-BR")} pedidos já expostos, a estimativa seria de <strong>{Number(recoveryObservedProjection.projected_incremental_paid_orders || 0) >= 0 ? "+" : ""}{Number(recoveryObservedProjection.projected_incremental_paid_orders || 0).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} pagamentos</strong> e <strong>{Number(recoveryObservedProjection.projected_incremental_platform_contribution || 0) >= 0 ? "+" : ""}{money(recoveryObservedProjection.projected_incremental_platform_contribution)}</strong> de contribuição líquida. É uma projeção diagnóstica, não receita realizada; o rollout continua dependente dos guardrails e de revisão humana.
             </Alert>}
+            <Card className="mt-3 border-0 bg-dark-subtle">
+              <Card.Body>
+                <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                  <div>
+                    <span className="cut-ticket-kicker">Decisão de rollout</span>
+                    <h3 className="h5 mb-1">Prontidão econômica e de conversão</h3>
+                  </div>
+                  <Badge bg={recoveryRolloutReadiness.status === "ready_for_review" || recoveryRolloutReadiness.status === "ready" ? "success" : recoveryRolloutReadiness.status === "blocked" ? "danger" : recoveryRolloutReadiness.status === "hold" ? "warning" : "secondary"}>
+                    {recoveryRolloutReadiness.status === "ready_for_review" ? "Pronto para revisão" : recoveryRolloutReadiness.status === "ready" ? "Pronto" : recoveryRolloutReadiness.status === "blocked" ? "Rollout bloqueado" : recoveryRolloutReadiness.status === "hold" ? "Manter controle" : "Coletando dados"}
+                  </Badge>
+                </div>
+                <StatusLine ok={recoveryRolloutReadiness.mature} title="Amostra madura" detail="O rollout só é avaliado depois do volume mínimo definido pela API central." />
+                <StatusLine ok={recoveryRolloutReadiness.guardrails.conversion} title="Conversão protegida" detail="O intervalo de confiança precisa sustentar que a variante não reduz pagamentos." />
+                <StatusLine ok={recoveryRolloutReadiness.guardrails.contribution} title="Contribuição líquida positiva" detail="A variante precisa melhorar a contribuição por pedido exposto, não apenas o GMV bruto." />
+                <StatusLine ok={recoveryRolloutReadiness.eligible} title="Elegível para rollout" detail="A elegibilidade vem da decisão genérica da API e nunca ignora os guardrails financeiros." />
+                <Alert variant={recoveryRolloutReadiness.status === "blocked" ? "danger" : recoveryRolloutReadiness.status === "ready_for_review" || recoveryRolloutReadiness.status === "ready" ? "success" : "secondary"} className="mt-2 mb-0">
+                  <strong>Ação agora:</strong> {recoveryRolloutReadiness.recommendedAction === "review_rollout" ? "revisar humanamente a expansão do destaque antes de qualquer rollout." : recoveryRolloutReadiness.recommendedAction === "rollout_prominent" ? "a variante está apta para expansão segundo os guardrails atuais." : recoveryRolloutReadiness.recommendedAction === "keep_control" ? "manter o controle; não expandir a variante com a evidência atual." : "continuar coletando dados sem alterar a estratégia."} Nenhuma cobrança, preço ou taxa é alterada automaticamente.
+                </Alert>
+              </Card.Body>
+            </Card>
           </div>}
 
           {(revenueFunnel.payment_methods || []).length > 0 && <div className="table-responsive mt-4"><Table variant="dark" hover className="align-middle mb-0"><thead><tr><th>Pagamento</th><th>Checkouts</th><th>Pagos</th><th>Conversão</th><th>GMV</th><th>Receita plataforma</th><th>Receita líquida</th><th>Margem/GMV</th><th>GMV em risco</th></tr></thead><tbody>{revenueFunnel.payment_methods.map((row) => <tr key={row.payment_method}><td>{paymentMethodLabel[row.payment_method] || row.payment_method}</td><td>{row.orders_created}</td><td>{row.orders_paid}</td><td>{percent(row.conversion_rate)}</td><td>{money(row.gross_revenue)}</td><td>{money(row.platform_revenue)}</td><td>{money(row.platform_contribution_after_processing ?? (Number(row.platform_revenue || 0) - Number((row.processor_fees_borne_by_platform ?? row.processor_fees) || 0)))}</td><td>{percent(row.platform_contribution_margin)}</td><td>{money(row.gross_at_risk)}</td></tr>)}</tbody></Table></div>}
