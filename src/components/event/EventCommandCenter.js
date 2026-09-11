@@ -1,6 +1,6 @@
 /* eslint-disable react/prop-types */
-import React, { useMemo, useState } from "react";
-import { Badge, Button, Offcanvas, ProgressBar } from "react-bootstrap";
+import React, { useEffect, useMemo, useState } from "react";
+import { Badge, Offcanvas, ProgressBar } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import QRCode from "qrcode";
 import { storageUrl } from "../../config";
@@ -184,6 +184,12 @@ export default function EventCommandCenter({
   const [feedback, setFeedback] = useState("");
   const [generatingQr, setGeneratingQr] = useState(false);
 
+  useEffect(() => {
+    if (!event) return;
+    setActiveTab(eventStage(event).key);
+    setFeedback("");
+  }, [event?.id]);
+
   if (!event) return null;
 
   const metrics = eventOperationalMetrics(event);
@@ -243,7 +249,7 @@ export default function EventCommandCenter({
       { key: "duplicate", icon: "fa-regular fa-copy", title: "Criar próxima edição", description: "Duplique preservando a base do evento.", onClick: () => { onDuplicate?.(event); onHide?.(); } },
     ],
     sell: [
-      { key: "publication", icon: event.is_published ? "fa-solid fa-eye-slash" : "fa-solid fa-rocket", title: event.is_published ? "Despublicar evento" : "Publicar evento", description: event.is_published ? "Retire temporariamente a página pública." : "Coloque o evento no ar para começar a vender.", onClick: () => onPublication?.(event), tone: event.is_published ? "warning" : "success", disabled: event.is_cancelled },
+      { key: "publication", icon: event.is_published ? "fa-solid fa-eye-slash" : "fa-solid fa-rocket", title: event.is_published ? "Despublicar evento" : "Publicar evento", description: event.is_published ? "Retire temporariamente a página pública." : "Coloque o evento no ar para começar a vender.", onClick: () => { onPublication?.(event); onHide?.(); }, tone: event.is_published ? "warning" : "success", disabled: event.is_cancelled },
       { key: "ticket", icon: "fa-solid fa-layer-group", title: "Gerenciar lotes", description: "Preço, estoque e disponibilidade dos ingressos.", onClick: () => navigateAndClose(`/ticket/create?eventId=${event.id}`) },
       ...(productionId ? [{ key: "coupons", icon: "fa-solid fa-tags", title: "Cupons", description: "Configure incentivos e rastreie conversões.", onClick: () => navigateAndClose(`/production/${productionId}/coupons`) }] : []),
       { key: "sales", icon: "fa-solid fa-chart-line", title: "Vendas e pedidos", description: "Abra o financeiro comercial do produtor.", onClick: () => navigateAndClose("/producer/sales") },
@@ -324,7 +330,7 @@ export default function EventCommandCenter({
           <header><div><small>Pronto para trabalhar</small><strong>O que ainda falta neste evento?</strong></div><b>{readiness}%</b></header>
           <div>
             {checklist.map((item) => <button type="button" key={item.key} className={item.done ? "is-done" : ""} onClick={() => {
-              if (item.mode === "publication") onPublication?.(event);
+              if (item.mode === "publication") { onPublication?.(event); onHide?.(); }
               else if (item.route) navigateAndClose(item.route);
             }}>
               <i className={item.done ? "fa-solid fa-circle-check" : "fa-regular fa-circle"} />
