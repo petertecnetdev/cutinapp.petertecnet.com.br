@@ -102,6 +102,12 @@ const messagingService = {
   conversations: async (params = {}) => (await appApiClient.get("/messaging/conversations", { params })).data,
   searchPeople: async (query) => (await appApiClient.get("/messaging/people", { params: { q: query } })).data,
   openDirect: (userId) => openDirectIdempotently(userId),
+  acceptRequest: async (conversationId) => (
+    await appApiClient.post(`/messaging/conversations/${Number(conversationId)}/accept-request`)
+  ).data,
+  rejectRequest: async (conversationId) => (
+    await appApiClient.delete(`/messaging/conversations/${Number(conversationId)}/request`)
+  ).data,
   createGroup: async (title, participantIds) => (
     await appApiClient.post("/messaging/groups", {
       title,
