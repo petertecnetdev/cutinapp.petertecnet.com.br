@@ -5,6 +5,7 @@ import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import WhatsAppFloatingButton from "../../components/WhatsAppFloatingButton";
 import EventCommunitySection from "../../components/event/EventCommunitySection";
+import EventReviveSection from "../../components/event/EventReviveSection";
 import EventCommercePanel from "../../components/event/EventCommercePanel";
 import EventFlyerModal from "../../components/event/EventFlyerModal";
 import { AuthContext } from "../../context/AuthContext";
@@ -500,7 +501,7 @@ export default function EventViewPage() {
 
         {!isOwner && <Card className="cut-panel mt-4 mb-4"><Card.Body className="p-4 p-lg-5"><div className="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4"><div><span className="cut-eyebrow">Você também produz eventos?</span><h2 className="cut-section-title mt-2 mb-2">Crie seu primeiro evento na Cutinapp</h2><p className="text-secondary mb-0">Comece pelo evento. Se ainda não tiver uma produção, você cria o nome dela no mesmo fluxo e segue direto para o primeiro lote e a publicação.</p></div><Button size="lg" onClick={startProducerActivation} className="flex-shrink-0"><i className="fa-solid fa-bolt me-2" />{user ? "Criar meu evento" : "Começar como produtor"}</Button></div></Card.Body></Card>}
 
-        <EventCommunitySection event={event} isOwner={isOwner} />
+        {isPastEvent ? <EventReviveSection event={event} isOwner={isOwner} /> : <EventCommunitySection event={event} isOwner={isOwner} />}
       </Container>
 
       {showPersistentBuyCta && <a className="cut-event-buy-cta-fixed" href="#ingressos" aria-label={`Comprar ingresso para ${event.title}`}>
