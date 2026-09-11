@@ -598,6 +598,8 @@ const cutinappService = {
   markEventRatingHelpful: markEventRatingHelpfulMutation,
   unmarkEventRatingHelpful: unmarkEventRatingHelpfulMutation,
   respondEventRating: respondEventRatingMutation,
+  eventReviveModeration: async (eventId, params = {}) => (await appApiClient.get(`/events/${Number(eventId)}/revive/moderation`, { params })).data,
+  moderateEventReviveContent: async (eventId, reportId, payload = {}) => (await appApiClient.patch(`/events/${Number(eventId)}/revive/moderation/${Number(reportId)}`, payload)).data,
   reportEvent,
 
   moderationReports: async (params = {}) => (await appApiClient.get("/moderation/reports", { params })).data,
