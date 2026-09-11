@@ -31,6 +31,7 @@ export const trackSearchConversion = async (conversionType, targetId, { clear = 
   try {
     const response = await appApiClient.post("/global-search/convert", {
       conversion_type: conversionType,
+      target_type: String(attribution.target_type || ""),
       target_id: numericTarget,
     });
     if (clear && response?.data?.attributed) clearSearchAttribution();
