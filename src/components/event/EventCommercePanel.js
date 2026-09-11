@@ -104,7 +104,9 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
   const selectedQuantity = useMemo(() => selectedEntries.reduce((sum, entry) => sum + entry.quantity, 0), [selectedEntries]);
 
   const salesClosed = Boolean(catalog?.sales_closed || catalog?.event?.sales_closed);
-  const checkoutAvailable = !salesClosed && (catalog?.payment_config?.available ?? catalog?.payment_config?.connected ?? false);
+  const paymentConnected = catalog?.payment_config?.available ?? catalog?.payment_config?.connected ?? false;
+  const requiresPayment = total > 0;
+  const checkoutAvailable = !salesClosed && (!requiresPayment || paymentConnected);
   const activeEventId = Number(catalog?.event?.id || eventId);
   const activeSlug = catalog?.event?.slug || slug;
   const availableDates = catalog?.available_dates || [];
@@ -260,12 +262,12 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
       <div>
         <span className="cut-eyebrow">Compra única</span>
         <h3 className="mt-2">Monte seu carrinho</h3>
-        <p>Você pode comprar vários ingressos, misturar lotes diferentes e incluir itens do evento no mesmo pagamento.</p>
+        <p>Você pode selecionar vários ingressos, misturar lotes diferentes e incluir itens do evento no mesmo pedido. Ingressos gratuitos seguem exatamente o mesmo carrinho.</p>
       </div>
     </div>
 
     {error && <Alert variant="danger" className="mb-0">{error}</Alert>}
-    {!checkoutAvailable && <Alert variant="warning" className="mb-0">Pagamentos temporariamente indisponíveis para esta data.</Alert>}
+    {requiresPayment && !paymentConnected && <Alert variant="warning" className="mb-0">Pagamentos temporariamente indisponíveis para esta data.</Alert>}
 
     <div className="cut-ticket-shop__layout">
       <div className="cut-ticket-shop__catalog">
@@ -286,7 +288,7 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
 
     {(catalog.tickets || []).length > 0 && <>
       <div className="cut-ticket-shop__heading mt-1">
-        <div><span className="cut-eyebrow">Ingressos pagos</span><h3 className="mt-2">Escolha quantidade e tipo</h3><p>Use + e − em cada lote. Você pode selecionar mais de um tipo de ingresso na mesma compra.</p></div>
+        <div><span className="cut-eyebrow">Ingressos</span><h3 className="mt-2">Escolha quantidade e tipo</h3><p>Ingressos gratuitos e pagos seguem o mesmo fluxo. Use + e − em cada lote e combine tipos diferentes no mesmo pedido.</p></div>
       </div>
       <div className="cut-ticket-shop__list">
       {(catalog.tickets || []).map((ticket) => {
@@ -340,7 +342,7 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
     </div>
 
     {selectedQuantity > 0 && <small className="d-block text-success text-center"><i className="fa-solid fa-clock-rotate-left me-1" />Sua seleção fica salva neste navegador e será revalidada ao retornar.</small>}
-    <div className="cut-ticket-shop__trust"><i className="fa-solid fa-shield-halved" /><span>Uma única compra, um único pagamento. Cada ingresso recebe QR de entrada e os itens antecipados ficam vinculados ao pedido para retirada no evento.</span></div>
+    <div className="cut-ticket-shop__trust"><i className="fa-solid fa-shield-halved" /><span>Um único pedido. Ingressos gratuitos entram normalmente com valor R$ 0,00; pedidos com valor usam o pagamento disponível. Cada ingresso recebe QR de entrada e check-in normal.</span></div>
 
   </div>;
 }
