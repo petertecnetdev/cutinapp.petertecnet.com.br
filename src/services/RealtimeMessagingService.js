@@ -66,7 +66,6 @@ export function subscribeToConversation(conversationId, onEvent, onConnectionCha
 
   let socket = null;
   let stopped = false;
-  let subscribed = false;
   let reconnectTimer = null;
   let reconnectAttempts = 0;
 
@@ -123,7 +122,6 @@ export function subscribeToConversation(conversationId, onEvent, onConnectionCha
       }
 
       if (envelope.event === "pusher_internal:subscription_succeeded" && envelope.channel === channelName) {
-        subscribed = true;
         setState("subscribed");
         return;
       }
@@ -135,7 +133,6 @@ export function subscribeToConversation(conversationId, onEvent, onConnectionCha
 
     socket.onerror = () => socket?.close();
     socket.onclose = () => {
-      subscribed = false;
       setState(stopped ? "stopped" : "disconnected");
       scheduleReconnect();
     };
@@ -145,7 +142,6 @@ export function subscribeToConversation(conversationId, onEvent, onConnectionCha
 
   return () => {
     stopped = true;
-    subscribed = false;
     if (reconnectTimer) window.clearTimeout(reconnectTimer);
     reconnectTimer = null;
     if (socket && socket.readyState < WebSocket.CLOSING) socket.close();
