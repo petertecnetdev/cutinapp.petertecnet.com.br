@@ -74,6 +74,9 @@ const messagingService = {
   markRead: (conversationId) => markConversationReadIdempotently(conversationId),
   state: async (conversationId, state) => (await appApiClient.patch(`/messaging/conversations/${Number(conversationId)}/state`, state)).data,
   archive: (conversationId) => archiveConversationIdempotently(conversationId),
+  block: async (userId) => (await appApiClient.post(`/messaging/users/${Number(userId)}/block`)).data,
+  unblock: async (userId) => (await appApiClient.delete(`/messaging/users/${Number(userId)}/block`)).data,
+  report: async (userId, data) => (await appApiClient.post(`/messaging/users/${Number(userId)}/report`, data)).data,
 };
 
 export default messagingService;
