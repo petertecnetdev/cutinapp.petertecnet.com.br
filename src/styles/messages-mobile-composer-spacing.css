@@ -3,4 +3,12 @@
   html[data-cut-instagram-shell="active"] .cut-chat-composer {
     margin-bottom: max(24px, env(safe-area-inset-bottom, 0px));
   }
+
+  /* Messaging must always win the bottom-screen interaction area.
+     The persistent event cart is useful globally, but on Direct it was
+     covering the composer and preventing the user from focusing/typing. */
+  body:has(.cut-chat-page) .cut-persistent-cart__bar,
+  body:has(.cut-chat-page) .cut-persistent-cart__sheet-layer {
+    display: none !important;
+  }
 }
