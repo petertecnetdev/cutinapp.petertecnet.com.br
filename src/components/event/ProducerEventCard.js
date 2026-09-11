@@ -52,7 +52,7 @@ export default function ProducerEventCard({
   onDuplicate,
 }) {
   const metrics = eventOperationalMetrics(event);
-  const eventImage = event.image || event.production?.logo;
+  const eventImage = event.image;
   const needsAttention = !event.is_cancelled && (readiness?.completed || 0) < 3;
   const compact = viewMode === "compact";
 
