@@ -26,6 +26,7 @@ const BlogPage = lazyWithPreload(() => import("./pages/blog/BlogPage"));
 const BlogArticlePage = lazy(() => import("./pages/blog/BlogArticlePage"));
 const MessagesPage = lazy(() => import("./pages/MessagesPage"));
 const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
+const GlobalSearchPage = lazy(() => import("./pages/search/GlobalSearchPage"));
 const ReportModerationPage = lazy(() => import("./pages/moderation/ReportModerationPage"));
 const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
 const RegisterPage = lazy(() => import("./pages/auth/RegisterPage"));
@@ -174,6 +175,7 @@ function AppRoutes() {
           <Route path="/feed" element={protectedRoute(<FeedPage />)} />
           <Route path="/messages" element={protectedRoute(<MessagesPage />)} />
           <Route path="/notifications" element={protectedRoute(<NotificationsPage />)} />
+          <Route path="/search" element={<GlobalSearchPage />} />
           <Route path="/moderation/reports" element={protectedRoute(<ReportModerationPage />)} />
           <Route path="/profile" element={protectedRoute(<UserProfilePage />)} />
           <Route path="/profile/:userId" element={<UserProfilePage />} />
