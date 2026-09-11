@@ -1,5 +1,6 @@
 import appApiClient from "./AppApiClient";
 import { createIdempotentMutation, createMutationRequestKey } from "../utils/idempotencyAttempts";
+import { trackSearchConversion } from "../utils/searchAttribution";
 
 const openDirectIdempotently = createIdempotentMutation({
   storagePrefix: "cutinapp_messaging_direct_attempt_",
@@ -59,7 +60,7 @@ const archiveConversationIdempotently = createIdempotentMutation({
 const messagingService = {
   conversations: async (params = {}) => (await appApiClient.get("/messaging/conversations", { params })).data,
   searchPeople: async (query) => (await appApiClient.get("/messaging/people", { params: { q: query } })).data,
-  openDirect: (userId) => openDirectIdempotently(userId),
+  openDirect: async (userId) => { const data = await openDirectIdempotently(userId); await trackSearchConversion("direct_open", userId).catch(() => false); return data; },
   conversation: async (conversationId) => (await appApiClient.get(`/messaging/conversations/${Number(conversationId)}`)).data,
   messages: async (conversationId, params = {}) => (await appApiClient.get(`/messaging/conversations/${Number(conversationId)}/messages`, { params })).data,
   send: (conversationId, body, replyToId = null) => sendMessageIdempotently(conversationId, body, replyToId),
