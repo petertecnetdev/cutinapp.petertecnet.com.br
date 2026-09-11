@@ -116,7 +116,7 @@ export default function ProducerEventCard({
       <div className="cut-producer-event-card__inventory" title="Ingressos emitidos e estoque restante">
         <span><i className="fa-solid fa-ticket" />Estoque</span>
         <strong>{metrics.passesIssued}{metrics.ticketCapacity ? ` / ${metrics.ticketCapacity}` : ""}</strong>
-        <small>{metrics.ticketsRemaining} restante(s)</small>
+        <small>{metrics.ticketsRemaining} restante(s){metrics.ticketsReserved > 0 ? ` · ${metrics.ticketsReserved} reservado(s)` : ""}</small>
       </div>
 
       {!event.is_cancelled && readiness && <div className="cut-producer-event-card__next">
