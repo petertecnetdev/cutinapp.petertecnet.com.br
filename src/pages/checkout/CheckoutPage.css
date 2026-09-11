@@ -76,3 +76,68 @@
   color: #fecaca !important;
   background: rgba(239,68,68,.1) !important;
 }
+
+.cut-checkout-mobile-paybar {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .cut-checkout-page {
+    padding-bottom: 132px;
+  }
+
+  .cut-checkout-mobile-paybar {
+    position: fixed;
+    z-index: 45;
+    left: max(12px, env(safe-area-inset-left));
+    right: max(12px, env(safe-area-inset-right));
+    bottom: max(12px, env(safe-area-inset-bottom));
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 12px;
+    border: 1px solid rgba(216,180,254,.22);
+    border-radius: 18px;
+    background: rgba(7,11,19,.94);
+    box-shadow: 0 18px 50px rgba(0,0,0,.42);
+    backdrop-filter: blur(20px);
+  }
+
+  .cut-checkout-mobile-paybar > div {
+    display: grid;
+    min-width: 0;
+  }
+
+  .cut-checkout-mobile-paybar small {
+    color: #94a3b8;
+    font-size: .68rem;
+  }
+
+  .cut-checkout-mobile-paybar strong {
+    font-size: 1.05rem;
+    white-space: nowrap;
+  }
+
+  .cut-checkout-mobile-paybar .btn {
+    min-height: 46px;
+    padding-inline: 18px;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 420px) {
+  .cut-checkout-mobile-paybar {
+    grid-template-columns: 1fr;
+  }
+
+  .cut-checkout-mobile-paybar > div {
+    grid-template-columns: 1fr auto;
+    align-items: baseline;
+    gap: 10px;
+  }
+
+  .cut-checkout-mobile-paybar .btn {
+    width: 100%;
+  }
+}
