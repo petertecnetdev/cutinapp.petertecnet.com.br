@@ -97,7 +97,7 @@ export function EventQuickView({ event, show, onHide, onDuplicate, onAgenda }) {
       <div className="cut-event-quickview__inventory">
         <div><span>Ocupação do estoque</span><strong>{percent(metrics.inventoryUtilizationRate)}</strong></div>
         <ProgressBar now={Math.min(100, metrics.inventoryUtilizationRate)} />
-        <small>{metrics.ticketsRemaining} ingresso(s) restantes · {metrics.passesIssued} emitido(s)</small>
+        <small>{metrics.ticketsRemaining} restante(s) · {metrics.passesIssued} emitido(s){metrics.ticketsReserved > 0 ? ` · ${metrics.ticketsReserved} reservado(s)` : ""}</small>
       </div>
 
       <div className="cut-event-quickview__health">
