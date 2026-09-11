@@ -154,3 +154,53 @@
     margin-left: 2px !important;
   }
 }
+
+
+/*
+ * Desktop notification popover isolation.
+ *
+ * React-Bootstrap/Bootstrap can temporarily resolve navbar dropdown menus as
+ * in-flow elements while the menu is being opened/repositioned. When the
+ * notification preview contains several rows, that makes the sticky navbar
+ * grow to hundreds of pixels and vertically centers the entire navigation.
+ *
+ * Keep the notification dropdown out of document flow on desktop and anchor
+ * it directly below the bell. The mobile drawer intentionally keeps its own
+ * in-flow submenu behavior in the <= 991.98px layers.
+ */
+@media (min-width: 992px) {
+  .cut-capability-nav .cut-nav-notification-menu {
+    position: relative !important;
+    align-self: center !important;
+  }
+
+  .cut-capability-nav .cut-nav-notification-menu > .dropdown-menu {
+    position: absolute !important;
+    inset: auto 0 auto auto !important;
+    top: calc(100% + 10px) !important;
+    right: 0 !important;
+    left: auto !important;
+    bottom: auto !important;
+    transform: none !important;
+    margin: 0 !important;
+    z-index: 2200 !important;
+    width: min(390px, calc(100vw - 24px)) !important;
+    max-height: min(72vh, 640px);
+    overflow: hidden !important;
+  }
+
+  .cut-capability-nav .cut-nav-notification-menu > .dropdown-menu.show {
+    display: block !important;
+  }
+
+  .cut-capability-nav .cut-notification-popover {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .cut-capability-nav .cut-notification-popover__list {
+    max-height: min(52vh, 430px) !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+  }
+}
