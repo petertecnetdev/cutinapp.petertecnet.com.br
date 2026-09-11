@@ -13,6 +13,16 @@ import "./EventManagePageSorting.css";
 
 const collator = new Intl.Collator("pt-BR", { numeric: true, sensitivity: "base" });
 
+const WEEK_DAYS = [
+  { value: 1, label: "Segunda-feira" },
+  { value: 2, label: "Terça-feira" },
+  { value: 3, label: "Quarta-feira" },
+  { value: 4, label: "Quinta-feira" },
+  { value: 5, label: "Sexta-feira" },
+  { value: 6, label: "Sábado" },
+  { value: 0, label: "Domingo" },
+];
+
 const SORT_COLUMNS = [
   { key: "event", label: "Evento" },
   { key: "production", label: "Produção" },
@@ -242,6 +252,12 @@ export default function EventManagePage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [eventToDuplicate, setEventToDuplicate] = useState(null);
+  const [eventToAgenda, setEventToAgenda] = useState(null);
+  const [agendaDay, setAgendaDay] = useState(1);
+  const [agendaGenerationMode, setAgendaGenerationMode] = useState("delayed");
+  const [agendaDelayDays, setAgendaDelayDays] = useState(1);
+  const [agendaWeeks, setAgendaWeeks] = useState(1);
+  const [agendaError, setAgendaError] = useState("");
   const [duplicateDate, setDuplicateDate] = useState("");
   const [duplicateError, setDuplicateError] = useState("");
   const [eventToDelete, setEventToDelete] = useState(null);
@@ -406,6 +422,67 @@ export default function EventManagePage() {
     } catch (err) {
       const dateMessage = Array.isArray(err?.errors?.date) ? err.errors.date[0] : err?.errors?.date;
       setDuplicateError(dateMessage || err?.message || "Não foi possível duplicar o evento.");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const openAgenda = (event) => {
+    if (!event || busyId || bulkPublishing) return;
+    const sourceDate = new Date(event.start_date || "");
+    const suggestedDay = Number.isNaN(sourceDate.getTime()) ? 1 : sourceDate.getDay();
+    setEventToAgenda(event);
+    setAgendaDay(suggestedDay);
+    setAgendaGenerationMode("delayed");
+    setAgendaDelayDays(1);
+    setAgendaWeeks(1);
+    setAgendaError("");
+    setError("");
+    setSuccess("");
+  };
+
+  const closeAgenda = () => {
+    if (String(busyId).startsWith("agenda-")) return;
+    setEventToAgenda(null);
+    setAgendaError("");
+  };
+
+  const addToAgenda = async () => {
+    if (!eventToAgenda) return;
+    const productionId = Number(eventToAgenda?.production?.id || eventToAgenda?.production_id || 0);
+    if (!productionId) {
+      setAgendaError("Este evento não está vinculado a uma produção válida.");
+      return;
+    }
+
+    setBusyId(`agenda-${eventToAgenda.id}`);
+    setAgendaError("");
+    setError("");
+    setSuccess("");
+
+    try {
+      const response = await eventService.createAgendaItem(productionId, {
+        event_id: Number(eventToAgenda.id),
+        day_of_week: Number(agendaDay),
+        generation_mode: agendaGenerationMode,
+        generation_delay_days: Number(agendaDelayDays),
+        generation_weeks: Number(agendaWeeks),
+        is_active: true,
+      });
+
+      const dayLabel = WEEK_DAYS.find((day) => day.value === Number(agendaDay))?.label || "dia escolhido";
+      const modeText = agendaGenerationMode === "immediate"
+        ? `criando até ${agendaWeeks} semana(s) de uma vez`
+        : `repondo após ${agendaDelayDays} dia(s), mantendo até ${agendaWeeks} semana(s)`;
+
+      setEventToAgenda(null);
+      setSuccess(response?.message
+        ? `${response.message} ${dayLabel}: ${modeText}.`
+        : `${eventToAgenda.title} definido como evento fixo de ${dayLabel}, ${modeText}.`);
+    } catch (err) {
+      const validation = err?.response?.data?.errors;
+      const first = validation && Object.values(validation).flat().find(Boolean);
+      setAgendaError(first || err?.response?.data?.message || err?.message || "Não foi possível adicionar o evento à agenda semanal.");
     } finally {
       setBusyId(null);
     }
@@ -761,6 +838,11 @@ export default function EventManagePage() {
         <Dropdown.Menu>
           <Dropdown.Item onClick={() => navigate(`/event/edit/${event.id}`)} disabled={Boolean(busyId)}><i className="fa-solid fa-pen" />Editar evento</Dropdown.Item>
           <Dropdown.Item onClick={() => openDuplicate(event)} disabled={Boolean(busyId)}><i className="fa-regular fa-copy" />Duplicar evento</Dropdown.Item>
+          {!event.is_cancelled && (
+            <Dropdown.Item onClick={() => openAgenda(event)} disabled={Boolean(busyId)}>
+              <i className="fa-solid fa-calendar-week" />Adicionar à agenda semanal
+            </Dropdown.Item>
+          )}
           <Dropdown.Divider />
           <Dropdown.Item onClick={() => navigate(`/ticket/create?eventId=${event.id}`)}><i className="fa-solid fa-ticket" />Novo lote</Dropdown.Item>
           <Dropdown.Item onClick={() => navigate(`/event/${event.id}/participants`)}><i className="fa-solid fa-users" />Participantes</Dropdown.Item>
@@ -796,7 +878,9 @@ export default function EventManagePage() {
           ? `Publicando ${bulkProgress.done} de ${bulkProgress.total} eventos`
           : duplicating
             ? "Duplicando evento"
-            : "Atualizando evento";
+            : String(busyId).startsWith("agenda-")
+              ? "Configurando agenda semanal"
+              : "Atualizando evento";
 
   const bulkProgressPercent = bulkProgress.total
     ? Math.round((bulkProgress.done / bulkProgress.total) * 100)
@@ -1168,6 +1252,85 @@ export default function EventManagePage() {
           </>
         )}
       </Container>
+
+      <Modal show={Boolean(eventToAgenda)} onHide={closeAgenda} centered backdrop={String(busyId).startsWith("agenda-") ? "static" : true}>
+        <Modal.Header closeButton={!String(busyId).startsWith("agenda-")}>
+          <Modal.Title>Adicionar à agenda semanal</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Alert variant="info">
+            <strong>{eventToAgenda?.title}</strong> ficará fixo somente no dia selecionado. Cada dia da semana pode ter um evento diferente e uma regra de geração própria.
+          </Alert>
+
+          {agendaError && <Alert variant="danger">{agendaError}</Alert>}
+
+          <div className="cut-event-agenda-config-grid">
+            <Form.Group>
+              <Form.Label>Dia fixo da semana</Form.Label>
+              <Form.Select value={agendaDay} onChange={(event) => setAgendaDay(Number(event.target.value))}>
+                {WEEK_DAYS.map((day) => <option key={day.value} value={day.value}>{day.label}</option>)}
+              </Form.Select>
+              <Form.Text>Se já houver outro evento neste dia, ele será substituído como evento fixo da agenda.</Form.Text>
+            </Form.Group>
+
+            <Form.Group>
+              <Form.Label>Quantas semanas manter/criar</Form.Label>
+              <Form.Control
+                type="number"
+                min={1}
+                max={52}
+                value={agendaWeeks}
+                onChange={(event) => setAgendaWeeks(Math.max(1, Math.min(52, Number(event.target.value) || 1)))}
+              />
+              <Form.Text>Escolha de 1 a 52 semanas para este dia específico.</Form.Text>
+            </Form.Group>
+          </div>
+
+          <Form.Group className="mt-3">
+            <Form.Label>Como criar as próximas ocorrências?</Form.Label>
+            <div className="cut-event-agenda-mode-options">
+              <button
+                type="button"
+                className={agendaGenerationMode === "immediate" ? "is-active" : ""}
+                onClick={() => setAgendaGenerationMode("immediate")}
+              >
+                <i className="fa-solid fa-bolt" />
+                <span><strong>Criar de uma vez</strong><small>Cria imediatamente as próximas semanas escolhidas.</small></span>
+              </button>
+              <button
+                type="button"
+                className={agendaGenerationMode === "delayed" ? "is-active" : ""}
+                onClick={() => setAgendaGenerationMode("delayed")}
+              >
+                <i className="fa-regular fa-clock" />
+                <span><strong>Criar por intervalo</strong><small>Espera o dia acontecer e repõe depois do atraso escolhido.</small></span>
+              </button>
+            </div>
+          </Form.Group>
+
+          {agendaGenerationMode === "delayed" && (
+            <Form.Group className="mt-3">
+              <Form.Label>Depois que o dia passar, esperar quantos dias?</Form.Label>
+              <Form.Select value={agendaDelayDays} onChange={(event) => setAgendaDelayDays(Number(event.target.value))}>
+                {[1,2,3,4,5,6,7].map((days) => (
+                  <option key={days} value={days}>
+                    {days === 1 ? "1 dia depois" : `${days} dias depois`}
+                  </option>
+                ))}
+              </Form.Select>
+              <Form.Text>
+                Exemplo: evento fixo de segunda + 1 dia = a próxima ocorrência pode ser criada na terça; +7 dias = somente na segunda seguinte.
+              </Form.Text>
+            </Form.Group>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="outline-secondary" onClick={closeAgenda} disabled={String(busyId).startsWith("agenda-")}>Cancelar</Button>
+          <Button onClick={addToAgenda} disabled={String(busyId).startsWith("agenda-") || !eventToAgenda}>
+            <i className="fa-solid fa-calendar-check me-2" />Salvar na agenda semanal
+          </Button>
+        </Modal.Footer>
+      </Modal>
 
       <Modal show={Boolean(eventToDelete)} onHide={closeDeleteEvent} centered backdrop={deletingOne ? "static" : true} keyboard={!deletingOne}>
         <Modal.Header closeButton={!deletingOne}>
