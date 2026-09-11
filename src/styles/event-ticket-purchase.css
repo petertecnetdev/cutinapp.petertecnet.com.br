@@ -12,6 +12,7 @@
 
 .cut-ticket-shop__heading h3 {
   margin: 0;
+  color: var(--cut-text-strong, #fff);
   font-size: 1.35rem;
   font-weight: 900;
   letter-spacing: -.035em;
@@ -19,7 +20,7 @@
 
 .cut-ticket-shop__heading p {
   margin: 5px 0 0;
-  color: var(--cut-text-muted);
+  color: var(--cut-text-muted, rgba(255,255,255,.68));
   font-size: .82rem;
 }
 
@@ -36,14 +37,15 @@
   min-height: 112px;
   padding: 18px 20px;
   border: 1px solid rgba(255,255,255,.13);
-  border-radius: 10px;
-  background: rgba(255,255,255,.035);
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(255,255,255,.055), rgba(255,255,255,.025));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
   transition: border-color .2s ease, background .2s ease, transform .2s ease;
 }
 
 .cut-ticket-shop__option:hover {
-  border-color: rgba(86,220,233,.28);
-  background: rgba(255,255,255,.055);
+  border-color: rgba(168,85,247,.42);
+  background: linear-gradient(145deg, rgba(168,85,247,.08), rgba(255,255,255,.035));
   transform: translateY(-1px);
 }
 
@@ -58,25 +60,33 @@
 }
 
 .cut-ticket-shop__option-copy strong {
-  color: var(--cut-text-strong);
-  font-size: .96rem;
+  color: var(--cut-text-strong, #fff);
+  font-size: .98rem;
   font-weight: 900;
   letter-spacing: -.01em;
 }
 
 .cut-ticket-shop__option-copy > span:not(.cut-ticket-kicker) {
-  color: var(--cut-text-strong);
+  color: var(--cut-text-strong, #fff);
   font-size: .91rem;
 }
 
 .cut-ticket-shop__option-copy small {
-  color: var(--cut-text-muted);
+  color: var(--cut-text-muted, rgba(255,255,255,.66));
   font-size: .74rem;
+}
+
+.cut-ticket-kicker,
+.cut-eyebrow {
+  color: #c45cff;
+  font-weight: 900;
+  letter-spacing: .09em;
+  text-transform: uppercase;
 }
 
 .cut-ticket-shop__stepper {
   display: inline-grid;
-  grid-template-columns: 38px 28px 38px;
+  grid-template-columns: 42px 30px 42px;
   align-items: center;
   justify-items: center;
   gap: 6px;
@@ -84,21 +94,23 @@
 }
 
 .cut-ticket-shop__stepper button {
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
   display: grid;
   place-items: center;
   padding: 0;
+  border: 1px solid rgba(255,255,255,.16);
   border-radius: 50%;
-  border: 0;
-  background: #f4f4f4;
+  background: rgba(255,255,255,.94);
   color: #111;
+  box-shadow: 0 6px 18px rgba(0,0,0,.18);
   font-weight: 900;
+  transition: transform .18s ease, background .18s ease, opacity .18s ease;
 }
 
 .cut-ticket-shop__stepper button:not(:disabled):hover {
   background: #fff;
-  transform: scale(1.04);
+  transform: scale(1.05);
 }
 
 .cut-ticket-shop__stepper button:disabled {
@@ -108,50 +120,54 @@
 
 .cut-ticket-shop__stepper output {
   min-width: 24px;
-  color: var(--cut-text-strong);
+  color: var(--cut-text-strong, #fff);
   text-align: center;
-  font-weight: 900;
+  font-size: 1rem;
+  font-weight: 950;
 }
 
 .cut-ticket-shop__sold-badge {
   flex: 0 0 auto;
   padding: 8px 12px;
   border: 1px solid rgba(255,255,255,.14);
-  border-radius: 6px;
-  color: var(--cut-text-muted);
+  border-radius: 999px;
+  color: var(--cut-text-muted, rgba(255,255,255,.64));
   font-size: .72rem;
   font-weight: 800;
 }
 
 .cut-ticket-shop__summary {
   overflow: hidden;
-  border-radius: 10px;
-  background: #f7f7f7;
-  color: #151515;
-  box-shadow: 0 18px 45px rgba(0,0,0,.18);
+  border: 1px solid rgba(168,85,247,.28);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at top right, rgba(168,85,247,.16), transparent 38%),
+    linear-gradient(160deg, rgba(19,14,31,.98), rgba(8,11,19,.98));
+  color: #f8f7ff;
+  box-shadow: 0 22px 60px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.05);
 }
 
 .cut-ticket-shop__summary-head {
-  padding: 18px;
-  border-bottom: 1px solid #e6e6e6;
-  background: #fff;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  background: transparent;
 }
 
 .cut-ticket-shop__summary-count {
-  display: block;
-  margin-bottom: 4px;
-  font-size: 1.1rem;
-  font-weight: 950;
+  display: none;
 }
 
 .cut-ticket-shop__summary-head small {
-  color: #525252;
-  font-size: .74rem;
-  font-weight: 700;
+  display: block;
+  color: #f6f3ff;
+  font-size: .78rem;
+  font-weight: 900;
+  letter-spacing: .02em;
 }
 
 .cut-ticket-shop__summary-items {
   display: grid;
+  padding: 8px 10px;
 }
 
 .cut-ticket-shop__summary-item {
@@ -159,9 +175,13 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 18px;
-  border-bottom: 1px solid #e7e7e7;
-  background: #f1f1f1;
+  padding: 14px 12px;
+  border-bottom: 1px solid rgba(255,255,255,.075);
+  background: transparent;
+}
+
+.cut-ticket-shop__summary-item:last-child {
+  border-bottom: 0;
 }
 
 .cut-ticket-shop__summary-item div {
@@ -175,34 +195,39 @@
 
 .cut-ticket-shop__summary-item strong {
   overflow: hidden;
+  color: #fff;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: .77rem;
+  font-size: .84rem;
+  font-weight: 900;
 }
 
 .cut-ticket-shop__summary-item span {
-  margin-top: 2px;
-  color: #575757;
-  font-size: .7rem;
+  margin-top: 4px;
+  color: rgba(255,255,255,.62);
+  font-size: .74rem;
 }
 
 .cut-ticket-shop__summary-item > b {
   flex: 0 0 auto;
-  font-size: .8rem;
+  color: #fff;
+  font-size: .86rem;
+  font-weight: 950;
 }
 
 .cut-ticket-shop__summary-empty {
-  padding: 22px 18px;
-  color: #666;
+  padding: 24px 20px;
+  color: rgba(255,255,255,.58);
   text-align: center;
   font-size: .76rem;
 }
 
 .cut-ticket-shop__summary-footer {
   display: grid;
-  gap: 10px;
-  padding: 16px 18px 18px;
-  background: #fff;
+  gap: 11px;
+  padding: 16px 20px 20px;
+  border-top: 1px solid rgba(255,255,255,.08);
+  background: rgba(0,0,0,.12);
 }
 
 .cut-ticket-shop__summary-line {
@@ -210,41 +235,65 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  font-size: .78rem;
+  color: rgba(255,255,255,.74);
+  font-size: .79rem;
+}
+
+.cut-ticket-shop__summary-line strong,
+.cut-ticket-shop__summary-line > span:last-child {
+  color: #fff;
+  font-weight: 900;
 }
 
 .cut-ticket-shop__summary-line--total {
-  font-size: .9rem;
+  margin-top: 2px;
+  padding-top: 12px;
+  border-top: 1px dashed rgba(255,255,255,.12);
+  color: #fff;
+  font-size: 1rem;
   font-weight: 950;
+}
+
+.cut-ticket-shop__summary-line--total strong {
+  color: #d96cff;
+  font-size: 1.12rem;
 }
 
 .cut-ticket-shop__summary-note {
   margin: 0;
-  color: #666;
-  font-size: .67rem;
-  line-height: 1.4;
+  color: rgba(255,255,255,.52);
+  font-size: .69rem;
+  line-height: 1.45;
 }
 
 .cut-ticket-shop__checkout-btn {
   width: 100%;
-  min-height: 44px;
-  border: 0;
-  border-radius: 5px;
-  background: #181818;
+  min-height: 52px;
+  margin-top: 4px;
+  padding: 0 18px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 15px;
+  background: linear-gradient(135deg, #7c3aed, #c026d3);
   color: #fff;
-  font-size: .78rem;
+  box-shadow: 0 12px 28px rgba(147,51,234,.26);
+  font-size: .82rem;
   font-weight: 950;
-  letter-spacing: .03em;
-  text-transform: uppercase;
+  letter-spacing: .015em;
+  text-transform: none;
+  transition: transform .18s ease, filter .18s ease, opacity .18s ease;
 }
 
 .cut-ticket-shop__checkout-btn:disabled {
-  opacity: .4;
+  background: rgba(255,255,255,.12);
+  color: rgba(255,255,255,.44);
+  box-shadow: none;
+  opacity: 1;
   cursor: not-allowed;
 }
 
 .cut-ticket-shop__checkout-btn:not(:disabled):hover {
-  background: #000;
+  filter: brightness(1.08);
+  transform: translateY(-1px);
 }
 
 .cut-ticket-shop__trust {
@@ -253,37 +302,15 @@
   gap: 8px;
   padding-top: 14px;
   border-top: 1px solid rgba(255,255,255,.09);
-  color: var(--cut-text-muted);
+  color: var(--cut-text-muted, rgba(255,255,255,.62));
   font-size: .72rem;
   line-height: 1.45;
 }
 
 .cut-ticket-shop__trust i {
   margin-top: 2px;
-  color: var(--cut-primary);
+  color: var(--cut-primary, #a855f7);
 }
-
-@media (max-width: 575.98px) {
-  .cut-ticket-shop__option {
-    align-items: flex-end;
-    min-height: 0;
-    padding: 16px;
-  }
-
-  .cut-ticket-shop__option-copy {
-    flex: 1 1 auto;
-  }
-
-  .cut-ticket-shop__stepper {
-    grid-template-columns: 34px 22px 34px;
-  }
-
-  .cut-ticket-shop__stepper button {
-    width: 32px;
-    height: 32px;
-  }
-}
-
 
 .cut-ticket-shop-section {
   padding: 26px 0 8px;
@@ -313,9 +340,198 @@
 @media (min-width: 992px) {
   .cut-ticket-shop__summary {
     position: sticky;
-    top: calc(var(--cut-navbar-height) + 18px);
+    top: calc(var(--cut-navbar-height, 70px) + 18px);
     align-self: start;
   }
+}
+
+.cut-event-cart-fab {
+  position: fixed;
+  right: 28px;
+  bottom: 28px;
+  z-index: 1035;
+  min-width: 280px;
+  min-height: 60px;
+  display: grid;
+  grid-template-columns: 40px 1fr 30px;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(168,85,247,.35);
+  border-radius: 18px;
+  background: rgba(12,9,24,.96);
+  color: #fff;
+  box-shadow: 0 18px 55px rgba(0,0,0,.42), 0 0 30px rgba(126,34,206,.12);
+  backdrop-filter: blur(18px);
+}
+
+.cut-event-cart-fab > i {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(124,58,237,.4), rgba(192,38,211,.22));
+}
+
+.cut-event-cart-fab > span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  text-align: left;
+}
+
+.cut-event-cart-fab strong {
+  font-size: .82rem;
+  line-height: 1.2;
+}
+
+.cut-event-cart-fab small {
+  color: rgba(255,255,255,.7);
+  font-size: .74rem;
+}
+
+.cut-event-cart-fab > b {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff;
+  color: #0b0f17;
+  font-size: .72rem;
+}
+
+.cut-event-cart-fab:hover {
+  transform: translateY(-2px);
+  background: #0c0918;
+}
+
+.cut-event-cart-drawer.offcanvas {
+  width: min(460px, 100vw);
+  border-left: 1px solid rgba(255,255,255,.12);
+  background: #080d16;
+  color: #f7fbff;
+}
+
+.cut-event-cart-drawer .offcanvas-header {
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+
+.cut-event-cart-drawer .offcanvas-title {
+  font-weight: 900;
+  letter-spacing: -.02em;
+}
+
+.cut-event-cart-drawer .offcanvas-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cut-event-cart-drawer__hint {
+  margin: 0;
+  color: rgba(255,255,255,.62);
+  font-size: .78rem;
+}
+
+.cut-event-cart-drawer__items {
+  display: grid;
+  gap: 10px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.cut-event-cart-drawer__item {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 15px;
+  background: rgba(255,255,255,.035);
+}
+
+.cut-event-cart-drawer__copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.cut-event-cart-drawer__copy small {
+  color: var(--cut-primary, #a855f7);
+  font-size: .65rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.cut-event-cart-drawer__copy strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: .84rem;
+}
+
+.cut-event-cart-drawer__copy span {
+  color: rgba(255,255,255,.58);
+  font-size: .72rem;
+}
+
+.cut-event-cart-drawer__item > b {
+  grid-column: 1/-1;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255,255,255,.07);
+  text-align: right;
+  font-size: .78rem;
+}
+
+.cut-event-cart-drawer__footer {
+  display: grid;
+  gap: 12px;
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255,255,255,.1);
+}
+
+.cut-event-cart-drawer__footer > div {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.cut-event-cart-drawer__footer > div span {
+  color: rgba(255,255,255,.65);
+  font-size: .8rem;
+}
+
+.cut-event-cart-drawer__footer > div strong {
+  font-size: 1.35rem;
+  font-weight: 950;
+}
+
+.cut-event-cart-drawer__footer > small {
+  color: rgba(255,255,255,.52);
+  font-size: .69rem;
+  line-height: 1.45;
+}
+
+.cut-event-cart-drawer__footer .btn {
+  min-height: 50px;
+  border: 0;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #7c3aed, #c026d3);
+  font-weight: 900;
+}
+
+.cut-event-cart-drawer__continue {
+  border: 0;
+  background: transparent;
+  color: rgba(255,255,255,.72);
+  font-size: .76rem;
+  font-weight: 800;
 }
 
 @media (max-width: 991.98px) {
@@ -327,83 +543,78 @@
   .cut-ticket-shop__summary {
     position: static;
   }
-}
 
-
-.cut-event-cart-fab {
-  position: fixed;
-  right: 28px;
-  bottom: 28px;
-  z-index: 1035;
-  min-width: 280px;
-  min-height: 58px;
-  display: grid;
-  grid-template-columns: 38px 1fr 30px;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  border: 1px solid rgba(255,255,255,.18);
-  border-radius: 18px;
-  background: rgba(9,13,23,.96);
-  color: #fff;
-  box-shadow: 0 18px 55px rgba(0,0,0,.42);
-  backdrop-filter: blur(18px);
-}
-.cut-event-cart-fab > i {width:38px;height:38px;display:grid;place-items:center;border-radius:12px;background:rgba(255,255,255,.08)}
-.cut-event-cart-fab > span {min-width:0;display:grid;gap:2px;text-align:left}
-.cut-event-cart-fab strong {font-size:.82rem;line-height:1.2}
-.cut-event-cart-fab small {color:rgba(255,255,255,.7);font-size:.74rem}
-.cut-event-cart-fab > b {width:28px;height:28px;display:grid;place-items:center;border-radius:50%;background:#fff;color:#0b0f17;font-size:.72rem}
-.cut-event-cart-fab:hover {transform:translateY(-2px);background:#080c14}
-
-.cut-event-cart-drawer.offcanvas {
-  width: min(460px, 100vw);
-  border-left: 1px solid rgba(255,255,255,.12);
-  background: #080d16;
-  color: #f7fbff;
-}
-.cut-event-cart-drawer .offcanvas-header {border-bottom:1px solid rgba(255,255,255,.08)}
-.cut-event-cart-drawer .offcanvas-title {font-weight:900;letter-spacing:-.02em}
-.cut-event-cart-drawer .offcanvas-body {display:flex;flex-direction:column;gap:16px}
-.cut-event-cart-drawer__hint {margin:0;color:rgba(255,255,255,.62);font-size:.78rem}
-.cut-event-cart-drawer__items {display:grid;gap:10px;overflow-y:auto;padding-right:2px}
-.cut-event-cart-drawer__item {
-  display:grid;
-  grid-template-columns:minmax(0,1fr) auto;
-  align-items:center;
-  gap:12px;
-  padding:14px;
-  border:1px solid rgba(255,255,255,.09);
-  border-radius:15px;
-  background:rgba(255,255,255,.035);
-}
-.cut-event-cart-drawer__copy {min-width:0;display:grid;gap:3px}
-.cut-event-cart-drawer__copy small {color:var(--cut-primary);font-size:.65rem;font-weight:900;text-transform:uppercase;letter-spacing:.08em}
-.cut-event-cart-drawer__copy strong {overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.84rem}
-.cut-event-cart-drawer__copy span {color:rgba(255,255,255,.58);font-size:.72rem}
-.cut-event-cart-drawer__item > b {grid-column:1/-1;padding-top:8px;border-top:1px solid rgba(255,255,255,.07);text-align:right;font-size:.78rem}
-.cut-event-cart-drawer__footer {display:grid;gap:12px;margin-top:auto;padding-top:16px;border-top:1px solid rgba(255,255,255,.1)}
-.cut-event-cart-drawer__footer > div {display:flex;align-items:end;justify-content:space-between;gap:16px}
-.cut-event-cart-drawer__footer > div span {color:rgba(255,255,255,.65);font-size:.8rem}
-.cut-event-cart-drawer__footer > div strong {font-size:1.35rem;font-weight:950}
-.cut-event-cart-drawer__footer > small {color:rgba(255,255,255,.52);font-size:.69rem;line-height:1.45}
-.cut-event-cart-drawer__footer .btn {min-height:50px;border:0;border-radius:14px;font-weight:900}
-.cut-event-cart-drawer__continue {border:0;background:transparent;color:rgba(255,255,255,.72);font-size:.76rem;font-weight:800}
-
-@media (max-width: 991.98px) {
   .cut-event-cart-fab {
-    left:14px;
-    right:14px;
-    bottom:calc(82px + env(safe-area-inset-bottom));
-    min-width:0;
-    width:auto;
-    border-radius:16px;
+    left: 16px;
+    right: 16px;
+    bottom: calc(96px + env(safe-area-inset-bottom));
+    min-width: 0;
+    width: auto;
+    min-height: 62px;
+    border-radius: 18px;
   }
+
   .cut-event-cart-drawer.offcanvas-bottom {
-    width:100%;
-    height:min(72vh,650px);
-    border:1px solid rgba(255,255,255,.12);
-    border-bottom:0;
-    border-radius:22px 22px 0 0;
+    width: 100%;
+    height: min(72vh,650px);
+    border: 1px solid rgba(255,255,255,.12);
+    border-bottom: 0;
+    border-radius: 22px 22px 0 0;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .cut-commerce-panel {
+    gap: 14px;
+  }
+
+  .cut-ticket-shop__option {
+    align-items: center;
+    min-height: 0;
+    padding: 16px;
+    border-radius: 16px;
+  }
+
+  .cut-ticket-shop__option-copy {
+    flex: 1 1 auto;
+  }
+
+  .cut-ticket-shop__stepper {
+    grid-template-columns: 40px 24px 40px;
+  }
+
+  .cut-ticket-shop__stepper button {
+    width: 38px;
+    height: 38px;
+  }
+
+  .cut-ticket-shop__summary {
+    border-radius: 18px;
+  }
+
+  .cut-ticket-shop__summary-head {
+    padding: 15px 16px 12px;
+  }
+
+  .cut-ticket-shop__summary-items {
+    padding: 6px 8px;
+  }
+
+  .cut-ticket-shop__summary-item {
+    padding: 12px 10px;
+  }
+
+  .cut-ticket-shop__summary-footer {
+    padding: 14px 16px 16px;
+  }
+
+  .cut-ticket-shop__checkout-btn {
+    min-height: 54px;
+    border-radius: 14px;
+    font-size: .84rem;
+  }
+
+  .cut-ticket-shop__trust {
+    margin-bottom: 86px;
   }
 }
