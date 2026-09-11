@@ -11,6 +11,7 @@ import AppErrorBoundary from "./components/AppErrorBoundary";
 import ApplicationAdminGate from "./components/ApplicationAdminGate";
 import ConnectionStatus from "./components/ConnectionStatus";
 import CutinappVisualEffects from "./components/CutinappVisualEffects";
+import GlobalSearchOverlay from "./components/GlobalSearchOverlay";
 import PeterTecnetSignature from "./components/PeterTecnetSignature";
 import ProcessingIndicatorComponent from "./components/ProcessingIndicatorComponent";
 import SeoManager from "./components/SeoManager";
@@ -144,6 +145,7 @@ function AppRoutes() {
 
   return <>
     <ConnectionStatus />
+    <GlobalSearchOverlay />
     {!performanceCriticalRoute && <CutinappVisualEffects />}
     <AppErrorBoundary resetKey={routeKey}>
       <Suspense fallback={<ProcessingIndicatorComponent label="Carregando página" />}>
