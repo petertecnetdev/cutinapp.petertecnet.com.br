@@ -236,13 +236,13 @@ export default function ArtistManagePage() {
         </EditorSection>
 
         {editing && isGroup && <EditorSection id="artist-editor-members" eyebrow="Seção Formação" title="Integrantes" hint="A formação atual aparece vinculada ao perfil do grupo.">
-          <Form onSubmit={addMember} className="mb-4">
+          <div className="mb-4">
             <Row className="g-3">
               <Col md={6}><Form.Group><Form.Label>Vincular perfil Cutinapp</Form.Label><Form.Select value={memberForm.member_artist_id} onChange={(e) => setMemberForm({ ...memberForm, member_artist_id: e.target.value })}><option value="">Sem perfil vinculado</option>{linkableArtists.map((artist) => <option key={artist.id} value={artist.id}>{artist.stage_name}</option>)}</Form.Select></Form.Group></Col>
               <Col md={6}><Form.Group><Form.Label>Nome do integrante</Form.Label><Form.Control value={memberForm.display_name} onChange={(e) => setMemberForm({ ...memberForm, display_name: e.target.value })} placeholder="Pode ficar vazio se houver perfil vinculado" /></Form.Group></Col>
               <Col md={6}><Form.Group><Form.Label>Função</Form.Label><Form.Control value={memberForm.role} onChange={(e) => setMemberForm({ ...memberForm, role: e.target.value })} placeholder="Vocal, guitarra, DJ..." /></Form.Group></Col>
               <Col md={6}><Form.Group><Form.Label>Entrada na formação</Form.Label><Form.Control type="date" value={memberForm.joined_at} onChange={(e) => setMemberForm({ ...memberForm, joined_at: e.target.value })} /></Form.Group></Col>
-              <Col xs={12}><Button type="submit" disabled={busy}>Adicionar integrante</Button></Col>
+              <Col xs={12}><Button type="button" disabled={busy} onClick={addMember}>Adicionar integrante</Button></Col>
             </Row>
           </Form>
           <div className="d-grid gap-2">
