@@ -46,5 +46,5 @@ test("sorts future events before old events", () => {
     { kind: "pass", data: { id: 2, event: { start_date: future } } },
   ];
   expect(sortWalletItems(items, "nearest", now)[0].data.id).toBe(2);
-  expect(countdownLabel({ start_date: "2030-01-02T10:00:00-03:00" }, now)).toBe("Faltam 1 dias");
+  expect(countdownLabel({ start_date: "2030-01-02T10:00:00-03:00" }, now)).toBe("Começa em 22 horas");
 });
