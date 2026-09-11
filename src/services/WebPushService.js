@@ -13,7 +13,7 @@ export async function ensureWebPushSubscription() {
   if (typeof window === "undefined" || !("serviceWorker" in navigator) || !("PushManager" in window)) return false;
   if (!("Notification" in window) || window.Notification.permission !== "granted") return false;
 
-  const registration = await navigator.serviceWorker.register(SW_PATH);
+  await navigator.serviceWorker.register(SW_PATH);
   const ready = await navigator.serviceWorker.ready;
   const current = await ready.pushManager.getSubscription();
 
