@@ -101,7 +101,8 @@ export default function ProductionPublicPage() {
   const [clock, setClock] = useState(() => new Date());
   const [distanceKm, setDistanceKm] = useState(null);
   const [distanceBusy, setDistanceBusy] = useState(false);
-  const [shareMessage, setShareMessage] = useState("");\n  const [interestedEventIds, setInterestedEventIds] = useState([]);
+  const [shareMessage, setShareMessage] = useState("");
+  const [interestedEventIds, setInterestedEventIds] = useState([]);
 
   const loadCore = useCallback(async () => {
     const response = await cutinappService.publicProduction(slug);
@@ -120,6 +121,7 @@ export default function ProductionPublicPage() {
         const core = await cutinappService.publicProduction(slug);
         if (!active) return;
         setData(core);
+        setInterestedEventIds((core?.upcoming || []).filter((event) => Boolean(event?.is_interested)).map((event) => Number(event.id)));
         const productionId = Number(core?.production?.id || 0);
 
         const backgroundRequests = [];
@@ -298,6 +300,7 @@ export default function ProductionPublicPage() {
         track("production_followed");
       }
       await loadCore();
+      pulseHaptic();
     } catch (err) {
       setError(err?.message || "Não foi possível atualizar o acompanhamento.");
     } finally {
@@ -327,12 +330,16 @@ export default function ProductionPublicPage() {
       url: productionUrl,
     };
     try {
-      if (navigator.share) {
+      if (typeof navigator !== "undefined" && navigator.share) {
         await navigator.share(payload);
         track("production_shared", { channel: "native" });
         return;
       }
-      await navigator.clipboard.writeText(productionUrl);
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(productionUrl);
+      } else {
+        throw new Error("Clipboard indisponível");
+      }
       setShareMessage("Link copiado.");
       track("production_shared", { channel: "copy" });
     } catch (err) {
@@ -347,6 +354,7 @@ export default function ProductionPublicPage() {
 
   const openTickets = (source = "page") => {
     track("production_ticket_cta_clicked", { source, sellable_events: sellableUpcoming.length });
+    pulseHaptic();
     setTicketCartOpen(true);
   };
 
@@ -457,7 +465,7 @@ export default function ProductionPublicPage() {
             <p><i className="fa-solid fa-location-dot" /> {nextEvent.venue || nextEvent.city || "Local a definir"}</p>
             <div className="cut-production-next-event__actions">
               <Button onClick={() => openEvent(nextEvent, "hero_spotlight")}>Ver evento</Button>
-              {sellableUpcoming.some((event) => Number(event.id) === Number(nextEvent.id)) && <Button variant="success" onClick={() => openTickets("next_event")}><i className="fa-solid fa-ticket me-2" />Ingressos</Button>}{!nextEvent.has_ended && <Button variant="outline-light" onClick={() => markInterested(nextEvent)} disabled={interestedEventIds.includes(Number(nextEvent.id))}><i className={`${interestedEventIds.includes(Number(nextEvent.id)) ? "fa-solid" : "fa-regular"} fa-star me-2`} />{interestedEventIds.includes(Number(nextEvent.id)) ? "Tenho interesse" : "Tenho interesse"}</Button>}
+              {sellableUpcoming.some((event) => Number(event.id) === Number(nextEvent.id)) && <Button variant="success" onClick={() => openTickets("next_event")}><i className="fa-solid fa-ticket me-2" />Ingressos</Button>}{!nextEvent.has_ended && <Button variant="outline-light" onClick={() => markInterested(nextEvent)} disabled={interestedEventIds.includes(Number(nextEvent.id))}><i className={`${interestedEventIds.includes(Number(nextEvent.id)) ? "fa-solid" : "fa-regular"} fa-star me-2`} />{interestedEventIds.includes(Number(nextEvent.id)) ? "Interesse registrado" : "Tenho interesse"}</Button>}
             </div>
           </div>
         </article>}
