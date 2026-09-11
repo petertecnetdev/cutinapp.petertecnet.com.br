@@ -193,7 +193,6 @@ export default function EventCommandCenter({
   if (!event) return null;
 
   const metrics = eventOperationalMetrics(event);
-  const health = eventHealth(event);
   const alerts = eventAlerts(event);
   const stage = eventStage(event);
   const checklist = preparationChecklist(event);
