@@ -1,6 +1,10 @@
 import appApiClient from "./AppApiClient";
 import { createIdempotentMutation, createMutationRequestKey } from "../utils/idempotencyAttempts";
 
+const CREATIVE_IMAGE_TIMEOUT_MS = 150000;
+const CREATIVE_RETRY_DELAYS_MS = [900, 1800];
+const TRANSIENT_CREATIVE_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504]);
+
 const compactStrings = (items = []) => (
   Array.isArray(items)
     ? items.map((item) => String(item || "").trim()).filter(Boolean).slice(0, 8)
@@ -70,15 +74,36 @@ const normalizeFlyerPayload = ({
   include_candidates: generationMode === "final" ? false : Boolean(includeCandidates),
 });
 
+const sleep = (milliseconds) => new Promise((resolve) => globalThis.setTimeout(resolve, milliseconds));
+
+const errorStatus = (error) => Number(error?.status || error?.response?.status || 0);
+const isCreativeTimeout = (error) => (
+  String(error?.code || "").toUpperCase() === "ECONNABORTED"
+  || /timeout|tempo.*esgot|demorou/i.test(String(error?.message || ""))
+);
+const shouldRetryCreative = (error) => {
+  const status = errorStatus(error);
+  return isCreativeTimeout(error) || status === 0 || TRANSIENT_CREATIVE_STATUSES.has(status);
+};
+
+const postCreativeImage = async (payload, idempotencyKey, attempt = 0) => {
+  try {
+    return (await appApiClient.post("/creative/images", payload, {
+      timeout: CREATIVE_IMAGE_TIMEOUT_MS,
+      headers: { "Idempotency-Key": idempotencyKey },
+    })).data;
+  } catch (error) {
+    if (attempt >= CREATIVE_RETRY_DELAYS_MS.length || !shouldRetryCreative(error)) throw error;
+    await sleep(CREATIVE_RETRY_DELAYS_MS[attempt]);
+    return postCreativeImage(payload, idempotencyKey, attempt + 1);
+  }
+};
+
 const generateEventFlyerBackgroundIdempotently = createIdempotentMutation({
   storagePrefix: "cutinapp_creative_event_flyer_attempt_",
   keyPrefix: "creative-flyer",
   requestKeyFor: (payload) => createMutationRequestKey(payload),
-  mutate: async ({ idempotencyKey }, payload) => (
-    await appApiClient.post("/creative/images", payload, {
-      headers: { "Idempotency-Key": idempotencyKey },
-    })
-  ).data,
+  mutate: async ({ idempotencyKey }, payload) => postCreativeImage(payload, idempotencyKey),
 });
 
 const creativeService = {
@@ -108,7 +133,7 @@ const creativeService = {
   ),
 
   getEventCreativePresets: async () => (
-    await appApiClient.get("/creative/presets")
+    await appApiClient.get("/creative/presets", { timeout: 30000 })
   ).data,
 };
 
