@@ -205,6 +205,9 @@ export default function ProductionFinancePage() {
   const checkoutRecommendedAction = checkoutLargestContributionDropoff?.recommended_action || checkoutLargestEconomicDropoff?.recommended_action || null;
   const checkoutRecommendedActionUi = checkoutRemediationMeta[checkoutRecommendedAction?.code] || null;
   const checkoutContributionEstimate = checkoutJourneyFunnel.platform_contribution_estimate || {};
+  const checkoutPeriodComparison = checkoutJourneyFunnel.period_comparison || {};
+  const checkoutPeriodConversion = checkoutPeriodComparison.conversion || {};
+  const checkoutPeriodRisk = checkoutPeriodComparison.platform_contribution_risk || {};
   const checkoutJourneyMethods = Array.isArray(checkoutJourneyFunnel.by_payment_method) ? checkoutJourneyFunnel.by_payment_method : [];
   const checkoutStepLabel = {
     checkout_opened: "Checkout aberto",
@@ -421,6 +424,20 @@ export default function ProductionFinancePage() {
             {checkoutRecommendedActionUi && <Alert variant="info" className="mt-3 mb-0">
               <strong>Ação recomendada agora: {checkoutRecommendedActionUi.title}.</strong> {checkoutRecommendedActionUi.detail}
               {checkoutRecommendedAction?.target_metric && <span className="d-block mt-1 small">Métrica-alvo: <code>{checkoutRecommendedAction.target_metric}</code>.</span>}
+            </Alert>}
+            {checkoutPeriodComparison.status && <Alert variant={checkoutPeriodComparison.status === "improving" ? "success" : checkoutPeriodComparison.status === "regressing" ? "warning" : "secondary"} className="mt-3 mb-0">
+              <strong>Resultado vs período anterior:</strong>{" "}
+              {checkoutPeriodComparison.sample_is_comparable
+                ? checkoutPeriodComparison.status === "improving"
+                  ? "o funil está melhorando com amostra comparável."
+                  : checkoutPeriodComparison.status === "regressing"
+                    ? "o funil piorou e merece revisão antes de ampliar tráfego ou desconto."
+                    : "os sinais estão mistos; continue medindo antes de atribuir ganho à intervenção."
+                : `ainda em coleta. São necessárias pelo menos ${Number(checkoutPeriodComparison.minimum_opened_journeys_per_period || 20).toLocaleString("pt-BR")} jornadas abertas em cada período para classificar tendência.`}
+              <span className="d-block mt-1 small">
+                Conversão checkout → aprovado: {checkoutPeriodConversion.opened_to_approved_delta_percentage_points == null ? "—" : `${Number(checkoutPeriodConversion.opened_to_approved_delta_percentage_points) >= 0 ? "+" : ""}${Number(checkoutPeriodConversion.opened_to_approved_delta_percentage_points).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} p.p.`}
+                {checkoutPeriodRisk.largest_step_amount_delta == null ? "" : ` • variação da contribuição em risco: ${money(checkoutPeriodRisk.largest_step_amount_delta)}`}
+              </span>
             </Alert>}
             {checkoutLargestEconomicDropoff && checkoutLargestContributionDropoff && Number(checkoutLargestEconomicDropoff.gmv_at_risk || 0) > 0 && <p className="text-secondary small mt-2 mb-0">
               Maior risco por GMV bruto: <strong>{checkoutStepLabel[checkoutLargestEconomicDropoff.from] || checkoutLargestEconomicDropoff.from}</strong> → <strong>{checkoutStepLabel[checkoutLargestEconomicDropoff.to] || checkoutLargestEconomicDropoff.to}</strong>, com <strong>{money(checkoutLargestEconomicDropoff.gmv_at_risk)}</strong>. O ranking principal usa contribuição líquida para evitar priorizar volume que deixa pouca margem.
