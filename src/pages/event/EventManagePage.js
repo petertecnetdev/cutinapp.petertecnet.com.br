@@ -174,6 +174,28 @@ const isBulkPublishable = (event) => Boolean(
 );
 
 const getSalesReadiness = (event) => {
+  if (event?.has_ended) {
+    return {
+      completed: 3,
+      title: "Reviva Evento",
+      label: "Adicione fotos, avaliações e prolongue o engajamento.",
+      action: "Reviver",
+      icon: "fa-solid fa-camera-retro",
+      route: event?.slug ? `/event/${event.slug}#reviva` : `/event/edit/${event.id}`,
+    };
+  }
+
+  if (event?.is_happening_now) {
+    return {
+      completed: 3,
+      title: "Operar evento",
+      label: "Acompanhe participantes e check-ins em tempo real.",
+      action: "Check-in",
+      icon: "fa-solid fa-qrcode",
+      route: `/checkin?eventId=${event.id}`,
+    };
+  }
+
   const hasBasics = hasEventBasics(event);
   const hasTickets = Number(event?.tickets_count || 0) > 0;
   const hasSellableTickets = sellableTicketCount(event) > 0;
@@ -733,9 +755,10 @@ export default function EventManagePage() {
 
   const stats = useMemo(() => ({
     total: events.length,
-    published: events.filter((event) => event.is_published && !event.is_cancelled).length,
-    draft: events.filter((event) => !event.is_published && !event.is_cancelled).length,
-    attention: events.filter((event) => !event.is_cancelled && (getSalesReadiness(event).completed < 3 || eventPerformance(event).rank <= 3)).length,
+    published: events.filter((event) => event.is_published && !event.is_cancelled && !event.has_ended).length,
+    draft: events.filter((event) => !event.is_published && !event.is_cancelled && !event.has_ended).length,
+    ended: events.filter((event) => event.has_ended && !event.is_cancelled).length,
+    attention: events.filter((event) => !event.is_cancelled && !event.has_ended && (getSalesReadiness(event).completed < 3 || eventPerformance(event).rank <= 3)).length,
     cancelled: events.filter((event) => event.is_cancelled).length,
   }), [events]);
 
@@ -1334,6 +1357,13 @@ export default function EventManagePage() {
                 <span className="cut-event-manager-summary__copy"><small>Prioridade</small><span>Precisam de ação</span></span>
                 <strong>{stats.attention}</strong>
               </button>
+              {stats.ended > 0 && (
+                <button type="button" className={periodFilter === "past" ? "is-active" : ""} onClick={() => { setStatusFilter("all"); setPeriodFilter("past"); }}>
+                  <span className="cut-event-manager-summary__icon"><i className="fa-solid fa-clock-rotate-left" /></span>
+                  <span className="cut-event-manager-summary__copy"><small>Pós-evento</small><span>Encerrados / Reviva</span></span>
+                  <strong>{stats.ended}</strong>
+                </button>
+              )}
               {stats.cancelled > 0 && (
                 <button type="button" className={statusFilter === "cancelled" ? "is-active" : ""} onClick={() => setStatusFilter("cancelled")}>
                   <span className="cut-event-manager-summary__icon"><i className="fa-solid fa-ban" /></span>
