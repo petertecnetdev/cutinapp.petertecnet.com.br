@@ -27,6 +27,7 @@ export const eventOperationalMetrics = (event) => ({
   grossSalesToday: number(event?.operational_metrics?.gross_sales_today),
   ticketsSold: number(event?.operational_metrics?.tickets_sold),
   passesIssued: number(event?.operational_metrics?.passes_issued),
+  ticketsReserved: number(event?.operational_metrics?.tickets_reserved),
   ticketCapacity: number(event?.operational_metrics?.ticket_capacity),
   ticketsRemaining: number(event?.operational_metrics?.tickets_remaining),
   sellThroughRate: number(event?.operational_metrics?.sell_through_rate),
