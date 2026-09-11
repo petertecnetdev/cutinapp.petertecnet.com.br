@@ -51,6 +51,20 @@ const recoveryDecisionReason = {
   conversion_preserved_with_95_confidence_and_contribution_improved: "A conversão foi preservada com 95% de confiança e a contribuição líquida aumentou.",
   no_positive_net_contribution_lift: "A conversão foi preservada, mas ainda não houve ganho líquido positivo.",
 };
+const checkoutRemediationMeta = {
+  reduce_payment_entry_friction: {
+    title: "Reduzir atrito antes do pagamento",
+    detail: "Simplifique a revisão do pedido, mantenha total e método visíveis e deixe a ação de pagamento imediata, sem esconder taxas ou alterar o carrinho.",
+  },
+  improve_payment_approval: {
+    title: "Aumentar aprovação do pagamento",
+    detail: "Priorize falhas por Pix/cartão, mensagens claras e retomada segura. Preserve idempotência e nunca repita uma cobrança automaticamente.",
+  },
+  protect_post_payment_fulfillment: {
+    title: "Garantir ingresso após pagamento aprovado",
+    detail: "Trate pagamento aprovado sem emissão como prioridade operacional e reprocesse fulfillment de forma idempotente, preservando QR e check-in.",
+  },
+};
 
 function StatusLine({ ok, title, detail }) {
   return <div className="d-flex align-items-start gap-3 py-2">
@@ -188,6 +202,8 @@ export default function ProductionFinancePage() {
   const checkoutLargestDropoff = checkoutJourneyDropoff.largest_step || null;
   const checkoutLargestEconomicDropoff = checkoutJourneyDropoff.largest_economic_step || null;
   const checkoutLargestContributionDropoff = checkoutJourneyDropoff.largest_contribution_step || null;
+  const checkoutRecommendedAction = checkoutLargestContributionDropoff?.recommended_action || checkoutLargestEconomicDropoff?.recommended_action || null;
+  const checkoutRecommendedActionUi = checkoutRemediationMeta[checkoutRecommendedAction?.code] || null;
   const checkoutContributionEstimate = checkoutJourneyFunnel.platform_contribution_estimate || {};
   const checkoutJourneyMethods = Array.isArray(checkoutJourneyFunnel.by_payment_method) ? checkoutJourneyFunnel.by_payment_method : [];
   const checkoutStepLabel = {
@@ -401,6 +417,10 @@ export default function ProductionFinancePage() {
               <strong>Maior oportunidade de margem:</strong> entre <strong>{checkoutStepLabel[checkoutLargestContributionDropoff.from] || checkoutLargestContributionDropoff.from}</strong> e <strong>{checkoutStepLabel[checkoutLargestContributionDropoff.to] || checkoutLargestContributionDropoff.to}</strong> há aproximadamente <strong>{money(checkoutLargestContributionDropoff.platform_contribution_at_risk)}</strong> de contribuição líquida potencial em risco, considerando a margem observada dos pedidos pagos{checkoutContributionEstimate.fallback_margin_percent == null ? "" : ` (${percent(checkoutContributionEstimate.fallback_margin_percent)} de referência)`}. São <strong>{Number(checkoutLargestContributionDropoff.dropoff_journeys || 0).toLocaleString("pt-BR")}</strong> jornadas que não avançaram. Priorize esta etapa antes de aumentar descontos ou tráfego.
             </Alert> : checkoutLargestEconomicDropoff && Number(checkoutLargestEconomicDropoff.gmv_at_risk || 0) > 0 && <Alert variant="danger" className="mt-3 mb-0">
               <strong>Maior oportunidade econômica:</strong> entre <strong>{checkoutStepLabel[checkoutLargestEconomicDropoff.from] || checkoutLargestEconomicDropoff.from}</strong> e <strong>{checkoutStepLabel[checkoutLargestEconomicDropoff.to] || checkoutLargestEconomicDropoff.to}</strong> existem aproximadamente <strong>{money(checkoutLargestEconomicDropoff.gmv_at_risk)}</strong> de GMV em risco, associados a <strong>{Number(checkoutLargestEconomicDropoff.dropoff_journeys || 0).toLocaleString("pt-BR")}</strong> jornadas que não avançaram ({checkoutLargestEconomicDropoff.dropoff_percent == null ? "—" : percent(checkoutLargestEconomicDropoff.dropoff_percent)}). A margem líquida ainda não possui histórico pago suficiente para substituir o ranking por GMV.
+            </Alert>}
+            {checkoutRecommendedActionUi && <Alert variant="info" className="mt-3 mb-0">
+              <strong>Ação recomendada agora: {checkoutRecommendedActionUi.title}.</strong> {checkoutRecommendedActionUi.detail}
+              {checkoutRecommendedAction?.target_metric && <span className="d-block mt-1 small">Métrica-alvo: <code>{checkoutRecommendedAction.target_metric}</code>.</span>}
             </Alert>}
             {checkoutLargestEconomicDropoff && checkoutLargestContributionDropoff && Number(checkoutLargestEconomicDropoff.gmv_at_risk || 0) > 0 && <p className="text-secondary small mt-2 mb-0">
               Maior risco por GMV bruto: <strong>{checkoutStepLabel[checkoutLargestEconomicDropoff.from] || checkoutLargestEconomicDropoff.from}</strong> → <strong>{checkoutStepLabel[checkoutLargestEconomicDropoff.to] || checkoutLargestEconomicDropoff.to}</strong>, com <strong>{money(checkoutLargestEconomicDropoff.gmv_at_risk)}</strong>. O ranking principal usa contribuição líquida para evitar priorizar volume que deixa pouca margem.
