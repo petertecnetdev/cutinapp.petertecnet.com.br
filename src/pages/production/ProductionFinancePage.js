@@ -38,6 +38,19 @@ const recoverySurfaceLabel = {
   notifications_page: "Central de notificações",
   unknown: "Origem não identificada",
 };
+const recoveryDecisionMeta = {
+  winner: { label: "Vencedor", bg: "success" },
+  harmful: { label: "Prejudicial", bg: "danger" },
+  inconclusive: { label: "Inconclusivo", bg: "secondary" },
+};
+const recoveryDecisionReason = {
+  sample_immature: "A amostra ainda não atingiu maturidade.",
+  paid_conversion_uncertainty: "O efeito observado na conversão ainda pode ser explicado por variação estatística.",
+  paid_conversion_guardrail_failed_with_95_confidence: "Há evidência de 95% de que o destaque reduz a conversão paga.",
+  platform_contribution_guardrail_failed: "O destaque reduz a contribuição líquida por pedido exposto.",
+  conversion_preserved_with_95_confidence_and_contribution_improved: "A conversão foi preservada com 95% de confiança e a contribuição líquida aumentou.",
+  no_positive_net_contribution_lift: "A conversão foi preservada, mas ainda não houve ganho líquido positivo.",
+};
 
 function StatusLine({ ok, title, detail }) {
   return <div className="d-flex align-items-start gap-3 py-2">
@@ -163,6 +176,10 @@ export default function ProductionFinancePage() {
   const recoveryIncrementalPaidRate = recoveryExperimentMature
     ? Number(recoveryExperimentComparison.incremental_paid_orders_per_100_exposed_orders || 0)
     : null;
+  const recoveryDecision = recoveryExperimentComparison.decision || {};
+  const recoveryDecisionStatus = recoveryDecision.status || "inconclusive";
+  const recoveryDecisionUi = recoveryDecisionMeta[recoveryDecisionStatus] || recoveryDecisionMeta.inconclusive;
+  const recoveryConfidence = recoveryExperimentComparison.paid_conversion_difference_confidence_95 || null;
   const netEconomics = useMemo(() => estimateNetRevenueEconomics({
     grossRevenue,
     platformRevenue,
@@ -362,22 +379,26 @@ export default function ProductionFinancePage() {
           </div>}
 
           {recoveryExperimentVariants.length > 0 && <div className="mt-4">
-            <div className="mb-3">
-              <span className="cut-eyebrow">Teste controlado de recuperação</span>
-              <h3 className="h5 mt-2 mb-1">O destaque realmente aumenta pagamentos e margem?</h3>
-              <p className="text-secondary small mb-0">Comparamos participantes expostos ao tratamento destacado com o grupo de controle. O resultado só vira recomendação quando os dois grupos atingem a amostra mínima definida pela API central.</p>
+            <div className="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+              <div>
+                <span className="cut-eyebrow">Teste controlado de recuperação</span>
+                <h3 className="h5 mt-2 mb-1">O destaque realmente aumenta pagamentos e margem?</h3>
+                <p className="text-secondary small mb-0">A decisão vem da API central e combina maturidade, intervalo de confiança de 95% para conversão paga e contribuição líquida. Nenhum tratamento é promovido automaticamente.</p>
+              </div>
+              <Badge bg={recoveryDecisionUi.bg}>{recoveryDecisionUi.label}</Badge>
             </div>
             <Row className="g-3">
               <Col md={6} xl={3}><RevenueMetric label="Controle • pagamentos / 100" value={recoveryControl?.paid_orders_per_100_exposed_orders == null ? "—" : percent(recoveryControl.paid_orders_per_100_exposed_orders)} detail={`${Number(recoveryControl?.exposed_orders || 0).toLocaleString("pt-BR")} pedidos expostos`} /></Col>
               <Col md={6} xl={3}><RevenueMetric label="Destaque • pagamentos / 100" value={recoveryProminent?.paid_orders_per_100_exposed_orders == null ? "—" : percent(recoveryProminent.paid_orders_per_100_exposed_orders)} detail={`${Number(recoveryProminent?.exposed_orders || 0).toLocaleString("pt-BR")} pedidos expostos`} /></Col>
               <Col md={6} xl={3}><RevenueMetric label="Controle • margem / exposto" value={recoveryControl?.platform_contribution_per_exposed_order == null ? "—" : money(recoveryControl.platform_contribution_per_exposed_order)} detail="Contribuição líquida por pedido exposto" /></Col>
               <Col md={6} xl={3}><RevenueMetric label="Destaque • margem / exposto" value={recoveryProminent?.platform_contribution_per_exposed_order == null ? "—" : money(recoveryProminent.platform_contribution_per_exposed_order)} detail="Contribuição líquida por pedido exposto" /></Col>
+              <Col md={6} xl={3}><RevenueMetric label="Efeito na conversão • IC 95%" value={recoveryConfidence ? `${recoveryConfidence.lower_paid_orders_per_100_exposed_orders >= 0 ? "+" : ""}${percent(recoveryConfidence.lower_paid_orders_per_100_exposed_orders)} a ${recoveryConfidence.upper_paid_orders_per_100_exposed_orders >= 0 ? "+" : ""}${percent(recoveryConfidence.upper_paid_orders_per_100_exposed_orders)}` : "—"} detail={recoveryConfidence?.excludes_zero ? "Faixa não cruza zero" : "Ainda compatível com ausência de efeito"} /></Col>
             </Row>
             {!recoveryExperimentMature && <Alert variant="secondary" className="mt-3 mb-0">
               Experimento ainda <strong>em coleta</strong>. Faltam {Number(recoveryControl?.remaining_exposed_orders_to_maturity || 0).toLocaleString("pt-BR")} exposições no controle e {Number(recoveryProminent?.remaining_exposed_orders_to_maturity || 0).toLocaleString("pt-BR")} no destaque para a leitura mínima. Não altere a estratégia com base nesta amostra parcial.
             </Alert>}
-            {recoveryExperimentMature && <Alert variant={recoveryIncrementalContribution > 0 ? "success" : "warning"} className="mt-3 mb-0">
-              O destaque gerou <strong>{recoveryIncrementalPaidRate >= 0 ? "+" : ""}{percent(recoveryIncrementalPaidRate)}</strong> pagamentos por 100 pedidos expostos e <strong>{recoveryIncrementalContribution >= 0 ? "+" : ""}{money(recoveryIncrementalContribution)}</strong> de contribuição líquida por pedido exposto versus controle. {recoveryIncrementalContribution > 0 ? "Há evidência operacional para priorizar o tratamento destacado." : "O tratamento destacado não demonstrou ganho líquido; mantenha o controle como padrão enquanto reavalia a abordagem."}
+            {recoveryExperimentMature && <Alert variant={recoveryDecisionStatus === "winner" ? "success" : recoveryDecisionStatus === "harmful" ? "danger" : "warning"} className="mt-3 mb-0">
+              <strong>{recoveryDecisionUi.label}.</strong> {recoveryDecisionReason[recoveryDecision.reason] || "A API central ainda não encontrou evidência suficiente para mudar o padrão."} O efeito observado foi de <strong>{recoveryIncrementalPaidRate >= 0 ? "+" : ""}{percent(recoveryIncrementalPaidRate)}</strong> pagamentos por 100 pedidos expostos e <strong>{recoveryIncrementalContribution >= 0 ? "+" : ""}{money(recoveryIncrementalContribution)}</strong> de contribuição líquida por pedido exposto. {recoveryDecision.requires_manual_review ? "A mudança continua exigindo revisão humana antes de qualquer rollout." : ""}
             </Alert>}
           </div>}
 
