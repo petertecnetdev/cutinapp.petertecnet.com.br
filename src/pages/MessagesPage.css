@@ -9,11 +9,33 @@
   .cut-chat-messages{min-height:0;flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:12px}
   .cut-chat-composer{position:relative;z-index:4;flex:0 0 auto;margin:7px 9px 9px;box-shadow:0 -8px 24px rgba(7,9,13,.45)}
   .cut-chat-error{flex:0 0 auto}
+
+  /* The persistent event cart is fixed above the mobile nav. Reserve its footprint so it can never cover the message composer. */
+  body.cut-has-persistent-cart .cut-chat-shell.has-thread{
+    height:calc(100dvh - 62px - var(--cut-mobile-bottom-nav-height,72px) - 96px)
+  }
+
+  /* While typing, prioritize the conversation: hide the cart and return its space to the thread. */
+  body:has(.cut-chat-page .cut-chat-composer:focus-within) .cut-persistent-cart__bar{
+    opacity:0;
+    visibility:hidden;
+    pointer-events:none;
+    transform:translateY(14px);
+  }
+  body.cut-has-persistent-cart:has(.cut-chat-page .cut-chat-composer:focus-within) .cut-chat-shell.has-thread{
+    height:calc(100dvh - 62px - var(--cut-mobile-bottom-nav-height,72px))
+  }
 }
 
 @supports (height:100svh){
   @media(max-width:767px){
     .cut-chat-page{height:100svh;min-height:100svh}
     .cut-chat-shell{height:calc(100svh - 62px - var(--cut-mobile-bottom-nav-height,72px))}
+    body.cut-has-persistent-cart .cut-chat-shell.has-thread{
+      height:calc(100svh - 62px - var(--cut-mobile-bottom-nav-height,72px) - 96px)
+    }
+    body.cut-has-persistent-cart:has(.cut-chat-page .cut-chat-composer:focus-within) .cut-chat-shell.has-thread{
+      height:calc(100svh - 62px - var(--cut-mobile-bottom-nav-height,72px))
+    }
   }
 }
