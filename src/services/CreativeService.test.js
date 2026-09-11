@@ -62,7 +62,7 @@ describe("CreativeService flyer generation idempotency", () => {
       candidate_variation: undefined,
       regeneration_mode: undefined,
       include_candidates: true,
-    }, { headers: { "Idempotency-Key": expect.any(String) } });
+    }, { timeout: 150000, headers: { "Idempotency-Key": expect.any(String) } });
     expect(keyAt(0)).toBeTruthy();
   });
 
@@ -98,19 +98,20 @@ describe("CreativeService flyer generation idempotency", () => {
     await expect(creativeService.getEventCreativePresets()).resolves.toEqual({
       styles: [{ key: "automatic", label: "Automático" }],
     });
-    expect(appApiClient.get).toHaveBeenCalledWith("/creative/presets");
+    expect(appApiClient.get).toHaveBeenCalledWith("/creative/presets", { timeout: 30000 });
   });
 
-  test("reuses the key after an uncertain network failure", async () => {
+  test("retries an uncertain network failure with the same idempotency key", async () => {
     appApiClient.post
       .mockRejectedValueOnce({ code: "ERR_NETWORK", message: "Network Error" })
       .mockResolvedValueOnce({ data: { image: { data_uri: "data:image/webp;base64,abc" } } });
 
-    await expect(creativeService.generateEventFlyerBackground(input())).rejects.toMatchObject({ code: "ERR_NETWORK" });
-    const first = keyAt(0);
+    await expect(creativeService.generateEventFlyerBackground(input())).resolves.toEqual({
+      image: { data_uri: "data:image/webp;base64,abc" },
+    });
 
-    await creativeService.generateEventFlyerBackground({ ...input(), uf: "GO" });
-    expect(keyAt(1)).toBe(first);
+    expect(appApiClient.post).toHaveBeenCalledTimes(2);
+    expect(keyAt(1)).toBe(keyAt(0));
   });
 
   test("uses a fresh key after a definitive validation failure", async () => {
