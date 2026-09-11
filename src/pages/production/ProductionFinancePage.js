@@ -186,6 +186,7 @@ export default function ProductionFinancePage() {
   const checkoutJourneyDropoff = checkoutJourneyFunnel.dropoff || {};
   const checkoutJourneyGmv = checkoutJourneyFunnel.gmv || {};
   const checkoutLargestDropoff = checkoutJourneyDropoff.largest_step || null;
+  const checkoutLargestEconomicDropoff = checkoutJourneyDropoff.largest_economic_step || null;
   const checkoutJourneyMethods = Array.isArray(checkoutJourneyFunnel.by_payment_method) ? checkoutJourneyFunnel.by_payment_method : [];
   const checkoutStepLabel = {
     checkout_opened: "Checkout aberto",
@@ -394,9 +395,12 @@ export default function ProductionFinancePage() {
               <Col md={6} xl={3}><RevenueMetric label="Aprovado → ingresso" value={checkoutJourneyConversion.approved_to_fulfilled_percent == null ? "—" : percent(checkoutJourneyConversion.approved_to_fulfilled_percent)} detail={`${Number(checkoutJourneyStages.fulfilled || 0).toLocaleString("pt-BR")} emissões`} /></Col>
               <Col md={6} xl={3}><RevenueMetric label="GMV explicitamente abandonado" value={money(checkoutJourneyGmv.explicit_abandoned_at_risk)} detail={`${Number(checkoutJourneyDropoff.explicit_abandoned_journeys || 0).toLocaleString("pt-BR")} jornadas abandonadas`} /></Col>
             </Row>
-            {checkoutLargestDropoff && Number(checkoutLargestDropoff.dropoff_journeys || 0) > 0 && <Alert variant="warning" className="mt-3 mb-0">
-              O maior gargalo está entre <strong>{checkoutStepLabel[checkoutLargestDropoff.from] || checkoutLargestDropoff.from}</strong> e <strong>{checkoutStepLabel[checkoutLargestDropoff.to] || checkoutLargestDropoff.to}</strong>: <strong>{Number(checkoutLargestDropoff.dropoff_journeys || 0).toLocaleString("pt-BR")}</strong> jornadas não avançaram ({checkoutLargestDropoff.dropoff_percent == null ? "—" : percent(checkoutLargestDropoff.dropoff_percent)}). Priorize esta etapa antes de aumentar descontos ou tráfego.
+            {checkoutLargestEconomicDropoff && Number(checkoutLargestEconomicDropoff.gmv_at_risk || 0) > 0 && <Alert variant="danger" className="mt-3 mb-0">
+              <strong>Maior oportunidade econômica:</strong> entre <strong>{checkoutStepLabel[checkoutLargestEconomicDropoff.from] || checkoutLargestEconomicDropoff.from}</strong> e <strong>{checkoutStepLabel[checkoutLargestEconomicDropoff.to] || checkoutLargestEconomicDropoff.to}</strong> existem aproximadamente <strong>{money(checkoutLargestEconomicDropoff.gmv_at_risk)}</strong> de GMV em risco, associados a <strong>{Number(checkoutLargestEconomicDropoff.dropoff_journeys || 0).toLocaleString("pt-BR")}</strong> jornadas que não avançaram ({checkoutLargestEconomicDropoff.dropoff_percent == null ? "—" : percent(checkoutLargestEconomicDropoff.dropoff_percent)}). Priorize esta etapa pelo impacto econômico antes de aumentar descontos ou tráfego.
             </Alert>}
+            {checkoutLargestDropoff && Number(checkoutLargestDropoff.dropoff_journeys || 0) > 0 && <p className="text-secondary small mt-2 mb-0">
+              Maior perda por volume: <strong>{checkoutStepLabel[checkoutLargestDropoff.from] || checkoutLargestDropoff.from}</strong> → <strong>{checkoutStepLabel[checkoutLargestDropoff.to] || checkoutLargestDropoff.to}</strong>, com <strong>{Number(checkoutLargestDropoff.dropoff_journeys || 0).toLocaleString("pt-BR")}</strong> jornadas e <strong>{money(checkoutLargestDropoff.gmv_at_risk)}</strong> de GMV em risco estimado.
+            </p>}
             {checkoutJourneyMethods.length > 0 && <div className="table-responsive mt-3"><Table variant="dark" hover className="align-middle mb-0"><thead><tr><th>Pagamento</th><th>Jornadas</th><th>Tentativas</th><th>Aprovados</th><th>Ingressos</th><th>Tentativa → aprovado</th></tr></thead><tbody>{checkoutJourneyMethods.map((row) => <tr key={row.payment_method}><td><strong>{paymentMethodLabel[row.payment_method] || row.payment_method}</strong></td><td>{Number(row.journeys || 0).toLocaleString("pt-BR")}</td><td>{Number(row.attempted || 0).toLocaleString("pt-BR")}</td><td>{Number(row.approved || 0).toLocaleString("pt-BR")}</td><td>{Number(row.fulfilled || 0).toLocaleString("pt-BR")}</td><td>{row.attempt_to_approved_rate_percent == null ? "—" : percent(row.attempt_to_approved_rate_percent)}</td></tr>)}</tbody></Table></div>}
           </div>}
 
