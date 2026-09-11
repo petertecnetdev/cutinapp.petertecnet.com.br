@@ -530,6 +530,19 @@ export default function GlobalSearchPage() {
     inputRef.current?.focus();
   };
 
+  const toggleSavedNotifications = async (item) => {
+    try {
+      const result = await cutinappService.saveGlobalSearch({
+        q: item.query,
+        ...(item.filters || {}),
+        notifications_enabled: !item.notifications_enabled,
+      });
+      if (result?.saved) setSaved((current) => current.map((entry) => entry.id === item.id ? result.saved : entry));
+    } catch (err) {
+      setError(err?.response?.data?.message || "Não foi possível alterar os alertas desta pesquisa.");
+    }
+  };
+
   const deleteSaved = async (id) => {
     setSaved((current) => current.filter((item) => item.id !== id));
     try { await cutinappService.deleteSavedGlobalSearch(id); } catch (_) { /* optimistic UI */ }
@@ -687,7 +700,7 @@ export default function GlobalSearchPage() {
 
           {user && saved.length > 0 && <section className="cut-global-search__saved">
             <div className="cut-global-search__section-heading"><h2>Pesquisas salvas</h2></div>
-            <div className="cut-global-search__saved-list">{saved.map((item) => <div key={item.id}><button type="button" onClick={() => loadSaved(item)}><i className="fa-regular fa-bookmark" /><span><strong>{item.label || item.query}</strong><small>{item.notifications_enabled ? "Alertas ativados" : "Pesquisa salva"}</small></span></button><button type="button" onClick={() => deleteSaved(item.id)} aria-label="Excluir pesquisa salva"><i className="fa-solid fa-xmark" /></button></div>)}</div>
+            <div className="cut-global-search__saved-list">{saved.map((item) => <div key={item.id}><button type="button" onClick={() => loadSaved(item)}><i className="fa-regular fa-bookmark" /><span><strong>{item.label || item.query}</strong><small>{item.notifications_enabled ? "Alertas ativados" : "Pesquisa salva"}</small></span></button><span className="cut-global-search__saved-actions"><button type="button" onClick={() => toggleSavedNotifications(item)} aria-label={item.notifications_enabled ? "Desativar alertas" : "Ativar alertas"}><i className={item.notifications_enabled ? "fa-solid fa-bell" : "fa-regular fa-bell"} /></button><button type="button" onClick={() => deleteSaved(item.id)} aria-label="Excluir pesquisa salva"><i className="fa-solid fa-xmark" /></button></span></div>)}</div>
           </section>}
         </>}
 
