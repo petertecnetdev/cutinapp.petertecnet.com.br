@@ -250,7 +250,7 @@ export default function GlobalSearchPage() {
                   key={`${item.type}:${item.id}`}
                   item={item}
                   onOpen={openResult}
-                  trailing={<span className="cut-global-search__recent-actions"><button type="button" onClick={(event) => { event.stopPropagation(); removeRecent(item); }} aria-label={`Remover ${item.title} dos recentes`}><i className="fa-solid fa-xmark" /></button></span>}
+                  trailing={<span className="cut-global-search__recent-actions"><span role="button" tabIndex={0} onClick={(event) => { event.stopPropagation(); removeRecent(item); }} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); event.stopPropagation(); removeRecent(item); } }} aria-label={`Remover ${item.title} dos recentes`}><i className="fa-solid fa-xmark" /></span></span>}
                 />)}
               </div>}
         </section>}
