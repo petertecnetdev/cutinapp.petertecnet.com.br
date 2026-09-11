@@ -14,6 +14,7 @@ import CutinappVisualEffects from "./components/CutinappVisualEffects";
 import GlobalSearchOverlay from "./components/GlobalSearchOverlay";
 import PeterTecnetSignature from "./components/PeterTecnetSignature";
 import ProcessingIndicatorComponent from "./components/ProcessingIndicatorComponent";
+import MessagingNotificationBridge from "./components/MessagingNotificationBridge";
 import SeoManager from "./components/SeoManager";
 import authService from "./services/AuthService";
 import { hasContextRole } from "./utils/applicationRoles";
@@ -147,6 +148,7 @@ function AppRoutes() {
 
   return <>
     <ConnectionStatus />
+    {user && <MessagingNotificationBridge />}
     <GlobalSearchOverlay />
     {!performanceCriticalRoute && <CutinappVisualEffects />}
     <AppErrorBoundary resetKey={routeKey}>
