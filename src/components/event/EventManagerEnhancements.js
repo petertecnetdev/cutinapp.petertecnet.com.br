@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import React from "react";
 import { Button, Offcanvas, ProgressBar } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
@@ -72,7 +73,6 @@ export function EventQuickView({ event, show, onHide, onDuplicate, onAgenda }) {
 
   const metrics = eventOperationalMetrics(event);
   const health = eventHealth(event);
-  const performance = eventPerformance(event);
   const alerts = eventAlerts(event);
   const cover = event.image;
 

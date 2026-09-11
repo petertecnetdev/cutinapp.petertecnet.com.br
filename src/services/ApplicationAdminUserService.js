@@ -22,6 +22,18 @@ const createUser = createIdempotentMutation({
 const applicationAdminUserService = {
   list: async (params = {}) => (await appApiClient.get("/admin/users", { params })).data,
   create: (payload = {}) => createUser(normalizeUserPayload(payload)),
+  impersonate: async (userId, reason) => (
+    await appApiClient.post(`/admin/users/${userId}/impersonate`, { reason: String(reason || "").trim() })
+  ).data,
+  impersonationHistory: async (params = {}) => (
+    await appApiClient.get("/admin/impersonations", { params })
+  ).data,
+  impersonationAudit: async (sessionId, params = {}) => (
+    await appApiClient.get(`/admin/impersonations/${sessionId}/audit`, { params })
+  ).data,
+  endImpersonation: async (sessionId) => (
+    await appApiClient.post(`/admin/impersonations/${sessionId}/end`)
+  ).data,
 };
 
 export default applicationAdminUserService;
