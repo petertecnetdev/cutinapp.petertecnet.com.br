@@ -101,7 +101,7 @@ export default function ProductionPublicPage() {
   const [clock, setClock] = useState(() => new Date());
   const [distanceKm, setDistanceKm] = useState(null);
   const [distanceBusy, setDistanceBusy] = useState(false);
-  const [shareMessage, setShareMessage] = useState("");
+  const [shareMessage, setShareMessage] = useState("");\n  const [interestedEventIds, setInterestedEventIds] = useState([]);
 
   const loadCore = useCallback(async () => {
     const response = await cutinappService.publicProduction(slug);
@@ -262,6 +262,30 @@ export default function ProductionPublicPage() {
     });
   }, [production, upcoming.length, past.length, track]);
 
+  const pulseHaptic = () => {
+    try {
+      if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") navigator.vibrate(10);
+    } catch (_) {
+      // Haptic feedback is optional and never blocks interaction.
+    }
+  };
+
+  const markInterested = async (event) => {
+    if (!event?.id) return;
+    if (!user) return navigate("/login", { state: { from: `/production/${slug}/public` } });
+    if (interestedEventIds.includes(Number(event.id))) return;
+
+    try {
+      await cutinappService.engagement(event.id, { is_interested: true });
+      setInterestedEventIds((current) => [...new Set([...current, Number(event.id)])]);
+      pulseHaptic();
+      setShareMessage(`Interesse registrado em ${event.title}.`);
+      track("production_event_interest_marked", { event_id: event.id, event_slug: event.slug });
+    } catch (err) {
+      setError(err?.message || "Não foi possível registrar seu interesse agora.");
+    }
+  };
+
   const toggleFollow = async () => {
     if (!user) return navigate("/login", { state: { from: `/production/${slug}/public` } });
     setBusy(true);
@@ -327,7 +351,7 @@ export default function ProductionPublicPage() {
   };
 
   const calculateDistance = () => {
-    if (!production?.latitude || !production?.longitude || !navigator.geolocation) return;
+    if (!production?.latitude || !production?.longitude || typeof navigator === "undefined" || !navigator.geolocation) return;
     setDistanceBusy(true);
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -421,7 +445,7 @@ export default function ProductionPublicPage() {
         </div>
 
         {nextEvent && <article className="cut-production-next-event">
-          <div className="cut-production-next-event__media">{nextEventHero ? <img src={nextEventHero} alt={nextEvent.title} fetchPriority="high" /> : <div className="cut-production-next-event__fallback"><i className="fa-regular fa-calendar-star" /></div>}</div>
+          <div className="cut-production-next-event__media">{nextEventHero ? <img src={nextEventHero} alt={nextEvent.title} fetchPriority="high" /> : <div className="cut-production-next-event__fallback"><i className="fa-regular fa-calendar-days" /></div>}</div>
           <div className="cut-production-next-event__body">
             <div className="cut-production-next-event__top">
               <Badge bg={nextEvent?.is_happening_now ? "danger" : "primary"}>{eventTimingLabel(nextEvent, clock)}</Badge>
@@ -433,7 +457,7 @@ export default function ProductionPublicPage() {
             <p><i className="fa-solid fa-location-dot" /> {nextEvent.venue || nextEvent.city || "Local a definir"}</p>
             <div className="cut-production-next-event__actions">
               <Button onClick={() => openEvent(nextEvent, "hero_spotlight")}>Ver evento</Button>
-              {sellableUpcoming.some((event) => Number(event.id) === Number(nextEvent.id)) && <Button variant="success" onClick={() => openTickets("next_event")}><i className="fa-solid fa-ticket me-2" />Ingressos</Button>}
+              {sellableUpcoming.some((event) => Number(event.id) === Number(nextEvent.id)) && <Button variant="success" onClick={() => openTickets("next_event")}><i className="fa-solid fa-ticket me-2" />Ingressos</Button>}{!nextEvent.has_ended && <Button variant="outline-light" onClick={() => markInterested(nextEvent)} disabled={interestedEventIds.includes(Number(nextEvent.id))}><i className={`${interestedEventIds.includes(Number(nextEvent.id)) ? "fa-solid" : "fa-regular"} fa-star me-2`} />{interestedEventIds.includes(Number(nextEvent.id)) ? "Tenho interesse" : "Tenho interesse"}</Button>}
             </div>
           </div>
         </article>}
@@ -546,7 +570,7 @@ export default function ProductionPublicPage() {
             <iframe title={`Mapa de ${production.name}`} loading="lazy" referrerPolicy="no-referrer-when-downgrade" src={mapEmbedUrl} />
             <div className="cut-production-location-actions">
               <Button as="a" href={directionsHref} target="_blank" rel="noopener noreferrer" onClick={() => track("production_directions_clicked")}><i className="fa-solid fa-diamond-turn-right me-2" />Traçar rota</Button>
-              {production.latitude && production.longitude && navigator.geolocation && <Button variant="outline-light" disabled={distanceBusy} onClick={calculateDistance}><i className="fa-solid fa-location-crosshairs me-2" />{distanceBusy ? "Calculando..." : distanceKm !== null ? `${distanceKm.toFixed(distanceKm < 10 ? 1 : 0)} km de você` : "Calcular distância"}</Button>}
+              {production.latitude && production.longitude && typeof navigator !== "undefined" && navigator.geolocation && <Button variant="outline-light" disabled={distanceBusy} onClick={calculateDistance}><i className="fa-solid fa-location-crosshairs me-2" />{distanceBusy ? "Calculando..." : distanceKm !== null ? `${distanceKm.toFixed(distanceKm < 10 ? 1 : 0)} km de você` : "Calcular distância"}</Button>}
             </div>
           </> : <div className="cut-production-location-private"><i className="fa-solid fa-location-dot" /><strong>Localização ainda não publicada</strong><span>A produção pode divulgar o endereço quando fizer sentido para os próximos eventos.</span></div>}
         </Card.Body></Card>
