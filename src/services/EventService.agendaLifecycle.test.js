@@ -56,6 +56,37 @@ describe("EventService agenda lifecycle idempotency", () => {
     );
   });
 
+  test("keeps weekday event and recurrence strategy in the agenda request", async () => {
+    appApiClient.post.mockResolvedValueOnce({
+      data: {
+        schedule: {
+          source_event_id: 91,
+          day_of_week: 5,
+          generation_mode: "delayed",
+          generation_delay_days: 3,
+          generation_weeks: 6,
+        },
+      },
+    });
+
+    const payload = {
+      event_id: 91,
+      day_of_week: 5,
+      generation_mode: "delayed",
+      generation_delay_days: 3,
+      generation_weeks: 6,
+      is_active: true,
+    };
+
+    await eventService.createAgendaItem(42, payload);
+
+    expect(appApiClient.post).toHaveBeenCalledWith(
+      "/event-agenda/productions/42/items",
+      payload,
+      { headers: { "Idempotency-Key": expect.any(String) } }
+    );
+  });
+
   test("rotates item status key after a definitive validation error", async () => {
     appApiClient.patch
       .mockRejectedValueOnce({ response: { status: 422 } })

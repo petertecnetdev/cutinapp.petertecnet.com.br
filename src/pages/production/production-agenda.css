@@ -753,3 +753,40 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+.cut-weekly-agenda-strategy {
+  display: grid;
+  grid-template-columns: minmax(120px, .7fr) minmax(180px, 1.3fr);
+  gap: .7rem;
+  padding: .8rem;
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 14px;
+  background: rgba(255,255,255,.025);
+}
+
+.cut-weekly-agenda-strategy .form-group:last-child:nth-child(3) {
+  grid-column: 1 / -1;
+}
+
+.cut-weekly-agenda-strategy .form-label {
+  margin-bottom: .35rem;
+  color: rgba(238,245,255,.72);
+  font-size: .76rem;
+  font-weight: 700;
+}
+
+.cut-weekly-agenda-strategy .form-control,
+.cut-weekly-agenda-strategy .form-select {
+  min-height: 42px;
+}
+
+@media (max-width: 575.98px) {
+  .cut-weekly-agenda-strategy {
+    grid-template-columns: 1fr;
+  }
+
+  .cut-weekly-agenda-strategy .form-group:last-child:nth-child(3) {
+    grid-column: auto;
+  }
+}

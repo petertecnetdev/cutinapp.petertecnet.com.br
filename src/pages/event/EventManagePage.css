@@ -787,3 +787,64 @@
     justify-self: stretch;
   }
 }
+
+
+.cut-event-agenda-config-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .9rem;
+}
+
+.cut-event-agenda-mode-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .75rem;
+}
+
+.cut-event-agenda-mode-options button {
+  display: flex;
+  align-items: flex-start;
+  gap: .75rem;
+  min-height: 92px;
+  padding: .9rem;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 15px;
+  background: rgba(255,255,255,.025);
+  color: var(--cut-text-soft);
+  text-align: left;
+}
+
+.cut-event-agenda-mode-options button.is-active {
+  border-color: var(--cut-primary);
+  background: var(--cut-primary-soft);
+  color: var(--cut-text-strong);
+}
+
+.cut-event-agenda-mode-options button > i {
+  margin-top: .15rem;
+  color: var(--cut-primary);
+  font-size: 1rem;
+}
+
+.cut-event-agenda-mode-options button span {
+  display: grid;
+  gap: .25rem;
+}
+
+.cut-event-agenda-mode-options button strong {
+  color: inherit;
+  font-size: .86rem;
+}
+
+.cut-event-agenda-mode-options button small {
+  color: var(--cut-text-muted);
+  font-size: .72rem;
+  line-height: 1.4;
+}
+
+@media (max-width: 575.98px) {
+  .cut-event-agenda-config-grid,
+  .cut-event-agenda-mode-options {
+    grid-template-columns: 1fr;
+  }
+}
