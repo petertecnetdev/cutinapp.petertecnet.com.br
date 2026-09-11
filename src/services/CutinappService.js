@@ -1,6 +1,7 @@
 import appApiClient from "./AppApiClient";
 import { createIdempotentMutation, createMutationRequestKey } from "../utils/idempotencyAttempts";
 import { cachedPublicGet, invalidatePublicRequestCache } from "../utils/publicRequestCache";
+import { trackSearchConversion } from "../utils/searchAttribution";
 
 const unwrap = (value) => Array.isArray(value) ? value : Array.isArray(value?.data) ? value.data : [];
 const rename = (data, from, to) => {
@@ -543,7 +544,7 @@ const cutinappService = {
   eventArtists: async (eventId) => (await appApiClient.get(`/events/${eventId}/artists`)).data,
   attachArtist,
   detachArtist,
-  follow: followSocialTarget,
+  follow: async (targetType, targetId) => { const data = await followSocialTarget(targetType, targetId); await trackSearchConversion("follow", targetId).catch(() => false); return data; },
   unfollow: unfollowSocialTarget,
   preferences: async () => (await appApiClient.get("/social/preferences")).data.preferences,
   savePreferences: saveSocialPreferencesMutation,
