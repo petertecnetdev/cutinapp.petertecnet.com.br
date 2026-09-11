@@ -1,5 +1,6 @@
 import appApiClient from "./AppApiClient";
 import { createIdempotentMutation, createMutationRequestKey } from "../utils/idempotencyAttempts";
+import { trackSearchConversion } from "../utils/searchAttribution";
 
 const openDirectIdempotently = createIdempotentMutation({
   storagePrefix: "cutinapp_messaging_direct_attempt_",
@@ -7,13 +8,17 @@ const openDirectIdempotently = createIdempotentMutation({
   requestKeyFor: (userId) => createMutationRequestKey({
     user_id: Number(userId),
   }),
-  mutate: async ({ idempotencyKey }, userId) => (
-    await appApiClient.post("/messaging/direct", {
-      user_id: Number(userId),
-    }, {
-      headers: { "Idempotency-Key": idempotencyKey },
-    })
-  ).data,
+  mutate: async ({ idempotencyKey }, userId) => {
+    const data = (
+      await appApiClient.post("/messaging/direct", {
+        user_id: Number(userId),
+      }, {
+        headers: { "Idempotency-Key": idempotencyKey },
+      })
+    ).data;
+    trackSearchConversion("direct_open", userId).catch(() => false);
+    return data;
+  },
 });
 
 const sendMessageIdempotently = createIdempotentMutation({
