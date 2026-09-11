@@ -11,6 +11,7 @@ import commerceService from "../../services/CommerceService";
 import cutinappService from "../../services/CutinappService";
 import financeService from "../../services/FinanceService";
 import { estimateNetRevenueEconomics } from "../../utils/netRevenueEconomics";
+import { getCheckoutFunnelRecommendation } from "../../utils/checkoutFunnelRecommendations";
 
 const money = (value) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
 const percent = (value) => `${Number(value || 0).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 2 })}%`;
@@ -189,6 +190,8 @@ export default function ProductionFinancePage() {
   const checkoutLargestEconomicDropoff = checkoutJourneyDropoff.largest_economic_step || null;
   const checkoutLargestContributionDropoff = checkoutJourneyDropoff.largest_contribution_step || null;
   const checkoutContributionEstimate = checkoutJourneyFunnel.platform_contribution_estimate || {};
+  const checkoutPriorityDropoff = checkoutLargestContributionDropoff || checkoutLargestEconomicDropoff || checkoutLargestDropoff;
+  const checkoutRecommendation = getCheckoutFunnelRecommendation(checkoutPriorityDropoff);
   const checkoutJourneyMethods = Array.isArray(checkoutJourneyFunnel.by_payment_method) ? checkoutJourneyFunnel.by_payment_method : [];
   const checkoutStepLabel = {
     checkout_opened: "Checkout aberto",
@@ -401,6 +404,9 @@ export default function ProductionFinancePage() {
               <strong>Maior oportunidade de margem:</strong> entre <strong>{checkoutStepLabel[checkoutLargestContributionDropoff.from] || checkoutLargestContributionDropoff.from}</strong> e <strong>{checkoutStepLabel[checkoutLargestContributionDropoff.to] || checkoutLargestContributionDropoff.to}</strong> há aproximadamente <strong>{money(checkoutLargestContributionDropoff.platform_contribution_at_risk)}</strong> de contribuição líquida potencial em risco, considerando a margem observada dos pedidos pagos{checkoutContributionEstimate.fallback_margin_percent == null ? "" : ` (${percent(checkoutContributionEstimate.fallback_margin_percent)} de referência)`}. São <strong>{Number(checkoutLargestContributionDropoff.dropoff_journeys || 0).toLocaleString("pt-BR")}</strong> jornadas que não avançaram. Priorize esta etapa antes de aumentar descontos ou tráfego.
             </Alert> : checkoutLargestEconomicDropoff && Number(checkoutLargestEconomicDropoff.gmv_at_risk || 0) > 0 && <Alert variant="danger" className="mt-3 mb-0">
               <strong>Maior oportunidade econômica:</strong> entre <strong>{checkoutStepLabel[checkoutLargestEconomicDropoff.from] || checkoutLargestEconomicDropoff.from}</strong> e <strong>{checkoutStepLabel[checkoutLargestEconomicDropoff.to] || checkoutLargestEconomicDropoff.to}</strong> existem aproximadamente <strong>{money(checkoutLargestEconomicDropoff.gmv_at_risk)}</strong> de GMV em risco, associados a <strong>{Number(checkoutLargestEconomicDropoff.dropoff_journeys || 0).toLocaleString("pt-BR")}</strong> jornadas que não avançaram ({checkoutLargestEconomicDropoff.dropoff_percent == null ? "—" : percent(checkoutLargestEconomicDropoff.dropoff_percent)}). A margem líquida ainda não possui histórico pago suficiente para substituir o ranking por GMV.
+            </Alert>}
+            {checkoutRecommendation && <Alert variant="info" className="mt-3 mb-0">
+              <strong>Próxima ação recomendada: {checkoutRecommendation.title}.</strong> {checkoutRecommendation.action} <span className="d-block mt-1 small">Métrica principal para validar a correção: <strong>{checkoutRecommendation.metric}</strong>. A recomendação é diagnóstica e não altera preço, taxa, cobrança ou rollout automaticamente.</span>
             </Alert>}
             {checkoutLargestEconomicDropoff && checkoutLargestContributionDropoff && Number(checkoutLargestEconomicDropoff.gmv_at_risk || 0) > 0 && <p className="text-secondary small mt-2 mb-0">
               Maior risco por GMV bruto: <strong>{checkoutStepLabel[checkoutLargestEconomicDropoff.from] || checkoutLargestEconomicDropoff.from}</strong> → <strong>{checkoutStepLabel[checkoutLargestEconomicDropoff.to] || checkoutLargestEconomicDropoff.to}</strong>, com <strong>{money(checkoutLargestEconomicDropoff.gmv_at_risk)}</strong>. O ranking principal usa contribuição líquida para evitar priorizar volume que deixa pouca margem.
