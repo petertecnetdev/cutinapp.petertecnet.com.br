@@ -61,6 +61,12 @@ const countdown = (event, clock) => {
   return `${Math.max(minutes, 1)} min`;
 };
 const eventImage = (event) => mediaUrl(event?.image || event?.flyer || event?.banner);
+const ticketPriceLabel = (event) => {
+  if (Number(event?.sellable_free_ticket_lots_count || 0) > 0) return "Gratuito";
+  const price = Number(event?.ticket_starting_price);
+  if (!Number.isFinite(price) || price < 0 || Number(event?.sellable_ticket_lots_count || 0) <= 0) return "";
+  return `A partir de ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(price)}`;
+};
 const productionImage = (production) => mediaUrl(production?.background || production?.logo);
 const starRow = (value = 0) => {
   const rounded = Math.round(Number(value || 0));
@@ -463,6 +469,7 @@ export default function ProductionPublicPage() {
             <h2>{nextEvent.title}</h2>
             <p><i className="fa-regular fa-calendar" /> {fmt(nextEvent.start_date)}</p>
             <p><i className="fa-solid fa-location-dot" /> {nextEvent.venue || nextEvent.city || "Local a definir"}</p>
+            {ticketPriceLabel(nextEvent) && <p className="cut-production-next-event__price"><i className="fa-solid fa-ticket" /> {ticketPriceLabel(nextEvent)}</p>}
             <div className="cut-production-next-event__actions">
               <Button onClick={() => openEvent(nextEvent, "hero_spotlight")}>Ver evento</Button>
               {sellableUpcoming.some((event) => Number(event.id) === Number(nextEvent.id)) && <Button variant="success" onClick={() => openTickets("next_event")}><i className="fa-solid fa-ticket me-2" />Ingressos</Button>}{!nextEvent.has_ended && <Button variant="outline-light" onClick={() => markInterested(nextEvent)} disabled={interestedEventIds.includes(Number(nextEvent.id))}><i className={`${interestedEventIds.includes(Number(nextEvent.id)) ? "fa-solid" : "fa-regular"} fa-star me-2`} />{interestedEventIds.includes(Number(nextEvent.id)) ? "Interesse registrado" : "Tenho interesse"}</Button>}
@@ -537,7 +544,7 @@ export default function ProductionPublicPage() {
         </div>
         {upcoming.length === 0 ? <Card className="cut-empty-state cut-production-empty-evolved"><Card.Body><i className="fa-regular fa-calendar-plus" /><h3>A próxima experiência ainda está sendo preparada</h3><p>Siga a produção para receber novidades assim que novos eventos forem publicados.</p><Button onClick={enableUpdates}><i className="fa-regular fa-bell me-2" />Quero ser avisado</Button></Card.Body></Card> : <div className="cut-production-events-carousel cut-production-events-carousel--evolved">{upcoming.map((event, index) => <article className={`cut-production-event-slide cut-production-event-slide--evolved ${index === 0 ? "is-next" : ""}`} key={event.id} role="link" tabIndex={0} aria-label={`Abrir evento ${event.title}`} onClick={() => openEvent(event, "events_carousel")} onKeyDown={(e) => activateOnKeyboard(e, () => openEvent(event, "events_carousel_keyboard"))}>
           <div className="cut-production-event-slide__media">{eventImage(event) ? <img src={eventImage(event)} alt={event.title} loading={index < 2 ? "eager" : "lazy"} decoding="async" /> : <div className="cut-production-event-slide__fallback">{initials(event.title)}</div>}<span className="cut-production-event-timing">{eventTimingLabel(event, clock)}</span></div>
-          <div className="cut-production-event-slide__body"><span className="cut-eyebrow">{event.category || "Evento"}</span><h3>{event.title}</h3><p><i className="fa-regular fa-calendar me-2" />{fmt(event.start_date)}</p><p><i className="fa-solid fa-location-dot me-2" />{event.venue || event.city || "Local a definir"}</p><div className="cut-production-event-slide__footer"><span>Ver detalhes <i className="fa-solid fa-arrow-right" /></span>{Number(event.sellable_free_ticket_lots_count || 0) > 0 && <Badge bg="success">Ingresso gratuito</Badge>}</div></div>
+          <div className="cut-production-event-slide__body"><span className="cut-eyebrow">{event.category || "Evento"}</span><h3>{event.title}</h3><p><i className="fa-regular fa-calendar me-2" />{fmt(event.start_date)}</p><p><i className="fa-solid fa-location-dot me-2" />{event.venue || event.city || "Local a definir"}</p><div className="cut-production-event-slide__footer"><span>Ver detalhes <i className="fa-solid fa-arrow-right" /></span>{ticketPriceLabel(event) && <Badge bg={Number(event.sellable_free_ticket_lots_count || 0) > 0 ? "success" : "info"}>{ticketPriceLabel(event)}</Badge>}</div></div>
         </article>)}</div>}
       </section>
 
