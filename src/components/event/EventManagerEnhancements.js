@@ -1,5 +1,5 @@
 import React from "react";
-import { Badge, Button, Offcanvas, ProgressBar } from "react-bootstrap";
+import { Button, Offcanvas, ProgressBar } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { storageUrl } from "../../config";
 import {
@@ -74,7 +74,7 @@ export function EventQuickView({ event, show, onHide, onDuplicate, onAgenda }) {
   const health = eventHealth(event);
   const performance = eventPerformance(event);
   const alerts = eventAlerts(event);
-  const cover = event.image || event.production?.logo;
+  const cover = event.image;
 
   return <Offcanvas show={show} onHide={onHide} placement="end" className="cut-event-quickview">
     <Offcanvas.Header closeButton>
