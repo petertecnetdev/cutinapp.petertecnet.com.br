@@ -438,7 +438,9 @@ export default function ProductionPublicPage() {
 
             <div className="cut-production-proof-strip" aria-label="Resumo da produção">
               <span><strong>{Number(production.followers_count || socialProof.followers_count || 0).toLocaleString("pt-BR")}</strong><small>seguidores</small></span>
-              <button type="button" onClick={() => setShowViewers(true)}><strong>{Number(analytics.total_views || 0).toLocaleString("pt-BR")}</strong><small>visualizações</small></button>
+              {canManage
+                ? <button type="button" onClick={() => setShowViewers(true)}><strong>{Number(analytics.total_views || 0).toLocaleString("pt-BR")}</strong><small>visualizações</small></button>
+                : <span><strong>{Number(analytics.total_views || 0).toLocaleString("pt-BR")}</strong><small>visualizações</small></span>}
               <span><strong>{upcoming.length}</strong><small>próximos</small></span>
               {attendeesCount > 0 && <span><strong>{attendeesCount.toLocaleString("pt-BR")}</strong><small>participantes</small></span>}
               {ratingsCount > 0 && <span><strong>{ratingAverage.toFixed(1)} <i className="fa-solid fa-star" /></strong><small>{ratingsCount} avaliações</small></span>}
@@ -560,7 +562,7 @@ export default function ProductionPublicPage() {
 
       {reviews.length > 0 && <section className="cut-production-section cut-production-reveal">
         <div className="cut-production-section-head"><div><span className="cut-eyebrow">Avaliações</span><h2>O que participantes avaliaram</h2><p>Avaliações ligadas aos eventos desta produção.</p></div></div>
-        <div className="cut-production-review-grid">{reviews.slice(0, 8).map((review, index) => <article key={`${review.event_id}-${review.user_id}-${index}`}>
+        <div className="cut-production-review-grid">{reviews.slice(0, 8).map((review, index) => <article key={`${review.event_id}-${index}`}>
           <header><span>{review.avatar ? <img src={mediaUrl(review.avatar)} alt="" loading="lazy" /> : initials(review.name)}</span><div><strong>{review.name || "Participante"}</strong><small>{review.verified_attendee ? <><i className="fa-solid fa-circle-check" /> Presença verificada</> : "Avaliação"}</small></div></header>
           <div className="cut-production-review-stars">{starRow(review.rating).map((filled, starIndex) => <i key={starIndex} className={`${filled ? "fa-solid" : "fa-regular"} fa-star`} />)}</div>
           <button type="button" onClick={() => review.event_slug && navigate(`/event/${review.event_slug}`)}>{review.event_title || "Evento"} <i className="fa-solid fa-arrow-right" /></button>
