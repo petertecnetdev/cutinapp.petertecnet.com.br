@@ -29,6 +29,12 @@ const trendMeta = {
   history_unavailable: { label: "Histórico indisponível", variant: "secondary" },
 };
 
+const confidenceLabel = {
+  high: "alta confiança",
+  medium: "confiança moderada",
+  low: "baixa confiança",
+};
+
 export default function ApplicationAdminFinancePage() {
   const [data, setData] = useState(null);
   const [paymentHealth, setPaymentHealth] = useState(null);
@@ -80,6 +86,7 @@ export default function ApplicationAdminFinancePage() {
   const currentRisk = riskMeta[paymentHealth?.risk_level] || riskMeta.healthy;
   const trend = paymentHealth?.trend;
   const incidents = paymentHealth?.incidents;
+  const diagnosis = paymentHealth?.diagnosis;
   const currentTrend = trendMeta[trend?.status] || trendMeta.history_unavailable;
   const trendReady = ["normal", "anomaly"].includes(trend?.status);
 
@@ -107,6 +114,15 @@ export default function ApplicationAdminFinancePage() {
             {trend && <Badge bg={currentTrend.variant}>{currentTrend.label}</Badge>}
           </div>
         </div>
+        {diagnosis && diagnosis.code !== "healthy" && <Alert variant={paymentHealth.risk_level === "critical" ? "danger" : "warning"}>
+          <div className="d-flex justify-content-between gap-2 flex-wrap align-items-start">
+            <div>
+              <strong>Hipótese operacional: {diagnosis.label}.</strong> {diagnosis.guidance}
+            </div>
+            <Badge bg="secondary">{confidenceLabel[diagnosis.confidence] || "inferência"}</Badge>
+          </div>
+          <small className="d-block mt-2">Diagnóstico inferido por métricas agregadas; não altera automaticamente pedidos ou pagamentos.</small>
+        </Alert>}
         {trend?.is_anomaly && <Alert variant="danger">
           <strong>Anomalia contra o baseline da própria Cutinapp.</strong> O comportamento atual do funil de pagamento fugiu do padrão recente. Investigue webhook, provedor, reconciliação e fulfillment antes que o desvio se transforme em perda de vendas.
         </Alert>}
@@ -166,13 +182,14 @@ export default function ApplicationAdminFinancePage() {
               <div>
                 <span className="cut-eyebrow">Incidentes · últimos {incidents.window_days ?? 30} dias</span>
                 <h3 className="h5 mb-1">Confiabilidade do funil de pagamento</h3>
-                <p className="text-secondary mb-0">MTTR, recorrência e pico de volume financeiro exposto após anomalias detectadas pelo baseline.</p>
+                <p className="text-secondary mb-0">MTTR, recorrência, pico de volume financeiro exposto e hipótese de gargalo após anomalias detectadas pelo baseline.</p>
               </div>
               {incidents.active && <Badge bg="danger">Incidente ativo</Badge>}
             </div>
 
             {incidents.active && <Alert variant="danger">
               Incidente ativo há <strong>{duration(incidents.active.duration_seconds)}</strong>, com pico de <strong>{money(incidents.active.peak_at_risk_volume)}</strong> em volume sob risco.
+              {incidents.active.diagnosis && <span className="d-block mt-1">Hipótese: <strong>{incidents.active.diagnosis.label}</strong> ({confidenceLabel[incidents.active.diagnosis.confidence] || "inferência"}).</span>}
             </Alert>}
 
             <Row className="g-3">
@@ -191,6 +208,7 @@ export default function ApplicationAdminFinancePage() {
                     <Badge bg="success">Recuperado em {duration(incident.duration_seconds)}</Badge>
                   </div>
                   <small className="text-secondary d-block mt-1">Pico {money(incident.peak_at_risk_volume)} · {incident.peak_critical_orders ?? 0} crítico(s) · fechamento em {money(incident.closing_at_risk_volume)}</small>
+                  {incident.diagnosis && <small className="d-block mt-1">Hipótese: <strong>{incident.diagnosis.label}</strong> · {confidenceLabel[incident.diagnosis.confidence] || "inferência"}</small>}
                 </div>)}
               </div>
             </div>}
