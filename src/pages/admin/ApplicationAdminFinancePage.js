@@ -5,6 +5,12 @@ import appApiClient from "../../services/AppApiClient";
 
 const money = (value) => Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+const riskMeta = {
+  healthy: { label: "Saudável", variant: "success" },
+  attention: { label: "Atenção", variant: "warning" },
+  critical: { label: "Crítico", variant: "danger" },
+};
+
 export default function ApplicationAdminFinancePage() {
   const [data, setData] = useState(null);
   const [paymentHealth, setPaymentHealth] = useState(null);
@@ -50,7 +56,10 @@ export default function ApplicationAdminFinancePage() {
     [`Críticos > ${paymentHealth.critical_after_minutes ?? 60} min`, `${paymentHealth.critical_orders ?? 0} · ${money(paymentHealth.critical_volume)}`],
     ["Expirados ainda pendentes", `${paymentHealth.expired_orders ?? 0} · ${money(paymentHealth.expired_volume)}`],
     ["Pendentes no provedor", `${paymentHealth.provider_pending_payments ?? 0} · ${money(paymentHealth.provider_pending_volume)}`],
+    ["Volume em risco", money(paymentHealth.at_risk_volume)],
   ] : [];
+
+  const currentRisk = riskMeta[paymentHealth?.risk_level] || riskMeta.healthy;
 
   return <div className="cut-app-page">
     <NavlogComponent />
@@ -71,14 +80,18 @@ export default function ApplicationAdminFinancePage() {
             <h2 id="payment-health-title" className="h4 mb-1">Saúde dos pagamentos pendentes</h2>
             <p className="mb-0">Pedidos envelhecendo no estado pendente indicam receita em risco e prioridade de diagnóstico; não representam receita perdida confirmada.</p>
           </div>
+          <Badge bg={currentRisk.variant}>{currentRisk.label}</Badge>
         </div>
-        {(paymentHealth.critical_orders ?? 0) > 0 && <Alert variant="warning">
-          Há {paymentHealth.critical_orders} pedido(s) pendente(s) há mais de {paymentHealth.critical_after_minutes ?? 60} minutos, somando {money(paymentHealth.critical_volume)}.
+        {paymentHealth.risk_level === "critical" && <Alert variant="danger">
+          Risco crítico no funil de pagamento: {paymentHealth.critical_orders ?? 0} pedido(s) crítico(s), {money(paymentHealth.at_risk_volume)} em volume sob risco operacional. Priorize reconciliação, webhook e fulfillment.
+        </Alert>}
+        {paymentHealth.risk_level === "attention" && <Alert variant="warning">
+          Há sinais de atenção no funil de pagamento. Existem pedidos ou pagamentos envelhecendo e que precisam ser acompanhados antes de virarem perda de conversão.
         </Alert>}
         <Row className="g-3">
           {healthCards.map(([label, value]) => <Col xs={12} sm={6} lg key={label}><Card className="cut-panel h-100"><Card.Body><span className="cut-eyebrow">{label}</span><div className="fs-5 fw-bold mt-2">{value}</div></Card.Body></Card></Col>)}
         </Row>
-        {paymentHealth.oldest_pending_at && <small className="text-secondary d-block mt-3">Pendente mais antigo: {new Date(paymentHealth.oldest_pending_at).toLocaleString("pt-BR")}</small>}
+        {paymentHealth.oldest_pending_at && <small className="text-secondary d-block mt-3">Pendente mais antigo: {new Date(paymentHealth.oldest_pending_at).toLocaleString("pt-BR")}{paymentHealth.oldest_pending_age_minutes != null ? ` · ${paymentHealth.oldest_pending_age_minutes} min` : ""}</small>}
       </section>}
 
       {!loading && data?.generated_at && <small className="text-secondary d-block mt-4">Atualizado em {new Date(data.generated_at).toLocaleString("pt-BR")}</small>}
