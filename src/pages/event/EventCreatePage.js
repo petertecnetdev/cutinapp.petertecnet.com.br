@@ -13,6 +13,37 @@ import { showImportantAlert, showProducerAgreementRequired } from "../../utils/s
 const pad = (value) => String(value).padStart(2, "0");
 const toLocalInput = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 
+const toDateInput = (value) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+};
+
+const suggestedEditionDate = (event) => {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(12, 0, 0, 0);
+
+  const source = new Date(event?.start_date || "");
+  if (Number.isNaN(source.getTime())) return toDateInput(tomorrow);
+
+  source.setDate(source.getDate() + 7);
+  source.setHours(12, 0, 0, 0);
+  return toDateInput(source > tomorrow ? source : tomorrow);
+};
+
+const formatEventDate = (value) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Data não informada";
+  return date.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
 const minimumEventStart = () => {
   const date = new Date(Date.now() + 5 * 60 * 1000);
   date.setSeconds(0, 0);
@@ -100,6 +131,11 @@ export default function EventCreatePage() {
   const [submitted, setSubmitted] = useState(false);
   const [optionalDetailsOpen, setOptionalDetailsOpen] = useState(false);
   const [draftRestored, setDraftRestored] = useState(false);
+  const [existingEvents, setExistingEvents] = useState([]);
+  const [existingEventsLoading, setExistingEventsLoading] = useState(false);
+  const [reuseEventId, setReuseEventId] = useState("");
+  const [reuseDate, setReuseDate] = useState("");
+  const [reusingEvent, setReusingEvent] = useState(false);
   const minStart = useMemo(() => toLocalInput(minimumEventStart()), []);
   const draftOwnerId = Number(user?.id || 0);
   const agreementChecksRef = useRef(new Set());
@@ -113,6 +149,24 @@ export default function EventCreatePage() {
     if (!productionId) return;
     navigate(agreementUrl(productionId));
   };
+
+  useEffect(() => {
+    let active = true;
+    setExistingEventsLoading(true);
+    eventService.myEvents({ per_page: 100 })
+      .then((items) => {
+        if (!active) return;
+        setExistingEvents(Array.isArray(items) ? items : []);
+      })
+      .catch(() => {
+        if (active) setExistingEvents([]);
+      })
+      .finally(() => {
+        if (active) setExistingEventsLoading(false);
+      });
+
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     if (!draftOwnerId) return;
@@ -550,6 +604,67 @@ export default function EventCreatePage() {
     return () => window.removeEventListener("cutinapp:event-cover-selected", handleGeneratedCover);
   }, []);
 
+  const selectedReuseEvent = useMemo(
+    () => existingEvents.find((item) => String(item.id) === String(reuseEventId)) || null,
+    [existingEvents, reuseEventId]
+  );
+
+  const chooseReuseEvent = (eventId) => {
+    setReuseEventId(eventId);
+    const source = existingEvents.find((item) => String(item.id) === String(eventId));
+    setReuseDate(source ? suggestedEditionDate(source) : "");
+  };
+
+  const reuseExistingEvent = async () => {
+    if (!selectedReuseEvent) {
+      await showImportantAlert({
+        title: "Escolha um evento",
+        text: "Selecione o evento que será usado como modelo para a nova edição.",
+        icon: "warning",
+        confirmButtonText: "Entendi",
+      });
+      return;
+    }
+
+    if (!reuseDate) {
+      await showImportantAlert({
+        title: "Escolha a nova data",
+        text: "Informe a data da nova edição. O horário e a duração serão reaproveitados do evento original.",
+        icon: "warning",
+        confirmButtonText: "Entendi",
+      });
+      return;
+    }
+
+    if (toDateInput(selectedReuseEvent.start_date) === reuseDate) {
+      await showImportantAlert({
+        title: "Escolha outra data",
+        text: "A nova edição precisa ter uma data diferente do evento original.",
+        icon: "warning",
+        confirmButtonText: "Entendi",
+      });
+      return;
+    }
+
+    setReusingEvent(true);
+    try {
+      const response = await eventService.duplicate(selectedReuseEvent.id, reuseDate);
+      const duplicatedId = Number(response?.event?.id || 0);
+      if (!duplicatedId) throw new Error("A nova edição foi criada, mas a API não retornou o identificador do evento.");
+      navigate(`/event/edit/${duplicatedId}?duplicated=1&sourceEventId=${selectedReuseEvent.id}`, { replace: true });
+    } catch (err) {
+      const dateMessage = Array.isArray(err?.errors?.date) ? err.errors.date[0] : err?.errors?.date;
+      await showImportantAlert({
+        title: "Não foi possível criar a nova edição",
+        text: dateMessage || err?.message || "Tente novamente em instantes.",
+        icon: "error",
+        confirmButtonText: "Entendi",
+      });
+    } finally {
+      setReusingEvent(false);
+    }
+  };
+
   const submit = async (event) => {
     event.preventDefault();
     setSubmitted(true);
@@ -595,10 +710,80 @@ export default function EventCreatePage() {
   return (
     <div className="cut-app-page">
       <NavlogComponent />
-      {(loading || loadingProductions) && <ProcessingIndicatorComponent label={loading ? "Criando evento" : "Carregando produções"} />}
+      {(loading || loadingProductions || reusingEvent) && <ProcessingIndicatorComponent label={reusingEvent ? "Criando nova edição" : loading ? "Criando evento" : "Carregando produções"} />}
 
       <Container className="cut-page-container py-4 py-lg-5">
-        <div className="cut-page-heading"><div><span className="cut-eyebrow">Área do produtor</span><h1>Novo evento</h1><p>Escolha a produção e reaproveite os dados que já estão cadastrados. Depois, altere somente o que for diferente neste evento.</p></div></div>
+        <div className="cut-page-heading"><div><span className="cut-eyebrow">Área do produtor</span><h1>Novo evento</h1><p>Crie do zero ou reaproveite um evento existente e altere somente a data da nova edição.</p></div></div>
+
+        {!existingEventsLoading && existingEvents.length > 0 && (
+          <Card className="cut-panel cut-event-reuse-card mb-4">
+            <Card.Body className="p-4">
+              <div className="cut-event-reuse-head">
+                <div className="cut-event-reuse-icon"><i className="fa-regular fa-copy" /></div>
+                <div>
+                  <span className="cut-eyebrow">Atalho para eventos recorrentes</span>
+                  <h2 className="cut-section-title mb-1">Usar um evento já criado</h2>
+                  <p className="mb-0">Escolha um evento, informe a nova data e a Cutinapp reaproveita o restante para você.</p>
+                </div>
+              </div>
+
+              <Row className="g-3 align-items-end mt-1">
+                <Col lg={7}>
+                  <Form.Group>
+                    <Form.Label>Evento que será usado como modelo</Form.Label>
+                    <Form.Select value={reuseEventId} onChange={(event) => chooseReuseEvent(event.target.value)} disabled={reusingEvent}>
+                      <option value="">Selecione um evento</option>
+                      {existingEvents.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.title} · {formatEventDate(item.start_date)}
+                        </option>
+                      ))}
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+                <Col sm={7} lg={3}>
+                  <Form.Group>
+                    <Form.Label>Nova data</Form.Label>
+                    <Form.Control
+                      type="date"
+                      min={toDateInput(new Date(Date.now() + 24 * 60 * 60 * 1000))}
+                      value={reuseDate}
+                      onChange={(event) => setReuseDate(event.target.value)}
+                      disabled={!selectedReuseEvent || reusingEvent}
+                    />
+                  </Form.Group>
+                </Col>
+                <Col sm={5} lg={2}>
+                  <Button
+                    type="button"
+                    className="w-100 cut-event-reuse-action"
+                    onClick={reuseExistingEvent}
+                    disabled={!selectedReuseEvent || !reuseDate || reusingEvent}
+                  >
+                    <i className="fa-regular fa-copy me-2" />
+                    Criar edição
+                  </Button>
+                </Col>
+              </Row>
+
+              {selectedReuseEvent && (
+                <div className="cut-event-reuse-preview mt-3">
+                  <div>
+                    <strong>{selectedReuseEvent.title}</strong>
+                    <span>{selectedReuseEvent.production?.name || "Produção"} · original em {formatEventDate(selectedReuseEvent.start_date)}</span>
+                  </div>
+                  <div className="cut-event-reuse-tags">
+                    <span><i className="fa-regular fa-image" /> Arte</span>
+                    <span><i className="fa-solid fa-ticket" /> Ingressos</span>
+                    <span><i className="fa-solid fa-bag-shopping" /> Produtos</span>
+                    <span><i className="fa-solid fa-people-group" /> Line-up</span>
+                  </div>
+                  <small>São reaproveitados dados, imagem, ingressos, produtos e programação. Vendas, participantes, check-ins e histórico começam zerados.</small>
+                </div>
+              )}
+            </Card.Body>
+          </Card>
+        )}
 
         {!loadingProductions && productions.length === 0 ? (
           <Card className="cut-panel mx-auto" style={{ maxWidth: 720 }}>
