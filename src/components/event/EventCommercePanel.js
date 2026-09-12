@@ -214,7 +214,13 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
       tickets: selected.tickets.map((item) => ({ id: item.id, quantity: Number(quantities[`ticket:${item.id}`]) })),
       items: selected.items.map((item) => ({ id: item.id, quantity: Number(quantities[`item:${item.id}`]) })),
     };
-    const checkoutPath = `/checkout/${activeSlug}`;
+    const attributionParams = new URLSearchParams();
+    const sourceEventId = Number(new URLSearchParams(location.search).get("source_event_id") || 0);
+    const conversionSource = String(new URLSearchParams(location.search).get("conversion_source") || "").trim();
+    if (sourceEventId > 0) attributionParams.set("source_event_id", String(sourceEventId));
+    if (conversionSource) attributionParams.set("conversion_source", conversionSource);
+    const checkoutQuery = attributionParams.toString();
+    const checkoutPath = `/checkout/${activeSlug}${checkoutQuery ? `?${checkoutQuery}` : ""}`;
 
     safeRemoveSessionItem(`cutinapp_payment_${activeSlug}`);
     writeEventCart(activeSlug, checkout);

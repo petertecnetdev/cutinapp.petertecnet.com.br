@@ -28,6 +28,8 @@ const checkoutRequestKey = (payload = {}) => JSON.stringify({
   payer_identification_type: String(payload.payer_identification_type || ""),
   payer_identification_number: String(payload.payer_identification_number || "").replace(/\D+/g, ""),
   coupon_code: String(payload.coupon_code || "").trim().toUpperCase(),
+  source_event_id: Number(payload.source_event_id || 0),
+  conversion_source: String(payload.conversion_source || ""),
   tickets: (Array.isArray(payload.tickets) ? payload.tickets : []).map((item) => ({ id: Number(item?.id || 0), quantity: Number(item?.quantity || 0) })),
   items: (Array.isArray(payload.items) ? payload.items : []).map((item) => ({ id: Number(item?.id || 0), quantity: Number(item?.quantity || 0) })),
 });
