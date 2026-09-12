@@ -141,3 +141,4 @@
     width: 100%;
   }
 }
+.cut-payment-breakdown{display:grid;gap:10px;margin:20px 0;padding:16px 18px;border:1px solid rgba(148,163,184,.14);border-radius:16px;background:rgba(255,255,255,.025)}.cut-payment-breakdown>div{display:flex;align-items:center;justify-content:space-between;gap:16px}.cut-payment-breakdown span{color:#94a3b8;font-size:.86rem}.cut-payment-breakdown strong{font-size:.98rem}.cut-payment-breakdown .is-discount strong{color:#86efac}.cut-payment-breakdown__total{padding-top:11px;border-top:1px solid rgba(255,255,255,.08)}.cut-payment-breakdown__total span{color:#e2e8f0;font-weight:800}.cut-payment-breakdown__total strong{font-size:1.45rem;color:#fff}.cut-payment-breakdown small{color:#94a3b8;line-height:1.45}.cut-checkout-summary__discount+ .cut-checkout-summary__total{padding-top:14px}
