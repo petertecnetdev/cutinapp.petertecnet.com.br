@@ -38,7 +38,8 @@ import "./styles/global-search-overlay.css";
 import "./pages/checkout/Coupon.css";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
-import MediaLibraryInputEnhancer from "./components/MediaLibraryInputEnhancer";\nimport GlobalImageInputEnhancer from "./components/GlobalImageInputEnhancer";
+import MediaLibraryInputEnhancer from "./components/MediaLibraryInputEnhancer";
+import GlobalImageInputEnhancer from "./components/GlobalImageInputEnhancer";
 import PeterAccountGateway from "./components/PeterAccountGateway";
 import { apiBaseUrl, appSlug } from "./config";
 import reportWebVitals from "./reportWebVitals";
@@ -87,6 +88,7 @@ root.render(
     <PeterAccountGateway apiBaseUrl={apiBaseUrl} appSlug={appSlug}>
       <AuthProvider>
         <App />
+        <GlobalImageInputEnhancer />
         <MediaLibraryInputEnhancer />
       </AuthProvider>
     </PeterAccountGateway>
