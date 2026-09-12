@@ -1,5 +1,5 @@
-import React, { useContext, useEffect, useMemo, useState } from "react";
-import { Alert, Button, Card, Col, Container, Form, Row } from "react-bootstrap";
+import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { Button, Card, Col, Container, Form, Row } from "react-bootstrap";
 import { useLocation, useNavigate } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
@@ -8,6 +8,7 @@ import eventService from "../../services/EventService";
 import cutinappService from "../../services/CutinappService";
 import { AuthContext } from "../../context/AuthContext";
 import { clearEventCreationDraft, readEventCreationDraft, writeEventCreationDraft } from "../../utils/eventCreationDraft";
+import { showImportantAlert, showProducerAgreementRequired } from "../../utils/sweetAlert";
 
 const pad = (value) => String(value).padStart(2, "0");
 const toLocalInput = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
@@ -101,6 +102,17 @@ export default function EventCreatePage() {
   const [draftRestored, setDraftRestored] = useState(false);
   const minStart = useMemo(() => toLocalInput(minimumEventStart()), []);
   const draftOwnerId = Number(user?.id || 0);
+  const agreementChecksRef = useRef(new Set());
+
+  const agreementUrl = (productionId) => {
+    const returnTo = `/event/create?productionId=${encodeURIComponent(String(productionId))}`;
+    return `/producer/contracts?productionId=${encodeURIComponent(String(productionId))}&returnTo=${encodeURIComponent(returnTo)}`;
+  };
+
+  const openAgreement = (productionId) => {
+    if (!productionId) return;
+    navigate(agreementUrl(productionId));
+  };
 
   useEffect(() => {
     if (!draftOwnerId) return;
@@ -133,6 +145,66 @@ export default function EventCreatePage() {
     }, 300);
     return () => window.clearTimeout(timer);
   }, [draftOwnerId, form, useProductionItems, loading]);
+
+  useEffect(() => {
+    if (!draftRestored) return;
+    setDraftRestored(false);
+    void showImportantAlert({
+      title: "Rascunho recuperado",
+      text: "Recuperamos o preenchimento deste evento para você continuar de onde parou.",
+      icon: "info",
+      confirmButtonText: "Continuar",
+    });
+  }, [draftRestored]);
+
+  useEffect(() => {
+    const productionId = String(form.production_id || "");
+    if (!productionId || loadingProductions || agreementChecksRef.current.has(productionId)) return undefined;
+
+    agreementChecksRef.current.add(productionId);
+    let active = true;
+
+    cutinappService.producerContract(productionId)
+      .then(async (contract) => {
+        if (!active || contract?.accepted) return;
+        const production = productions.find((item) => String(item.id) === productionId);
+        const result = await showProducerAgreementRequired({
+          productionName: production?.name || "esta produção",
+        });
+        if (active && result?.isConfirmed) openAgreement(productionId);
+      })
+      .catch(() => {
+        agreementChecksRef.current.delete(productionId);
+      });
+
+    return () => { active = false; };
+  }, [form.production_id, loadingProductions, productions]);
+
+  useEffect(() => {
+    if (!error) return;
+    const message = error;
+    const productionId = String(form.production_id || "");
+    const requiresAgreement = /termo de adesão|primeiro evento/i.test(message);
+    setError("");
+
+    void (async () => {
+      if (requiresAgreement && productionId) {
+        const production = productions.find((item) => String(item.id) === productionId);
+        const result = await showProducerAgreementRequired({
+          productionName: production?.name || "esta produção",
+        });
+        if (result?.isConfirmed) openAgreement(productionId);
+        return;
+      }
+
+      await showImportantAlert({
+        title: "Não foi possível continuar",
+        text: message,
+        icon: "error",
+        confirmButtonText: "Entendi",
+      });
+    })();
+  }, [error, form.production_id, productions]);
 
   useEffect(() => {
     let active = true;
@@ -527,8 +599,6 @@ export default function EventCreatePage() {
 
       <Container className="cut-page-container py-4 py-lg-5">
         <div className="cut-page-heading"><div><span className="cut-eyebrow">Área do produtor</span><h1>Novo evento</h1><p>Escolha a produção e reaproveite os dados que já estão cadastrados. Depois, altere somente o que for diferente neste evento.</p></div></div>
-        {error && <Alert variant="danger">{error}</Alert>}
-        {draftRestored && <Alert variant="info" dismissible onClose={() => setDraftRestored(false)}>Recuperamos o preenchimento deste evento para você continuar de onde parou.</Alert>}
 
         {!loadingProductions && productions.length === 0 ? (
           <Card className="cut-panel mx-auto" style={{ maxWidth: 720 }}>
