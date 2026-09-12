@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import "./GlobalImageInputEnhancer.css";
 
 const IMAGE_HINT = /(image|imagem|avatar|logo|banner|cover|capa|photo|foto|flyer|picture|thumbnail|thumb|media|midia)/i;
-const VISUAL_HINT = /(image|imagem|avatar|logo|banner|cover|capa|photo|foto|flyer|preview|media|midia|upload)/i;
+const VISUAL_HINT = /(image|imagem|avatar|logo|banner|cover|capa|photo|foto|flyer|preview|media|midia)/i;
 const LEGACY_TRIGGER_HINT = /(btn|button|upload|alterar|trocar|escolher|selecionar|change)/i;
 
 let imageInputSequence = 0;
