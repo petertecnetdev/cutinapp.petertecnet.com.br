@@ -54,10 +54,11 @@ const visualTargetFrom = (input) => {
   const parent = input.parentElement;
   if (!parent) return null;
 
-  const nearby = parent.querySelector(
-    "[data-image-preview], [data-image-picker], .image-preview, .avatar-preview, .logo-preview, .banner-preview, .cover-preview, .photo-preview, [class*='image-preview'], [class*='upload-preview'], [class*='upload-placeholder'], [class*='avatar-preview'], [class*='logo-preview'], [class*='banner-preview'], [class*='cover-preview']"
+  const scope = input.closest("[data-image-upload-scope], section, .card, fieldset, .form-group, .mb-3, [class*='media']") || parent;
+  const nearby = scope.querySelector(
+    "[data-image-preview], [data-image-picker], .image-preview, .avatar-preview, .logo-preview, .banner-preview, .cover-preview, .photo-preview, [class*='image-preview'], [class*='upload-preview'], [class*='upload-placeholder'], [class*='avatar-preview'], [class*='logo-preview'], [class*='banner-preview'], [class*='cover-preview'], [class*='avatar-image'], [class*='logo-image'], [class*='banner-image'], [class*='cover-image'], [class*='avatar'], [class*='logo'], [class*='banner'], [class*='cover']"
   );
-  if (nearby && nearby !== input) return nearby;
+  if (nearby && nearby !== input && !nearby.contains(input)) return nearby;
 
   const sibling = input.previousElementSibling;
   if (sibling?.querySelector?.("img") || sibling?.matches?.("img, picture, [class*='image-preview'], [class*='upload-preview'], [class*='upload-placeholder'], [class*='avatar-preview'], [class*='logo-preview'], [class*='banner-preview'], [class*='cover-preview']")) return sibling;
@@ -67,7 +68,7 @@ const visualTargetFrom = (input) => {
 
 const markLegacyTextTriggers = (input) => {
   Array.from(input.labels || []).forEach((label) => {
-    const hasVisual = Boolean(label.querySelector("img, picture, [class*='preview']"));
+    const hasVisual = Boolean(label.querySelector("img, picture, [class*='preview'], [class*='upload-placeholder'], [class*='avatar'], [class*='logo'], [class*='banner'], [class*='cover']"));
     if (!hasVisual && LEGACY_TRIGGER_HINT.test(String(label.className || ""))) {
       label.dataset.ptImageLegacyTrigger = "true";
     }
@@ -116,6 +117,12 @@ const createPickerSurface = (input) => {
   frame.append(preview, placeholder, action);
   label.append(frame);
 
+  label.addEventListener("click", (event) => {
+    if (input.disabled) return;
+    event.preventDefault();
+    input.click();
+  });
+
   label.addEventListener("keydown", (event) => {
     if (input.disabled) return;
     if (event.key === "Enter" || event.key === " ") {
@@ -124,7 +131,9 @@ const createPickerSurface = (input) => {
     }
   });
 
-  input.parentNode?.insertBefore(label, input);
+  const legacyLabel = input.closest('label[data-pt-image-legacy-trigger="true"]');
+  const anchor = legacyLabel || input;
+  anchor.parentNode?.insertBefore(label, anchor);
   return { label, preview, placeholder, action };
 };
 
