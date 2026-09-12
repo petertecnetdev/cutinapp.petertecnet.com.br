@@ -6,6 +6,15 @@ import appApiClient from "../../services/AppApiClient";
 const money = (value) => Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const percent = (value) => `${(Number(value || 0) * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
 const multiplier = (value) => value == null ? "—" : `${Number(value).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}×`;
+const duration = (seconds) => {
+  if (seconds == null) return "—";
+  const value = Math.max(0, Number(seconds) || 0);
+  if (value < 60) return `${Math.round(value)}s`;
+  if (value < 3600) return `${Math.round(value / 60)} min`;
+  const hours = Math.floor(value / 3600);
+  const minutes = Math.round((value % 3600) / 60);
+  return minutes ? `${hours}h ${minutes}min` : `${hours}h`;
+};
 
 const riskMeta = {
   healthy: { label: "Saudável", variant: "success" },
@@ -70,6 +79,7 @@ export default function ApplicationAdminFinancePage() {
 
   const currentRisk = riskMeta[paymentHealth?.risk_level] || riskMeta.healthy;
   const trend = paymentHealth?.trend;
+  const incidents = paymentHealth?.incidents;
   const currentTrend = trendMeta[trend?.status] || trendMeta.history_unavailable;
   const trendReady = ["normal", "anomaly"].includes(trend?.status);
 
@@ -147,6 +157,43 @@ export default function ApplicationAdminFinancePage() {
                 ? `O baseline ainda está sendo formado (${trend.samples ?? 0} amostras). A detecção automática será ativada quando houver histórico suficiente.`
                 : "O histórico de pagamentos ainda não está disponível para comparação."}
             </Alert>}
+          </Card.Body>
+        </Card>}
+
+        {incidents && <Card className="cut-panel mt-3">
+          <Card.Body>
+            <div className="d-flex justify-content-between gap-3 flex-wrap align-items-start mb-3">
+              <div>
+                <span className="cut-eyebrow">Incidentes · últimos {incidents.window_days ?? 30} dias</span>
+                <h3 className="h5 mb-1">Confiabilidade do funil de pagamento</h3>
+                <p className="text-secondary mb-0">MTTR, recorrência e pico de volume financeiro exposto após anomalias detectadas pelo baseline.</p>
+              </div>
+              {incidents.active && <Badge bg="danger">Incidente ativo</Badge>}
+            </div>
+
+            {incidents.active && <Alert variant="danger">
+              Incidente ativo há <strong>{duration(incidents.active.duration_seconds)}</strong>, com pico de <strong>{money(incidents.active.peak_at_risk_volume)}</strong> em volume sob risco.
+            </Alert>}
+
+            <Row className="g-3">
+              <Col xs={6} lg={3}><div className="border rounded-3 p-3 h-100"><span className="cut-eyebrow">Incidentes</span><div className="fs-5 fw-bold mt-2">{incidents.incidents ?? 0}</div></div></Col>
+              <Col xs={6} lg={3}><div className="border rounded-3 p-3 h-100"><span className="cut-eyebrow">MTTR</span><div className="fs-5 fw-bold mt-2">{duration(incidents.average_duration_seconds)}</div></div></Col>
+              <Col xs={6} lg={3}><div className="border rounded-3 p-3 h-100"><span className="cut-eyebrow">Maior duração</span><div className="fs-5 fw-bold mt-2">{duration(incidents.max_duration_seconds)}</div></div></Col>
+              <Col xs={6} lg={3}><div className="border rounded-3 p-3 h-100"><span className="cut-eyebrow">Maior GMV exposto</span><div className="fs-5 fw-bold mt-2">{money(incidents.peak_at_risk_volume)}</div></div></Col>
+            </Row>
+
+            {(incidents.recent || []).length > 0 && <div className="mt-3">
+              <span className="cut-eyebrow d-block mb-2">Últimos incidentes recuperados</span>
+              <div className="d-grid gap-2">
+                {incidents.recent.map((incident, index) => <div className="border rounded-3 p-3" key={`${incident.started_at || "incident"}-${index}`}>
+                  <div className="d-flex justify-content-between gap-2 flex-wrap">
+                    <strong>{incident.started_at ? new Date(incident.started_at).toLocaleString("pt-BR") : "Horário indisponível"}</strong>
+                    <Badge bg="success">Recuperado em {duration(incident.duration_seconds)}</Badge>
+                  </div>
+                  <small className="text-secondary d-block mt-1">Pico {money(incident.peak_at_risk_volume)} · {incident.peak_critical_orders ?? 0} crítico(s) · fechamento em {money(incident.closing_at_risk_volume)}</small>
+                </div>)}
+              </div>
+            </div>}
           </Card.Body>
         </Card>}
 
