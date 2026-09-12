@@ -3,6 +3,7 @@ import { Alert, Button, Card, Col, Container, Form, Row } from "react-bootstrap"
 import { useLocation, useNavigate } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
+import CityAutocompleteControl from "../../components/location/CityAutocompleteControl";
 import eventService from "../../services/EventService";
 import cutinappService from "../../services/CutinappService";
 import { AuthContext } from "../../context/AuthContext";
@@ -285,6 +286,22 @@ export default function EventCreatePage() {
     }
   };
 
+  const changeCityLocation = ({ city, uf, selected }) => {
+    setForm((current) => ({
+      ...current,
+      city,
+      uf: selected ? uf : "",
+    }));
+
+    setFieldErrors((current) => {
+      if (!current.city && !(selected && current.uf)) return current;
+      const next = { ...current };
+      delete next.city;
+      if (selected) delete next.uf;
+      return next;
+    });
+  };
+
   const autoApplyProductionData = async (productionId) => {
     if (!productionId) return;
 
@@ -561,8 +578,21 @@ export default function EventCreatePage() {
                 <Col md={6}><Form.Group><Form.Label>Término *</Form.Label><Form.Control type="datetime-local" min={form.start_date || minStart} name="end_date" value={form.end_date} onChange={change} isInvalid={invalid("end_date", requiredInvalid.end_date)} /><Form.Text>É sugerido automaticamente 2 horas após o início.</Form.Text><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "end_date") || (dateInvalid ? "O término precisa ser posterior ao início." : "Informe quando o evento termina.")}</Form.Control.Feedback></Form.Group></Col>
                 <Col md={5}><Form.Group><Form.Label>Local</Form.Label><Form.Control name="venue" value={form.venue} onChange={change} placeholder="Nome do espaço" isInvalid={invalid("venue")} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "venue")}</Form.Control.Feedback></Form.Group></Col>
                 <Col md={7}><Form.Group><Form.Label>Endereço *</Form.Label><Form.Control name="address" value={form.address} onChange={change} placeholder="Rua, número e complemento" isInvalid={invalid("address", requiredInvalid.address)} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "address") || "Informe o endereço do evento."}</Form.Control.Feedback></Form.Group></Col>
-                <Col md={8}><Form.Group><Form.Label>Cidade *</Form.Label><Form.Control name="city" value={form.city} onChange={change} isInvalid={invalid("city", requiredInvalid.city)} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "city") || "Informe a cidade do evento."}</Form.Control.Feedback></Form.Group></Col>
-                <Col md={4}><Form.Group><Form.Label>UF *</Form.Label><Form.Control maxLength={2} name="uf" value={form.uf} onChange={change} isInvalid={invalid("uf", requiredInvalid.uf || ufInvalid)} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "uf") || "Use 2 letras."}</Form.Control.Feedback></Form.Group></Col>
+                <Col md={8}>
+                  <Form.Group className="cut-autocomplete">
+                    <Form.Label>Cidade *</Form.Label>
+                    <CityAutocompleteControl
+                      value={form.city}
+                      onChange={changeCityLocation}
+                      isInvalid={invalid("city", requiredInvalid.city)}
+                      placeholder="Digite ao menos 2 letras"
+                      required
+                    />
+                    <Form.Control.Feedback type="invalid">{firstError(fieldErrors, "city") || "Informe a cidade do evento."}</Form.Control.Feedback>
+                    <Form.Text>Selecione a cidade na lista para preencher a UF automaticamente.</Form.Text>
+                  </Form.Group>
+                </Col>
+                <Col md={4}><Form.Group><Form.Label>UF *</Form.Label><Form.Control maxLength={2} name="uf" value={form.uf} onChange={change} placeholder="UF" isInvalid={invalid("uf", requiredInvalid.uf || ufInvalid)} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "uf") || "Use 2 letras."}</Form.Control.Feedback></Form.Group></Col>
 
                 <Col xs={12}>
                   <div className="cut-info-box">
