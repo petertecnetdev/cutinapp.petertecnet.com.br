@@ -1,11 +1,17 @@
 import React, { useEffect, useState } from "react";
 import { Alert, Badge, Button, Card, Col, Container, Form, Row, Spinner } from "react-bootstrap";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import cutinappService from "../../services/CutinappService";
+import { showImportantAlert } from "../../utils/sweetAlert";
 
 export default function ProducerContractsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const requestedProductionId = params.get("productionId") || "";
+  const requestedReturnTo = params.get("returnTo") || "";
+  const returnTo = requestedReturnTo.startsWith("/event/create") ? requestedReturnTo : "";
   const [productions, setProductions] = useState([]);
   const [productionId, setProductionId] = useState("");
   const [contract, setContract] = useState(null);
@@ -15,7 +21,6 @@ export default function ProducerContractsPage() {
   const [sending, setSending] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
   const refreshContract = async (id = productionId) => {
     const data = await cutinappService.producerContract(id);
@@ -24,12 +29,26 @@ export default function ProducerContractsPage() {
   };
 
   useEffect(() => {
+    if (!error) return;
+    const message = error;
+    setError("");
+    void showImportantAlert({
+      title: "Não foi possível continuar",
+      text: message,
+      icon: "error",
+      confirmButtonText: "Entendi",
+    });
+  }, [error]);
+
+  useEffect(() => {
     let active = true;
     cutinappService.myProductions()
       .then((items) => {
         if (!active) return;
         setProductions(items || []);
-        if (items?.[0]?.id) setProductionId(String(items[0].id));
+        const requested = (items || []).find((item) => String(item.id) === String(requestedProductionId));
+        const first = requested || items?.[0] || null;
+        if (first?.id) setProductionId(String(first.id));
       })
       .catch((err) => active && setError(err?.message || "Não foi possível carregar suas produções."))
       .finally(() => active && setLoading(false));
@@ -39,7 +58,7 @@ export default function ProducerContractsPage() {
   useEffect(() => {
     if (!productionId) { setContract(null); return; }
     let active = true;
-    setLoading(true); setError(""); setSuccess("");
+    setLoading(true); setError("");
     cutinappService.producerContract(productionId)
       .then((data) => {
         if (!active) return;
@@ -53,12 +72,29 @@ export default function ProducerContractsPage() {
 
   const sign = async (event) => {
     event.preventDefault();
-    if (!form.accepted) { setError("Marque a declaração de concordância para assinar."); return; }
-    setSigning(true); setError(""); setSuccess("");
+    if (!form.accepted) {
+      await showImportantAlert({
+        title: "Confirme a concordância",
+        text: "Marque a declaração de concordância para assinar o termo de adesão.",
+        icon: "warning",
+        confirmButtonText: "Entendi",
+      });
+      return;
+    }
+    setSigning(true); setError("");
     try {
       const response = await cutinappService.signProducerContract(productionId, form);
-      setSuccess(response?.message || "Contrato assinado com sucesso.");
       await refreshContract();
+      const result = await showImportantAlert({
+        title: "Termo assinado",
+        text: response?.message || "Contrato assinado com sucesso.",
+        icon: "success",
+        confirmButtonText: returnTo ? "Voltar para criar evento" : "Continuar",
+        cancelButtonText: "Permanecer aqui",
+        showCancelButton: Boolean(returnTo),
+        allowOutsideClick: false,
+      });
+      if (returnTo && result?.isConfirmed) navigate(returnTo);
     } catch (err) {
       setError(err?.message || "Não foi possível assinar o contrato.");
     } finally {
@@ -67,11 +103,16 @@ export default function ProducerContractsPage() {
   };
 
   const resend = async () => {
-    setSending(true); setError(""); setSuccess("");
+    setSending(true); setError("");
     try {
       const response = await cutinappService.resendProducerContract(productionId);
-      setSuccess(response?.message || "Cópia enviada por e-mail.");
       await refreshContract();
+      await showImportantAlert({
+        title: "Cópia enviada",
+        text: response?.message || "Cópia enviada por e-mail.",
+        icon: "success",
+        confirmButtonText: "Entendi",
+      });
     } catch (err) {
       setError(err?.message || "Não foi possível reenviar o contrato.");
     } finally {
@@ -102,8 +143,6 @@ export default function ProducerContractsPage() {
     <NavlogComponent />
     <Container className="cut-page-container py-4 py-lg-5">
       <div className="cut-page-heading"><div><span className="cut-eyebrow">Área do produtor</span><h1>Contrato do produtor</h1><p>Leia e assine o termo vigente antes de cadastrar eventos para a produção.</p></div></div>
-      {error && <Alert variant="danger">{error}</Alert>}
-      {success && <Alert variant="success">{success}</Alert>}
       {loading && <div className="text-center py-5"><Spinner animation="border" /></div>}
       {!loading && productions.length === 0 && <Card className="cut-empty-state"><Card.Body><h2>Nenhuma produção cadastrada</h2><p>Cadastre sua produção antes de assinar o contrato.</p><Button onClick={() => navigate("/production/create")}>Criar produção</Button></Card.Body></Card>}
       {!!productions.length && <>
