@@ -46,7 +46,7 @@ const inputLabel = (input) => {
 const visualTargetFrom = (input) => {
   const labels = Array.from(input.labels || []);
   const visualLabel = labels.find((label) => (
-    label.querySelector("img, picture, [class*='preview'], [class*='avatar'], [class*='logo'], [class*='banner'], [class*='cover']")
+    label.querySelector("img, picture, [class*='preview'], [class*='upload-placeholder'], [class*='avatar'], [class*='logo'], [class*='banner'], [class*='cover']")
     || VISUAL_HINT.test(String(label.className || ""))
   ));
   if (visualLabel) return visualLabel;
@@ -55,12 +55,12 @@ const visualTargetFrom = (input) => {
   if (!parent) return null;
 
   const nearby = parent.querySelector(
-    "[data-image-preview], [data-image-picker], .image-preview, .avatar-preview, .logo-preview, .banner-preview, .cover-preview, .photo-preview, [class*='image-preview'], [class*='avatar-preview'], [class*='logo-preview'], [class*='banner-preview'], [class*='cover-preview']"
+    "[data-image-preview], [data-image-picker], .image-preview, .avatar-preview, .logo-preview, .banner-preview, .cover-preview, .photo-preview, [class*='image-preview'], [class*='upload-preview'], [class*='upload-placeholder'], [class*='avatar-preview'], [class*='logo-preview'], [class*='banner-preview'], [class*='cover-preview']"
   );
   if (nearby && nearby !== input) return nearby;
 
   const sibling = input.previousElementSibling;
-  if (sibling?.querySelector?.("img") || sibling?.matches?.("img, picture")) return sibling;
+  if (sibling?.querySelector?.("img") || sibling?.matches?.("img, picture, [class*='image-preview'], [class*='upload-preview'], [class*='upload-placeholder'], [class*='avatar-preview'], [class*='logo-preview'], [class*='banner-preview'], [class*='cover-preview']")) return sibling;
 
   return null;
 };
