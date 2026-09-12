@@ -3,6 +3,8 @@ const ATTRIBUTION_TTL_MS = 60 * 60 * 1000;
 const ATTRIBUTION_TERMINAL_EVENT = "checkout_fulfilled";
 const CHECKOUT_JOURNEY_STORAGE_KEY = "cutinapp_checkout_journey";
 const CHECKOUT_JOURNEY_TTL_MS = 2 * 60 * 60 * 1000;
+const PENDING_TELEMETRY_LIMIT = 100;
+const pendingTelemetry = [];
 
 const canUseSessionStorage = () => typeof window !== "undefined" && Boolean(window.sessionStorage);
 
@@ -128,6 +130,37 @@ const resolveCheckoutJourney = (details = {}) => {
   }
 };
 
+const enrichTelemetryDetails = (details = {}) => {
+  const attribution = shouldAttachAttribution() ? readAttribution() : null;
+  const checkoutJourney = resolveCheckoutJourney(details);
+  return attribution || checkoutJourney
+    ? {
+      ...details,
+      metadata: {
+        ...(details?.metadata || {}),
+        ...(attribution ? {
+          attribution_source: attribution.source,
+          attribution_post_id: attribution.post_id || null,
+          attribution_event_id: attribution.event_id || null,
+          attribution_event_slug: attribution.event_slug || null,
+          attribution_recovery_surface: attribution.recovery_surface || null,
+          attribution_recovery_source: attribution.recovery_source || null,
+          attribution_recovery_has_pending_order: attribution.recovery_has_pending_order ?? null,
+        } : {}),
+        ...(checkoutJourney ? {
+          checkout_journey_id: checkoutJourney.id,
+          checkout_journey_started_at: checkoutJourney.started_at,
+        } : {}),
+      },
+    }
+    : details;
+};
+
+const enqueueTelemetry = (type, details = {}) => {
+  if (pendingTelemetry.length >= PENDING_TELEMETRY_LIMIT) pendingTelemetry.shift();
+  pendingTelemetry.push([type, enrichTelemetryDetails(details)]);
+};
+
 const ensureAttributionAwareTracker = () => {
   if (typeof window === "undefined") return null;
   const telemetry = window.PeterTecnetTelemetry;
@@ -137,31 +170,7 @@ const ensureAttributionAwareTracker = () => {
 
   const originalTrack = tracker.bind(telemetry);
   const wrappedTrack = (type, details = {}) => {
-    const attribution = shouldAttachAttribution() ? readAttribution() : null;
-    const checkoutJourney = resolveCheckoutJourney(details);
-    const enriched = attribution || checkoutJourney
-      ? {
-        ...details,
-        metadata: {
-          ...(details?.metadata || {}),
-          ...(attribution ? {
-            attribution_source: attribution.source,
-            attribution_post_id: attribution.post_id || null,
-            attribution_event_id: attribution.event_id || null,
-            attribution_event_slug: attribution.event_slug || null,
-            attribution_recovery_surface: attribution.recovery_surface || null,
-            attribution_recovery_source: attribution.recovery_source || null,
-            attribution_recovery_has_pending_order: attribution.recovery_has_pending_order ?? null,
-          } : {}),
-          ...(checkoutJourney ? {
-            checkout_journey_id: checkoutJourney.id,
-            checkout_journey_started_at: checkoutJourney.started_at,
-          } : {}),
-        },
-      }
-      : details;
-
-    const result = originalTrack(type, enriched);
+    const result = originalTrack(type, enrichTelemetryDetails(details));
     if (type === ATTRIBUTION_TERMINAL_EVENT) {
       clearAttribution();
       clearCheckoutJourney();
@@ -174,9 +183,19 @@ const ensureAttributionAwareTracker = () => {
   return wrappedTrack;
 };
 
+const flushPendingTelemetry = (tracker) => {
+  if (typeof tracker !== "function" || pendingTelemetry.length === 0) return 0;
+  const queued = pendingTelemetry.splice(0, pendingTelemetry.length);
+  queued.forEach(([type, details]) => tracker(type, details));
+  return queued.length;
+};
+
 export const installTelemetryEnrichment = () => {
   try {
-    return typeof ensureAttributionAwareTracker() === "function";
+    const tracker = ensureAttributionAwareTracker();
+    if (typeof tracker !== "function") return false;
+    flushPendingTelemetry(tracker);
+    return true;
   } catch (_) {
     return false;
   }
@@ -188,7 +207,10 @@ export const trackTelemetry = (type, details = {}) => {
     if (["feed_event_opened", "feed_ticket_intent_clicked"].includes(type)) saveAttributionFromFeed(details);
     if (type === "checkout_resume_prompt_clicked") saveAttributionFromRecovery(details);
     const tracker = ensureAttributionAwareTracker();
-    if (typeof tracker !== "function") return false;
+    if (typeof tracker !== "function") {
+      enqueueTelemetry(type, details);
+      return true;
+    }
     tracker(type, details);
     return true;
   } catch (_) {
