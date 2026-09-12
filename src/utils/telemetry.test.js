@@ -49,6 +49,21 @@ describe("checkout recovery attribution", () => {
     expect(approvedCalls[1][1].metadata).toBeUndefined();
   });
 
+  test("enriches direct SDK checkout events after telemetry installation", async () => {
+    const { installTelemetryEnrichment } = await loadTelemetry();
+    window.history.replaceState({}, "", "/checkout/evento-teste");
+
+    expect(installTelemetryEnrichment()).toBe(true);
+    window.PeterTecnetTelemetry.track("checkout_abandoned_before_payment_attempt", {
+      target: "evento-teste",
+      metadata: { event_id: 42, amount: 30 },
+    });
+
+    const [, details] = rawTrack.mock.calls.at(-1);
+    expect(details.metadata.checkout_journey_id).toBeTruthy();
+    expect(details.metadata.checkout_journey_started_at).toEqual(expect.any(Number));
+  });
+
   test("keeps one anonymous journey id across checkout funnel events", async () => {
     const { trackTelemetry } = await loadTelemetry();
     window.history.replaceState({}, "", "/checkout/evento-teste");
