@@ -112,7 +112,11 @@ export default function CheckoutPage() {
       if (!active) return;
       setCatalog(response);
       const methods = Array.isArray(response?.payment_config?.methods) ? response.payment_config.methods : [];
-      if (methods.length && !methods.includes("pix")) setMethod(methods[0]);
+      if (!hasSessionPayment) {
+        const recoveredMethod = recovery?.paymentMethod;
+        if (recoveredMethod && methods.includes(recoveredMethod)) setMethod(recoveredMethod);
+        else if (methods.length && !methods.includes("pix")) setMethod(methods[0]);
+      }
 
       if (!fromState && !hasSessionPayment && !recovery?.orderPublicId && recovery?.couponCode && stored) {
         try {
@@ -464,7 +468,7 @@ export default function CheckoutPage() {
   const chooseMethod = (nextMethod) => {
     if (nextMethod === method || paying || paymentSubmissionRef.current) return;
     if (paymentLocked) { trackCheckout("payment_method_change_blocked", { label: "Troca de método bloqueada enquanto a tentativa anterior precisa ser confirmada", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(result?.order?.total || payableTotal || 0), previous_payment_method: method, requested_payment_method: nextMethod, order_status: orderStatus || "pending", reason: pixExpired ? "pix_expired_requires_status_check" : paymentUnderReview ? "payment_under_review" : "payment_pending" } }); setError(pixExpired ? "Este PIX expirou. Confirme o status desta compra antes de escolher outra forma de pagamento." : paymentUnderReview ? "Seu pagamento está em análise de segurança. Não inicie outra cobrança; aguarde a decisão ou verifique o status desta mesma compra." : "Há um pagamento em andamento para esta compra. Aguarde a confirmação ou verifique o status antes de escolher outra forma de pagamento."); return; }
-    setMethod(nextMethod); trackCheckout("payment_method_selected", { label: nextMethod === "pix" ? "PIX selecionado" : "Cartão selecionado", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(payableTotal.toFixed(2)), payment_method: nextMethod } });
+    setMethod(nextMethod); writeCheckoutRecovery(slug, { selection, orderPublicId: null, couponCode: coupon?.code || null, paymentMethod: nextMethod }); trackCheckout("payment_method_selected", { label: nextMethod === "pix" ? "PIX selecionado" : "Cartão selecionado", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(payableTotal.toFixed(2)), payment_method: nextMethod } });
     if (!approved) { setResult(null); safeRemoveSessionItem(paymentStorageKey); writeCheckoutRecovery(slug, { selection, orderPublicId: null, couponCode: coupon?.code || null }); }
   };
   const checkoutFree = async () => {
@@ -503,7 +507,7 @@ export default function CheckoutPage() {
     catch (err) { const reconciled = await refreshAvailabilityAfterCheckoutConflict(err, "card"); trackCheckout("payment_attempt_failed", { label: "Falha ao processar cartão", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(payableTotal.toFixed(2)), payment_method: "card", outcome: "error", status: Number(err?.status || err?.response?.status || 0), inventory_reconciled: reconciled } }); if (!reconciled) setError(checkoutSubmissionErrorMessage(err, "Não foi possível processar o cartão.")); }
     finally { paymentSubmissionRef.current = false; setPaying(false); }
   };
-  const recoverFailedPayment = (nextMethod = method) => { trackCheckout("payment_recovery_selected", { label: nextMethod === method ? "Tentar pagamento novamente" : `Trocar para ${nextMethod === "pix" ? "PIX" : "cartão"}`, target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(result?.order?.total || payableTotal || 0), previous_payment_method: method, payment_method: nextMethod, previous_status: orderStatus || "failed", failure_reason: failedPaymentGuidance.reason } }); setMethod(nextMethod); setResult(null); setError(""); safeRemoveSessionItem(paymentStorageKey); writeCheckoutRecovery(slug, { selection, orderPublicId: null, couponCode: coupon?.code || null }); };
+  const recoverFailedPayment = (nextMethod = method) => { trackCheckout("payment_recovery_selected", { label: nextMethod === method ? "Tentar pagamento novamente" : `Trocar para ${nextMethod === "pix" ? "PIX" : "cartão"}`, target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(result?.order?.total || payableTotal || 0), previous_payment_method: method, payment_method: nextMethod, previous_status: orderStatus || "failed", failure_reason: failedPaymentGuidance.reason } }); setMethod(nextMethod); setResult(null); setError(""); safeRemoveSessionItem(paymentStorageKey); writeCheckoutRecovery(slug, { selection, orderPublicId: null, couponCode: coupon?.code || null, paymentMethod: nextMethod }); };
   const restartExpiredPix = async () => {
     if (!pixExpired || syncingNow) return;
     trackCheckout("pix_expired_recovery_started", { label: "Recuperação de PIX expirado iniciada", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(result?.order?.total || payableTotal || 0), payment_method: "pix" } });

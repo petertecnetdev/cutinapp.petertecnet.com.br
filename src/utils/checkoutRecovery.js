@@ -31,6 +31,11 @@ const normalizeCouponCode = (couponCode) => {
   return /^[A-Z0-9_-]{1,40}$/.test(normalized) ? normalized : null;
 };
 
+const normalizePaymentMethod = (paymentMethod) => {
+  const normalized = typeof paymentMethod === "string" ? paymentMethod.trim().toLowerCase() : "";
+  return ["pix", "card"].includes(normalized) ? normalized : null;
+};
+
 export const clearCheckoutRecovery = (slug) => {
   if (!slug) return false;
   const removed = safeRemoveLocalItem(storageKey(slug));
@@ -52,29 +57,34 @@ export const readCheckoutRecovery = (slug, now = Date.now()) => {
   const selection = normalizeSelection(value?.selection);
   const orderPublicId = typeof value?.orderPublicId === "string" ? value.orderPublicId.trim() : "";
   const couponCode = normalizeCouponCode(value?.couponCode);
+  const paymentMethod = normalizePaymentMethod(value?.paymentMethod);
   if (!selection && !orderPublicId) {
     clearCheckoutRecovery(slug);
     return null;
   }
 
-  return { selection, orderPublicId: orderPublicId || null, couponCode, savedAt };
+  return { selection, orderPublicId: orderPublicId || null, couponCode, paymentMethod, savedAt };
 };
 
-export const writeCheckoutRecovery = (slug, { selection, orderPublicId, couponCode } = {}, now = Date.now()) => {
+export const writeCheckoutRecovery = (slug, { selection, orderPublicId, couponCode, paymentMethod } = {}, now = Date.now()) => {
   if (!slug) return false;
   const normalizedSelection = normalizeSelection(selection);
   const normalizedOrderPublicId = typeof orderPublicId === "string" ? orderPublicId.trim() : "";
   const normalizedCouponCode = normalizeCouponCode(couponCode);
+  const previous = safeGetLocalJson(storageKey(slug));
+  const normalizedPaymentMethod = normalizePaymentMethod(paymentMethod)
+    || normalizePaymentMethod(previous?.paymentMethod);
   if (!normalizedSelection && !normalizedOrderPublicId) {
     clearCheckoutRecovery(slug);
     return false;
   }
 
   const saved = safeSetLocalJson(storageKey(slug), {
-    version: 3,
+    version: 4,
     selection: normalizedSelection,
     orderPublicId: normalizedOrderPublicId || null,
     couponCode: normalizedCouponCode,
+    paymentMethod: normalizedPaymentMethod,
     savedAt: Number(now),
   });
   if (saved) notifyCheckoutRecoveryChange(slug);

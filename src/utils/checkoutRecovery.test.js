@@ -20,12 +20,14 @@ describe("checkoutRecovery", () => {
       },
       orderPublicId: "order-public-123",
       couponCode: " cutvip20 ",
+      paymentMethod: " CARD ",
     }, now)).toBe(true);
 
     expect(readCheckoutRecovery(slug, now + 1000)).toEqual({
       selection: { tickets: [{ id: 7, quantity: 2 }], items: [{ id: 9, quantity: 1 }] },
       orderPublicId: "order-public-123",
       couponCode: "CUTVIP20",
+      paymentMethod: "card",
       savedAt: now,
     });
   });
@@ -42,8 +44,32 @@ describe("checkoutRecovery", () => {
       selection: { tickets: [{ id: 7, quantity: 1 }], items: [] },
       orderPublicId: null,
       couponCode: null,
+      paymentMethod: null,
       savedAt: now,
     });
+  });
+
+  test("keeps a valid payment method when subsequent recovery writes omit it", () => {
+    writeCheckoutRecovery(slug, {
+      selection: { tickets: [{ id: 7, quantity: 1 }] },
+      paymentMethod: "card",
+    }, now);
+
+    writeCheckoutRecovery(slug, {
+      selection: { tickets: [{ id: 7, quantity: 2 }] },
+      couponCode: "VIP10",
+    }, now + 1000);
+
+    expect(readCheckoutRecovery(slug, now + 1001)?.paymentMethod).toBe("card");
+  });
+
+  test("ignores unsupported persisted payment methods", () => {
+    writeCheckoutRecovery(slug, {
+      selection: { tickets: [{ id: 7, quantity: 1 }] },
+      paymentMethod: "crypto",
+    }, now);
+
+    expect(readCheckoutRecovery(slug, now)?.paymentMethod).toBeNull();
   });
 
   test("expires stale checkout recovery automatically", () => {
