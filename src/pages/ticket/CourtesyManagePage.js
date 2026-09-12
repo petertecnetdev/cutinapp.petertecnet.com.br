@@ -6,6 +6,7 @@ import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorCo
 import cutinappService from "../../services/CutinappService";
 import { copyText } from "../../utils/clipboard";
 import { buildEventSaleShareText, buildEventSaleUrl, buildWhatsAppShareUrl } from "../../utils/eventSaleShare";
+import "./CourtesyManagePage.css";
 
 const toLocalInput = (value) => {
   if (!value) return "";
@@ -211,13 +212,13 @@ export default function CourtesyManagePage() {
   };
 
   return (
-    <div className="cut-app-page">
+    <div className="cut-app-page cut-ticket-manager-page">
       <NavlogComponent />
       {(loading || busyId || publishing) && <ProcessingIndicatorComponent label={loading ? "Carregando ingressos" : publishing ? "Publicando evento" : "Atualizando ingresso"} />}
       <Container className="cut-page-container py-4 py-lg-5">
-        <div className="cut-page-heading">
-          <div><span className="cut-eyebrow">Ingressos</span><h1>{event?.title || "Ingressos do evento"}</h1><p>{tickets.length} lote(s) · {totalIssued} ingresso(s) emitido(s).</p></div>
-          <div className="cut-card-actions"><Button variant="outline-light" onClick={() => navigate(`/event/edit/${eventId}`)}>Voltar ao evento</Button><Button onClick={() => navigate(`/ticket/create?eventId=${eventId}`)}>Novo ingresso</Button></div>
+        <div className="cut-page-heading cut-ticket-manager-heading">
+          <div className="cut-ticket-manager-heading__copy"><span className="cut-eyebrow">Ingressos</span><h1>{event?.title || "Ingressos do evento"}</h1><p>{tickets.length} lote(s) · {totalIssued} ingresso(s) emitido(s).</p></div>
+          <div className="cut-ticket-manager-heading__actions"><Button variant="outline-light" onClick={() => navigate(`/event/edit/${eventId}`)}><i className="fa-solid fa-arrow-left me-2" />Voltar ao evento</Button><Button onClick={() => navigate(`/ticket/create?eventId=${eventId}`)}><i className="fa-solid fa-plus me-2" />Novo lote</Button></div>
         </div>
 
         {error && <Alert variant="danger">{error}</Alert>}
@@ -243,22 +244,32 @@ export default function CourtesyManagePage() {
         {!loading && tickets.length === 0 ? (
           <Card className="cut-empty-state"><Card.Body><h2>Nenhum ingresso configurado</h2><p>Crie o primeiro lote antes de publicar o evento.</p><Button onClick={() => navigate(`/ticket/create?eventId=${eventId}`)}>Criar ingresso</Button></Card.Body></Card>
         ) : (
-          <Row className="g-4">
+          <Row className="g-4 cut-ticket-lots-grid">
             {tickets.map((ticket) => {
               const issued = Number(ticket.passes_count || 0);
               const remaining = Math.max(0, Number(ticket.quantity || 0) - issued);
               const values = editing[ticket.id] || {};
-              return <Col xl={6} key={ticket.id}><Card className="cut-panel h-100"><Card.Body className="p-4">
-                <div className="d-flex justify-content-between align-items-start gap-3 mb-4"><div><span className="cut-eyebrow">Lote de ingresso</span><h2 className="cut-section-title mt-2">{ticket.name}</h2></div><Badge bg={remaining > 0 ? "success" : "secondary"}>{remaining > 0 ? `${remaining} restantes` : "Esgotado"}</Badge></div>
-                <Row className="g-3">
+              return <Col xl={6} key={ticket.id} className="cut-ticket-lot-col"><Card className="cut-panel h-100 cut-ticket-lot-card"><Card.Body className="cut-ticket-lot-card__body">
+                <div className="cut-ticket-lot-card__header">
+                  <div className="cut-ticket-lot-card__title">
+                    <span className="cut-eyebrow">Lote de ingresso</span>
+                    <h2>{ticket.name}</h2>
+                    <div className="cut-ticket-lot-card__meta">
+                      <span><i className="fa-solid fa-layer-group" /> {Number(ticket.quantity || 0)} total</span>
+                      <span><i className="fa-solid fa-ticket" /> {issued} emitidos</span>
+                    </div>
+                  </div>
+                  <Badge className="cut-ticket-lot-card__status" bg={remaining > 0 ? "success" : "secondary"}>{remaining > 0 ? `${remaining} restantes` : "Esgotado"}</Badge>
+                </div>
+                <Row className="g-3 cut-ticket-lot-form">
                   <Col xs={12}><Form.Group><Form.Label>Nome</Form.Label><Form.Control value={values.name || ""} onChange={(e) => change(ticket.id, "name", e.target.value)} /></Form.Group></Col>
                   <Col md={6}><Form.Group><Form.Label>Quantidade total</Form.Label><Form.Control type="number" min={Math.max(1, issued)} max={100000} value={values.quantity ?? ""} onChange={(e) => change(ticket.id, "quantity", e.target.value)} /></Form.Group></Col>
                   <Col md={6}><Form.Group><Form.Label>Ingressos emitidos</Form.Label><Form.Control value={issued} readOnly /></Form.Group></Col>
                   <Col xs={12}><Form.Group><Form.Label>Disponível até</Form.Label><Form.Control type="datetime-local" value={values.limit_date || ""} onChange={(e) => change(ticket.id, "limit_date", e.target.value)} /></Form.Group></Col>
                   <Col xs={12}><Form.Group><Form.Label>Orientações</Form.Label><Form.Control as="textarea" rows={3} value={values.description || ""} onChange={(e) => change(ticket.id, "description", e.target.value)} /></Form.Group></Col>
                 </Row>
-                <div className="cut-card-actions mt-4"><Button onClick={() => save(ticket.id)} disabled={busyId === ticket.id}>Salvar</Button><Button variant="outline-danger" onClick={() => remove(ticket)} disabled={issued > 0 || busyId === ticket.id}>Excluir</Button></div>
-                {issued > 0 && <div className="cut-info-box mt-3"><strong>Exclusão protegida</strong><span>Este lote já emitiu ingressos. Você pode aumentar a quantidade, mas não apagar o histórico nem reduzir abaixo de {issued}.</span></div>}
+                <div className="cut-ticket-lot-card__actions"><Button onClick={() => save(ticket.id)} disabled={busyId === ticket.id}><i className="fa-solid fa-check me-2" />Salvar lote</Button><Button variant="outline-danger" onClick={() => remove(ticket)} disabled={issued > 0 || busyId === ticket.id}><i className="fa-regular fa-trash-can me-2" />Excluir</Button></div>
+                {issued > 0 && <div className="cut-info-box cut-ticket-lot-card__notice"><strong>Exclusão protegida</strong><span>Este lote já emitiu ingressos. Você pode aumentar a quantidade, mas não apagar o histórico nem reduzir abaixo de {issued}.</span></div>}
               </Card.Body></Card></Col>;
             })}
           </Row>
