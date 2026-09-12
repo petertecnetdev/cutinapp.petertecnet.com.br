@@ -264,3 +264,36 @@
 @media (prefers-reduced-motion: reduce) {
   .cut-skeleton::after { animation: none; }
 }
+
+
+/* SweetAlert2 — avisos que exigem atenção do usuário */
+.cut-swal-popup {
+  border: 1px solid var(--cut-border-strong) !important;
+  border-radius: var(--cut-radius-xl) !important;
+  box-shadow: 0 28px 80px rgba(0,0,0,.46), 0 0 0 1px rgba(184,71,250,.08) !important;
+  padding: 1.5rem !important;
+}
+.cut-swal-title {
+  color: var(--cut-text) !important;
+  font-weight: 850 !important;
+  letter-spacing: -.02em;
+}
+.cut-swal-copy {
+  color: var(--cut-text-soft) !important;
+  line-height: 1.6 !important;
+}
+.cut-swal-actions {
+  gap: .75rem !important;
+  margin-top: 1.25rem !important;
+}
+.cut-swal-confirm,
+.cut-swal-cancel {
+  min-width: 150px;
+  margin: 0 !important;
+}
+@media (max-width: 575.98px) {
+  .cut-swal-popup { width: calc(100% - 24px) !important; padding: 1.15rem !important; }
+  .cut-swal-actions { width: 100%; flex-direction: column-reverse; }
+  .cut-swal-confirm,
+  .cut-swal-cancel { width: 100%; }
+}
