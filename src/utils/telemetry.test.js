@@ -49,6 +49,32 @@ describe("checkout recovery attribution", () => {
     expect(approvedCalls[1][1].metadata).toBeUndefined();
   });
 
+  test("buffers checkout telemetry until the SDK becomes available", async () => {
+    delete window.PeterTecnetTelemetry;
+    const { installTelemetryEnrichment, trackTelemetry } = await loadTelemetry();
+    window.history.replaceState({}, "", "/checkout/evento-teste");
+
+    expect(trackTelemetry("checkout_opened", {
+      target: "evento-teste",
+      metadata: { event_id: 42, amount: 30 },
+    })).toBe(true);
+
+    rawTrack = jest.fn();
+    window.PeterTecnetTelemetry = { track: rawTrack };
+    expect(installTelemetryEnrichment()).toBe(true);
+
+    expect(rawTrack).toHaveBeenCalledTimes(1);
+    expect(rawTrack).toHaveBeenCalledWith("checkout_opened", expect.objectContaining({
+      target: "evento-teste",
+      metadata: expect.objectContaining({
+        event_id: 42,
+        amount: 30,
+        checkout_journey_id: expect.any(String),
+        checkout_journey_started_at: expect.any(Number),
+      }),
+    }));
+  });
+
   test("enriches direct SDK checkout events after telemetry installation", async () => {
     const { installTelemetryEnrichment } = await loadTelemetry();
     window.history.replaceState({}, "", "/checkout/evento-teste");

@@ -18,14 +18,13 @@ import { isPendingPixExpired, latestPaymentFromOrder, pendingPixExpirationState 
 import { createKeyedSingleFlight } from "../../utils/singleFlight";
 import { clearEventCart, readEventCart, writeEventCart } from "../../utils/eventCartStorage";
 import { safeGetSessionJson, safeRemoveSessionItem, safeSetSessionJson } from "../../utils/safeStorage";
+import { trackTelemetry } from "../../utils/telemetry";
 import "./CheckoutPage.css";
 
 const money = (value) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
 const failedStatuses = ["refunded", "charged_back", "rejected", "cancelled"];
 
-const trackCheckout = (type, details = {}) => {
-  try { window.PeterTecnetTelemetry?.track?.(type, details); } catch (_) { /* Telemetry must never interrupt checkout. */ }
-};
+const trackCheckout = (type, details = {}) => trackTelemetry(type, details);
 
 export default function CheckoutPage() {
   const { slug } = useParams();
