@@ -189,14 +189,20 @@ export default function ApplicationAdminFinancePage() {
 
             {incidents.active && <Alert variant="danger">
               Incidente ativo há <strong>{duration(incidents.active.duration_seconds)}</strong>, com pico de <strong>{money(incidents.active.peak_at_risk_volume)}</strong> em volume sob risco.
+              {incidents.active.recovered_gmv > 0 && <span className="d-block mt-1">Reconciliação já protegeu <strong>{money(incidents.active.recovered_gmv)}</strong> neste incidente ({incidents.active.recovered_paid_orders ?? 0} pedido(s) recuperado(s)).</span>}
               {incidents.active.diagnosis && <span className="d-block mt-1">Hipótese: <strong>{incidents.active.diagnosis.label}</strong> ({confidenceLabel[incidents.active.diagnosis.confidence] || "inferência"}).</span>}
             </Alert>}
 
             <Row className="g-3">
               <Col xs={6} lg={3}><div className="border rounded-3 p-3 h-100"><span className="cut-eyebrow">Incidentes</span><div className="fs-5 fw-bold mt-2">{incidents.incidents ?? 0}</div></div></Col>
               <Col xs={6} lg={3}><div className="border rounded-3 p-3 h-100"><span className="cut-eyebrow">MTTR</span><div className="fs-5 fw-bold mt-2">{duration(incidents.average_duration_seconds)}</div></div></Col>
-              <Col xs={6} lg={3}><div className="border rounded-3 p-3 h-100"><span className="cut-eyebrow">Maior duração</span><div className="fs-5 fw-bold mt-2">{duration(incidents.max_duration_seconds)}</div></div></Col>
               <Col xs={6} lg={3}><div className="border rounded-3 p-3 h-100"><span className="cut-eyebrow">Maior GMV exposto</span><div className="fs-5 fw-bold mt-2">{money(incidents.peak_at_risk_volume)}</div></div></Col>
+              <Col xs={6} lg={3}><div className="border rounded-3 p-3 h-100"><span className="cut-eyebrow">GMV recuperado</span><div className="fs-5 fw-bold mt-2">{money(incidents.recovered_gmv)}</div><small className="text-secondary">{incidents.recovered_paid_orders ?? 0} pedido(s)</small></div></Col>
+            </Row>
+            <Row className="g-3 mt-0">
+              <Col xs={6} lg={4}><div className="border rounded-3 p-3 h-100"><span className="cut-eyebrow">Maior duração</span><div className="fs-5 fw-bold mt-2">{duration(incidents.max_duration_seconds)}</div></div></Col>
+              <Col xs={6} lg={4}><div className="border rounded-3 p-3 h-100"><span className="cut-eyebrow">Fulfillments recuperados</span><div className="fs-5 fw-bold mt-2">{incidents.recovered_fulfillments ?? 0}</div></div></Col>
+              <Col xs={12} lg={4}><div className="border rounded-3 p-3 h-100"><span className="cut-eyebrow">Retries de entrega recuperados</span><div className="fs-5 fw-bold mt-2">{incidents.recovered_delivery_retries ?? 0}</div></div></Col>
             </Row>
 
             {(incidents.recent || []).length > 0 && <div className="mt-3">
@@ -208,6 +214,7 @@ export default function ApplicationAdminFinancePage() {
                     <Badge bg="success">Recuperado em {duration(incident.duration_seconds)}</Badge>
                   </div>
                   <small className="text-secondary d-block mt-1">Pico {money(incident.peak_at_risk_volume)} · {incident.peak_critical_orders ?? 0} crítico(s) · fechamento em {money(incident.closing_at_risk_volume)}</small>
+                  {(incident.recovered_gmv > 0 || incident.recovered_fulfillments > 0 || incident.recovered_delivery_retries > 0) && <small className="d-block mt-1 text-success">Protegido pela recuperação: <strong>{money(incident.recovered_gmv)}</strong> · {incident.recovered_paid_orders ?? 0} pedido(s) · {incident.recovered_fulfillments ?? 0} fulfillment(s) · {incident.recovered_delivery_retries ?? 0} retry(s)</small>}
                   {incident.diagnosis && <small className="d-block mt-1">Hipótese: <strong>{incident.diagnosis.label}</strong> · {confidenceLabel[incident.diagnosis.confidence] || "inferência"}</small>}
                 </div>)}
               </div>
