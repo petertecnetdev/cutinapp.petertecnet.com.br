@@ -48,6 +48,11 @@ export default function PeterAccountGateway({ apiBaseUrl, appSlug, children }) {
       if (!active) return;
       loadTelemetry(api, appSlug || "").catch((error) => console.error("[Peter Tecnet Telemetry]", error));
     };
+    const isCheckoutRoute = window.location.pathname.startsWith("/checkout/");
+
+    // Checkout telemetry is revenue-critical. Start it immediately so very fast
+    // exits/pagehide events are not left only in the in-memory queue.
+    if (isCheckoutRoute) loadSecondaryTelemetry();
 
     const start = () => {
       if (!active) return;
@@ -60,8 +65,10 @@ export default function PeterAccountGateway({ apiBaseUrl, appSlug, children }) {
         host.replaceChildren(launcher);
         cleanupDock = dockLauncherInNavbar(launcher);
 
-        if (typeof window.requestIdleCallback === "function") telemetryHandle = window.requestIdleCallback(loadSecondaryTelemetry, { timeout: 1800 });
-        else telemetryHandle = window.setTimeout(loadSecondaryTelemetry, 600);
+        if (!isCheckoutRoute) {
+          if (typeof window.requestIdleCallback === "function") telemetryHandle = window.requestIdleCallback(loadSecondaryTelemetry, { timeout: 1800 });
+          else telemetryHandle = window.setTimeout(loadSecondaryTelemetry, 600);
+        }
       }).catch((error) => console.error("[Peter Tecnet Ecosystem]", error));
     };
 
