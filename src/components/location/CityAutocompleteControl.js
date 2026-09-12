@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useId, useRef, useState } from "react";
 import PropTypes from "prop-types";
 import { Form, Spinner } from "react-bootstrap";
 import cutinappService from "../../services/CutinappService";
@@ -18,6 +18,7 @@ export default function CityAutocompleteControl({
   const [loading, setLoading] = useState(false);
   const timerRef = useRef(null);
   const requestRef = useRef(0);
+  const listId = useId();
 
   useEffect(() => () => {
     window.clearTimeout(timerRef.current);
@@ -25,6 +26,8 @@ export default function CityAutocompleteControl({
   }, []);
 
   const search = (text) => {
+    const requestId = requestRef.current + 1;
+    requestRef.current = requestId;
     onChange({ city: text, uf: "", selected: false });
     setCities([]);
     window.clearTimeout(timerRef.current);
@@ -36,8 +39,6 @@ export default function CityAutocompleteControl({
     }
 
     timerRef.current = window.setTimeout(async () => {
-      const requestId = requestRef.current + 1;
-      requestRef.current = requestId;
       setLoading(true);
 
       try {
@@ -79,14 +80,14 @@ export default function CityAutocompleteControl({
         role="combobox"
         aria-autocomplete="list"
         aria-expanded={cities.length > 0}
-        aria-controls="event-city-autocomplete-list"
+        aria-controls={listId}
         placeholder={placeholder}
         isInvalid={isInvalid}
         required={required}
       />
       {loading && <Spinner size="sm" className="cut-location-spinner" aria-label="Buscando cidades" />}
       {cities.length > 0 && (
-        <div id="event-city-autocomplete-list" className="cut-autocomplete-menu" role="listbox">
+        <div id={listId} className="cut-autocomplete-menu" role="listbox">
           {cities.map((city) => (
             <button
               type="button"
