@@ -6,6 +6,7 @@ import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorCo
 import CityAutocompleteControl from "../../components/location/CityAutocompleteControl";
 import eventService from "../../services/EventService";
 import cutinappService from "../../services/CutinappService";
+import { storageUrl } from "../../config";
 import { AuthContext } from "../../context/AuthContext";
 import { clearEventCreationDraft, readEventCreationDraft, writeEventCreationDraft } from "../../utils/eventCreationDraft";
 import { showImportantAlert, showProducerAgreementRequired } from "../../utils/sweetAlert";
@@ -43,6 +44,21 @@ const formatEventDate = (value) => {
     minute: "2-digit",
   });
 };
+
+const eventCoverUrl = (image) => {
+  if (!image) return "";
+  const value = String(image);
+  if (/^https?:\/\//i.test(value)) return value;
+  return `${storageUrl}${value.replace(/^\//, "")}`;
+};
+
+const eventInitials = (title) => String(title || "EV")
+  .trim()
+  .split(/\s+/)
+  .filter(Boolean)
+  .slice(0, 2)
+  .map((part) => part[0]?.toUpperCase())
+  .join("") || "EV";
 
 const minimumEventStart = () => {
   const date = new Date(Date.now() + 5 * 60 * 1000);
@@ -135,6 +151,7 @@ export default function EventCreatePage() {
   const [existingEventsLoading, setExistingEventsLoading] = useState(false);
   const [reuseEventId, setReuseEventId] = useState("");
   const [reuseDate, setReuseDate] = useState("");
+  const [reuseSearch, setReuseSearch] = useState("");
   const [reusingEvent, setReusingEvent] = useState(false);
   const minStart = useMemo(() => toLocalInput(minimumEventStart()), []);
   const draftOwnerId = Number(user?.id || 0);
@@ -604,6 +621,17 @@ export default function EventCreatePage() {
     return () => window.removeEventListener("cutinapp:event-cover-selected", handleGeneratedCover);
   }, []);
 
+  const filteredReuseEvents = useMemo(() => {
+    const query = reuseSearch.trim().toLocaleLowerCase("pt-BR");
+    if (!query) return existingEvents;
+    return existingEvents.filter((item) => [
+      item?.title,
+      item?.production?.name,
+      item?.city,
+      item?.venue,
+    ].some((value) => String(value || "").toLocaleLowerCase("pt-BR").includes(query)));
+  }, [existingEvents, reuseSearch]);
+
   const selectedReuseEvent = useMemo(
     () => existingEvents.find((item) => String(item.id) === String(reuseEventId)) || null,
     [existingEvents, reuseEventId]
@@ -727,50 +755,104 @@ export default function EventCreatePage() {
                 </div>
               </div>
 
-              <Row className="g-3 align-items-end mt-1">
-                <Col lg={7}>
-                  <Form.Group>
-                    <Form.Label>Evento que será usado como modelo</Form.Label>
-                    <Form.Select value={reuseEventId} onChange={(event) => chooseReuseEvent(event.target.value)} disabled={reusingEvent}>
-                      <option value="">Selecione um evento</option>
-                      {existingEvents.map((item) => (
-                        <option key={item.id} value={item.id}>
-                          {item.title} · {formatEventDate(item.start_date)}
-                        </option>
-                      ))}
-                    </Form.Select>
-                  </Form.Group>
-                </Col>
-                <Col sm={7} lg={3}>
-                  <Form.Group>
-                    <Form.Label>Nova data</Form.Label>
+              <div className="cut-event-reuse-picker mt-4">
+                <div className="cut-event-reuse-toolbar">
+                  <div>
+                    <strong>Escolha visualmente o evento</strong>
+                    <span>Clique no card do evento que será usado como base.</span>
+                  </div>
+                  <div className="cut-event-reuse-search">
+                    <i className="fa-solid fa-magnifying-glass" />
                     <Form.Control
-                      type="date"
-                      min={toDateInput(new Date(Date.now() + 24 * 60 * 60 * 1000))}
-                      value={reuseDate}
-                      onChange={(event) => setReuseDate(event.target.value)}
-                      disabled={!selectedReuseEvent || reusingEvent}
+                      value={reuseSearch}
+                      onChange={(event) => setReuseSearch(event.target.value)}
+                      placeholder="Buscar evento, produção ou cidade"
+                      aria-label="Buscar evento para reutilizar"
                     />
-                  </Form.Group>
-                </Col>
-                <Col sm={5} lg={2}>
-                  <Button
-                    type="button"
-                    className="w-100 cut-event-reuse-action"
-                    onClick={reuseExistingEvent}
-                    disabled={!selectedReuseEvent || !reuseDate || reusingEvent}
-                  >
-                    <i className="fa-regular fa-copy me-2" />
-                    Criar edição
-                  </Button>
-                </Col>
-              </Row>
+                  </div>
+                </div>
+
+                <div className="cut-event-reuse-gallery" role="listbox" aria-label="Eventos disponíveis para reutilizar">
+                  {filteredReuseEvents.map((item) => {
+                    const selected = String(item.id) === String(reuseEventId);
+                    const cover = eventCoverUrl(item.image);
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className={`cut-event-reuse-option ${selected ? "is-selected" : ""}`}
+                        onClick={() => chooseReuseEvent(String(item.id))}
+                        disabled={reusingEvent}
+                        role="option"
+                        aria-selected={selected}
+                      >
+                        <span className="cut-event-reuse-cover">
+                          {cover ? (
+                            <img src={cover} alt="" loading="lazy" />
+                          ) : (
+                            <span className="cut-event-reuse-fallback" aria-hidden="true">{eventInitials(item.title)}</span>
+                          )}
+                          <span className={`cut-event-reuse-state ${item.is_published ? "is-published" : "is-draft"}`}>
+                            {item.is_published ? "Publicado" : "Rascunho"}
+                          </span>
+                          <span className="cut-event-reuse-check" aria-hidden="true">
+                            <i className={selected ? "fa-solid fa-circle-check" : "fa-regular fa-circle"} />
+                          </span>
+                        </span>
+                        <span className="cut-event-reuse-option-body">
+                          <strong>{item.title}</strong>
+                          <span className="cut-event-reuse-production">{item.production?.name || "Produção"}</span>
+                          <span className="cut-event-reuse-detail"><i className="fa-regular fa-calendar" /> {formatEventDate(item.start_date)}</span>
+                          {(item.city || item.venue) && <span className="cut-event-reuse-detail"><i className="fa-solid fa-location-dot" /> {[item.venue, item.city].filter(Boolean).join(" · ")}</span>}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {filteredReuseEvents.length === 0 && (
+                  <div className="cut-event-reuse-empty">
+                    <i className="fa-regular fa-calendar-xmark" />
+                    <strong>Nenhum evento encontrado</strong>
+                    <span>Tente outro nome, produção ou cidade.</span>
+                  </div>
+                )}
+              </div>
 
               {selectedReuseEvent && (
-                <div className="cut-event-reuse-preview mt-3">
-                  <div>
-                    <strong>{selectedReuseEvent.title}</strong>
-                    <span>{selectedReuseEvent.production?.name || "Produção"} · original em {formatEventDate(selectedReuseEvent.start_date)}</span>
+                <div className="cut-event-reuse-selection mt-3">
+                  <div className="cut-event-reuse-selection-main">
+                    <span className="cut-event-reuse-selection-thumb">
+                      {eventCoverUrl(selectedReuseEvent.image)
+                        ? <img src={eventCoverUrl(selectedReuseEvent.image)} alt="" />
+                        : <span>{eventInitials(selectedReuseEvent.title)}</span>}
+                    </span>
+                    <div>
+                      <span className="cut-eyebrow">Evento selecionado</span>
+                      <strong>{selectedReuseEvent.title}</strong>
+                      <small>{selectedReuseEvent.production?.name || "Produção"} · original em {formatEventDate(selectedReuseEvent.start_date)}</small>
+                    </div>
+                  </div>
+                  <div className="cut-event-reuse-selection-action">
+                    <Form.Group>
+                      <Form.Label>Nova data</Form.Label>
+                      <Form.Control
+                        type="date"
+                        min={toDateInput(new Date(Date.now() + 24 * 60 * 60 * 1000))}
+                        value={reuseDate}
+                        onChange={(event) => setReuseDate(event.target.value)}
+                        disabled={reusingEvent}
+                      />
+                    </Form.Group>
+                    <Button
+                      type="button"
+                      className="cut-event-reuse-action"
+                      onClick={reuseExistingEvent}
+                      disabled={!reuseDate || reusingEvent}
+                    >
+                      <i className="fa-regular fa-copy me-2" />
+                      {reusingEvent ? "Criando..." : "Criar nova edição"}
+                    </Button>
                   </div>
                   <div className="cut-event-reuse-tags">
                     <span><i className="fa-regular fa-image" /> Arte</span>
@@ -778,7 +860,7 @@ export default function EventCreatePage() {
                     <span><i className="fa-solid fa-bag-shopping" /> Produtos</span>
                     <span><i className="fa-solid fa-people-group" /> Line-up</span>
                   </div>
-                  <small>São reaproveitados dados, imagem, ingressos, produtos e programação. Vendas, participantes, check-ins e histórico começam zerados.</small>
+                  <small className="cut-event-reuse-note">A nova edição reaproveita os dados do evento. Vendas, participantes, check-ins e histórico começam zerados.</small>
                 </div>
               )}
             </Card.Body>
