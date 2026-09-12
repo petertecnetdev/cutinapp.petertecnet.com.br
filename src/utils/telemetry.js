@@ -174,6 +174,14 @@ const ensureAttributionAwareTracker = () => {
   return wrappedTrack;
 };
 
+export const installTelemetryEnrichment = () => {
+  try {
+    return typeof ensureAttributionAwareTracker() === "function";
+  } catch (_) {
+    return false;
+  }
+};
+
 export const trackTelemetry = (type, details = {}) => {
   try {
     if (typeof window === "undefined") return false;
