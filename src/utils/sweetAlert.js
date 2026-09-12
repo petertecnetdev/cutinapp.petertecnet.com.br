@@ -32,10 +32,10 @@ export const showImportantAlert = async ({
 
   if (!Swal) {
     const message = [title, text].filter(Boolean).join("\n\n");
-    if (showCancelButton && typeof window?.confirm === "function") {
+    if (showCancelButton && typeof window !== "undefined" && typeof window.confirm === "function") {
       return fallbackResult(window.confirm(message));
     }
-    if (typeof window?.alert === "function") window.alert(message);
+    if (typeof window !== "undefined" && typeof window.alert === "function") window.alert(message);
     return fallbackResult(true);
   }
 
