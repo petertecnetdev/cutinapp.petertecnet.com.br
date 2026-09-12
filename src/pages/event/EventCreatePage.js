@@ -588,7 +588,7 @@ export default function EventCreatePage() {
                       placeholder="Digite ao menos 2 letras"
                       required
                     />
-                    <Form.Control.Feedback type="invalid">{firstError(fieldErrors, "city") || "Informe a cidade do evento."}</Form.Control.Feedback>
+                    {invalid("city", requiredInvalid.city) && <div className="invalid-feedback d-block">{firstError(fieldErrors, "city") || "Informe a cidade do evento."}</div>}
                     <Form.Text>Selecione a cidade na lista para preencher a UF automaticamente.</Form.Text>
                   </Form.Group>
                 </Col>
