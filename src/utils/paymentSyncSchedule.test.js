@@ -21,10 +21,16 @@ describe("payment sync schedule", () => {
     expect(getPaymentSyncDelay(0, { rateLimited: true, retryAfter: "12", random: () => 1 })).toBe(13200);
   });
 
+  it("falls back to the normal rate-limit cooldown when Retry-After is zero", () => {
+    expect(parseRetryAfterMs("0")).toBeNull();
+    expect(getPaymentSyncDelay(0, { rateLimited: true, retryAfter: "0", random: () => 0.5 })).toBe(RATE_LIMIT_DELAY_MS);
+  });
+
   it("honors HTTP-date Retry-After and caps excessive server waits", () => {
     const now = Date.parse("2026-09-13T06:00:00Z");
     expect(parseRetryAfterMs("Sun, 13 Sep 2026 06:00:45 GMT", now)).toBe(45000);
     expect(parseRetryAfterMs("Sun, 13 Sep 2026 06:10:00 GMT", now)).toBe(MAX_RETRY_AFTER_MS);
+    expect(getPaymentSyncDelay(0, { rateLimited: true, retryAfter: "600", random: () => 1, now })).toBe(MAX_RETRY_AFTER_MS);
     expect(parseRetryAfterMs("invalid", now)).toBeNull();
   });
 
