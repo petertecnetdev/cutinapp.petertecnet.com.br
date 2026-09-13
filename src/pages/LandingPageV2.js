@@ -92,21 +92,111 @@ const demoSteps = [
 ];
 
 const faqItems = [
-  { category: "participante", question: "Preciso pagar para usar a Cutinapp?", answer: "Não para descobrir eventos, artistas e produções públicas. Recursos comerciais dependem do que cada evento disponibiliza, como ingressos ou itens." },
-  { category: "participante", question: "Preciso criar conta para descobrir eventos?", answer: "Não. A descoberta pública começa antes do login. A conta passa a ser importante quando você quer participar, comprar, acompanhar e manter sua experiência conectada." },
-  { category: "participante", question: "Como encontro eventos perto de mim?", answer: "Você pode usar sua localização, escolher uma cidade e combinar filtros como hoje, fim de semana, gratuitos, categoria, disponibilidade e popularidade." },
-  { category: "participante", question: "A Cutinapp mostra artistas e produções do evento?", answer: "Sim. A proposta é mostrar o contexto da experiência, conectando evento, produção, artistas e outros elementos públicos da cena." },
-  { category: "produtor", question: "O que um produtor consegue fazer?", answer: "O produtor pode estruturar sua produção, publicar eventos e trabalhar com recursos como agenda, line-up, ingressos, participantes, cortesias, vendas e check-in." },
-  { category: "produtor", question: "Consigo manter uma agenda recorrente de eventos?", answer: "Sim. A Cutinapp possui gestão de agenda de produção para acelerar a criação e a manutenção de eventos recorrentes." },
-  { category: "produtor", question: "Consigo acompanhar vendas e participantes?", answer: "Sim. A operação do produtor reúne áreas próprias para vendas, participantes, ingressos, cortesias e acompanhamento do evento." },
-  { category: "produtor", question: "Como funciona o check-in?", answer: "O produtor pode validar ingressos e acompanhar o acesso do evento pelo fluxo de check-in da Cutinapp." },
-  { category: "artista", question: "Artistas podem usar a Cutinapp?", answer: "Sim. Artistas têm presença pública, podem aparecer em line-ups e eventos e se tornar uma parte navegável da experiência do público." },
-  { category: "artista", question: "Promoters também fazem parte da rede?", answer: "Sim. A Cutinapp foi pensada para conectar diferentes atores da cena, inclusive quem ajuda a divulgar e movimentar eventos." },
-  { category: "seguranca", question: "Como funciona a segurança do ingresso?", answer: "Os fluxos de ingresso e check-in usam identificação digital e validação no evento para reduzir reutilização indevida e facilitar a conferência operacional." },
-  { category: "seguranca", question: "Posso denunciar problemas ou comportamentos inadequados?", answer: "A plataforma possui recursos de moderação e denúncia para que problemas possam ser encaminhados e analisados dentro do ecossistema." },
-  { category: "geral", question: "A Cutinapp funciona só para grandes eventos?", answer: "Não. Casas, coletivos, festas independentes, produtores e eventos de diferentes tamanhos podem construir presença e descoberta no mesmo ecossistema." },
-  { category: "geral", question: "A Cutinapp é só uma plataforma de ingressos?", answer: "Não. Ingresso é uma parte da jornada. A Cutinapp conecta descoberta, comunidade, artistas, produções e operação do evento." },
-  { category: "geral", question: "Posso navegar sem saber exatamente o que procuro?", answer: "Sim. A landing e a descoberta foram desenhadas para explorar por cidade, período, categoria e sinais da própria cena, sem exigir que você já saiba o nome do evento." },
+  {
+    category: "geral",
+    question: "O que é a Cutinapp?",
+    answer: "A Cutinapp é uma rede social de eventos que transforma descoberta, interação, compra, participação e pós-evento em uma experiência única, enquanto oferece ao produtor toda a infraestrutura necessária para organizar, divulgar, vender e administrar seus eventos."
+  },
+  {
+    category: "participante",
+    question: "Preciso pagar para usar a Cutinapp?",
+    answer: "Não para descobrir eventos, produções, artistas e conteúdos públicos. Você só paga quando decide comprar um ingresso, item ou outra oferta disponibilizada por um evento."
+  },
+  {
+    category: "participante",
+    question: "Preciso criar uma conta para descobrir eventos?",
+    answer: "Não. Você pode começar explorando eventos sem cadastro. A conta passa a fazer diferença quando quer comprar, acompanhar sua experiência, guardar ingressos e participar dos recursos sociais."
+  },
+  {
+    category: "participante",
+    question: "Como encontro eventos perto de mim?",
+    answer: "A Cutinapp permite descobrir eventos pela sua localização ou cidade e combinar filtros de período, categoria, popularidade, gratuidade e disponibilidade."
+  },
+  {
+    category: "participante",
+    question: "Por que usar a Cutinapp em vez de procurar eventos em várias redes sociais?",
+    answer: "Porque a Cutinapp concentra descoberta, detalhes do evento, produção, artistas, ingressos e participação em uma jornada conectada, reduzindo a necessidade de procurar cada informação em um lugar diferente."
+  },
+  {
+    category: "participante",
+    question: "Consigo comprar ingressos pela Cutinapp?",
+    answer: "Sim. Quando o produtor disponibiliza ingressos, você pode acessar o evento e seguir o fluxo de compra dentro da experiência da Cutinapp."
+  },
+  {
+    category: "participante",
+    question: "Onde ficam meus ingressos depois da compra?",
+    answer: "Seus ingressos ficam associados à sua conta e podem ser acessados pela área de ingressos, facilitando a consulta e a apresentação no evento."
+  },
+  {
+    category: "participante",
+    question: "A Cutinapp serve somente para comprar ingressos?",
+    answer: "Não. O ingresso é apenas uma parte da jornada. A Cutinapp também conecta descoberta, comunidade, eventos, produções, artistas, conteúdo, interação e experiências antes e depois do evento."
+  },
+  {
+    category: "participante",
+    question: "A experiência termina quando o evento acaba?",
+    answer: "Não precisa terminar. A proposta da Cutinapp é manter o evento vivo também no pós-evento, permitindo que a experiência, os registros e as interações continuem gerando conexão com a comunidade."
+  },
+  {
+    category: "produtor",
+    question: "O que a Cutinapp oferece para produtores de eventos?",
+    answer: "O produtor pode criar sua presença, publicar eventos, organizar agenda, ingressos, participantes, cortesias, vendas, line-up e check-in, concentrando a operação em um único ecossistema."
+  },
+  {
+    category: "produtor",
+    question: "A Cutinapp ajuda meu evento a ser encontrado por novos participantes?",
+    answer: "Sim. Eventos públicos entram na experiência de descoberta da plataforma e podem ser encontrados por cidade, localização, período, categoria e outros sinais relevantes para o público."
+  },
+  {
+    category: "produtor",
+    question: "Posso criar eventos recorrentes?",
+    answer: "Sim. A Cutinapp possui recursos de agenda para facilitar a operação de produtores que trabalham com eventos recorrentes e reduzir retrabalho."
+  },
+  {
+    category: "produtor",
+    question: "Posso trabalhar com ingressos gratuitos e cortesias?",
+    answer: "Sim. A operação de eventos pode incluir diferentes formas de acesso, incluindo lotes, opções gratuitas e gestão de cortesias conforme a configuração do produtor."
+  },
+  {
+    category: "produtor",
+    question: "Consigo acompanhar vendas e participantes?",
+    answer: "Sim. O produtor possui áreas específicas para acompanhar vendas, participantes, ingressos e outras informações operacionais relacionadas aos seus eventos."
+  },
+  {
+    category: "produtor",
+    question: "Como funciona o check-in dos participantes?",
+    answer: "A Cutinapp oferece fluxo de validação de ingressos para facilitar a conferência de acesso e o acompanhamento da entrada dos participantes no evento."
+  },
+  {
+    category: "produtor",
+    question: "A Cutinapp funciona apenas para grandes eventos?",
+    answer: "Não. Festas independentes, casas, bares, coletivos, produtores e eventos de diferentes tamanhos podem utilizar a plataforma para construir presença, público e operação."
+  },
+  {
+    category: "artista",
+    question: "Artistas podem fazer parte da Cutinapp?",
+    answer: "Sim. Artistas podem ter presença pública conectada aos eventos, produções e line-ups, ajudando o público a descobrir quem faz parte de cada experiência."
+  },
+  {
+    category: "artista",
+    question: "Promoters também podem usar a Cutinapp?",
+    answer: "Sim. A Cutinapp conecta diferentes pessoas que movimentam a cena de eventos, incluindo promoters e outros perfis envolvidos na divulgação e relacionamento com o público."
+  },
+  {
+    category: "seguranca",
+    question: "Como a Cutinapp ajuda a proteger os ingressos?",
+    answer: "Os fluxos de ingresso e check-in utilizam identificação digital e validação para facilitar a conferência e reduzir o uso indevido de acessos."
+  },
+  {
+    category: "seguranca",
+    question: "Posso denunciar problemas ou comportamentos inadequados?",
+    answer: "Sim. A plataforma possui recursos de denúncia e moderação para que situações problemáticas possam ser encaminhadas e analisadas dentro do ecossistema."
+  },
+  {
+    category: "geral",
+    question: "Posso usar a Cutinapp pelo celular?",
+    answer: "Sim. A experiência é preparada para dispositivos móveis e pode ser acessada pelo navegador. Quando a instalação estiver disponível no dispositivo, a Cutinapp também pode ser adicionada como aplicativo para acesso mais rápido."
+  },
 ];
 
 const faqCategories = [
