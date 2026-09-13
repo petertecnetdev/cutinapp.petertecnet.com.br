@@ -65,6 +65,42 @@ describe("CommerceService idempotency processing recovery", () => {
     }));
   });
 
+  test("keeps recovering a slow in-progress checkout with the same idempotency key", async () => {
+    const processingError = {
+      status: 409,
+      response: { status: 409, headers: { "idempotency-status": "processing", "retry-after": "0.001" } },
+    };
+
+    appApiClient.post
+      .mockRejectedValueOnce(processingError)
+      .mockRejectedValueOnce(processingError)
+      .mockRejectedValueOnce(processingError)
+      .mockResolvedValueOnce({ data: { order: { public_id: "order-slow", status: "pending" } } });
+
+    await expect(commerceService.checkout(payloadFor(903))).resolves.toEqual({
+      order: { public_id: "order-slow", status: "pending" },
+    });
+
+    expect(appApiClient.post).toHaveBeenCalledTimes(4);
+    const keys = appApiClient.post.mock.calls.map((_, index) => idempotencyKeyAt(index));
+    expect(new Set(keys).size).toBe(1);
+    expect(trackTelemetry).toHaveBeenLastCalledWith("checkout_transient_retry", expect.objectContaining({
+      metadata: expect.objectContaining({ retry_attempt: 3, idempotency_processing: true }),
+    }));
+  });
+
+  test("stops after the bounded in-progress checkout recovery window", async () => {
+    const processingError = {
+      status: 409,
+      response: { status: 409, headers: { "idempotency-status": "processing", "retry-after": "0.001" } },
+    };
+
+    appApiClient.post.mockRejectedValue(processingError);
+
+    await expect(commerceService.checkout(payloadFor(904))).rejects.toMatchObject({ status: 409 });
+    expect(appApiClient.post).toHaveBeenCalledTimes(4);
+  });
+
   test("does not automatically retry unrelated 409 conflicts", async () => {
     const conflict = {
       status: 409,
