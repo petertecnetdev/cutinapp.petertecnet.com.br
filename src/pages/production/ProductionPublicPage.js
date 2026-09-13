@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Button, Card, Container, Modal } from "react-bootstrap";
 import { useNavigate, useParams } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
@@ -19,6 +19,15 @@ const mediaUrl = (value) => {
   return `${storageUrl}${String(value).replace(/^\/?storage\//, "").replace(/^\//, "")}`;
 };
 const fmt = (value) => value ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(new Date(value)) : "Data a definir";
+const eventDateBadge = (value) => {
+  if (!value) return { day: "—", month: "DATA" };
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return { day: "—", month: "DATA" };
+  return {
+    day: new Intl.DateTimeFormat("pt-BR", { day: "2-digit", timeZone: "America/Sao_Paulo" }).format(date),
+    month: new Intl.DateTimeFormat("pt-BR", { month: "short", timeZone: "America/Sao_Paulo" }).format(date).replace(".", "").toUpperCase(),
+  };
+};
 const initials = (name) => String(name || "U").split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
 
 export default function ProductionPublicPage() {
@@ -33,6 +42,8 @@ export default function ProductionPublicPage() {
   const [showViewers, setShowViewers] = useState(false);
   const [ticketCartOpen, setTicketCartOpen] = useState(false);
   const [sellableUpcoming, setSellableUpcoming] = useState([]);
+  const [agendaIndex, setAgendaIndex] = useState(0);
+  const agendaCarouselRef = useRef(null);
 
   const loadCore = useCallback(async () => {
     const response = await cutinappService.publicProduction(slug);
@@ -93,6 +104,52 @@ export default function ProductionPublicPage() {
   }, [production]);
   const mapEmbedUrl = mapQuery ? `https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed` : "";
 
+  useEffect(() => {
+    setAgendaIndex(0);
+    if (agendaCarouselRef.current) agendaCarouselRef.current.scrollLeft = 0;
+  }, [slug, upcoming.length]);
+
+  const syncAgendaPosition = () => {
+    const carousel = agendaCarouselRef.current;
+    if (!carousel) return;
+    const slides = Array.from(carousel.querySelectorAll(".cut-production-event-slide"));
+    if (!slides.length) return;
+
+    const center = carousel.scrollLeft + (carousel.clientWidth / 2);
+    let closestIndex = 0;
+    let closestDistance = Number.POSITIVE_INFINITY;
+
+    slides.forEach((slide, index) => {
+      const slideCenter = slide.offsetLeft + (slide.offsetWidth / 2);
+      const distance = Math.abs(slideCenter - center);
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestIndex = index;
+      }
+    });
+
+    setAgendaIndex(closestIndex);
+  };
+
+  const goToAgendaEvent = (index) => {
+    const carousel = agendaCarouselRef.current;
+    if (!carousel) return;
+    const slides = Array.from(carousel.querySelectorAll(".cut-production-event-slide"));
+    if (!slides.length) return;
+
+    const nextIndex = Math.min(Math.max(0, index), slides.length - 1);
+    slides[nextIndex]?.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+      inline: "start",
+    });
+    setAgendaIndex(nextIndex);
+  };
+
+  const moveAgenda = (direction) => {
+    goToAgendaEvent(agendaIndex + direction);
+  };
+
   if (loading) return <div className="cut-app-page"><NavlogComponent /><ProcessingIndicatorComponent label="Carregando produção" /></div>;
   if (!data || !production) return <div className="cut-app-page"><NavlogComponent /><Container className="py-5"><Alert variant="danger">{error || "Produção não encontrada."}</Alert></Container></div>;
 
@@ -110,7 +167,130 @@ export default function ProductionPublicPage() {
         <Card className="cut-panel cut-production-location-card"><Card.Body className="p-4"><span className="cut-eyebrow">Localização</span><h2 className="cut-section-title mt-2">Onde acontece</h2>{mapEmbedUrl ? <><div className="cut-production-location-copy"><i className="fa-solid fa-location-dot" /><span>{production.formatted_address || [production.address, production.address_number, production.city, production.uf].filter(Boolean).join(", ")}</span></div><iframe title={`Mapa de ${production.name}`} loading="lazy" referrerPolicy="no-referrer-when-downgrade" src={mapEmbedUrl} /></> : <p className="text-muted mb-0">Esta produção ainda não publicou sua localização.</p>}</Card.Body></Card>
       </div>
 
-      <section className="cut-production-section"><div className="cut-production-section-head"><div><span className="cut-eyebrow">Agenda</span><h2>Próximos eventos</h2></div><Button variant="outline-light" onClick={() => navigate(`/agenda/${slug}`)}><i className="fa-solid fa-arrow-up-right-from-square me-2" />Abrir agenda completa</Button></div>{upcoming.length === 0 ? <Card className="cut-empty-state"><Card.Body><p>Nenhum evento anunciado no momento.</p></Card.Body></Card> : <div className="cut-production-events-carousel">{upcoming.map((event) => <article className="cut-production-event-slide" key={event.id} role="link" tabIndex={0} aria-label={`Abrir evento ${event.title}`} onClick={() => navigate(`/event/${event.slug}`)} onKeyDown={(e) => activateOnKeyboard(e, () => navigate(`/event/${event.slug}`))}><div className="cut-production-event-slide__media">{event.image ? <img src={mediaUrl(event.image)} alt={event.title} loading="lazy" decoding="async" /> : <div className="cut-production-event-slide__fallback"><i className="fa-regular fa-calendar" /></div>}</div><div className="cut-production-event-slide__body"><span className="cut-eyebrow">{event.category || "Evento"}</span><h3>{event.title}</h3><p><i className="fa-regular fa-calendar me-2" />{fmt(event.start_date)}</p><p><i className="fa-solid fa-location-dot me-2" />{event.venue || event.city || "Local a definir"}</p></div></article>)}</div>}</section>
+      <section className="cut-production-section cut-production-agenda-section">
+        <div className="cut-production-section-head cut-production-agenda-head">
+          <div>
+            <span className="cut-eyebrow">Agenda</span>
+            <h2>Próximos eventos</h2>
+            <p className="cut-production-agenda-copy">Escolha uma data, navegue pelas próximas experiências e abra o evento para ver ingressos e detalhes.</p>
+          </div>
+          <div className="cut-production-agenda-actions">
+            {upcoming.length > 0 && (
+              <span className="cut-production-agenda-counter" aria-live="polite">
+                <strong>{Math.min(agendaIndex + 1, upcoming.length)}</strong>
+                <span>de</span>
+                <strong>{upcoming.length}</strong>
+              </span>
+            )}
+            {upcoming.length > 1 && (
+              <div className="cut-production-agenda-controls" aria-label="Controles da agenda">
+                <button
+                  type="button"
+                  className="cut-production-agenda-control"
+                  onClick={() => moveAgenda(-1)}
+                  disabled={agendaIndex <= 0}
+                  aria-label="Evento anterior"
+                  title="Evento anterior"
+                >
+                  <i className="fa-solid fa-chevron-left" />
+                </button>
+                <button
+                  type="button"
+                  className="cut-production-agenda-control"
+                  onClick={() => moveAgenda(1)}
+                  disabled={agendaIndex >= upcoming.length - 1}
+                  aria-label="Próximo evento"
+                  title="Próximo evento"
+                >
+                  <i className="fa-solid fa-chevron-right" />
+                </button>
+              </div>
+            )}
+            <Button variant="outline-light" className="cut-production-agenda-open" onClick={() => navigate(`/agenda/${slug}`)}>
+              <i className="fa-regular fa-calendar-days me-2" />
+              Agenda completa
+            </Button>
+          </div>
+        </div>
+
+        {upcoming.length === 0 ? (
+          <Card className="cut-empty-state">
+            <Card.Body>
+              <span className="cut-production-agenda-empty-icon"><i className="fa-regular fa-calendar" /></span>
+              <h3>Nenhum próximo evento anunciado</h3>
+              <p>Quando a produção publicar uma nova data, ela aparecerá aqui.</p>
+            </Card.Body>
+          </Card>
+        ) : (
+          <>
+            <div className="cut-production-agenda-shell">
+              <div
+                ref={agendaCarouselRef}
+                className="cut-production-events-carousel"
+                onScroll={syncAgendaPosition}
+                aria-label="Próximos eventos da produção"
+              >
+                {upcoming.map((event, index) => {
+                  const badge = eventDateBadge(event.start_date);
+                  return (
+                    <article
+                      className={"cut-production-event-slide" + (index === agendaIndex ? " is-active" : "")}
+                      key={event.id}
+                      role="link"
+                      tabIndex={0}
+                      aria-label={`Abrir evento ${event.title}`}
+                      onClick={() => navigate(`/event/${event.slug}`)}
+                      onKeyDown={(e) => activateOnKeyboard(e, () => navigate(`/event/${event.slug}`))}
+                    >
+                      <div className="cut-production-event-slide__media">
+                        {event.image ? (
+                          <img src={mediaUrl(event.image)} alt={event.title} loading="lazy" decoding="async" />
+                        ) : (
+                          <div className="cut-production-event-slide__fallback"><i className="fa-regular fa-calendar" /></div>
+                        )}
+                        <span className="cut-production-event-date" aria-label={fmt(event.start_date)}>
+                          <strong>{badge.day}</strong>
+                          <small>{badge.month}</small>
+                        </span>
+                        <span className="cut-production-event-slide__number">{String(index + 1).padStart(2, "0")}</span>
+                      </div>
+                      <div className="cut-production-event-slide__body">
+                        <span className="cut-eyebrow">{event.category || "Evento"}</span>
+                        <h3>{event.title}</h3>
+                        <div className="cut-production-event-meta">
+                          <p><i className="fa-regular fa-clock" />{fmt(event.start_date)}</p>
+                          <p><i className="fa-solid fa-location-dot" />{event.venue || event.city || "Local a definir"}</p>
+                        </div>
+                        <div className="cut-production-event-slide__cta">
+                          <span>Ver evento</span>
+                          <i className="fa-solid fa-arrow-right" />
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </div>
+
+            {upcoming.length > 1 && (
+              <div className="cut-production-agenda-pagination" aria-label="Navegação rápida da agenda">
+                {upcoming.map((event, index) => (
+                  <button
+                    key={event.id}
+                    type="button"
+                    className={index === agendaIndex ? "is-active" : ""}
+                    onClick={() => goToAgendaEvent(index)}
+                    aria-label={`Ir para ${event.title}`}
+                    aria-current={index === agendaIndex ? "true" : undefined}
+                  >
+                    <span />
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </section>
 
       {media.length > 0 && <section className="cut-production-section cut-production-gallery"><div className="cut-production-section-head"><div><span className="cut-eyebrow">{production.type === "fixed" ? "O espaço" : "Galeria"}</span><h2>{production.type === "fixed" ? "Conheça o local" : "Fotos da produção"}</h2></div></div><div className="cut-production-gallery-grid">{media.map((item) => <figure className="cut-production-gallery-item" key={item.id}><img src={mediaUrl(item.url)} alt={item.caption || `Foto de ${production.name}`} loading="lazy" />{item.caption && <figcaption>{item.caption}</figcaption>}</figure>)}</div></section>}
 
