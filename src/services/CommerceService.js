@@ -17,6 +17,7 @@ const AUTO_RETRY_CHECKOUT_STATUSES = new Set([502, 503, 504]);
 const DEFAULT_CHECKOUT_RETRY_DELAY_MS = 350;
 const MAX_CHECKOUT_RETRY_DELAY_MS = 1500;
 const MAX_IDEMPOTENCY_PROCESSING_RETRY_DELAY_MS = 5000;
+const MAX_IDEMPOTENCY_PROCESSING_RETRIES = 3;
 const OFFLINE_CHECKOUT_RETRY_WAIT_MS = 8000;
 
 const checkoutRequestKey = (payload = {}) => JSON.stringify({
@@ -85,10 +86,12 @@ const checkout = (payload) => {
   const requestKey = checkoutRequestKey(payload); const pending = pendingCheckouts.get(requestKey); if (pending) return pending;
   const idempotencyKey = idempotencyKeyFor(requestKey);
   const postCheckout = (attempt = 0) => appApiClient.post("/commerce/checkout", payload, { headers: { "Idempotency-Key": idempotencyKey } }).catch(async (error) => {
-    if (attempt === 0 && shouldAutoRetryCheckout(error)) {
+    const processing = isIdempotencyProcessing(error);
+    const retryLimit = processing ? MAX_IDEMPOTENCY_PROCESSING_RETRIES : 1;
+    if (attempt < retryLimit && shouldAutoRetryCheckout(error)) {
       const retryPlan = await waitForCheckoutRetry(error); const retryAllowed = retryPlan.connectivityRestored !== false;
-      trackTelemetry("checkout_transient_retry", { label: retryAllowed ? "Checkout repetido automaticamente após falha transitória" : "Checkout aguardou conexão, mas permaneceu offline", target: String(payload?.event_id || "checkout"), metadata: { payment_method: String(payload?.payment_method || "unknown"), status: Number(error?.status || error?.response?.status || 0), retry_attempt: retryAllowed ? 1 : 0, retry_delay_ms: retryPlan.retryDelayMs, waited_for_connectivity: retryPlan.waitedForConnectivity, connectivity_restored: retryPlan.connectivityRestored, retry_skipped_offline: !retryAllowed } });
-      if (!retryAllowed) throw error; return postCheckout(1);
+      trackTelemetry("checkout_transient_retry", { label: retryAllowed ? "Checkout repetido automaticamente após falha transitória" : "Checkout aguardou conexão, mas permaneceu offline", target: String(payload?.event_id || "checkout"), metadata: { payment_method: String(payload?.payment_method || "unknown"), status: Number(error?.status || error?.response?.status || 0), retry_attempt: retryAllowed ? attempt + 1 : attempt, retry_delay_ms: retryPlan.retryDelayMs, waited_for_connectivity: retryPlan.waitedForConnectivity, connectivity_restored: retryPlan.connectivityRestored, retry_skipped_offline: !retryAllowed, idempotency_processing: processing } });
+      if (!retryAllowed) throw error; return postCheckout(attempt + 1);
     }
     throw error;
   });
