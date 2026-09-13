@@ -110,7 +110,7 @@ export default function PurchaseDetailPage() {
         // Background synchronization is best-effort; transient failures must not disrupt purchase details.
         syncAttempt += 1;
         const status = Number(err?.status || err?.response?.status || 0);
-        nextDelay = getPaymentSyncDelay(syncAttempt, { rateLimited: status === 429 });
+        nextDelay = getPaymentSyncDelay(syncAttempt, { rateLimited: status === 429, retryAfter: err?.retryAfter });
       } finally {
         syncing = false;
       }
