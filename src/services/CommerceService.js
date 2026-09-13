@@ -16,6 +16,7 @@ const CATALOG_CACHE_TTL_MS = 15000;
 const AUTO_RETRY_CHECKOUT_STATUSES = new Set([502, 503, 504]);
 const DEFAULT_CHECKOUT_RETRY_DELAY_MS = 350;
 const MAX_CHECKOUT_RETRY_DELAY_MS = 1500;
+const MAX_IDEMPOTENCY_PROCESSING_RETRY_DELAY_MS = 5000;
 const OFFLINE_CHECKOUT_RETRY_WAIT_MS = 8000;
 
 const checkoutRequestKey = (payload = {}) => JSON.stringify({
@@ -52,8 +53,26 @@ const readAttempt = (requestKey) => {
 const saveAttempt = (requestKey, idempotencyKey) => { fallbackAttempts.set(requestKey, idempotencyKey); safeSetSessionJson(storageFor(requestKey), { requestKey, idempotencyKey }); };
 const clearAttempt = (requestKey) => { fallbackAttempts.delete(requestKey); safeRemoveSessionItem(storageFor(requestKey)); };
 const idempotencyKeyFor = (requestKey) => { const existing = readAttempt(requestKey); if (existing) return existing; const created = createIdempotencyKey(); saveAttempt(requestKey, created); return created; };
-const shouldAutoRetryCheckout = (error) => { const status = Number(error?.status || error?.response?.status || 0); return isNetworkFailure(error) || AUTO_RETRY_CHECKOUT_STATUSES.has(status); };
-const checkoutRetryDelay = (error) => { const retryAfter = Number(error?.response?.headers?.["retry-after"] || error?.headers?.["retry-after"] || 0); if (Number.isFinite(retryAfter) && retryAfter > 0) return Math.min(Math.round(retryAfter * 1000), MAX_CHECKOUT_RETRY_DELAY_MS); return DEFAULT_CHECKOUT_RETRY_DELAY_MS; };
+const responseHeader = (error, name) => {
+  const headers = error?.response?.headers || error?.headers || {};
+  const normalizedName = String(name || "").toLowerCase();
+  if (typeof headers?.get === "function") return headers.get(name) ?? headers.get(normalizedName);
+  const key = Object.keys(headers).find((candidate) => String(candidate).toLowerCase() === normalizedName);
+  return key ? headers[key] : undefined;
+};
+const isIdempotencyProcessing = (error) => {
+  const status = Number(error?.status || error?.response?.status || 0);
+  return status === 409 && String(responseHeader(error, "idempotency-status") || "").toLowerCase() === "processing";
+};
+const shouldAutoRetryCheckout = (error) => { const status = Number(error?.status || error?.response?.status || 0); return isNetworkFailure(error) || isIdempotencyProcessing(error) || AUTO_RETRY_CHECKOUT_STATUSES.has(status); };
+const checkoutRetryDelay = (error) => {
+  const retryAfter = Number(responseHeader(error, "retry-after") || 0);
+  if (Number.isFinite(retryAfter) && retryAfter > 0) {
+    const maxDelay = isIdempotencyProcessing(error) ? MAX_IDEMPOTENCY_PROCESSING_RETRY_DELAY_MS : MAX_CHECKOUT_RETRY_DELAY_MS;
+    return Math.min(Math.round(retryAfter * 1000), maxDelay);
+  }
+  return isIdempotencyProcessing(error) ? 2000 : DEFAULT_CHECKOUT_RETRY_DELAY_MS;
+};
 const wait = (milliseconds) => new Promise((resolve) => { window.setTimeout(resolve, milliseconds); });
 const waitForCheckoutRetry = async (error) => {
   const retryDelayMs = checkoutRetryDelay(error);
