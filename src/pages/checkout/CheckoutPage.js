@@ -352,18 +352,18 @@ export default function CheckoutPage() {
     const publicId = result?.order?.public_id; const status = result?.order?.status || result?.payment?.status; const fulfillment = result?.order?.metadata?.fulfillment_status; const terminal = failedStatuses.includes(status) || pixExpired || (status === "paid" && fulfillment === "completed");
     if (!publicId || terminal) return undefined;
     let active = true; let syncing = false; let timer = null; let attempt = 0;
-    const scheduleNext = ({ rateLimited = false } = {}) => { if (!active) return; window.clearTimeout(timer); timer = window.setTimeout(() => sync("timer"), getPaymentSyncDelay(attempt, { rateLimited })); };
+    const scheduleNext = ({ rateLimited = false, retryAfter = null } = {}) => { if (!active) return; window.clearTimeout(timer); timer = window.setTimeout(() => sync("timer"), getPaymentSyncDelay(attempt, { rateLimited, retryAfter })); };
     const sync = async (source = "timer") => {
       if (!active || syncing || document.visibilityState === "hidden") return;
-      syncing = true; const startedAt = Date.now(); const currentAttempt = attempt + 1; let rateLimited = false;
+      syncing = true; const startedAt = Date.now(); const currentAttempt = attempt + 1; let rateLimited = false; let retryAfter = null;
       try {
         const order = await requestPaymentSync(publicId); if (!active) return; const latestPayment = latestPaymentFromOrder(order) || resultRef.current?.payment;
         setResult((current) => ({ ...current, order, payment: latestPayment || current?.payment })); setError("");
         trackCheckout("payment_sync_cycle", { label: "Status de pagamento sincronizado", target: slug, metadata: { source, attempt: currentAttempt, duration_ms: Date.now() - startedAt, order_status: order?.status || "unknown", fulfillment_status: order?.metadata?.fulfillment_status || "pending", outcome: "success" } });
       } catch (err) {
-        rateLimited = err?.status === 429; if (err?.status === 403 || err?.status === 404) { safeRemoveSessionItem(paymentStorageKey); clearCheckoutRecovery(slug); active = false; } if (err?.status && err.status !== 429) setError(err?.message || "Não foi possível atualizar o status do pagamento.");
+        rateLimited = err?.status === 429; retryAfter = rateLimited ? err?.retryAfter : null; if (err?.status === 403 || err?.status === 404) { safeRemoveSessionItem(paymentStorageKey); clearCheckoutRecovery(slug); active = false; } if (err?.status && err.status !== 429) setError(err?.message || "Não foi possível atualizar o status do pagamento.");
         trackCheckout("payment_sync_cycle", { label: rateLimited ? "Sincronização de pagamento limitada" : "Falha ao sincronizar pagamento", target: slug, metadata: { source, attempt: currentAttempt, duration_ms: Date.now() - startedAt, status: Number(err?.status || 0), outcome: rateLimited ? "rate_limited" : "error" } });
-      } finally { attempt += 1; syncing = false; if (active) scheduleNext({ rateLimited }); }
+      } finally { attempt += 1; syncing = false; if (active) scheduleNext({ rateLimited, retryAfter }); }
     };
     const syncImmediately = (source) => { if (!active || document.visibilityState === "hidden") return; window.clearTimeout(timer); sync(source); };
     sync("initial"); const handleFocus = () => syncImmediately("focus"); const handleVisibility = () => { if (document.visibilityState === "visible") syncImmediately("visibility"); };
