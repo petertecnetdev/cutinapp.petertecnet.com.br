@@ -47,12 +47,17 @@ const createIdempotencyKey = () => {
 };
 
 const storageFor = (requestKey) => `${CHECKOUT_ATTEMPT_PREFIX}${requestKeyHash(requestKey)}`;
-const readAttempt = (requestKey) => {
+const readAttemptState = (requestKey) => {
   const stored = safeGetSessionJson(storageFor(requestKey));
-  if (stored?.requestKey === requestKey && stored?.idempotencyKey) return stored.idempotencyKey;
-  return fallbackAttempts.get(requestKey) || null;
+  return stored?.requestKey === requestKey ? stored : null;
 };
-const saveAttempt = (requestKey, idempotencyKey) => { fallbackAttempts.set(requestKey, idempotencyKey); safeSetSessionJson(storageFor(requestKey), { requestKey, idempotencyKey }); };
+const readAttempt = (requestKey) => readAttemptState(requestKey)?.idempotencyKey || fallbackAttempts.get(requestKey) || null;
+const readPreservedOrder = (requestKey) => String(readAttemptState(requestKey)?.orderPublicId || "").trim() || null;
+const saveAttempt = (requestKey, idempotencyKey, orderPublicId = null) => {
+  fallbackAttempts.set(requestKey, idempotencyKey);
+  safeSetSessionJson(storageFor(requestKey), { requestKey, idempotencyKey, orderPublicId: orderPublicId || readPreservedOrder(requestKey) || null });
+};
+const savePreservedOrder = (requestKey, idempotencyKey, orderPublicId) => saveAttempt(requestKey, idempotencyKey, String(orderPublicId || "").trim() || null);
 const clearAttempt = (requestKey) => { fallbackAttempts.delete(requestKey); safeRemoveSessionItem(storageFor(requestKey)); };
 const idempotencyKeyFor = (requestKey) => { const existing = readAttempt(requestKey); if (existing) return existing; const created = createIdempotencyKey(); saveAttempt(requestKey, created); return created; };
 const responseHeader = (error, name) => {
@@ -66,7 +71,8 @@ const isIdempotencyProcessing = (error) => {
   const status = Number(error?.status || error?.response?.status || 0);
   return status === 409 && String(responseHeader(error, "idempotency-status") || "").toLowerCase() === "processing";
 };
-const shouldAutoRetryCheckout = (error) => { const status = Number(error?.status || error?.response?.status || 0); return isNetworkFailure(error) || isIdempotencyProcessing(error) || AUTO_RETRY_CHECKOUT_STATUSES.has(status); };
+const hasPreservedPaymentOrder = (error) => error?.data?.retryable === true && Boolean(String(error?.data?.order_public_id || "").trim());
+const shouldAutoRetryCheckout = (error) => { const status = Number(error?.status || error?.response?.status || 0); return !hasPreservedPaymentOrder(error) && (isNetworkFailure(error) || isIdempotencyProcessing(error) || AUTO_RETRY_CHECKOUT_STATUSES.has(status)); };
 const checkoutRetryDelay = (error) => {
   const retryAfter = Number(responseHeader(error, "retry-after") || 0);
   if (Number.isFinite(retryAfter) && retryAfter > 0) {
@@ -83,9 +89,25 @@ const waitForCheckoutRetry = async (error) => {
   return { retryDelayMs: Math.max(0, Date.now() - startedAt), waitedForConnectivity: connectivity.waited, connectivityRestored: connectivity.restored };
 };
 
+const retryOrderPaymentRequest = (publicId, paymentMethod = "pix") => appApiClient.post(`/commerce/orders/${String(publicId || "").trim()}/payment/retry`, { payment_method: paymentMethod });
 const checkout = (payload) => {
   const requestKey = checkoutRequestKey(payload); const pending = pendingCheckouts.get(requestKey); if (pending) return pending;
   const idempotencyKey = idempotencyKeyFor(requestKey);
+  const preservedOrderPublicId = String(payload?.payment_method || "").toLowerCase() === "pix" ? readPreservedOrder(requestKey) : null;
+  const resumePreservedOrder = async (publicId, source) => {
+    const orderPublicId = String(publicId || "").trim();
+    savePreservedOrder(requestKey, idempotencyKey, orderPublicId);
+    trackTelemetry("pix_initialization_recovery_started", { target: String(payload?.event_id || "checkout"), metadata: { order_public_id: orderPublicId, source } });
+    try {
+      const response = await retryOrderPaymentRequest(orderPublicId, "pix");
+      trackTelemetry("pix_initialization_resumed", { target: String(payload?.event_id || "checkout"), metadata: { order_public_id: orderPublicId, source } });
+      return response;
+    } catch (error) {
+      error.data = { ...(error?.data || {}), retryable: true, order_public_id: orderPublicId };
+      trackTelemetry("pix_initialization_resume_failed", { target: String(payload?.event_id || "checkout"), metadata: { order_public_id: orderPublicId, source, status: Number(error?.status || error?.response?.status || 0) } });
+      throw error;
+    }
+  };
   const postCheckout = (attempt = 0) => appApiClient.post("/commerce/checkout", payload, { headers: { "Idempotency-Key": idempotencyKey } }).catch(async (error) => {
     const processing = isIdempotencyProcessing(error);
     const retryLimit = processing ? MAX_IDEMPOTENCY_PROCESSING_RETRIES : MAX_TRANSIENT_CHECKOUT_RETRIES;
@@ -96,7 +118,16 @@ const checkout = (payload) => {
     }
     throw error;
   });
-  const request = postCheckout().then(async (response) => { clearAttempt(requestKey); const data = response.data; const order = data?.order; const status = String(order?.status || data?.payment?.status || "").toLowerCase(); if (["paid","approved","completed"].includes(status)) await trackSearchConversion("ticket_purchase", payload?.event_id).catch(() => false); return data; }).catch((error) => { if (!shouldKeepCheckoutAttempt(error)) clearAttempt(requestKey); throw error; }).finally(() => { if (pendingCheckouts.get(requestKey) === request) pendingCheckouts.delete(requestKey); });
+  const startCheckout = () => {
+    if (preservedOrderPublicId) return resumePreservedOrder(preservedOrderPublicId, "session");
+    return postCheckout().catch((error) => {
+      if (String(payload?.payment_method || "").toLowerCase() === "pix" && hasPreservedPaymentOrder(error)) {
+        return resumePreservedOrder(error.data.order_public_id, "checkout");
+      }
+      throw error;
+    });
+  };
+  const request = startCheckout().then(async (response) => { clearAttempt(requestKey); const data = response.data; const order = data?.order; const status = String(order?.status || data?.payment?.status || "").toLowerCase(); if (["paid","approved","completed"].includes(status)) await trackSearchConversion("ticket_purchase", payload?.event_id).catch(() => false); return data; }).catch((error) => { if (!hasPreservedPaymentOrder(error) && !shouldKeepCheckoutAttempt(error)) clearAttempt(requestKey); throw error; }).finally(() => { if (pendingCheckouts.get(requestKey) === request) pendingCheckouts.delete(requestKey); });
   pendingCheckouts.set(requestKey, request); return request;
 };
 
@@ -138,6 +169,7 @@ const commerceService = {
   recoverPendingCheckout: (orderId) => recoverPendingCheckoutIdempotently(orderId),
   myOrders: async (params = {}) => (await appApiClient.get("/commerce/orders/mine", { params })).data,
   order: async (publicId) => (await appApiClient.get(`/commerce/orders/${publicId}`)).data.order,
+  retryOrderPayment: async (publicId, paymentMethod = "pix") => (await retryOrderPaymentRequest(publicId, paymentMethod)).data,
   syncPayment,
   pickupCredential: async (publicId) => (await appApiClient.get(`/commerce/orders/${publicId}/pickup-credential`)).data.credential,
   redeemEventItems: (token, eventId) => redeemEventItemsIdempotently(token, eventId),
