@@ -52,4 +52,72 @@ describe("CommerceService transient checkout recovery", () => {
     expect(appApiClient.post).toHaveBeenCalledTimes(3);
     expect(new Set(appApiClient.post.mock.calls.map((_, index) => keyAt(index))).size).toBe(1);
   });
+
+  test("switches from checkout to the preserved PIX order instead of creating another checkout", async () => {
+    const preserved = {
+      status: 502,
+      data: { retryable: true, order_public_id: "order-preserved" },
+      response: { status: 502, headers: {} },
+    };
+    appApiClient.post
+      .mockRejectedValueOnce(preserved)
+      .mockResolvedValueOnce({ data: { order: { public_id: "order-preserved", status: "pending" }, payment: { method: "pix", status: "pending", qr_code: "000201" } } });
+
+    await expect(commerceService.checkout({ ...payload, event_id: 913 })).resolves.toEqual({
+      order: { public_id: "order-preserved", status: "pending" },
+      payment: { method: "pix", status: "pending", qr_code: "000201" },
+    });
+
+    expect(appApiClient.post).toHaveBeenCalledTimes(2);
+    expect(appApiClient.post.mock.calls[0][0]).toBe("/commerce/checkout");
+    expect(appApiClient.post.mock.calls[1]).toEqual([
+      "/commerce/orders/order-preserved/payment/retry",
+      { payment_method: "pix" },
+    ]);
+    expect(trackTelemetry).not.toHaveBeenCalledWith("checkout_transient_retry", expect.anything());
+  });
+
+  test("keeps the preserved PIX order across a failed dedicated retry", async () => {
+    const checkoutPayload = { ...payload, event_id: 914 };
+    const preserved = { status: 502, data: { retryable: true, order_public_id: "order-session" }, response: { status: 502, headers: {} } };
+    const retryUnavailable = { status: 503, data: { message: "provider unavailable" }, response: { status: 503, headers: {} } };
+    appApiClient.post.mockRejectedValueOnce(preserved).mockRejectedValueOnce(retryUnavailable);
+
+    await expect(commerceService.checkout(checkoutPayload)).rejects.toMatchObject({
+      data: { retryable: true, order_public_id: "order-session" },
+    });
+    expect(appApiClient.post).toHaveBeenCalledTimes(2);
+
+    appApiClient.post.mockReset();
+    appApiClient.post.mockResolvedValueOnce({ data: { order: { public_id: "order-session", status: "pending" }, payment: { method: "pix", status: "pending" } } });
+
+    await expect(commerceService.checkout(checkoutPayload)).resolves.toEqual({
+      order: { public_id: "order-session", status: "pending" },
+      payment: { method: "pix", status: "pending" },
+    });
+    expect(appApiClient.post).toHaveBeenCalledTimes(1);
+    expect(appApiClient.post).toHaveBeenCalledWith(
+      "/commerce/orders/order-session/payment/retry",
+      { payment_method: "pix" },
+    );
+  });
+
+  test("retries PIX initialization on the preserved order endpoint", async () => {
+    appApiClient.post.mockResolvedValueOnce({
+      data: {
+        order: { public_id: "order-preserved", status: "pending" },
+        payment: { method: "pix", status: "pending", qr_code: "000201" },
+      },
+    });
+
+    await expect(commerceService.retryOrderPayment("order-preserved", "pix")).resolves.toEqual({
+      order: { public_id: "order-preserved", status: "pending" },
+      payment: { method: "pix", status: "pending", qr_code: "000201" },
+    });
+
+    expect(appApiClient.post).toHaveBeenCalledWith(
+      "/commerce/orders/order-preserved/payment/retry",
+      { payment_method: "pix" },
+    );
+  });
 });
