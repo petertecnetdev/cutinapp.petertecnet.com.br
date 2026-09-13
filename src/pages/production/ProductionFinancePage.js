@@ -82,6 +82,7 @@ export default function ProductionFinancePage() {
   const location = useLocation();
   const navigate = useNavigate();
   const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const focus = params.get("focus") || "";
   const [productions, setProductions] = useState([]);
   const [productionId, setProductionId] = useState(params.get("production") || "");
   const [finance, setFinance] = useState(null);
@@ -157,6 +158,23 @@ export default function ProductionFinancePage() {
   const livenessVerified = verification?.liveness_status === "passed" && verification?.face_match_status === "passed";
   const pixVerified = Boolean(destination?.verified_at && ["active", "cooling"].includes(destination?.status));
   const available = Number(balance.available || 0);
+  // producer-finance-focus-scroll: take the producer directly to the first unresolved receiving step.
+  useEffect(() => {
+    if (focus !== "activation" || loading || !productionId) return undefined;
+    const targetId = !beneficiary
+      ? "producer-finance-identity"
+      : !documentUploaded
+        ? "producer-finance-document"
+        : livenessRequired && !livenessVerified
+          ? "producer-finance-liveness"
+          : !pixVerified
+            ? "producer-finance-pix"
+            : "producer-finance-activation";
+    const timer = window.setTimeout(() => {
+      document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 160);
+    return () => window.clearTimeout(timer);
+  }, [focus, loading, productionId, beneficiary, documentUploaded, livenessRequired, livenessVerified, pixVerified]);
   const grossRevenue = Number(revenueFunnel?.gross_revenue || 0);
   const platformRevenue = Number(revenueFunnel?.platform_revenue || 0);
   const processorFees = Number(revenueFunnel?.processor_fees || 0);
@@ -334,6 +352,7 @@ export default function ProductionFinancePage() {
 
       {error && <Alert variant="danger">{error}</Alert>}
       {success && <Alert variant="success">{success}</Alert>}
+      {focus === "activation" && productionId && <Alert variant="info" className="mb-4"><strong>Resolva a ativação dos recebimentos.</strong> A Cutinapp levou você até a primeira etapa pendente. Conclua identidade, documento, prova de vida e chave Pix conforme necessário; depois volte ao evento e continue.</Alert>}
 
       <Card className="cut-production-card mb-4"><Card.Body className="p-4">
         <Form.Group><Form.Label>Produção</Form.Label><Form.Select value={productionId} onChange={(event) => setProductionId(event.target.value)}><option value="">Selecione</option>{productions.map((row) => <option key={row.id} value={row.id}>{row.name}</option>)}</Form.Select></Form.Group>
@@ -341,7 +360,7 @@ export default function ProductionFinancePage() {
 
       {productionId && <>
         <Row className="g-4">
-          <Col lg={5}><Card className="cut-production-card h-100"><Card.Body className="p-4">
+          <Col lg={5}><Card id="producer-finance-activation" className="cut-production-card h-100"><Card.Body className="p-4">
             <span className="cut-eyebrow">Segurança financeira</span>
             <h2 className="mt-2 mb-3">Ativação do recebimento</h2>
             <p className="text-secondary">Isso é feito uma vez. Depois de aprovado, você usa apenas sua chave Pix para receber.</p>
@@ -551,7 +570,7 @@ export default function ProductionFinancePage() {
           {(revenueFunnel.payment_methods || []).length > 0 && <div className="table-responsive mt-4"><Table variant="dark" hover className="align-middle mb-0"><thead><tr><th>Pagamento</th><th>Checkouts</th><th>Pagos</th><th>Conversão</th><th>GMV</th><th>Receita plataforma</th><th>Receita líquida</th><th>Margem/GMV</th><th>GMV em risco</th></tr></thead><tbody>{revenueFunnel.payment_methods.map((row) => <tr key={row.payment_method}><td>{paymentMethodLabel[row.payment_method] || row.payment_method}</td><td>{row.orders_created}</td><td>{row.orders_paid}</td><td>{percent(row.conversion_rate)}</td><td>{money(row.gross_revenue)}</td><td>{money(row.platform_revenue)}</td><td>{money(row.platform_contribution_after_processing ?? (Number(row.platform_revenue || 0) - Number((row.processor_fees_borne_by_platform ?? row.processor_fees) || 0)))}</td><td>{percent(row.platform_contribution_margin)}</td><td>{money(row.gross_at_risk)}</td></tr>)}</tbody></Table></div>}
         </Card.Body></Card>}
 
-        {!identityVerified && <Card className="cut-production-card mt-4"><Card.Body className="p-4">
+        {!identityVerified && <Card id="producer-finance-identity" className="cut-production-card mt-4"><Card.Body className="p-4">
           <span className="cut-eyebrow">Etapa 1</span><h2 className="mt-2">Confirme quem receberá</h2>
           <p className="text-secondary">Se seus dados já estiverem completos na conta Peter, você só confirma. Não pedimos conta bancária.</p>
           <Row className="g-3">
@@ -562,7 +581,7 @@ export default function ProductionFinancePage() {
           <Button className="mt-3" onClick={saveIdentity} disabled={working}>Confirmar dados</Button>
         </Card.Body></Card>}
 
-        {beneficiary && !documentUploaded && <Card className="cut-production-card mt-4"><Card.Body className="p-4">
+        {beneficiary && !documentUploaded && <Card id="producer-finance-document" className="cut-production-card mt-4"><Card.Body className="p-4">
           <span className="cut-eyebrow">Etapa 2</span><h2 className="mt-2">Documento com foto</h2>
           <p className="text-secondary">Envie fotos nítidas. Os arquivos ficam privados e são usados para a verificação de identidade.</p>
           <Row className="g-3"><Col md={6}><Form.Group><Form.Label>Frente do documento</Form.Label><Form.Control type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setFrontDocument(e.target.files?.[0] || null)} /></Form.Group></Col><Col md={6}><Form.Group><Form.Label>Verso, se houver</Form.Label><Form.Control type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setBackDocument(e.target.files?.[0] || null)} /></Form.Group></Col></Row>
@@ -570,13 +589,13 @@ export default function ProductionFinancePage() {
           <Button className="mt-3" onClick={uploadDocuments} disabled={working || !frontDocument}>Enviar documento</Button>
         </Card.Body></Card>}
 
-        {livenessRequired && documentUploaded && !identityVerified && !liveness && <Card className="cut-production-card mt-4"><Card.Body className="p-4">
+        {livenessRequired && documentUploaded && !identityVerified && !liveness && <Card id="producer-finance-liveness" className="cut-production-card mt-4"><Card.Body className="p-4">
           <span className="cut-eyebrow">Etapa 3</span><h2 className="mt-2">Prova de vida</h2>
           <p className="text-secondary">A câmera fará uma verificação rápida de presença real e comparará o rosto com o documento enviado.</p>
           <Button onClick={startLiveness} disabled={working}>Iniciar reconhecimento facial</Button>
         </Card.Body></Card>}
 
-        {livenessRequired && liveness && <Card className="cut-production-card mt-4"><Card.Body className="p-4">
+        {livenessRequired && liveness && <Card id="producer-finance-liveness" className="cut-production-card mt-4"><Card.Body className="p-4">
           <span className="cut-eyebrow">Verificação facial segura</span><h2 className="mt-2 mb-3">Siga as instruções da câmera</h2>
           <div style={{ maxWidth: 620, margin: "0 auto" }}>
             <ThemeProvider>
@@ -595,7 +614,7 @@ export default function ProductionFinancePage() {
           </div>
         </Card.Body></Card>}
 
-        {identityVerified && <Card className="cut-production-card mt-4"><Card.Body className="p-4">
+        {identityVerified && <Card id="producer-finance-pix" className="cut-production-card mt-4"><Card.Body className="p-4">
           <span className="cut-eyebrow">{livenessRequired ? "Etapa 4" : "Etapa 3"}</span><h2 className="mt-2">Sua chave Pix</h2>
           {destination && <Alert variant={destination.status === "active" ? "success" : "warning"}>Destino atual: <strong>{destination.pix_key_masked}</strong> — {destination.holder_name}. A chave foi consultada e vinculada ao CPF verificado.</Alert>}
           <Row className="g-3 align-items-end">
