@@ -10,8 +10,10 @@ describe("payment sync schedule", () => {
     expect(DEFAULT_DELAYS_MS.slice(0, 2).every((delay) => delay <= 2000)).toBe(true);
   });
 
-  it("uses a cooldown after rate limiting", () => {
-    expect(getPaymentSyncDelay(0, { rateLimited: true, random: () => 0 })).toBe(RATE_LIMIT_DELAY_MS);
+  it("uses a jittered cooldown after rate limiting to avoid a synchronized retry wave", () => {
+    expect(getPaymentSyncDelay(0, { rateLimited: true, random: () => 0 })).toBe(Math.round(RATE_LIMIT_DELAY_MS * 0.9));
+    expect(getPaymentSyncDelay(0, { rateLimited: true, random: () => 0.5 })).toBe(RATE_LIMIT_DELAY_MS);
+    expect(getPaymentSyncDelay(0, { rateLimited: true, random: () => 1 })).toBe(Math.round(RATE_LIMIT_DELAY_MS * 1.1));
   });
 
   it("adds bounded jitter to avoid synchronized polling", () => {
