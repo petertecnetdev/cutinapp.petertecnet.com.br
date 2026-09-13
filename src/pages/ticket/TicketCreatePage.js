@@ -6,6 +6,7 @@ import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorCo
 import ticketService from "../../services/TicketService";
 import eventService from "../../services/EventService";
 import { AuthContext } from "../../context/AuthContext";
+import "./TicketCreatePage.css";
 import { nextProducerActivationRoute } from "../../utils/producerActivationRoute";
 import { clearTicketCreationDraft, readTicketCreationDraft, writeTicketCreationDraft } from "../../utils/ticketCreationDraft";
 import {
@@ -374,7 +375,7 @@ export default function TicketCreatePage() {
   const cutoffFieldError = firstError(fieldErrors, "sales_cutoff_mode") || firstError(fieldErrors, "sales_cutoff_offset_minutes");
 
   return (
-    <div className="cut-app-page">
+    <div className="cut-app-page cut-ticket-create-page">
       <NavlogComponent />
       {(loading || initialLoading) && <ProcessingIndicatorComponent label={loading ? "Aplicando ingresso" : "Carregando eventos"} />}
       <Container className="cut-page-container py-4 py-lg-5">
@@ -401,10 +402,10 @@ export default function TicketCreatePage() {
           </Card>
         ) : (
           <Row className="justify-content-center">
-            <Col lg={9} xl={8}>
-              <Card className="cut-panel">
+            <Col lg={10} xl={9} xxl={8}>
+              <Card className="cut-panel cut-ticket-panel">
                 <Card.Body className="p-4 p-lg-5">
-                  <div className="d-flex gap-2 flex-wrap mb-4">
+                  <div className="d-flex gap-2 flex-wrap mb-4 cut-ticket-mode-switch">
                     <Button type="button" variant={mode === "new" ? "primary" : "outline-light"} onClick={() => changeMode("new")}>
                       <i className="fa-solid fa-plus me-2" />Criar novo
                     </Button>
@@ -422,19 +423,19 @@ export default function TicketCreatePage() {
                           <Button type="button" size="sm" variant="link" onClick={clearEvents}>Limpar</Button>
                         </div>
                       </div>
-                      <div className={`border rounded p-2 ${submitted && selectedEventIds.length === 0 ? "border-danger" : ""}`} style={{ maxHeight: 280, overflowY: "auto" }}>
+                      <div className={`cut-ticket-events ${submitted && selectedEventIds.length === 0 ? "border-danger" : ""}`}>
                         {eligibleEvents.map((item) => {
                           const checked = selectedEventIds.includes(String(item.id));
                           return (
-                            <label key={item.id} className="d-flex align-items-start gap-3 p-2 rounded" style={{ cursor: "pointer" }}>
+                            <label key={item.id} className={`cut-ticket-event-row d-flex align-items-start gap-3 p-2 rounded ${checked ? "is-selected" : ""}`} style={{ cursor: "pointer" }}>
                               <Form.Check checked={checked} onChange={() => toggleEvent(item.id)} aria-label={`Selecionar ${item.title}`} />
                               <span className="flex-grow-1">
                                 <strong className="d-block">{item.title}</strong>
-                                <small className="text-body-secondary">
+                                <small className="cut-ticket-event-meta">
                                   Início {formatDateTime(item.start_date)} · término {formatDateTime(item.end_date)} · {item.is_published ? "publicado" : "rascunho"}
                                 </small>
                               </span>
-                              {checked && <Badge bg="primary">selecionado</Badge>}
+                              {checked && <Badge bg="primary" className="cut-ticket-selected-badge">selecionado</Badge>}
                             </label>
                           );
                         })}
@@ -486,7 +487,7 @@ export default function TicketCreatePage() {
                           </Form.Group>
                         </Col>
                         {kind === "paid" && (
-                          <Col md={2}>
+                          <Col md={3}>
                             <Form.Group>
                               <Form.Label>Preço *</Form.Label>
                               <Form.Control type="number" min="0.01" step="0.01" value={price} onChange={(event) => setPrice(event.target.value)} isInvalid={invalid("price", submitted && priceInvalid)} />
@@ -494,7 +495,7 @@ export default function TicketCreatePage() {
                             </Form.Group>
                           </Col>
                         )}
-                        <Col md={5}>
+                        <Col md={kind === "paid" ? 4 : 5}>
                           <Form.Group>
                             <Form.Label>Quantidade por evento *</Form.Label>
                             <Form.Control type="number" min={1} max={100000} value={quantity} onChange={(event) => setQuantity(event.target.value)} isInvalid={invalid("quantity", submitted && (Number(quantity) < 1 || Number(quantity) > 100000))} />
