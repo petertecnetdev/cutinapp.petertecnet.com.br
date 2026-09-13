@@ -1221,6 +1221,7 @@ export default function EventManagePage() {
         </Dropdown.Toggle>
         <Dropdown.Menu>
           <Dropdown.Item onClick={() => navigate(`/event/edit/${event.id}`)} disabled={Boolean(busyId)}><i className="fa-solid fa-pen" />Editar evento</Dropdown.Item>
+          <Dropdown.Item onClick={() => navigate(`/event/${event.id}/lineup`)} disabled={Boolean(busyId)}><i className="fa-solid fa-music" />Line-up / programação</Dropdown.Item>
           <Dropdown.Item onClick={() => openDuplicate(event)} disabled={Boolean(busyId)}><i className="fa-regular fa-copy" />Duplicar evento</Dropdown.Item>
           {!event.is_cancelled && (
             <Dropdown.Item onClick={() => openAgenda(event)} disabled={Boolean(busyId)}>
