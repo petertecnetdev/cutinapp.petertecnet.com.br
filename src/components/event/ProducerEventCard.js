@@ -10,6 +10,7 @@ import {
 } from "./EventManagerEnhancements";
 import { storageUrl } from "../../config";
 import { eventHealth, eventOperationalMetrics, eventPerformance } from "../../utils/eventManagerInsights";
+import { isEventPaymentReady, requiresPaymentSetup } from "../../utils/eventSalesReadiness";
 
 const mediaUrl = (path) => {
   if (!path) return "";
@@ -56,8 +57,19 @@ export default function ProducerEventCard({
   const eventImage = event.image;
   const health = eventHealth(event);
   const performance = eventPerformance(event);
+  const paymentBlocked = requiresPaymentSetup(event) && !isEventPaymentReady(event);
+  const effectiveReadiness = paymentBlocked ? {
+    ...readiness,
+    completed: Math.min(Number(readiness?.completed || 0), 2),
+    title: "Ativar recebimentos",
+    label: event?.payment_readiness?.message || "Ative os recebimentos da produção antes de divulgar ingressos pagos.",
+    action: "Configurar",
+    icon: "fa-brands fa-pix",
+    mode: "finance",
+    route: `/producer/finance?production=${event?.production?.id || event?.production_id || ""}`,
+  } : readiness;
   const needsAttention = !event.is_cancelled && !event.has_ended
-    && ((readiness?.completed || 0) < 3 || health.score < 55 || performance.rank <= 3);
+    && ((effectiveReadiness?.completed || 0) < 3 || health.score < 55 || performance.rank <= 3);
   const compact = viewMode === "compact";
 
   return <article className={[
@@ -123,17 +135,17 @@ export default function ProducerEventCard({
         <small>{metrics.ticketsRemaining} restante(s){metrics.ticketsReserved > 0 ? ` · ${metrics.ticketsReserved} reservado(s)` : ""}</small>
       </div>
 
-      {!event.is_cancelled && readiness && <div className="cut-producer-event-card__next">
+      {!event.is_cancelled && effectiveReadiness && <div className="cut-producer-event-card__next">
         <small>Próxima ação</small>
-        <strong>{readiness.title}</strong>
-        {!compact && <span>{readiness.label}</span>}
+        <strong>{effectiveReadiness.title}</strong>
+        {!compact && <span>{effectiveReadiness.label}</span>}
         <Button
           size="sm"
-          variant={readiness.mode === "whatsapp" ? "success" : "light"}
-          onClick={() => onPrimaryAction?.(event, readiness)}
+          variant={effectiveReadiness.mode === "whatsapp" ? "success" : "light"}
+          onClick={() => onPrimaryAction?.(event, effectiveReadiness)}
           disabled={disabled}
         >
-          <i className={`${readiness.icon} me-2`} />{readiness.action}
+          <i className={`${effectiveReadiness.icon} me-2`} />{effectiveReadiness.action}
         </Button>
       </div>}
 
