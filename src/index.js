@@ -55,7 +55,9 @@ import { installCartCompletionCleanup } from "./utils/cartCompletionCleanup";
 import { installPersistentCart } from "./utils/persistentCart";
 import { installEventFlyerBackground } from "./utils/eventFlyerBackground";
 import { trackTelemetry } from "./utils/telemetry";
+import { installGlobalSweetAlertBridge } from "./utils/sweetAlert";
 
+installGlobalSweetAlertBridge();
 installGlobalImageFallbacks();
 installNavigationRecovery();
 installEventViewScrollReset();
