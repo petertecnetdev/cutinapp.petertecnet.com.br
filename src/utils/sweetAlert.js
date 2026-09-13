@@ -65,6 +65,68 @@ const normalizeLegacyAlert = (value) => {
   return { title, text: message, icon };
 };
 
+export const resolveAlertRecoveryAction = (message, context = {}) => {
+  const normalized = String(message || "").toLocaleLowerCase("pt-BR").replace(/\s+/g, " ").trim();
+  if (!normalized) return null;
+
+  const productionId = Number(context?.productionId || context?.organizationId || 0);
+  const eventId = Number(context?.eventId || 0);
+  const productionQuery = productionId > 0 ? `?production=${encodeURIComponent(productionId)}&focus=activation` : "?focus=activation";
+  const contractQuery = productionId > 0 ? `?production=${encodeURIComponent(productionId)}` : "";
+  const eventQuery = eventId > 0 ? `?eventId=${encodeURIComponent(eventId)}` : "";
+
+  if (/(recebiment|repasse|chave pix|prova de vida|biometria|identidade).*(ativ|verific|cadastr|pend|obrig|necess|falt)|ativ.*(recebiment|repasse)|cadastrar uma chave pix/.test(normalized)) {
+    return {
+      label: "Resolver recebimentos",
+      url: `/producer/finance${productionQuery}`,
+    };
+  }
+
+  if (/(termo de ades[aã]o|contrato do produtor|assinar.*termo|termo.*pendente)/.test(normalized)) {
+    return {
+      label: "Resolver termo de adesão",
+      url: `/producer/contracts${contractQuery}`,
+    };
+  }
+
+  if (/(e-?mail|email).*(verific|confirm)|verific.*(e-?mail|email)/.test(normalized)) {
+    return {
+      label: "Verificar e-mail",
+      url: "/email-verify",
+    };
+  }
+
+  if (/(nenhum ingresso|sem ingresso|cadastre.*ingresso|crie.*ingresso|pelo menos um ingresso|criar lote)/.test(normalized)) {
+    return {
+      label: "Gerenciar ingressos",
+      url: `/ticket/create${eventQuery}`,
+    };
+  }
+
+  if (/(nenhuma produ[cç][aã]o|sem produ[cç][aã]o|cadastre.*produ[cç][aã]o|crie.*produ[cç][aã]o)/.test(normalized)) {
+    return {
+      label: "Criar produção",
+      url: "/production/create",
+    };
+  }
+
+  if (eventId > 0 && /(revise nome|descri[cç][aã]o|endere[cç]o|datas?|hor[aá]rio|uf|capacidade).*(salvar|publicar|continuar)|dados essenciais/.test(normalized)) {
+    return {
+      label: "Corrigir dados do evento",
+      url: `/event/edit/${eventId}#event-editor-info`,
+    };
+  }
+
+  if (eventId > 0 && /(flyer|arte|imagem).*(falt|obrig|necess|revise|defin)/.test(normalized)) {
+    return {
+      label: "Corrigir arte do evento",
+      url: `/event/edit/${eventId}#event-editor-media`,
+    };
+  }
+
+  return null;
+};
+
 const bootstrapAlertInfo = (element) => {
   if (!(element instanceof HTMLElement)) return null;
   if (!element.matches(".alert")) return null;
@@ -108,6 +170,9 @@ export const showImportantAlert = async ({
   showCancelButton = false,
   allowOutsideClick = true,
   allowEscapeKey = true,
+  recoveryContext = null,
+  recoveryAction = null,
+  enableRecoveryAction = true,
 }) => {
   const Swal = getSwal() || await waitForSwal();
 
@@ -117,13 +182,17 @@ export const showImportantAlert = async ({
     return fallbackResult(!showCancelButton);
   }
 
-  return Swal.fire({
+  const inferredRecoveryAction = enableRecoveryAction && icon === "error" && !showCancelButton
+    ? resolveAlertRecoveryAction(text, recoveryContext || {})
+    : null;
+  const effectiveRecoveryAction = recoveryAction || inferredRecoveryAction;
+  const result = await Swal.fire({
     title,
     text,
     icon,
-    confirmButtonText,
-    cancelButtonText,
-    showCancelButton,
+    confirmButtonText: effectiveRecoveryAction?.label || confirmButtonText,
+    cancelButtonText: effectiveRecoveryAction ? "Agora não" : cancelButtonText,
+    showCancelButton: effectiveRecoveryAction ? true : showCancelButton,
     reverseButtons: true,
     buttonsStyling: false,
     customClass: defaultClasses,
@@ -133,6 +202,12 @@ export const showImportantAlert = async ({
     color: "#f7f5ff",
     backdrop: "rgba(2, 3, 18, .78)",
   });
+
+  if (result?.isConfirmed && effectiveRecoveryAction?.url && typeof window !== "undefined") {
+    window.location.assign(effectiveRecoveryAction.url);
+  }
+
+  return result;
 };
 
 const installBootstrapAlertObserver = () => {
