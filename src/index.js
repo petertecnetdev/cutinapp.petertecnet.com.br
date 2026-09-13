@@ -64,6 +64,14 @@ installEventViewScrollReset();
 installCartCompletionCleanup();
 installPersistentCart();
 
+// The mobile navigation shell controls the fixed bottom navigation and must be
+// installed before the first React paint. Deferring this initialization allowed
+// .cut-mobile-bottom-nav to render in normal document flow, which produced the
+// duplicated/stacked mobile menu seen above the event content until idle time.
+if (typeof window !== "undefined" && !window.location.pathname.startsWith("/checkout/")) {
+  installInstagramMobileShell();
+}
+
 const installDeferredEnhancers = () => {
   installClipboardFallback();
   installGlobalImagePerformance();
@@ -71,7 +79,6 @@ const installDeferredEnhancers = () => {
   if (!window.location.pathname.startsWith("/checkout/")) {
     installPasswordFieldEnhancer();
     installPeterWhatsappFallback();
-    installInstagramMobileShell();
     installEventFlyerBackground();
   }
 };
