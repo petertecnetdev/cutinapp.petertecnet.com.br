@@ -14,7 +14,7 @@ export const parseRetryAfterMs = (retryAfter, now = Date.now()) => {
   if (!raw) return null;
 
   const seconds = Number(raw);
-  if (Number.isFinite(seconds) && seconds >= 0) {
+  if (Number.isFinite(seconds) && seconds > 0) {
     return Math.min(seconds * 1000, MAX_RETRY_AFTER_MS);
   }
 
@@ -29,7 +29,9 @@ export const parseRetryAfterMs = (retryAfter, now = Date.now()) => {
 export function getPaymentSyncDelay(attempt = 0, { rateLimited = false, retryAfter = null, random = Math.random, now = Date.now() } = {}) {
   if (rateLimited) {
     const advisedDelay = parseRetryAfterMs(retryAfter, now);
-    if (advisedDelay != null) return jitter(advisedDelay, random, { onlyAfter: true });
+    if (advisedDelay != null) {
+      return Math.min(MAX_RETRY_AFTER_MS, jitter(advisedDelay, random, { onlyAfter: true }));
+    }
     return jitter(RATE_LIMIT_DELAY_MS, random);
   }
 
