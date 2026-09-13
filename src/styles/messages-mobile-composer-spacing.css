@@ -1,14 +1,78 @@
-/* Keep the message composer visually separated from the fixed mobile navigation. */
+/* Direct mobile: keep the composer fully clear of the fixed bottom navigation
+   and harden the bottom navigation width/alignment on small screens. */
 @media (max-width: 767px) {
+  html[data-cut-instagram-shell="active"] .cut-chat-page {
+    --cut-chat-bottom-clearance: 18px;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-chat-shell {
+    height: calc(
+      var(--cut-chat-viewport-height, 100dvh)
+      - var(--cut-instagram-topbar-height, 64px)
+      - var(--cut-mobile-bottom-nav-height, 74px)
+      - var(--cut-chat-bottom-clearance)
+    ) !important;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-chat-thread {
+    padding-bottom: var(--cut-chat-bottom-clearance);
+  }
+
   html[data-cut-instagram-shell="active"] .cut-chat-composer {
-    margin-bottom: max(24px, env(safe-area-inset-bottom, 0px));
+    margin: 8px 12px max(12px, env(safe-area-inset-bottom, 0px)) !important;
+    flex-shrink: 0;
+  }
+
+  html[data-cut-instagram-shell="active"] .cut-chat-messages {
+    scroll-padding-bottom: 86px;
+  }
+
+  /* The footer must stay centered, full-width and symmetric on every mobile
+     viewport. This page-specific rule is intentionally loaded after the
+     generic navigation styles to prevent regressions from older overrides. */
+  html[data-cut-instagram-shell="active"] body:has(.cut-chat-page) .cut-mobile-bottom-nav {
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    inset-inline: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    transform: none !important;
+    border-radius: 0 !important;
+    padding-left: max(8px, env(safe-area-inset-left, 0px)) !important;
+    padding-right: max(8px, env(safe-area-inset-right, 0px)) !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    overflow: visible !important;
+  }
+
+  html[data-cut-instagram-shell="active"] body:has(.cut-chat-page) .cut-mobile-bottom-nav > a,
+  html[data-cut-instagram-shell="active"] body:has(.cut-chat-page) .cut-mobile-bottom-nav > button {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
   }
 
   /* Messaging must always win the bottom-screen interaction area.
-     The persistent event cart is useful globally, but on Direct it was
-     covering the composer and preventing the user from focusing/typing. */
+     The persistent event cart is useful globally, but on Direct it can cover
+     the composer and prevent focusing/typing. */
   body:has(.cut-chat-page) .cut-persistent-cart__bar,
   body:has(.cut-chat-page) .cut-persistent-cart__sheet-layer {
     display: none !important;
+  }
+}
+
+@media (max-width: 390px) {
+  html[data-cut-instagram-shell="active"] body:has(.cut-chat-page) .cut-mobile-bottom-nav {
+    gap: 2px !important;
+    padding-left: max(4px, env(safe-area-inset-left, 0px)) !important;
+    padding-right: max(4px, env(safe-area-inset-right, 0px)) !important;
+  }
+
+  html[data-cut-instagram-shell="active"] body:has(.cut-chat-page) .cut-mobile-bottom-nav > a,
+  html[data-cut-instagram-shell="active"] body:has(.cut-chat-page) .cut-mobile-bottom-nav > button {
+    padding-inline: 1px !important;
   }
 }
