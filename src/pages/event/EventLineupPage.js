@@ -77,7 +77,6 @@ export default function EventLineupPage() {
       .catch((e) => mountedRef.current && setError(errorMessage(e, "Não foi possível carregar o line-up.")))
       .finally(() => mountedRef.current && setLoading(false));
     return () => { mountedRef.current = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventId]);
 
   const editingArtist = useMemo(
