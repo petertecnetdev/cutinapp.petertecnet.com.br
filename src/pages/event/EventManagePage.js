@@ -755,12 +755,26 @@ export default function EventManagePage() {
 
   const stats = useMemo(() => ({
     total: events.length,
-    published: events.filter((event) => event.is_published && !event.is_cancelled && !event.has_ended).length,
-    draft: events.filter((event) => !event.is_published && !event.is_cancelled && !event.has_ended).length,
-    ended: events.filter((event) => event.has_ended && !event.is_cancelled).length,
+    published: events.filter((event) => getStatus(event).key === "published").length,
+    draft: events.filter((event) => getStatus(event).key === "draft").length,
+    ended: events.filter((event) => getStatus(event).key === "past").length,
     attention: events.filter((event) => !event.is_cancelled && !event.has_ended && (getSalesReadiness(event).completed < 3 || eventPerformance(event).rank <= 3)).length,
-    cancelled: events.filter((event) => event.is_cancelled).length,
+    cancelled: events.filter((event) => getStatus(event).key === "cancelled").length,
   }), [events]);
+
+  const applySummaryFilter = (status = "all", period = "all") => {
+    // Os cards do resumo representam totais globais. Ao clicar neles,
+    // removemos filtros ocultos/persistidos para que a lista corresponda
+    // exatamente ao número exibido no card (ex.: 3 publicados => 3 itens).
+    setSearchTerm("");
+    setStatusFilter(status);
+    setProductionFilter("all");
+    setCityFilter("all");
+    setPeriodFilter(period);
+    setDateFrom("");
+    setDateTo("");
+    setPerformanceFilter("all");
+  };
 
   const filterOptions = useMemo(() => {
     const productionMap = new Map();
@@ -1338,35 +1352,35 @@ export default function EventManagePage() {
         ) : (
           <>
             <section className="cut-event-manager-summary" aria-label="Resumo dos eventos">
-              <button type="button" className={statusFilter === "all" ? "is-active" : ""} onClick={() => setStatusFilter("all")}>
+              <button type="button" className={statusFilter === "all" && periodFilter === "all" ? "is-active" : ""} onClick={() => applySummaryFilter("all")}>
                 <span className="cut-event-manager-summary__icon"><i className="fa-solid fa-layer-group" /></span>
                 <span className="cut-event-manager-summary__copy"><small>Portfólio</small><span>Todos os eventos</span></span>
                 <strong>{stats.total}</strong>
               </button>
-              <button type="button" className={statusFilter === "published" ? "is-active" : ""} onClick={() => setStatusFilter("published")}>
+              <button type="button" className={statusFilter === "published" ? "is-active" : ""} onClick={() => applySummaryFilter("published")}>
                 <span className="cut-event-manager-summary__icon"><i className="fa-solid fa-circle-check" /></span>
                 <span className="cut-event-manager-summary__copy"><small>No ar</small><span>Publicados</span></span>
                 <strong>{stats.published}</strong>
               </button>
-              <button type="button" className={statusFilter === "draft" ? "is-active" : ""} onClick={() => setStatusFilter("draft")}>
+              <button type="button" className={statusFilter === "draft" ? "is-active" : ""} onClick={() => applySummaryFilter("draft")}>
                 <span className="cut-event-manager-summary__icon"><i className="fa-solid fa-pen-ruler" /></span>
                 <span className="cut-event-manager-summary__copy"><small>Em construção</small><span>Rascunhos</span></span>
                 <strong>{stats.draft}</strong>
               </button>
-              <button type="button" className={statusFilter === "attention" ? "is-active" : ""} onClick={() => setStatusFilter("attention")}>
+              <button type="button" className={statusFilter === "attention" ? "is-active" : ""} onClick={() => applySummaryFilter("attention")}>
                 <span className="cut-event-manager-summary__icon"><i className="fa-solid fa-bolt" /></span>
                 <span className="cut-event-manager-summary__copy"><small>Prioridade</small><span>Precisam de ação</span></span>
                 <strong>{stats.attention}</strong>
               </button>
               {stats.ended > 0 && (
-                <button type="button" className={periodFilter === "past" ? "is-active" : ""} onClick={() => { setStatusFilter("all"); setPeriodFilter("past"); }}>
+                <button type="button" className={periodFilter === "past" ? "is-active" : ""} onClick={() => applySummaryFilter("all", "past")}>
                   <span className="cut-event-manager-summary__icon"><i className="fa-solid fa-clock-rotate-left" /></span>
                   <span className="cut-event-manager-summary__copy"><small>Pós-evento</small><span>Encerrados / Reviva</span></span>
                   <strong>{stats.ended}</strong>
                 </button>
               )}
               {stats.cancelled > 0 && (
-                <button type="button" className={statusFilter === "cancelled" ? "is-active" : ""} onClick={() => setStatusFilter("cancelled")}>
+                <button type="button" className={statusFilter === "cancelled" ? "is-active" : ""} onClick={() => applySummaryFilter("cancelled")}>
                   <span className="cut-event-manager-summary__icon"><i className="fa-solid fa-ban" /></span>
                   <span className="cut-event-manager-summary__copy"><small>Fora da agenda</small><span>Cancelados</span></span>
                   <strong>{stats.cancelled}</strong>
