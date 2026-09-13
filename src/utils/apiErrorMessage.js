@@ -10,6 +10,14 @@ export const humanizeApiErrorMessage = (value, status, code) => {
     }
   }
 
+  const safeServerMessages = {
+    liveness_unavailable: "A verificação facial está temporariamente indisponível. Tente novamente em instantes.",
+  };
+
+  if (status >= 500 && safeServerMessages[code]) {
+    return safeServerMessages[code];
+  }
+
   // Defense in depth: a malformed production 5xx response must never expose
   // SQL fragments, filesystem paths, stack traces or provider diagnostics.
   if (status >= 500) {

@@ -110,7 +110,7 @@ export const createApiClient = (baseURL) => {
       const data = error.response?.data;
       const validationMessage = firstValidationMessage(data?.errors);
       const candidate = validationMessage || data?.message || data?.error || error.message;
-      const message = humanizeApiErrorMessage(candidate, status, error.code);
+      const message = humanizeApiErrorMessage(candidate, status, data?.code || error.code);
 
       const normalizedError = new Error(message);
       normalizedError.status = status;
