@@ -22,6 +22,7 @@ describe("CommerceService transient checkout recovery", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     sessionStorage.clear();
+    localStorage.clear();
   });
 
   test("survives two consecutive provider 503 responses with the same idempotency key", async () => {
@@ -87,7 +88,10 @@ describe("CommerceService transient checkout recovery", () => {
       data: { retryable: true, order_public_id: "order-session" },
     });
     expect(appApiClient.post).toHaveBeenCalledTimes(2);
+    expect(Object.keys(localStorage).some((key) => key.startsWith("cutinapp_checkout_preserved_order_"))).toBe(true);
 
+    // Simulates closing/reopening the PWA: session state is gone, durable recovery remains.
+    sessionStorage.clear();
     appApiClient.post.mockReset();
     appApiClient.post.mockResolvedValueOnce({ data: { order: { public_id: "order-session", status: "pending" }, payment: { method: "pix", status: "pending" } } });
 
