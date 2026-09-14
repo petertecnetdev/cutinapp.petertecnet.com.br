@@ -72,6 +72,10 @@ const isIdempotencyProcessing = (error) => {
   return status === 409 && String(responseHeader(error, "idempotency-status") || "").toLowerCase() === "processing";
 };
 const hasPreservedPaymentOrder = (error) => error?.data?.retryable === true && Boolean(String(error?.data?.order_public_id || "").trim());
+const shouldPreservePaymentOrderAfterRetryFailure = (error) => {
+  const status = Number(error?.status || error?.response?.status || 0);
+  return error?.data?.retryable === true || isNetworkFailure(error) || status === 429 || AUTO_RETRY_CHECKOUT_STATUSES.has(status);
+};
 const shouldAutoRetryCheckout = (error) => { const status = Number(error?.status || error?.response?.status || 0); return !hasPreservedPaymentOrder(error) && (isNetworkFailure(error) || isIdempotencyProcessing(error) || AUTO_RETRY_CHECKOUT_STATUSES.has(status)); };
 const checkoutRetryDelay = (error) => {
   const retryAfter = Number(responseHeader(error, "retry-after") || 0);
@@ -103,8 +107,10 @@ const checkout = (payload) => {
       trackTelemetry("pix_initialization_resumed", { target: String(payload?.event_id || "checkout"), metadata: { order_public_id: orderPublicId, source } });
       return response;
     } catch (error) {
-      error.data = { ...(error?.data || {}), retryable: true, order_public_id: orderPublicId };
-      trackTelemetry("pix_initialization_resume_failed", { target: String(payload?.event_id || "checkout"), metadata: { order_public_id: orderPublicId, source, status: Number(error?.status || error?.response?.status || 0) } });
+      const retryable = shouldPreservePaymentOrderAfterRetryFailure(error);
+      if (retryable) error.data = { ...(error?.data || {}), retryable: true, order_public_id: orderPublicId };
+      else clearAttempt(requestKey);
+      trackTelemetry("pix_initialization_resume_failed", { target: String(payload?.event_id || "checkout"), metadata: { order_public_id: orderPublicId, source, status: Number(error?.status || error?.response?.status || 0), retryable } });
       throw error;
     }
   };
