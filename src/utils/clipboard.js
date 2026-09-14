@@ -1,17 +1,37 @@
+const focusWithoutJump = (element) => {
+  if (!element || typeof element.focus !== "function") return;
+  try {
+    element.focus({ preventScroll: true });
+  } catch (_) {
+    element.focus();
+  }
+};
+
 const fallbackCopyText = (text) => {
   if (typeof document === "undefined" || !document.body) return false;
 
+  const previousActiveElement = document.activeElement;
   const textarea = document.createElement("textarea");
   textarea.value = text;
   textarea.setAttribute("readonly", "");
+  textarea.setAttribute("aria-hidden", "true");
   textarea.style.position = "fixed";
-  textarea.style.opacity = "0";
+  textarea.style.top = "0";
+  textarea.style.left = "0";
+  textarea.style.width = "1px";
+  textarea.style.height = "1px";
+  textarea.style.padding = "0";
+  textarea.style.border = "0";
+  textarea.style.fontSize = "16px";
+  textarea.style.opacity = "0.001";
   textarea.style.pointerEvents = "none";
-  textarea.style.left = "-9999px";
 
   document.body.appendChild(textarea);
-  textarea.focus();
+  focusWithoutJump(textarea);
   textarea.select();
+  if (typeof textarea.setSelectionRange === "function") {
+    textarea.setSelectionRange(0, textarea.value.length);
+  }
 
   let copied = false;
   try {
@@ -20,6 +40,9 @@ const fallbackCopyText = (text) => {
     copied = false;
   } finally {
     document.body.removeChild(textarea);
+    if (previousActiveElement && previousActiveElement !== document.body) {
+      focusWithoutJump(previousActiveElement);
+    }
   }
 
   return copied;

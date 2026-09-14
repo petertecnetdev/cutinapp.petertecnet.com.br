@@ -29,6 +29,27 @@ describe("copyText", () => {
     expect(document.querySelector("textarea")).toBeNull();
   });
 
+  test("uses an in-viewport mobile-safe fallback and restores focus", async () => {
+    Object.defineProperty(navigator, "clipboard", { configurable: true, value: undefined });
+    const input = document.createElement("input");
+    document.body.appendChild(input);
+    input.focus();
+    document.execCommand = jest.fn(() => {
+      const textarea = document.querySelector("textarea");
+      expect(textarea).not.toBeNull();
+      expect(textarea.style.position).toBe("fixed");
+      expect(textarea.style.top).toBe("0px");
+      expect(textarea.style.left).toBe("0px");
+      expect(textarea.style.fontSize).toBe("16px");
+      expect(textarea.selectionStart).toBe(0);
+      expect(textarea.selectionEnd).toBe("pix-code".length);
+      return true;
+    });
+
+    await expect(copyText("pix-code")).resolves.toBe(true);
+    expect(document.activeElement).toBe(input);
+  });
+
   test("returns false for empty values", async () => {
     await expect(copyText("")).resolves.toBe(false);
   });
