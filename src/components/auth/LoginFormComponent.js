@@ -453,7 +453,7 @@ export default function LoginFormComponent() {
       </div>
 
       <div className="cut-login-form__links">
-        <Link to="/register">Criar conta</Link><span>•</span><Link to="/password-email">Esqueci minha senha</Link>
+        <Link to="/register" state={{ from: destination }}>Criar conta</Link><span>•</span><Link to="/password-email">Esqueci minha senha</Link>
       </div>
     </Form>
   );
