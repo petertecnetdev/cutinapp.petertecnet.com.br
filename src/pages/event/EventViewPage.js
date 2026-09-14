@@ -375,6 +375,12 @@ export default function EventViewPage() {
     finally { setSocialBusy(false); }
   };
 
+  const trackTicketIntent = (surface) => trackTelemetry("event_ticket_intent_clicked", {
+    label: "Intenção de compra na página do evento",
+    target: slug,
+    metadata: { event_id: Number(event.id), source: "public_event", surface },
+  });
+
   const duplicateEvent = async () => {
     if (!duplicateDate) {
       setError("Escolha a data da próxima edição antes de duplicar o evento.");
@@ -422,7 +428,7 @@ export default function EventViewPage() {
               {event.production?.name && <button className="cut-inline-profile-link mt-3" onClick={() => navigate(`/production/${event.production.slug}/public`)}>Por {event.production.name} <i className="fa-solid fa-arrow-up-right-from-square" /></button>}
             </div>
             <div className="cut-card-actions cut-event-summary-card__actions">
-              {showPersistentBuyCta && <Button as="a" href="#ingressos" size="lg" variant="success" className="fw-bold" aria-label={`Montar carrinho para ${event.title}`} onClick={() => trackTelemetry("event_ticket_intent_clicked", { label: "Intenção de compra na página do evento", target: slug, metadata: { event_id: Number(event.id), source: "public_event" } })}><i className="fa-solid fa-cart-shopping me-2" />Ingressos e itens</Button>}
+              {showPersistentBuyCta && <Button as="a" href="#ingressos" size="lg" variant="success" className="fw-bold" aria-label={`Montar carrinho para ${event.title}`} onClick={() => trackTicketIntent("summary")}><i className="fa-solid fa-cart-shopping me-2" />Ingressos e itens</Button>}
               {canManageEvent && <Button variant="light" onClick={() => navigate(`/event/edit/${event.id}`)} aria-label={`Editar ${event.title}`} title="Editar evento"><i className="fa-solid fa-pen-to-square me-2" />Editar evento</Button>}
               <Button variant="outline-light" onClick={share} aria-label={`Compartilhar ${event.title}`}><i className="fa-solid fa-share-nodes me-2" />Compartilhar</Button>
               {flyerUrl && <Button variant="outline-light" onClick={() => setFlyerOpen(true)}><i className="fa-regular fa-image me-2" />Ver imagem</Button>}
@@ -461,7 +467,7 @@ export default function EventViewPage() {
 
         <Row className="g-4"><Col lg={isOwner ? 8 : 12}>
           <Card className="cut-panel mb-4"><Card.Body className="p-4 p-lg-5"><span className="cut-eyebrow">Sobre o evento</span><h2 className="cut-section-title mt-2">Informações</h2>{eventDescription && <div className="mb-4"><p className="cut-body-copy mb-2">{visibleDescription}</p>{hasLongDescription && <Button variant="link" className="p-0 text-decoration-none" onClick={() => setDescriptionExpanded((current) => !current)} aria-expanded={descriptionExpanded}><i className={`fa-solid ${descriptionExpanded ? "fa-chevron-up" : "fa-chevron-down"} me-2`} aria-hidden="true" />{descriptionExpanded ? "Recolher descrição" : "Ver descrição completa"}</Button>}</div>}<div className="cut-event-details"><div><i className="fa-regular fa-calendar" /><span><strong>Início</strong>{formatDate(event.start_date)}</span></div><div><i className="fa-regular fa-clock" /><span><strong>Término</strong>{formatDate(event.end_date)}</span></div><div><i className="fa-solid fa-location-dot" /><span><strong>Local</strong>{event.venue || event.address}</span></div>{event.city && <div><i className="fa-solid fa-map" /><span><strong>Cidade</strong>{event.city}{event.uf ? ` - ${event.uf}` : ""}</span></div>}</div></Card.Body></Card>
-          {event.production?.name && <Card className="cut-panel mb-4"><Card.Body className="p-4"><span className="cut-eyebrow">Responsável</span><div className="cut-production-inline"><div><h2>{event.production.name}</h2><p>Veja os próximos eventos e acompanhe esta produção.</p></div><div className="d-flex flex-wrap gap-2">{showPersistentBuyCta && <Button as="a" href="#ingressos" variant="success"><i className="fa-solid fa-cart-shopping me-2" />Comprar ingressos e itens</Button>}<Button variant="outline-light" onClick={() => navigate(`/production/${event.production.slug}/public`)}>Ver página da produção</Button></div></div></Card.Body></Card>}
+          {event.production?.name && <Card className="cut-panel mb-4"><Card.Body className="p-4"><span className="cut-eyebrow">Responsável</span><div className="cut-production-inline"><div><h2>{event.production.name}</h2><p>Veja os próximos eventos e acompanhe esta produção.</p></div><div className="d-flex flex-wrap gap-2">{showPersistentBuyCta && <Button as="a" href="#ingressos" variant="success" onClick={() => trackTicketIntent("production_card")}><i className="fa-solid fa-cart-shopping me-2" />Comprar ingressos e itens</Button>}<Button variant="outline-light" onClick={() => navigate(`/production/${event.production.slug}/public`)}>Ver página da produção</Button></div></div></Card.Body></Card>}
           {mapEmbedUrl && <Card className="cut-panel"><Card.Body className="p-0 overflow-hidden"><iframe title={`Mapa de ${event.title}`} src={mapEmbedUrl} width="100%" height="360" style={{ border: 0, display: "block" }} loading="lazy" referrerPolicy="no-referrer-when-downgrade" allowFullScreen /></Card.Body></Card>}
         </Col>
         {isOwner && <Col lg={4}><Card className="cut-panel"><Card.Body className="p-4"><span className="cut-eyebrow">Gestão</span><h2 className="cut-section-title mt-2">Ferramentas do evento</h2><div className="cut-owner-actions mt-4"><Button variant="outline-light" onClick={() => navigate(`/event/edit/${event.id}`)}><i className="fa-solid fa-pen-to-square me-2" />Editar evento</Button><Button variant="outline-light" onClick={() => navigate(`/event/${event.id}/lineup`)}>Line-up</Button><Button variant="outline-light" onClick={() => navigate(`/event/${event.id}/artist-claims`)}>Reivindicações</Button>{!isPastEvent && <Button variant="outline-light" onClick={() => navigate(`/checkin?eventId=${event.id}`)}>Portaria</Button>}{!isPastEvent && <Button variant="outline-light" onClick={() => navigate(`/ticket/create?eventId=${event.id}`)}>Criar cortesia</Button>}</div></Card.Body></Card></Col>}</Row>
@@ -471,7 +477,7 @@ export default function EventViewPage() {
         <EventCommunitySection event={event} isOwner={isOwner} />
       </Container>
 
-      {showPersistentBuyCta && <a className="cut-event-buy-cta-fixed" href="#ingressos" aria-label={`Comprar ingresso para ${event.title}`}>
+      {showPersistentBuyCta && <a className="cut-event-buy-cta-fixed" href="#ingressos" aria-label={`Comprar ingresso para ${event.title}`} onClick={() => trackTicketIntent("mobile_fixed")}>
         <i className="fa-solid fa-ticket" aria-hidden="true" />
         <span><strong>Comprar ingresso</strong><small>Ver opções disponíveis</small></span>
         <i className="fa-solid fa-chevron-down" aria-hidden="true" />
