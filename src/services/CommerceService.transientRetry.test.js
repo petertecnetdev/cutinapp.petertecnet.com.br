@@ -102,6 +102,28 @@ describe("CommerceService transient checkout recovery", () => {
     );
   });
 
+  test("clears an expired preserved PIX order instead of trapping the next checkout", async () => {
+    const checkoutPayload = { ...payload, event_id: 915 };
+    const preserved = { status: 502, data: { retryable: true, order_public_id: "order-expired" }, response: { status: 502, headers: {} } };
+    const expired = { status: 410, data: { message: "order expired", retryable: false }, response: { status: 410, headers: {} } };
+    appApiClient.post.mockRejectedValueOnce(preserved).mockRejectedValueOnce(expired);
+
+    await expect(commerceService.checkout(checkoutPayload)).rejects.toMatchObject({ status: 410 });
+    expect(appApiClient.post).toHaveBeenCalledTimes(2);
+
+    appApiClient.post.mockReset();
+    appApiClient.post.mockResolvedValueOnce({ data: { order: { public_id: "order-new", status: "pending" } } });
+
+    await expect(commerceService.checkout(checkoutPayload)).resolves.toEqual({
+      order: { public_id: "order-new", status: "pending" },
+    });
+    expect(appApiClient.post).toHaveBeenCalledTimes(1);
+    expect(appApiClient.post.mock.calls[0][0]).toBe("/commerce/checkout");
+    expect(trackTelemetry).toHaveBeenCalledWith("pix_initialization_resume_failed", expect.objectContaining({
+      metadata: expect.objectContaining({ order_public_id: "order-expired", status: 410, retryable: false }),
+    }));
+  });
+
   test("retries PIX initialization on the preserved order endpoint", async () => {
     appApiClient.post.mockResolvedValueOnce({
       data: {
