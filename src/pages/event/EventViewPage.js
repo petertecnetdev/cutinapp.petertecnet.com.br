@@ -15,6 +15,7 @@ import { storageUrl } from "../../config";
 import { isPeterTecnetRoot } from "../../utils/applicationRoles";
 import { buildEventShareUrl } from "../../utils/eventShareUrl";
 import { safeExternalHref } from "../../utils/safeUrl";
+import { trackTelemetry } from "../../utils/telemetry";
 
 const EVENT_DESCRIPTION_PREVIEW_LENGTH = 240;
 
@@ -200,6 +201,15 @@ export default function EventViewPage() {
   const visibleDescription = descriptionExpanded || !hasLongDescription
     ? eventDescription
     : `${eventDescription.slice(0, EVENT_DESCRIPTION_PREVIEW_LENGTH).trimEnd()}…`;
+
+  useEffect(() => {
+    if (!event?.id) return;
+    trackTelemetry("event_detail_viewed", {
+      label: "Página pública do evento visualizada",
+      target: slug,
+      metadata: { event_id: Number(event.id), source: "public_event" },
+    });
+  }, [event?.id, slug]);
 
   useEffect(() => {
     if (!event || isPastEvent) return undefined;
@@ -412,7 +422,7 @@ export default function EventViewPage() {
               {event.production?.name && <button className="cut-inline-profile-link mt-3" onClick={() => navigate(`/production/${event.production.slug}/public`)}>Por {event.production.name} <i className="fa-solid fa-arrow-up-right-from-square" /></button>}
             </div>
             <div className="cut-card-actions cut-event-summary-card__actions">
-              {showPersistentBuyCta && <Button as="a" href="#ingressos" size="lg" variant="success" className="fw-bold" aria-label={`Montar carrinho para ${event.title}`}><i className="fa-solid fa-cart-shopping me-2" />Ingressos e itens</Button>}
+              {showPersistentBuyCta && <Button as="a" href="#ingressos" size="lg" variant="success" className="fw-bold" aria-label={`Montar carrinho para ${event.title}`} onClick={() => trackTelemetry("event_ticket_intent_clicked", { label: "Intenção de compra na página do evento", target: slug, metadata: { event_id: Number(event.id), source: "public_event" } })}><i className="fa-solid fa-cart-shopping me-2" />Ingressos e itens</Button>}
               {canManageEvent && <Button variant="light" onClick={() => navigate(`/event/edit/${event.id}`)} aria-label={`Editar ${event.title}`} title="Editar evento"><i className="fa-solid fa-pen-to-square me-2" />Editar evento</Button>}
               <Button variant="outline-light" onClick={share} aria-label={`Compartilhar ${event.title}`}><i className="fa-solid fa-share-nodes me-2" />Compartilhar</Button>
               {flyerUrl && <Button variant="outline-light" onClick={() => setFlyerOpen(true)}><i className="fa-regular fa-image me-2" />Ver imagem</Button>}
