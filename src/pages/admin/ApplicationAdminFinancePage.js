@@ -113,6 +113,8 @@ export default function ApplicationAdminFinancePage() {
   const incidents = paymentHealth?.incidents;
   const diagnosis = paymentHealth?.diagnosis;
   const ticketFulfillment = paymentHealth?.ticket_fulfillment;
+  const fulfillmentRecovery = ticketFulfillment?.recovery;
+  const automaticFulfillmentRecovery = fulfillmentRecovery?.automatic || {};
   const currentTrend = trendMeta[trend?.status] || trendMeta.history_unavailable;
   const trendReady = ["normal", "anomaly"].includes(trend?.status);
 
@@ -201,6 +203,33 @@ export default function ApplicationAdminFinancePage() {
                   </Button>
                 </div>
               </div>)}
+            </div>
+          </Card.Body>
+        </Card>}
+        {fulfillmentRecovery && <Card className="cut-panel mt-3 mb-3">
+          <Card.Body>
+            <div className="d-flex justify-content-between gap-3 flex-wrap align-items-start mb-3">
+              <div>
+                <span className="cut-eyebrow">Fulfillment · autocorreção</span>
+                <h3 className="h5 mb-1">Receita protegida pela recuperação automática</h3>
+                <p className="text-secondary mb-0">Resultados observados nos últimos {fulfillmentRecovery.window_days ?? 30} dias. GMV protegido representa pedidos pagos cuja entrega foi corrigida; não é receita incremental causal.</p>
+              </div>
+              <Badge bg={(fulfillmentRecovery.automatic_unresolved_orders ?? 0) > 0 ? "warning" : "success"}>
+                {(fulfillmentRecovery.automatic_unresolved_orders ?? 0) > 0 ? `${fulfillmentRecovery.automatic_unresolved_orders} pendente(s)` : "Operação saudável"}
+              </Badge>
+            </div>
+            <Row className="g-3">
+              <Col xs={12} sm={6} lg={3}><div className="border rounded-3 p-3 h-100"><span className="cut-eyebrow">GMV protegido</span><div className="fs-5 fw-bold mt-2">{money(automaticFulfillmentRecovery.protected_gmv)}</div><small className="text-secondary">{automaticFulfillmentRecovery.recovered_orders ?? 0} pedido(s) recuperado(s)</small></div></Col>
+              <Col xs={12} sm={6} lg={3}><div className="border rounded-3 p-3 h-100"><span className="cut-eyebrow">Receita protegida</span><div className="fs-5 fw-bold mt-2">{money(automaticFulfillmentRecovery.protected_platform_revenue)}</div><small className="text-secondary">receita da plataforma associada</small></div></Col>
+              <Col xs={12} sm={6} lg={3}><div className="border rounded-3 p-3 h-100"><span className="cut-eyebrow">Ingressos recuperados</span><div className="fs-5 fw-bold mt-2">{automaticFulfillmentRecovery.recovered_passes ?? 0}</div><small className="text-secondary">emitidos sem nova cobrança</small></div></Col>
+              <Col xs={12} sm={6} lg={3}><div className="border rounded-3 p-3 h-100"><span className="cut-eyebrow">Taxa de sucesso</span><div className="fs-5 fw-bold mt-2">{fulfillmentRecovery.automatic_success_rate == null ? "—" : percent(fulfillmentRecovery.automatic_success_rate)}</div><small className="text-secondary">{fulfillmentRecovery.automatic_attempted_orders ?? 0} pedido(s) instrumentado(s)</small></div></Col>
+            </Row>
+            <div className="d-flex flex-wrap gap-3 mt-3 small text-secondary">
+              <span>Tentativas: <strong className="text-body">{fulfillmentRecovery.automatic_attempts ?? 0}</strong></span>
+              <span>Falhas: <strong className="text-body">{fulfillmentRecovery.automatic_failed_attempts ?? 0}</strong></span>
+              <span>Tempo médio: <strong className="text-body">{duration(automaticFulfillmentRecovery.average_resolution_seconds)}</strong></span>
+              <span>P95: <strong className="text-body">{duration(automaticFulfillmentRecovery.p95_resolution_seconds)}</strong></span>
+              <span>Última tentativa: <strong className="text-body">{fulfillmentRecovery.last_automatic_attempt_at ? new Date(fulfillmentRecovery.last_automatic_attempt_at).toLocaleString("pt-BR") : "—"}</strong></span>
             </div>
           </Card.Body>
         </Card>}
