@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Alert, Badge, Card, Col, Container, Row, Spinner } from "react-bootstrap";
+import { Alert, Badge, Button, Card, Col, Container, Row, Spinner } from "react-bootstrap";
 import NavlogComponent from "../../components/NavlogComponent";
 import appApiClient from "../../services/AppApiClient";
 
@@ -40,6 +40,7 @@ export default function ApplicationAdminFinancePage() {
   const [paymentHealth, setPaymentHealth] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [fulfillmentAction, setFulfillmentAction] = useState({ orderId: null, message: "", error: "" });
 
   useEffect(() => {
     let active = true;
@@ -82,6 +83,30 @@ export default function ApplicationAdminFinancePage() {
     ["Pendentes no provedor", `${paymentHealth.provider_pending_payments ?? 0} · ${money(paymentHealth.provider_pending_volume)}`],
     ["Volume em risco", money(paymentHealth.at_risk_volume)],
   ] : [];
+
+  const reprocessTicketFulfillment = async (order) => {
+    if (!order?.id || fulfillmentAction.orderId) return;
+    setFulfillmentAction({ orderId: order.id, message: "", error: "" });
+    try {
+      const response = await appApiClient.post(`/admin/commerce-orders/${Number(order.id)}/reprocess-ticket-fulfillment`);
+      const result = response.data?.data || {};
+      const health = await appApiClient.get("/admin/finance/payment-health");
+      setPaymentHealth(health.data?.data || null);
+      setFulfillmentAction({
+        orderId: null,
+        error: "",
+        message: response.data?.message || `Entrega reconciliada. ${Number(result.recovered_passes || 0)} ingresso(s) recuperado(s).`,
+      });
+    } catch (err) {
+      const validation = err?.response?.data?.errors;
+      const firstValidation = validation && Object.values(validation).flat()[0];
+      setFulfillmentAction({
+        orderId: null,
+        message: "",
+        error: firstValidation || err?.response?.data?.message || err?.message || "Não foi possível reprocessar a entrega com segurança.",
+      });
+    }
+  };
 
   const currentRisk = riskMeta[paymentHealth?.risk_level] || riskMeta.healthy;
   const trend = paymentHealth?.trend;
@@ -146,6 +171,8 @@ export default function ApplicationAdminFinancePage() {
             <Alert variant="danger">
               <strong>{ticketFulfillment.unresolved_orders ?? 0} pedido(s)</strong> pago(s) permanecem incompletos, com <strong>{ticketFulfillment.missing_passes ?? 0} ingresso(s)</strong> ainda não emitido(s) e <strong>{money(ticketFulfillment.unresolved_gmv)}</strong> de GMV já pago envolvido.
             </Alert>
+            {fulfillmentAction.error && <Alert variant="danger">{fulfillmentAction.error}</Alert>}
+            {fulfillmentAction.message && <Alert variant="success">{fulfillmentAction.message}</Alert>}
             <div className="d-grid gap-2">
               {(ticketFulfillment.orders || []).map((order) => <div className="border border-danger-subtle rounded-3 p-3" key={order.public_id}>
                 <div className="d-flex justify-content-between gap-2 flex-wrap align-items-start">
@@ -155,10 +182,21 @@ export default function ApplicationAdminFinancePage() {
                   </div>
                   <strong>{money(order.total)}</strong>
                 </div>
-                <div className="d-flex gap-3 flex-wrap mt-2 small">
-                  <span>Esperados: <strong>{order.expected_passes ?? 0}</strong></span>
-                  <span>Emitidos: <strong>{order.emitted_passes ?? 0}</strong></span>
-                  <span className="text-danger">Faltando: <strong>{order.missing_passes ?? 0}</strong></span>
+                <div className="d-flex justify-content-between gap-3 flex-wrap align-items-end mt-2">
+                  <div className="d-flex gap-3 flex-wrap small">
+                    <span>Esperados: <strong>{order.expected_passes ?? 0}</strong></span>
+                    <span>Emitidos: <strong>{order.emitted_passes ?? 0}</strong></span>
+                    <span className="text-danger">Faltando: <strong>{order.missing_passes ?? 0}</strong></span>
+                  </div>
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    disabled={Boolean(fulfillmentAction.orderId)}
+                    onClick={() => reprocessTicketFulfillment(order)}
+                    aria-label={`Reprocessar entrega do pedido ${order.public_id}`}
+                  >
+                    {fulfillmentAction.orderId === order.id ? <><Spinner size="sm" className="me-2" />Revalidando pagamento...</> : "Reprocessar entrega"}
+                  </Button>
                 </div>
               </div>)}
             </div>
