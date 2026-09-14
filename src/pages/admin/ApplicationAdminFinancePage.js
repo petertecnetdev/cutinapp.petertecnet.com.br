@@ -87,6 +87,7 @@ export default function ApplicationAdminFinancePage() {
   const trend = paymentHealth?.trend;
   const incidents = paymentHealth?.incidents;
   const diagnosis = paymentHealth?.diagnosis;
+  const ticketFulfillment = paymentHealth?.ticket_fulfillment;
   const currentTrend = trendMeta[trend?.status] || trendMeta.history_unavailable;
   const trendReady = ["normal", "anomaly"].includes(trend?.status);
 
@@ -132,6 +133,37 @@ export default function ApplicationAdminFinancePage() {
         {paymentHealth.risk_level === "attention" && <Alert variant="warning">
           Há sinais de atenção no funil de pagamento. Existem pedidos ou pagamentos envelhecendo e que precisam ser acompanhados antes de virarem perda de conversão.
         </Alert>}
+        {ticketFulfillment?.requires_attention && <Card className="cut-panel border-danger mt-3 mb-3">
+          <Card.Body>
+            <div className="d-flex justify-content-between gap-3 flex-wrap align-items-start mb-3">
+              <div>
+                <span className="cut-eyebrow text-danger">Pagamento confirmado · entrega incompleta</span>
+                <h3 className="h5 mb-1">Cliente pago sem todos os ingressos</h3>
+                <p className="text-secondary mb-0">A reconciliação automática continua ativa. Estes pedidos precisam de atenção até que todos os EventPass esperados tenham sido emitidos.</p>
+              </div>
+              <Badge bg="danger">CRÍTICO</Badge>
+            </div>
+            <Alert variant="danger">
+              <strong>{ticketFulfillment.unresolved_orders ?? 0} pedido(s)</strong> pago(s) permanecem incompletos, com <strong>{ticketFulfillment.missing_passes ?? 0} ingresso(s)</strong> ainda não emitido(s) e <strong>{money(ticketFulfillment.unresolved_gmv)}</strong> de GMV já pago envolvido.
+            </Alert>
+            <div className="d-grid gap-2">
+              {(ticketFulfillment.orders || []).map((order) => <div className="border border-danger-subtle rounded-3 p-3" key={order.public_id}>
+                <div className="d-flex justify-content-between gap-2 flex-wrap align-items-start">
+                  <div>
+                    <strong>{order.event_name || "Evento"}</strong>
+                    <small className="text-secondary d-block">Pedido {order.public_id} · {order.paid_at ? `pago em ${new Date(order.paid_at).toLocaleString("pt-BR")}` : "pagamento confirmado"}</small>
+                  </div>
+                  <strong>{money(order.total)}</strong>
+                </div>
+                <div className="d-flex gap-3 flex-wrap mt-2 small">
+                  <span>Esperados: <strong>{order.expected_passes ?? 0}</strong></span>
+                  <span>Emitidos: <strong>{order.emitted_passes ?? 0}</strong></span>
+                  <span className="text-danger">Faltando: <strong>{order.missing_passes ?? 0}</strong></span>
+                </div>
+              </div>)}
+            </div>
+          </Card.Body>
+        </Card>}
         <Row className="g-3">
           {healthCards.map(([label, value]) => <Col xs={12} sm={6} lg key={label}><Card className="cut-panel h-100"><Card.Body><span className="cut-eyebrow">{label}</span><div className="fs-5 fw-bold mt-2">{value}</div></Card.Body></Card></Col>)}
         </Row>
