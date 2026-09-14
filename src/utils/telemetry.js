@@ -108,8 +108,12 @@ const createCheckoutJourneyId = () => {
   return `cj_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 12)}`;
 };
 
-const resolveCheckoutJourney = (details = {}) => {
-  if (typeof window === "undefined" || !/^\/checkout\//.test(window.location?.pathname || "")) return null;
+const resolveCheckoutJourney = (details = {}, type = "") => {
+  if (typeof window === "undefined") return null;
+  const pathname = window.location?.pathname || "";
+  const isCheckout = /^\/checkout\//.test(pathname);
+  const isPreCheckoutEvent = /^\/event\//.test(pathname) && ["event_detail_viewed", "event_ticket_intent_clicked"].includes(type);
+  if (!isCheckout && !isPreCheckoutEvent) return null;
   const eventSlug = String(details?.target || window.location.pathname.split("/").filter(Boolean)[1] || "").trim() || null;
   const existing = readCheckoutJourney();
   if (existing && (!eventSlug || existing.event_slug === eventSlug)) return existing;
@@ -130,9 +134,9 @@ const resolveCheckoutJourney = (details = {}) => {
   }
 };
 
-const enrichTelemetryDetails = (details = {}) => {
+const enrichTelemetryDetails = (details = {}, type = "") => {
   const attribution = shouldAttachAttribution() ? readAttribution() : null;
-  const checkoutJourney = resolveCheckoutJourney(details);
+  const checkoutJourney = resolveCheckoutJourney(details, type);
   return attribution || checkoutJourney
     ? {
       ...details,
@@ -158,7 +162,7 @@ const enrichTelemetryDetails = (details = {}) => {
 
 const enqueueTelemetry = (type, details = {}) => {
   if (pendingTelemetry.length >= PENDING_TELEMETRY_LIMIT) pendingTelemetry.shift();
-  pendingTelemetry.push([type, enrichTelemetryDetails(details)]);
+  pendingTelemetry.push([type, enrichTelemetryDetails(details, type)]);
 };
 
 const ensureAttributionAwareTracker = () => {
@@ -170,7 +174,7 @@ const ensureAttributionAwareTracker = () => {
 
   const originalTrack = tracker.bind(telemetry);
   const wrappedTrack = (type, details = {}) => {
-    const result = originalTrack(type, enrichTelemetryDetails(details));
+    const result = originalTrack(type, enrichTelemetryDetails(details, type));
     if (type === ATTRIBUTION_TERMINAL_EVENT) {
       clearAttribution();
       clearCheckoutJourney();

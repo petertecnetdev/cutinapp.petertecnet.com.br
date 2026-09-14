@@ -126,6 +126,24 @@ describe("checkout recovery attribution", () => {
     expect(secondId).not.toBe(firstId);
   });
 
+  test("keeps pre-checkout event intent in the same anonymous journey", async () => {
+    const { trackTelemetry } = await loadTelemetry();
+    window.history.replaceState({}, "", "/event/evento-teste");
+
+    trackTelemetry("event_detail_viewed", { target: "evento-teste", metadata: { event_id: 42 } });
+    const detailId = rawTrack.mock.calls.at(-1)[1].metadata.checkout_journey_id;
+    trackTelemetry("event_ticket_intent_clicked", { target: "evento-teste", metadata: { event_id: 42 } });
+    const intentId = rawTrack.mock.calls.at(-1)[1].metadata.checkout_journey_id;
+
+    window.history.replaceState({}, "", "/checkout/evento-teste");
+    trackTelemetry("checkout_opened", { target: "evento-teste", metadata: { event_id: 42 } });
+    const checkoutId = rawTrack.mock.calls.at(-1)[1].metadata.checkout_journey_id;
+
+    expect(detailId).toBeTruthy();
+    expect(intentId).toBe(detailId);
+    expect(checkoutId).toBe(detailId);
+  });
+
   test("clears a completed journey before the next purchase", async () => {
     const { trackTelemetry } = await loadTelemetry();
     window.history.replaceState({}, "", "/checkout/evento-teste");
