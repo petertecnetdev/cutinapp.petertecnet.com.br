@@ -170,6 +170,7 @@ export default function ApplicationAdminFinancePage() {
             </div>
             <Alert variant="danger">
               <strong>{ticketFulfillment.unresolved_orders ?? 0} pedido(s)</strong> pago(s) permanecem incompletos, com <strong>{ticketFulfillment.missing_passes ?? 0} ingresso(s)</strong> ainda não emitido(s) e <strong>{money(ticketFulfillment.unresolved_gmv)}</strong> de GMV já pago envolvido.
+              {(ticketFulfillment.over_sla_orders ?? 0) > 0 && <div className="mt-2"><strong>{ticketFulfillment.over_sla_orders} pedido(s)</strong> já ultrapassaram o SLA operacional de {ticketFulfillment.sla_minutes ?? 10} minutos. O caso mais antigo está aberto há {ticketFulfillment.oldest_unresolved_minutes ?? 0} minuto(s).</div>}
             </Alert>
             {fulfillmentAction.error && <Alert variant="danger">{fulfillmentAction.error}</Alert>}
             {fulfillmentAction.message && <Alert variant="success">{fulfillmentAction.message}</Alert>}
@@ -179,6 +180,7 @@ export default function ApplicationAdminFinancePage() {
                   <div>
                     <strong>{order.event_name || "Evento"}</strong>
                     <small className="text-secondary d-block">Pedido {order.public_id} · {order.paid_at ? `pago em ${new Date(order.paid_at).toLocaleString("pt-BR")}` : "pagamento confirmado"}</small>
+                    <small className={order.sla_breached ? "text-danger fw-semibold d-block" : "text-secondary d-block"}>{order.age_minutes ?? 0} min sem entrega completa{order.sla_breached ? ` · SLA de ${ticketFulfillment.sla_minutes ?? 10} min excedido` : ""}</small>
                   </div>
                   <strong>{money(order.total)}</strong>
                 </div>
