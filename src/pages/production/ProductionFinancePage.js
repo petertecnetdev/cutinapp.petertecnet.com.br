@@ -189,6 +189,14 @@ export default function ProductionFinancePage() {
   const recoveredGmvShare = grossRevenue > 0 ? (recoveredGmv / grossRevenue) * 100 : 0;
   const recoveredGmvPerAttempt = recoveryAttempts > 0 ? recoveredGmv / recoveryAttempts : 0;
   const recoveredPlatformRevenuePerAttempt = recoveryAttempts > 0 ? recoveredPlatformRevenue / recoveryAttempts : 0;
+  const pixRecoveryEconomics = revenueFunnel?.pix_initialization_recovery_economics || {};
+  const pixRecoveryObservedOrders = Number(pixRecoveryEconomics.orders_observed || 0);
+  const pixRecoveryResumedOrders = Number(pixRecoveryEconomics.resumed_orders || 0);
+  const pixRecoveryPaidOrders = Number(pixRecoveryEconomics.paid_after_resume_orders || 0);
+  const pixRecoveryGmv = Number(pixRecoveryEconomics.recovered_gmv || 0);
+  const pixRecoveryPlatformRevenue = Number(pixRecoveryEconomics.recovered_platform_revenue || 0);
+  const pixRecoveryPlatformContribution = Number(pixRecoveryEconomics.recovered_platform_contribution || 0);
+  const pixRecoveryBySource = Array.isArray(pixRecoveryEconomics.by_source) ? pixRecoveryEconomics.by_source : [];
   const recoverySurfaces = useMemo(() => {
     const rows = Array.isArray(revenueFunnel?.checkout_recovery_surface_economics)
       ? revenueFunnel.checkout_recovery_surface_economics
@@ -428,6 +436,37 @@ export default function ProductionFinancePage() {
           {recoveryAttempts > 0 && <Alert variant="info" className="mt-3 mb-0">
             Recuperação de checkout converteu <strong>{percent(recoveryConversionRate)}</strong> das tentativas e recuperou <strong>{money(recoveredGmv)}</strong> em GMV / <strong>{money(recoveredPlatformRevenue)}</strong> em receita de plataforma. Cada tentativa recuperou em média <strong>{money(recoveredGmvPerAttempt)}</strong> de GMV e <strong>{money(recoveredPlatformRevenuePerAttempt)}</strong> de receita bruta da plataforma, equivalente a aproximadamente <strong>{money(netEconomics.estimatedRecoveredNetRevenue)}</strong> de receita líquida total após processamento pela margem observada.
           </Alert>}
+
+          {pixRecoveryObservedOrders > 0 && <div className="mt-4">
+            <div className="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+              <div>
+                <span className="cut-eyebrow">Recuperação PIX preservada</span>
+                <h3 className="h5 mt-2 mb-1">Quanto a retomada técnica está protegendo</h3>
+                <p className="text-secondary small mb-0">Atribuição observacional dos pedidos PIX preservados após falha de inicialização. Os valores mostram vendas associadas à retomada, não ganho causal garantido.</p>
+              </div>
+              <Badge bg="success">{pixRecoveryObservedOrders.toLocaleString("pt-BR")} pedidos observados</Badge>
+            </div>
+            <Row className="g-3">
+              <Col md={6} xl={3}><RevenueMetric label="Pedidos retomados" value={pixRecoveryResumedOrders.toLocaleString("pt-BR")} detail={`${pixRecoveryPaidOrders.toLocaleString("pt-BR")} pagos após retomada`} /></Col>
+              <Col md={6} xl={3}><RevenueMetric label="Retomada → pagamento" value={pixRecoveryEconomics.resume_to_paid_percent == null ? "—" : percent(pixRecoveryEconomics.resume_to_paid_percent)} detail="Conversão dos pedidos efetivamente retomados" /></Col>
+              <Col md={6} xl={3}><RevenueMetric label="GMV após retomada PIX" value={money(pixRecoveryGmv)} detail={`${money(pixRecoveryPlatformRevenue)} de receita da plataforma`} /></Col>
+              <Col md={6} xl={3}><RevenueMetric label="Contribuição após retomada" value={money(pixRecoveryPlatformContribution)} detail={pixRecoveryEconomics.observed_platform_take_rate_percent == null ? "Take rate sem amostra" : `Take rate observado ${percent(pixRecoveryEconomics.observed_platform_take_rate_percent)}`} /></Col>
+            </Row>
+            {(Number(pixRecoveryEconomics.retryable_failed_orders || 0) > 0 || Number(pixRecoveryEconomics.terminal_failed_orders || 0) > 0) && <Alert variant="secondary" className="mt-3 mb-0">
+              A recuperação registrou <strong>{Number(pixRecoveryEconomics.retryable_failed_orders || 0).toLocaleString("pt-BR")}</strong> falhas ainda recuperáveis e <strong>{Number(pixRecoveryEconomics.terminal_failed_orders || 0).toLocaleString("pt-BR")}</strong> falhas terminais. Falhas terminais são liberadas para um novo checkout válido em vez de prender o comprador a um pedido expirado.
+            </Alert>}
+            {pixRecoveryBySource.length > 0 && <Table responsive hover className="align-middle mt-3 mb-0">
+              <thead><tr><th>Origem da retomada</th><th>Retomados</th><th>Pagos</th><th>Conversão</th><th>GMV observado</th><th>Contribuição</th></tr></thead>
+              <tbody>{pixRecoveryBySource.map((row) => <tr key={row.source}>
+                <td><strong>{row.source === "session" ? "Após reabertura" : row.source === "checkout" ? "No checkout" : row.source || "Não identificada"}</strong></td>
+                <td>{Number(row.resumed_orders || 0).toLocaleString("pt-BR")}</td>
+                <td>{Number(row.paid_after_resume_orders || 0).toLocaleString("pt-BR")}</td>
+                <td>{row.resume_to_paid_percent == null ? "—" : percent(row.resume_to_paid_percent)}</td>
+                <td>{money(row.recovered_gmv)}</td>
+                <td>{money(row.recovered_platform_contribution)}</td>
+              </tr>)}</tbody>
+            </Table>}
+          </div>}
 
           {Number(checkoutJourneyFunnel.journeys || 0) > 0 && <div className="mt-4">
             <div className="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
