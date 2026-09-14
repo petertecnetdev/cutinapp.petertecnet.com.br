@@ -1,6 +1,6 @@
 import appApiClient from "./AppApiClient";
 import { isNetworkFailure } from "../utils/networkStatus";
-import { safeGetSessionJson, safeRemoveSessionItem, safeSetSessionJson } from "../utils/safeStorage";
+import { safeGetLocalJson, safeGetSessionJson, safeRemoveLocalItem, safeRemoveSessionItem, safeSetLocalJson, safeSetSessionJson } from "../utils/safeStorage";
 import { trackTelemetry } from "../utils/telemetry";
 import { shouldKeepCheckoutAttempt } from "../utils/checkoutRetryPolicy";
 import { clearPaymentRecoveryAttribution, readPaymentRecoveryAttribution } from "../utils/paymentRecoveryAttribution";
@@ -12,6 +12,8 @@ const pendingCheckouts = new Map();
 const fallbackAttempts = new Map();
 const catalogCache = new Map();
 const CHECKOUT_ATTEMPT_PREFIX = "cutinapp_checkout_attempt_";
+const PRESERVED_ORDER_PREFIX = "cutinapp_checkout_preserved_order_";
+const PRESERVED_ORDER_TTL_MS = 2 * 60 * 60 * 1000;
 const CATALOG_CACHE_TTL_MS = 15000;
 const AUTO_RETRY_CHECKOUT_STATUSES = new Set([502, 503, 504]);
 const DEFAULT_CHECKOUT_RETRY_DELAY_MS = 350;
@@ -47,18 +49,34 @@ const createIdempotencyKey = () => {
 };
 
 const storageFor = (requestKey) => `${CHECKOUT_ATTEMPT_PREFIX}${requestKeyHash(requestKey)}`;
+const preservedOrderStorageFor = (requestKey) => `${PRESERVED_ORDER_PREFIX}${requestKeyHash(requestKey)}`;
 const readAttemptState = (requestKey) => {
   const stored = safeGetSessionJson(storageFor(requestKey));
   return stored?.requestKey === requestKey ? stored : null;
 };
+const readDurablePreservedOrder = (requestKey, now = Date.now()) => {
+  const storageKey = preservedOrderStorageFor(requestKey);
+  const stored = safeGetLocalJson(storageKey);
+  const savedAt = Number(stored?.savedAt || 0);
+  const orderPublicId = stored?.requestKey === requestKey ? String(stored?.orderPublicId || "").trim() : "";
+  if (!orderPublicId || !savedAt || savedAt > now + 5 * 60 * 1000 || now - savedAt > PRESERVED_ORDER_TTL_MS) {
+    safeRemoveLocalItem(storageKey);
+    return null;
+  }
+  return orderPublicId;
+};
 const readAttempt = (requestKey) => readAttemptState(requestKey)?.idempotencyKey || fallbackAttempts.get(requestKey) || null;
-const readPreservedOrder = (requestKey) => String(readAttemptState(requestKey)?.orderPublicId || "").trim() || null;
+const readPreservedOrder = (requestKey) => String(readAttemptState(requestKey)?.orderPublicId || "").trim() || readDurablePreservedOrder(requestKey) || null;
 const saveAttempt = (requestKey, idempotencyKey, orderPublicId = null) => {
   fallbackAttempts.set(requestKey, idempotencyKey);
   safeSetSessionJson(storageFor(requestKey), { requestKey, idempotencyKey, orderPublicId: orderPublicId || readPreservedOrder(requestKey) || null });
 };
-const savePreservedOrder = (requestKey, idempotencyKey, orderPublicId) => saveAttempt(requestKey, idempotencyKey, String(orderPublicId || "").trim() || null);
-const clearAttempt = (requestKey) => { fallbackAttempts.delete(requestKey); safeRemoveSessionItem(storageFor(requestKey)); };
+const savePreservedOrder = (requestKey, idempotencyKey, orderPublicId) => {
+  const normalizedOrderPublicId = String(orderPublicId || "").trim() || null;
+  saveAttempt(requestKey, idempotencyKey, normalizedOrderPublicId);
+  if (normalizedOrderPublicId) safeSetLocalJson(preservedOrderStorageFor(requestKey), { requestKey, orderPublicId: normalizedOrderPublicId, savedAt: Date.now() });
+};
+const clearAttempt = (requestKey) => { fallbackAttempts.delete(requestKey); safeRemoveSessionItem(storageFor(requestKey)); safeRemoveLocalItem(preservedOrderStorageFor(requestKey)); };
 const idempotencyKeyFor = (requestKey) => { const existing = readAttempt(requestKey); if (existing) return existing; const created = createIdempotencyKey(); saveAttempt(requestKey, created); return created; };
 const responseHeader = (error, name) => {
   const headers = error?.response?.headers || error?.headers || {};
