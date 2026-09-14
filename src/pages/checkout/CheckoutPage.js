@@ -41,6 +41,7 @@ export default function CheckoutPage() {
   const [paymentNow, setPaymentNow] = useState(() => Date.now());
   const [error, setError] = useState("");
   const [pixCopyStatus, setPixCopyStatus] = useState("idle");
+  const [pixCopied, setPixCopied] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   const [coupon, setCoupon] = useState(null);
   const [couponError, setCouponError] = useState("");
@@ -142,6 +143,8 @@ export default function CheckoutPage() {
 
     return () => { active = false; };
   }, [slug, location.state, paymentStorageKey]);
+
+  useEffect(() => { setPixCopied(false); }, [result?.order?.public_id]);
 
   useEffect(() => {
     if (result?.order?.public_id) {
@@ -515,7 +518,7 @@ export default function CheckoutPage() {
     if (!refreshedOrder) return;
     if (String(refreshedOrder?.status || "").toLowerCase() === "paid") return;
     if (!isPendingPixExpired(refreshedOrder, Date.now())) return;
-    setResult(null); setError(""); setPixCopyStatus("idle");
+    setResult(null); setError(""); setPixCopyStatus("idle"); setPixCopied(false);
     safeRemoveSessionItem(paymentStorageKey);
     writeCheckoutRecovery(slug, { selection, orderPublicId: null, couponCode: coupon?.code || null });
     trackCheckout("pix_expired_recovery_ready", { label: "Novo PIX liberado após confirmação do vencimento", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(refreshedOrder?.total || payableTotal || 0), payment_method: "pix", outcome: "ready" } });
@@ -523,7 +526,12 @@ export default function CheckoutPage() {
   const copyPix = async () => {
     const pixCode = result?.payment?.qr_code; if (!pixCode) return; const copied = await copyText(pixCode);
     if (!copied) { setPixCopyStatus("error"); setError("Não foi possível copiar automaticamente neste navegador. Toque e segure o código PIX exibido nesta tela para selecionar e copiar."); trackCheckout("pix_code_copy_failed", { label: "Falha ao copiar código PIX", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(result?.order?.total || payableTotal || 0), payment_method: "pix", outcome: "error" } }); return; }
-    setPixCopyStatus("copied"); setError(""); trackCheckout("pix_code_copied", { label: "Código PIX copiado", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(result?.order?.total || payableTotal || 0), payment_method: "pix", outcome: "success" } }); window.setTimeout(() => setPixCopyStatus("idle"), 2500);
+    setPixCopyStatus("copied"); setPixCopied(true); setError(""); trackCheckout("pix_code_copied", { label: "Código PIX copiado", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(result?.order?.total || payableTotal || 0), payment_method: "pix", outcome: "success" } }); window.setTimeout(() => setPixCopyStatus("idle"), 2500);
+  };
+
+  const verifyPixAfterCopy = () => {
+    trackCheckout("pix_post_copy_status_check_clicked", { label: "Verificar PIX após copiar código", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(result?.order?.total || payableTotal || 0), payment_method: "pix", order_public_id: result?.order?.public_id || null } });
+    syncCurrentPayment({ manual: true });
   };
 
   const handleMobilePaymentCta = () => {
@@ -557,6 +565,6 @@ export default function CheckoutPage() {
       </main><aside className="cut-checkout-summary"><span className="cut-eyebrow">Resumo do pedido</span><h2>Sua compra</h2><div className="cut-checkout-summary__event"><i className="fa-regular fa-calendar-check" /><div><strong>{catalog?.event?.title}</strong><span>Compra pela Cutinapp</span></div></div><div className="cut-checkout-summary__lines">{lines.map((line) => <div key={`${line.kind}-${line.id}`}><div><small>{line.kind === "ticket" ? "Ingresso" : "Item"}</small><strong>{line.name}</strong>{!result ? <div className="cut-checkout-line-controls" aria-label={`Quantidade de ${line.name}`}><Button type="button" variant="outline-light" size="sm" onClick={() => updateLineQuantity(line, line.quantity - 1)} disabled={applyingCoupon} aria-label={`Diminuir quantidade de ${line.name}`}><i className="fa-solid fa-minus" /></Button><span aria-live="polite">{line.quantity}</span><Button type="button" variant="outline-light" size="sm" onClick={() => updateLineQuantity(line, line.quantity + 1)} disabled={applyingCoupon || line.quantity >= resolveCheckoutQuantity(line, checkoutQuantityLimit(line.kind), checkoutQuantityLimit(line.kind))} aria-label={`Aumentar quantidade de ${line.name}`}><i className="fa-solid fa-plus" /></Button><Button type="button" variant="link" size="sm" className="cut-checkout-line-remove" onClick={() => updateLineQuantity(line, 0)} disabled={applyingCoupon} aria-label={`Remover ${line.name} do carrinho`}><i className="fa-regular fa-trash-can" /></Button></div> : <span>Qtd. {line.quantity}</span>}</div><strong>{money(Number(line.price) * line.quantity)}</strong></div>)}</div>{coupon && !result && <div className="cut-checkout-summary__discount"><span><i className="fa-solid fa-tag" /> Cupom {coupon.code}</span><strong>- {money(discountAmount)}</strong></div>}<div className="cut-checkout-summary__total"><span>Total</span><strong>{money(result?.order?.total ?? payableTotal)}</strong></div><div className="cut-checkout-summary__security"><i className="fa-solid fa-shield-halved" /><span>{isFreeOrder ? "Pedido gratuito sem cobrança, com emissão normal do ingresso." : "Pagamento processado com segurança pelo Mercado Pago."}</span></div></aside></div>
     </Container>
     {!result && paymentAvailable && payableTotal > 0 && <div className="cut-checkout-mobile-paybar" role="region" aria-label="Atalho para pagamento"><div><small>{method === "pix" ? "PIX selecionado" : "Cartão selecionado"}</small><strong>{money(payableTotal)}</strong></div><Button type="button" className="cut-checkout-primary" onClick={handleMobilePaymentCta} disabled={paying || applyingCoupon}>{applyingCoupon ? "Atualizando total..." : paying && method === "pix" ? "Gerando PIX..." : method === "pix" ? "Gerar PIX agora" : "Ir para cartão"}</Button></div>}
-    {result && method === "pix" && result.payment?.qr_code && paymentPending && !paymentUnderReview && !pixExpired && <div className="cut-checkout-mobile-paybar" role="region" aria-label="PIX aguardando pagamento"><div><small>{pixExpiresAtLabel ? `PIX válido até ${pixExpiresAtLabel}` : "PIX pronto para pagar"}</small><strong>{money(result?.order?.total || payableTotal)}</strong></div><Button type="button" className="cut-checkout-primary" onClick={copyPix} aria-live="polite"><i className={`fa-regular ${pixCopyStatus === "copied" ? "fa-circle-check" : "fa-copy"} me-2`} />{pixCopyStatus === "copied" ? "PIX copiado" : pixCopyStatus === "error" ? "Tentar copiar" : "Copiar PIX"}</Button></div>}
+    {result && method === "pix" && result.payment?.qr_code && paymentPending && !paymentUnderReview && !pixExpired && <div className="cut-checkout-mobile-paybar" role="region" aria-label="PIX aguardando pagamento"><div><small>{pixCopied ? "PIX copiado — pague no banco" : pixExpiresAtLabel ? `PIX válido até ${pixExpiresAtLabel}` : "PIX pronto para pagar"}</small><strong>{money(result?.order?.total || payableTotal)}</strong></div>{pixCopied ? <Button type="button" className="cut-checkout-primary" onClick={verifyPixAfterCopy} disabled={syncingNow}><i className="fa-solid fa-rotate me-2" />{syncingNow ? "Verificando..." : "Já paguei — verificar"}</Button> : <Button type="button" className="cut-checkout-primary" onClick={copyPix} aria-live="polite"><i className={`fa-regular ${pixCopyStatus === "copied" ? "fa-circle-check" : "fa-copy"} me-2`} />{pixCopyStatus === "copied" ? "PIX copiado" : pixCopyStatus === "error" ? "Tentar copiar" : "Copiar PIX"}</Button>}</div>}
   </div>;
 }
