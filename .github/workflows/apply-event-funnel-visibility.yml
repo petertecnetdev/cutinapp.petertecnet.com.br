@@ -1,0 +1,66 @@
+name: Apply event funnel visibility patch
+
+on:
+  push:
+    branches: [automation/event-funnel-visibility-r11]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: automation/event-funnel-visibility-r11
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply validated source patch
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('src/pages/production/ProductionFinancePage.js')
+          s = p.read_text()
+          replacements = [
+              (
+                  'const checkoutRemediationMeta = {\n  reduce_payment_entry_friction: {',
+                  'const checkoutRemediationMeta = {\n  improve_event_purchase_intent: {\n    title: "Aumentar intenção de compra no evento",\n    detail: "Reforce proposta de valor, preço e disponibilidade do ingresso na página do evento, mantendo informação verdadeira e sem pressão artificial.",\n  },\n  reduce_ticket_selection_friction: {\n    title: "Reduzir atrito na escolha do ingresso",\n    detail: "Deixe lote, preço, disponibilidade e avanço para o checkout claros e rápidos, sem esconder taxas nem comprometer integridade de estoque.\",\n  },\n  reduce_payment_entry_friction: {'
+              ),
+              (
+                  '  const checkoutJourneyMethods = Array.isArray(checkoutJourneyFunnel.by_payment_method) ? checkoutJourneyFunnel.by_payment_method : [];\n  const checkoutStepLabel = {\n    checkout_opened: "Checkout aberto",',
+                  '  const checkoutJourneyMethods = Array.isArray(checkoutJourneyFunnel.by_payment_method) ? checkoutJourneyFunnel.by_payment_method : [];\n  const checkoutIntentSurfaces = Array.isArray(checkoutJourneyFunnel.by_intent_surface) ? checkoutJourneyFunnel.by_intent_surface : [];\n  const checkoutIntentSurfaceLabel = {\n    summary: "Resumo do evento",\n    production_card: "Card da produção",\n    mobile_fixed: "CTA fixo mobile",\n    unknown: "Origem não identificada",\n  };\n  const checkoutStepLabel = {\n    event_detail_viewed: "Evento visualizado",\n    ticket_intent_clicked: "Intenção de comprar",\n    checkout_opened: "Checkout aberto",'
+              ),
+              (
+                  '                <span className="cut-eyebrow">Funil real de checkout</span>\n                <h3 className="h5 mt-2 mb-1">Onde compradores e GMV estão sendo perdidos</h3>\n                <p className="text-secondary small mb-0">Jornadas anônimas correlacionadas pela API central, do checkout aberto até pagamento aprovado e emissão do ingresso.</p>',
+                  '                <span className="cut-eyebrow">Funil real de conversão</span>\n                <h3 className="h5 mt-2 mb-1">Onde compradores e GMV estão sendo perdidos</h3>\n                <p className="text-secondary small mb-0">Jornadas anônimas correlacionadas pela API central desde a página do evento, passando pela intenção de compra, checkout, pagamento aprovado e emissão do ingresso.</p>'
+              ),
+              (
+                  '            <Row className="g-3">\n              <Col md={6} xl={3}><RevenueMetric label="Checkout → tentativa"',
+                  '            <Row className="g-3">\n              <Col md={6} xl={3}><RevenueMetric label="Evento → intenção" value={checkoutJourneyConversion.viewed_to_intent_percent == null ? "—" : percent(checkoutJourneyConversion.viewed_to_intent_percent)} detail={`${Number(checkoutJourneyStages.ticket_intent || 0).toLocaleString("pt-BR")} intenções de compra`} /></Col>\n              <Col md={6} xl={3}><RevenueMetric label="Intenção → checkout" value={checkoutJourneyConversion.intent_to_opened_percent == null ? "—" : percent(checkoutJourneyConversion.intent_to_opened_percent)} detail={`${Number(checkoutJourneyStages.opened || 0).toLocaleString("pt-BR")} checkouts abertos`} /></Col>\n              <Col md={6} xl={3}><RevenueMetric label="Evento → pagamento" value={checkoutJourneyConversion.viewed_to_approved_percent == null ? "—" : percent(checkoutJourneyConversion.viewed_to_approved_percent)} detail={`${Number(checkoutJourneyStages.event_viewed || 0).toLocaleString("pt-BR")} visualizações observadas`} /></Col>\n              <Col md={6} xl={3}><RevenueMetric label="Checkout → tentativa"'
+              ),
+          ]
+          for old, new in replacements:
+              if old not in s:
+                  raise SystemExit(f'expected patch anchor not found: {old[:80]!r}')
+              s = s.replace(old, new, 1)
+
+          needle = '            {checkoutJourneyMethods.length > 0 && <div className="table-responsive mt-3"><Table variant="dark" hover className="align-middle mb-0"><thead><tr><th>Pagamento</th><th>Jornadas</th><th>Tentativas</th><th>Aprovados</th><th>Ingressos</th><th>Tentativa → aprovado</th></tr></thead><tbody>{checkoutJourneyMethods.map((row) => <tr key={row.payment_method}><td><strong>{paymentMethodLabel[row.payment_method] || row.payment_method}</strong></td><td>{Number(row.journeys || 0).toLocaleString("pt-BR")}</td><td>{Number(row.attempted || 0).toLocaleString("pt-BR")}</td><td>{Number(row.approved || 0).toLocaleString("pt-BR")}</td><td>{Number(row.fulfilled || 0).toLocaleString("pt-BR")}</td><td>{row.attempt_to_approved_rate_percent == null ? "—" : percent(row.attempt_to_approved_rate_percent)}</td></tr>)}</tbody></Table></div>}'
+          addition = '            {checkoutIntentSurfaces.length > 0 && <div className="table-responsive mt-3"><Table hover className="align-middle mb-0"><thead><tr><th>CTA de compra</th><th>Intenções</th><th>Checkouts</th><th>Pagamentos</th><th>Intenção → checkout</th><th>Intenção → pagamento</th></tr></thead><tbody>{checkoutIntentSurfaces.map((row) => <tr key={row.surface}><td><strong>{checkoutIntentSurfaceLabel[row.surface] || row.surface}</strong></td><td>{Number(row.journeys || 0).toLocaleString("pt-BR")}</td><td>{Number(row.checkout_opened || 0).toLocaleString("pt-BR")}</td><td>{Number(row.payment_approved || 0).toLocaleString("pt-BR")}</td><td>{row.intent_to_checkout_percent == null ? "—" : percent(row.intent_to_checkout_percent)}</td><td>{row.intent_to_approved_percent == null ? "—" : percent(row.intent_to_approved_percent)}</td></tr>)}</tbody></Table></div>}\n'
+          if needle not in s:
+              raise SystemExit('expected payment table anchor not found')
+          s = s.replace(needle, addition + needle, 1)
+          p.write_text(s)
+          PY
+          git diff --check
+          rm .github/workflows/apply-event-funnel-visibility.yml
+      - name: Commit patch
+        shell: bash
+        run: |
+          git config user.name "petertecnetdev"
+          git config user.email "petertecnet@gmail.com"
+          git add src/pages/production/ProductionFinancePage.js .github/workflows/apply-event-funnel-visibility.yml
+          git commit -m "feat(conversion): surface event-to-payment funnel"
+          git push origin HEAD:automation/event-funnel-visibility-r11
