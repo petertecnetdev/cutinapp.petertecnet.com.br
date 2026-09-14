@@ -53,6 +53,14 @@ const recoveryDecisionReason = {
   no_positive_net_contribution_lift: "A conversão foi preservada, mas ainda não houve ganho líquido positivo.",
 };
 const checkoutRemediationMeta = {
+  improve_event_purchase_intent: {
+    title: "Aumentar intenção de compra no evento",
+    detail: "Reforce proposta de valor, preço e disponibilidade do ingresso na página do evento, mantendo informação verdadeira e sem pressão artificial.",
+  },
+  reduce_ticket_selection_friction: {
+    title: "Reduzir atrito na escolha do ingresso",
+    detail: "Deixe lote, preço, disponibilidade e avanço para o checkout claros e rápidos, sem esconder taxas nem comprometer integridade de estoque.",
+  },
   reduce_payment_entry_friction: {
     title: "Reduzir atrito antes do pagamento",
     detail: "Simplifique a revisão do pedido, mantenha total e método visíveis e deixe a ação de pagamento imediata, sem esconder taxas ou alterar o carrinho.",
@@ -244,7 +252,16 @@ export default function ProductionFinancePage() {
   const checkoutActionEffectiveness = checkoutPeriodComparison.recommended_action_effectiveness || null;
   const checkoutActionEffectivenessUi = checkoutRemediationMeta[checkoutActionEffectiveness?.action_code] || null;
   const checkoutJourneyMethods = Array.isArray(checkoutJourneyFunnel.by_payment_method) ? checkoutJourneyFunnel.by_payment_method : [];
+  const checkoutIntentSurfaces = Array.isArray(checkoutJourneyFunnel.by_intent_surface) ? checkoutJourneyFunnel.by_intent_surface : [];
+  const checkoutIntentSurfaceLabel = {
+    summary: "Resumo do evento",
+    production_card: "Card da produção",
+    mobile_fixed: "CTA fixo mobile",
+    unknown: "Origem não identificada",
+  };
   const checkoutStepLabel = {
+    event_detail_viewed: "Evento visualizado",
+    ticket_intent_clicked: "Intenção de comprar",
     checkout_opened: "Checkout aberto",
     payment_attempted: "Tentativa de pagamento",
     payment_approved: "Pagamento aprovado",
@@ -471,13 +488,16 @@ export default function ProductionFinancePage() {
           {Number(checkoutJourneyFunnel.journeys || 0) > 0 && <div className="mt-4">
             <div className="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
               <div>
-                <span className="cut-eyebrow">Funil real de checkout</span>
+                <span className="cut-eyebrow">Funil real de conversão</span>
                 <h3 className="h5 mt-2 mb-1">Onde compradores e GMV estão sendo perdidos</h3>
-                <p className="text-secondary small mb-0">Jornadas anônimas correlacionadas pela API central, do checkout aberto até pagamento aprovado e emissão do ingresso.</p>
+                <p className="text-secondary small mb-0">Jornadas anônimas correlacionadas pela API central desde a página do evento, passando pela intenção de compra, checkout, pagamento aprovado e emissão do ingresso.</p>
               </div>
               <Badge bg="info">{Number(checkoutJourneyFunnel.journeys || 0).toLocaleString("pt-BR")} jornadas</Badge>
             </div>
             <Row className="g-3">
+              <Col md={6} xl={3}><RevenueMetric label="Evento → intenção" value={checkoutJourneyConversion.viewed_to_intent_percent == null ? "—" : percent(checkoutJourneyConversion.viewed_to_intent_percent)} detail={`${Number(checkoutJourneyStages.ticket_intent || 0).toLocaleString("pt-BR")} intenções de compra`} /></Col>
+              <Col md={6} xl={3}><RevenueMetric label="Intenção → checkout" value={checkoutJourneyConversion.intent_to_opened_percent == null ? "—" : percent(checkoutJourneyConversion.intent_to_opened_percent)} detail={`${Number(checkoutJourneyStages.opened || 0).toLocaleString("pt-BR")} checkouts abertos`} /></Col>
+              <Col md={6} xl={3}><RevenueMetric label="Evento → pagamento" value={checkoutJourneyConversion.viewed_to_approved_percent == null ? "—" : percent(checkoutJourneyConversion.viewed_to_approved_percent)} detail={`${Number(checkoutJourneyStages.event_viewed || 0).toLocaleString("pt-BR")} visualizações observadas`} /></Col>
               <Col md={6} xl={3}><RevenueMetric label="Checkout → tentativa" value={checkoutJourneyConversion.opened_to_attempted_percent == null ? "—" : percent(checkoutJourneyConversion.opened_to_attempted_percent)} detail={`${Number(checkoutJourneyStages.payment_attempted || 0).toLocaleString("pt-BR")} tentativas`} /></Col>
               <Col md={6} xl={3}><RevenueMetric label="Checkout → aprovado" value={checkoutJourneyConversion.opened_to_approved_percent == null ? "—" : percent(checkoutJourneyConversion.opened_to_approved_percent)} detail={`${Number(checkoutJourneyStages.payment_approved || 0).toLocaleString("pt-BR")} pagamentos`} /></Col>
               <Col md={6} xl={3}><RevenueMetric label="Aprovado → ingresso" value={checkoutJourneyConversion.approved_to_fulfilled_percent == null ? "—" : percent(checkoutJourneyConversion.approved_to_fulfilled_percent)} detail={`${Number(checkoutJourneyStages.fulfilled || 0).toLocaleString("pt-BR")} emissões`} /></Col>
@@ -535,6 +555,7 @@ export default function ProductionFinancePage() {
             {checkoutLargestDropoff && Number(checkoutLargestDropoff.dropoff_journeys || 0) > 0 && <p className="text-secondary small mt-2 mb-0">
               Maior perda por volume: <strong>{checkoutStepLabel[checkoutLargestDropoff.from] || checkoutLargestDropoff.from}</strong> → <strong>{checkoutStepLabel[checkoutLargestDropoff.to] || checkoutLargestDropoff.to}</strong>, com <strong>{Number(checkoutLargestDropoff.dropoff_journeys || 0).toLocaleString("pt-BR")}</strong> jornadas e <strong>{money(checkoutLargestDropoff.gmv_at_risk)}</strong> de GMV em risco estimado.
             </p>}
+            {checkoutIntentSurfaces.length > 0 && <div className="table-responsive mt-3"><Table hover className="align-middle mb-0"><thead><tr><th>CTA de compra</th><th>Intenções</th><th>Checkouts</th><th>Pagamentos</th><th>Intenção → checkout</th><th>Intenção → pagamento</th></tr></thead><tbody>{checkoutIntentSurfaces.map((row) => <tr key={row.surface}><td><strong>{checkoutIntentSurfaceLabel[row.surface] || row.surface}</strong></td><td>{Number(row.journeys || 0).toLocaleString("pt-BR")}</td><td>{Number(row.checkout_opened || 0).toLocaleString("pt-BR")}</td><td>{Number(row.payment_approved || 0).toLocaleString("pt-BR")}</td><td>{row.intent_to_checkout_percent == null ? "—" : percent(row.intent_to_checkout_percent)}</td><td>{row.intent_to_approved_percent == null ? "—" : percent(row.intent_to_approved_percent)}</td></tr>)}</tbody></Table></div>}
             {checkoutJourneyMethods.length > 0 && <div className="table-responsive mt-3"><Table variant="dark" hover className="align-middle mb-0"><thead><tr><th>Pagamento</th><th>Jornadas</th><th>Tentativas</th><th>Aprovados</th><th>Ingressos</th><th>Tentativa → aprovado</th></tr></thead><tbody>{checkoutJourneyMethods.map((row) => <tr key={row.payment_method}><td><strong>{paymentMethodLabel[row.payment_method] || row.payment_method}</strong></td><td>{Number(row.journeys || 0).toLocaleString("pt-BR")}</td><td>{Number(row.attempted || 0).toLocaleString("pt-BR")}</td><td>{Number(row.approved || 0).toLocaleString("pt-BR")}</td><td>{Number(row.fulfilled || 0).toLocaleString("pt-BR")}</td><td>{row.attempt_to_approved_rate_percent == null ? "—" : percent(row.attempt_to_approved_rate_percent)}</td></tr>)}</tbody></Table></div>}
           </div>}
 
