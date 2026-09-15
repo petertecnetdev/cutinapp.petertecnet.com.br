@@ -401,14 +401,9 @@ export default function EventManagePage() {
     try {
       const saved = JSON.parse(window.localStorage.getItem(EVENT_MANAGER_PREFERENCES_KEY) || "null");
       if (saved && typeof saved === "object") {
-        if (typeof saved.searchTerm === "string") setSearchTerm(saved.searchTerm);
-        if (typeof saved.statusFilter === "string") setStatusFilter(saved.statusFilter);
-        if (typeof saved.productionFilter === "string") setProductionFilter(saved.productionFilter);
-        if (typeof saved.cityFilter === "string") setCityFilter(saved.cityFilter);
-        if (typeof saved.periodFilter === "string") setPeriodFilter(saved.periodFilter);
-        if (typeof saved.dateFrom === "string") setDateFrom(saved.dateFrom);
-        if (typeof saved.dateTo === "string") setDateTo(saved.dateTo);
-        if (typeof saved.performanceFilter === "string") setPerformanceFilter(saved.performanceFilter);
+        // Persistimos apenas preferências visuais. Busca e filtros de conteúdo
+        // são temporários para que a página nunca reabra aparentemente vazia
+        // por causa de filtros antigos/ocultos de uma sessão anterior.
         if (["compact", "visual", "calendar", "timeline"].includes(saved.viewMode)) setViewMode(saved.viewMode);
         if (typeof saved.groupByPeriod === "boolean") setGroupByPeriod(saved.groupByPeriod);
         if (saved.sortConfig?.key) setSortConfig(saved.sortConfig);
@@ -428,14 +423,6 @@ export default function EventManagePage() {
   useEffect(() => {
     try {
       window.localStorage.setItem(EVENT_MANAGER_PREFERENCES_KEY, JSON.stringify({
-        searchTerm,
-        statusFilter,
-        productionFilter,
-        cityFilter,
-        periodFilter,
-        dateFrom,
-        dateTo,
-        performanceFilter,
         viewMode,
         groupByPeriod,
         sortConfig,
@@ -443,7 +430,7 @@ export default function EventManagePage() {
     } catch (_) {
       // Persistência local é opcional.
     }
-  }, [searchTerm, statusFilter, productionFilter, cityFilter, periodFilter, dateFrom, dateTo, performanceFilter, viewMode, groupByPeriod, sortConfig]);
+  }, [viewMode, groupByPeriod, sortConfig]);
 
   useEffect(() => {
     try {
