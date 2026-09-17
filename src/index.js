@@ -37,6 +37,7 @@ import "./styles/messages-mobile-composer-spacing.css";
 import "./styles/global-search-overlay.css";
 import "./pages/checkout/Coupon.css";
 import "./styles/apple-glass-system.css";
+import "./styles/apple-glass-polish.css";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import MediaLibraryInputEnhancer from "./components/MediaLibraryInputEnhancer";
