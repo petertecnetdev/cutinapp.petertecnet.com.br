@@ -104,8 +104,8 @@ const temporalMeta = {
     badgeVariant: "primary",
     alertVariant: "info",
     icon: "fa-regular fa-calendar-days",
-    title: "Este evento ainda vai acontecer",
-    description: "Confira a programação, garanta sua entrada e acompanhe as novidades até o dia do evento.",
+    title: "Este evento ainda vai acontecer.",
+    description: "Confira a programação, garanta seu ingresso e acompanhe as novidades até o dia do evento.",
   },
   ongoing: {
     badge: "Acontecendo agora",
