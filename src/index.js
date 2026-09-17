@@ -41,6 +41,7 @@ import "./styles/apple-glass-polish.css";
 import "./styles/cart-menu-safe-layer.css";
 import "./styles/ux-quality-system.css";
 import "./styles/navbar-fixed-top.css";
+import "./styles/event-view-premium-hero.css";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import MediaLibraryInputEnhancer from "./components/MediaLibraryInputEnhancer";
