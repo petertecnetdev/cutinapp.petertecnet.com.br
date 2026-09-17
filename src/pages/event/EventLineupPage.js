@@ -32,6 +32,7 @@ const emptySlot = (sortOrder = 0) => ({
 const toLocal = (value) => value ? String(value).replace(" ", "T").slice(0, 16) : "";
 const errorMessage = (error, fallback) => error?.response?.data?.message || error?.message || fallback;
 const initials = (value) => String(value || "A").trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
+const isEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
 
 const participationPayload = (form) => ({
   participation_type: form.participation_type || "show",
@@ -53,11 +54,14 @@ export default function EventLineupPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [searchCompleted, setSearchCompleted] = useState(false);
+  const [searchFailed, setSearchFailed] = useState(false);
   const [aiBusy, setAiBusy] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [mode, setMode] = useState("lookup");
   const [query, setQuery] = useState("");
+  const [inviteEmail, setInviteEmail] = useState("");
   const [candidates, setCandidates] = useState([]);
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [editingArtistId, setEditingArtistId] = useState(null);
@@ -88,35 +92,63 @@ export default function EventLineupPage() {
 
   useEffect(() => {
     if (mode !== "lookup") return undefined;
-    const value = query.trim();
-    setSelectedCandidate(null);
-    if (value.length < 2) {
+    if (selectedCandidate) {
+      setSearching(false);
+      setSearchCompleted(false);
+      setSearchFailed(false);
       setCandidates([]);
       return undefined;
     }
+
+    const value = query.trim();
+    setSearchCompleted(false);
+    setSearchFailed(false);
+    if (value.length < 2) {
+      setCandidates([]);
+      setInviteEmail("");
+      return undefined;
+    }
+
     const timer = window.setTimeout(async () => {
       setSearching(true);
       try {
-        setCandidates(await artistService.searchCandidates(eventId, value));
+        const found = await artistService.searchCandidates(eventId, value);
+        setCandidates(found);
+        setSearchCompleted(true);
+        if (!found.length && isEmail(value)) setInviteEmail(value.toLowerCase());
       } catch (err) {
         setCandidates([]);
+        setSearchFailed(true);
+        setSearchCompleted(true);
         if (err?.response?.status !== 422) setError(errorMessage(err, "Não foi possível pesquisar usuários."));
       } finally {
         setSearching(false);
       }
     }, 320);
+
     return () => window.clearTimeout(timer);
-  }, [eventId, mode, query]);
+  }, [eventId, mode, query, selectedCandidate]);
 
   const managedAvailable = useMemo(() => mine.filter((artist) => !artists.some((item) => Number(item.id) === Number(artist.id))), [artists, mine]);
   const confirmed = useMemo(() => artists.filter((artist) => (artist.pivot?.status || "confirmed") === "confirmed").length, [artists]);
   const pending = useMemo(() => artists.filter((artist) => artist.pivot?.status === "pending").length, [artists]);
+  const noCandidateFound = mode === "lookup"
+    && query.trim().length >= 2
+    && searchCompleted
+    && !searching
+    && !searchFailed
+    && !selectedCandidate
+    && candidates.length === 0;
+  const canSubmitLookup = Boolean(selectedCandidate) || (noCandidateFound && isEmail(inviteEmail));
 
   const resetEditor = (nextArtists = artists) => {
     setEditingArtistId(null);
     setSelectedCandidate(null);
     setQuery("");
+    setInviteEmail("");
     setCandidates([]);
+    setSearchCompleted(false);
+    setSearchFailed(false);
     setForm(emptySlot(nextArtists.length));
     setMode("lookup");
   };
@@ -124,26 +156,54 @@ export default function EventLineupPage() {
   const selectCandidate = (candidate) => {
     setSelectedCandidate(candidate);
     setQuery(candidate.username || candidate.name || query);
+    setInviteEmail("");
     setCandidates([]);
+    setSearchCompleted(false);
+    setSearchFailed(false);
+  };
+
+  const changeQuery = (value) => {
+    setQuery(value);
+    setSelectedCandidate(null);
+    setCandidates([]);
+    setSearchCompleted(false);
+    setSearchFailed(false);
+    setInviteEmail(isEmail(value) ? value.trim().toLowerCase() : "");
   };
 
   const saveLookup = async (e) => {
     e.preventDefault();
-    const identifier = String(selectedCandidate?.username || query || "").trim();
+
+    let identifier = "";
+    if (selectedCandidate) {
+      identifier = String(selectedCandidate.username || query || "").trim();
+    } else if (noCandidateFound) {
+      identifier = String(inviteEmail || "").trim().toLowerCase();
+      if (!isEmail(identifier)) {
+        setError("Informe um e-mail válido para enviarmos o convite de cadastro.");
+        return;
+      }
+    } else {
+      setError("Localize e selecione o usuário antes de adicionar ao evento.");
+      return;
+    }
+
     if (identifier.length < 2) {
       setError("Informe o @username, e-mail, telefone ou CPF do usuário.");
       return;
     }
+
     setBusy(true); setError(""); setSuccess("");
     try {
       const response = await artistService.resolveAndInvite(eventId, { identifier, ...participationPayload(form) });
       if (response.external_invitation) {
-        setSuccess("A conta ainda não existe. O convite foi criado sem gerar um perfil artístico duplicado.");
+        setSuccess(response.message || "A pessoa ainda não possui conta. O convite de cadastro foi enviado por e-mail.");
+        resetEditor();
       } else {
         setSuccess(response.message || "Artista localizado e convidado para o evento.");
+        await load();
+        resetEditor();
       }
-      await load();
-      resetEditor();
     } catch (err) {
       setError(errorMessage(err, "Não foi possível adicionar o artista."));
     } finally {
@@ -307,22 +367,23 @@ export default function EventLineupPage() {
         <Card className="cut-lineup-editor-card mb-4">
           <Card.Body>
             <div className="d-flex flex-wrap justify-content-between gap-2 align-items-start mb-3">
-              <div><span className="cut-eyebrow">{editingArtistId ? "Editar participação" : "Adicionar artista"}</span><h2 className="h4 mb-1">{editingArtistId ? "Dados desta apresentação" : "Encontre a pessoa antes de criar o vínculo"}</h2><p className="text-secondary mb-0">Busque por @username, e-mail, telefone ou CPF. Os dados pessoais completos nunca são exibidos ao produtor.</p></div>
+              <div><span className="cut-eyebrow">{editingArtistId ? "Editar participação" : "Adicionar artista"}</span><h2 className="h4 mb-1">{editingArtistId ? "Dados desta apresentação" : "Encontre a pessoa antes de criar o vínculo"}</h2><p className="text-secondary mb-0">Busque por @username, e-mail, telefone ou CPF. Se ainda não existir conta, pediremos o e-mail para enviar o convite de cadastro.</p></div>
               {!editingArtistId && <div className="d-flex gap-2"><Button size="sm" variant={mode === "lookup" ? "light" : "outline-light"} onClick={() => { setMode("lookup"); setForm(emptySlot(artists.length)); }}>Localizar usuário</Button><Button size="sm" variant={mode === "managed" ? "light" : "outline-light"} onClick={() => { setMode("managed"); setForm(emptySlot(artists.length)); }}>Meus grupos/perfis</Button></div>}
             </div>
 
             {editingArtistId ? <Form onSubmit={saveEdit}>{slotFields}<div className="d-flex gap-2 mt-3"><Button type="submit" disabled={busy}>Salvar participação</Button><Button type="button" variant="outline-light" onClick={() => resetEditor()}>Cancelar</Button></div></Form> : mode === "lookup" ? (
               <Form onSubmit={saveLookup}>
                 <Form.Group className="mb-3 position-relative">
-                  <Form.Label>Usuário *</Form.Label>
-                  <Form.Control value={query} onChange={(e) => setQuery(e.target.value)} placeholder="@usuario, email@exemplo.com, telefone ou CPF" autoComplete="off" />
+                  <Form.Label>Localizar usuário *</Form.Label>
+                  <Form.Control value={query} onChange={(e) => changeQuery(e.target.value)} placeholder="@usuario, email@exemplo.com, telefone ou CPF" autoComplete="off" />
                   {searching && <div className="small text-secondary mt-2"><Spinner size="sm" className="me-2" />Pesquisando...</div>}
                   {!!candidates.length && !selectedCandidate && <div className="cut-lineup-picker-results mt-2">{candidates.map((candidate) => <button type="button" key={candidate.id} className="cut-lineup-picker-item" onClick={() => selectCandidate(candidate)}><span className="cut-lineup-picker-avatar">{candidate.avatar ? <img src={candidate.avatar} alt="" /> : initials(candidate.name)}</span><span><strong>{candidate.name}</strong><small className="d-block">{candidate.username || "Sem username"}{candidate.city ? ` · ${candidate.city}${candidate.uf ? `/${candidate.uf}` : ""}` : ""}</small><small className="d-block text-secondary">{[candidate.email_hint, candidate.phone_hint].filter(Boolean).join(" · ")}</small></span>{candidate.artist && <Badge bg="success">Já é artista</Badge>}</button>)}</div>}
                   {selectedCandidate && <Alert variant="info" className="mt-2 mb-0"><strong>{selectedCandidate.name}</strong>{selectedCandidate.username ? ` · ${selectedCandidate.username}` : ""}{selectedCandidate.artist ? " · perfil artístico existente será reutilizado" : " · o perfil artístico será criado automaticamente"}</Alert>}
-                  <Form.Text>Se a pessoa ainda não tiver conta, será criado somente um convite pendente — nunca um artista duplicado.</Form.Text>
+                  {noCandidateFound && <Alert variant="warning" className="mt-3 mb-0"><strong>Nenhuma conta encontrada.</strong><div className="mt-2 mb-2">Informe o e-mail da pessoa. A Cutinapp enviará um convite para ela criar a conta e, após a confirmação do e-mail, o vínculo com este evento será recuperado automaticamente.</div><Form.Label htmlFor="artist-invite-email">E-mail para convite *</Form.Label><Form.Control id="artist-invite-email" type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="artista@exemplo.com" autoComplete="email" /><Form.Text>Nenhum perfil artístico é criado antes de a pessoa possuir uma conta válida.</Form.Text></Alert>}
+                  <Form.Text>Os dados pessoais completos nunca são exibidos ao produtor.</Form.Text>
                 </Form.Group>
                 {slotFields}
-                <Button type="submit" className="mt-3" disabled={busy || query.trim().length < 2}>Adicionar ao evento</Button>
+                <Button type="submit" className="mt-3" disabled={busy || !canSubmitLookup}>{noCandidateFound ? "Enviar convite e adicionar ao evento" : "Adicionar ao evento"}</Button>
               </Form>
             ) : (
               <Form onSubmit={saveManaged}>
