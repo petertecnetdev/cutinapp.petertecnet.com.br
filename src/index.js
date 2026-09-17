@@ -43,6 +43,7 @@ import "./styles/ux-quality-system.css";
 import "./styles/navbar-fixed-top.css";
 import "./styles/event-view-premium-hero.css";
 import "./styles/cutinapp-cinematic-glass.css";
+import "./styles/overlay-layout-system.css";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import MediaLibraryInputEnhancer from "./components/MediaLibraryInputEnhancer";
