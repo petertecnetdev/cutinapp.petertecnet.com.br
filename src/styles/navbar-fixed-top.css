@@ -1,0 +1,52 @@
+/* Final navbar positioning contract — Cutinapp.
+ * The primary navbar must remain available while the document scrolls.
+ * Imported last so legacy page/mobile styles cannot move it back into flow.
+ */
+
+:root {
+  --cut-navbar-fixed-height: 72px;
+}
+
+.cut-navbar {
+  position: fixed !important;
+  top: 0 !important;
+  right: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  z-index: 2100 !important;
+  transform: none !important;
+  margin: 0 !important;
+}
+
+/* Fixed positioning removes the navbar from document flow. Reserve its space
+ * globally so page headings/content are never hidden behind the navigation. */
+body {
+  padding-top: var(--cut-navbar-fixed-height);
+}
+
+@media (max-width: 991.98px) {
+  :root {
+    --cut-navbar-fixed-height: 64px;
+  }
+
+  .cut-navbar {
+    min-height: var(--cut-navbar-fixed-height) !important;
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  body {
+    padding-top: calc(var(--cut-navbar-fixed-height) + env(safe-area-inset-top, 0px));
+  }
+
+  /* The existing hamburger recovery layer owns the full-screen drawer; keep
+   * its stacking order above the fixed navbar when opened. */
+  .cut-navbar .navbar-collapse.show,
+  .cut-navbar .navbar-collapse.collapsing {
+    z-index: 2147483646 !important;
+  }
+
+  .cut-navbar .navbar-toggler {
+    z-index: 2147483647 !important;
+  }
+}
