@@ -42,6 +42,7 @@ import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import MediaLibraryInputEnhancer from "./components/MediaLibraryInputEnhancer";
 import GlobalImageInputEnhancer from "./components/GlobalImageInputEnhancer";
+import GlobalAiDescriptionEnhancer from "./components/GlobalAiDescriptionEnhancer";
 import PeterAccountGateway from "./components/PeterAccountGateway";
 import { apiBaseUrl, appSlug } from "./config";
 import reportWebVitals from "./reportWebVitals";
@@ -100,6 +101,7 @@ root.render(
       <AuthProvider>
         <App />
         <GlobalImageInputEnhancer />
+        <GlobalAiDescriptionEnhancer />
         <MediaLibraryInputEnhancer />
       </AuthProvider>
     </PeterAccountGateway>
