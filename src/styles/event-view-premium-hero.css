@@ -1,0 +1,384 @@
+/* Premium public event hero.
+ * Scoped to EventViewPage and loaded after the shared visual layers so the
+ * event page keeps a readable, balanced hierarchy without leaking styles to
+ * the rest of Cutinapp.
+ */
+
+.cut-event-view-page .cut-event-summary-card {
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.13) !important;
+  border-radius: 26px !important;
+  background:
+    linear-gradient(145deg, rgba(20, 21, 43, 0.79), rgba(9, 11, 25, 0.68)) !important;
+  box-shadow:
+    0 28px 70px rgba(0, 0, 0, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07) !important;
+  backdrop-filter: blur(28px) saturate(1.18) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(1.18) !important;
+}
+
+.cut-event-view-page .cut-event-summary-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(110, 91, 255, 0.16), transparent 38%),
+    radial-gradient(circle at 92% 100%, rgba(77, 224, 205, 0.08), transparent 34%);
+}
+
+.cut-event-view-page .cut-event-summary-card__content > .d-flex:first-child {
+  gap: 8px !important;
+  margin-bottom: 18px !important;
+}
+
+.cut-event-view-page .cut-event-summary-card__content .badge {
+  padding: 7px 11px !important;
+  border: 1px solid rgba(255, 255, 255, 0.13) !important;
+  border-radius: 999px !important;
+  background: rgba(255, 255, 255, 0.085) !important;
+  color: rgba(247, 249, 252, 0.9) !important;
+  font-size: 0.66rem !important;
+  font-weight: 850 !important;
+  letter-spacing: 0.055em !important;
+  line-height: 1.15 !important;
+  text-transform: uppercase;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.cut-event-view-page .cut-event-summary-card h1 {
+  max-width: 100% !important;
+  margin: 0 !important;
+  color: #f8f9fc !important;
+  font-size: clamp(2rem, 2.45vw, 3.25rem) !important;
+  font-weight: 900 !important;
+  line-height: 1.02 !important;
+  letter-spacing: -0.042em !important;
+  text-transform: none !important;
+  text-wrap: balance;
+  overflow-wrap: break-word;
+}
+
+.cut-event-view-page .cut-event-summary-card__meta {
+  display: grid !important;
+  max-width: none !important;
+  gap: 0 !important;
+  margin-top: 22px !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.cut-event-view-page .cut-event-summary-card__meta > span {
+  display: grid !important;
+  grid-template-columns: 22px minmax(0, 1fr) !important;
+  align-items: start !important;
+  gap: 12px !important;
+  padding: 13px 0 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.085) !important;
+  color: rgba(245, 248, 252, 0.86) !important;
+  font-size: 0.88rem !important;
+  line-height: 1.45 !important;
+}
+
+.cut-event-view-page .cut-event-summary-card__meta i {
+  width: 22px !important;
+  margin-top: 2px !important;
+  color: rgba(216, 224, 236, 0.58) !important;
+  text-align: center;
+}
+
+.cut-event-view-page .cut-inline-profile-link {
+  margin: 15px 0 0 !important;
+  padding: 0 !important;
+  color: rgba(223, 230, 241, 0.78) !important;
+  font-size: 0.82rem !important;
+  font-weight: 780 !important;
+  line-height: 1.4 !important;
+}
+
+.cut-event-view-page .cut-inline-profile-link:hover,
+.cut-event-view-page .cut-inline-profile-link:focus-visible {
+  color: #ffffff !important;
+}
+
+.cut-event-view-page .cut-event-summary-card__actions {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 9px !important;
+  width: 100% !important;
+  max-width: none !important;
+  margin: 22px 0 0 !important;
+  padding-top: 18px !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.cut-event-view-page .cut-event-summary-card__actions > .btn,
+.cut-event-view-page .cut-event-summary-card__actions > a.btn {
+  min-height: 44px !important;
+  border-radius: 13px !important;
+  font-weight: 820 !important;
+  letter-spacing: 0.01em !important;
+  text-transform: none !important;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease !important;
+}
+
+.cut-event-view-page--buyable .cut-event-summary-card__actions > a[href="#ingressos"] {
+  order: 0 !important;
+  flex: 1 1 220px !important;
+  min-width: 210px !important;
+  padding: 11px 18px !important;
+  border-color: rgba(100, 238, 186, 0.72) !important;
+  background: linear-gradient(135deg, #65edb8 0%, #4ddbc7 100%) !important;
+  color: #071310 !important;
+  box-shadow: 0 12px 28px rgba(77, 219, 199, 0.16) !important;
+  font-size: 0.82rem !important;
+}
+
+.cut-event-view-page .cut-event-summary-card__actions > .btn-light {
+  order: 1 !important;
+  flex: 0 1 auto !important;
+  min-width: 146px !important;
+  padding: 11px 15px !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  background: rgba(255, 255, 255, 0.09) !important;
+  color: #f8f9fc !important;
+  font-size: 0.79rem !important;
+}
+
+.cut-event-view-page .cut-event-summary-card__actions > button:has(.fa-star) {
+  order: 2 !important;
+  flex: 0 1 auto !important;
+  min-width: 154px !important;
+  padding: 11px 15px !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  background: rgba(255, 255, 255, 0.055) !important;
+  color: #f7f8fb !important;
+  font-size: 0.79rem !important;
+}
+
+.cut-event-view-page .cut-event-summary-card__actions > .btn:not(.btn-light):not(:has(.fa-star)):not([href="#ingressos"]),
+.cut-event-view-page .cut-event-summary-card__actions > a.btn:not([href="#ingressos"]) {
+  order: 3 !important;
+  width: 44px !important;
+  min-width: 44px !important;
+  flex: 0 0 44px !important;
+  padding-inline: 0 !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  background: rgba(255, 255, 255, 0.035) !important;
+  color: rgba(247, 249, 252, 0.9) !important;
+  font-size: 0 !important;
+}
+
+.cut-event-view-page .cut-event-summary-card__actions > .btn:not(.btn-light):not(:has(.fa-star)):not([href="#ingressos"]) i,
+.cut-event-view-page .cut-event-summary-card__actions > a.btn:not([href="#ingressos"]) i {
+  margin-right: 0 !important;
+  font-size: 0.92rem !important;
+}
+
+.cut-event-view-page .cut-event-summary-card__actions > .btn:hover,
+.cut-event-view-page .cut-event-summary-card__actions > a.btn:hover {
+  transform: translateY(-2px) !important;
+  border-color: rgba(255, 255, 255, 0.24) !important;
+}
+
+.cut-event-view-page .cut-event-banner-frame,
+.cut-event-view-page .cut-event-banner-placeholder {
+  overflow: hidden !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 26px !important;
+  background: rgba(3, 5, 11, 0.7) !important;
+  box-shadow:
+    0 30px 78px rgba(0, 0, 0, 0.36),
+    inset 0 1px 0 rgba(255, 255, 255, 0.055) !important;
+}
+
+.cut-event-view-page .cut-event-banner-frame img {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  object-fit: cover !important;
+  object-position: center !important;
+}
+
+/* Real desktop: the information card gets enough width for readable titles and
+ * the artwork becomes the visual anchor instead of floating in empty space. */
+@media (min-width: 1200px) {
+  .cut-event-view-page {
+    display: grid !important;
+    grid-template-columns:
+      minmax(32px, 1fr)
+      clamp(500px, 37vw, 590px)
+      clamp(28px, 3vw, 48px)
+      clamp(620px, 48vw, 760px)
+      minmax(32px, 1fr) !important;
+    grid-auto-rows: auto !important;
+  }
+
+  .cut-event-view-page > .cut-navbar,
+  .cut-event-view-page > .cut-page-container,
+  .cut-event-view-page > .cut-event-buy-cta-fixed {
+    grid-column: 1 / -1 !important;
+  }
+
+  .cut-event-view-page > .cut-event-banner-stage,
+  .cut-event-view-page > .cut-event-summary-strip,
+  .cut-event-view-page > .cut-event-banner-stage > .cut-page-container,
+  .cut-event-view-page > .cut-event-summary-strip > .cut-page-container {
+    display: contents !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card {
+    position: relative;
+    z-index: 2;
+    grid-column: 2 !important;
+    grid-row: 2 !important;
+    align-self: center !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: 44px 0 42px !important;
+    padding: clamp(28px, 2.25vw, 38px) !important;
+  }
+
+  .cut-event-view-page .cut-event-banner-frame,
+  .cut-event-view-page .cut-event-banner-placeholder {
+    grid-column: 4 !important;
+    grid-row: 2 !important;
+    align-self: center !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 0 !important;
+    margin: 44px 0 42px !important;
+    aspect-ratio: 16 / 9 !important;
+  }
+
+  .cut-event-view-page > .cut-page-container.py-4,
+  .cut-event-view-page > .cut-page-container.py-lg-5 {
+    grid-row: 3 !important;
+  }
+}
+
+/* Smaller desktop/tablet landscape: stack before the two-column composition
+ * becomes cramped. This prevents the long event title from turning into a tall,
+ * narrow text wall. */
+@media (min-width: 992px) and (max-width: 1199.98px) {
+  .cut-event-view-page {
+    display: block !important;
+  }
+
+  .cut-event-view-page > .cut-event-banner-stage,
+  .cut-event-view-page > .cut-event-summary-strip,
+  .cut-event-view-page > .cut-event-banner-stage > .cut-page-container,
+  .cut-event-view-page > .cut-event-summary-strip > .cut-page-container {
+    display: block !important;
+  }
+
+  .cut-event-view-page > .cut-event-banner-stage > .cut-page-container,
+  .cut-event-view-page > .cut-event-summary-strip > .cut-page-container {
+    max-width: 1040px !important;
+  }
+
+  .cut-event-view-page .cut-event-banner-frame,
+  .cut-event-view-page .cut-event-banner-placeholder {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 28px 0 0 !important;
+    aspect-ratio: 16 / 9 !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card {
+    width: 100% !important;
+    margin: 18px 0 34px !important;
+    padding: 30px !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card h1 {
+    font-size: clamp(2.25rem, 4.2vw, 3.25rem) !important;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .cut-event-view-page .cut-event-summary-card {
+    position: relative;
+    margin-top: 12px !important;
+    padding: 24px 22px !important;
+    border-radius: 22px !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card h1 {
+    font-size: clamp(2rem, 7vw, 3rem) !important;
+  }
+
+  .cut-event-view-page .cut-event-banner-frame,
+  .cut-event-view-page .cut-event-banner-placeholder {
+    border-radius: 22px !important;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .cut-event-view-page .cut-event-summary-card {
+    margin-top: 8px !important;
+    padding: 20px 16px 18px !important;
+    border-radius: 19px !important;
+    backdrop-filter: blur(22px) saturate(1.14) !important;
+    -webkit-backdrop-filter: blur(22px) saturate(1.14) !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card h1 {
+    font-size: clamp(1.85rem, 9.2vw, 2.65rem) !important;
+    line-height: 1.01 !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card__content .badge {
+    padding: 6px 9px !important;
+    font-size: 0.61rem !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card__meta {
+    margin-top: 18px !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card__meta > span {
+    padding: 11px 0 !important;
+    font-size: 0.8rem !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card__actions {
+    gap: 8px !important;
+    margin-top: 18px !important;
+    padding-top: 16px !important;
+  }
+
+  .cut-event-view-page--buyable .cut-event-summary-card__actions > a[href="#ingressos"] {
+    flex: 1 1 100% !important;
+    min-width: 100% !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card__actions > .btn-light,
+  .cut-event-view-page .cut-event-summary-card__actions > button:has(.fa-star) {
+    flex: 1 1 calc(50% - 4px) !important;
+    min-width: 0 !important;
+  }
+
+  .cut-event-view-page .cut-event-banner-frame,
+  .cut-event-view-page .cut-event-banner-placeholder {
+    border-radius: 18px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cut-event-view-page .cut-event-summary-card__actions > .btn,
+  .cut-event-view-page .cut-event-summary-card__actions > a.btn {
+    transition: none !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card__actions > .btn:hover,
+  .cut-event-view-page .cut-event-summary-card__actions > a.btn:hover {
+    transform: none !important;
+  }
+}
