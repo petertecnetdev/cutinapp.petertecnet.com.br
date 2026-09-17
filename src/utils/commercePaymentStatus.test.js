@@ -72,4 +72,21 @@ describe("commerce payment status normalization", () => {
     expect(result).not.toBe(source);
     expect(result.order).not.toBe(source.order);
   });
+
+  test("preserves receipt PDF blobs without coercing them into plain objects", () => {
+    const pdfBlob = new Blob(["%PDF-1.4"], { type: "application/pdf" });
+    const result = normalizeCommercePaymentStatuses(pdfBlob);
+
+    expect(result).toBe(pdfBlob);
+    expect(result).toBeInstanceOf(Blob);
+    expect(result.type).toBe("application/pdf");
+  });
+
+  test("preserves non-record payloads returned by commerce endpoints", () => {
+    const arrayPayload = [{ status: "pending" }];
+    const bufferPayload = new Uint8Array([1, 2, 3]).buffer;
+
+    expect(normalizeCommercePaymentStatuses(arrayPayload)).toBe(arrayPayload);
+    expect(normalizeCommercePaymentStatuses(bufferPayload)).toBe(bufferPayload);
+  });
 });

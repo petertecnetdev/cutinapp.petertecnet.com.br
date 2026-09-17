@@ -6,6 +6,12 @@ const terminalStatusAliases = {
   expired: "rejected",
 };
 
+const isPlainObjectPayload = (value) => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+};
+
 const normalizeEntityStatus = (entity) => {
   if (!entity || typeof entity !== "object") return entity;
 
@@ -22,7 +28,9 @@ const normalizeEntityStatus = (entity) => {
 };
 
 export const normalizeCommercePaymentStatuses = (payload) => {
-  if (!payload || typeof payload !== "object") return payload;
+  // Commerce also serves binary resources (for example receipt PDFs). Spreading
+  // Blob/ArrayBuffer payloads turns them into plain objects and breaks downloads.
+  if (!isPlainObjectPayload(payload)) return payload;
 
   const next = { ...payload };
   if (payload.order) next.order = normalizeEntityStatus(payload.order);
