@@ -10,6 +10,7 @@
   --cut-layer-content: 1;
   --cut-layer-sticky: 1200;
   --cut-layer-floating: 2020;
+  --cut-layer-floating-alert: 2021;
   --cut-layer-commerce: 2050;
   --cut-layer-navbar: 2100;
   --cut-layer-open-surface: 2180;
@@ -17,6 +18,7 @@
   --cut-layer-commerce-sheet: 3000;
   --cut-layer-backdrop: 3100;
   --cut-layer-modal: 3110;
+  --cut-layer-modal-popover: 3120;
   --cut-layer-toast: 3250;
   --cut-layer-critical: 3300;
 
@@ -62,7 +64,7 @@
 
 .cut-event-series-alert {
   bottom: calc(var(--cut-floating-floor) + 58px + var(--cut-overlay-gap)) !important;
-  z-index: calc(var(--cut-layer-floating) + 1) !important;
+  z-index: var(--cut-layer-floating-alert) !important;
 }
 
 /* If two independent floating actions exist on the same page, stack them
@@ -72,7 +74,7 @@ body:has(.cut-event-series-launcher) .cut-whatsapp-fab {
 }
 
 body:has(.cut-event-series-launcher):has(.cut-whatsapp-fab) .cut-event-series-alert {
-  bottom: calc(var(--cut-floating-floor) + 116px + (var(--cut-overlay-gap) * 2)) !important;
+  bottom: calc(var(--cut-floating-floor) + 116px + var(--cut-overlay-gap) + var(--cut-overlay-gap)) !important;
 }
 
 /* Desktop cart occupies a 72px dock at the lower-right. Reserve the space
@@ -207,7 +209,7 @@ body:has(.cut-event-series-launcher):has(.cut-whatsapp-fab) .cut-event-series-al
  * SweetAlert/critical feedback. */
 .modal .dropdown-menu.show,
 .offcanvas .dropdown-menu.show {
-  z-index: calc(var(--cut-layer-modal) + 10) !important;
+  z-index: var(--cut-layer-modal-popover) !important;
 }
 
 /* --------------------------------------------------------------------------
@@ -222,11 +224,11 @@ body:has(.cut-event-series-launcher):has(.cut-whatsapp-fab) .cut-event-series-al
   }
 
   .cut-event-series-launcher {
-    max-width: calc(100vw - (var(--cut-overlay-edge) * 2));
+    max-width: calc(100vw - var(--cut-overlay-edge) - var(--cut-overlay-edge));
   }
 
   .cut-event-series-alert {
-    width: min(420px, calc(100vw - (var(--cut-overlay-edge) * 2))) !important;
+    width: min(420px, calc(100vw - var(--cut-overlay-edge) - var(--cut-overlay-edge))) !important;
   }
 }
 
