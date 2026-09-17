@@ -12,6 +12,14 @@ const artistService = {
     await appApiClient.post(`/events/${Number(eventId)}/artists/resolve`, payload)
   ).data,
 
+  updateParticipation: async (eventId, artistId, payload) => (
+    await appApiClient.patch(`/events/${Number(eventId)}/artists/${Number(artistId)}/participation`, payload)
+  ).data,
+
+  reorderLineup: async (eventId, artists) => (
+    await appApiClient.put(`/events/${Number(eventId)}/artists/reorder`, { artists })
+  ).data,
+
   respondToInvitation: async (eventId, artistId, decision) => (
     await appApiClient.put(`/events/${Number(eventId)}/artists/${Number(artistId)}/response`, { decision })
   ).data,
