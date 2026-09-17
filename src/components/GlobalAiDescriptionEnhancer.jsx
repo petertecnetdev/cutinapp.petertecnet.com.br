@@ -36,6 +36,22 @@ const inferEntityType = () => {
   return "generic";
 };
 
+const inferEntityId = (entityType) => {
+  const path = String(window.location?.pathname || "");
+  const patterns = entityType === "event"
+    ? [/\/event\/edit\/(\d+)(?:\/|$)/i, /\/event\/(\d+)\/edit(?:\/|$)/i, /\/event\/(\d+)(?:\/|$)/i]
+    : entityType === "production"
+      ? [/\/production\/edit\/(\d+)(?:\/|$)/i, /\/production\/(\d+)\/edit(?:\/|$)/i, /\/production\/(\d+)(?:\/|$)/i]
+      : [];
+
+  for (const pattern of patterns) {
+    const match = path.match(pattern);
+    if (match?.[1]) return match[1];
+  }
+
+  return "";
+};
+
 const fieldValue = (field) => {
   if (field instanceof HTMLSelectElement) {
     const selected = field.options?.[field.selectedIndex];
@@ -177,6 +193,8 @@ const createAssistant = (textarea) => {
     const currentDescription = String(textarea.value || "").trim();
     const context = collectContext(form, textarea);
     const entityType = inferEntityType();
+    const entityId = inferEntityId(entityType);
+    if (entityId) context.entityId = entityId;
 
     if (!title && !currentDescription && Object.keys(context).length === 0) {
       setStatus("Preencha ao menos o nome para a IA ter contexto.", "error");
