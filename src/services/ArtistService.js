@@ -12,6 +12,10 @@ const artistService = {
     await appApiClient.post(`/events/${Number(eventId)}/artists/resolve`, payload)
   ).data,
 
+  claimPendingInvitations: async () => (
+    await appApiClient.post("/artist-invitations/claim-pending")
+  ).data,
+
   updateParticipation: async (eventId, artistId, payload) => (
     await appApiClient.patch(`/events/${Number(eventId)}/artists/${Number(artistId)}/participation`, payload)
   ).data,
