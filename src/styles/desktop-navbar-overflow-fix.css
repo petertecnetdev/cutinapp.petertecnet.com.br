@@ -149,6 +149,10 @@
     font-size: .75rem !important;
   }
 
+  .cut-capability-nav .cut-navbar__primary-link:nth-of-type(n + 7) {
+    display: none !important;
+  }
+
   .cut-capability-nav .cut-navbar__user {
     max-width: 145px !important;
   }
@@ -181,6 +185,10 @@
     min-height: 36px !important;
     padding: 5px 6px !important;
     font-size: .72rem !important;
+  }
+
+  .cut-capability-nav .cut-navbar__primary-link:nth-of-type(n + 5) {
+    display: none !important;
   }
 
   .cut-capability-nav .cut-navbar__user {
