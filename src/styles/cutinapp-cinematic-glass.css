@@ -1,0 +1,793 @@
+/*
+ * Cutinapp Cinematic Frosted Glass Theme
+ *
+ * Final visual contract for the entire application. This file is intentionally
+ * loaded last: legacy/page CSS keeps ownership of layout and domain behaviour,
+ * while this layer standardizes material, contrast, depth and interaction.
+ *
+ * Visual direction: dark cinematic background + matte translucent surfaces,
+ * strong backdrop blur, restrained brand glow, soft borders and clear focus.
+ */
+
+:root {
+  /* Re-map the existing design tokens so older CSS automatically participates. */
+  --cut-bg: #05060d;
+  --cut-bg-deep: #020308;
+  --cut-bg-soft: #090b16;
+  --cut-surface-1: rgba(16, 18, 30, .68);
+  --cut-surface-2: rgba(22, 24, 38, .72);
+  --cut-surface-3: rgba(30, 32, 48, .76);
+  --cut-surface-4: rgba(39, 41, 58, .78);
+  --cut-surface-glass: rgba(16, 18, 30, .62);
+  --cut-surface-glass-strong: rgba(10, 12, 22, .82);
+  --cut-surface-hover: rgba(255, 255, 255, .075);
+  --cut-surface-active: rgba(184, 71, 250, .15);
+
+  --cut-text: #f4f5fb;
+  --cut-text-strong: #ffffff;
+  --cut-text-muted: rgba(239, 241, 250, .76);
+  --cut-text-soft: rgba(230, 233, 244, .60);
+  --cut-text-faint: rgba(215, 219, 235, .43);
+
+  --cut-border: rgba(255, 255, 255, .105);
+  --cut-border-soft: rgba(255, 255, 255, .065);
+  --cut-border-strong: rgba(255, 255, 255, .17);
+  --cut-divider: rgba(255, 255, 255, .075);
+
+  --cut-radius-md: 14px;
+  --cut-radius-lg: 18px;
+  --cut-radius-xl: 22px;
+  --cut-radius-2xl: 28px;
+
+  --cut-shadow-sm: 0 12px 32px rgba(0, 0, 0, .22);
+  --cut-shadow-md: 0 20px 55px rgba(0, 0, 0, .30);
+  --cut-shadow-lg: 0 28px 82px rgba(0, 0, 0, .38);
+  --cut-shadow-xl: 0 38px 120px rgba(0, 0, 0, .48);
+
+  /* Global material system. */
+  --cut-cg-bg: rgba(17, 19, 31, .66);
+  --cut-cg-bg-soft: rgba(255, 255, 255, .045);
+  --cut-cg-bg-raised: rgba(24, 26, 40, .72);
+  --cut-cg-bg-strong: rgba(12, 14, 25, .84);
+  --cut-cg-bg-overlay: rgba(8, 10, 19, .90);
+  --cut-cg-border: rgba(255, 255, 255, .12);
+  --cut-cg-border-strong: rgba(255, 255, 255, .18);
+  --cut-cg-highlight: rgba(255, 255, 255, .10);
+  --cut-cg-blur: 26px;
+  --cut-cg-blur-strong: 36px;
+  --cut-cg-saturate: 138%;
+  --cut-cg-brightness: 72%;
+  --cut-cg-brightness-strong: 62%;
+  --cut-cg-shadow: 0 20px 58px rgba(0, 0, 0, .29), inset 0 1px 0 rgba(255, 255, 255, .075);
+  --cut-cg-shadow-raised: 0 30px 88px rgba(0, 0, 0, .40), inset 0 1px 0 rgba(255, 255, 255, .10);
+  --cut-cg-shadow-hover: 0 26px 74px rgba(0, 0, 0, .36), 0 0 34px rgba(113, 65, 247, .08), inset 0 1px 0 rgba(255, 255, 255, .11);
+  --cut-cg-edge: linear-gradient(145deg, rgba(255, 255, 255, .085), rgba(255, 255, 255, .018));
+  --cut-cg-brand-haze: radial-gradient(circle at 10% 0%, rgba(184, 71, 250, .11), transparent 36%), radial-gradient(circle at 100% 100%, rgba(6, 175, 250, .07), transparent 35%);
+
+  --bs-body-bg: #05060d;
+  --bs-body-color: #f4f5fb;
+  --bs-secondary-color: rgba(239, 241, 250, .76);
+  --bs-tertiary-color: rgba(230, 233, 244, .60);
+  --bs-border-color: rgba(255, 255, 255, .105);
+  --bs-border-color-translucent: rgba(255, 255, 255, .10);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Global canvas                                                               */
+/* -------------------------------------------------------------------------- */
+
+html {
+  background: #05060d;
+}
+
+body {
+  color: var(--cut-text);
+  background:
+    radial-gradient(circle at 13% -8%, rgba(184, 71, 250, .20), transparent 31%),
+    radial-gradient(circle at 88% 3%, rgba(43, 98, 244, .13), transparent 28%),
+    radial-gradient(circle at 82% 88%, rgba(6, 175, 250, .07), transparent 29%),
+    radial-gradient(circle at 42% 115%, rgba(229, 108, 255, .08), transparent 28%),
+    linear-gradient(155deg, #060710 0%, #090b18 45%, #05060e 100%) !important;
+  background-attachment: fixed !important;
+}
+
+body::before {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .015), transparent 26%),
+    radial-gradient(circle at 48% -14%, rgba(255, 255, 255, .045), transparent 34%),
+    radial-gradient(circle at 12% 60%, rgba(184, 71, 250, .045), transparent 26%) !important;
+}
+
+#root,
+.cut-app-page,
+.cut-page,
+main {
+  color: var(--cut-text);
+}
+
+h1, h2, h3, h4, h5, h6,
+.h1, .h2, .h3, .h4, .h5, .h6 {
+  color: var(--cut-text-strong);
+  text-wrap: balance;
+}
+
+p,
+.text-body-secondary,
+.form-text,
+small {
+  color: var(--cut-text-muted);
+}
+
+hr {
+  border-color: var(--cut-divider) !important;
+}
+
+/* Premium scrollbars without changing layout. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(184, 71, 250, .45) rgba(255, 255, 255, .025);
+}
+
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: rgba(255, 255, 255, .02); }
+*::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(184, 71, 250, .58), rgba(6, 175, 250, .38)) padding-box;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Core glass material                                                         */
+/* -------------------------------------------------------------------------- */
+
+.cut-glass,
+[data-cut-surface="glass"],
+.card,
+.cut-panel,
+.cut-empty-state,
+.cut-discovery-shell,
+.cut-wallet-toolbar,
+.cut-collapsible-filters,
+.accordion-item,
+.offcanvas,
+.toast,
+.popover,
+.list-group-item,
+:where(div, article, section, aside, li, a)[class*="-card "],
+:where(div, article, section, aside, li, a)[class$="-card"],
+:where(div, article, section, aside)[class*="__card "],
+:where(div, article, section, aside)[class$="__card"],
+.cut-event-manager-hero,
+.cut-event-manager-toolbar,
+.cut-event-bulk-selection,
+.cut-event-attention-center,
+.cut-event-command-tabs,
+.cut-event-command-overview__inventory,
+.cut-event-command-overview__readiness,
+.cut-event-command-alerts > div,
+.cut-event-portfolio-metrics > div,
+.cut-event-manager-summary button {
+  border-color: var(--cut-cg-border) !important;
+  background:
+    var(--cut-cg-edge),
+    var(--cut-cg-bg) !important;
+  color: var(--cut-text);
+  box-shadow: var(--cut-cg-shadow) !important;
+  -webkit-backdrop-filter:
+    blur(var(--cut-cg-blur))
+    saturate(var(--cut-cg-saturate))
+    brightness(var(--cut-cg-brightness)) !important;
+  backdrop-filter:
+    blur(var(--cut-cg-blur))
+    saturate(var(--cut-cg-saturate))
+    brightness(var(--cut-cg-brightness)) !important;
+}
+
+.card,
+.cut-panel,
+.cut-empty-state,
+.cut-collapsible-filters,
+.accordion-item,
+.offcanvas,
+.toast,
+.popover,
+:where(div, article, section, aside, li, a)[class*="-card "],
+:where(div, article, section, aside, li, a)[class$="-card"] {
+  border-radius: var(--cut-radius-xl);
+}
+
+/* Avoid every nested card looking equally heavy. Nested surfaces become quieter. */
+.card .card,
+.cut-panel .cut-panel,
+.card .list-group-item,
+.cut-panel .list-group-item,
+.modal-content .card,
+.offcanvas .card {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, .055), rgba(255, 255, 255, .012)),
+    rgba(255, 255, 255, .035) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .055), 0 10px 28px rgba(0, 0, 0, .14) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(125%) brightness(78%) !important;
+  backdrop-filter: blur(14px) saturate(125%) brightness(78%) !important;
+}
+
+.card-header,
+.card-footer,
+.modal-header,
+.modal-footer,
+.offcanvas-header,
+.list-group-item,
+.accordion-item,
+.table > :not(caption) > * > * {
+  border-color: var(--cut-divider) !important;
+}
+
+/* Readability contract inside frosted surfaces. */
+:where(.card, .cut-panel, .cut-empty-state, .modal-content, .offcanvas, .dropdown-menu, .accordion-item, .popover) :where(h1, h2, h3, h4, h5, h6, strong, b) {
+  color: rgba(255, 255, 255, .98) !important;
+}
+
+:where(.card, .cut-panel, .cut-empty-state, .modal-content, .offcanvas, .dropdown-menu, .accordion-item, .popover) :where(p, small, .text-muted, .text-secondary) {
+  color: rgba(238, 240, 250, .72) !important;
+}
+
+/* Interactive elevation is subtle; no distracting floating effect. */
+:where(.card, .cut-panel, article[class*="-card"], a[class*="-card"]) {
+  transition:
+    transform 180ms var(--cut-ease-standard),
+    border-color 180ms var(--cut-ease-standard),
+    box-shadow 180ms var(--cut-ease-standard),
+    background-color 180ms var(--cut-ease-standard);
+}
+
+:where(a.card, a[class*="-card"], article[class*="-card"]):hover {
+  border-color: rgba(157, 199, 255, .25) !important;
+  box-shadow: var(--cut-cg-shadow-hover) !important;
+  transform: translateY(-2px);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Navbar, sidebars and persistent navigation                                  */
+/* -------------------------------------------------------------------------- */
+
+.navbar,
+.cut-navbar,
+.app-navbar,
+.topbar,
+.cut-mobile-bottom-nav,
+.cut-bottom-nav {
+  border-color: rgba(255, 255, 255, .085) !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .045), rgba(255, 255, 255, .012)),
+    rgba(8, 10, 20, .78) !important;
+  box-shadow: 0 14px 42px rgba(0, 0, 0, .24), inset 0 -1px 0 rgba(255, 255, 255, .025) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(145%) brightness(67%) !important;
+  backdrop-filter: blur(28px) saturate(145%) brightness(67%) !important;
+}
+
+.navbar .nav-link,
+.cut-navbar .nav-link,
+.app-navbar .nav-link,
+.topbar .nav-link {
+  color: rgba(238, 240, 250, .72) !important;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.navbar .nav-link:hover,
+.cut-navbar .nav-link:hover,
+.app-navbar .nav-link:hover,
+.topbar .nav-link:hover {
+  color: #fff !important;
+  border-color: rgba(255, 255, 255, .07);
+  background: rgba(255, 255, 255, .055) !important;
+}
+
+.navbar .nav-link.active,
+.cut-navbar .nav-link.active,
+.app-navbar .nav-link.active,
+.topbar .nav-link.active,
+.nav-pills .nav-link.active {
+  color: #fff !important;
+  border-color: rgba(184, 71, 250, .24) !important;
+  background:
+    linear-gradient(135deg, rgba(184, 71, 250, .18), rgba(43, 98, 244, .11)) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 8px 24px rgba(79, 70, 229, .10) !important;
+}
+
+.navbar-toggler,
+.cut-navbar button,
+.cut-mobile-bottom-nav button,
+.cut-mobile-bottom-nav a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 991.98px) {
+  .cut-navbar .navbar-collapse,
+  .navbar .navbar-collapse.show,
+  .offcanvas {
+    border: 1px solid rgba(255, 255, 255, .11) !important;
+    background:
+      var(--cut-cg-brand-haze),
+      rgba(8, 10, 20, .90) !important;
+    box-shadow: 20px 0 70px rgba(0, 0, 0, .48), inset 0 1px 0 rgba(255, 255, 255, .07) !important;
+    -webkit-backdrop-filter: blur(34px) saturate(140%) brightness(62%) !important;
+    backdrop-filter: blur(34px) saturate(140%) brightness(62%) !important;
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Menus, overlays and dialogs                                                 */
+/* -------------------------------------------------------------------------- */
+
+.dropdown-menu,
+.cut-autocomplete-menu,
+.popover,
+.tooltip-inner {
+  border: 1px solid var(--cut-cg-border-strong) !important;
+  background:
+    var(--cut-cg-brand-haze),
+    linear-gradient(145deg, rgba(255, 255, 255, .055), rgba(255, 255, 255, .012)),
+    var(--cut-cg-bg-overlay) !important;
+  color: var(--cut-text) !important;
+  box-shadow: var(--cut-cg-shadow-raised) !important;
+  -webkit-backdrop-filter:
+    blur(var(--cut-cg-blur-strong))
+    saturate(145%)
+    brightness(var(--cut-cg-brightness-strong)) !important;
+  backdrop-filter:
+    blur(var(--cut-cg-blur-strong))
+    saturate(145%)
+    brightness(var(--cut-cg-brightness-strong)) !important;
+}
+
+.dropdown-menu {
+  padding: 9px !important;
+  border-radius: 18px !important;
+}
+
+.dropdown-item {
+  min-height: 42px;
+  border: 1px solid transparent;
+  border-radius: 12px !important;
+  color: rgba(242, 243, 250, .82) !important;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus,
+.dropdown-item.active,
+.dropdown-item:active {
+  color: #fff !important;
+  border-color: rgba(255, 255, 255, .07) !important;
+  background: rgba(184, 71, 250, .13) !important;
+}
+
+.dropdown-divider {
+  border-color: rgba(255, 255, 255, .08) !important;
+}
+
+.modal-backdrop.show,
+.offcanvas-backdrop.show {
+  background: rgba(1, 2, 7, .66) !important;
+  opacity: 1 !important;
+  -webkit-backdrop-filter: blur(12px) saturate(110%) brightness(68%) !important;
+  backdrop-filter: blur(12px) saturate(110%) brightness(68%) !important;
+}
+
+.modal-content,
+.swal2-popup:not(.swal2-toast) {
+  border: 1px solid rgba(255, 255, 255, .17) !important;
+  border-radius: 28px !important;
+  background:
+    var(--cut-cg-brand-haze),
+    linear-gradient(145deg, rgba(255, 255, 255, .07), rgba(255, 255, 255, .015)),
+    rgba(10, 12, 23, .87) !important;
+  color: var(--cut-text) !important;
+  box-shadow: 0 38px 120px rgba(0, 0, 0, .52), inset 0 1px 0 rgba(255, 255, 255, .10) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(145%) brightness(60%) !important;
+  backdrop-filter: blur(40px) saturate(145%) brightness(60%) !important;
+}
+
+.swal2-container.swal2-backdrop-show,
+.swal2-container.swal2-backdrop-hide {
+  background: rgba(1, 2, 7, .62) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(115%) brightness(70%) !important;
+  backdrop-filter: blur(12px) saturate(115%) brightness(70%) !important;
+}
+
+.swal2-title,
+.swal2-html-container {
+  color: var(--cut-text-strong) !important;
+}
+
+.swal2-html-container { color: rgba(238, 240, 250, .76) !important; }
+
+/* -------------------------------------------------------------------------- */
+/* Forms                                                                       */
+/* -------------------------------------------------------------------------- */
+
+.form-control,
+.form-select,
+.input-group-text,
+.form-check-input,
+.swal2-input,
+.swal2-textarea,
+.swal2-select {
+  border-color: rgba(255, 255, 255, .11) !important;
+  background-color: rgba(255, 255, 255, .055) !important;
+  color: rgba(249, 249, 252, .96) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .035) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(125%) brightness(78%);
+  backdrop-filter: blur(14px) saturate(125%) brightness(78%);
+}
+
+.form-control,
+.form-select,
+.input-group-text {
+  border-radius: 14px !important;
+}
+
+.input-group > .form-control:not(:last-child),
+.input-group > .form-select:not(:last-child) {
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+.input-group > .form-control:not(:first-child),
+.input-group > .form-select:not(:first-child),
+.input-group > .input-group-text:not(:first-child) {
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+}
+
+.form-control::placeholder,
+.swal2-input::placeholder,
+.swal2-textarea::placeholder {
+  color: rgba(222, 225, 238, .43) !important;
+}
+
+.form-control:hover:not(:disabled),
+.form-select:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, .18) !important;
+  background-color: rgba(255, 255, 255, .07) !important;
+}
+
+.form-control:focus,
+.form-select:focus,
+.form-check-input:focus,
+.swal2-input:focus,
+.swal2-textarea:focus,
+.swal2-select:focus {
+  border-color: rgba(184, 71, 250, .56) !important;
+  background-color: rgba(255, 255, 255, .075) !important;
+  box-shadow: 0 0 0 4px rgba(184, 71, 250, .11), inset 0 1px 0 rgba(255, 255, 255, .055) !important;
+}
+
+.form-select option {
+  color: #f5f5fa;
+  background: #11131f;
+}
+
+.form-label {
+  color: rgba(244, 245, 251, .82) !important;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Buttons and chips                                                           */
+/* -------------------------------------------------------------------------- */
+
+.btn {
+  border-radius: 13px !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .045);
+}
+
+.btn-primary,
+.swal2-confirm {
+  border-color: rgba(255, 255, 255, .08) !important;
+  background: var(--cut-gradient-brand) !important;
+  color: #fff !important;
+  box-shadow: 0 12px 32px rgba(113, 65, 247, .22), inset 0 1px 0 rgba(255, 255, 255, .16) !important;
+}
+
+.btn-primary:hover:not(:disabled),
+.swal2-confirm:hover {
+  filter: brightness(1.07) saturate(1.05);
+  box-shadow: 0 16px 40px rgba(113, 65, 247, .30), inset 0 1px 0 rgba(255, 255, 255, .18) !important;
+}
+
+.btn-secondary,
+.btn-outline-light,
+.btn-outline-secondary,
+.swal2-cancel {
+  border-color: rgba(255, 255, 255, .11) !important;
+  background: rgba(255, 255, 255, .055) !important;
+  color: rgba(247, 248, 252, .90) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(125%);
+  backdrop-filter: blur(12px) saturate(125%);
+}
+
+.btn-secondary:hover:not(:disabled),
+.btn-outline-light:hover:not(:disabled),
+.btn-outline-secondary:hover:not(:disabled),
+.swal2-cancel:hover {
+  border-color: rgba(255, 255, 255, .18) !important;
+  background: rgba(255, 255, 255, .085) !important;
+  color: #fff !important;
+}
+
+.badge,
+.nav-pills .nav-link,
+.cut-chip,
+[class*="-chip"],
+[class*="-pill"] {
+  border: 1px solid rgba(255, 255, 255, .085);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Tabs, accordions and collapses                                              */
+/* -------------------------------------------------------------------------- */
+
+.nav-tabs {
+  border-color: var(--cut-divider) !important;
+}
+
+.nav-tabs .nav-link,
+.nav-pills .nav-link {
+  color: rgba(238, 240, 250, .68) !important;
+  border-color: transparent !important;
+  background: rgba(255, 255, 255, .025) !important;
+}
+
+.nav-tabs .nav-link:hover,
+.nav-pills .nav-link:hover {
+  color: #fff !important;
+  border-color: rgba(255, 255, 255, .08) !important;
+  background: rgba(255, 255, 255, .05) !important;
+}
+
+.nav-tabs .nav-link.active,
+.nav-pills .nav-link.active {
+  color: #fff !important;
+  border-color: rgba(184, 71, 250, .20) !important;
+  background: linear-gradient(135deg, rgba(184, 71, 250, .16), rgba(43, 98, 244, .09)) !important;
+}
+
+.accordion-button,
+.cut-collapsible-filters__toggle,
+.cut-collapsible-filters__body,
+.accordion-body {
+  color: var(--cut-text) !important;
+  background: transparent !important;
+}
+
+.accordion-button:not(.collapsed),
+.cut-collapsible-filters.is-open {
+  color: #fff !important;
+  box-shadow: none !important;
+}
+
+.accordion-button::after {
+  filter: invert(1) opacity(.72);
+}
+
+.accordion-item:has(.accordion-collapse.show),
+.cut-collapsible-filters.is-open {
+  border-color: rgba(157, 199, 255, .20) !important;
+  background:
+    var(--cut-cg-brand-haze),
+    linear-gradient(145deg, rgba(255, 255, 255, .07), rgba(255, 255, 255, .015)),
+    rgba(13, 15, 27, .76) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(138%) brightness(66%) !important;
+  backdrop-filter: blur(32px) saturate(138%) brightness(66%) !important;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Tables, lists, pagination and data surfaces                                 */
+/* -------------------------------------------------------------------------- */
+
+.table {
+  --bs-table-bg: transparent;
+  --bs-table-color: var(--cut-text);
+  --bs-table-border-color: rgba(255, 255, 255, .07);
+}
+
+.table thead th {
+  color: rgba(232, 235, 246, .56) !important;
+  background: rgba(255, 255, 255, .025) !important;
+}
+
+.table tbody tr {
+  transition: background-color 150ms ease;
+}
+
+.table tbody tr:hover > * {
+  background: rgba(255, 255, 255, .035) !important;
+}
+
+.table-responsive {
+  border-radius: 18px;
+}
+
+.list-group {
+  --bs-list-group-bg: transparent;
+  --bs-list-group-color: var(--cut-text);
+  --bs-list-group-border-color: rgba(255, 255, 255, .07);
+}
+
+.list-group-item {
+  color: rgba(242, 243, 250, .84) !important;
+}
+
+.pagination {
+  --bs-pagination-bg: rgba(255, 255, 255, .045);
+  --bs-pagination-border-color: rgba(255, 255, 255, .08);
+  --bs-pagination-color: rgba(238, 240, 250, .72);
+  --bs-pagination-hover-bg: rgba(255, 255, 255, .075);
+  --bs-pagination-hover-border-color: rgba(255, 255, 255, .13);
+  --bs-pagination-hover-color: #fff;
+  --bs-pagination-active-bg: rgba(184, 71, 250, .22);
+  --bs-pagination-active-border-color: rgba(184, 71, 250, .32);
+}
+
+.page-link {
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Alerts, status and semantic feedback                                        */
+/* -------------------------------------------------------------------------- */
+
+.alert,
+.cut-connection-status {
+  border-width: 1px !important;
+  box-shadow: 0 14px 38px rgba(0, 0, 0, .20), inset 0 1px 0 rgba(255, 255, 255, .055) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(125%) brightness(78%);
+  backdrop-filter: blur(18px) saturate(125%) brightness(78%);
+}
+
+.alert-danger { background: rgba(82, 22, 39, .42) !important; }
+.alert-success { background: rgba(13, 67, 54, .40) !important; }
+.alert-warning { background: rgba(86, 61, 16, .40) !important; }
+.alert-info { background: rgba(14, 57, 83, .40) !important; }
+
+/* -------------------------------------------------------------------------- */
+/* Event/feed/profile/message/checkout visual bridges                          */
+/* -------------------------------------------------------------------------- */
+
+/* These selectors intentionally target common domain shells without touching
+   sizing/positioning. Existing page CSS remains responsible for layout. */
+[class*="event-"][class*="panel"],
+[class*="event-"][class*="summary"],
+[class*="event-"][class*="toolbar"],
+[class*="event-"][class*="sidebar"],
+[class*="feed-"][class*="panel"],
+[class*="feed-"][class*="composer"],
+[class*="profile-"][class*="panel"],
+[class*="profile-"][class*="summary"],
+[class*="message-"][class*="panel"],
+[class*="messages-"][class*="panel"],
+[class*="chat-"][class*="panel"],
+[class*="checkout-"][class*="panel"],
+[class*="cart-"][class*="panel"] {
+  border-color: var(--cut-cg-border) !important;
+  background:
+    var(--cut-cg-edge),
+    rgba(17, 19, 31, .66) !important;
+  box-shadow: var(--cut-cg-shadow) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(135%) brightness(73%) !important;
+  backdrop-filter: blur(24px) saturate(135%) brightness(73%) !important;
+}
+
+/* Message composer must remain visually focused above scrolling content. */
+[class*="composer"],
+[class*="message-input"],
+[class*="chat-input"] {
+  border-color: rgba(255, 255, 255, .10) !important;
+}
+
+/* Images stay crisp: glass applies around media, never to the media itself. */
+.card img,
+[class*="-card"] img,
+[class*="__card"] img,
+video,
+canvas {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Mobile / performance                                                        */
+/* -------------------------------------------------------------------------- */
+
+@media (max-width: 767.98px) {
+  :root {
+    --cut-cg-blur: 17px;
+    --cut-cg-blur-strong: 24px;
+    --cut-cg-saturate: 130%;
+    --cut-cg-brightness: 75%;
+    --cut-cg-brightness-strong: 66%;
+  }
+
+  body {
+    background-attachment: scroll !important;
+  }
+
+  .card,
+  .cut-panel,
+  .cut-empty-state,
+  .cut-collapsible-filters,
+  .accordion-item,
+  .offcanvas,
+  .dropdown-menu,
+  .modal-content,
+  .swal2-popup:not(.swal2-toast) {
+    border-radius: 18px !important;
+  }
+
+  .cut-mobile-bottom-nav {
+    background: rgba(8, 10, 20, .88) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(132%) brightness(68%) !important;
+    backdrop-filter: blur(20px) saturate(132%) brightness(68%) !important;
+  }
+
+  :where(a.card, a[class*="-card"], article[class*="-card"]):hover {
+    transform: none;
+  }
+}
+
+/* Readable fallback when the browser/GPU cannot render backdrop filters. */
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .cut-glass,
+  [data-cut-surface="glass"],
+  .card,
+  .cut-panel,
+  .cut-empty-state,
+  .cut-discovery-shell,
+  .cut-wallet-toolbar,
+  .cut-collapsible-filters,
+  .accordion-item,
+  .offcanvas,
+  .dropdown-menu,
+  .modal-content,
+  .popover,
+  .toast,
+  .swal2-popup:not(.swal2-toast),
+  :where(div, article, section, aside, li, a)[class*="-card "],
+  :where(div, article, section, aside, li, a)[class$="-card"] {
+    background: #121522 !important;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .cut-glass,
+  [data-cut-surface="glass"],
+  .card,
+  .cut-panel,
+  .cut-empty-state,
+  .cut-discovery-shell,
+  .cut-wallet-toolbar,
+  .cut-collapsible-filters,
+  .accordion-item,
+  .offcanvas,
+  .dropdown-menu,
+  .modal-content,
+  .popover,
+  .toast,
+  .swal2-popup:not(.swal2-toast),
+  :where(div, article, section, aside, li, a)[class*="-card "],
+  :where(div, article, section, aside, li, a)[class$="-card"] {
+    background: #141624 !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(.card, .cut-panel, article[class*="-card"], a[class*="-card"]) {
+    transition: none !important;
+  }
+}
