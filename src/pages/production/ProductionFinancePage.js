@@ -698,7 +698,27 @@ export default function ProductionFinancePage() {
           {!finance?.ready_for_payout && <Alert variant="secondary">Conclua a verificação e ative sua chave Pix para receber.</Alert>}
           {finance?.ready_for_payout && available <= 0 && <Alert variant="secondary">Ainda não há saldo liberado para repasse.</Alert>}
 
-          {(finance?.payouts || []).length > 0 && <div className="table-responsive mt-4"><Table variant="dark" hover className="align-middle mb-0"><thead><tr><th>Referência</th><th>Solicitado em</th><th>Valor</th><th>Status</th></tr></thead><tbody>{finance.payouts.map((row) => { const status = payoutStatus[row.status] || { label: row.status, bg: "secondary" }; return <tr key={row.id}><td><small>{row.reference}</small></td><td>{dateTime(row.requested_at)}</td><td><strong>{money(row.amount)}</strong></td><td><Badge bg={status.bg}>{status.label}</Badge></td></tr>; })}</tbody></Table></div>}
+          {(finance?.payouts || []).length > 0 && <div className="table-responsive mt-4">
+            <Table variant="dark" hover className="align-middle mb-0">
+              <thead><tr><th>Referência</th><th>Solicitado em</th><th>Valor</th><th>Status</th><th>Comprovante</th></tr></thead>
+              <tbody>{finance.payouts.map((row) => {
+                const status = payoutStatus[row.status] || { label: row.status, bg: "secondary" };
+                return <tr key={row.id}>
+                  <td><small>{row.reference}</small></td>
+                  <td>{dateTime(row.requested_at)}</td>
+                  <td><strong>{money(row.amount)}</strong></td>
+                  <td>
+                    <Badge bg={status.bg}>{status.label}</Badge>
+                    {row.failure_reason && <small className="d-block text-danger mt-1">{row.failure_reason}</small>}
+                  </td>
+                  <td>{row.receipt_url
+                    ? <Button as="a" href={row.receipt_url} target="_blank" rel="noreferrer" size="sm" variant="outline-light">Ver comprovante</Button>
+                    : <span className="text-secondary small">{row.status === "paid" ? "Processando comprovante" : "—"}</span>}
+                  </td>
+                </tr>;
+              })}</tbody>
+            </Table>
+          </div>}
         </Card.Body></Card>
       </>}
     </Container>
