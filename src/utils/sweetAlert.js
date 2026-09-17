@@ -33,8 +33,30 @@ const defaultClasses = {
   cancelButton: "btn btn-outline-light cut-swal-cancel",
 };
 
+const normalizeMultilineText = (value) => String(value ?? "")
+  .replace(/[×✕]/g, " ")
+  .replace(/\r/g, "")
+  .split(/\n+/)
+  .map((line) => line.replace(/[ \t]+/g, " ").trim())
+  .filter(Boolean)
+  .join("\n");
+
+const escapeHtml = (value) => String(value ?? "")
+  .replace(/&/g, "&amp;")
+  .replace(/</g, "&lt;")
+  .replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;")
+  .replace(/'/g, "&#039;");
+
+const alertElementText = (element) => {
+  const renderedText = typeof element.innerText === "string" ? element.innerText : "";
+  const normalizedRenderedText = normalizeMultilineText(renderedText);
+  if (normalizedRenderedText) return normalizedRenderedText;
+  return normalizeMultilineText(element.textContent || "");
+};
+
 const normalizeLegacyAlert = (value) => {
-  const message = String(value ?? "").replace(/\s+/g, " ").trim();
+  const message = normalizeMultilineText(value);
   if (!message) {
     return {
       title: "Atenção",
@@ -133,10 +155,7 @@ const bootstrapAlertInfo = (element) => {
   if (element.closest(".swal2-container")) return null;
   if (element.dataset.ptSwalIgnore === "true") return null;
 
-  const text = String(element.textContent || "")
-    .replace(/[×✕]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  const text = alertElementText(element);
 
   if (!text) return null;
 
@@ -186,9 +205,10 @@ export const showImportantAlert = async ({
     ? resolveAlertRecoveryAction(text, recoveryContext || {})
     : null;
   const effectiveRecoveryAction = recoveryAction || inferredRecoveryAction;
+  const formattedText = normalizeMultilineText(text);
   const result = await Swal.fire({
     title,
-    text,
+    html: escapeHtml(formattedText).replace(/\n/g, "<br />"),
     icon,
     confirmButtonText: effectiveRecoveryAction?.label || confirmButtonText,
     cancelButtonText: effectiveRecoveryAction ? "Agora não" : cancelButtonText,
