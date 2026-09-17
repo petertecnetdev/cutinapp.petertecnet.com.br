@@ -108,11 +108,11 @@ export default function EventProductSalesManager({ eventId, eventData, onSuccess
 
   useEffect(() => {
     loadProductionItems();
-  }, [productionId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [productionId]);
 
   useEffect(() => {
     loadEventItems();
-  }, [eventId, eventSlug, isPublished]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [eventId, eventSlug, isPublished]);
 
   const addedSourceIds = useMemo(() => new Set(
     eventItems.map(sourceIdFor).filter((id) => id > 0).map(String),
@@ -137,8 +137,6 @@ export default function EventProductSalesManager({ eventId, eventData, onSuccess
 
   const selectableItems = useMemo(
     () => productionItems.filter((item) => !isAlreadyAdded(item)),
-    // eventItems changes the result through addedSourceIds/addedNames.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [productionItems, addedSourceIds, addedNames],
   );
 
