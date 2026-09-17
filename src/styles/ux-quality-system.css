@@ -1,0 +1,165 @@
+/*
+ * Cutinapp UX Quality System
+ * Global readability, interaction and accessibility guardrails.
+ * Keep this stylesheet last in index.js so legacy page CSS cannot silently
+ * regress contrast, focus visibility, touch targets or disabled states.
+ */
+
+:root {
+  --cut-readable-text: #f7f5ff;
+  --cut-readable-muted: #c5c1dc;
+  --cut-readable-soft: #a5a0bf;
+  --cut-readable-faint: #85809e;
+  --cut-focus-ring: 0 0 0 4px rgba(184, 71, 250, .22), 0 0 0 1px rgba(255, 255, 255, .18);
+  --cut-control-min-height: 44px;
+  --cut-mobile-action-safe-bottom: max(84px, calc(env(safe-area-inset-bottom, 0px) + 72px));
+}
+
+.cut-app-page {
+  color: var(--cut-readable-text);
+}
+
+.cut-app-page :where(p, small, .form-text, .text-muted, .text-secondary):not(.badge):not(.btn) {
+  color: var(--cut-readable-muted) !important;
+}
+
+.cut-app-page :where(.cut-eyebrow, .cut-kicker, .cut-meta, .cut-caption) {
+  color: var(--cut-readable-soft);
+}
+
+.cut-app-page :where(.form-label, label) {
+  color: #e6e2f7;
+}
+
+.cut-app-page :where(.form-control, .form-select, .btn, button, [role="button"], a.cut-action) {
+  min-height: var(--cut-control-min-height);
+}
+
+.cut-app-page :where(.form-control, .form-select)::placeholder {
+  color: var(--cut-readable-faint) !important;
+  opacity: 1 !important;
+}
+
+.cut-app-page :where(.form-control, .form-select, .btn, button, [role="button"], a):focus-visible {
+  outline: 2px solid rgba(230, 146, 247, .94) !important;
+  outline-offset: 3px !important;
+  box-shadow: var(--cut-focus-ring) !important;
+}
+
+.cut-app-page :where(.btn, button, .form-control, .form-select):disabled,
+.cut-app-page :where(.btn, button, .form-control, .form-select)[aria-disabled="true"] {
+  opacity: .62 !important;
+}
+
+.cut-app-page :where(.card, .cut-panel, [data-cut-surface="glass"]) {
+  color: var(--cut-readable-text);
+}
+
+.cut-app-page :where(.card, .cut-panel) :where(h1, h2, h3, h4, h5, h6, strong, b) {
+  color: #fff;
+}
+
+.cut-status-live {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.cut-skeleton {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--cut-radius-lg);
+  background: rgba(255, 255, 255, .065);
+}
+
+.cut-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .09), transparent);
+  animation: cut-skeleton-shimmer 1.25s ease-in-out infinite;
+}
+
+@keyframes cut-skeleton-shimmer {
+  to { transform: translateX(100%); }
+}
+
+.cut-inline-error {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 102, 135, .28);
+  border-radius: var(--cut-radius-lg);
+  background: rgba(255, 102, 135, .09);
+  color: #ffe4ea;
+}
+
+.cut-inline-success {
+  border: 1px solid rgba(78, 231, 178, .26);
+  background: rgba(78, 231, 178, .08);
+  color: #ddfff3;
+}
+
+.cut-undo-bar {
+  position: fixed;
+  right: 20px;
+  bottom: 24px;
+  z-index: var(--cut-z-toast);
+  width: min(420px, calc(100vw - 32px));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, .16);
+  border-radius: 16px;
+  background: rgba(11, 12, 34, .9);
+  color: var(--cut-readable-text);
+  box-shadow: var(--cut-shadow-lg);
+  -webkit-backdrop-filter: blur(24px) saturate(155%);
+  backdrop-filter: blur(24px) saturate(155%);
+}
+
+.cut-undo-bar .btn {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 767.98px) {
+  .cut-app-page {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .cut-undo-bar {
+    right: 12px;
+    bottom: var(--cut-mobile-action-safe-bottom);
+    width: calc(100vw - 24px);
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --cut-readable-muted: #dedbec;
+    --cut-readable-soft: #c8c4da;
+    --cut-readable-faint: #aaa5bf;
+    --cut-glass-border: rgba(255, 255, 255, .30);
+  }
+
+  .cut-app-page :where(.card, .cut-panel, [data-cut-surface="glass"]) {
+    border-color: rgba(255, 255, 255, .30) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cut-skeleton::after {
+    animation: none;
+  }
+}
