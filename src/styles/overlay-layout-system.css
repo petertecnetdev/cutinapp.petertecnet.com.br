@@ -1,0 +1,239 @@
+/*
+ * Global overlay/layout coordination for Cutinapp.
+ *
+ * This file is intentionally imported last. It defines one stacking contract
+ * for fixed navigation, commerce widgets, dropdowns, modals and floating CTAs
+ * so individual pages do not solve collisions with arbitrary z-index values.
+ */
+
+:root {
+  --cut-layer-content: 1;
+  --cut-layer-sticky: 1200;
+  --cut-layer-floating: 2020;
+  --cut-layer-commerce: 2050;
+  --cut-layer-navbar: 2100;
+  --cut-layer-open-surface: 2180;
+  --cut-layer-popover: 2250;
+  --cut-layer-commerce-sheet: 3000;
+  --cut-layer-backdrop: 3100;
+  --cut-layer-modal: 3110;
+  --cut-layer-toast: 3250;
+  --cut-layer-critical: 3300;
+
+  --cut-overlay-edge: 20px;
+  --cut-overlay-gap: 12px;
+  --cut-overlay-fab-height: 56px;
+  --cut-floating-floor: calc(20px + env(safe-area-inset-bottom, 0px));
+}
+
+/* --------------------------------------------------------------------------
+ * Fixed/floating elements: one shared safe bottom lane
+ * ----------------------------------------------------------------------- */
+
+.cut-persistent-cart__bar {
+  z-index: var(--cut-layer-commerce) !important;
+}
+
+.cut-persistent-cart__sheet-layer {
+  z-index: var(--cut-layer-commerce-sheet) !important;
+}
+
+.cut-whatsapp-fab,
+.cut-event-series-launcher,
+.cut-event-buy-cta-fixed,
+.cut-event-cart-fab,
+.cut-instagram-mobile-action {
+  z-index: var(--cut-layer-floating) !important;
+}
+
+.cut-whatsapp-fab,
+.cut-event-series-launcher {
+  bottom: var(--cut-floating-floor) !important;
+}
+
+.cut-whatsapp-fab {
+  right: max(var(--cut-overlay-edge), env(safe-area-inset-right, 0px)) !important;
+}
+
+.cut-event-series-launcher,
+.cut-event-series-alert {
+  right: max(var(--cut-overlay-edge), env(safe-area-inset-right, 0px)) !important;
+}
+
+.cut-event-series-alert {
+  bottom: calc(var(--cut-floating-floor) + 58px + var(--cut-overlay-gap)) !important;
+  z-index: calc(var(--cut-layer-floating) + 1) !important;
+}
+
+/* If two independent floating actions exist on the same page, stack them
+ * instead of allowing both to claim the bottom-right corner. */
+body:has(.cut-event-series-launcher) .cut-whatsapp-fab {
+  bottom: calc(var(--cut-floating-floor) + 58px + var(--cut-overlay-gap)) !important;
+}
+
+body:has(.cut-event-series-launcher):has(.cut-whatsapp-fab) .cut-event-series-alert {
+  bottom: calc(var(--cut-floating-floor) + 116px + (var(--cut-overlay-gap) * 2)) !important;
+}
+
+/* Desktop cart occupies a 72px dock at the lower-right. Reserve the space
+ * above it for WhatsApp and producer actions. */
+@media (min-width: 992px) {
+  body.cut-has-persistent-cart {
+    --cut-floating-floor: calc(24px + var(--cut-cart-bar-height, 72px) + var(--cut-overlay-gap) + env(safe-area-inset-bottom, 0px));
+  }
+
+  body.cut-has-persistent-cart .cut-event-buy-cta-fixed,
+  body.cut-has-persistent-cart .cut-event-cart-fab,
+  body.cut-has-persistent-cart .cut-instagram-mobile-action {
+    bottom: var(--cut-floating-floor) !important;
+  }
+}
+
+/* Mobile has a bottom navigation bar plus the commerce dock. Keep every FAB
+ * above both surfaces and account for device safe areas. */
+@media (max-width: 991.98px) {
+  :root {
+    --cut-overlay-edge: 14px;
+    --cut-floating-floor: calc(var(--cut-mobile-bottom-nav-height, 72px) + 14px + env(safe-area-inset-bottom, 0px));
+  }
+
+  body.cut-has-persistent-cart {
+    --cut-floating-floor: calc(
+      var(--cut-mobile-bottom-nav-height, 72px)
+      + var(--cut-cart-bar-height, 72px)
+      + var(--cut-cart-gap, 12px)
+      + 20px
+      + env(safe-area-inset-bottom, 0px)
+    );
+  }
+
+  body.cut-has-persistent-cart .cut-event-buy-cta-fixed,
+  body.cut-has-persistent-cart .cut-event-cart-fab,
+  body.cut-has-persistent-cart .cut-instagram-mobile-action {
+    bottom: var(--cut-floating-floor) !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+ * Dropdowns/popovers inside cards and tables
+ * ----------------------------------------------------------------------- */
+
+.dropdown-menu.show,
+.popover.show,
+.tooltip.show {
+  z-index: var(--cut-layer-popover) !important;
+}
+
+/* Hover animations use transform and therefore create stacking contexts.
+ * Raise the complete surface while its menu is open so the next card cannot
+ * paint over the menu. */
+.cut-producer-event-card,
+.cut-event-mobile-card,
+.cut-event-admin-table tbody tr {
+  z-index: var(--cut-layer-content);
+}
+
+.cut-producer-event-card:has(.dropdown-menu.show),
+.cut-event-mobile-card:has(.dropdown-menu.show),
+.cut-event-admin-table tbody tr:has(.dropdown-menu.show),
+.card:has(.dropdown-menu.show),
+[class*="-card"]:has(.dropdown-menu.show),
+[class*="__card"]:has(.dropdown-menu.show) {
+  position: relative;
+  z-index: var(--cut-layer-open-surface) !important;
+  overflow: visible !important;
+  transform: none !important;
+}
+
+.cut-event-manager-more.show,
+.cut-producer-event-card__quick-actions:has(.dropdown-menu.show) {
+  position: relative;
+  z-index: var(--cut-layer-popover) !important;
+}
+
+.cut-producer-event-groups,
+.cut-producer-event-group,
+.cut-producer-event-list,
+.cut-event-admin-table-shell,
+.cut-event-admin-table-scroll,
+.cut-event-admin-table tbody,
+.cut-event-mobile-list {
+  overflow: visible !important;
+}
+
+.table-responsive:has(.dropdown-menu.show),
+.card-body:has(.dropdown-menu.show) {
+  overflow: visible !important;
+}
+
+/* --------------------------------------------------------------------------
+ * Sticky navigation and page toolbars
+ * ----------------------------------------------------------------------- */
+
+.cut-navbar {
+  z-index: var(--cut-layer-navbar) !important;
+}
+
+.cut-event-manager-toolbar {
+  top: calc(var(--cut-navbar-fixed-height, 72px) + 8px) !important;
+  z-index: var(--cut-layer-sticky) !important;
+}
+
+/* --------------------------------------------------------------------------
+ * Modal hierarchy: dialogs must never sit behind navbars, carts or dropdowns
+ * ----------------------------------------------------------------------- */
+
+.modal-backdrop.show,
+.offcanvas-backdrop.show {
+  z-index: var(--cut-layer-backdrop) !important;
+}
+
+.modal.show,
+.offcanvas.show,
+.offcanvas.showing {
+  z-index: var(--cut-layer-modal) !important;
+}
+
+.toast-container,
+.toast.show {
+  z-index: var(--cut-layer-toast) !important;
+}
+
+.swal2-container {
+  z-index: var(--cut-layer-critical) !important;
+}
+
+/* Keep native Bootstrap menus usable in a modal without jumping above
+ * SweetAlert/critical feedback. */
+.modal .dropdown-menu.show,
+.offcanvas .dropdown-menu.show {
+  z-index: calc(var(--cut-layer-modal) + 10) !important;
+}
+
+/* --------------------------------------------------------------------------
+ * Reduced motion / small viewport hardening
+ * ----------------------------------------------------------------------- */
+
+@media (max-width: 575.98px) {
+  :root {
+    --cut-overlay-edge: 10px;
+    --cut-overlay-gap: 10px;
+    --cut-overlay-fab-height: 54px;
+  }
+
+  .cut-event-series-launcher {
+    max-width: calc(100vw - (var(--cut-overlay-edge) * 2));
+  }
+
+  .cut-event-series-alert {
+    width: min(420px, calc(100vw - (var(--cut-overlay-edge) * 2))) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cut-producer-event-card:has(.dropdown-menu.show),
+  .cut-event-mobile-card:has(.dropdown-menu.show),
+  .cut-event-admin-table tbody tr:has(.dropdown-menu.show) {
+    transition: none !important;
+  }
+}
