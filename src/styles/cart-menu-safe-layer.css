@@ -1,0 +1,128 @@
+/* Commerce/navigation coordination layer.
+ * Keeps the revenue cart visible without obscuring navigation, identity,
+ * inputs or the end of scrollable content.
+ */
+:root {
+  --cut-cart-bar-height: 72px;
+  --cut-cart-gap: 12px;
+  --cut-cart-safe-bottom: calc(var(--cut-mobile-bottom-nav-height, 72px) + var(--cut-cart-bar-height) + 24px + env(safe-area-inset-bottom, 0px));
+  --cut-layer-page: 1;
+  --cut-layer-bottom-nav: 1040;
+  --cut-layer-commerce: 1052;
+  --cut-layer-commerce-sheet: 1062;
+  --cut-layer-navigation: 2147483646;
+}
+
+body.cut-has-persistent-cart {
+  padding-bottom: var(--cut-cart-safe-bottom) !important;
+}
+
+body.cut-has-persistent-cart main,
+body.cut-has-persistent-cart [role="main"],
+body.cut-has-persistent-cart .cut-page-content {
+  scroll-padding-bottom: var(--cut-cart-safe-bottom);
+}
+
+.cut-persistent-cart__bar {
+  z-index: var(--cut-layer-commerce) !important;
+  bottom: calc(var(--cut-mobile-bottom-nav-height, 72px) + var(--cut-cart-gap) + env(safe-area-inset-bottom, 0px)) !important;
+  transition: min-height .18s ease, padding .18s ease, width .18s ease, transform .18s ease, opacity .18s ease !important;
+}
+
+.cut-persistent-cart__sheet-layer { z-index: var(--cut-layer-commerce-sheet) !important; }
+
+/* Compact commercial dock: cart remains visible while navigation gets the screen. */
+html.cut-navigation-open .cut-persistent-cart__bar,
+html.cut-keyboard-open .cut-persistent-cart__bar,
+html:has(.modal.show) .cut-persistent-cart__bar {
+  min-height: 48px !important;
+  height: 48px !important;
+  left: 14px !important;
+  right: auto !important;
+  bottom: calc(10px + env(safe-area-inset-bottom, 0px)) !important;
+  width: min(238px, calc(100vw - 86px)) !important;
+  padding: 5px 9px !important;
+  grid-template-columns: 38px minmax(0, 1fr) auto !important;
+  gap: 8px !important;
+  border-radius: 16px !important;
+  z-index: 2147483647 !important;
+}
+
+html.cut-navigation-open .cut-persistent-cart__icon,
+html.cut-keyboard-open .cut-persistent-cart__icon,
+html:has(.modal.show) .cut-persistent-cart__icon {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 11px !important;
+}
+
+html.cut-navigation-open .cut-persistent-cart__copy small,
+html.cut-navigation-open .cut-persistent-cart__copy > span,
+html.cut-keyboard-open .cut-persistent-cart__copy small,
+html.cut-keyboard-open .cut-persistent-cart__copy > span,
+html:has(.modal.show) .cut-persistent-cart__copy small,
+html:has(.modal.show) .cut-persistent-cart__copy > span { display: none !important; }
+
+html.cut-navigation-open .cut-persistent-cart__copy strong,
+html.cut-keyboard-open .cut-persistent-cart__copy strong,
+html:has(.modal.show) .cut-persistent-cart__copy strong {
+  font-size: .74rem !important;
+  line-height: 1.1 !important;
+}
+
+html.cut-navigation-open .cut-persistent-cart__amount small,
+html.cut-keyboard-open .cut-persistent-cart__amount small,
+html:has(.modal.show) .cut-persistent-cart__amount small { display: none !important; }
+
+html.cut-navigation-open .cut-persistent-cart__amount,
+html.cut-keyboard-open .cut-persistent-cart__amount,
+html:has(.modal.show) .cut-persistent-cart__amount {
+  min-width: auto !important;
+  display: flex !important;
+  gap: 5px !important;
+}
+
+html.cut-navigation-open .cut-persistent-cart__amount strong,
+html.cut-keyboard-open .cut-persistent-cart__amount strong,
+html:has(.modal.show) .cut-persistent-cart__amount strong { font-size: .69rem !important; }
+
+/* The full-screen menu owns the viewport, but reserves a real strip for the mini cart. */
+@media (max-width: 991.98px) {
+  html.cut-navigation-open .cut-navbar .navbar-collapse.show,
+  html.cut-navigation-open .cut-navbar .navbar-collapse.collapsing {
+    padding-bottom: calc(86px + env(safe-area-inset-bottom, 0px)) !important;
+    scroll-padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  html.cut-navigation-open .cut-navbar .navbar-collapse .cut-navbar__links {
+    padding-bottom: 18px !important;
+  }
+
+  html.cut-navigation-open body.cut-has-persistent-cart {
+    padding-bottom: calc(58px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  /* Bottom navigation/actions yield to the drawer; cart does not. */
+  html.cut-navigation-open .cut-mobile-bottom-nav,
+  html.cut-navigation-open .cut-instagram-mobile-action,
+  html.cut-navigation-open .cut-event-buy-cta-fixed {
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+}
+
+/* Checkout intentionally gets the most commercial emphasis and owns its layout. */
+body.cut-checkout-page.cut-has-persistent-cart { padding-bottom: 0 !important; }
+
+@media (min-width: 992px) {
+  body.cut-has-persistent-cart { padding-bottom: 0 !important; }
+  .cut-persistent-cart__bar { bottom: 24px !important; }
+}
+
+@media (max-width: 575.98px) {
+  :root { --cut-cart-bar-height: 66px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cut-persistent-cart__bar { transition: none !important; }
+}
