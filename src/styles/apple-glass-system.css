@@ -1,0 +1,260 @@
+/*
+ * Cutinapp Apple Glass System
+ *
+ * Single visual contract for cards and dialogs across the application.
+ * It intentionally sits after the legacy/page styles and uses a small set of
+ * !important declarations only for surface properties, so layout and domain
+ * semantics remain owned by each component.
+ */
+
+:root {
+  --cut-glass-bg: linear-gradient(145deg, rgba(255, 255, 255, .095), rgba(255, 255, 255, .032));
+  --cut-glass-bg-strong: linear-gradient(145deg, rgba(24, 25, 57, .72), rgba(8, 9, 28, .56));
+  --cut-glass-bg-subtle: rgba(255, 255, 255, .045);
+  --cut-glass-border: rgba(255, 255, 255, .145);
+  --cut-glass-border-hover: rgba(104, 184, 255, .30);
+  --cut-glass-highlight: rgba(255, 255, 255, .18);
+  --cut-glass-shadow: 0 18px 54px rgba(0, 0, 0, .24), inset 0 1px 0 rgba(255, 255, 255, .07);
+  --cut-glass-shadow-lg: 0 30px 90px rgba(0, 0, 0, .34), inset 0 1px 0 rgba(255, 255, 255, .09);
+  --cut-glass-blur: 24px;
+  --cut-glass-blur-dialog: 34px;
+  --cut-glass-saturation: 155%;
+  --cut-glass-radius: 22px;
+}
+
+/* Explicit utility for every new reusable surface. */
+.cut-glass,
+[data-cut-surface="glass"] {
+  border: 1px solid var(--cut-glass-border) !important;
+  background: var(--cut-glass-bg-strong) !important;
+  box-shadow: var(--cut-glass-shadow) !important;
+  -webkit-backdrop-filter: blur(var(--cut-glass-blur)) saturate(var(--cut-glass-saturation));
+  backdrop-filter: blur(var(--cut-glass-blur)) saturate(var(--cut-glass-saturation));
+}
+
+/*
+ * Existing card contract.
+ * The token-aware attribute selectors only match container-like elements whose
+ * class token ends in "-card"; BEM children such as "-card__title" and icon
+ * classes such as "fa-credit-card" are deliberately excluded.
+ */
+:where(.card, .cut-panel, .cut-empty-state, .cut-discovery-shell, .cut-wallet-toolbar),
+:where(div, article, section, aside, li, a)[class*="-card "],
+:where(div, article, section, aside, li, a)[class$="-card"] {
+  border-color: var(--cut-glass-border) !important;
+  background: var(--cut-glass-bg-strong) !important;
+  box-shadow: var(--cut-glass-shadow) !important;
+  -webkit-backdrop-filter: blur(var(--cut-glass-blur)) saturate(var(--cut-glass-saturation));
+  backdrop-filter: blur(var(--cut-glass-blur)) saturate(var(--cut-glass-saturation));
+}
+
+:where(.card, .cut-panel),
+:where(div, article, section, aside, li, a)[class*="-card "],
+:where(div, article, section, aside, li, a)[class$="-card"] {
+  transition:
+    border-color var(--cut-duration-normal) var(--cut-ease-standard),
+    box-shadow var(--cut-duration-normal) var(--cut-ease-standard),
+    background-color var(--cut-duration-normal) var(--cut-ease-standard),
+    transform var(--cut-duration-normal) var(--cut-ease-standard);
+}
+
+:where(.card, .cut-panel):hover,
+:where(a, article)[class*="-card "]:hover,
+:where(a, article)[class$="-card"]:hover {
+  border-color: var(--cut-glass-border-hover) !important;
+  box-shadow: 0 22px 62px rgba(0, 0, 0, .28), inset 0 1px 0 rgba(255, 255, 255, .095) !important;
+}
+
+/* Producer/event surfaces that are cards visually but use domain-specific names. */
+.cut-event-manager-hero,
+.cut-event-manager-summary button,
+.cut-event-portfolio-metrics > div,
+.cut-event-attention-center,
+.cut-event-manager-toolbar,
+.cut-event-bulk-selection,
+.cut-event-admin-table tbody tr,
+.cut-event-command-overview__inventory,
+.cut-event-command-overview__readiness,
+.cut-event-command-alerts > div,
+.cut-event-command-tabs {
+  border-color: var(--cut-glass-border) !important;
+  background: var(--cut-glass-bg-strong) !important;
+  box-shadow: var(--cut-glass-shadow) !important;
+  -webkit-backdrop-filter: blur(var(--cut-glass-blur)) saturate(var(--cut-glass-saturation));
+  backdrop-filter: blur(var(--cut-glass-blur)) saturate(var(--cut-glass-saturation));
+}
+
+/* Keep semantic state color without returning to opaque blocks. */
+.cut-event-attention-center {
+  background:
+    linear-gradient(135deg, rgba(250, 204, 21, .065), rgba(255, 255, 255, .035)),
+    rgba(10, 11, 31, .54) !important;
+}
+
+.cut-event-attention-center.is-clear {
+  background:
+    linear-gradient(135deg, rgba(74, 222, 128, .05), rgba(255, 255, 255, .03)),
+    rgba(10, 11, 31, .54) !important;
+}
+
+/* Bootstrap modal surfaces follow the same material without changing layout. */
+.modal-content {
+  border-color: var(--cut-glass-border) !important;
+  background: var(--cut-glass-bg-strong) !important;
+  box-shadow: var(--cut-glass-shadow-lg) !important;
+  -webkit-backdrop-filter: blur(var(--cut-glass-blur-dialog)) saturate(165%);
+  backdrop-filter: blur(var(--cut-glass-blur-dialog)) saturate(165%);
+}
+
+.modal-backdrop.show {
+  opacity: .58 !important;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+/* SweetAlert2: one global appearance even when a page calls Swal.fire directly. */
+.swal2-container {
+  background: rgba(2, 3, 18, .48) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(130%);
+  backdrop-filter: blur(12px) saturate(130%);
+}
+
+.swal2-popup,
+.cut-swal-popup {
+  overflow: hidden !important;
+  border: 1px solid rgba(255, 255, 255, .17) !important;
+  border-radius: 28px !important;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(184, 71, 250, .13), transparent 38%),
+    radial-gradient(circle at 100% 100%, rgba(6, 175, 250, .10), transparent 34%),
+    rgba(14, 15, 39, .68) !important;
+  color: var(--cut-text) !important;
+  box-shadow: var(--cut-glass-shadow-lg) !important;
+  -webkit-backdrop-filter: blur(var(--cut-glass-blur-dialog)) saturate(170%);
+  backdrop-filter: blur(var(--cut-glass-blur-dialog)) saturate(170%);
+  padding: clamp(1.45rem, 3vw, 2rem) !important;
+}
+
+.swal2-popup::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .30), transparent);
+  pointer-events: none;
+}
+
+.swal2-title,
+.cut-swal-title {
+  color: var(--cut-text-strong) !important;
+  font-family: var(--cut-font-display) !important;
+  font-weight: var(--cut-weight-black) !important;
+  letter-spacing: -.035em !important;
+}
+
+.swal2-html-container,
+.swal2-popup .swal2-html-container,
+.cut-swal-copy {
+  color: rgba(244, 242, 255, .76) !important;
+  line-height: 1.65 !important;
+}
+
+.swal2-icon {
+  background: rgba(255, 255, 255, .035) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .075);
+}
+
+.swal2-actions,
+.cut-swal-actions {
+  gap: .65rem !important;
+  margin-top: 1.35rem !important;
+}
+
+.swal2-actions .btn,
+.cut-swal-confirm,
+.cut-swal-cancel {
+  min-width: 126px;
+  border-radius: 13px !important;
+}
+
+.cut-swal-cancel,
+.swal2-cancel {
+  border-color: rgba(255, 255, 255, .14) !important;
+  background: rgba(255, 255, 255, .055) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  backdrop-filter: blur(12px) saturate(140%);
+}
+
+.swal2-input,
+.swal2-textarea,
+.swal2-select {
+  border: 1px solid rgba(255, 255, 255, .13) !important;
+  border-radius: 14px !important;
+  background: rgba(255, 255, 255, .055) !important;
+  color: var(--cut-text) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .045) !important;
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+
+.swal2-input:focus,
+.swal2-textarea:focus,
+.swal2-select:focus {
+  border-color: var(--cut-border-focus) !important;
+  box-shadow: var(--cut-shadow-focus) !important;
+}
+
+/* Menus/popovers are also translucent so a glass card never opens an opaque slab. */
+.dropdown-menu,
+.cut-autocomplete-menu {
+  border-color: var(--cut-glass-border) !important;
+  background: rgba(10, 11, 31, .74) !important;
+  box-shadow: var(--cut-glass-shadow-lg) !important;
+  -webkit-backdrop-filter: blur(26px) saturate(160%);
+  backdrop-filter: blur(26px) saturate(160%);
+}
+
+/* Performance/readability tuning for smaller GPUs. */
+@media (max-width: 767.98px) {
+  :root {
+    --cut-glass-blur: 16px;
+    --cut-glass-blur-dialog: 24px;
+    --cut-glass-saturation: 145%;
+  }
+
+  .swal2-popup,
+  .cut-swal-popup {
+    width: min(92vw, 440px) !important;
+    border-radius: 24px !important;
+    padding: 1.25rem !important;
+  }
+}
+
+/* Readable fallback when backdrop-filter is unavailable or transparency is reduced. */
+@supports not (backdrop-filter: blur(1px)) {
+  .cut-glass,
+  [data-cut-surface="glass"],
+  :where(.card, .cut-panel, .cut-empty-state, .cut-discovery-shell, .cut-wallet-toolbar),
+  :where(div, article, section, aside, li, a)[class*="-card "],
+  :where(div, article, section, aside, li, a)[class$="-card"],
+  .modal-content,
+  .swal2-popup,
+  .cut-swal-popup {
+    background: rgba(13, 13, 36, .96) !important;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .cut-glass,
+  [data-cut-surface="glass"],
+  :where(.card, .cut-panel, .cut-empty-state, .cut-discovery-shell, .cut-wallet-toolbar),
+  :where(div, article, section, aside, li, a)[class*="-card "],
+  :where(div, article, section, aside, li, a)[class$="-card"],
+  .modal-content,
+  .swal2-popup,
+  .cut-swal-popup {
+    background: rgba(13, 13, 36, .94) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+}
