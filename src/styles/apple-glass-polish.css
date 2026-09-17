@@ -1,26 +1,41 @@
 /*
  * Cutinapp Apple Glass Polish
- * Final visual layer for all card-like surfaces and SweetAlert2 dialogs.
+ * Final visual layer for all glass/card/dialog/menu surfaces.
  * Loaded after apple-glass-system.css so legacy page styles cannot return
- * important surfaces to opaque blocks.
+ * important surfaces to transparent, low-contrast blocks.
  */
 
 :root {
-  --cut-apple-glass-bg: rgba(15, 16, 42, .58);
-  --cut-apple-glass-bg-soft: rgba(255, 255, 255, .055);
-  --cut-apple-glass-border: rgba(255, 255, 255, .14);
-  --cut-apple-glass-border-hover: rgba(130, 199, 255, .34);
-  --cut-apple-glass-blur: 28px;
-  --cut-apple-glass-saturation: 165%;
-  --cut-apple-glass-shadow: 0 18px 55px rgba(0, 0, 0, .26), inset 0 1px 0 rgba(255, 255, 255, .08);
-  --cut-apple-glass-shadow-hover: 0 24px 70px rgba(0, 0, 0, .32), inset 0 1px 0 rgba(255, 255, 255, .11);
+  /*
+   * The matte effect is intentional: opacity alone still lets detailed flyers,
+   * text and navigation leak through a surface. We combine a darker translucent
+   * material with backdrop blur + brightness reduction so the content INSIDE the
+   * glass remains the visual focus.
+   */
+  --cut-apple-glass-bg: rgba(12, 13, 36, .72);
+  --cut-apple-glass-bg-strong: rgba(9, 10, 29, .84);
+  --cut-apple-glass-bg-menu: rgba(8, 9, 27, .88);
+  --cut-apple-glass-bg-soft: rgba(255, 255, 255, .06);
+  --cut-apple-glass-border: rgba(255, 255, 255, .16);
+  --cut-apple-glass-border-hover: rgba(130, 199, 255, .36);
+  --cut-apple-glass-blur: 30px;
+  --cut-apple-glass-blur-strong: 38px;
+  --cut-apple-glass-saturation: 145%;
+  --cut-apple-glass-brightness: 72%;
+  --cut-apple-glass-brightness-strong: 62%;
+  --cut-apple-glass-shadow: 0 18px 55px rgba(0, 0, 0, .30), inset 0 1px 0 rgba(255, 255, 255, .085);
+  --cut-apple-glass-shadow-hover: 0 24px 70px rgba(0, 0, 0, .36), inset 0 1px 0 rgba(255, 255, 255, .12);
 }
 
 /*
- * Generic Bootstrap/Cutinapp cards + domain cards.
- * Attribute selectors are limited to container elements so icon classes such
- * as fa-credit-card are not affected.
+ * Generic Bootstrap/Cutinapp cards + explicit glass utilities + collapsible
+ * panels. Attribute selectors are limited to container elements so icon classes
+ * such as fa-credit-card are not affected.
  */
+.cut-glass,
+[data-cut-surface="glass"],
+.cut-collapsible-filters,
+.cut-app-page .accordion-item,
 :where(.card, .cut-panel, .cut-empty-state, .cut-discovery-shell, .cut-wallet-toolbar),
 :where(div, article, section, aside, li, a)[class~="card"],
 :where(div, article, section, aside, li, a)[class*="-card "],
@@ -40,14 +55,47 @@
 .cut-event-command-tabs {
   border-color: var(--cut-apple-glass-border) !important;
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, .072), rgba(255, 255, 255, .018)),
+    linear-gradient(145deg, rgba(255, 255, 255, .075), rgba(255, 255, 255, .018)),
     var(--cut-apple-glass-bg) !important;
   box-shadow: var(--cut-apple-glass-shadow) !important;
-  -webkit-backdrop-filter: blur(var(--cut-apple-glass-blur)) saturate(var(--cut-apple-glass-saturation)) !important;
-  backdrop-filter: blur(var(--cut-apple-glass-blur)) saturate(var(--cut-apple-glass-saturation)) !important;
+  -webkit-backdrop-filter:
+    blur(var(--cut-apple-glass-blur))
+    saturate(var(--cut-apple-glass-saturation))
+    brightness(var(--cut-apple-glass-brightness)) !important;
+  backdrop-filter:
+    blur(var(--cut-apple-glass-blur))
+    saturate(var(--cut-apple-glass-saturation))
+    brightness(var(--cut-apple-glass-brightness)) !important;
 }
 
-/* Apple-like light catching edge. */
+/* Collapsible content stays visually attached to the frosted parent. */
+.cut-collapsible-filters__toggle,
+.cut-collapsible-filters__body,
+.cut-app-page .accordion-button,
+.cut-app-page .accordion-body {
+  background-color: transparent !important;
+}
+
+.cut-collapsible-filters.is-open,
+.cut-app-page .accordion-item:has(.accordion-collapse.show) {
+  border-color: rgba(156, 207, 255, .25) !important;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, .085), rgba(184, 71, 250, .025)),
+    rgba(10, 11, 32, .78) !important;
+  -webkit-backdrop-filter:
+    blur(var(--cut-apple-glass-blur-strong))
+    saturate(var(--cut-apple-glass-saturation))
+    brightness(var(--cut-apple-glass-brightness-strong)) !important;
+  backdrop-filter:
+    blur(var(--cut-apple-glass-blur-strong))
+    saturate(var(--cut-apple-glass-saturation))
+    brightness(var(--cut-apple-glass-brightness-strong)) !important;
+}
+
+/* Apple-like light-catching edge without reducing text contrast. */
+.cut-glass,
+[data-cut-surface="glass"],
+.cut-collapsible-filters,
 :where(.card, .cut-panel, .cut-empty-state),
 :where(div, article, section, aside)[class*="-card "],
 :where(div, article, section, aside)[class$="-card"] {
@@ -55,6 +103,9 @@
   isolation: isolate;
 }
 
+.cut-glass::before,
+[data-cut-surface="glass"]::before,
+.cut-collapsible-filters::before,
 :where(.card, .cut-panel, .cut-empty-state)::before,
 :where(div, article, section, aside)[class*="-card "]::before,
 :where(div, article, section, aside)[class$="-card"]::before {
@@ -64,7 +115,7 @@
   inset: 0;
   pointer-events: none;
   border-radius: inherit;
-  background: linear-gradient(145deg, rgba(255, 255, 255, .055), transparent 38%, rgba(80, 170, 255, .025));
+  background: linear-gradient(145deg, rgba(255, 255, 255, .06), transparent 38%, rgba(80, 170, 255, .025));
 }
 
 :where(.card, .cut-panel):hover,
@@ -78,8 +129,8 @@
 :where(.card, .cut-panel, .cut-empty-state, .cut-discovery-shell) :where(h1, h2, h3, h4, h5, h6),
 :where(div, article, section, aside)[class*="-card "] :where(h1, h2, h3, h4, h5, h6),
 :where(div, article, section, aside)[class$="-card"] :where(h1, h2, h3, h4, h5, h6) {
-  color: rgba(255, 255, 255, .96);
-  text-shadow: 0 1px 18px rgba(0, 0, 0, .18);
+  color: rgba(255, 255, 255, .97);
+  text-shadow: 0 1px 18px rgba(0, 0, 0, .22);
 }
 
 :where(.card, .cut-panel, .cut-empty-state, .cut-discovery-shell) :where(p, small, span),
@@ -88,62 +139,68 @@
   text-rendering: optimizeLegibility;
 }
 
-/* Bootstrap modals use the exact same glass material. */
+/* Bootstrap modals use a stronger matte glass because they sit above content. */
 .modal-content {
-  border: 1px solid rgba(255, 255, 255, .16) !important;
+  border: 1px solid rgba(255, 255, 255, .18) !important;
   background:
-    radial-gradient(circle at 10% 0%, rgba(185, 72, 250, .11), transparent 38%),
-    radial-gradient(circle at 100% 100%, rgba(19, 174, 255, .085), transparent 34%),
-    rgba(13, 14, 38, .64) !important;
-  box-shadow: 0 32px 100px rgba(0, 0, 0, .40), inset 0 1px 0 rgba(255, 255, 255, .10) !important;
-  -webkit-backdrop-filter: blur(34px) saturate(170%) !important;
-  backdrop-filter: blur(34px) saturate(170%) !important;
+    radial-gradient(circle at 10% 0%, rgba(185, 72, 250, .105), transparent 38%),
+    radial-gradient(circle at 100% 100%, rgba(19, 174, 255, .08), transparent 34%),
+    var(--cut-apple-glass-bg-strong) !important;
+  box-shadow: 0 32px 100px rgba(0, 0, 0, .46), inset 0 1px 0 rgba(255, 255, 255, .11) !important;
+  -webkit-backdrop-filter:
+    blur(40px)
+    saturate(150%)
+    brightness(60%) !important;
+  backdrop-filter:
+    blur(40px)
+    saturate(150%)
+    brightness(60%) !important;
 }
 
 .modal-backdrop.show {
-  background: rgba(2, 3, 18, .46) !important;
+  background: rgba(2, 3, 18, .56) !important;
   opacity: 1 !important;
-  -webkit-backdrop-filter: blur(10px) saturate(125%);
-  backdrop-filter: blur(10px) saturate(125%);
+  -webkit-backdrop-filter: blur(12px) saturate(115%) brightness(72%);
+  backdrop-filter: blur(12px) saturate(115%) brightness(72%);
 }
 
 /* SweetAlert2 — single Cutinapp contract, including alerts invoked directly. */
 .swal2-container.swal2-backdrop-show,
 .swal2-container.swal2-backdrop-hide {
-  background: rgba(2, 3, 18, .46) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(130%) !important;
-  backdrop-filter: blur(12px) saturate(130%) !important;
+  background: rgba(2, 3, 18, .56) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(120%) brightness(74%) !important;
+  backdrop-filter: blur(14px) saturate(120%) brightness(74%) !important;
 }
 
 .swal2-popup:not(.swal2-toast),
 .cut-swal-popup {
   overflow: hidden !important;
-  border: 1px solid rgba(255, 255, 255, .17) !important;
+  border: 1px solid rgba(255, 255, 255, .18) !important;
   border-radius: 28px !important;
   background:
-    radial-gradient(circle at 10% 0%, rgba(188, 74, 255, .14), transparent 38%),
-    radial-gradient(circle at 100% 100%, rgba(0, 177, 255, .105), transparent 35%),
-    rgba(12, 13, 36, .63) !important;
-  color: rgba(250, 249, 255, .96) !important;
-  box-shadow: 0 32px 100px rgba(0, 0, 0, .42), inset 0 1px 0 rgba(255, 255, 255, .105) !important;
-  -webkit-backdrop-filter: blur(36px) saturate(175%) !important;
-  backdrop-filter: blur(36px) saturate(175%) !important;
+    radial-gradient(circle at 10% 0%, rgba(188, 74, 255, .13), transparent 38%),
+    radial-gradient(circle at 100% 100%, rgba(0, 177, 255, .095), transparent 35%),
+    rgba(10, 11, 32, .84) !important;
+  color: rgba(250, 249, 255, .97) !important;
+  box-shadow: 0 32px 100px rgba(0, 0, 0, .46), inset 0 1px 0 rgba(255, 255, 255, .11) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(150%) brightness(60%) !important;
+  backdrop-filter: blur(40px) saturate(150%) brightness(60%) !important;
 }
 
 .swal2-title,
 .cut-swal-title {
-  color: rgba(255, 255, 255, .98) !important;
+  color: rgba(255, 255, 255, .99) !important;
 }
 
 .swal2-html-container,
 .swal2-popup .swal2-html-container,
 .cut-swal-copy {
-  color: rgba(244, 243, 255, .82) !important;
+  color: rgba(244, 243, 255, .86) !important;
 }
 
 .swal2-icon {
-  background: rgba(255, 255, 255, .04) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .075), 0 10px 34px rgba(0, 0, 0, .14) !important;
+  background: rgba(255, 255, 255, .045) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 10px 34px rgba(0, 0, 0, .16) !important;
 }
 
 .swal2-actions .btn,
@@ -161,38 +218,75 @@
 
 .swal2-cancel,
 .cut-swal-cancel {
-  border: 1px solid rgba(255, 255, 255, .13) !important;
-  background: rgba(255, 255, 255, .06) !important;
-  color: rgba(255, 255, 255, .90) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(150%) !important;
-  backdrop-filter: blur(16px) saturate(150%) !important;
+  border: 1px solid rgba(255, 255, 255, .14) !important;
+  background: rgba(255, 255, 255, .075) !important;
+  color: rgba(255, 255, 255, .92) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(135%) brightness(76%) !important;
+  backdrop-filter: blur(18px) saturate(135%) brightness(76%) !important;
 }
 
 .swal2-input,
 .swal2-textarea,
 .swal2-select {
-  border: 1px solid rgba(255, 255, 255, .14) !important;
-  background: rgba(255, 255, 255, .065) !important;
-  color: rgba(255, 255, 255, .96) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(145%) !important;
-  backdrop-filter: blur(16px) saturate(145%) !important;
+  border: 1px solid rgba(255, 255, 255, .15) !important;
+  background: rgba(255, 255, 255, .075) !important;
+  color: rgba(255, 255, 255, .97) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(135%) brightness(76%) !important;
+  backdrop-filter: blur(18px) saturate(135%) brightness(76%) !important;
 }
 
-/* Popovers/dropdowns should never break the material language. */
+/*
+ * Menus/popovers are the strongest glass tier. They overlap other content, so
+ * the backdrop must become visibly defocused instead of merely transparent.
+ */
 .dropdown-menu,
 .cut-autocomplete-menu,
 .popover {
-  border-color: rgba(255, 255, 255, .14) !important;
-  background: rgba(12, 13, 36, .70) !important;
-  box-shadow: 0 24px 72px rgba(0, 0, 0, .34), inset 0 1px 0 rgba(255, 255, 255, .07) !important;
-  -webkit-backdrop-filter: blur(28px) saturate(165%) !important;
-  backdrop-filter: blur(28px) saturate(165%) !important;
+  border-color: rgba(255, 255, 255, .17) !important;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, .055), rgba(255, 255, 255, .012)),
+    var(--cut-apple-glass-bg-menu) !important;
+  box-shadow: 0 28px 82px rgba(0, 0, 0, .42), inset 0 1px 0 rgba(255, 255, 255, .09) !important;
+  -webkit-backdrop-filter:
+    blur(var(--cut-apple-glass-blur-strong))
+    saturate(145%)
+    brightness(var(--cut-apple-glass-brightness-strong)) !important;
+  backdrop-filter:
+    blur(var(--cut-apple-glass-blur-strong))
+    saturate(145%)
+    brightness(var(--cut-apple-glass-brightness-strong)) !important;
+}
+
+.dropdown-menu .dropdown-divider {
+  border-color: rgba(255, 255, 255, .09) !important;
+  opacity: 1;
+}
+
+/* Frost the mobile drawer and bottom navigation without blurring their content. */
+@media (max-width: 991.98px) {
+  .cut-navbar .navbar-collapse {
+    background:
+      linear-gradient(145deg, rgba(255, 255, 255, .045), rgba(255, 255, 255, .01)),
+      rgba(7, 9, 28, .89) !important;
+    box-shadow: 20px 0 60px rgba(0, 0, 0, .42) !important;
+    -webkit-backdrop-filter: blur(34px) saturate(140%) brightness(62%) !important;
+    backdrop-filter: blur(34px) saturate(140%) brightness(62%) !important;
+  }
+
+  .cut-mobile-bottom-nav {
+    background: rgba(8, 10, 28, .88) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(140%) brightness(68%) !important;
+    backdrop-filter: blur(24px) saturate(140%) brightness(68%) !important;
+  }
 }
 
 @media (max-width: 767.98px) {
   :root {
-    --cut-apple-glass-blur: 18px;
-    --cut-apple-glass-saturation: 150%;
+    --cut-apple-glass-blur: 22px;
+    --cut-apple-glass-blur-strong: 30px;
+    --cut-apple-glass-saturation: 138%;
+    --cut-apple-glass-brightness: 74%;
+    --cut-apple-glass-brightness-strong: 64%;
   }
 
   .swal2-popup:not(.swal2-toast),
@@ -204,25 +298,42 @@
 
 /* Stable readable fallback for browsers/GPUs without backdrop-filter. */
 @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .cut-glass,
+  [data-cut-surface="glass"],
+  .cut-collapsible-filters,
+  .cut-app-page .accordion-item,
   :where(.card, .cut-panel, .cut-empty-state, .cut-discovery-shell, .cut-wallet-toolbar),
   :where(div, article, section, aside, li, a)[class*="-card "],
   :where(div, article, section, aside, li, a)[class$="-card"],
   .modal-content,
   .swal2-popup:not(.swal2-toast),
   .cut-swal-popup,
-  .dropdown-menu {
-    background: rgba(13, 14, 38, .96) !important;
+  .dropdown-menu,
+  .cut-autocomplete-menu,
+  .popover,
+  .cut-navbar .navbar-collapse,
+  .cut-mobile-bottom-nav {
+    background: rgba(10, 11, 32, .97) !important;
   }
 }
 
 @media (prefers-reduced-transparency: reduce) {
+  .cut-glass,
+  [data-cut-surface="glass"],
+  .cut-collapsible-filters,
+  .cut-app-page .accordion-item,
   :where(.card, .cut-panel, .cut-empty-state, .cut-discovery-shell, .cut-wallet-toolbar),
   :where(div, article, section, aside, li, a)[class*="-card "],
   :where(div, article, section, aside, li, a)[class$="-card"],
   .modal-content,
   .swal2-popup:not(.swal2-toast),
-  .cut-swal-popup {
-    background: rgba(13, 14, 38, .94) !important;
+  .cut-swal-popup,
+  .dropdown-menu,
+  .cut-autocomplete-menu,
+  .popover,
+  .cut-navbar .navbar-collapse,
+  .cut-mobile-bottom-nav {
+    background: rgba(10, 11, 32, .96) !important;
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
   }
