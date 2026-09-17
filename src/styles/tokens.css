@@ -173,10 +173,26 @@
   --bs-info: #06affa;
   --bs-info-rgb: 6,175,250;
   --bs-body-bg: var(--cut-bg);
+  --bs-body-bg-rgb: 5,5,19;
   --bs-body-color: var(--cut-text);
+  --bs-body-color-rgb: 244,242,255;
+  --bs-emphasis-color: var(--cut-text-strong);
+  --bs-emphasis-color-rgb: 255,255,255;
+  --bs-secondary-color: var(--cut-text-muted);
+  --bs-secondary-color-rgb: 184,180,210;
+  --bs-tertiary-color: var(--cut-text-soft);
+  --bs-tertiary-color-rgb: 141,137,170;
+  --bs-secondary-bg: var(--cut-surface-2);
+  --bs-secondary-bg-rgb: 18,18,45;
+  --bs-tertiary-bg: var(--cut-surface-1);
+  --bs-tertiary-bg-rgb: 13,13,36;
+  --bs-heading-color: var(--cut-text-strong);
   --bs-border-color: var(--cut-border);
+  --bs-border-color-translucent: rgba(209,188,255,.13);
   --bs-link-color: var(--cut-brand-300);
+  --bs-link-color-rgb: 230,146,247;
   --bs-link-hover-color: var(--cut-cyan-300);
+  --bs-link-hover-color-rgb: 98,223,255;
 
   /* Legacy aliases */
   --cut-bg-2: var(--cut-bg-soft);
