@@ -167,7 +167,9 @@ const createAssistant = (textarea) => {
     if (status.dataset.state === "success") setStatus("");
   };
 
-  const onClick = async () => {
+  const onClick = async (event) => {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
     if (button.disabled || textarea.disabled || textarea.readOnly) return;
 
     const form = textarea.closest("form");

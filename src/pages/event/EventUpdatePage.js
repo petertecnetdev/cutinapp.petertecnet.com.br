@@ -187,7 +187,12 @@ export default function EventUpdatePage() {
     try {
       const payload = new FormData();
       Object.entries(nextForm).forEach(([key, value]) => {
-        if (value !== null && value !== "") payload.append(key, value);
+        if (value === null || value === "") return;
+
+        if (key === "start_date" && eventData?.start_date && value === toLocalInput(eventData.start_date)) return;
+        if (key === "end_date" && eventData?.end_date && value === toLocalInput(eventData.end_date)) return;
+
+        payload.append(key, value);
       });
       if (includeImage && image) payload.append("image", image);
       const response = await eventService.update(id, payload);
@@ -351,7 +356,11 @@ export default function EventUpdatePage() {
   if (loading) return <div className="cut-app-page"><NavlogComponent /><ProcessingIndicatorComponent label="Carregando gerenciador do evento" /></div>;
   if (!form) return <div className="cut-app-page"><NavlogComponent /><Container className="py-5"><div className="cev2-card text-center"><h2>Evento indisponível</h2><p className="text-secondary mb-3">Não foi possível abrir este evento.</p><Button type="button" onClick={() => navigate("/event/manage")}>Voltar para meus eventos</Button></div></Container></div>;
 
-  return <div className="cut-app-page cut-event-manager-v2" onBlur={(event) => { if (!event.target?.closest("button") && event.target?.type !== "file") flushAutoSave(); }}>
+  return <div className="cut-app-page cut-event-manager-v2" onBlur={(event) => {
+    const nextTarget = event.relatedTarget;
+    const movingToAction = nextTarget instanceof HTMLElement && Boolean(nextTarget.closest("button, .pt-ai-description"));
+    if (!movingToAction && event.target?.type !== "file") flushAutoSave();
+  }}>
     <NavlogComponent />
     {(publishing || (saving && image)) && <ProcessingIndicatorComponent label={publishing ? "Atualizando publicação" : "Salvando evento"} />}
 
