@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useEffect, useMemo, useState } from "react";
 import PropTypes from "prop-types";
+import artistService from "../services/ArtistService";
 import authService from "../services/AuthService";
 import { subscribeToAuthTokenChanges } from "../utils/authSessionSync";
 import { cacheAuthUser, readCachedAuthUser } from "../utils/authUserCache";
@@ -30,6 +31,17 @@ export function AuthProvider({ children }) {
 
     try {
       const currentUser = await authService.me();
+
+      if (currentUser?.email_verified_at) {
+        try {
+          await artistService.claimPendingInvitations();
+        } catch (claimError) {
+          if (process.env.NODE_ENV !== "production") {
+            console.warn("Unable to claim pending artist invitations", claimError);
+          }
+        }
+      }
+
       setUser(currentUser);
       cacheAuthUser(currentUser);
       return currentUser;
