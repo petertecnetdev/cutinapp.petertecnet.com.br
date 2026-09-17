@@ -113,14 +113,16 @@
 }
 
 /* SweetAlert2: one global appearance even when a page calls Swal.fire directly. */
-.swal2-container {
+.swal2-container.swal2-backdrop-show,
+.swal2-container.swal2-backdrop-hide {
   background: rgba(2, 3, 18, .48) !important;
   -webkit-backdrop-filter: blur(12px) saturate(130%);
   backdrop-filter: blur(12px) saturate(130%);
 }
 
-.swal2-popup,
+.swal2-popup:not(.swal2-toast),
 .cut-swal-popup {
+  position: relative !important;
   overflow: hidden !important;
   border: 1px solid rgba(255, 255, 255, .17) !important;
   border-radius: 28px !important;
@@ -135,13 +137,24 @@
   padding: clamp(1.45rem, 3vw, 2rem) !important;
 }
 
-.swal2-popup::before {
+.swal2-popup:not(.swal2-toast)::before,
+.cut-swal-popup::before {
   content: "";
   position: absolute;
   inset: 0 0 auto;
   height: 1px;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .30), transparent);
   pointer-events: none;
+}
+
+.swal2-toast {
+  border: 1px solid rgba(255, 255, 255, .14) !important;
+  border-radius: 16px !important;
+  background: rgba(14, 15, 39, .76) !important;
+  color: var(--cut-text) !important;
+  box-shadow: var(--cut-glass-shadow) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  backdrop-filter: blur(22px) saturate(160%);
 }
 
 .swal2-title,
@@ -222,7 +235,7 @@
     --cut-glass-saturation: 145%;
   }
 
-  .swal2-popup,
+  .swal2-popup:not(.swal2-toast),
   .cut-swal-popup {
     width: min(92vw, 440px) !important;
     border-radius: 24px !important;
@@ -238,7 +251,7 @@
   :where(div, article, section, aside, li, a)[class*="-card "],
   :where(div, article, section, aside, li, a)[class$="-card"],
   .modal-content,
-  .swal2-popup,
+  .swal2-popup:not(.swal2-toast),
   .cut-swal-popup {
     background: rgba(13, 13, 36, .96) !important;
   }
@@ -251,7 +264,7 @@
   :where(div, article, section, aside, li, a)[class*="-card "],
   :where(div, article, section, aside, li, a)[class$="-card"],
   .modal-content,
-  .swal2-popup,
+  .swal2-popup:not(.swal2-toast),
   .cut-swal-popup {
     background: rgba(13, 13, 36, .94) !important;
     -webkit-backdrop-filter: none !important;
