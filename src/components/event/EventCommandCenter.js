@@ -113,7 +113,7 @@ const commandButton = ({ key, icon, title, description, onClick, disabled, tone 
   </button>
 );
 
-export function EventAttentionCenter({ events = [], onOpen }) {
+export function EventAttentionCenter({ events = [], onOpen, onResolve }) {
   const [expanded, setExpanded] = useState(false);
   const rankedCandidates = useMemo(() => events
     .filter((event) => !event?.is_cancelled)
@@ -155,6 +155,9 @@ export function EventAttentionCenter({ events = [], onOpen }) {
         </div>
         <div className="cut-event-attention-center__compact-actions">
           <span className="cut-event-attention-center__urgent" title={firstReason}><i className={firstAlert?.icon || "fa-solid fa-triangle-exclamation"} />{firstReason}</span>
+          <button type="button" className="is-resolve" onClick={() => onResolve?.(first.event, firstAlert) || onOpen?.(first.event)}>
+            Resolver agora<i className="fa-solid fa-arrow-right" />
+          </button>
           <button type="button" onClick={() => setExpanded((current) => !current)} aria-expanded={expanded}>
             {expanded ? "Ocultar" : "Ver pendências"}<i className={expanded ? "fa-solid fa-chevron-up" : "fa-solid fa-chevron-down"} />
           </button>
