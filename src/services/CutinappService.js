@@ -506,8 +506,8 @@ const cutinappService = {
   getProduction: async (id) => (await appApiClient.get(`/organizations/${id}`)).data.organization,
   productionItems: async (id) => unwrap((await appApiClient.get(`/establishments/${id}/items`)).data.data),
   productionItemsPage: async (id, params = {}) => (await appApiClient.get(
-    `/establishments/${id}/items`,
-    { params: { paginate: 1, active_only: 1, ...params } },
+    `/establishments/${id}/items/paginated`,
+    { params },
   )).data.data,
   productionWorkspace: async (id) => (await appApiClient.get(`/organizations/${id}/workspace`)).data,
   productionExperience: async (slug) => (await appApiClient.get(`/organizations/public/${slug}/experience`)).data,
