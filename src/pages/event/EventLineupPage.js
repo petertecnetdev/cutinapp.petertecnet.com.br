@@ -270,7 +270,8 @@ export default function EventLineupPage() {
       const response = await cutinappService.attachArtist(eventId, { artist_id: Number(form.artist_id), ...participationPayload(form) });
       const next = response?.artists || [];
       setArtists(next);
-      setSuccess("Perfil artístico administrado por você foi adicionado ao line-up.");
+      setSuccess(response?.message || "Perfil artístico adicionado ao evento.");
+      await load();
       resetEditor(next);
     } catch (err) {
       setError(errorMessage(err, "Não foi possível adicionar este perfil artístico."));
