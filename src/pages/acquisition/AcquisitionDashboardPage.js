@@ -23,6 +23,7 @@ const emptyEvent = () => ({
   tickets: [emptyTicket()],
 });
 const emptyForm = () => ({
+  authorization: { confirmed: false, channel: "whatsapp", note: "" },
   user: { first_name: "", last_name: "", email: "" },
   production: { name: "", fantasy: "", cnpj: "", phone: "", description: "", city: "", uf: "", address: "", instagram_url: "", website_url: "" },
   events: [emptyEvent()],
@@ -37,6 +38,13 @@ const dateLabel = (value) => {
 };
 const errorMessage = (error) => error?.response?.data?.message || error?.response?.data?.error || "Não foi possível concluir a operação.";
 const referralStatusLabel = (status) => ({ accepted: "Ativado", pending: "Pendente", expired: "Expirado", revoked: "Revogado" }[status] || status);
+const onboardingStatusLabel = (status) => ({
+  awaiting_activation: "Aguardando acesso",
+  awaiting_agreement: "Aguardando contrato",
+  awaiting_payout: "Aguardando Pix",
+  awaiting_payments: "Checkout pendente",
+  ready_to_sell: "Pronto para vender",
+}[status] || referralStatusLabel(status));
 
 export default function AcquisitionDashboardPage() {
   const [dashboard, setDashboard] = useState(null);
@@ -177,6 +185,37 @@ export default function AcquisitionDashboardPage() {
             <div className="acq-panel__head"><div><span className="acq-kicker">Novo onboarding</span><h2>Cadastrar produtor completo</h2></div><span className="acq-step-badge">1 usuário → N eventos</span></div>
             <form onSubmit={submitOnboarding}>
               <fieldset>
+                <legend>Autorização do produtor</legend>
+                <div className="acq-grid acq-grid--3">
+                  <label>
+                    <span>Canal da autorização</span>
+                    <select value={form.authorization.channel} onChange={(e) => setForm((current) => ({ ...current, authorization: { ...current.authorization, channel: e.target.value } }))}>
+                      <option value="whatsapp">WhatsApp</option>
+                      <option value="email">E-mail</option>
+                      <option value="phone">Telefone</option>
+                      <option value="in_person">Presencial</option>
+                      <option value="other">Outro</option>
+                    </select>
+                  </label>
+                  <label className="acq-span-2">
+                    <span>Observação / referência</span>
+                    <input maxLength={1000} placeholder="Ex.: autorização recebida no atendimento comercial" value={form.authorization.note} onChange={(e) => setForm((current) => ({ ...current, authorization: { ...current.authorization, note: e.target.value } }))} />
+                  </label>
+                  <label className="acq-span-3 acq-authorization-check">
+                    <span>
+                      <input
+                        required
+                        type="checkbox"
+                        checked={form.authorization.confirmed}
+                        onChange={(e) => setForm((current) => ({ ...current, authorization: { ...current.authorization, confirmed: e.target.checked } }))}
+                      />
+                      Confirmo que o produtor autorizou este cadastro assistido e a criação inicial da produção/eventos.
+                    </span>
+                  </label>
+                </div>
+              </fieldset>
+
+              <fieldset>
                 <legend>Responsável pela produção</legend>
                 <div className="acq-grid acq-grid--3">
                   <label><span>Nome</span><input required value={form.user.first_name} onChange={(e) => setUser("first_name", e.target.value)} /></label>
@@ -266,8 +305,13 @@ export default function AcquisitionDashboardPage() {
                 {(dashboard?.recent_referrals || []).map((referral) => (
                   <article key={referral.id}>
                     <div><strong>{referral.production?.name || referral.name || referral.email}</strong><small>{referral.email}</small></div>
-                    <span className={`acq-status acq-status--${referral.status}`}>{referralStatusLabel(referral.status)}</span>
-                    <small>{referral.commissions_count || 0} evento(s) · {dateLabel(referral.created_at)}</small>
+                    {(() => {
+                      const onboardingStatus = ["expired", "revoked"].includes(referral.status)
+                        ? referral.status
+                        : (referral.onboarding?.assisted_onboarding ? referral.onboarding.status : referral.status);
+                      return <span className={`acq-status acq-status--${onboardingStatus}`}>{onboardingStatusLabel(onboardingStatus)}</span>;
+                    })()}
+                    <small>{referral.commissions_count || 0} evento(s) · {referral.onboarding?.assisted_onboarding && referral.onboarding?.completion ? `${referral.onboarding.completion.completed}/${referral.onboarding.completion.total} etapas · ` : ""}{dateLabel(referral.created_at)}</small>
                     {["pending", "expired"].includes(referral.status) && <button type="button" className="acq-link" onClick={() => resend(referral.id)}>{referral.status === "expired" ? "Gerar novo convite" : "Reenviar convite"}</button>}
                   </article>
                 ))}

@@ -21,20 +21,11 @@ export default function AcquisitionActivationPage() {
   const [saving, setSaving] = useState(false);
 
   const nextProducerStep = useMemo(() => {
-    const firstEvent = referral?.events?.[0];
-    if (firstEvent?.id) {
-      return {
-        path: `/event/edit/${firstEvent.id}`,
-        label: "Entrar e preparar o evento para vender",
-        hint: "Continue direto na configuração do evento, dos lotes e dos ingressos.",
-      };
-    }
-
     if (referral?.production?.id) {
       return {
-        path: `/production/${referral.production.id}`,
-        label: "Entrar e continuar minha produção",
-        hint: "Continue direto na sua produção e crie o primeiro evento.",
+        path: `/producer/onboarding?productionId=${referral.production.id}`,
+        label: "Entrar e concluir minha configuração",
+        hint: "Agora assine o contrato, configure os recebimentos e revise o primeiro evento. Depois disso, as vendas serão liberadas.",
       };
     }
 
