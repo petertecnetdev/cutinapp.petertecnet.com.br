@@ -9,7 +9,13 @@ import {
   EventPerformanceBadge,
 } from "./EventManagerEnhancements";
 import { storageUrl } from "../../config";
-import { eventHealth, eventOperationalMetrics, eventPerformance } from "../../utils/eventManagerInsights";
+import {
+  eventAlerts,
+  eventHealth,
+  eventOperationalMetrics,
+  eventPerformance,
+  moneyBR,
+} from "../../utils/eventManagerInsights";
 import { isEventPaymentReady, requiresPaymentSetup } from "../../utils/eventSalesReadiness";
 
 const mediaUrl = (path) => {
@@ -37,13 +43,54 @@ const formatDate = (value) => value
   }).format(new Date(value))
   : "Data não informada";
 
+const artistState = (artist) => {
+  const status = String(artist?.pivot?.status || "").toLowerCase();
+  if (["invited", "pending", "pending_acceptance"].includes(status)) return { label: "convite pendente", tone: "warning" };
+  if (["declined", "rejected", "cancelled"].includes(status)) return { label: "não confirmado", tone: "danger" };
+  return null;
+};
+
+const ArtistsInline = ({ event, onOpen, compact = false }) => {
+  const artists = Array.isArray(event?.artists) ? event.artists : [];
+  if (!artists.length) {
+    return <span className="cut-event-artists-empty"><i className="fa-solid fa-user-plus" />Sem artista vinculado</span>;
+  }
+
+  const visible = artists.slice(0, compact ? 3 : 4);
+  const remaining = Math.max(0, artists.length - visible.length);
+
+  return <div className={`cut-event-artists-inline${compact ? " is-compact" : ""}`}>
+    {visible.map((artist) => {
+      const state = artistState(artist);
+      return <button
+        type="button"
+        key={artist.id}
+        className="cut-event-artist-chip"
+        onClick={() => onOpen?.(artist)}
+        title={state ? `${artist.stage_name || "Artista"} · ${state.label}` : artist.stage_name}
+      >
+        <span className="cut-event-artist-chip__avatar">
+          {artist.photo
+            ? <img src={mediaUrl(artist.photo)} alt="" loading="lazy" decoding="async" />
+            : initials(artist.stage_name, "AR")}
+        </span>
+        <span className="cut-event-artist-chip__copy">
+          <b>{artist.stage_name || "Artista"}</b>
+          {state && <small className={`is-${state.tone}`}>{state.label}</small>}
+        </span>
+      </button>;
+    })}
+    {remaining > 0 && <span className="cut-event-artists-more">+{remaining}</span>}
+  </div>;
+};
+
 export default function ProducerEventCard({
   event,
   readiness,
   status,
   selected,
   pinned,
-  viewMode = "visual",
+  viewMode = "compact",
   disabled = false,
   actions,
   onToggleSelected,
@@ -52,11 +99,13 @@ export default function ProducerEventCard({
   onEdit,
   onPrimaryAction,
   onDuplicate,
+  onArtistOpen,
 }) {
   const metrics = eventOperationalMetrics(event);
   const eventImage = event.image;
   const health = eventHealth(event);
   const performance = eventPerformance(event);
+  const alerts = eventAlerts(event);
   const paymentBlocked = requiresPaymentSetup(event) && !isEventPaymentReady(event);
   const effectiveReadiness = paymentBlocked ? {
     ...readiness,
@@ -68,13 +117,90 @@ export default function ProducerEventCard({
     mode: "finance",
     route: `/producer/finance?production=${event?.production?.id || event?.production_id || ""}`,
   } : readiness;
+  const readinessPending = !event.is_cancelled && !event.has_ended && Number(effectiveReadiness?.completed || 0) < 3;
+  const issueCount = alerts.length + (readinessPending ? 1 : 0);
+  const firstIssue = alerts[0]?.title || (readinessPending ? effectiveReadiness?.title : "");
   const needsAttention = !event.is_cancelled && !event.has_ended
-    && ((effectiveReadiness?.completed || 0) < 3 || health.score < 55 || performance.rank <= 3);
+    && (readinessPending || health.score < 55 || performance.rank <= 3);
   const compact = viewMode === "compact";
+
+  if (compact) {
+    return <article className={[
+      "cut-producer-event-card",
+      "is-compact",
+      "is-compact-table",
+      needsAttention ? "is-attention" : "",
+      selected ? "is-selected" : "",
+      pinned ? "is-pinned" : "",
+    ].filter(Boolean).join(" ")}>
+      <div className="cut-producer-event-card__select">
+        <Form.Check
+          type="checkbox"
+          checked={selected}
+          onChange={() => onToggleSelected?.(event.id)}
+          disabled={disabled}
+          aria-label={`Selecionar ${event.title}`}
+        />
+      </div>
+
+      <button type="button" className="cut-producer-event-card__media" onClick={() => onQuickView?.(event)} aria-label={`Ver resumo de ${event.title}`}>
+        {eventImage
+          ? <img src={mediaUrl(eventImage)} alt="" loading="lazy" decoding="async" />
+          : <span>{initials(event.title)}</span>}
+      </button>
+
+      <div className="cut-producer-event-card__main">
+        <div className="cut-producer-event-card__title-row">
+          <button type="button" className="cut-producer-event-card__title" onClick={() => onQuickView?.(event)} title="Abrir Central do Evento">{event.title}</button>
+          <button type="button" className={`cut-event-pin${pinned ? " is-active" : ""}`} onClick={() => onTogglePin?.(event.id)} aria-label={pinned ? "Desafixar evento" : "Fixar evento"} title={pinned ? "Desafixar evento" : "Fixar evento"}>
+            <i className="fa-solid fa-thumbtack" />
+          </button>
+        </div>
+        <div className="cut-producer-event-card__meta">
+          <span><i className="fa-solid fa-building" />{event.production?.name || "Produção não informada"}</span>
+          <span><i className="fa-regular fa-calendar" />{formatDate(event.start_date)}</span>
+          <span><i className="fa-solid fa-location-dot" />{event.venue || event.address || event.city || "Local não informado"}</span>
+        </div>
+      </div>
+
+      <div className="cut-producer-event-card__artists" data-label="Artistas">
+        <ArtistsInline event={event} onOpen={onArtistOpen} compact />
+      </div>
+
+      <div className="cut-producer-event-card__status" data-label="Status">
+        <Badge bg={status.variant}>{status.label}</Badge>
+        <EventPerformanceBadge event={event} />
+      </div>
+
+      <div className="cut-producer-event-card__sales" data-label="Vendas">
+        <strong>{metrics.ticketsSold.toLocaleString("pt-BR")} vendidos</strong>
+        <span>{moneyBR(metrics.grossSales)}</span>
+        <small>{metrics.ticketsRemaining.toLocaleString("pt-BR")} restante(s)</small>
+      </div>
+
+      <div className={`cut-producer-event-card__issues${issueCount ? " has-issues" : " is-ready"}`} data-label="Pendências">
+        {issueCount ? <>
+          <strong><i className="fa-solid fa-triangle-exclamation" />{issueCount} pendência{issueCount === 1 ? "" : "s"}</strong>
+          <span title={firstIssue}>{firstIssue}</span>
+          {effectiveReadiness && <Button size="sm" variant="outline-light" onClick={() => onPrimaryAction?.(event, effectiveReadiness)} disabled={disabled}>Resolver</Button>}
+        </> : <>
+          <strong><i className="fa-solid fa-circle-check" />Pronto</strong>
+          <span>Sem bloqueios operacionais</span>
+        </>}
+      </div>
+
+      <div className="cut-producer-event-card__quick-actions" data-label="Ações">
+        <Button variant="outline-light" size="sm" onClick={() => onQuickView?.(event)} title="Central do Evento" aria-label="Abrir central do evento"><i className="fa-solid fa-gauge-high" /></Button>
+        <Button variant="outline-light" size="sm" onClick={() => onEdit?.(event)} title="Editar" aria-label="Editar evento"><i className="fa-solid fa-pen" /></Button>
+        <Button variant="outline-light" size="sm" onClick={() => onDuplicate?.(event)} title="Duplicar +7 dias" aria-label="Duplicar evento"><i className="fa-regular fa-copy" /></Button>
+        {actions}
+      </div>
+    </article>;
+  }
 
   return <article className={[
     "cut-producer-event-card",
-    compact ? "is-compact" : "is-visual",
+    "is-visual",
     needsAttention ? "is-attention" : "",
     selected ? "is-selected" : "",
     pinned ? "is-pinned" : "",
@@ -91,7 +217,7 @@ export default function ProducerEventCard({
 
     <button type="button" className="cut-producer-event-card__media" onClick={() => onQuickView?.(event)} aria-label={`Ver resumo de ${event.title}`}>
       {eventImage
-        ? <img src={mediaUrl(eventImage)} alt="" loading="lazy" />
+        ? <img src={mediaUrl(eventImage)} alt="" loading="lazy" decoding="async" />
         : <span>{initials(event.title)}</span>}
       <span className="cut-producer-event-card__media-overlay"><i className="fa-regular fa-eye" />Visão rápida</span>
     </button>
@@ -116,13 +242,14 @@ export default function ProducerEventCard({
         <span><i className="fa-solid fa-location-dot" />{event.venue || event.address || event.city || "Local não informado"}</span>
       </div>
 
+      <ArtistsInline event={event} onOpen={onArtistOpen} />
       <EventAlertChips event={event} />
 
       <div className="cut-producer-event-card__ops">
-        <EventMetrics event={event} compact={compact} />
+        <EventMetrics event={event} compact={false} />
         <div className="cut-producer-event-card__health">
           <span>Saúde</span>
-          <EventHealthBadge event={event} showLabel={!compact} />
+          <EventHealthBadge event={event} showLabel />
         </div>
         <EventAgendaDays event={event} />
       </div>
@@ -138,7 +265,7 @@ export default function ProducerEventCard({
       {!event.is_cancelled && effectiveReadiness && <div className="cut-producer-event-card__next">
         <small>Próxima ação</small>
         <strong>{effectiveReadiness.title}</strong>
-        {!compact && <span>{effectiveReadiness.label}</span>}
+        <span>{effectiveReadiness.label}</span>
         <Button
           size="sm"
           variant={effectiveReadiness.mode === "whatsapp" ? "success" : "light"}
