@@ -7,6 +7,7 @@ import QrCodeComponent from "../../components/QrCodeComponent";
 import { ProfileActorBadges, ProfileActorLinks, actorThemeClass } from "../../components/user/ProfileActorIdentity";
 import { AuthContext } from "../../context/AuthContext";
 import cutinappService from "../../services/CutinappService";
+import artistService from "../../services/ArtistService";
 import { storageUrl } from "../../config";
 import { trackTelemetry } from "../../utils/telemetry";
 import "./UserProfilePage.css";
@@ -61,6 +62,7 @@ export default function UserProfilePage() {
   const [qrOpen, setQrOpen] = useState(false);
   const [peopleModal, setPeopleModal] = useState(null);
   const [shareNotice, setShareNotice] = useState("");
+  const [artistIdentity, setArtistIdentity] = useState(null);
 
   const loadProfile = useCallback(async () => {
     if (!requestedUserId) return;
@@ -104,6 +106,20 @@ export default function UserProfilePage() {
     cutinappService.feed({ page: 1, per_page: 60 }).then((response) => { if (active) setPosts(asArray(response?.community_activity).filter((post) => Number(post?.user_id) === Number(data.profile.id))); }).catch(() => { if (active) setPosts([]); }).finally(() => { if (active) setSecondaryLoading(false); });
     return () => { active = false; };
   }, [data?.profile?.id, tab]);
+
+  useEffect(() => {
+    if (!isOwnProfile || !user?.id) {
+      setArtistIdentity(null);
+      return undefined;
+    }
+
+    let active = true;
+    artistService.onboardingStatus()
+      .then((response) => active && setArtistIdentity(response))
+      .catch(() => active && setArtistIdentity(null));
+
+    return () => { active = false; };
+  }, [isOwnProfile, user?.id]);
 
   const profile = data?.profile || {};
   const stats = data?.stats || {};
@@ -152,7 +168,7 @@ export default function UserProfilePage() {
       <section className={`cut-profile-v2__hero ${actorThemeClass(actorIdentity)}`} style={background ? { backgroundImage: `url(${JSON.stringify(background)})` } : undefined}><Container className="cut-page-container"><div className="cut-profile-v2__heroInner">
         <div className="cut-profile-v2__avatar">{avatar ? <img src={avatar} alt={`Foto de ${profileName}`} /> : <span>{profileInitials}</span>}</div>
         <div className="cut-profile-v2__identity"><h1>{profileName}{profile.verified && <i className="fa-solid fa-circle-check ms-2" title="Perfil verificado" />}</h1>{profile.user_name && <div className="cut-profile-v2__username">@{profile.user_name}</div>}<ProfileActorBadges identity={actorIdentity} /><div className="cut-profile-v2__meta">{socialSettings.show_city !== false && profile.city && <span><i className="fa-solid fa-location-dot" />{profile.city}{profile.uf ? ` - ${profile.uf}` : ""}</span>}{profile.favorite_genre && <span><i className="fa-solid fa-music" />{profile.favorite_genre}</span>}{profile.created_at && <span><i className="fa-regular fa-clock" />Na Cutinapp desde {new Date(profile.created_at).getFullYear()}</span>}</div>{profile.about && <p className="cut-profile-v2__bio">{profile.about}</p>}</div>
-        <div className="cut-profile-v2__actions">{isOwnProfile ? <><Button variant="light" onClick={() => navigate("/user/edit")}><i className="fa-regular fa-pen-to-square me-2" />Editar perfil</Button><Button variant="outline-light" onClick={shareProfile}><i className="fa-solid fa-share-nodes me-2" />Compartilhar</Button></> : <><Button variant={following ? "outline-light" : "light"} disabled={followBusy || socialSettings.allow_follows === false} onClick={toggleFollow}>{followBusy ? <Spinner size="sm" /> : <><i className={`fa-solid ${following ? "fa-user-check" : "fa-user-plus"} me-2`} />{following ? "Seguindo" : "Seguir"}</>}</Button><Button variant="outline-light" onClick={() => openMessageTo(requestedUserId)}><i className="fa-regular fa-paper-plane me-2" />Mensagem</Button><Button variant="outline-light" onClick={shareProfile} aria-label="Compartilhar perfil"><i className="fa-solid fa-share-nodes" /></Button><Dropdown align="end"><Dropdown.Toggle variant="outline-light" aria-label="Mais opções"><i className="fa-solid fa-ellipsis" /></Dropdown.Toggle><Dropdown.Menu><Dropdown.Item onClick={() => setQrOpen(true)}><i className="fa-solid fa-qrcode me-2" />QR Code do perfil</Dropdown.Item><Dropdown.Item onClick={shareProfile}><i className="fa-solid fa-link me-2" />Compartilhar perfil</Dropdown.Item></Dropdown.Menu></Dropdown></>}</div>
+        <div className="cut-profile-v2__actions">{isOwnProfile ? <><Button variant="light" onClick={() => navigate("/user/edit")}><i className="fa-regular fa-pen-to-square me-2" />Editar perfil</Button><Button variant="outline-light" onClick={() => navigate("/artist/onboarding")}><i className="fa-solid fa-music me-2" />{artistIdentity?.is_artist ? "Meu perfil artístico" : "Quero ser artista"}</Button><Button variant="outline-light" onClick={shareProfile}><i className="fa-solid fa-share-nodes me-2" />Compartilhar</Button></> : <><Button variant={following ? "outline-light" : "light"} disabled={followBusy || socialSettings.allow_follows === false} onClick={toggleFollow}>{followBusy ? <Spinner size="sm" /> : <><i className={`fa-solid ${following ? "fa-user-check" : "fa-user-plus"} me-2`} />{following ? "Seguindo" : "Seguir"}</>}</Button><Button variant="outline-light" onClick={() => openMessageTo(requestedUserId)}><i className="fa-regular fa-paper-plane me-2" />Mensagem</Button><Button variant="outline-light" onClick={shareProfile} aria-label="Compartilhar perfil"><i className="fa-solid fa-share-nodes" /></Button><Dropdown align="end"><Dropdown.Toggle variant="outline-light" aria-label="Mais opções"><i className="fa-solid fa-ellipsis" /></Dropdown.Toggle><Dropdown.Menu><Dropdown.Item onClick={() => setQrOpen(true)}><i className="fa-solid fa-qrcode me-2" />QR Code do perfil</Dropdown.Item><Dropdown.Item onClick={shareProfile}><i className="fa-solid fa-link me-2" />Compartilhar perfil</Dropdown.Item></Dropdown.Menu></Dropdown></>}</div>
       </div></Container></section>
 
       <div className="cut-profile-v2__summary"><Container className="cut-page-container"><div className="cut-profile-v2__summaryInner"><button className="cut-profile-v2__stat" type="button" onClick={() => setTab("posts")}><strong>{number(stats.posts)}</strong><span>publicações</span></button><button className="cut-profile-v2__stat" type="button" onClick={() => setPeopleModal("followers")}><strong>{number(stats.followers)}</strong><span>seguidores</span></button><button className="cut-profile-v2__stat" type="button" onClick={() => setPeopleModal("following")}><strong>{number(stats.following_participants)}</strong><span>seguindo</span></button><button className="cut-profile-v2__stat" type="button" onClick={() => setTab("events")}><strong>{number(upcomingEvents.length || stats.interested || stats.upcoming_with_ticket)}</strong><span>eventos</span></button></div></Container></div>
