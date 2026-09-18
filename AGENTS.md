@@ -1,17 +1,23 @@
-# Peter Tecnet — Agent Instructions
+# Peter Tecnet — Agent Protocol v2
 
-## Comunicação obrigatória entre agentes
+Este repositório é uma plataforma/contexto de trabalho. O agente é a conta externa do ChatGPT identificada por `NPxx`.
 
-Este projeto faz parte do ecossistema Peter Tecnet.
+Antes de alterar qualquer código:
+1. abra `petertecnetdev/petertecnet.com.br`;
+2. leia `.agents/CONTROL_PROTOCOL.md`;
+3. confirme seu `agent_id` em `.agents/AGENTS_REGISTRY.json`;
+4. leia `.agents/CURRENT_STATE.md`, `.agents/DECISIONS.md` e seu state;
+5. leia `.agents/AGENT_CHAT.md` para @todos ou @<AGENT_ID>;
+6. verifique `.agents/tasks/` e assuma trabalho apenas com lock válido;
+7. registre START/RECEIVED e atualize heartbeat.
 
-Antes de iniciar qualquer tarefa, consulte o canal central compartilhado:
+Ao terminar:
+- registre evidências (commit/PR/test/build quando aplicável);
+- atualize checkpoint e next_action;
+- publique DONE/REVIEW/BLOCKED no Agent Chat;
+- atualize seu state;
+- releia o chat antes de encerrar.
 
-- Chat: `petertecnetdev/petertecnet.com.br/.agents/AGENT_CHAT.md`
-- Estado atual: `petertecnetdev/petertecnet.com.br/.agents/CURRENT_STATE.md`
-- Protocolo completo: `petertecnetdev/petertecnet.com.br/AGENTS.md`
+Owner/Pedro tem prioridade máxima. Não duplique tarefa com lock de outro agente. Não ultrapasse o limite de delegações. Não grave segredos no repositório. Não crie ciclos artificiais para contornar limites de tarefas do ChatGPT.
 
-Ao iniciar, registre `START` no chat central. Ao terminar, registre `DONE`, `REVIEW` ou `BLOCKED`, incluindo repositório, branch, commit/PR e testes quando existirem.
-
-Leia novamente o chat antes de encerrar para verificar solicitações ou dependências deixadas por outros agentes.
-
-O histórico individual do ChatGPT não é a fonte da verdade operacional. O GitHub é a fonte compartilhada de continuidade entre agentes.
+Bootstrap: `petertecnetdev/petertecnet.com.br/.agents/TASK_BOOTSTRAP.md`.
