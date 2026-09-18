@@ -105,6 +105,14 @@ export default function AdminCenterPage() {
             </Card.Body>
           </Card>
         </Col>
+        <Col xs={12} md={6} lg={4}>
+          <Card as={Link} to="/admin/artist-claims" className="cut-panel h-100 text-decoration-none text-reset" style={{ cursor: "pointer" }} aria-label="Analisar reivindicações de perfis artísticos">
+            <Card.Body className="d-flex align-items-center justify-content-between gap-3">
+              <div><span className="cut-eyebrow">Identidade artística</span><h2 className="h4 mb-1">Reivindicações de artistas</h2><small className="text-secondary">Confirmar vínculos quando a prova automática não for suficiente</small></div>
+              <i className="fa-solid fa-id-badge fs-2 opacity-75" aria-hidden="true" />
+            </Card.Body>
+          </Card>
+        </Col>
       </Row>
 
       {loading ? <div className="text-center py-5"><Spinner /><p className="mt-2">Carregando administração global da Cutinapp...</p></div> : <>
