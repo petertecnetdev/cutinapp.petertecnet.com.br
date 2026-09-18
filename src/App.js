@@ -49,7 +49,6 @@ const ApplicationAdminTicketsPage = lazy(() => import("./pages/admin/Application
 const ApplicationAdminUsersPage = lazy(() => import("./pages/admin/ApplicationAdminUsersPage"));
 const ApplicationAdminProductionsPage = lazy(() => import("./pages/admin/ApplicationAdminProductionsPage"));
 const AssistedProducerOnboardingPage = lazy(() => import("./pages/admin/AssistedProducerOnboardingPage"));
-const AssistedProducerOnboardingPage = lazy(() => import("./pages/admin/AssistedProducerOnboardingPage"));
 const ApplicationAdminOrdersPage = lazy(() => import("./pages/admin/ApplicationAdminOrdersPage"));
 const ApplicationAdminFinancePage = lazy(() => import("./pages/admin/ApplicationAdminFinancePage"));
 const ApplicationAdminCheckinsPage = lazy(() => import("./pages/admin/ApplicationAdminCheckinsPage"));
@@ -66,7 +65,6 @@ const ProductionAgendaPublicPage = lazy(() => import("./pages/production/Product
 const ProductionUpdatePage = lazy(() => import("./pages/production/ProductionUpdatePage"));
 const ProductionFinancePage = lazy(() => import("./pages/production/ProductionFinancePage"));
 const ProducerContractsPage = lazy(() => import("./pages/production/ProducerContractsPage"));
-const ProducerOnboardingPage = lazy(() => import("./pages/production/ProducerOnboardingPage"));
 const ProducerOnboardingPage = lazy(() => import("./pages/production/ProducerOnboardingPage"));
 const ProductionAgendaManager = lazy(() => import("./pages/production/ProductionAgendaManager"));
 const ProductionAgendaFormPage = lazy(() => import("./pages/production/ProductionAgendaFormPage"));
