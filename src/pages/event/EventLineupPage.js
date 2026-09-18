@@ -7,6 +7,7 @@ import aiContentService from "../../services/AiContentService";
 import artistService from "../../services/ArtistService";
 import cutinappService from "../../services/CutinappService";
 import eventService from "../../services/EventService";
+import { storageUrl } from "../../config";
 import "./EventLineupPage.css";
 
 const TYPES = ["atração principal", "show", "DJ set", "apresentação", "abertura", "participação especial", "convidado", "palestrante", "outra participação"];
@@ -33,6 +34,11 @@ const toLocal = (value) => value ? String(value).replace(" ", "T").slice(0, 16) 
 const errorMessage = (error, fallback) => error?.response?.data?.message || error?.message || fallback;
 const initials = (value) => String(value || "A").trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
 const isEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
+const avatarSrc = (value) => {
+  if (!value) return "";
+  const avatar = String(value);
+  return /^https?:\/\//i.test(avatar) ? avatar : `${storageUrl}${avatar.replace(/^\/+/, "")}`;
+};
 
 const participationPayload = (form) => ({
   participation_type: form.participation_type || "show",
@@ -351,7 +357,7 @@ export default function EventLineupPage() {
       {(loading || busy) && <ProcessingIndicatorComponent label={loading ? "Carregando line-up" : "Atualizando line-up"} />}
       <Container className="cut-page-container py-4 py-lg-5">
         <div className="cut-lineup-hero mb-4">
-          <div><span className="cut-eyebrow">Line-up do evento</span><h1>{event?.title || "Atrações do evento"}</h1><p>O artista agora é sempre uma identidade real da Cutinapp. O produtor gerencia somente a participação no evento.</p></div>
+          <div><span className="cut-eyebrow">Line-up do evento</span><h1>{event?.title || "Atrações do evento"}</h1><p>O artista é uma identidade própria da Cutinapp. Ao apresentar um novo artista, a produção pode virar uma referência de origem, mas gerencia somente a participação neste evento.</p></div>
           <div className="cut-lineup-hero-actions"><Button variant="outline-light" onClick={() => navigate(`/event/edit/${eventId}`)}>Voltar ao evento</Button></div>
         </div>
 
@@ -377,8 +383,8 @@ export default function EventLineupPage() {
                   <Form.Label>Localizar usuário *</Form.Label>
                   <Form.Control value={query} onChange={(e) => changeQuery(e.target.value)} placeholder="@usuario, email@exemplo.com, telefone ou CPF" autoComplete="off" />
                   {searching && <div className="small text-secondary mt-2"><Spinner size="sm" className="me-2" />Pesquisando...</div>}
-                  {!!candidates.length && !selectedCandidate && <div className="cut-lineup-picker-results mt-2">{candidates.map((candidate) => <button type="button" key={candidate.id} className="cut-lineup-picker-item" onClick={() => selectCandidate(candidate)}><span className="cut-lineup-picker-avatar">{candidate.avatar ? <img src={candidate.avatar} alt="" /> : initials(candidate.name)}</span><span><strong>{candidate.name}</strong><small className="d-block">{candidate.username || "Sem username"}{candidate.city ? ` · ${candidate.city}${candidate.uf ? `/${candidate.uf}` : ""}` : ""}</small><small className="d-block text-secondary">{[candidate.email_hint, candidate.phone_hint].filter(Boolean).join(" · ")}</small></span>{candidate.artist && <Badge bg="success">Já é artista</Badge>}</button>)}</div>}
-                  {selectedCandidate && <Alert variant="info" className="mt-2 mb-0"><strong>{selectedCandidate.name}</strong>{selectedCandidate.username ? ` · ${selectedCandidate.username}` : ""}{selectedCandidate.artist ? " · perfil artístico existente será reutilizado" : " · o perfil artístico será criado automaticamente"}</Alert>}
+                  {!!candidates.length && !selectedCandidate && <div className="cut-lineup-picker-results mt-2">{candidates.map((candidate) => <button type="button" key={candidate.id} className="cut-lineup-picker-item" onClick={() => selectCandidate(candidate)}><span className="cut-lineup-picker-avatar">{candidate.avatar ? <img src={avatarSrc(candidate.avatar)} alt="" loading="lazy" /> : initials(candidate.name)}</span><span><strong>{candidate.name}</strong><small className="d-block">{candidate.username || "Sem username"}{candidate.city ? ` · ${candidate.city}${candidate.uf ? `/${candidate.uf}` : ""}` : ""}</small><small className="d-block text-secondary">{[candidate.email_hint, candidate.phone_hint].filter(Boolean).join(" · ")}</small><span className="cut-lineup-candidate-type"><i className={candidate.artist ? "fa-solid fa-music" : "fa-regular fa-user"} />{candidate.artist ? "Artista da Cutinapp" : "Usuário — identidade artística será criada ao vincular"}</span></span>{candidate.artist ? <Badge bg="success">Artista</Badge> : <Badge bg="secondary">Usuário</Badge>}</button>)}</div>}
+                  {selectedCandidate && <Alert variant="info" className="mt-2 mb-0"><strong>{selectedCandidate.name}</strong>{selectedCandidate.username ? ` · ${selectedCandidate.username}` : ""}{selectedCandidate.artist ? " · perfil artístico existente será reutilizado." : " · a identidade artística será criada automaticamente. Esta produção ficará registrada como referência de origem, mas não ganhará controle do perfil."}</Alert>}
                   {noCandidateFound && <Alert variant="warning" className="mt-3 mb-0"><strong>Nenhuma conta encontrada.</strong><div className="mt-2 mb-2">Informe o e-mail da pessoa. A Cutinapp enviará um convite para ela criar a conta e, após a confirmação do e-mail, o vínculo com este evento será recuperado automaticamente.</div><Form.Label htmlFor="artist-invite-email">E-mail para convite *</Form.Label><Form.Control id="artist-invite-email" type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="artista@exemplo.com" autoComplete="email" /><Form.Text>Nenhum perfil artístico é criado antes de a pessoa possuir uma conta válida.</Form.Text></Alert>}
                   <Form.Text>Os dados pessoais completos nunca são exibidos ao produtor.</Form.Text>
                 </Form.Group>
