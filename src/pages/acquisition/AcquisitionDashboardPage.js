@@ -23,6 +23,7 @@ const emptyEvent = () => ({
   tickets: [emptyTicket()],
 });
 const emptyForm = () => ({
+  authorization: { confirmed: false, channel: "whatsapp", note: "" },
   user: { first_name: "", last_name: "", email: "" },
   production: { name: "", fantasy: "", cnpj: "", phone: "", description: "", city: "", uf: "", address: "", instagram_url: "", website_url: "" },
   events: [emptyEvent()],
@@ -183,6 +184,37 @@ export default function AcquisitionDashboardPage() {
           <div className="acq-panel acq-panel--form">
             <div className="acq-panel__head"><div><span className="acq-kicker">Novo onboarding</span><h2>Cadastrar produtor completo</h2></div><span className="acq-step-badge">1 usuário → N eventos</span></div>
             <form onSubmit={submitOnboarding}>
+              <fieldset>
+                <legend>Autorização do produtor</legend>
+                <div className="acq-grid acq-grid--3">
+                  <label>
+                    <span>Canal da autorização</span>
+                    <select value={form.authorization.channel} onChange={(e) => setForm((current) => ({ ...current, authorization: { ...current.authorization, channel: e.target.value } }))}>
+                      <option value="whatsapp">WhatsApp</option>
+                      <option value="email">E-mail</option>
+                      <option value="phone">Telefone</option>
+                      <option value="in_person">Presencial</option>
+                      <option value="other">Outro</option>
+                    </select>
+                  </label>
+                  <label className="acq-span-2">
+                    <span>Observação / referência</span>
+                    <input maxLength={1000} placeholder="Ex.: autorização recebida no atendimento comercial" value={form.authorization.note} onChange={(e) => setForm((current) => ({ ...current, authorization: { ...current.authorization, note: e.target.value } }))} />
+                  </label>
+                  <label className="acq-span-3">
+                    <span>
+                      <input
+                        required
+                        type="checkbox"
+                        checked={form.authorization.confirmed}
+                        onChange={(e) => setForm((current) => ({ ...current, authorization: { ...current.authorization, confirmed: e.target.checked } }))}
+                      />
+                      Confirmo que o produtor autorizou este cadastro assistido e a criação inicial da produção/eventos.
+                    </span>
+                  </label>
+                </div>
+              </fieldset>
+
               <fieldset>
                 <legend>Responsável pela produção</legend>
                 <div className="acq-grid acq-grid--3">
