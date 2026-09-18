@@ -27,6 +27,7 @@ const isImageInput = (input) => {
 
 const inferShape = (input) => {
   const hint = textHint(input);
+  if (/(event-poster|event poster|poster-evento|poster evento)/i.test(hint)) return "event-poster";
   if (/(avatar|perfil|profile|user|usuario)/i.test(hint)) return "avatar";
   if (/logo/i.test(hint)) return "logo";
   if (/(banner|cover|capa|flyer|hero)/i.test(hint)) return "cover";
