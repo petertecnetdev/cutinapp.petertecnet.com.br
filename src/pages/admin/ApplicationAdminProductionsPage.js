@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
 import { Alert, Badge, Button, Card, Col, Container, Form, Row, Spinner } from "react-bootstrap";
 import NavlogComponent from "../../components/NavlogComponent";
 import appApiClient from "../../services/AppApiClient";
@@ -8,7 +7,6 @@ import appApiClient from "../../services/AppApiClient";
 const PAGE_SIZE = 12;
 
 export default function ApplicationAdminProductionsPage() {
-  const navigate = useNavigate();
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   const [query, setQuery] = useState("");
