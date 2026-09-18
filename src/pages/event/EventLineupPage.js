@@ -12,11 +12,26 @@ import "./EventLineupPage.css";
 
 const TYPES = ["atração principal", "show", "DJ set", "apresentação", "abertura", "participação especial", "convidado", "palestrante", "outra participação"];
 const STATUS_LABELS = {
-  pending: ["Aguardando artista", "warning"],
+  pending: ["Aguardando resposta", "warning"],
+  pending_external: ["Aguardando cadastro", "info"],
+  pending_change: ["Nova confirmação necessária", "warning"],
   confirmed: ["Confirmado", "success"],
+  accepted: ["Confirmado", "success"],
   declined: ["Recusado", "secondary"],
+  expired: ["Expirado", "secondary"],
   cancelled: ["Cancelado", "danger"],
+  cancelled_by_producer: ["Cancelado pela produção", "danger"],
+  event_cancelled: ["Evento cancelado", "danger"],
 };
+const EMAIL_STATUS_LABELS = {
+  not_sent: ["E-mail ainda não enviado", "secondary"],
+  sent: ["E-mail enviado", "info"],
+  delivered: ["E-mail entregue", "success"],
+  opened: ["E-mail aberto", "success"],
+  bounced: ["E-mail devolvido", "danger"],
+  failed: ["Falha no e-mail", "danger"],
+};
+const ACTIVE_INVITATION_STATUSES = new Set(["pending", "pending_external", "pending_change"]);
 
 const emptySlot = (sortOrder = 0) => ({
   artist_id: "",
@@ -57,6 +72,10 @@ export default function EventLineupPage() {
   const [event, setEvent] = useState(null);
   const [artists, setArtists] = useState([]);
   const [mine, setMine] = useState([]);
+  const [invitationOverview, setInvitationOverview] = useState({ invitations: [], counts: {}, metrics: {} });
+  const [statusFilter, setStatusFilter] = useState("active");
+  const [editingInviteEmailId, setEditingInviteEmailId] = useState(null);
+  const [editedInviteEmail, setEditedInviteEmail] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [searching, setSearching] = useState(false);
@@ -77,15 +96,21 @@ export default function EventLineupPage() {
     setLoading(true);
     setError("");
     try {
-      const [eventData, lineup, owned] = await Promise.all([
+      const [eventData, lineup, owned, invites] = await Promise.all([
         eventService.show(eventId),
         cutinappService.eventArtists(eventId),
         cutinappService.myArtists(),
+        artistService.eventInvitations(eventId).catch(() => ({ invitations: [], counts: {}, metrics: {} })),
       ]);
       const next = lineup?.artists || [];
       setEvent(eventData);
       setArtists(next);
       setMine(Array.isArray(owned) ? owned : []);
+      setInvitationOverview({
+        invitations: Array.isArray(invites?.invitations) ? invites.invitations : [],
+        counts: invites?.counts || {},
+        metrics: invites?.metrics || {},
+      });
       setForm((current) => ({ ...current, sort_order: next.length }));
     } catch (err) {
       setError(errorMessage(err, "Não foi possível carregar o line-up."));
@@ -135,9 +160,28 @@ export default function EventLineupPage() {
     return () => window.clearTimeout(timer);
   }, [eventId, mode, query, selectedCandidate]);
 
+  const invitationRows = useMemo(
+    () => Array.isArray(invitationOverview?.invitations) ? invitationOverview.invitations : [],
+    [invitationOverview],
+  );
+  const invitationByArtist = useMemo(() => new Map(
+    invitationRows.filter((row) => row.artist_id).map((row) => [Number(row.artist_id), row]),
+  ), [invitationRows]);
   const managedAvailable = useMemo(() => mine.filter((artist) => !artists.some((item) => Number(item.id) === Number(artist.id))), [artists, mine]);
   const confirmed = useMemo(() => artists.filter((artist) => (artist.pivot?.status || "confirmed") === "confirmed").length, [artists]);
-  const pending = useMemo(() => artists.filter((artist) => artist.pivot?.status === "pending").length, [artists]);
+  const pending = useMemo(() => invitationRows.filter((row) => ACTIVE_INVITATION_STATUSES.has(row.status)).length, [invitationRows]);
+  const declined = useMemo(() => invitationRows.filter((row) => row.status === "declined").length, [invitationRows]);
+  const closed = useMemo(() => invitationRows.filter((row) => ["expired", "cancelled_by_producer", "event_cancelled"].includes(row.status)).length, [invitationRows]);
+  const filteredArtists = useMemo(() => artists.filter((artist) => {
+    const status = artist.pivot?.status || "confirmed";
+    if (statusFilter === "all") return true;
+    if (statusFilter === "confirmed") return status === "confirmed";
+    if (statusFilter === "pending") return ["pending", "pending_change"].includes(status);
+    if (statusFilter === "declined") return status === "declined";
+    if (statusFilter === "closed") return ["expired", "cancelled_by_producer", "event_cancelled", "cancelled"].includes(status);
+    return !["expired", "cancelled_by_producer", "event_cancelled", "cancelled"].includes(status);
+  }), [artists, statusFilter]);
+  const externalInvitations = useMemo(() => invitationRows.filter((row) => !row.artist_id), [invitationRows]);
   const noCandidateFound = mode === "lookup"
     && query.trim().length >= 2
     && searchCompleted
@@ -204,6 +248,7 @@ export default function EventLineupPage() {
       const response = await artistService.resolveAndInvite(eventId, { identifier, ...participationPayload(form) });
       if (response.external_invitation) {
         setSuccess(response.message || "A pessoa ainda não possui conta. O convite de cadastro foi enviado por e-mail.");
+        await load();
         resetEditor();
       } else {
         setSuccess(response.message || "Artista localizado e convidado para o evento.");
@@ -242,7 +287,8 @@ export default function EventLineupPage() {
       const response = await artistService.updateParticipation(eventId, editingArtistId, participationPayload(form));
       const next = response?.artists || [];
       setArtists(next);
-      setSuccess("Participação atualizada sem alterar o perfil pessoal do artista.");
+      setSuccess(response?.message || "Participação atualizada sem alterar o perfil pessoal do artista.");
+      await load();
       resetEditor(next);
     } catch (err) {
       setError(errorMessage(err, "Não foi possível atualizar a participação."));
@@ -273,12 +319,59 @@ export default function EventLineupPage() {
     setBusy(true); setError("");
     try {
       await cutinappService.detachArtist(eventId, artist.id);
-      const next = artists.filter((item) => Number(item.id) !== Number(artist.id));
-      setArtists(next);
-      setSuccess(`${artist.stage_name} foi removido do line-up.`);
-      if (Number(editingArtistId) === Number(artist.id)) resetEditor(next);
+      setSuccess(`${artist.stage_name} foi cancelado no line-up. O histórico foi preservado.`);
+      if (Number(editingArtistId) === Number(artist.id)) resetEditor();
+      await load();
     } catch (err) {
       setError(errorMessage(err, "Não foi possível remover o artista."));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const resendInvitation = async (invitation) => {
+    setBusy(true); setError(""); setSuccess("");
+    try {
+      const response = await artistService.resendInvitation(eventId, invitation.id);
+      setSuccess(response?.message || "Convite reenviado.");
+      await load();
+    } catch (err) {
+      setError(errorMessage(err, "Não foi possível reenviar o convite."));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const cancelInvitation = async (invitation, label = "este convite") => {
+    const reason = window.prompt(`Motivo do cancelamento de ${label} (opcional):`, "") ?? null;
+    if (reason === null) return;
+    setBusy(true); setError(""); setSuccess("");
+    try {
+      const response = await artistService.cancelInvitation(eventId, invitation.id, reason);
+      setSuccess(response?.message || "Convite cancelado.");
+      await load();
+    } catch (err) {
+      setError(errorMessage(err, "Não foi possível cancelar o convite."));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const saveInvitationEmail = async (invitation) => {
+    const email = String(editedInviteEmail || "").trim().toLowerCase();
+    if (!isEmail(email)) {
+      setError("Informe um e-mail válido.");
+      return;
+    }
+    setBusy(true); setError(""); setSuccess("");
+    try {
+      const response = await artistService.updateInvitationEmail(eventId, invitation.id, email);
+      setSuccess(response?.message || "E-mail corrigido.");
+      setEditingInviteEmailId(null);
+      setEditedInviteEmail("");
+      await load();
+    } catch (err) {
+      setError(errorMessage(err, "Não foi possível corrigir o e-mail do convite."));
     } finally {
       setBusy(false);
     }
@@ -365,10 +458,23 @@ export default function EventLineupPage() {
         {success && <Alert variant="success" dismissible onClose={() => setSuccess("")}>{success}</Alert>}
 
         <Row className="g-3 mb-4">
-          <Col sm={4}><Card className="cut-lineup-summary-card h-100"><Card.Body><small>Total</small><strong className="d-block fs-3">{artists.length}</strong></Card.Body></Card></Col>
-          <Col sm={4}><Card className="cut-lineup-summary-card h-100"><Card.Body><small>Confirmados</small><strong className="d-block fs-3">{confirmed}</strong></Card.Body></Card></Col>
-          <Col sm={4}><Card className="cut-lineup-summary-card h-100"><Card.Body><small>Aguardando resposta</small><strong className="d-block fs-3">{pending}</strong></Card.Body></Card></Col>
+          <Col sm={6} lg><Card className="cut-lineup-summary-card h-100"><Card.Body><small>Convites</small><strong className="d-block fs-3">{invitationRows.length}</strong></Card.Body></Card></Col>
+          <Col sm={6} lg><Card className="cut-lineup-summary-card h-100"><Card.Body><small>Confirmados</small><strong className="d-block fs-3">{confirmed}</strong></Card.Body></Card></Col>
+          <Col sm={6} lg><Card className="cut-lineup-summary-card h-100"><Card.Body><small>Aguardando resposta</small><strong className="d-block fs-3">{pending}</strong></Card.Body></Card></Col>
+          <Col sm={6} lg><Card className="cut-lineup-summary-card h-100"><Card.Body><small>Recusados</small><strong className="d-block fs-3">{declined}</strong></Card.Body></Card></Col>
+          <Col sm={6} lg><Card className="cut-lineup-summary-card h-100"><Card.Body><small>Encerrados</small><strong className="d-block fs-3">{closed}</strong></Card.Body></Card></Col>
         </Row>
+
+        {invitationRows.length > 0 && <Card className="cut-lineup-editor-card mb-4"><Card.Body>
+          <div className="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+            <div><span className="cut-eyebrow">Conversão dos convites</span><h2 className="h5 mb-1">Resposta dos artistas</h2><p className="text-secondary mb-0">A presença só entra como confirmada depois do aceite explícito do artista ou gestor autorizado.</p></div>
+            <div className="cut-lineup-invite-metrics">
+              <span><strong>{Number(invitationOverview?.metrics?.acceptance_rate || 0)}%</strong> aceite</span>
+              <span><strong>{Number(invitationOverview?.metrics?.view_rate || 0)}%</strong> visualização</span>
+              <span><strong>{invitationOverview?.metrics?.average_response_minutes == null ? "—" : `${invitationOverview.metrics.average_response_minutes} min`}</strong> resposta média</span>
+            </div>
+          </div>
+        </Card.Body></Card>}
 
         <Card className="cut-lineup-editor-card mb-4">
           <Card.Body>
@@ -401,15 +507,59 @@ export default function EventLineupPage() {
           </Card.Body>
         </Card>
 
-        <div className="d-flex justify-content-between align-items-center mb-3"><div><span className="cut-eyebrow">Programação</span><h2 className="h4 mb-0">Line-up atual</h2></div><small className="text-secondary">{artists.length} atração(ões)</small></div>
+        {externalInvitations.length > 0 && <section className="mb-4">
+          <div className="d-flex justify-content-between align-items-center mb-3"><div><span className="cut-eyebrow">Aguardando cadastro</span><h2 className="h4 mb-0">Convites externos</h2></div><small className="text-secondary">{externalInvitations.length} convite(s)</small></div>
+          <div className="d-grid gap-3">
+            {externalInvitations.map((invitation) => {
+              const [statusLabel, statusColor] = STATUS_LABELS[invitation.status] || [invitation.status, "secondary"];
+              const [emailLabel, emailColor] = EMAIL_STATUS_LABELS[invitation.email_status] || [invitation.email_status || "E-mail", "secondary"];
+              const activeInvite = ACTIVE_INVITATION_STATUSES.has(invitation.status);
+              const cooldown = invitation.resend_available_at && new Date(invitation.resend_available_at).getTime() > Date.now();
+              return <Card key={invitation.id} className="cut-lineup-artist-card"><Card.Body>
+                <div className="d-flex flex-wrap justify-content-between align-items-start gap-3">
+                  <div>
+                    <div className="d-flex flex-wrap gap-2 align-items-center"><h3 className="h5 mb-0">{invitation.identifier_hint || "Novo artista"}</h3><Badge bg={statusColor}>{statusLabel}</Badge><Badge bg={emailColor}>{emailLabel}</Badge></div>
+                    <small className="text-secondary d-block mt-1">A identidade artística será criada somente quando a pessoa concluir o cadastro com o mesmo e-mail. Depois disso, o convite continuará aguardando aceite.</small>
+                    {invitation.email_status === "failed" || invitation.email_status === "bounced" ? <Alert variant="danger" className="mt-2 mb-0 py-2">O convite existe, mas o e-mail não chegou corretamente. Corrija o endereço ou tente reenviar.</Alert> : null}
+                  </div>
+                  {activeInvite && <div className="d-flex flex-wrap gap-2">
+                    <Button size="sm" variant="outline-light" disabled={busy || cooldown} onClick={() => resendInvitation(invitation)}>{cooldown ? "Aguarde para reenviar" : "Reenviar"}</Button>
+                    {invitation.status === "pending_external" && <Button size="sm" variant="outline-light" onClick={() => { setEditingInviteEmailId(invitation.id); setEditedInviteEmail(""); }}>Corrigir e-mail</Button>}
+                    <Button size="sm" variant="outline-danger" onClick={() => cancelInvitation(invitation, invitation.identifier_hint || "convite")}>Cancelar convite</Button>
+                  </div>}
+                </div>
+                {editingInviteEmailId === invitation.id && <div className="cut-lineup-email-editor mt-3"><Form.Control type="email" value={editedInviteEmail} onChange={(e) => setEditedInviteEmail(e.target.value)} placeholder="novo-email@exemplo.com" /><Button size="sm" disabled={busy || !isEmail(editedInviteEmail)} onClick={() => saveInvitationEmail(invitation)}>Salvar e reenviar</Button><Button size="sm" variant="outline-light" onClick={() => { setEditingInviteEmailId(null); setEditedInviteEmail(""); }}>Fechar</Button></div>}
+              </Card.Body></Card>;
+            })}
+          </div>
+        </section>}
+
+        <div className="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-3">
+          <div><span className="cut-eyebrow">Programação</span><h2 className="h4 mb-0">Line-up e histórico</h2></div>
+          <div className="d-flex gap-2 align-items-center flex-wrap">
+            <Form.Select size="sm" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} aria-label="Filtrar line-up por status">
+              <option value="active">Ativos</option>
+              <option value="all">Todos</option>
+              <option value="confirmed">Confirmados</option>
+              <option value="pending">Aguardando resposta</option>
+              <option value="declined">Recusados</option>
+              <option value="closed">Cancelados/expirados</option>
+            </Form.Select>
+            <small className="text-secondary">{filteredArtists.length} atração(ões)</small>
+          </div>
+        </div>
         <div className="d-grid gap-3">
-          {artists.map((artist, index) => {
+          {filteredArtists.map((artist, index) => {
             const pivot = artist.pivot || {};
             const status = pivot.status || "confirmed";
             const [statusLabel, statusColor] = STATUS_LABELS[status] || [status, "secondary"];
-            return <Card key={artist.id} className="cut-lineup-artist-card"><Card.Body><div className="d-flex flex-wrap gap-3 justify-content-between align-items-start"><div className="d-flex gap-3 align-items-center"><div className="cut-lineup-picker-avatar">{artist.photo ? <img src={artist.photo} alt="" /> : initials(artist.stage_name)}</div><div><div className="d-flex flex-wrap gap-2 align-items-center"><h3 className="h5 mb-0">{artist.stage_name}</h3><Badge bg={statusColor}>{statusLabel}</Badge>{pivot.is_headliner && <Badge bg="info">Atração principal</Badge>}</div><div className="text-secondary small mt-1">{pivot.participation_type || "show"}{pivot.stage ? ` · ${pivot.stage}` : ""}{pivot.scheduled_at ? ` · ${new Date(pivot.scheduled_at).toLocaleString("pt-BR")}` : ""}</div>{pivot.checked_in_at && <small className="text-success d-block mt-1">Check-in confirmado</small>}</div></div><div className="d-flex flex-wrap gap-2"><Button size="sm" variant="outline-light" disabled={index === 0 || busy} onClick={() => move(artist.id, -1)}>↑</Button><Button size="sm" variant="outline-light" disabled={index === artists.length - 1 || busy} onClick={() => move(artist.id, 1)}>↓</Button><Button size="sm" variant="outline-light" onClick={() => beginEdit(artist)}>Editar participação</Button>{status === "confirmed" && !pivot.checked_in_at && <Button size="sm" variant="outline-success" onClick={() => checkIn(artist)}>Check-in</Button>}<Button size="sm" variant="outline-danger" onClick={() => removeArtist(artist)}>Remover</Button></div></div>{pivot.description && <p className="mb-0 mt-3 text-secondary">{pivot.description}</p>}</Card.Body></Card>;
+            const invitation = invitationByArtist.get(Number(artist.id));
+            const [emailLabel, emailColor] = EMAIL_STATUS_LABELS[invitation?.email_status] || [invitation?.email_status || "", "secondary"];
+            const activeInvite = invitation && ACTIVE_INVITATION_STATUSES.has(invitation.status);
+            const cooldown = invitation?.resend_available_at && new Date(invitation.resend_available_at).getTime() > Date.now();
+            return <Card key={artist.id} className="cut-lineup-artist-card"><Card.Body><div className="d-flex flex-wrap gap-3 justify-content-between align-items-start"><div className="d-flex gap-3 align-items-center"><div className="cut-lineup-picker-avatar">{artist.photo ? <img src={avatarSrc(artist.photo)} alt="" loading="lazy" /> : initials(artist.stage_name)}</div><div><div className="d-flex flex-wrap gap-2 align-items-center"><h3 className="h5 mb-0">{artist.stage_name}</h3><Badge bg={statusColor}>{statusLabel}</Badge>{invitation?.email_status && <Badge bg={emailColor}>{emailLabel}</Badge>}{pivot.is_headliner && <Badge bg="info">Atração principal</Badge>}</div><div className="text-secondary small mt-1">{pivot.participation_type || "show"}{pivot.stage ? ` · ${pivot.stage}` : ""}{pivot.scheduled_at ? ` · ${new Date(pivot.scheduled_at).toLocaleString("pt-BR")}` : ""}</div>{pivot.decline_reason && <small className="text-secondary d-block mt-1">Motivo informado: {pivot.decline_reason}</small>}{pivot.checked_in_at && <small className="text-success d-block mt-1">Check-in confirmado</small>}{invitation && (invitation.email_status === "failed" || invitation.email_status === "bounced") && <small className="text-danger d-block mt-1">Falha na entrega do e-mail. O convite continua pendente.</small>}</div></div><div className="d-flex flex-wrap gap-2"><Button size="sm" variant="outline-light" disabled={index === 0 || busy || statusFilter !== "active"} onClick={() => move(artist.id, -1)}>↑</Button><Button size="sm" variant="outline-light" disabled={index === filteredArtists.length - 1 || busy || statusFilter !== "active"} onClick={() => move(artist.id, 1)}>↓</Button><Button size="sm" variant="outline-light" onClick={() => beginEdit(artist)} disabled={["cancelled_by_producer","event_cancelled","expired"].includes(status)}>Editar participação</Button>{activeInvite && <Button size="sm" variant="outline-light" disabled={busy || cooldown} onClick={() => resendInvitation(invitation)}>{cooldown ? "Reenvio em breve" : "Reenviar convite"}</Button>}{status === "confirmed" && !pivot.checked_in_at && <Button size="sm" variant="outline-success" onClick={() => checkIn(artist)}>Check-in</Button>}{!["cancelled_by_producer","event_cancelled","expired"].includes(status) && <Button size="sm" variant="outline-danger" onClick={() => invitation ? cancelInvitation(invitation, artist.stage_name) : removeArtist(artist)}>Cancelar</Button>}</div></div>{pivot.description && <p className="mb-0 mt-3 text-secondary">{pivot.description}</p>}</Card.Body></Card>;
           })}
-          {!artists.length && !loading && <Card className="cut-lineup-artist-card"><Card.Body className="text-center py-5"><h3 className="h5">Nenhum artista no line-up</h3><p className="text-secondary mb-0">Localize o primeiro usuário acima para começar.</p></Card.Body></Card>}
+          {!filteredArtists.length && !loading && <Card className="cut-lineup-artist-card"><Card.Body className="text-center py-5"><h3 className="h5">Nenhum artista no line-up</h3><p className="text-secondary mb-0">Localize o primeiro usuário acima para começar.</p></Card.Body></Card>}
         </div>
       </Container>
     </div>
