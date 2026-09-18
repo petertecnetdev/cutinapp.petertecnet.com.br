@@ -6,7 +6,7 @@ import creativeService from "../services/CreativeService";
 import "./event-flyer-assistant.css";
 
 const formats = {
-  cover: { label: "Capa do evento", width: 1600, height: 900, ratio: "16:9" },
+  cover: { label: "Capa do evento", width: 1024, height: 1536, ratio: "2:3" },
   post: { label: "Post / feed", width: 1080, height: 1350, ratio: "4:5" },
   story: { label: "Story", width: 1080, height: 1920, ratio: "9:16" },
   og: { label: "WhatsApp", width: 1200, height: 630, ratio: "1.91:1" },
