@@ -32,58 +32,55 @@ class AiContentService {
       action: ["improve", "rewrite", "enrich"].includes(action) ? action : "improve",
     };
 
-    try {
-      const response = await apiClient.post("/ai/content/description", payload, { timeout: 80000 });
-      const description = cleanString(response?.data?.description, 10000);
+    const primary = await apiClient
+      .post("/ai/content/description", payload, { timeout: 80000 })
+      .then((response) => ({ response, error: null }))
+      .catch((error) => ({ response: null, error }));
 
-      if (!description) {
-        throw new Error("A IA não retornou uma descrição utilizável.");
-      }
+    if (!primary.error) {
+      const description = cleanString(primary.response?.data?.description, 10000);
+      if (!description) throw new Error("A IA não retornou uma descrição utilizável.");
 
       return {
-        ...response.data,
+        ...primary.response.data,
         description,
       };
-    } catch (primaryError) {
-      // Compatibility path while older API deployments still expose the
-      // creative-text endpoint. This keeps the editor functional during
-      // rolling frontend/API deployments instead of surfacing a generic 5xx.
-      try {
-        const legacyPayload = {
-          purpose: "event_description",
-          entity_type: payload.entity_type,
-          title: payload.title,
-          description: payload.current_description,
-          context: payload.context,
-          locale: payload.locale,
-          tone: payload.tone,
-          action: payload.action,
-        };
-        const response = await apiClient.post(
-          "/v1/apps/cutinapp/creative/texts",
-          legacyPayload,
-          { timeout: 80000 },
-        );
-        const data = response?.data?.data || response?.data || {};
-        const description = cleanString(
-          data.description || data.text || data.content || data.result,
-          10000,
-        );
-
-        if (!description) throw primaryError;
-
-        return {
-          ...data,
-          description,
-          meta: {
-            ...(data.meta || {}),
-            compatibility_endpoint: true,
-          },
-        };
-      } catch (_) {
-        throw primaryError;
-      }
     }
+
+    // Compatibility path while older API deployments still expose the
+    // creative-text endpoint. Preserve the primary error if the fallback fails.
+    const legacyPayload = {
+      purpose: "event_description",
+      entity_type: payload.entity_type,
+      title: payload.title,
+      description: payload.current_description,
+      context: payload.context,
+      locale: payload.locale,
+      tone: payload.tone,
+      action: payload.action,
+    };
+    const fallback = await apiClient
+      .post("/v1/apps/cutinapp/creative/texts", legacyPayload, { timeout: 80000 })
+      .then((response) => ({ response, error: null }))
+      .catch((error) => ({ response: null, error }));
+
+    if (fallback.error) throw primary.error;
+
+    const data = fallback.response?.data?.data || fallback.response?.data || {};
+    const description = cleanString(
+      data.description || data.text || data.content || data.result,
+      10000,
+    );
+    if (!description) throw primary.error;
+
+    return {
+      ...data,
+      description,
+      meta: {
+        ...(data.meta || {}),
+        compatibility_endpoint: true,
+      },
+    };
   }
 }
 
