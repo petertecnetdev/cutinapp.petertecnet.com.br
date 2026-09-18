@@ -529,23 +529,41 @@ export default function EventManagePage() {
   };
 
   const publication = async (event) => {
+    const previousPublished = Boolean(event.is_published);
+    const nextPublished = !previousPublished;
     setBusyId(event.id);
     setError("");
     setSuccess("");
+    setEvents((current) => current.map((item) => Number(item.id) === Number(event.id)
+      ? { ...item, is_published: nextPublished }
+      : item));
     try {
-      const response = event.is_published
+      const response = previousPublished
         ? await cutinappService.unpublishEvent(event.id)
         : await cutinappService.publishEvent(event.id);
-      await load();
-      if (!event.is_published) {
+      if (response?.event) {
+        setEvents((current) => current.map((item) => Number(item.id) === Number(event.id)
+          ? {
+            ...item,
+            ...response.event,
+            production: response.event.production || item.production,
+            artists: response.event.artists || item.artists,
+            operational_metrics: item.operational_metrics,
+          }
+          : item));
+      }
+      if (!previousPublished) {
         trackProducerActivation("producer_event_published", event, { activation_stage: "published" });
         setCopiedEventId(null);
         setPublishedEvent({ ...event, is_published: true, slug: response?.event?.slug || event.slug });
       }
-      setSuccess(event.is_published
+      setSuccess(previousPublished
         ? (response.message || "Evento retirado da publicação.")
         : "Evento publicado. Agora compartilhe a página pública para buscar a primeira venda.");
     } catch (err) {
+      setEvents((current) => current.map((item) => Number(item.id) === Number(event.id)
+        ? { ...item, is_published: previousPublished }
+        : item));
       setError(err?.message || "Não foi possível alterar a publicação do evento.");
     } finally {
       setBusyId(null);
@@ -907,6 +925,9 @@ export default function EventManagePage() {
       const matchesInventory = inventoryFilter === "all"
         || (inventoryFilter === "available" && metrics.ticketsRemaining > 0)
         || (inventoryFilter === "sold_out" && metrics.ticketCapacity > 0 && metrics.ticketsRemaining === 0);
+      const searchableDate = Number.isFinite(eventStart.getTime())
+        ? new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" }).format(eventStart)
+        : "";
 
       if (!matchesStatus || !matchesProduction || !matchesCity || !matchesPeriod || !matchesDateFrom || !matchesDateTo || !matchesPerformance || !matchesArtist || !matchesSales || !matchesInventory) return false;
       if (!normalizedSearch) return true;
@@ -920,6 +941,8 @@ export default function EventManagePage() {
         status.label,
         readiness.title,
         performance.label,
+        searchableDate,
+        formatDate(event.start_date),
         ...(Array.isArray(event?.artists) ? event.artists.map((artist) => artist?.stage_name) : []),
       ]
         .filter(Boolean)
