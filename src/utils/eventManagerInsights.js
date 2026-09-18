@@ -119,6 +119,33 @@ export const eventAlerts = (event) => {
 
   if (event?.is_cancelled || event?.has_ended || until <= 0) return alerts;
 
+  const productionId = Number(event?.production?.id || event?.production_id || 0);
+  const payment = event?.payment_readiness || {};
+  if (payment.required && !payment.sales_ready) {
+    alerts.push({
+      key: "payment-not-ready",
+      tone: "danger",
+      icon: "fa-brands fa-pix",
+      title: "Recebimentos ainda não configurados",
+      detail: payment.message || "Configure o recebimento da produção antes de vender ingressos pagos.",
+      route: `/producer/finance?production=${productionId || ""}`,
+    });
+  }
+
+  const missingBasics = !String(event?.title || "").trim()
+    || !event?.start_date
+    || !String(event?.venue || event?.address || event?.online_url || "").trim();
+  if (missingBasics) {
+    alerts.push({
+      key: "missing-basics",
+      tone: "danger",
+      icon: "fa-solid fa-pen",
+      title: "Dados essenciais incompletos",
+      detail: "Revise nome, data, horário e local antes de divulgar.",
+      route: `/event/edit/${event.id}#basics`,
+    });
+  }
+
   if (until <= 24 && number(event?.available_tickets_count) === 0) {
     alerts.push({
       key: "no-ticket-near-event",
@@ -126,6 +153,7 @@ export const eventAlerts = (event) => {
       icon: "fa-solid fa-triangle-exclamation",
       title: "Evento em menos de 24h sem lote disponível",
       detail: "Crie ou reabra um lote para não perder vendas de última hora.",
+      route: `/ticket/create?eventId=${event.id}`,
     });
   } else if (event?.is_published && number(event?.available_tickets_count) === 0) {
     alerts.push({
@@ -134,6 +162,7 @@ export const eventAlerts = (event) => {
       icon: "fa-solid fa-ticket",
       title: "Publicado sem ingresso disponível",
       detail: "O evento está no ar, mas não possui lote vendável.",
+      route: `/ticket/create?eventId=${event.id}`,
     });
   }
 
@@ -144,6 +173,7 @@ export const eventAlerts = (event) => {
       icon: "fa-solid fa-chart-line",
       title: "Evento próximo sem vendas pagas",
       detail: "Revise preço, lotes e divulgação antes do horário do evento.",
+      mode: "whatsapp",
     });
   } else if (event?.is_published && metrics.ticketsSold === 0) {
     alerts.push({
@@ -152,6 +182,7 @@ export const eventAlerts = (event) => {
       icon: "fa-solid fa-chart-line",
       title: "Publicado e ainda sem vendas",
       detail: "Acompanhe visualizações e compartilhe o link rastreável.",
+      mode: "whatsapp",
     });
   }
 
@@ -196,6 +227,7 @@ export const eventAlerts = (event) => {
       icon: "fa-solid fa-user-clock",
       title: `${pendingArtists.length} convite(s) de artista aguardando resposta`,
       detail: "Abra o line-up para acompanhar ou reenviar o convite.",
+      route: `/event/${event.id}/lineup`,
     });
   }
   if (declinedArtists.length > 0) {
@@ -205,6 +237,41 @@ export const eventAlerts = (event) => {
       icon: "fa-solid fa-user-xmark",
       title: `${declinedArtists.length} participação(ões) de artista não confirmada(s)`,
       detail: "Revise o line-up antes da divulgação do evento.",
+      route: `/event/${event.id}/lineup`,
+    });
+  }
+
+  const description = String(event?.description || "").trim();
+  if (description.length < 80) {
+    alerts.push({
+      key: "description-incomplete",
+      tone: "warning",
+      icon: "fa-solid fa-align-left",
+      title: "Descrição pode ser completada",
+      detail: "Uma descrição clara ajuda o público e melhora a descoberta do evento.",
+      route: `/event/edit/${event.id}#description`,
+    });
+  }
+
+  if (!event?.image) {
+    alerts.push({
+      key: "missing-cover",
+      tone: "warning",
+      icon: "fa-regular fa-image",
+      title: "Evento sem imagem principal",
+      detail: "Adicione um flyer/capa otimizado para melhorar a apresentação e o compartilhamento.",
+      route: `/event/edit/${event.id}#media`,
+    });
+  }
+
+  if (description.length > 0 && description.length < 140) {
+    alerts.push({
+      key: "seo-improvement",
+      tone: "info",
+      icon: "fa-solid fa-magnifying-glass-chart",
+      title: "SEO pode ser melhorado",
+      detail: "Enriqueça título, descrição e contexto do evento para ampliar a descoberta orgânica.",
+      route: `/event/edit/${event.id}#seo`,
     });
   }
 
@@ -215,10 +282,11 @@ export const eventAlerts = (event) => {
       icon: "fa-solid fa-rocket",
       title: "Pronto para publicar",
       detail: "O evento já possui lote disponível.",
+      mode: "publish",
     });
   }
 
-  return alerts.slice(0, 4);
+  return alerts.slice(0, 6);
 };
 
 export const eventTemporalGroup = (event, now = new Date()) => {
