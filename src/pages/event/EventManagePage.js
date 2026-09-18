@@ -1351,35 +1351,23 @@ export default function EventManagePage() {
             <h1>Meus eventos</h1>
             <p>Acompanhe publicação, ingressos e preparação de cada evento sem perder o que precisa da sua atenção.</p>
           </div>
-          <div className="cut-event-manager-hero__actions d-flex flex-wrap gap-2 justify-content-end">
-            {bulkCandidates.length > 0 && (
-              <Button
-                variant="success"
-                className="cut-event-manager-new"
-                onClick={openBulkPublish}
-                disabled={Boolean(busyId) || bulkPublishing}
-              >
-                <i className="fa-solid fa-rocket me-2" />Publicar todos ({bulkCandidates.length})
-              </Button>
-            )}
-            {events.length > 0 && (
-              <Button
-                variant="outline-danger"
-                className="cut-event-manager-new"
-                onClick={openDeleteAll}
-                disabled={Boolean(busyId) || bulkPublishing}
-              >
-                <i className="fa-solid fa-trash-can me-2" />Excluir todos
-              </Button>
-            )}
-            {events.length > 0 && (
-              <Button variant="outline-light" className="cut-event-manager-new" onClick={() => exportEventsCsv(visibleEvents.length ? visibleEvents : events)} disabled={bulkPublishing || deletingAll}>
-                <i className="fa-solid fa-file-csv me-2" />Exportar
-              </Button>
-            )}
+          <div className="cut-event-manager-hero__actions">
             <Button className="cut-event-manager-new" onClick={() => navigate("/event/create")} disabled={bulkPublishing || deletingAll} title="Atalho: N">
               <i className="fa-solid fa-plus me-2" />Novo evento
             </Button>
+            {events.length > 0 && (
+              <Dropdown align="end">
+                <Dropdown.Toggle variant="outline-light" className="cut-event-manager-more-actions">
+                  <i className="fa-solid fa-ellipsis me-2" />Mais ações
+                </Dropdown.Toggle>
+                <Dropdown.Menu className="cut-event-toolbar-menu">
+                  {bulkCandidates.length > 0 && <Dropdown.Item onClick={openBulkPublish} disabled={Boolean(busyId) || bulkPublishing}><i className="fa-solid fa-rocket" />Publicar aptos ({bulkCandidates.length})</Dropdown.Item>}
+                  <Dropdown.Item onClick={() => exportEventsCsv(visibleEvents.length ? visibleEvents : events)} disabled={bulkPublishing || deletingAll}><i className="fa-solid fa-file-csv" />Exportar resultado</Dropdown.Item>
+                  <Dropdown.Divider />
+                  <Dropdown.Item className="text-danger" onClick={openDeleteAll} disabled={Boolean(busyId) || bulkPublishing}><i className="fa-solid fa-trash-can" />Excluir todos</Dropdown.Item>
+                </Dropdown.Menu>
+              </Dropdown>
+            )}
           </div>
         </header>
 
@@ -1405,50 +1393,36 @@ export default function EventManagePage() {
           </Card>
         ) : (
           <>
-            <section className="cut-event-manager-summary" aria-label="Resumo dos eventos">
+            <section className="cut-event-manager-summary" aria-label="Filtrar por situação">
               <button type="button" className={statusFilter === "all" && periodFilter === "all" ? "is-active" : ""} onClick={() => applySummaryFilter("all")}>
-                <span className="cut-event-manager-summary__icon"><i className="fa-solid fa-layer-group" /></span>
-                <span className="cut-event-manager-summary__copy"><small>Portfólio</small><span>Todos os eventos</span></span>
-                <strong>{stats.total}</strong>
+                <i className="fa-solid fa-layer-group" /><span>Todos</span><strong>{stats.total}</strong>
+              </button>
+              <button type="button" className={statusFilter === "attention" ? "is-active is-priority" : "is-priority"} onClick={() => applySummaryFilter("attention")}>
+                <i className="fa-solid fa-bolt" /><span>Precisa de ação</span><strong>{stats.attention}</strong>
               </button>
               <button type="button" className={statusFilter === "published" ? "is-active" : ""} onClick={() => applySummaryFilter("published")}>
-                <span className="cut-event-manager-summary__icon"><i className="fa-solid fa-circle-check" /></span>
-                <span className="cut-event-manager-summary__copy"><small>No ar</small><span>Publicados</span></span>
-                <strong>{stats.published}</strong>
+                <i className="fa-solid fa-circle-check" /><span>Publicados</span><strong>{stats.published}</strong>
               </button>
               <button type="button" className={statusFilter === "draft" ? "is-active" : ""} onClick={() => applySummaryFilter("draft")}>
-                <span className="cut-event-manager-summary__icon"><i className="fa-solid fa-pen-ruler" /></span>
-                <span className="cut-event-manager-summary__copy"><small>Em construção</small><span>Rascunhos</span></span>
-                <strong>{stats.draft}</strong>
+                <i className="fa-solid fa-pen-ruler" /><span>Rascunhos</span><strong>{stats.draft}</strong>
               </button>
-              <button type="button" className={statusFilter === "attention" ? "is-active" : ""} onClick={() => applySummaryFilter("attention")}>
-                <span className="cut-event-manager-summary__icon"><i className="fa-solid fa-bolt" /></span>
-                <span className="cut-event-manager-summary__copy"><small>Prioridade</small><span>Precisam de ação</span></span>
-                <strong>{stats.attention}</strong>
-              </button>
-              {stats.ended > 0 && (
-                <button type="button" className={periodFilter === "past" ? "is-active" : ""} onClick={() => applySummaryFilter("all", "past")}>
-                  <span className="cut-event-manager-summary__icon"><i className="fa-solid fa-clock-rotate-left" /></span>
-                  <span className="cut-event-manager-summary__copy"><small>Pós-evento</small><span>Encerrados / Reviva</span></span>
-                  <strong>{stats.ended}</strong>
-                </button>
-              )}
-              {stats.cancelled > 0 && (
-                <button type="button" className={statusFilter === "cancelled" ? "is-active" : ""} onClick={() => applySummaryFilter("cancelled")}>
-                  <span className="cut-event-manager-summary__icon"><i className="fa-solid fa-ban" /></span>
-                  <span className="cut-event-manager-summary__copy"><small>Fora da agenda</small><span>Cancelados</span></span>
-                  <strong>{stats.cancelled}</strong>
-                </button>
-              )}
+              {stats.ended > 0 && <button type="button" className={periodFilter === "past" ? "is-active" : ""} onClick={() => applySummaryFilter("all", "past")}><i className="fa-solid fa-clock-rotate-left" /><span>Encerrados</span><strong>{stats.ended}</strong></button>}
+              {stats.cancelled > 0 && <button type="button" className={statusFilter === "cancelled" ? "is-active" : ""} onClick={() => applySummaryFilter("cancelled")}><i className="fa-solid fa-ban" /><span>Cancelados</span><strong>{stats.cancelled}</strong></button>}
             </section>
 
-            <section className="cut-event-portfolio-metrics" aria-label="Resumo comercial dos eventos">
-              <div><span><i className="fa-solid fa-chart-line" />Faturamento próximos eventos</span><strong>{moneyBR(portfolioMetrics.upcomingGrossSales)}</strong></div>
-              <div><span><i className="fa-solid fa-bolt" />Vendas hoje</span><strong>{moneyBR(portfolioMetrics.salesToday)}</strong></div>
-              <div><span><i className="fa-solid fa-ticket" />Ingressos vendidos</span><strong>{portfolioMetrics.ticketsSold.toLocaleString("pt-BR")}</strong></div>
-              <div><span><i className="fa-solid fa-layer-group" />Ingressos restantes</span><strong>{portfolioMetrics.ticketsRemaining.toLocaleString("pt-BR")}</strong></div>
-              {portfolioMetrics.pendingOrders > 0 && <div className="is-warning"><span><i className="fa-regular fa-clock" />Checkouts pendentes</span><strong>{portfolioMetrics.pendingOrders}</strong></div>}
-            </section>
+            <details className="cut-event-commerce-summary">
+              <summary>
+                <span><i className="fa-solid fa-chart-line" />Resumo comercial</span>
+                <small>{moneyBR(portfolioMetrics.upcomingGrossSales)} em próximos eventos · {portfolioMetrics.ticketsSold.toLocaleString("pt-BR")} ingresso(s) vendidos</small>
+              </summary>
+              <section className="cut-event-portfolio-metrics" aria-label="Resumo comercial dos eventos">
+                <div><span><i className="fa-solid fa-chart-line" />Faturamento próximos eventos</span><strong>{moneyBR(portfolioMetrics.upcomingGrossSales)}</strong></div>
+                <div><span><i className="fa-solid fa-bolt" />Vendas hoje</span><strong>{moneyBR(portfolioMetrics.salesToday)}</strong></div>
+                <div><span><i className="fa-solid fa-ticket" />Ingressos vendidos</span><strong>{portfolioMetrics.ticketsSold.toLocaleString("pt-BR")}</strong></div>
+                <div><span><i className="fa-solid fa-layer-group" />Ingressos restantes</span><strong>{portfolioMetrics.ticketsRemaining.toLocaleString("pt-BR")}</strong></div>
+                {portfolioMetrics.pendingOrders > 0 && <div className="is-warning"><span><i className="fa-regular fa-clock" />Checkouts pendentes</span><strong>{portfolioMetrics.pendingOrders}</strong></div>}
+              </section>
+            </details>
 
             <EventAttentionCenter events={events} onOpen={setQuickEvent} />
 
@@ -1458,7 +1432,7 @@ export default function EventManagePage() {
                 <Form.Control
                   ref={searchInputRef}
                   type="search"
-                  placeholder="Buscar evento, produção ou local · atalho /"
+                  placeholder="Buscar evento, artista, produção, cidade ou local · atalho /"
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
                   aria-label="Buscar meus eventos"
@@ -1477,26 +1451,23 @@ export default function EventManagePage() {
                     </Dropdown.Item>)}
                   </Dropdown.Menu>
                 </Dropdown>
-                <div className="cut-event-view-switch" role="group" aria-label="Modo de visualização">
-                  <button type="button" className={viewMode === "visual" ? "is-active" : ""} onClick={() => setViewMode("visual")} title="Modo visual"><i className="fa-solid fa-table-cells-large" /></button>
-                  <button type="button" className={viewMode === "compact" ? "is-active" : ""} onClick={() => setViewMode("compact")} title="Modo compacto"><i className="fa-solid fa-list" /></button>
-                  <button type="button" className={viewMode === "calendar" ? "is-active" : ""} onClick={() => setViewMode("calendar")} title="Modo calendário"><i className="fa-regular fa-calendar-days" /></button>
-                  <button type="button" className={viewMode === "timeline" ? "is-active" : ""} onClick={() => setViewMode("timeline")} title="Linha do tempo"><i className="fa-solid fa-timeline" /></button>
-                </div>
+                <Dropdown align="end">
+                  <Dropdown.Toggle variant="outline-light" className="cut-event-toolbar-control">
+                    <i className="fa-solid fa-eye me-2" />
+                    {viewMode === "compact" ? "Lista" : viewMode === "visual" ? "Grade" : viewMode === "calendar" ? "Calendário" : "Linha do tempo"}
+                  </Dropdown.Toggle>
+                  <Dropdown.Menu className="cut-event-toolbar-menu">
+                    <Dropdown.Item active={viewMode === "compact"} onClick={() => setViewMode("compact")}><i className="fa-solid fa-list" />Lista operacional</Dropdown.Item>
+                    <Dropdown.Item active={viewMode === "visual"} onClick={() => setViewMode("visual")}><i className="fa-solid fa-table-cells-large" />Grade visual</Dropdown.Item>
+                    <Dropdown.Item active={viewMode === "calendar"} onClick={() => setViewMode("calendar")}><i className="fa-regular fa-calendar-days" />Calendário</Dropdown.Item>
+                    <Dropdown.Item active={viewMode === "timeline"} onClick={() => setViewMode("timeline")}><i className="fa-solid fa-timeline" />Linha do tempo</Dropdown.Item>
+                  </Dropdown.Menu>
+                </Dropdown>
                 <button type="button" className={`cut-event-group-toggle${groupByPeriod ? " is-active" : ""}`} onClick={() => setGroupByPeriod((current) => !current)} title="Agrupar por período">
                   <i className="fa-solid fa-layer-group" />
                 </button>
-                {(searchTerm || statusFilter !== "all" || productionFilter !== "all" || cityFilter !== "all" || periodFilter !== "all" || dateFrom || dateTo || performanceFilter !== "all") && (
-                  <Button variant="outline-light" onClick={() => {
-                    setSearchTerm("");
-                    setStatusFilter("all");
-                    setProductionFilter("all");
-                    setCityFilter("all");
-                    setPeriodFilter("all");
-                    setDateFrom("");
-                    setDateTo("");
-                    setPerformanceFilter("all");
-                  }}>
+                {(searchTerm || statusFilter !== "all" || productionFilter !== "all" || cityFilter !== "all" || periodFilter !== "all" || dateFrom || dateTo || performanceFilter !== "all" || artistFilter !== "all" || salesFilter !== "all" || inventoryFilter !== "all") && (
+                  <Button variant="outline-light" onClick={clearFilters}>
                     <i className="fa-solid fa-filter-circle-xmark me-2" />Limpar
                   </Button>
                 )}
@@ -1504,10 +1475,13 @@ export default function EventManagePage() {
             </section>
 
             <details className="cut-event-advanced-filters">
-              <summary><span><i className="fa-solid fa-sliders" />Filtros avançados</span><small>Produção, cidade, período e desempenho</small></summary>
+              <summary><span><i className="fa-solid fa-sliders" />Filtros</span><small>Produção, artista, cidade, vendas, estoque, período e desempenho</small></summary>
               <div className="cut-event-advanced-filters__grid">
                 <Form.Group><Form.Label>Produção</Form.Label><Form.Select value={productionFilter} onChange={(event) => setProductionFilter(event.target.value)}><option value="all">Todas as produções</option>{filterOptions.productions.map((production) => <option key={production.id} value={production.id}>{production.name}</option>)}</Form.Select></Form.Group>
+                <Form.Group><Form.Label>Artista</Form.Label><Form.Select value={artistFilter} onChange={(event) => setArtistFilter(event.target.value)}><option value="all">Todos os artistas</option>{filterOptions.artists.map((artist) => <option key={artist.id} value={artist.id}>{artist.name}</option>)}</Form.Select></Form.Group>
                 <Form.Group><Form.Label>Cidade</Form.Label><Form.Select value={cityFilter} onChange={(event) => setCityFilter(event.target.value)}><option value="all">Todas as cidades</option>{filterOptions.cities.map((city) => <option key={city} value={city}>{city}</option>)}</Form.Select></Form.Group>
+                <Form.Group><Form.Label>Vendas</Form.Label><Form.Select value={salesFilter} onChange={(event) => setSalesFilter(event.target.value)}><option value="all">Com ou sem vendas</option><option value="with_sales">Com vendas</option><option value="no_sales">Sem vendas</option></Form.Select></Form.Group>
+                <Form.Group><Form.Label>Ingressos</Form.Label><Form.Select value={inventoryFilter} onChange={(event) => setInventoryFilter(event.target.value)}><option value="all">Qualquer estoque</option><option value="available">Disponíveis</option><option value="sold_out">Esgotados</option></Form.Select></Form.Group>
                 <Form.Group><Form.Label>Período</Form.Label><Form.Select value={periodFilter} onChange={(event) => setPeriodFilter(event.target.value)}><option value="all">Qualquer período</option><option value="today">Hoje</option><option value="tomorrow">Amanhã</option><option value="week">Próximos 7 dias</option><option value="upcoming">Próximos</option><option value="past">Encerrados</option><option value="cancelled">Cancelados</option></Form.Select></Form.Group>
                 <Form.Group><Form.Label>De</Form.Label><Form.Control type="date" value={dateFrom} max={dateTo || undefined} onChange={(event) => setDateFrom(event.target.value)} /></Form.Group>
                 <Form.Group><Form.Label>Até</Form.Label><Form.Control type="date" value={dateTo} min={dateFrom || undefined} onChange={(event) => setDateTo(event.target.value)} /></Form.Group>
@@ -1515,9 +1489,22 @@ export default function EventManagePage() {
               </div>
             </details>
 
+            {(productionFilter !== "all" || artistFilter !== "all" || cityFilter !== "all" || periodFilter !== "all" || dateFrom || dateTo || performanceFilter !== "all" || salesFilter !== "all" || inventoryFilter !== "all") && (
+              <div className="cut-event-active-filters" aria-label="Filtros ativos">
+                {productionFilter !== "all" && <button type="button" onClick={() => setProductionFilter("all")}>Produção: {filterOptions.productions.find((item) => String(item.id) === String(productionFilter))?.name || productionFilter}<i className="fa-solid fa-xmark" /></button>}
+                {artistFilter !== "all" && <button type="button" onClick={() => setArtistFilter("all")}>Artista: {filterOptions.artists.find((item) => String(item.id) === String(artistFilter))?.name || artistFilter}<i className="fa-solid fa-xmark" /></button>}
+                {cityFilter !== "all" && <button type="button" onClick={() => setCityFilter("all")}>{cityFilter}<i className="fa-solid fa-xmark" /></button>}
+                {periodFilter !== "all" && <button type="button" onClick={() => setPeriodFilter("all")}>Período: {periodFilter}<i className="fa-solid fa-xmark" /></button>}
+                {salesFilter !== "all" && <button type="button" onClick={() => setSalesFilter("all")}>{salesFilter === "with_sales" ? "Com vendas" : "Sem vendas"}<i className="fa-solid fa-xmark" /></button>}
+                {inventoryFilter !== "all" && <button type="button" onClick={() => setInventoryFilter("all")}>{inventoryFilter === "available" ? "Ingressos disponíveis" : "Esgotados"}<i className="fa-solid fa-xmark" /></button>}
+                {performanceFilter !== "all" && <button type="button" onClick={() => setPerformanceFilter("all")}>Desempenho: {performanceFilter}<i className="fa-solid fa-xmark" /></button>}
+                {(dateFrom || dateTo) && <button type="button" onClick={() => { setDateFrom(""); setDateTo(""); }}>Data: {dateFrom || "…"} → {dateTo || "…"}<i className="fa-solid fa-xmark" /></button>}
+              </div>
+            )}
+
             {bulkActionError && <Alert variant="warning" className="cut-event-bulk-feedback">{bulkActionError}</Alert>}
 
-            {visibleEvents.length > 0 && (
+            {selectedEventIds.length > 0 && (
               <section className="cut-event-bulk-selection" aria-label="Seleção de eventos para ações em massa">
                 <div className="cut-event-bulk-selection__summary">
                   <Form.Check
@@ -1558,20 +1545,18 @@ export default function EventManagePage() {
                 <i className="fa-solid fa-filter-circle-xmark" />
                 <strong>Nenhum evento encontrado</strong>
                 <span>Ajuste a busca ou remova o filtro para ver seus eventos.</span>
-                <Button size="sm" variant="outline-light" onClick={() => {
-                  setSearchTerm("");
-                  setStatusFilter("all");
-                  setProductionFilter("all");
-                  setCityFilter("all");
-                  setPeriodFilter("all");
-                  setDateFrom("");
-                  setDateTo("");
-                  setPerformanceFilter("all");
-                }}>Limpar filtros</Button>
+                <Button size="sm" variant="outline-light" onClick={clearFilters}>Limpar filtros</Button>
               </div>
             ) : (
               <>
                 <section className={`cut-producer-event-groups is-${viewMode}`} aria-label="Gerenciamento de eventos">
+                  <div className="cut-event-list-context">
+                    <span><strong>{visibleEvents.length}</strong> evento(s) encontrado(s)</span>
+                    <small>Ordenação: {SORT_COLUMNS.find((item) => item.key === sortConfig.key)?.label || "Prioridade"}</small>
+                  </div>
+                  {viewMode === "compact" && <div className="cut-producer-event-list-head" aria-hidden="true">
+                    <span></span><span></span><span>Evento</span><span>Artistas</span><span>Status</span><span>Vendas</span><span>Pendências</span><span>Ações</span>
+                  </div>}
                   {renderedGroups.map((group) => (
                     <div className="cut-producer-event-group" key={group.key}>
                       <header className="cut-producer-event-group__heading">
@@ -1598,6 +1583,7 @@ export default function EventManagePage() {
                             onEdit={(item) => navigate(`/event/edit/${item.id}`)}
                             onPrimaryAction={runPrimaryAction}
                             onDuplicate={openDuplicate}
+                            onArtistOpen={(artist) => artist?.slug && navigate(`/artist/${artist.slug}`)}
                           />;
                         })}
                       </div>
@@ -1605,10 +1591,9 @@ export default function EventManagePage() {
                   ))}
                   <footer className="cut-event-incremental-footer">
                     <span>Exibindo <strong>{renderedEvents.length}</strong> de <strong>{visibleEvents.length}</strong> evento(s) filtrado(s) · {events.length} no total</span>
-                    {renderedEvents.length < visibleEvents.length && <>
-                      <span ref={loadMoreRef} className="cut-event-infinite-sentinel" aria-hidden="true" />
-                      <Button variant="outline-light" onClick={() => setDisplayLimit((current) => Math.min(current + 24, visibleEvents.length))}><i className="fa-solid fa-chevron-down me-2" />Carregar mais</Button>
-                    </>}
+                    {renderedEvents.length < visibleEvents.length && (
+                      <Button variant="outline-light" onClick={() => setDisplayLimit((current) => Math.min(current + 24, visibleEvents.length))}><i className="fa-solid fa-chevron-down me-2" />Carregar mais 24</Button>
+                    )}
                   </footer>
                 </section>
               </>
