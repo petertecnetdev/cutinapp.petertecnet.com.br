@@ -111,17 +111,18 @@ const waitForCheckoutRetry = async (error) => {
   return { retryDelayMs: Math.max(0, Date.now() - startedAt), waitedForConnectivity: connectivity.waited, connectivityRestored: connectivity.restored };
 };
 
-const retryOrderPaymentRequest = (publicId, paymentMethod = "pix") => appApiClient.post(`/commerce/orders/${String(publicId || "").trim()}/payment/retry`, { payment_method: paymentMethod });
+const retryOrderPaymentRequest = (publicId, paymentMethod = "pix", extra = {}) => appApiClient.post(`/commerce/orders/${String(publicId || "").trim()}/payment/retry`, { payment_method: paymentMethod, ...extra });
 const checkout = (payload) => {
   const requestKey = checkoutRequestKey(payload); const pending = pendingCheckouts.get(requestKey); if (pending) return pending;
   const idempotencyKey = idempotencyKeyFor(requestKey);
-  const preservedOrderPublicId = String(payload?.payment_method || "").toLowerCase() === "pix" ? readPreservedOrder(requestKey) : null;
+  const requestedPaymentMethod = String(payload?.payment_method || "").toLowerCase();
+  const preservedOrderPublicId = ["pix", "card", "boleto"].includes(requestedPaymentMethod) ? readPreservedOrder(requestKey) : null;
   const resumePreservedOrder = async (publicId, source) => {
     const orderPublicId = String(publicId || "").trim();
     savePreservedOrder(requestKey, idempotencyKey, orderPublicId);
     trackTelemetry("pix_initialization_recovery_started", { target: String(payload?.event_id || "checkout"), metadata: { order_public_id: orderPublicId, source } });
     try {
-      const response = await retryOrderPaymentRequest(orderPublicId, "pix");
+      const response = await retryOrderPaymentRequest(orderPublicId, requestedPaymentMethod, { payer_cpf_cnpj: payload?.payer_cpf_cnpj, payer_email: payload?.payer_email });
       trackTelemetry("pix_initialization_resumed", { target: String(payload?.event_id || "checkout"), metadata: { order_public_id: orderPublicId, source } });
       return response;
     } catch (error) {
@@ -145,7 +146,7 @@ const checkout = (payload) => {
   const startCheckout = () => {
     if (preservedOrderPublicId) return resumePreservedOrder(preservedOrderPublicId, "session");
     return postCheckout().catch((error) => {
-      if (String(payload?.payment_method || "").toLowerCase() === "pix" && hasPreservedPaymentOrder(error)) {
+      if (["pix", "card", "boleto"].includes(requestedPaymentMethod) && hasPreservedPaymentOrder(error)) {
         return resumePreservedOrder(error.data.order_public_id, "checkout");
       }
       throw error;

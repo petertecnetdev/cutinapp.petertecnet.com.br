@@ -1,4 +1,4 @@
-const SUPPORTED_PAYMENT_METHODS = new Set(["pix", "card"]);
+const SUPPORTED_PAYMENT_METHODS = new Set(["pix", "card", "boleto"]);
 
 export const resolveCheckoutPaymentMethod = (value, fallback = "pix") => {
   const candidates = [value?.order?.payment_method, value?.payment?.method, value?.payment_method, value?.method];

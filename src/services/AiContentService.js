@@ -32,21 +32,17 @@ class AiContentService {
       action: ["improve", "rewrite", "enrich"].includes(action) ? action : "improve",
     };
 
-    try {
-      const response = await apiClient.post("/ai/content/description", payload, { timeout: 80000 });
-      const description = cleanString(response?.data?.description, 10000);
+    const response = await apiClient.post("/ai/content/description", payload, { timeout: 80000 });
+    const description = cleanString(response?.data?.description, 10000);
 
-      if (!description) {
-        throw new Error("A IA não retornou uma descrição utilizável.");
-      }
-
-      return {
-        ...response.data,
-        description,
-      };
-    } catch (primaryError) {
-      throw primaryError;
+    if (!description) {
+      throw new Error("A IA não retornou uma descrição utilizável.");
     }
+
+    return {
+      ...response.data,
+      description,
+    };
   }
 }
 
