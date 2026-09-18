@@ -16,6 +16,25 @@ const artistService = {
     await appApiClient.post("/artist-invitations/claim-pending")
   ).data,
 
+  onboardingStatus: async () => (await appApiClient.get("/artist-onboarding")).data,
+  activateArtist: async (payload = {}) => (await appApiClient.post("/artist-onboarding/activate", payload)).data,
+  claimCandidates: async (query) => (
+    await appApiClient.get("/artist-onboarding/claim-candidates", { params: { q: String(query || "").trim() } })
+  ).data?.artists || [],
+  claimExisting: async (artistId, payload = {}) => (
+    await appApiClient.post(`/artist-onboarding/claims/${Number(artistId)}`, payload)
+  ).data,
+  updateReferenceVisibility: async (artistId, visible) => (
+    await appApiClient.patch(`/artists/${Number(artistId)}/reference-visibility`, { visible: Boolean(visible) })
+  ).data,
+  identityClaimQueue: async () => (await appApiClient.get("/artist-onboarding/admin/claims")).data?.claims || [],
+  reviewIdentityClaim: async (claimId, decision, reviewNotes = "") => (
+    await appApiClient.put(`/artist-onboarding/admin/claims/${Number(claimId)}`, {
+      decision,
+      review_notes: String(reviewNotes || "").trim() || null,
+    })
+  ).data,
+
   updateParticipation: async (eventId, artistId, payload) => (
     await appApiClient.patch(`/events/${Number(eventId)}/artists/${Number(artistId)}/participation`, payload)
   ).data,
