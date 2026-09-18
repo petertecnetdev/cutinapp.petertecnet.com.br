@@ -61,6 +61,15 @@
   aspect-ratio: 16 / 9;
 }
 
+.pt-image-input-surface[data-pt-image-shape="event-poster"] {
+  width: min(100%, 426px);
+}
+
+.pt-image-input-surface[data-pt-image-shape="event-poster"] .pt-image-input-surface__frame {
+  aspect-ratio: 2 / 3;
+  min-height: 0;
+}
+
 .pt-image-input-surface[data-pt-image-shape="avatar"] {
   width: min(100%, 190px);
   border-radius: 999px;
@@ -90,6 +99,11 @@
 .pt-image-input-surface[data-pt-image-shape="logo"] .pt-image-input-surface__preview {
   object-fit: contain;
   padding: 1rem;
+}
+
+.pt-image-input-surface[data-pt-image-shape="event-poster"] .pt-image-input-surface__preview {
+  object-fit: contain;
+  background: #05060c;
 }
 
 .pt-image-input-surface__placeholder {
