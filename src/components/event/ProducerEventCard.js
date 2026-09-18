@@ -119,7 +119,18 @@ function ProducerEventCard({
   } : readiness;
   const readinessPending = !event.is_cancelled && !event.has_ended && Number(effectiveReadiness?.completed || 0) < 3;
   const issueCount = alerts.length + (readinessPending ? 1 : 0);
-  const firstIssue = alerts[0]?.title || (readinessPending ? effectiveReadiness?.title : "");
+  const firstAlert = alerts[0] || null;
+  const firstIssue = firstAlert?.title || (readinessPending ? effectiveReadiness?.title : "");
+  const alertResolution = firstAlert && (firstAlert.route || firstAlert.mode) ? {
+    completed: 0,
+    title: firstAlert.title,
+    label: firstAlert.detail,
+    action: "Resolver",
+    icon: firstAlert.icon,
+    route: firstAlert.route || null,
+    mode: firstAlert.mode || null,
+  } : null;
+  const nextAction = alertResolution || effectiveReadiness;
   const needsAttention = !event.is_cancelled && !event.has_ended
     && (readinessPending || health.score < 55 || performance.rank <= 3);
   const compact = viewMode === "compact";
@@ -182,7 +193,7 @@ function ProducerEventCard({
         {issueCount ? <>
           <strong><i className="fa-solid fa-triangle-exclamation" />{issueCount} pendência{issueCount === 1 ? "" : "s"}</strong>
           <span title={firstIssue}>{firstIssue}</span>
-          {effectiveReadiness && <Button size="sm" variant="outline-light" onClick={() => onPrimaryAction?.(event, effectiveReadiness)} disabled={disabled}>Resolver</Button>}
+          {nextAction && <Button size="sm" variant="outline-light" onClick={() => onPrimaryAction?.(event, nextAction)} disabled={disabled}>Resolver</Button>}
         </> : <>
           <strong><i className="fa-solid fa-circle-check" />Pronto</strong>
           <span>Sem bloqueios operacionais</span>
@@ -262,17 +273,17 @@ function ProducerEventCard({
         <small>{metrics.ticketsRemaining} restante(s){metrics.ticketsReserved > 0 ? ` · ${metrics.ticketsReserved} reservado(s)` : ""}</small>
       </div>
 
-      {!event.is_cancelled && effectiveReadiness && <div className="cut-producer-event-card__next">
+      {!event.is_cancelled && nextAction && <div className="cut-producer-event-card__next">
         <small>Próxima ação</small>
-        <strong>{effectiveReadiness.title}</strong>
-        <span>{effectiveReadiness.label}</span>
+        <strong>{nextAction.title}</strong>
+        <span>{nextAction.label}</span>
         <Button
           size="sm"
-          variant={effectiveReadiness.mode === "whatsapp" ? "success" : "light"}
-          onClick={() => onPrimaryAction?.(event, effectiveReadiness)}
+          variant={nextAction.mode === "whatsapp" ? "success" : "light"}
+          onClick={() => onPrimaryAction?.(event, nextAction)}
           disabled={disabled}
         >
-          <i className={`${effectiveReadiness.icon} me-2`} />{effectiveReadiness.action}
+          <i className={`${nextAction.icon} me-2`} />{nextAction.action}
         </Button>
       </div>}
 
