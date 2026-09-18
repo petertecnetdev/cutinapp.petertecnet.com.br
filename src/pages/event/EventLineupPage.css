@@ -1150,3 +1150,91 @@
     transition: none;
   }
 }
+
+
+/* Candidate picker: keep external/user avatars inside a predictable compact row. */
+.cut-lineup-picker-results{
+  display:grid;
+  gap:8px;
+  max-height:320px;
+  overflow:auto;
+  padding:8px;
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:16px;
+  background:rgba(8,9,28,.96);
+  box-shadow:0 20px 55px rgba(0,0,0,.38);
+  -webkit-backdrop-filter:blur(22px) saturate(150%);
+  backdrop-filter:blur(22px) saturate(150%);
+}
+.cut-lineup-picker-item{
+  width:100%;
+  min-width:0;
+  display:grid;
+  grid-template-columns:52px minmax(0,1fr) auto;
+  align-items:center;
+  gap:11px;
+  padding:9px 10px;
+  border:1px solid transparent;
+  border-radius:13px;
+  background:transparent;
+  color:#fff;
+  text-align:left;
+}
+.cut-lineup-picker-item:hover,
+.cut-lineup-picker-item:focus-visible{
+  border-color:rgba(198,112,255,.24);
+  background:rgba(184,71,250,.10);
+}
+.cut-lineup-picker-avatar{
+  width:48px !important;
+  height:48px !important;
+  min-width:48px !important;
+  max-width:48px !important;
+  min-height:48px !important;
+  max-height:48px !important;
+  aspect-ratio:1/1;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:50%;
+  background:var(--cut-gradient-brand-soft);
+  color:#fff;
+  font-size:.78rem;
+  font-weight:900;
+  line-height:1;
+}
+.cut-lineup-picker-avatar img{
+  display:block !important;
+  width:48px !important;
+  height:48px !important;
+  min-width:48px !important;
+  max-width:48px !important;
+  min-height:48px !important;
+  max-height:48px !important;
+  object-fit:cover !important;
+  object-position:center;
+  border-radius:50%;
+}
+.cut-lineup-candidate-type{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  margin-top:4px;
+  color:var(--cut-readable-soft,var(--cut-text-soft));
+  font-size:.72rem;
+  font-weight:800;
+}
+@media (max-width:575.98px){
+  .cut-lineup-picker-item{grid-template-columns:44px minmax(0,1fr);padding:8px}
+  .cut-lineup-picker-avatar,
+  .cut-lineup-picker-avatar img{
+    width:42px !important;
+    height:42px !important;
+    min-width:42px !important;
+    max-width:42px !important;
+    min-height:42px !important;
+    max-height:42px !important;
+  }
+  .cut-lineup-picker-item>.badge{grid-column:2;justify-self:start}
+}
