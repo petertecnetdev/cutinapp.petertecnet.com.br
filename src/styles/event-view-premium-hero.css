@@ -188,6 +188,10 @@
 
 .cut-event-view-page .cut-event-banner-frame,
 .cut-event-view-page .cut-event-banner-placeholder {
+  width: min(100%, 520px) !important;
+  aspect-ratio: 2 / 3 !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
   overflow: hidden !important;
   border: 1px solid rgba(255, 255, 255, 0.12) !important;
   border-radius: 26px !important;
@@ -202,7 +206,7 @@
   width: 100% !important;
   height: 100% !important;
   margin: 0 !important;
-  object-fit: cover !important;
+  object-fit: contain !important;
   object-position: center !important;
 }
 
@@ -215,7 +219,7 @@
       minmax(32px, 1fr)
       clamp(500px, 37vw, 590px)
       clamp(28px, 3vw, 48px)
-      clamp(620px, 48vw, 760px)
+      clamp(420px, 32vw, 520px)
       minmax(32px, 1fr) !important;
     grid-auto-rows: auto !important;
   }
@@ -250,11 +254,12 @@
     grid-column: 4 !important;
     grid-row: 2 !important;
     align-self: center !important;
-    width: 100% !important;
-    max-width: none !important;
+    width: min(100%, 520px) !important;
+    max-width: 520px !important;
     min-height: 0 !important;
-    margin: 44px 0 42px !important;
-    aspect-ratio: 16 / 9 !important;
+    margin: 44px auto 42px !important;
+    justify-self: center !important;
+    aspect-ratio: 2 / 3 !important;
   }
 
   .cut-event-view-page > .cut-page-container.py-4,
@@ -285,10 +290,10 @@
 
   .cut-event-view-page .cut-event-banner-frame,
   .cut-event-view-page .cut-event-banner-placeholder {
-    width: 100% !important;
-    max-width: none !important;
-    margin: 28px 0 0 !important;
-    aspect-ratio: 16 / 9 !important;
+    width: min(100%, 520px) !important;
+    max-width: 520px !important;
+    margin: 28px auto 0 !important;
+    aspect-ratio: 2 / 3 !important;
   }
 
   .cut-event-view-page .cut-event-summary-card {
