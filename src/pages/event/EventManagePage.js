@@ -1514,6 +1514,7 @@ export default function EventManagePage() {
             <details className="cut-event-advanced-filters">
               <summary><span><i className="fa-solid fa-sliders" />Filtros</span><small>Produção, artista, cidade, vendas, estoque, período e desempenho</small></summary>
               <div className="cut-event-advanced-filters__grid">
+                <Form.Group><Form.Label>Status</Form.Label><Form.Select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="all">Todos os status</option><option value="attention">Precisa de ação</option><option value="published">Publicado</option><option value="draft">Rascunho</option><option value="ongoing">Em andamento</option><option value="past">Encerrado</option><option value="cancelled">Cancelado</option></Form.Select></Form.Group>
                 <Form.Group><Form.Label>Produção</Form.Label><Form.Select value={productionFilter} onChange={(event) => setProductionFilter(event.target.value)}><option value="all">Todas as produções</option>{filterOptions.productions.map((production) => <option key={production.id} value={production.id}>{production.name}</option>)}</Form.Select></Form.Group>
                 <Form.Group><Form.Label>Artista</Form.Label><Form.Select value={artistFilter} onChange={(event) => setArtistFilter(event.target.value)}><option value="all">Todos os artistas</option>{filterOptions.artists.map((artist) => <option key={artist.id} value={artist.id}>{artist.name}</option>)}</Form.Select></Form.Group>
                 <Form.Group><Form.Label>Estabelecimento / local</Form.Label><Form.Select value={establishmentFilter} onChange={(event) => setEstablishmentFilter(event.target.value)}><option value="all">Todos os locais</option>{filterOptions.establishments.map((name) => <option key={name} value={name}>{name}</option>)}</Form.Select></Form.Group>
@@ -1527,8 +1528,9 @@ export default function EventManagePage() {
               </div>
             </details>
 
-            {(productionFilter !== "all" || artistFilter !== "all" || establishmentFilter !== "all" || cityFilter !== "all" || periodFilter !== "all" || dateFrom || dateTo || performanceFilter !== "all" || salesFilter !== "all" || inventoryFilter !== "all") && (
+            {(statusFilter !== "all" || productionFilter !== "all" || artistFilter !== "all" || establishmentFilter !== "all" || cityFilter !== "all" || periodFilter !== "all" || dateFrom || dateTo || performanceFilter !== "all" || salesFilter !== "all" || inventoryFilter !== "all") && (
               <div className="cut-event-active-filters" aria-label="Filtros ativos">
+                {statusFilter !== "all" && <button type="button" onClick={() => setStatusFilter("all")}>Status: {statusFilter === "attention" ? "Precisa de ação" : statusFilter === "published" ? "Publicado" : statusFilter === "draft" ? "Rascunho" : statusFilter === "ongoing" ? "Em andamento" : statusFilter === "past" ? "Encerrado" : "Cancelado"}<i className="fa-solid fa-xmark" /></button>}
                 {productionFilter !== "all" && <button type="button" onClick={() => setProductionFilter("all")}>Produção: {filterOptions.productions.find((item) => String(item.id) === String(productionFilter))?.name || productionFilter}<i className="fa-solid fa-xmark" /></button>}
                 {artistFilter !== "all" && <button type="button" onClick={() => setArtistFilter("all")}>Artista: {filterOptions.artists.find((item) => String(item.id) === String(artistFilter))?.name || artistFilter}<i className="fa-solid fa-xmark" /></button>}
                 {establishmentFilter !== "all" && <button type="button" onClick={() => setEstablishmentFilter("all")}>Local: {establishmentFilter}<i className="fa-solid fa-xmark" /></button>}
