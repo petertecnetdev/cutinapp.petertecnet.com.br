@@ -95,14 +95,23 @@ describe("EventService producer event listing", () => {
     jest.clearAllMocks();
   });
 
-  test("loads every producer event page so bulk selection is not limited to 100 events", async () => {
+  test("loads every producer event page in bounded batches so bulk selection remains complete", async () => {
     appApiClient.get
       .mockResolvedValueOnce({
         data: {
           events: {
-            data: Array.from({ length: 100 }, (_, index) => ({ id: index + 1 })),
+            data: Array.from({ length: 50 }, (_, index) => ({ id: index + 1 })),
             current_page: 1,
-            last_page: 2,
+            last_page: 3,
+          },
+        },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          events: {
+            data: Array.from({ length: 50 }, (_, index) => ({ id: index + 51 })),
+            current_page: 2,
+            last_page: 3,
           },
         },
       })
@@ -110,8 +119,8 @@ describe("EventService producer event listing", () => {
         data: {
           events: {
             data: [{ id: 101 }, { id: 102 }, { id: 103 }],
-            current_page: 2,
-            last_page: 2,
+            current_page: 3,
+            last_page: 3,
           },
         },
       });
@@ -122,10 +131,13 @@ describe("EventService producer event listing", () => {
     expect(events[0].id).toBe(1);
     expect(events[102].id).toBe(103);
     expect(appApiClient.get).toHaveBeenNthCalledWith(1, "/events/mine", {
-      params: { per_page: 100, page: 1 },
+      params: { per_page: 50, page: 1 },
     });
     expect(appApiClient.get).toHaveBeenNthCalledWith(2, "/events/mine", {
-      params: { per_page: 100, page: 2 },
+      params: { per_page: 50, page: 2 },
+    });
+    expect(appApiClient.get).toHaveBeenNthCalledWith(3, "/events/mine", {
+      params: { per_page: 50, page: 3 },
     });
   });
 });
