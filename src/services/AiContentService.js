@@ -20,6 +20,7 @@ class AiContentService {
     context = {},
     locale = "pt-BR",
     tone = "profissional, natural, convidativo e objetivo",
+    action = "improve",
   } = {}) {
     const payload = {
       entity_type: cleanString(entityType, 50).replace(/[^a-zA-Z0-9_-]+/g, "-") || "generic",
@@ -27,10 +28,11 @@ class AiContentService {
       current_description: cleanString(currentDescription, 5000) || undefined,
       context: sanitizeContext(context),
       locale: cleanString(locale, 10) || "pt-BR",
-      tone: cleanString(tone, 160),
+      tone: cleanString(tone, 220),
+      action: ["improve", "rewrite", "enrich"].includes(action) ? action : "improve",
     };
 
-    const response = await apiClient.post("/ai/content/description", payload, { timeout: 50000 });
+    const response = await apiClient.post("/ai/content/description", payload, { timeout: 80000 });
     const description = cleanString(response?.data?.description, 10000);
 
     if (!description) {

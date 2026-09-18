@@ -6,6 +6,29 @@
   margin: 0 0 0.7rem;
 }
 
+
+.pt-ai-description__actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.pt-ai-description__button.is-secondary {
+  min-height: 34px;
+  padding: 0.48rem 0.72rem;
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.055);
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.pt-ai-description__button.is-secondary:hover:not(:disabled),
+.pt-ai-description__button.is-secondary:focus-visible:not(:disabled) {
+  border-color: rgba(197, 149, 255, 0.42);
+  background: rgba(164, 104, 255, 0.12);
+}
+
 .pt-ai-description__button {
   display: inline-flex;
   align-items: center;
@@ -97,8 +120,16 @@
     align-items: stretch;
   }
 
-  .pt-ai-description__button {
+  .pt-ai-description__actions {
     width: 100%;
+  }
+
+  .pt-ai-description__button {
+    flex: 1 1 auto;
+  }
+
+  .pt-ai-description__button:first-child {
+    flex-basis: 100%;
   }
 
   .pt-ai-description__status {

@@ -137,40 +137,72 @@ const createAssistant = (textarea) => {
   container.className = "pt-ai-description";
   container.dataset.ptAiDescriptionGenerated = "true";
 
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = "pt-ai-description__button";
+  const actions = document.createElement("div");
+  actions.className = "pt-ai-description__actions";
 
-  const icon = document.createElement("i");
-  icon.className = "fa-solid fa-wand-magic-sparkles";
-  icon.setAttribute("aria-hidden", "true");
+  const createButton = ({ action, iconClass, text, secondary = false }) => {
+    const actionButton = document.createElement("button");
+    actionButton.type = "button";
+    actionButton.dataset.aiAction = action;
+    actionButton.className = "pt-ai-description__button" + (secondary ? " is-secondary" : "");
 
-  const label = document.createElement("span");
-  label.className = "pt-ai-description__label";
+    const actionIcon = document.createElement("i");
+    actionIcon.className = iconClass;
+    actionIcon.setAttribute("aria-hidden", "true");
+
+    const actionLabel = document.createElement("span");
+    actionLabel.className = "pt-ai-description__label";
+    actionLabel.textContent = text;
+
+    actionButton.append(actionIcon, actionLabel);
+    return { button: actionButton, icon: actionIcon, label: actionLabel };
+  };
+
+  const primary = createButton({
+    action: "improve",
+    iconClass: "fa-solid fa-wand-magic-sparkles",
+    text: "Aprimorar com IA",
+  });
 
   const badge = document.createElement("span");
   badge.className = "pt-ai-description__badge";
   badge.textContent = "IA";
   badge.setAttribute("aria-hidden", "true");
+  primary.button.append(badge);
+
+  const rewrite = createButton({
+    action: "rewrite",
+    iconClass: "fa-solid fa-arrows-rotate",
+    text: "Outra versão",
+    secondary: true,
+  });
+
+  const enrich = createButton({
+    action: "enrich",
+    iconClass: "fa-solid fa-layer-group",
+    text: "Enriquecer",
+    secondary: true,
+  });
+
+  const actionButtons = [primary, rewrite, enrich];
+  actions.append(...actionButtons.map(({ button: actionButton }) => actionButton));
 
   const status = document.createElement("span");
   status.className = "pt-ai-description__status";
   status.setAttribute("role", "status");
   status.setAttribute("aria-live", "polite");
 
-  button.append(icon, label, badge);
-  container.append(button, status);
-
-  const anchor = textarea;
-  anchor.parentNode?.insertBefore(container, anchor);
+  container.append(actions, status);
+  textarea.parentNode?.insertBefore(container, textarea);
 
   const syncLabel = () => {
     const hasText = String(textarea.value || "").trim().length > 0;
-    label.textContent = hasText ? "Aprimorar com IA" : "Gerar descrição com IA";
-    button.setAttribute(
+    primary.label.textContent = hasText ? "Aprimorar com IA" : "Gerar com IA";
+    primary.button.setAttribute(
       "aria-label",
-      hasText ? "Aprimorar esta descrição com inteligência artificial" : "Gerar descrição com inteligência artificial",
+      hasText ? "Corrigir, enriquecer e aprimorar esta descrição com inteligência artificial" : "Gerar descrição com inteligência artificial",
     );
+    rewrite.button.disabled = !hasText && container.dataset.loading !== "true";
   };
 
   const setStatus = (message, state = "") => {
@@ -183,10 +215,29 @@ const createAssistant = (textarea) => {
     if (status.dataset.state === "success") setStatus("");
   };
 
-  const onClick = async (event) => {
+  const setLoading = (loading, activeAction = "") => {
+    if (loading) container.dataset.loading = "true";
+    actionButtons.forEach(({ button: actionButton, icon: actionIcon }) => {
+      actionButton.disabled = loading;
+      const isActive = actionButton.dataset.aiAction === activeAction;
+      if (loading && isActive) {
+        actionIcon.dataset.originalClass = actionIcon.className;
+        actionIcon.className = "fa-solid fa-circle-notch fa-spin";
+      } else if (!loading && actionIcon.dataset.originalClass) {
+        actionIcon.className = actionIcon.dataset.originalClass;
+        delete actionIcon.dataset.originalClass;
+      }
+    });
+    if (!loading) {
+      delete container.dataset.loading;
+      syncLabel();
+    }
+  };
+
+  const runAction = async (action, event) => {
     event?.preventDefault?.();
     event?.stopPropagation?.();
-    if (button.disabled || textarea.disabled || textarea.readOnly) return;
+    if (container.dataset.loading === "true" || textarea.disabled || textarea.readOnly) return;
 
     const form = textarea.closest("form");
     const title = findTitle(form, textarea);
@@ -202,16 +253,19 @@ const createAssistant = (textarea) => {
       return;
     }
 
-    const mode = currentDescription ? "improve" : "generate";
-    button.disabled = true;
-    container.dataset.loading = "true";
-    icon.className = "fa-solid fa-circle-notch fa-spin";
-    label.textContent = mode === "improve" ? "Aprimorando..." : "Gerando...";
-    setStatus("Criando uma descrição com base nos dados já preenchidos...", "loading");
+    setLoading(true, action);
+    const actionMessages = {
+      improve: currentDescription
+        ? "Corrigindo seu texto e enriquecendo a ideia com os dados reais do evento..."
+        : "Criando uma descrição a partir dos dados reais do evento...",
+      rewrite: "Criando uma versão realmente diferente das anteriores...",
+      enrich: "Buscando contexto, histórico e dados confirmados para enriquecer o texto...",
+    };
+    setStatus(actionMessages[action] || actionMessages.improve, "loading");
 
     telemetry("ai_description_generation_started", {
       entity_type: entityType,
-      mode,
+      action,
       context_fields: Object.keys(context).length,
     });
 
@@ -221,43 +275,53 @@ const createAssistant = (textarea) => {
         title,
         currentDescription,
         context,
+        action,
       });
 
       setReactCompatibleValue(textarea, result.description);
       textarea.focus();
       textarea.setSelectionRange?.(result.description.length, result.description.length);
-      setStatus(mode === "improve" ? "Descrição aprimorada. Você ainda pode editar o texto." : "Descrição criada. Você ainda pode editar o texto.", "success");
+
+      const successMessages = {
+        improve: "Descrição revisada e enriquecida. Você ainda pode editar o texto.",
+        rewrite: "Nova versão criada sem repetir o texto anterior.",
+        enrich: "Descrição enriquecida com os dados confirmados do evento.",
+      };
+      setStatus(successMessages[action] || successMessages.improve, "success");
 
       telemetry("ai_description_generation_succeeded", {
         entity_type: entityType,
-        mode,
+        action,
         output_length: result.description.length,
         model: result?.meta?.model || null,
+        prompt_version: result?.meta?.prompt_version || null,
       });
     } catch (error) {
       const message = String(error?.message || "Não foi possível gerar a descrição agora.");
       setStatus(message, "error");
       telemetry("ai_description_generation_failed", {
         entity_type: entityType,
-        mode,
+        action,
         status: error?.status || null,
         code: error?.code || null,
       });
     } finally {
-      button.disabled = false;
-      delete container.dataset.loading;
-      icon.className = "fa-solid fa-wand-magic-sparkles";
-      syncLabel();
+      setLoading(false);
     }
   };
 
+  const listeners = actionButtons.map(({ button: actionButton }) => {
+    const handler = (event) => runAction(actionButton.dataset.aiAction || "improve", event);
+    actionButton.addEventListener("click", handler);
+    return [actionButton, handler];
+  });
+
   textarea.addEventListener("input", onInput);
-  button.addEventListener("click", onClick);
   syncLabel();
 
   return () => {
     textarea.removeEventListener("input", onInput);
-    button.removeEventListener("click", onClick);
+    listeners.forEach(([actionButton, handler]) => actionButton.removeEventListener("click", handler));
     container.remove();
   };
 };
