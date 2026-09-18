@@ -59,6 +59,7 @@ export default function ArtistInvitationPage() {
   const conflicts = Array.isArray(data?.schedule_conflicts) ? data.schedule_conflicts : [];
   const [statusLabel, statusVariant] = STATUS[invitation?.status] || [invitation?.status || "Convite", "secondary"];
   const canRespond = Boolean(invitation?.can_respond);
+  const requiresEmailVerification = Boolean(invitation?.requires_email_verification);
   const image = useMemo(() => imageUrl(event?.image), [event?.image]);
 
   const respond = async (nextDecision) => {
@@ -124,6 +125,18 @@ export default function ArtistInvitationPage() {
         <strong>Este convite mudou depois da sua última confirmação.</strong> Revise horário, função, palco e cachê antes de aceitar novamente.
       </Alert>}
 
+      {requiresEmailVerification && <Alert variant="warning">
+        <strong>Confirme seu e-mail antes de responder.</strong> A confirmação protege a identidade do artista e impede que outra pessoa aceite o convite em seu nome.
+        <div className="mt-2"><Button size="sm" variant="warning" onClick={() => navigate("/email-verify", { state: { from: `/artist/invitations/${token}` } })}>Confirmar e-mail</Button></div>
+      </Alert>}
+
+      {invitation?.status === "pending_change" && invitation?.material_changes && Object.keys(invitation.material_changes).length > 0 && <Card className="cut-panel mb-3"><Card.Body className="p-3">
+        <span className="cut-eyebrow">Alterações que exigem novo aceite</span>
+        <div className="cut-artist-invitation-page__changes mt-2">
+          {Object.entries(invitation.material_changes).map(([field, change]) => <div key={field}><strong>{({ participation_type: "Participação", scheduled_at: "Horário", stage: "Palco / espaço", fee_cents: "Cachê" })[field] || field}</strong><span>{String(change?.from ?? "não informado")} → {String(change?.to ?? "não informado")}</span></div>)}
+        </div>
+      </Card.Body></Card>}
+
       {conflicts.length > 0 && <Alert variant="warning">
         <strong>Possível conflito de agenda.</strong> Você já possui {conflicts.length} participação{conflicts.length === 1 ? "" : "ões"} confirmada{conflicts.length === 1 ? "" : "s"} em horário próximo. Isso não impede o aceite, mas vale revisar antes de confirmar.
       </Alert>}
@@ -169,7 +182,7 @@ export default function ArtistInvitationPage() {
               <h2>{canRespond ? "Você participa deste evento?" : statusLabel}</h2>
               <p className="text-secondary">A produção não pode confirmar sua presença em seu nome. Sua resposta fica registrada na conta responsável.</p>
 
-              {canRespond ? <>
+              {requiresEmailVerification ? <Button className="w-100" size="lg" onClick={() => navigate("/email-verify", { state: { from: `/artist/invitations/${token}` } })}><i className="fa-solid fa-envelope-circle-check me-2" />Confirmar e-mail para responder</Button> : canRespond ? <>
                 <Button className="w-100 mb-2" size="lg" disabled={busy} onClick={() => respond("accept")}>
                   <i className="fa-solid fa-circle-check me-2" />Aceitar convite
                 </Button>
