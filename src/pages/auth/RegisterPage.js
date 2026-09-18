@@ -21,11 +21,17 @@ export default function RegisterPage() {
     [password]
   );
   const canSubmit = firstName.trim().length >= 2 && /\S+@\S+\.\S+/.test(email) && passwordOk && !loading;
-  const returnTo = location.state?.from || "/dashboard";
+  const queryReturnTo = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    const target = String(params.get("from") || "");
+    return target.startsWith("/") && !target.startsWith("//") ? target : "";
+  }, [location.search]);
+  const returnTo = location.state?.from || queryReturnTo || "/dashboard";
 
   const contextMessage = useMemo(() => {
     if (returnTo.startsWith("/event/create")) return "Depois de confirmar seu e-mail, você continua direto para criar seu primeiro evento. Se ainda não tiver produção, pode criar o nome dela ali mesmo e seguir para o primeiro lote.";
     if (returnTo.startsWith("/production/create")) return "Depois de confirmar seu e-mail, você continua direto para o cadastro da sua produção.";
+    if (returnTo.startsWith("/artist/invitations/")) return "Depois de confirmar seu e-mail, você volta direto para o convite artístico e decide se aceita ou recusa a participação.";
     if (returnTo.startsWith("/artist/manage")) return "Depois de confirmar seu e-mail, você continua direto para criar sua presença como artista.";
     if (returnTo.startsWith("/feed")) return "Depois de confirmar seu e-mail, você entra direto na rede da Cutinapp.";
     if (returnTo.startsWith("/event")) return "Depois de confirmar seu e-mail, você volta para o evento que estava explorando.";
