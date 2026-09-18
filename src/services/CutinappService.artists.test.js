@@ -16,6 +16,25 @@ describe("CutinappService artist mutation idempotency", () => {
     sessionStorage.clear();
   });
 
+  test("preserves members and member-of context from the public artist endpoint", async () => {
+    appApiClient.get.mockResolvedValueOnce({
+      data: {
+        artist_id: 9,
+        artist_type: "solo",
+        members: [{ id: 1, display_name: "Integrante" }],
+        member_of: [{ id: 2, artist: { slug: "banda-x", stage_name: "Banda X" } }],
+      },
+    });
+
+    await expect(cutinappService.publicArtistMembers("marco")).resolves.toEqual({
+      artist_id: 9,
+      artist_type: "solo",
+      members: [{ id: 1, display_name: "Integrante" }],
+      member_of: [{ id: 2, artist: { slug: "banda-x", stage_name: "Banda X" } }],
+    });
+    expect(appApiClient.get).toHaveBeenCalledWith("/artists/marco/members");
+  });
+
   test("protects provisional artist creation with an idempotency key", async () => {
     appApiClient.post.mockResolvedValueOnce({ data: { artist: { id: 11 } } });
     await expect(cutinappService.createArtist({ stage_name: "Neon Pulse", artist_type: "dj" })).resolves.toEqual({ artist: { id: 11 } });
