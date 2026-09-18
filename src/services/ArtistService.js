@@ -16,6 +16,36 @@ const artistService = {
     await appApiClient.post("/artist-invitations/claim-pending")
   ).data,
 
+  invitations: async (params = {}) => (
+    await appApiClient.get("/artist-invitations", { params })
+  ).data,
+  invitation: async (token) => (
+    await appApiClient.get(`/artist-invitations/${encodeURIComponent(String(token || ""))}`)
+  ).data,
+  respondInvitation: async (token, decision, declineReason = "") => (
+    await appApiClient.put(`/artist-invitations/${encodeURIComponent(String(token || ""))}/response`, {
+      decision,
+      decline_reason: String(declineReason || "").trim() || null,
+    })
+  ).data,
+  eventInvitations: async (eventId) => (
+    await appApiClient.get(`/events/${Number(eventId)}/artist-invitations`)
+  ).data,
+  resendInvitation: async (eventId, invitationId) => (
+    await appApiClient.post(`/events/${Number(eventId)}/artist-invitations/${Number(invitationId)}/resend`)
+  ).data,
+  cancelInvitation: async (eventId, invitationId, reason = "") => (
+    await appApiClient.delete(`/events/${Number(eventId)}/artist-invitations/${Number(invitationId)}`, {
+      data: { reason: String(reason || "").trim() || null },
+    })
+  ).data,
+  invitationCalendar: async (token) => (
+    await appApiClient.get(
+      `/artist-invitations/${encodeURIComponent(String(token || ""))}/calendar.ics`,
+      { responseType: "blob" },
+    )
+  ).data,
+
   onboardingStatus: async () => (await appApiClient.get("/artist-onboarding")).data,
   activateArtist: async (payload = {}) => (await appApiClient.post("/artist-onboarding/activate", payload)).data,
   claimCandidates: async (query) => (
