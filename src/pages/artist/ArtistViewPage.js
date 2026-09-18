@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useMemo, useState } from "react";
+import PropTypes from "prop-types";
 import { Alert, Badge, Button, Card, Col, Container, Row } from "react-bootstrap";
 import { useNavigate, useParams } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
@@ -62,6 +63,22 @@ function ArtistEventCard({ event, onOpen, status = "confirmed" }) {
     </button>
   );
 }
+
+ArtistEventCard.propTypes = {
+  event: PropTypes.shape({
+    image: PropTypes.string,
+    venue: PropTypes.string,
+    city: PropTypes.string,
+    category: PropTypes.string,
+    title: PropTypes.string,
+    start_date: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
+    production: PropTypes.shape({
+      name: PropTypes.string,
+    }),
+  }).isRequired,
+  onOpen: PropTypes.func.isRequired,
+  status: PropTypes.oneOf(["confirmed", "pending"]),
+};
 
 export default function ArtistViewPage() {
   const { slug } = useParams();
