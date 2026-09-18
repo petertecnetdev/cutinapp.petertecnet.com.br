@@ -43,6 +43,7 @@ const AdminCenterPage = lazy(() => import("./pages/admin/AdminCenterPage"));
 const ApplicationAdminAccessPage = lazy(() => import("./pages/admin/ApplicationAdminAccessPage"));
 const AdminBlogPage = lazy(() => import("./pages/admin/AdminBlogPage"));
 const AdminSearchAnalyticsPage = lazy(() => import("./pages/admin/AdminSearchAnalyticsPage"));
+const ArtistIdentityClaimsAdminPage = lazy(() => import("./pages/admin/ArtistIdentityClaimsAdminPage"));
 const ApplicationAdminEventsPage = lazy(() => import("./pages/admin/ApplicationAdminEventsPage"));
 const ApplicationAdminTicketsPage = lazy(() => import("./pages/admin/ApplicationAdminTicketsPage"));
 const ApplicationAdminUsersPage = lazy(() => import("./pages/admin/ApplicationAdminUsersPage"));
@@ -170,6 +171,7 @@ function AppRoutes() {
           <Route path="/admin" element={adminRoute(<AdminCenterPage />, "dashboard.view")} />
           <Route path="/admin/blog" element={adminRoute(<AdminBlogPage />)} />
           <Route path="/admin/search" element={adminRoute(<AdminSearchAnalyticsPage />)} />
+          <Route path="/admin/artist-claims" element={adminRoute(<ArtistIdentityClaimsAdminPage />)} />
           <Route path="/admin/users" element={adminRoute(<ApplicationAdminUsersPage />, "users.view")} />
           <Route path="/admin/access" element={adminRoute(<ApplicationAdminAccessPage />, "admin.access.manage")} />
           <Route path="/admin/productions" element={adminRoute(<ApplicationAdminProductionsPage />, "establishments.view")} />
