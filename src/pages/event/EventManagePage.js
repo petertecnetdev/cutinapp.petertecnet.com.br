@@ -340,6 +340,7 @@ export default function EventManagePage() {
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [productionFilter, setProductionFilter] = useState("all");
+  const [establishmentFilter, setEstablishmentFilter] = useState("all");
   const [cityFilter, setCityFilter] = useState("all");
   const [periodFilter, setPeriodFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
@@ -433,6 +434,7 @@ export default function EventManagePage() {
         setSearchTerm(String(session.searchTerm || ""));
         setStatusFilter(session.statusFilter || "all");
         setProductionFilter(session.productionFilter || "all");
+        setEstablishmentFilter(session.establishmentFilter || "all");
         setCityFilter(session.cityFilter || "all");
         setPeriodFilter(session.periodFilter || "all");
         setDateFrom(session.dateFrom || "");
@@ -473,6 +475,7 @@ export default function EventManagePage() {
         searchTerm,
         statusFilter,
         productionFilter,
+        establishmentFilter,
         cityFilter,
         periodFilter,
         dateFrom,
@@ -485,11 +488,11 @@ export default function EventManagePage() {
     } catch (_) {
       // A lista continua funcional mesmo sem sessionStorage.
     }
-  }, [searchTerm, statusFilter, productionFilter, cityFilter, periodFilter, dateFrom, dateTo, performanceFilter, artistFilter, salesFilter, inventoryFilter]);
+  }, [searchTerm, statusFilter, productionFilter, establishmentFilter, cityFilter, periodFilter, dateFrom, dateTo, performanceFilter, artistFilter, salesFilter, inventoryFilter]);
 
   useEffect(() => {
     setDisplayLimit(24);
-  }, [debouncedSearchTerm, statusFilter, productionFilter, cityFilter, periodFilter, dateFrom, dateTo, performanceFilter, artistFilter, salesFilter, inventoryFilter, sortConfig, groupByPeriod]);
+  }, [debouncedSearchTerm, statusFilter, productionFilter, establishmentFilter, cityFilter, periodFilter, dateFrom, dateTo, performanceFilter, artistFilter, salesFilter, inventoryFilter, sortConfig, groupByPeriod]);
 
   useEffect(() => {
     const restore = Number(window.sessionStorage.getItem("cutinapp.eventManager.scrollY") || 0);
@@ -821,6 +824,7 @@ export default function EventManagePage() {
     setSearchTerm("");
     setStatusFilter(status);
     setProductionFilter("all");
+    setEstablishmentFilter("all");
     setCityFilter("all");
     setPeriodFilter(period);
     setDateFrom("");
@@ -835,6 +839,7 @@ export default function EventManagePage() {
     setSearchTerm("");
     setStatusFilter("all");
     setProductionFilter("all");
+    setEstablishmentFilter("all");
     setCityFilter("all");
     setPeriodFilter("all");
     setDateFrom("");
@@ -848,11 +853,14 @@ export default function EventManagePage() {
   const filterOptions = useMemo(() => {
     const productionMap = new Map();
     const artistMap = new Map();
+    const establishments = new Set();
     const cities = new Set();
     events.forEach((event) => {
       const id = Number(event?.production?.id || event?.production_id || 0);
       const name = event?.production?.name;
       if (id && name) productionMap.set(id, name);
+      const establishment = String(event?.establishment_name || event?.venue || "").trim();
+      if (establishment) establishments.add(establishment);
       if (event?.city) cities.add(String(event.city));
       (Array.isArray(event?.artists) ? event.artists : []).forEach((artist) => {
         if (artist?.id && artist?.stage_name) artistMap.set(Number(artist.id), String(artist.stage_name));
@@ -861,6 +869,7 @@ export default function EventManagePage() {
     return {
       productions: [...productionMap.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => collator.compare(a.name, b.name)),
       artists: [...artistMap.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => collator.compare(a.name, b.name)),
+      establishments: [...establishments].sort(collator.compare),
       cities: [...cities].sort(collator.compare),
     };
   }, [events]);
@@ -910,6 +919,8 @@ export default function EventManagePage() {
         || status.key === statusFilter
         || (statusFilter === "attention" && !event.is_cancelled && (readiness.completed < 3 || performance.rank <= 3));
       const matchesProduction = productionFilter === "all" || productionId === String(productionFilter);
+      const eventEstablishment = String(event?.establishment_name || event?.venue || "").trim();
+      const matchesEstablishment = establishmentFilter === "all" || eventEstablishment === establishmentFilter;
       const matchesCity = cityFilter === "all" || String(event?.city || "") === cityFilter;
       const matchesPeriod = periodFilter === "all" || temporal.key === periodFilter;
       const eventStart = new Date(event?.start_date || "");
@@ -929,7 +940,7 @@ export default function EventManagePage() {
         ? new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" }).format(eventStart)
         : "";
 
-      if (!matchesStatus || !matchesProduction || !matchesCity || !matchesPeriod || !matchesDateFrom || !matchesDateTo || !matchesPerformance || !matchesArtist || !matchesSales || !matchesInventory) return false;
+      if (!matchesStatus || !matchesProduction || !matchesEstablishment || !matchesCity || !matchesPeriod || !matchesDateFrom || !matchesDateTo || !matchesPerformance || !matchesArtist || !matchesSales || !matchesInventory) return false;
       if (!normalizedSearch) return true;
 
       return [
@@ -972,6 +983,7 @@ export default function EventManagePage() {
     debouncedSearchTerm,
     statusFilter,
     productionFilter,
+    establishmentFilter,
     cityFilter,
     periodFilter,
     dateFrom,
@@ -1491,7 +1503,7 @@ export default function EventManagePage() {
                 <button type="button" className={`cut-event-group-toggle${groupByPeriod ? " is-active" : ""}`} onClick={() => setGroupByPeriod((current) => !current)} title="Agrupar por período">
                   <i className="fa-solid fa-layer-group" />
                 </button>
-                {(searchTerm || statusFilter !== "all" || productionFilter !== "all" || cityFilter !== "all" || periodFilter !== "all" || dateFrom || dateTo || performanceFilter !== "all" || artistFilter !== "all" || salesFilter !== "all" || inventoryFilter !== "all") && (
+                {(searchTerm || statusFilter !== "all" || productionFilter !== "all" || establishmentFilter !== "all" || cityFilter !== "all" || periodFilter !== "all" || dateFrom || dateTo || performanceFilter !== "all" || artistFilter !== "all" || salesFilter !== "all" || inventoryFilter !== "all") && (
                   <Button variant="outline-light" onClick={clearFilters}>
                     <i className="fa-solid fa-filter-circle-xmark me-2" />Limpar
                   </Button>
@@ -1504,6 +1516,7 @@ export default function EventManagePage() {
               <div className="cut-event-advanced-filters__grid">
                 <Form.Group><Form.Label>Produção</Form.Label><Form.Select value={productionFilter} onChange={(event) => setProductionFilter(event.target.value)}><option value="all">Todas as produções</option>{filterOptions.productions.map((production) => <option key={production.id} value={production.id}>{production.name}</option>)}</Form.Select></Form.Group>
                 <Form.Group><Form.Label>Artista</Form.Label><Form.Select value={artistFilter} onChange={(event) => setArtistFilter(event.target.value)}><option value="all">Todos os artistas</option>{filterOptions.artists.map((artist) => <option key={artist.id} value={artist.id}>{artist.name}</option>)}</Form.Select></Form.Group>
+                <Form.Group><Form.Label>Estabelecimento / local</Form.Label><Form.Select value={establishmentFilter} onChange={(event) => setEstablishmentFilter(event.target.value)}><option value="all">Todos os locais</option>{filterOptions.establishments.map((name) => <option key={name} value={name}>{name}</option>)}</Form.Select></Form.Group>
                 <Form.Group><Form.Label>Cidade</Form.Label><Form.Select value={cityFilter} onChange={(event) => setCityFilter(event.target.value)}><option value="all">Todas as cidades</option>{filterOptions.cities.map((city) => <option key={city} value={city}>{city}</option>)}</Form.Select></Form.Group>
                 <Form.Group><Form.Label>Vendas</Form.Label><Form.Select value={salesFilter} onChange={(event) => setSalesFilter(event.target.value)}><option value="all">Com ou sem vendas</option><option value="with_sales">Com vendas</option><option value="no_sales">Sem vendas</option></Form.Select></Form.Group>
                 <Form.Group><Form.Label>Ingressos</Form.Label><Form.Select value={inventoryFilter} onChange={(event) => setInventoryFilter(event.target.value)}><option value="all">Qualquer estoque</option><option value="available">Disponíveis</option><option value="sold_out">Esgotados</option></Form.Select></Form.Group>
@@ -1514,10 +1527,11 @@ export default function EventManagePage() {
               </div>
             </details>
 
-            {(productionFilter !== "all" || artistFilter !== "all" || cityFilter !== "all" || periodFilter !== "all" || dateFrom || dateTo || performanceFilter !== "all" || salesFilter !== "all" || inventoryFilter !== "all") && (
+            {(productionFilter !== "all" || artistFilter !== "all" || establishmentFilter !== "all" || cityFilter !== "all" || periodFilter !== "all" || dateFrom || dateTo || performanceFilter !== "all" || salesFilter !== "all" || inventoryFilter !== "all") && (
               <div className="cut-event-active-filters" aria-label="Filtros ativos">
                 {productionFilter !== "all" && <button type="button" onClick={() => setProductionFilter("all")}>Produção: {filterOptions.productions.find((item) => String(item.id) === String(productionFilter))?.name || productionFilter}<i className="fa-solid fa-xmark" /></button>}
                 {artistFilter !== "all" && <button type="button" onClick={() => setArtistFilter("all")}>Artista: {filterOptions.artists.find((item) => String(item.id) === String(artistFilter))?.name || artistFilter}<i className="fa-solid fa-xmark" /></button>}
+                {establishmentFilter !== "all" && <button type="button" onClick={() => setEstablishmentFilter("all")}>Local: {establishmentFilter}<i className="fa-solid fa-xmark" /></button>}
                 {cityFilter !== "all" && <button type="button" onClick={() => setCityFilter("all")}>{cityFilter}<i className="fa-solid fa-xmark" /></button>}
                 {periodFilter !== "all" && <button type="button" onClick={() => setPeriodFilter("all")}>Período: {periodFilter}<i className="fa-solid fa-xmark" /></button>}
                 {salesFilter !== "all" && <button type="button" onClick={() => setSalesFilter("all")}>{salesFilter === "with_sales" ? "Com vendas" : "Sem vendas"}<i className="fa-solid fa-xmark" /></button>}
