@@ -25,6 +25,7 @@ import "./EventManagePageSorting.css";
 import "./EventCommandCenter.css";
 
 const collator = new Intl.Collator("pt-BR", { numeric: true, sensitivity: "base" });
+const EVENT_MANAGER_SESSION_KEY = "cutinapp.eventManager.session.v1";
 
 const WEEK_DAYS = [
   { value: 1, label: "Segunda-feira" },
@@ -336,6 +337,7 @@ export default function EventManagePage() {
   const [publishedEvent, setPublishedEvent] = useState(null);
   const [copiedEventId, setCopiedEventId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [productionFilter, setProductionFilter] = useState("all");
   const [cityFilter, setCityFilter] = useState("all");
@@ -343,13 +345,15 @@ export default function EventManagePage() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [performanceFilter, setPerformanceFilter] = useState("all");
-  const [viewMode, setViewMode] = useState("visual");
+  const [artistFilter, setArtistFilter] = useState("all");
+  const [salesFilter, setSalesFilter] = useState("all");
+  const [inventoryFilter, setInventoryFilter] = useState("all");
+  const [viewMode, setViewMode] = useState("compact");
   const [groupByPeriod, setGroupByPeriod] = useState(true);
   const [sortConfig, setSortConfig] = useState({ key: "smart", direction: "asc" });
   const [pinnedEventIds, setPinnedEventIds] = useState([]);
   const [quickEvent, setQuickEvent] = useState(null);
   const [displayLimit, setDisplayLimit] = useState(24);
-  const loadMoreRef = useRef(null);
   const searchInputRef = useRef(null);
   const [bulkMoveOpen, setBulkMoveOpen] = useState(false);
   const [bulkTargetProductionId, setBulkTargetProductionId] = useState("");
@@ -393,6 +397,11 @@ export default function EventManagePage() {
   }, []);
 
   useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearchTerm(searchTerm), 180);
+    return () => window.clearTimeout(timer);
+  }, [searchTerm]);
+
+  useEffect(() => {
     const existingIds = new Set(events.map((event) => Number(event.id)));
     setSelectedEventIds((current) => current.filter((id) => existingIds.has(Number(id))));
   }, [events]);
@@ -401,9 +410,8 @@ export default function EventManagePage() {
     try {
       const saved = JSON.parse(window.localStorage.getItem(EVENT_MANAGER_PREFERENCES_KEY) || "null");
       if (saved && typeof saved === "object") {
-        // Persistimos apenas preferências visuais. Busca e filtros de conteúdo
-        // são temporários para que a página nunca reabra aparentemente vazia
-        // por causa de filtros antigos/ocultos de uma sessão anterior.
+        // Preferências visuais sobrevivem entre sessões; os filtros operacionais
+        // são restaurados apenas nesta aba para preservar contexto ao voltar do editor.
         if (["compact", "visual", "calendar", "timeline"].includes(saved.viewMode)) setViewMode(saved.viewMode);
         if (typeof saved.groupByPeriod === "boolean") setGroupByPeriod(saved.groupByPeriod);
         if (saved.sortConfig?.key) setSortConfig(saved.sortConfig);
@@ -417,6 +425,25 @@ export default function EventManagePage() {
       if (Array.isArray(pins)) setPinnedEventIds(pins.map(Number).filter(Number.isFinite));
     } catch (_) {
       // Pins são conveniência local.
+    }
+
+    try {
+      const session = JSON.parse(window.sessionStorage.getItem(EVENT_MANAGER_SESSION_KEY) || "null");
+      if (session && typeof session === "object") {
+        setSearchTerm(String(session.searchTerm || ""));
+        setStatusFilter(session.statusFilter || "all");
+        setProductionFilter(session.productionFilter || "all");
+        setCityFilter(session.cityFilter || "all");
+        setPeriodFilter(session.periodFilter || "all");
+        setDateFrom(session.dateFrom || "");
+        setDateTo(session.dateTo || "");
+        setPerformanceFilter(session.performanceFilter || "all");
+        setArtistFilter(session.artistFilter || "all");
+        setSalesFilter(session.salesFilter || "all");
+        setInventoryFilter(session.inventoryFilter || "all");
+      }
+    } catch (_) {
+      // Contexto de navegação é uma conveniência e nunca bloqueia a página.
     }
   }, []);
 
@@ -441,8 +468,28 @@ export default function EventManagePage() {
   }, [pinnedEventIds]);
 
   useEffect(() => {
+    try {
+      window.sessionStorage.setItem(EVENT_MANAGER_SESSION_KEY, JSON.stringify({
+        searchTerm,
+        statusFilter,
+        productionFilter,
+        cityFilter,
+        periodFilter,
+        dateFrom,
+        dateTo,
+        performanceFilter,
+        artistFilter,
+        salesFilter,
+        inventoryFilter,
+      }));
+    } catch (_) {
+      // A lista continua funcional mesmo sem sessionStorage.
+    }
+  }, [searchTerm, statusFilter, productionFilter, cityFilter, periodFilter, dateFrom, dateTo, performanceFilter, artistFilter, salesFilter, inventoryFilter]);
+
+  useEffect(() => {
     setDisplayLimit(24);
-  }, [searchTerm, statusFilter, productionFilter, cityFilter, periodFilter, dateFrom, dateTo, performanceFilter, sortConfig, groupByPeriod]);
+  }, [debouncedSearchTerm, statusFilter, productionFilter, cityFilter, periodFilter, dateFrom, dateTo, performanceFilter, artistFilter, salesFilter, inventoryFilter, sortConfig, groupByPeriod]);
 
   useEffect(() => {
     const restore = Number(window.sessionStorage.getItem("cutinapp.eventManager.scrollY") || 0);
@@ -761,19 +808,41 @@ export default function EventManagePage() {
     setDateFrom("");
     setDateTo("");
     setPerformanceFilter("all");
+    setArtistFilter("all");
+    setSalesFilter("all");
+    setInventoryFilter("all");
+  };
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("all");
+    setProductionFilter("all");
+    setCityFilter("all");
+    setPeriodFilter("all");
+    setDateFrom("");
+    setDateTo("");
+    setPerformanceFilter("all");
+    setArtistFilter("all");
+    setSalesFilter("all");
+    setInventoryFilter("all");
   };
 
   const filterOptions = useMemo(() => {
     const productionMap = new Map();
+    const artistMap = new Map();
     const cities = new Set();
     events.forEach((event) => {
       const id = Number(event?.production?.id || event?.production_id || 0);
       const name = event?.production?.name;
       if (id && name) productionMap.set(id, name);
       if (event?.city) cities.add(String(event.city));
+      (Array.isArray(event?.artists) ? event.artists : []).forEach((artist) => {
+        if (artist?.id && artist?.stage_name) artistMap.set(Number(artist.id), String(artist.stage_name));
+      });
     });
     return {
       productions: [...productionMap.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => collator.compare(a.name, b.name)),
+      artists: [...artistMap.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => collator.compare(a.name, b.name)),
       cities: [...cities].sort(collator.compare),
     };
   }, [events]);
@@ -808,7 +877,7 @@ export default function EventManagePage() {
   );
 
   const visibleEvents = useMemo(() => {
-    const normalizedSearch = searchTerm.trim().toLocaleLowerCase("pt-BR");
+    const normalizedSearch = debouncedSearchTerm.trim().toLocaleLowerCase("pt-BR");
     const pinned = new Set(pinnedEventIds.map(Number));
 
     const filtered = events.filter((event) => {
@@ -817,6 +886,8 @@ export default function EventManagePage() {
       const performance = eventPerformance(event);
       const temporal = eventTemporalGroup(event);
       const productionId = String(event?.production?.id || event?.production_id || "");
+      const metrics = eventOperationalMetrics(event);
+      const artistIds = (Array.isArray(event?.artists) ? event.artists : []).map((artist) => String(artist.id));
       const matchesStatus = statusFilter === "all"
         || status.key === statusFilter
         || (statusFilter === "attention" && !event.is_cancelled && (readiness.completed < 3 || performance.rank <= 3));
@@ -829,8 +900,15 @@ export default function EventManagePage() {
       const matchesDateFrom = !fromDate || (Number.isFinite(eventStart.getTime()) && eventStart >= fromDate);
       const matchesDateTo = !toDate || (Number.isFinite(eventStart.getTime()) && eventStart <= toDate);
       const matchesPerformance = performanceFilter === "all" || performance.key === performanceFilter;
+      const matchesArtist = artistFilter === "all" || artistIds.includes(String(artistFilter));
+      const matchesSales = salesFilter === "all"
+        || (salesFilter === "with_sales" && metrics.ticketsSold > 0)
+        || (salesFilter === "no_sales" && metrics.ticketsSold === 0);
+      const matchesInventory = inventoryFilter === "all"
+        || (inventoryFilter === "available" && metrics.ticketsRemaining > 0)
+        || (inventoryFilter === "sold_out" && metrics.ticketCapacity > 0 && metrics.ticketsRemaining === 0);
 
-      if (!matchesStatus || !matchesProduction || !matchesCity || !matchesPeriod || !matchesDateFrom || !matchesDateTo || !matchesPerformance) return false;
+      if (!matchesStatus || !matchesProduction || !matchesCity || !matchesPeriod || !matchesDateFrom || !matchesDateTo || !matchesPerformance || !matchesArtist || !matchesSales || !matchesInventory) return false;
       if (!normalizedSearch) return true;
 
       return [
@@ -842,6 +920,7 @@ export default function EventManagePage() {
         status.label,
         readiness.title,
         performance.label,
+        ...(Array.isArray(event?.artists) ? event.artists.map((artist) => artist?.stage_name) : []),
       ]
         .filter(Boolean)
         .some((value) => String(value).toLocaleLowerCase("pt-BR").includes(normalizedSearch));
@@ -867,7 +946,7 @@ export default function EventManagePage() {
     });
   }, [
     events,
-    searchTerm,
+    debouncedSearchTerm,
     statusFilter,
     productionFilter,
     cityFilter,
@@ -875,6 +954,9 @@ export default function EventManagePage() {
     dateFrom,
     dateTo,
     performanceFilter,
+    artistFilter,
+    salesFilter,
+    inventoryFilter,
     sortConfig,
     pinnedEventIds,
   ]);
@@ -898,21 +980,6 @@ export default function EventManagePage() {
     });
     return [...groups.values()].sort((a, b) => a.order - b.order);
   }, [renderedEvents, groupByPeriod, pinnedEventIds]);
-
-  useEffect(() => {
-    const target = loadMoreRef.current;
-    if (!target || displayLimit >= visibleEvents.length || typeof IntersectionObserver === "undefined") return undefined;
-
-    const observer = new IntersectionObserver((entries) => {
-      if (entries.some((entry) => entry.isIntersecting)) {
-        setDisplayLimit((current) => Math.min(current + 24, visibleEvents.length));
-      }
-    }, { rootMargin: "320px 0px" });
-
-    observer.observe(target);
-    return () => observer.disconnect();
-  }, [displayLimit, visibleEvents.length]);
-
 
   const selectedEventIdSet = useMemo(
     () => new Set(selectedEventIds.map((id) => Number(id))),
