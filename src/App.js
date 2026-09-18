@@ -68,6 +68,7 @@ const ProductionAgendaFormPage = lazy(() => import("./pages/production/Productio
 const ArtistListPage = lazy(() => import("./pages/artist/ArtistListPage"));
 const ArtistViewPage = lazy(() => import("./pages/artist/ArtistViewPage"));
 const ArtistManagePage = lazy(() => import("./pages/artist/ArtistManagePage"));
+const ArtistOnboardingPage = lazy(() => import("./pages/artist/ArtistOnboardingPage"));
 const EventPage = lazyWithPreload(() => import("./pages/event/EventPage"));
 const EventDiscoverySeoPage = lazyWithPreload(() => import("./pages/event/EventDiscoverySeoPage"));
 const EventCreatePage = lazy(() => import("./pages/event/EventCreatePage"));
@@ -193,6 +194,7 @@ function AppRoutes() {
           <Route path="/artists" element={<ArtistListPage />} />
           <Route path="/artist/:slug" element={<ArtistViewPage />} />
           <Route path="/artist/manage" element={protectedRoute(<ArtistManagePage />)} />
+          <Route path="/artist/onboarding" element={protectedRoute(<ArtistOnboardingPage />)} />
           <Route path="/productions" element={<ProductionListPage />} />
           <Route path="/production/create" element={protectedRoute(<ProductionCreatePage />)} />
           <Route path="/production/mine" element={protectedRoute(<ProductionMinePage />)} />
