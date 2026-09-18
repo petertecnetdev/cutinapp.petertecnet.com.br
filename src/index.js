@@ -76,6 +76,15 @@ installEventViewScrollReset();
 installCartCompletionCleanup();
 installPersistentCart();
 
+if (typeof window !== "undefined") {
+  let scrollTimer;
+  window.addEventListener("scroll", () => {
+    document.body.classList.add("is-scrolling");
+    window.clearTimeout(scrollTimer);
+    scrollTimer = window.setTimeout(() => document.body.classList.remove("is-scrolling"), 120);
+  }, { passive: true });
+}
+
 // The mobile navigation shell controls the fixed bottom navigation and must be
 // installed before the first React paint. Deferring this initialization allowed
 // .cut-mobile-bottom-nav to render in normal document flow, which produced the
