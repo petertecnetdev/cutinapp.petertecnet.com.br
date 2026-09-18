@@ -49,6 +49,7 @@ const ApplicationAdminTicketsPage = lazy(() => import("./pages/admin/Application
 const ApplicationAdminUsersPage = lazy(() => import("./pages/admin/ApplicationAdminUsersPage"));
 const ApplicationAdminProductionsPage = lazy(() => import("./pages/admin/ApplicationAdminProductionsPage"));
 const AssistedProducerOnboardingPage = lazy(() => import("./pages/admin/AssistedProducerOnboardingPage"));
+const AssistedProducerOnboardingPage = lazy(() => import("./pages/admin/AssistedProducerOnboardingPage"));
 const ApplicationAdminOrdersPage = lazy(() => import("./pages/admin/ApplicationAdminOrdersPage"));
 const ApplicationAdminFinancePage = lazy(() => import("./pages/admin/ApplicationAdminFinancePage"));
 const ApplicationAdminCheckinsPage = lazy(() => import("./pages/admin/ApplicationAdminCheckinsPage"));
@@ -65,6 +66,7 @@ const ProductionAgendaPublicPage = lazy(() => import("./pages/production/Product
 const ProductionUpdatePage = lazy(() => import("./pages/production/ProductionUpdatePage"));
 const ProductionFinancePage = lazy(() => import("./pages/production/ProductionFinancePage"));
 const ProducerContractsPage = lazy(() => import("./pages/production/ProducerContractsPage"));
+const ProducerOnboardingPage = lazy(() => import("./pages/production/ProducerOnboardingPage"));
 const ProducerOnboardingPage = lazy(() => import("./pages/production/ProducerOnboardingPage"));
 const ProductionAgendaManager = lazy(() => import("./pages/production/ProductionAgendaManager"));
 const ProductionAgendaFormPage = lazy(() => import("./pages/production/ProductionAgendaFormPage"));
@@ -180,6 +182,7 @@ function AppRoutes() {
           <Route path="/admin/access" element={adminRoute(<ApplicationAdminAccessPage />, "admin.access.manage")} />
           <Route path="/admin/productions" element={adminRoute(<ApplicationAdminProductionsPage />, "establishments.view")} />
           <Route path="/admin/onboarding" element={adminRoute(<AssistedProducerOnboardingPage />, "establishments.view")} />
+          <Route path="/admin/onboarding" element={adminRoute(<AssistedProducerOnboardingPage />, "establishments.view")} />
           <Route path="/admin/events" element={adminRoute(<ApplicationAdminEventsPage />, "events.view")} />
           <Route path="/admin/tickets" element={adminRoute(<ApplicationAdminTicketsPage />, "tickets.view")} />
           <Route path="/admin/orders" element={adminRoute(<ApplicationAdminOrdersPage />, "finance.view")} />
@@ -209,6 +212,7 @@ function AppRoutes() {
           <Route path="/production/mine" element={protectedRoute(<ProductionMinePage />)} />
           <Route path="/producer/media" element={protectedRoute(<ProducerMediaLibraryPage />)} />
           <Route path="/producer/contracts" element={protectedRoute(<ProducerContractsPage />)} />
+          <Route path="/producer/onboarding" element={protectedRoute(<ProducerOnboardingPage />)} />
           <Route path="/producer/onboarding" element={protectedRoute(<ProducerOnboardingPage />)} />
           <Route path="/producer/finance" element={protectedRoute(<ProductionFinancePage />)} />
           <Route path="/producer/search-insights" element={protectedRoute(<ProducerSearchInsightsPage />)} />
