@@ -34,6 +34,12 @@ const artistService = {
   resendInvitation: async (eventId, invitationId) => (
     await appApiClient.post(`/events/${Number(eventId)}/artist-invitations/${Number(invitationId)}/resend`)
   ).data,
+  updateInvitationEmail: async (eventId, invitationId, email) => (
+    await appApiClient.patch(
+      `/events/${Number(eventId)}/artist-invitations/${Number(invitationId)}/recipient-email`,
+      { email: String(email || "").trim().toLowerCase() },
+    )
+  ).data,
   cancelInvitation: async (eventId, invitationId, reason = "") => (
     await appApiClient.delete(`/events/${Number(eventId)}/artist-invitations/${Number(invitationId)}`, {
       data: { reason: String(reason || "").trim() || null },
