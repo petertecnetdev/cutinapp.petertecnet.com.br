@@ -176,7 +176,7 @@
 }
 
 .cut-event-discovery-page .cut-event-card__media {
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 2 / 3;
   background: linear-gradient(145deg, #10142f, #070918);
 }
 
@@ -185,6 +185,7 @@
 }
 
 .cut-event-discovery-page .cut-event-card__media img {
+  object-fit: contain;
   object-position: center;
 }
 
