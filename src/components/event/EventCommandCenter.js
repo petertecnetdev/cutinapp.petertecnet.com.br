@@ -145,6 +145,13 @@ export function EventAttentionCenter({ events = [], onOpen, onResolve }) {
   const firstAlert = first?.alerts?.[0];
   const firstReason = firstAlert?.title
     || (first?.health?.score < 45 ? "Configuração incompleta" : first?.performance?.label);
+  const resolveCandidate = (event, alert) => {
+    if (typeof onResolve === "function") {
+      onResolve(event, alert);
+      return;
+    }
+    onOpen?.(event);
+  };
 
   return (
     <section className={`cut-event-attention-center is-compact${expanded ? " is-expanded" : ""}`} aria-label="Eventos que precisam de atenção">
@@ -155,7 +162,7 @@ export function EventAttentionCenter({ events = [], onOpen, onResolve }) {
         </div>
         <div className="cut-event-attention-center__compact-actions">
           <span className="cut-event-attention-center__urgent" title={firstReason}><i className={firstAlert?.icon || "fa-solid fa-triangle-exclamation"} />{firstReason}</span>
-          <button type="button" className="is-resolve" onClick={() => onResolve?.(first.event, firstAlert) || onOpen?.(first.event)}>
+          <button type="button" className="is-resolve" onClick={() => resolveCandidate(first.event, firstAlert)}>
             Resolver agora<i className="fa-solid fa-arrow-right" />
           </button>
           <button type="button" onClick={() => setExpanded((current) => !current)} aria-expanded={expanded}>
@@ -169,7 +176,7 @@ export function EventAttentionCenter({ events = [], onOpen, onResolve }) {
           const reason = alert?.title
             || (health.score < 45 ? "Configuração incompleta" : performance.label);
           return (
-            <button type="button" key={event.id} onClick={() => onOpen?.(event)}>
+            <button type="button" key={event.id} onClick={() => resolveCandidate(event, alert)}>
               <span className="cut-event-attention-center__event"><b>{event.title}</b><small>{event.production?.name || "Produção"}</small></span>
               <span className="cut-event-attention-center__reason"><i className={alert?.icon || "fa-solid fa-triangle-exclamation"} />{reason}</span>
               <span className="cut-event-attention-center__score">{alerts.length || (health.score < 65 ? 1 : 0)} pendência(s)</span>
