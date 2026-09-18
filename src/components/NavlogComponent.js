@@ -3,6 +3,7 @@ import { Container, Nav, Navbar, NavDropdown } from "react-bootstrap";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import cutinappService from "../services/CutinappService";
+import artistService from "../services/ArtistService";
 import { subscribeToUserNotifications } from "../services/RealtimeNotificationService";
 import { safeNavigationTarget } from "../utils/safeUrl";
 import { notificationTelemetryAttrs } from "../utils/notificationTelemetry";
@@ -81,6 +82,7 @@ export default function NavlogComponent() {
   const [usage, setUsage] = useState(() => readNavigationUsage(readStored(NAV_USAGE_STORAGE_KEY)));
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [notificationPreview, setNotificationPreview] = useState([]);
+  const [pendingArtistInvitations, setPendingArtistInvitations] = useState(0);
 
   const capabilities = useMemo(() => resolveNavigationCapabilities(user, capabilityEvidence), [user, capabilityEvidence]);
   const actorMenus = useMemo(() => actorMenusFor(capabilities), [capabilities]);
@@ -137,6 +139,34 @@ export default function NavlogComponent() {
     }
     timer = window.setTimeout(loadOwnership, 0);
     return () => { mounted = false; window.clearTimeout(timer); };
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId) {
+      setPendingArtistInvitations(0);
+      return undefined;
+    }
+
+    let mounted = true;
+    const refreshInvitations = async () => {
+      try {
+        const response = await artistService.invitations({ per_page: 1 });
+        if (mounted) setPendingArtistInvitations(Number(response?.pending_count || 0));
+      } catch (_) {
+        if (mounted) setPendingArtistInvitations(0);
+      }
+    };
+
+    refreshInvitations();
+    const timer = window.setInterval(refreshInvitations, 60000);
+    window.addEventListener("focus", refreshInvitations);
+    window.addEventListener("cutinapp:artist-invitations-updated", refreshInvitations);
+    return () => {
+      mounted = false;
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refreshInvitations);
+      window.removeEventListener("cutinapp:artist-invitations-updated", refreshInvitations);
+    };
   }, [userId]);
 
   useEffect(() => {
@@ -242,6 +272,11 @@ export default function NavlogComponent() {
               {contextual && <NavDropdown title={<span><i className="fa-solid fa-location-crosshairs" /> Contexto</span>} id="cut-context-menu" className="cut-context-menu"><div className="cut-navbar__context-box"><div className="cut-navbar__context-title">{contextual.label}</div>{contextual.items.map((entry) => <NavDropdown.Item key={entry.id} as={Link} to={entry.to} onClick={() => recordUsage(entry, "contextual")}><i className={`${entry.icon} me-2`} />{entry.label}</NavDropdown.Item>)}</div></NavDropdown>}
 
               {quickActions.length > 0 && <NavDropdown title={<span><i className="fa-solid fa-plus" /> Ações</span>} id="cut-quick-menu" className="cut-navbar__quick-toggle"><div className="cut-navbar__quick-menu"><div className="cut-quick-heading">Ações rápidas</div>{quickActions.slice(0, 6).map((entry) => <NavDropdown.Item key={entry.id} as="button" onClick={() => go(entry, "quick_actions")}><i className={`${entry.icon} me-2`} />{entry.label}</NavDropdown.Item>)}</div></NavDropdown>}
+
+              <Nav.Link as={Link} to="/artist/invitations" className={`cut-navbar__primary-link ${active("/artist/invitations") ? "active" : ""}`} onClick={closeMenu} aria-label={pendingArtistInvitations ? `${pendingArtistInvitations} convites artísticos aguardando resposta` : "Convites artísticos"}>
+                <span className="cut-nav-notification-toggle"><i className="fa-solid fa-id-card-clip" />{pendingArtistInvitations > 0 && <span className="cut-nav-notification__badge">{pendingArtistInvitations > 99 ? "99+" : pendingArtistInvitations}</span>}</span>
+                <span>Convites</span>
+              </Nav.Link>
 
               <NavDropdown align="end" title={<span className="cut-nav-notification-toggle" aria-label={unreadNotifications ? `${unreadNotifications} notificações não lidas` : "Notificações"}><i className={unreadNotifications > 0 ? "fa-solid fa-bell" : "fa-regular fa-bell"} />{unreadNotifications > 0 && <span className="cut-nav-notification__badge">{unreadNotifications > 99 ? "99+" : unreadNotifications}</span>}</span>} id="cut-notifications-menu" className="cut-nav-notification-menu">
                 <div className="cut-notification-popover"><div className="cut-notification-popover__head"><strong>Notificações</strong>{unreadNotifications > 0 && <span>{unreadNotifications} nova{unreadNotifications === 1 ? "" : "s"}</span>}</div><NotificationPermissionControl compact /><div className="cut-notification-popover__list">{notificationPreview.length === 0 ? <div className="cut-notification-popover__empty"><i className="fa-regular fa-bell" /><span>Nenhuma novidade por aqui.</span></div> : notificationPreview.map((entry) => <button type="button" key={entry.id} {...notificationTelemetryAttrs(entry, "navbar_popover")} className={`cut-notification-popover__item ${entry.read_at ? "" : "is-unread"}`} onClick={() => openNotification(entry)}><span className="cut-notification-popover__icon"><i className={notificationIcon(entry.type)} /></span><span className="cut-notification-popover__copy"><strong>{entry.title || "Nova atividade"}</strong><small>{entry.message || "Há uma novidade para você na Cutinapp."}</small><time>{notificationTime(entry.created_at)}</time></span>{!entry.read_at && <span className="cut-notification-popover__dot" />}</button>)}</div><button type="button" className="cut-notification-popover__footer" onClick={() => navigate("/notifications")}>Ver todas</button></div>
