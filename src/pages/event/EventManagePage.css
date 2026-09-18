@@ -1473,3 +1473,14 @@
     grid-row:7;
   }
 }
+
+
+@media(min-width:992px){
+  .cut-producer-event-list-head{
+    position:sticky;
+    top:126px;
+    z-index:17;
+    background:rgba(7,9,25,.97);
+    border-bottom:1px solid rgba(255,255,255,.055);
+  }
+}
