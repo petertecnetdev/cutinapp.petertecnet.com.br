@@ -1461,7 +1461,16 @@ export default function EventManagePage() {
               </section>
             </details>
 
-            <EventAttentionCenter events={events} onOpen={setQuickEvent} />
+            <EventAttentionCenter
+              events={events}
+              onOpen={setQuickEvent}
+              onResolve={(event, alert) => {
+                if (alert?.route) navigate(alert.route);
+                else if (alert?.mode === "whatsapp") shareWhatsApp(event);
+                else if (alert?.mode === "publish") publication(event);
+                else setQuickEvent(event);
+              }}
+            />
 
             <section className="cut-event-manager-toolbar">
               <div className="cut-event-manager-search">
