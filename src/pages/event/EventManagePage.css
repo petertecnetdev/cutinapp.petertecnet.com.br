@@ -848,3 +848,628 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Producer Event Manager 2026 — operational-first layout */
+.cut-event-manager-page .cut-page-container{
+  max-width:1440px;
+}
+.cut-event-manager-hero{
+  align-items:center;
+  margin-bottom:.75rem;
+  padding:.8rem 1rem;
+  border:1px solid rgba(255,255,255,.075);
+  border-radius:18px;
+  background:rgba(12,14,34,.88);
+}
+.cut-event-manager-hero__copy{
+  min-width:0;
+}
+.cut-event-manager-hero h1{
+  margin:.18rem 0 .18rem;
+  font-size:clamp(1.65rem,2.8vw,2.25rem);
+}
+.cut-event-manager-hero p{
+  max-width:760px;
+  font-size:.79rem;
+}
+.cut-event-manager-hero__actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:.5rem;
+  flex:0 0 auto;
+}
+.cut-event-manager-more-actions{
+  min-height:44px!important;
+  border-radius:13px!important;
+  font-weight:800!important;
+}
+.cut-event-manager-summary{
+  gap:.4rem;
+  margin-bottom:.6rem;
+}
+.cut-event-manager-summary button{
+  min-height:34px;
+  padding:5px 10px;
+  border-radius:10px;
+  background:rgba(13,15,35,.82);
+  font-size:.68rem;
+}
+.cut-event-manager-summary button>i{
+  color:var(--cut-primary);
+}
+.cut-event-manager-summary button.is-priority strong,
+.cut-event-manager-summary button.is-priority>i{
+  color:#f6d878;
+}
+.cut-event-manager-summary button.is-priority{
+  border-color:rgba(246,216,120,.16);
+}
+.cut-event-manager-summary button strong{
+  min-width:20px;
+  height:20px;
+  font-size:.6rem;
+}
+.cut-event-commerce-summary{
+  margin:.5rem 0;
+  border:1px solid rgba(255,255,255,.065);
+  border-radius:12px;
+  background:rgba(11,13,31,.62);
+}
+.cut-event-commerce-summary>summary{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:1rem;
+  min-height:40px;
+  padding:.55rem .75rem;
+  cursor:pointer;
+  list-style:none;
+}
+.cut-event-commerce-summary>summary::-webkit-details-marker{display:none}
+.cut-event-commerce-summary>summary span{
+  display:inline-flex;
+  align-items:center;
+  gap:.45rem;
+  color:var(--cut-text-strong);
+  font-size:.66rem;
+  font-weight:900;
+}
+.cut-event-commerce-summary>summary span i{color:var(--cut-primary)}
+.cut-event-commerce-summary>summary small{
+  color:var(--cut-text-faint);
+  font-size:.58rem;
+}
+.cut-event-commerce-summary[open]>summary{
+  border-bottom:1px solid rgba(255,255,255,.055);
+}
+.cut-event-commerce-summary .cut-event-portfolio-metrics{
+  margin:0;
+  padding:.65rem;
+}
+.cut-event-manager-toolbar{
+  position:sticky;
+  top:72px;
+  z-index:22;
+  margin:.6rem 0;
+  padding:.45rem;
+  border-radius:13px;
+  background:rgba(9,11,29,.97);
+  box-shadow:0 8px 20px rgba(0,0,0,.15);
+}
+.cut-event-manager-search .form-control{
+  min-height:44px;
+  border-radius:11px!important;
+}
+.cut-event-manager-toolbar__right .btn,
+.cut-event-manager-toolbar__right .dropdown-toggle,
+.cut-event-group-toggle{
+  min-height:44px!important;
+  border-radius:11px!important;
+}
+.cut-event-toolbar-menu .dropdown-item{
+  display:flex;
+  align-items:center;
+  gap:.55rem;
+}
+.cut-event-advanced-filters{
+  margin:.4rem 0 .55rem;
+  border-radius:12px;
+}
+.cut-event-advanced-filters>summary{
+  min-height:38px;
+  padding:.45rem .7rem;
+}
+.cut-event-active-filters{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:.35rem;
+  margin:.35rem 0 .65rem;
+}
+.cut-event-active-filters button{
+  display:inline-flex;
+  align-items:center;
+  gap:.4rem;
+  min-height:30px;
+  padding:.3rem .55rem;
+  border:1px solid rgba(86,220,233,.16);
+  border-radius:999px;
+  background:rgba(86,220,233,.055);
+  color:var(--cut-text-soft);
+  font-size:.6rem;
+  font-weight:780;
+}
+.cut-event-active-filters button i{
+  color:var(--cut-primary);
+}
+.cut-event-list-context{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:1rem;
+  padding:.35rem .2rem .45rem;
+  color:var(--cut-text-faint);
+  font-size:.61rem;
+}
+.cut-event-list-context strong{color:var(--cut-text-strong)}
+.cut-producer-event-list-head{
+  display:grid;
+  grid-template-columns:28px 52px minmax(250px,2fr) minmax(150px,1.1fr) minmax(118px,.82fr) minmax(112px,.78fr) minmax(160px,1.1fr) 132px;
+  gap:.55rem;
+  align-items:center;
+  min-height:32px;
+  padding:0 .62rem;
+  color:var(--cut-text-faint);
+  font-size:.54rem;
+  font-weight:900;
+  letter-spacing:.07em;
+  text-transform:uppercase;
+}
+.cut-producer-event-group{
+  margin-bottom:.65rem;
+}
+.cut-producer-event-group__heading{
+  min-height:30px;
+  margin-bottom:.3rem;
+  padding:.2rem .25rem;
+}
+.cut-producer-event-group__heading div span,
+.cut-producer-event-group__heading div strong{
+  font-size:.6rem;
+}
+.cut-producer-event-list{
+  gap:.35rem!important;
+}
+.cut-producer-event-card.is-compact-table{
+  display:grid;
+  grid-template-columns:28px 52px minmax(250px,2fr) minmax(150px,1.1fr) minmax(118px,.82fr) minmax(112px,.78fr) minmax(160px,1.1fr) 132px!important;
+  grid-template-rows:auto!important;
+  gap:.55rem!important;
+  align-items:center!important;
+  min-height:74px!important;
+  padding:.48rem .62rem!important;
+  border-radius:13px!important;
+  background:rgba(13,15,37,.88)!important;
+  box-shadow:none!important;
+  contain:layout paint style;
+  content-visibility:auto;
+  contain-intrinsic-size:74px;
+}
+.cut-producer-event-card.is-compact-table:hover{
+  border-color:rgba(86,220,233,.17);
+  background:rgba(16,19,44,.94)!important;
+}
+.cut-producer-event-card.is-compact-table::after{
+  display:none;
+}
+.cut-producer-event-card.is-compact-table.is-attention::before{
+  top:10px;
+  bottom:10px;
+  width:2px;
+}
+.cut-producer-event-card.is-compact-table .cut-producer-event-card__select{
+  padding:0;
+  align-items:center;
+}
+.cut-producer-event-card.is-compact-table .cut-producer-event-card__media{
+  width:52px!important;
+  height:52px;
+  aspect-ratio:1;
+  border-radius:10px!important;
+  box-shadow:none!important;
+}
+.cut-producer-event-card.is-compact-table .cut-producer-event-card__media img{
+  object-fit:cover;
+}
+.cut-producer-event-card.is-compact-table .cut-producer-event-card__main{
+  gap:.28rem;
+}
+.cut-producer-event-card.is-compact-table .cut-producer-event-card__title{
+  font-size:.78rem;
+  line-height:1.2;
+}
+.cut-producer-event-card.is-compact-table .cut-event-pin{
+  width:26px;
+  height:26px;
+  flex-basis:26px;
+}
+.cut-producer-event-card.is-compact-table .cut-producer-event-card__meta{
+  display:flex;
+  gap:.25rem .55rem;
+}
+.cut-producer-event-card.is-compact-table .cut-producer-event-card__meta span{
+  max-width:180px;
+  overflow:hidden;
+  font-size:.54rem;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.cut-producer-event-card__artists{
+  min-width:0;
+}
+.cut-event-artists-inline{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:.3rem;
+  min-width:0;
+}
+.cut-event-artists-inline.is-compact{
+  flex-wrap:nowrap;
+  overflow:hidden;
+}
+.cut-event-artist-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:.35rem;
+  min-width:0;
+  max-width:170px;
+  padding:2px 5px 2px 2px;
+  border:1px solid rgba(255,255,255,.055);
+  border-radius:999px;
+  background:rgba(255,255,255,.018);
+  color:var(--cut-text-soft);
+  text-align:left;
+}
+.cut-event-artist-chip:hover{
+  border-color:rgba(86,220,233,.18);
+  background:rgba(86,220,233,.04);
+}
+.cut-event-artist-chip__avatar{
+  width:24px;
+  height:24px;
+  flex:0 0 24px;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+  border-radius:50%;
+  background:rgba(86,220,233,.1);
+  color:var(--cut-primary);
+  font-size:.48rem;
+  font-weight:950;
+}
+.cut-event-artist-chip__avatar img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+.cut-event-artist-chip__copy{
+  min-width:0;
+  display:grid;
+}
+.cut-event-artist-chip__copy b{
+  overflow:hidden;
+  color:var(--cut-text-soft);
+  font-size:.54rem;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.cut-event-artist-chip__copy small{
+  color:var(--cut-text-faint);
+  font-size:.45rem;
+  white-space:nowrap;
+}
+.cut-event-artist-chip__copy small.is-warning{color:#f6d878}
+.cut-event-artist-chip__copy small.is-danger{color:#ffaaa7}
+.cut-event-artists-more{
+  flex:0 0 auto;
+  padding:4px 6px;
+  border-radius:999px;
+  background:rgba(255,255,255,.05);
+  color:var(--cut-text-muted);
+  font-size:.5rem;
+  font-weight:900;
+}
+.cut-event-artists-empty{
+  display:inline-flex;
+  align-items:center;
+  gap:.35rem;
+  color:var(--cut-text-faint);
+  font-size:.55rem;
+  font-weight:720;
+}
+.cut-producer-event-card__status{
+  display:grid;
+  justify-items:start;
+  gap:.25rem;
+}
+.cut-producer-event-card__status .badge{
+  font-size:.52rem;
+}
+.cut-producer-event-card__status .cut-event-performance{
+  max-width:118px;
+  overflow:hidden;
+  min-height:22px;
+  padding:3px 6px;
+  font-size:.49rem;
+  text-overflow:ellipsis;
+}
+.cut-producer-event-card__sales{
+  min-width:0;
+  display:grid;
+  gap:1px;
+}
+.cut-producer-event-card__sales strong{
+  color:var(--cut-text-strong);
+  font-size:.61rem;
+}
+.cut-producer-event-card__sales span{
+  color:var(--cut-primary);
+  font-size:.6rem;
+  font-weight:850;
+}
+.cut-producer-event-card__sales small{
+  color:var(--cut-text-faint);
+  font-size:.49rem;
+}
+.cut-producer-event-card__issues{
+  min-width:0;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:2px .35rem;
+  align-items:center;
+}
+.cut-producer-event-card__issues strong,
+.cut-producer-event-card__issues span{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.cut-producer-event-card__issues strong{
+  display:inline-flex;
+  align-items:center;
+  gap:.3rem;
+  color:#f6d878;
+  font-size:.56rem;
+}
+.cut-producer-event-card__issues span{
+  grid-column:1;
+  color:var(--cut-text-faint);
+  font-size:.49rem;
+}
+.cut-producer-event-card__issues .btn{
+  grid-column:2;
+  grid-row:1/3;
+  min-height:30px;
+  padding:.25rem .45rem!important;
+  border-radius:8px!important;
+  font-size:.52rem;
+}
+.cut-producer-event-card__issues.is-ready strong{
+  color:#8ef0ad;
+}
+.cut-producer-event-card.is-compact-table .cut-producer-event-card__quick-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:.22rem;
+  opacity:1;
+}
+.cut-producer-event-card.is-compact-table .cut-producer-event-card__quick-actions>.btn,
+.cut-producer-event-card.is-compact-table .cut-producer-event-card__quick-actions>.cut-event-admin-actions .dropdown-toggle{
+  width:28px!important;
+  height:28px!important;
+  min-height:28px!important;
+  border-radius:8px!important;
+  font-size:.58rem;
+}
+.cut-producer-event-card__media-overlay{
+  backdrop-filter:none!important;
+  background:rgba(5,7,20,.94);
+}
+.cut-event-bulk-selection{
+  position:sticky;
+  top:126px;
+  z-index:21;
+  margin:.45rem 0;
+  background:rgba(13,15,37,.98)!important;
+}
+.cut-event-incremental-footer{
+  padding:.65rem .1rem 0;
+}
+.cut-event-manager-skeleton__card{
+  min-height:92px;
+  grid-template-columns:64px minmax(0,1fr) 180px;
+  border-radius:14px;
+  background:rgba(255,255,255,.018);
+  box-shadow:none;
+}
+.cut-event-manager-skeleton__media{
+  width:64px;
+  aspect-ratio:1;
+  border-radius:11px;
+}
+@media (prefers-reduced-motion: reduce){
+  .cut-event-manager-skeleton__media::after,
+  .cut-event-manager-skeleton__card div span::after,
+  .cut-event-manager-skeleton__card aside span::after{
+    animation:none!important;
+  }
+}
+
+@media(max-width:1199.98px){
+  .cut-producer-event-list-head,
+  .cut-producer-event-card.is-compact-table{
+    grid-template-columns:28px 50px minmax(220px,2fr) minmax(145px,1fr) minmax(105px,.8fr) minmax(108px,.78fr) minmax(155px,1.1fr) 104px!important;
+  }
+}
+
+@media(max-width:991.98px){
+  .cut-producer-event-list-head{display:none}
+  .cut-event-manager-toolbar{
+    top:64px;
+  }
+  .cut-producer-event-card.is-compact-table{
+    grid-template-columns:28px 62px minmax(0,1fr) auto!important;
+    grid-template-rows:auto auto auto!important;
+    gap:.5rem!important;
+    min-height:0!important;
+    padding:.62rem!important;
+  }
+  .cut-producer-event-card.is-compact-table .cut-producer-event-card__media{
+    width:62px!important;
+    height:62px;
+    grid-column:2;
+    grid-row:1/3;
+  }
+  .cut-producer-event-card.is-compact-table .cut-producer-event-card__main{
+    grid-column:3;
+    grid-row:1/3;
+  }
+  .cut-producer-event-card.is-compact-table .cut-producer-event-card__artists{
+    grid-column:2/4;
+    grid-row:3;
+  }
+  .cut-producer-event-card.is-compact-table .cut-producer-event-card__status{
+    grid-column:4;
+    grid-row:1;
+  }
+  .cut-producer-event-card.is-compact-table .cut-producer-event-card__sales{
+    grid-column:2/3;
+    grid-row:4;
+  }
+  .cut-producer-event-card.is-compact-table .cut-producer-event-card__issues{
+    grid-column:3/5;
+    grid-row:4;
+  }
+  .cut-producer-event-card.is-compact-table .cut-producer-event-card__quick-actions{
+    grid-column:4;
+    grid-row:2/4;
+    align-self:end;
+  }
+}
+
+@media(max-width:767.98px){
+  .cut-event-manager-page .cut-page-container{
+    padding-top:.65rem!important;
+  }
+  .cut-event-manager-hero{
+    display:flex;
+    align-items:flex-start;
+    flex-direction:column;
+    padding:.7rem;
+  }
+  .cut-event-manager-hero__actions{
+    width:100%;
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+  }
+  .cut-event-manager-hero__actions>.btn{
+    width:100%;
+  }
+  .cut-event-manager-hero__copy p{
+    display:none;
+  }
+  .cut-event-manager-toolbar{
+    position:relative;
+    top:auto;
+    flex-direction:column;
+    align-items:stretch;
+  }
+  .cut-event-manager-toolbar__right{
+    display:grid!important;
+    grid-template-columns:1fr 1fr auto;
+  }
+  .cut-event-manager-toolbar__right>.dropdown,
+  .cut-event-manager-toolbar__right>.dropdown>.btn{
+    width:100%!important;
+  }
+  .cut-event-commerce-summary>summary{
+    align-items:flex-start;
+    flex-direction:column;
+    gap:.2rem;
+  }
+  .cut-event-commerce-summary>summary small{
+    font-size:.52rem;
+  }
+  .cut-event-bulk-selection{
+    position:relative;
+    top:auto;
+  }
+  .cut-producer-event-card.is-compact-table{
+    grid-template-columns:26px 58px minmax(0,1fr)!important;
+    grid-template-rows:auto auto auto auto auto!important;
+  }
+  .cut-producer-event-card.is-compact-table .cut-producer-event-card__media{
+    width:58px!important;
+    height:58px;
+  }
+  .cut-producer-event-card.is-compact-table .cut-producer-event-card__main{
+    grid-column:3;
+    grid-row:1/3;
+  }
+  .cut-producer-event-card.is-compact-table .cut-producer-event-card__status{
+    grid-column:2/4;
+    grid-row:3;
+    display:flex;
+    align-items:center;
+    flex-wrap:wrap;
+  }
+  .cut-producer-event-card.is-compact-table .cut-producer-event-card__artists{
+    grid-column:2/4;
+    grid-row:4;
+  }
+  .cut-producer-event-card.is-compact-table .cut-producer-event-card__sales{
+    grid-column:2;
+    grid-row:5;
+  }
+  .cut-producer-event-card.is-compact-table .cut-producer-event-card__issues{
+    grid-column:3;
+    grid-row:5;
+  }
+  .cut-producer-event-card.is-compact-table .cut-producer-event-card__quick-actions{
+    grid-column:2/4;
+    grid-row:6;
+    justify-content:flex-end;
+  }
+  .cut-event-list-context small{display:none}
+}
+
+@media(max-width:420px){
+  .cut-event-manager-hero__actions{
+    grid-template-columns:1fr;
+  }
+  .cut-event-manager-hero__actions>.dropdown,
+  .cut-event-manager-hero__actions>.dropdown>.btn{
+    width:100%;
+  }
+  .cut-producer-event-card.is-compact-table{
+    grid-template-columns:24px 52px minmax(0,1fr)!important;
+  }
+  .cut-producer-event-card.is-compact-table .cut-producer-event-card__media{
+    width:52px!important;
+    height:52px;
+  }
+  .cut-producer-event-card.is-compact-table .cut-producer-event-card__sales{
+    grid-column:2/4;
+  }
+  .cut-producer-event-card.is-compact-table .cut-producer-event-card__issues{
+    grid-column:2/4;
+    grid-row:6;
+  }
+  .cut-producer-event-card.is-compact-table .cut-producer-event-card__quick-actions{
+    grid-row:7;
+  }
+}
