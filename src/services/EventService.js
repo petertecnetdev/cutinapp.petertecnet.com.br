@@ -352,7 +352,7 @@ const search = async (params = {}, options = {}) => {
 };
 
 const fetchMyEventsPage = async (params = {}, options = {}) => {
-  const perPage = Math.min(24, Math.max(1, Number(params.per_page) || 8));
+  const perPage = Math.min(50, Math.max(1, Number(params.per_page) || 50));
   const page = Math.max(1, Number(params.page) || 1);
   const response = await appApiClient.get("/events/mine", {
     params: { ...params, page, per_page: perPage },
@@ -372,7 +372,7 @@ const fetchMyEventsPage = async (params = {}, options = {}) => {
 };
 
 const fetchAllMyEvents = async (params = {}) => {
-  const perPage = Math.min(100, Math.max(1, Number(params.per_page) || 100));
+  const perPage = Math.min(50, Math.max(1, Number(params.per_page) || 50));
   const baseParams = { ...params, per_page: perPage };
   delete baseParams.page;
 

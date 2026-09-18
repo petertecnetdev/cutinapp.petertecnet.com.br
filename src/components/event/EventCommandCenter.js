@@ -113,8 +113,9 @@ const commandButton = ({ key, icon, title, description, onClick, disabled, tone 
   </button>
 );
 
-export function EventAttentionCenter({ events = [], onOpen }) {
-  const candidates = useMemo(() => events
+export function EventAttentionCenter({ events = [], onOpen, onResolve }) {
+  const [expanded, setExpanded] = useState(false);
+  const rankedCandidates = useMemo(() => events
     .filter((event) => !event?.is_cancelled)
     .map((event) => {
       const alerts = eventAlerts(event);
@@ -127,43 +128,64 @@ export function EventAttentionCenter({ events = [], onOpen }) {
       return { event, alerts, health, performance, start, urgency };
     })
     .filter((item) => item.alerts.length || item.health.score < 65 || item.performance.rank <= 3)
-    .sort((a, b) => a.urgency - b.urgency || a.start - b.start)
-    .slice(0, 4), [events]);
+    .sort((a, b) => a.urgency - b.urgency || a.start - b.start), [events]);
+  const candidates = rankedCandidates.slice(0, 6);
 
-  if (!candidates.length) return (
-    <section className="cut-event-attention-center is-clear">
+  if (!rankedCandidates.length) return (
+    <section className="cut-event-attention-center is-clear is-compact">
       <div className="cut-event-attention-center__title">
         <span><i className="fa-solid fa-circle-check" /></span>
         <div><small>Central de ações</small><strong>Nenhuma pendência crítica agora</strong></div>
       </div>
-      <p>Seus eventos não têm bloqueios urgentes. Continue acompanhando vendas, estoque e divulgação.</p>
+      <p>Seus eventos não têm bloqueios urgentes.</p>
     </section>
   );
 
+  const first = rankedCandidates[0];
+  const firstAlert = first?.alerts?.[0];
+  const firstReason = firstAlert?.title
+    || (first?.health?.score < 45 ? "Configuração incompleta" : first?.performance?.label);
+  const resolveCandidate = (event, alert) => {
+    if (typeof onResolve === "function") {
+      onResolve(event, alert);
+      return;
+    }
+    onOpen?.(event);
+  };
+
   return (
-    <section className="cut-event-attention-center" aria-label="Eventos que precisam de atenção">
+    <section className={`cut-event-attention-center is-compact${expanded ? " is-expanded" : ""}`} aria-label="Eventos que precisam de atenção">
       <header>
         <div className="cut-event-attention-center__title">
           <span><i className="fa-solid fa-bolt" /></span>
-          <div><small>Central de ações</small><strong>{candidates.length} prioridade(s) para resolver agora</strong></div>
+          <div><small>Central de ações</small><strong>{rankedCandidates.length} evento(s) precisam da sua atenção</strong></div>
         </div>
-        <span className="cut-event-attention-center__hint">Abra o evento e execute a ação sem se perder entre páginas.</span>
+        <div className="cut-event-attention-center__compact-actions">
+          <span className="cut-event-attention-center__urgent" title={firstReason}><i className={firstAlert?.icon || "fa-solid fa-triangle-exclamation"} />{firstReason}</span>
+          <button type="button" className="is-resolve" onClick={() => resolveCandidate(first.event, firstAlert)}>
+            Resolver agora<i className="fa-solid fa-arrow-right" />
+          </button>
+          <button type="button" onClick={() => setExpanded((current) => !current)} aria-expanded={expanded}>
+            {expanded ? "Ocultar" : "Ver pendências"}<i className={expanded ? "fa-solid fa-chevron-up" : "fa-solid fa-chevron-down"} />
+          </button>
+        </div>
       </header>
-      <div className="cut-event-attention-center__grid">
+      {expanded && <div className="cut-event-attention-center__grid">
         {candidates.map(({ event, alerts, health, performance }) => {
-          const firstAlert = alerts[0];
-          const reason = firstAlert?.title
+          const alert = alerts[0];
+          const reason = alert?.title
             || (health.score < 45 ? "Configuração incompleta" : performance.label);
           return (
-            <button type="button" key={event.id} onClick={() => onOpen?.(event)}>
+            <button type="button" key={event.id} onClick={() => resolveCandidate(event, alert)}>
               <span className="cut-event-attention-center__event"><b>{event.title}</b><small>{event.production?.name || "Produção"}</small></span>
-              <span className="cut-event-attention-center__reason"><i className={firstAlert?.icon || "fa-solid fa-triangle-exclamation"} />{reason}</span>
-              <span className="cut-event-attention-center__score">{health.score}/100</span>
+              <span className="cut-event-attention-center__reason"><i className={alert?.icon || "fa-solid fa-triangle-exclamation"} />{reason}</span>
+              <span className="cut-event-attention-center__score">{alerts.length || (health.score < 65 ? 1 : 0)} pendência(s)</span>
+              <span className="cut-event-attention-center__resolve">Resolver</span>
               <i className="fa-solid fa-arrow-right" />
             </button>
           );
         })}
-      </div>
+      </div>}
     </section>
   );
 }
