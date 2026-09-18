@@ -4,6 +4,7 @@ import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import EntityEditorShell, { EditorSection } from "../../components/editor/EntityEditorShell";
 import cutinappService from "../../services/CutinappService";
+import artistService from "../../services/ArtistService";
 import { storageUrl } from "../../config";
 
 const ARTIST_TYPES = [
@@ -86,7 +87,16 @@ export default function ArtistManagePage() {
     if (editing) delete payload.claim_myself;
 
     try {
-      const response = editing ? await cutinappService.updateArtist(editing, payload) : await cutinappService.createArtist(payload);
+      const response = editing
+        ? await cutinappService.updateArtist(editing, payload)
+        : form.artist_type === "solo"
+          ? await artistService.activateArtist({
+            stage_name: payload.stage_name,
+            genres: payload.genres,
+            photo: payload.photo || undefined,
+            short_bio: String(payload.bio || "").trim().slice(0, 500) || undefined,
+          })
+          : await cutinappService.createArtist(payload);
       const artistId = editing || response.artist?.id;
       await load();
       if (!editing && GROUP_TYPES.has(form.artist_type) && artistId) {
@@ -193,7 +203,7 @@ export default function ArtistManagePage() {
       <EntityEditorShell
         eyebrow={editing ? "Editar artista" : "Cadastrar artista"}
         title={form.stage_name || (editing ? "Editar perfil artístico" : "Novo perfil artístico")}
-        description="A edição acompanha a mesma hierarquia da página pública do artista: identidade, bio, mídia, links e formação."
+        description="Crie sua identidade artística sem depender de uma produção. Produções, eventos, integrantes e gestores são relações separadas do perfil."
         sections={sections}
         activeSection={activeSection}
         onSectionChange={setActiveSection}
@@ -208,7 +218,9 @@ export default function ArtistManagePage() {
           <Row className="g-3">
             <Col md={5}><Form.Group><Form.Label>Tipo *</Form.Label><Form.Select value={form.artist_type || "solo"} onChange={(e) => setForm({ ...form, artist_type: e.target.value })}>{ARTIST_TYPES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Form.Select></Form.Group></Col>
             <Col md={7}><Form.Group><Form.Label>Nome artístico *</Form.Label><Form.Control value={form.stage_name} onChange={(e) => setForm({ ...form, stage_name: e.target.value })} required /></Form.Group></Col>
-            {!editing && <Col xs={12}><div className="cut-info-box p-3"><Form.Check type="switch" id="artist-is-me" label="Este perfil artístico é meu" checked={Boolean(form.claim_myself)} onChange={(e) => setForm({ ...form, claim_myself: e.target.checked })} /><small className="text-secondary">Desmarque ao cadastrar um artista do seu evento que ainda não possui conta.</small></div></Col>}
+            {!editing && form.artist_type === "solo" && <Col xs={12}><div className="cut-info-box p-3"><strong>Este perfil será seu.</strong><small className="d-block text-secondary mt-1">Artista solo é vinculado diretamente à sua conta verificada. Produções não precisam criar nem administrar seu perfil para você ser artista.</small></div></Col>}
+            {!editing && form.artist_type !== "solo" && <Col xs={12}><div className="cut-info-box p-3"><Form.Check type="switch" id="artist-is-me" label="Eu represento esta formação" checked={Boolean(form.claim_myself)} onChange={(e) => setForm({ ...form, claim_myself: e.target.checked })} /><small className="text-secondary">Para bandas, duos e grupos, você pode criar a formação e depois vincular integrantes e gestores autorizados.</small></div></Col>}
+            {editing && form.origin_type === "organization" && form.origin_label && <Col xs={12}><div className="cut-info-box p-3"><div className="d-flex justify-content-between align-items-start gap-3 flex-wrap"><div><strong>Produção de referência: {form.origin_label}</strong><small className="d-block text-secondary mt-1">Essa referência registra quem apresentou o artista à Cutinapp. Ela não concede permissão para editar este perfil.</small></div><Form.Check type="switch" id="artist-reference-visible-manage" label="Exibir no perfil" checked={Boolean(form.reference_visible)} onChange={async (e) => { const visible = e.target.checked; setForm((current) => ({ ...current, reference_visible: visible })); try { await artistService.updateReferenceVisibility(editing, visible); setSuccess(visible ? "Produção de referência exibida publicamente." : "Produção de referência ocultada do perfil público."); } catch (err) { setForm((current) => ({ ...current, reference_visible: !visible })); setError(err?.response?.data?.message || "Não foi possível atualizar a referência."); } }} /></div></div></Col>}
             <Col md={8}><Form.Group><Form.Label>Cidade</Form.Label><Form.Control value={form.city || ""} onChange={(e) => setForm({ ...form, city: e.target.value })} /></Form.Group></Col>
             <Col md={4}><Form.Group><Form.Label>UF</Form.Label><Form.Control maxLength={2} value={form.uf || ""} onChange={(e) => setForm({ ...form, uf: e.target.value.toUpperCase().slice(0, 2) })} /></Form.Group></Col>
             <Col xs={12}><Form.Group><Form.Label>Gêneros / categorias</Form.Label><Form.Control value={form.genres || ""} onChange={(e) => setForm({ ...form, genres: e.target.value })} placeholder="Rock, MPB, Eletrônico" /><Form.Text>Separe por vírgulas. A prévia atualiza imediatamente.</Form.Text></Form.Group></Col>
