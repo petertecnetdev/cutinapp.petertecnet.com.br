@@ -10,6 +10,7 @@ import { storageUrl } from "../../config";
 import { AuthContext } from "../../context/AuthContext";
 import { clearEventCreationDraft, readEventCreationDraft, writeEventCreationDraft } from "../../utils/eventCreationDraft";
 import { showImportantAlert, showProducerAgreementRequired } from "../../utils/sweetAlert";
+import { EVENT_POSTER_HINT, validateEventPosterFile } from "../../utils/eventPoster";
 
 const pad = (value) => String(value).padStart(2, "0");
 const toLocalInput = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
@@ -578,23 +579,35 @@ export default function EventCreatePage() {
     }
   };
 
-  const chooseImage = (event) => {
+  const chooseImage = async (event) => {
     const file = event.target.files?.[0] || null;
-    if (file && file.size > 5 * 1024 * 1024) {
-      setFieldErrors((current) => ({ ...current, image: ["A imagem do evento deve ter no máximo 5 MB."] }));
+    if (!file) return;
+
+    const validation = await validateEventPosterFile(file);
+    if (!validation.ok) {
+      setFieldErrors((current) => ({ ...current, image: [validation.message] }));
+      event.target.value = "";
       return;
     }
+
+    setFieldErrors((current) => {
+      if (!current.image) return current;
+      const next = { ...current };
+      delete next.image;
+      return next;
+    });
     if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
     setForm((current) => ({ ...current, image: file }));
-    setPreview(file ? URL.createObjectURL(file) : "");
+    setPreview(URL.createObjectURL(file));
   };
 
   useEffect(() => {
-    const handleGeneratedCover = (event) => {
+    const handleGeneratedCover = async (event) => {
       const file = event?.detail?.file;
       if (!(file instanceof File)) return;
-      if (file.size > 5 * 1024 * 1024) {
-        setFieldErrors((current) => ({ ...current, image: ["A imagem do evento deve ter no máximo 5 MB."] }));
+      const validation = await validateEventPosterFile(file);
+      if (!validation.ok) {
+        setFieldErrors((current) => ({ ...current, image: [validation.message] }));
         return;
       }
       setForm((current) => ({ ...current, image: file }));
@@ -1117,7 +1130,7 @@ export default function EventCreatePage() {
                 </>}
               </Row></Card.Body></Card></Col>
 
-              <Col lg={4}><Card className="cut-panel h-100"><Card.Body className="p-4"><h2 className="cut-section-title">Imagem do evento</h2>{preview ? <img src={preview} alt="Prévia do evento" className="cut-upload-preview cut-upload-preview--event" /> : <div className="cut-upload-placeholder"><i className="fa-regular fa-image" /><span>Adicione uma capa 16:9</span></div>}<Form.Control className="mt-3" name="image" data-event-image-input="true" type="file" accept="image/png,image/jpeg,image/webp" onChange={chooseImage} isInvalid={invalid("image")} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "image")}</Form.Control.Feedback><Form.Text>JPG, PNG ou WebP, até 5 MB.</Form.Text><div className="cut-info-box mt-4"><strong>Próxima etapa</strong><span>Depois de salvar, você configura o primeiro lote de ingressos e segue direto para a publicação.</span></div></Card.Body></Card></Col>
+              <Col lg={4}><Card className="cut-panel h-100"><Card.Body className="p-4"><h2 className="cut-section-title">Imagem do evento</h2>{preview ? <img src={preview} alt="Prévia do evento" className="cut-upload-preview cut-upload-preview--event" /> : <div className="cut-upload-placeholder cut-upload-placeholder--event"><i className="fa-regular fa-image" /><span>Adicione uma arte vertical 2:3</span></div>}<Form.Control className="mt-3" name="image" data-event-image-input="true" data-image-kind="event-poster" type="file" accept="image/png,image/jpeg,image/webp" onChange={chooseImage} isInvalid={invalid("image")} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "image")}</Form.Control.Feedback><Form.Text>{EVENT_POSTER_HINT} JPG, PNG ou WebP, até 5 MB.</Form.Text><div className="cut-info-box mt-4"><strong>Próxima etapa</strong><span>Depois de salvar, você configura o primeiro lote de ingressos e segue direto para a publicação.</span></div></Card.Body></Card></Col>
             </Row>
 
             <div className="cut-form-actions mt-4"><Button type="button" variant="outline-light" disabled={loading} onClick={() => navigate("/event/manage")}>Cancelar</Button><Button type="submit" disabled={loading}>{loading ? "Criando..." : "Criar rascunho e configurar primeiro lote"}</Button></div>
