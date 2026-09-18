@@ -12,6 +12,7 @@ import commerceService from "../../services/CommerceService";
 import { storageUrl } from "../../config";
 import { eventHealth, eventOperationalMetrics } from "../../utils/eventManagerInsights";
 import { showImportantAlert } from "../../utils/sweetAlert";
+import { EVENT_POSTER_HINT, validateEventPosterFile } from "../../utils/eventPoster";
 import "./EventUpdatePageV2.css";
 
 const SECTIONS = [
@@ -139,11 +140,12 @@ export default function EventUpdatePage() {
   }, [eventData?.production_id]);
 
   useEffect(() => {
-    const onGeneratedCover = (generatedEvent) => {
+    const onGeneratedCover = async (generatedEvent) => {
       const file = generatedEvent?.detail?.file;
       if (!(file instanceof File)) return;
-      if (file.size > 5 * 1024 * 1024) {
-        setError("A arte gerada ficou acima de 5 MB. Gere outra versão ou envie uma imagem menor.");
+      const validation = await validateEventPosterFile(file);
+      if (!validation.ok) {
+        setError(validation.message);
         return;
       }
       setImage(file);
@@ -240,13 +242,16 @@ export default function EventUpdatePage() {
     setFieldErrors((current) => ({ ...current, [name]: undefined }));
   };
 
-  const chooseImage = (event) => {
+  const chooseImage = async (event) => {
     const file = event.target.files?.[0] || null;
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      setError("A imagem deve ter no máximo 5 MB.");
+    const validation = await validateEventPosterFile(file);
+    if (!validation.ok) {
+      setError(validation.message);
+      event.target.value = "";
       return;
     }
+    setError("");
     setImage(file);
     setPreview((current) => {
       if (current?.startsWith("blob:")) URL.revokeObjectURL(current);
@@ -376,7 +381,7 @@ export default function EventUpdatePage() {
 
           <section id="event-editor-info" className="cev2-card"><span className="cev2-eyebrow">Informações</span><h2>Dados essenciais</h2><div className="cev2-form-grid"><div className="cev2-field is-wide"><label>Nome do evento</label><Form.Control name="title" value={form.title} onChange={change} isInvalid={Boolean(fieldErrors?.title)} /></div><div className="cev2-field is-wide"><label>Descrição</label><Form.Control as="textarea" name="description" value={form.description} onChange={change} /></div><div className="cev2-field"><label>Início</label><Form.Control type="datetime-local" name="start_date" value={form.start_date} onChange={change} /></div><div className="cev2-field"><label>Término</label><Form.Control type="datetime-local" name="end_date" value={form.end_date} onChange={change} /></div><div className="cev2-field"><label>Local</label><Form.Control name="venue" value={form.venue} onChange={change} /></div><div className="cev2-field"><label>Endereço</label><Form.Control name="address" value={form.address} onChange={change} /></div><div className="cev2-field"><label>Cidade</label><Form.Control name="city" value={form.city} onChange={change} /></div><div className="cev2-field"><label>UF</label><Form.Control name="uf" maxLength={2} value={form.uf} onChange={change} /></div></div></section>
 
-          <section id="event-editor-media" className="cev2-card"><span className="cev2-eyebrow">Arte e mídia</span><h2>Flyer e capa</h2><div className="cev2-cover">{preview ? <img src={preview} alt={`Capa de ${form.title}`} /> : <span className="cev2-cover-placeholder"><i className="fa-regular fa-image" /></span>}</div><div className="cev2-actions"><Button onClick={() => window.dispatchEvent(new CustomEvent("cutinapp:open-event-flyer"))}>Creative Studio</Button><Form.Label className="btn btn-outline-light mb-0">Enviar imagem<Form.Control type="file" accept="image/png,image/jpeg,image/webp" onChange={chooseImage} hidden /></Form.Label>{image && <Button variant="success" onClick={saveNow}>Aplicar arte</Button>}</div></section>
+          <section id="event-editor-media" className="cev2-card"><span className="cev2-eyebrow">Arte e mídia</span><h2>Flyer e capa</h2><div className="cev2-cover">{preview ? <img src={preview} alt={`Capa de ${form.title}`} /> : <span className="cev2-cover-placeholder"><i className="fa-regular fa-image" /></span>}</div><div className="cev2-actions"><Button onClick={() => window.dispatchEvent(new CustomEvent("cutinapp:open-event-flyer"))}>Creative Studio</Button><Form.Label className="btn btn-outline-light mb-0">Enviar imagem<Form.Control type="file" accept="image/png,image/jpeg,image/webp" data-image-kind="event-poster" onChange={chooseImage} hidden /></Form.Label>{image && <Button variant="success" onClick={saveNow}>Aplicar arte</Button>}</div><small className="cev2-help d-block mt-2">{EVENT_POSTER_HINT} JPG, PNG ou WebP, até 5 MB.</small></section>
 
           <section id="event-editor-tickets" className="cev2-card"><span className="cev2-eyebrow">Ingressos</span><h2>Lotes e acesso</h2><EventMetrics event={eventData || {}} /><div className="cev2-actions mt-3"><Button onClick={() => navigate(`/ticket/create?eventId=${id}`)}>Criar lote</Button><Button variant="outline-light" onClick={() => navigate(`/event/${id}/participants`)}>Participantes</Button></div></section>
 
