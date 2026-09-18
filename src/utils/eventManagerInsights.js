@@ -185,6 +185,29 @@ export const eventAlerts = (event) => {
     });
   }
 
+  const artists = Array.isArray(event?.artists) ? event.artists : [];
+  const pendingArtists = artists.filter((artist) => ["invited", "pending", "pending_acceptance"].includes(String(artist?.pivot?.status || "").toLowerCase()));
+  const declinedArtists = artists.filter((artist) => ["declined", "rejected", "cancelled"].includes(String(artist?.pivot?.status || "").toLowerCase()));
+
+  if (pendingArtists.length > 0) {
+    alerts.push({
+      key: "artist-invites-pending",
+      tone: "warning",
+      icon: "fa-solid fa-user-clock",
+      title: `${pendingArtists.length} convite(s) de artista aguardando resposta`,
+      detail: "Abra o line-up para acompanhar ou reenviar o convite.",
+    });
+  }
+  if (declinedArtists.length > 0) {
+    alerts.push({
+      key: "artist-invites-declined",
+      tone: "warning",
+      icon: "fa-solid fa-user-xmark",
+      title: `${declinedArtists.length} participação(ões) de artista não confirmada(s)`,
+      detail: "Revise o line-up antes da divulgação do evento.",
+    });
+  }
+
   if (!event?.is_published && number(event?.available_tickets_count) > 0) {
     alerts.push({
       key: "ready-to-publish",
@@ -195,7 +218,7 @@ export const eventAlerts = (event) => {
     });
   }
 
-  return alerts.slice(0, 3);
+  return alerts.slice(0, 4);
 };
 
 export const eventTemporalGroup = (event, now = new Date()) => {
