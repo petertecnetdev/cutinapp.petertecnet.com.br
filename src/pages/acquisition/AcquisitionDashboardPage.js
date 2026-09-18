@@ -201,7 +201,7 @@ export default function AcquisitionDashboardPage() {
                     <span>Observação / referência</span>
                     <input maxLength={1000} placeholder="Ex.: autorização recebida no atendimento comercial" value={form.authorization.note} onChange={(e) => setForm((current) => ({ ...current, authorization: { ...current.authorization, note: e.target.value } }))} />
                   </label>
-                  <label className="acq-span-3">
+                  <label className="acq-span-3 acq-authorization-check">
                     <span>
                       <input
                         required
