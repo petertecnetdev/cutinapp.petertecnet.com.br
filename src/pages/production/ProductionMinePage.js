@@ -99,6 +99,9 @@ export default function ProductionMinePage() {
           <p>Gerencie suas marcas, espaços, eventos, agendas fixas e recebimentos em um só lugar.</p>
         </div>
         <div className="cut-production-mine-heading__actions">
+          <Button variant="outline-light" onClick={() => navigate("/producer/onboarding")}>
+            <i className="fa-solid fa-list-check me-2" />Configuração de vendas
+          </Button>
           <Button variant="outline-light" onClick={() => navigate("/producer/finance")}>
             <i className="fa-solid fa-wallet me-2" />Recebimentos
           </Button>
@@ -201,6 +204,7 @@ export default function ProductionMinePage() {
                     <Dropdown.Menu>
                       <Dropdown.Item onClick={() => openAgenda(production)}><i className="fa-solid fa-calendar-days me-2" />Agenda semanal</Dropdown.Item>
                       <Dropdown.Item onClick={() => navigate(`/production/edit/${production.id}`)}><i className="fa-regular fa-pen-to-square me-2" />Editar produção</Dropdown.Item>
+                      <Dropdown.Item onClick={() => navigate(`/producer/onboarding?productionId=${production.id}`)}><i className="fa-solid fa-list-check me-2" />Configuração de vendas</Dropdown.Item>
                       <Dropdown.Item onClick={() => navigate(`/producer/finance?production=${production.id}`)}><i className="fa-solid fa-chart-line me-2" />Financeiro</Dropdown.Item>
                       <Dropdown.Divider />
                       <Dropdown.Item className="text-danger" onClick={() => askDeleteProduction(production)}><i className="fa-regular fa-trash-can me-2" />Excluir produção</Dropdown.Item>
