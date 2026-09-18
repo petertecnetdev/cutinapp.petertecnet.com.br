@@ -1053,9 +1053,8 @@
   border-radius:13px!important;
   background:rgba(13,15,37,.88)!important;
   box-shadow:none!important;
-  contain:layout paint style;
-  content-visibility:auto;
-  contain-intrinsic-size:74px;
+  contain:layout style;
+  overflow:visible;
 }
 .cut-producer-event-card.is-compact-table:hover{
   border-color:rgba(86,220,233,.17);
