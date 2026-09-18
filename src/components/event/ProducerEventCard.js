@@ -84,7 +84,7 @@ const ArtistsInline = ({ event, onOpen, compact = false }) => {
   </div>;
 };
 
-export default function ProducerEventCard({
+function ProducerEventCard({
   event,
   readiness,
   status,
@@ -285,3 +285,14 @@ export default function ProducerEventCard({
     </aside>
   </article>;
 }
+
+
+const sameProducerEventCard = (previous, next) => (
+  previous.event === next.event
+  && previous.selected === next.selected
+  && previous.pinned === next.pinned
+  && previous.viewMode === next.viewMode
+  && previous.disabled === next.disabled
+);
+
+export default React.memo(ProducerEventCard, sameProducerEventCard);
