@@ -77,7 +77,7 @@ export default function ApplicationAdminProductionsPage() {
     <Container className="cut-page-container py-4 py-lg-5">
       <div className="cut-page-heading align-items-start">
         <div><span className="cut-eyebrow">Cutinapp Owner · escopo global</span><h1>Todas as produções</h1><p>Administre produções de qualquer usuário sem depender de vínculo de propriedade, gerência ou equipe.</p></div>
-        <div className="d-flex flex-wrap gap-2 align-items-center"><Button onClick={() => navigate("/admin/onboarding")}>Novo onboarding assistido</Button><div className="d-flex flex-wrap gap-2 align-items-center"><Button onClick={() => navigate("/admin/onboarding")}>Novo onboarding assistido</Button><Badge bg="danger">GLOBAL</Badge></div></div>
+        <div className="d-flex flex-wrap gap-2 align-items-center"><Button onClick={() => navigate("/admin/onboarding")}>Novo onboarding assistido</Button><Badge bg="danger">GLOBAL</Badge></div>
       </div>
       {error && <Alert variant="danger" dismissible onClose={() => setError("")}>{error}</Alert>}
       {success && <Alert variant="success" dismissible onClose={() => setSuccess("")}>{success}</Alert>}
