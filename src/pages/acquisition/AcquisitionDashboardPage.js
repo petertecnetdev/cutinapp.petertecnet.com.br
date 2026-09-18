@@ -311,7 +311,7 @@ export default function AcquisitionDashboardPage() {
                         : (referral.onboarding?.assisted_onboarding ? referral.onboarding.status : referral.status);
                       return <span className={`acq-status acq-status--${onboardingStatus}`}>{onboardingStatusLabel(onboardingStatus)}</span>;
                     })()}
-                    <small>{referral.commissions_count || 0} evento(s) · {referral.onboarding?.completion ? `${referral.onboarding.completion.completed}/${referral.onboarding.completion.total} etapas · ` : ""}{dateLabel(referral.created_at)}</small>
+                    <small>{referral.commissions_count || 0} evento(s) · {referral.onboarding?.assisted_onboarding && referral.onboarding?.completion ? `${referral.onboarding.completion.completed}/${referral.onboarding.completion.total} etapas · ` : ""}{dateLabel(referral.created_at)}</small>
                     {["pending", "expired"].includes(referral.status) && <button type="button" className="acq-link" onClick={() => resend(referral.id)}>{referral.status === "expired" ? "Gerar novo convite" : "Reenviar convite"}</button>}
                   </article>
                 ))}
