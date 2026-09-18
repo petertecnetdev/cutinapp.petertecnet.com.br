@@ -308,7 +308,7 @@ export default function AcquisitionDashboardPage() {
                     {(() => {
                       const onboardingStatus = ["expired", "revoked"].includes(referral.status)
                         ? referral.status
-                        : (referral.onboarding?.status || referral.status);
+                        : (referral.onboarding?.assisted_onboarding ? referral.onboarding.status : referral.status);
                       return <span className={`acq-status acq-status--${onboardingStatus}`}>{onboardingStatusLabel(onboardingStatus)}</span>;
                     })()}
                     <small>{referral.commissions_count || 0} evento(s) · {referral.onboarding?.completion ? `${referral.onboarding.completion.completed}/${referral.onboarding.completion.total} etapas · ` : ""}{dateLabel(referral.created_at)}</small>
