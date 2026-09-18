@@ -1238,3 +1238,11 @@
   }
   .cut-lineup-picker-item>.badge{grid-column:2;justify-self:start}
 }
+
+
+.cut-lineup-invite-metrics{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.cut-lineup-invite-metrics span{display:grid;gap:2px;min-width:105px;padding:9px 11px;border:1px solid rgba(255,255,255,.09);border-radius:12px;background:rgba(255,255,255,.025);color:var(--cut-readable-muted,var(--cut-text-muted));font-size:.72rem}
+.cut-lineup-invite-metrics strong{color:#fff;font-size:.95rem}
+.cut-lineup-email-editor{display:grid;grid-template-columns:minmax(220px,1fr) auto auto;gap:8px;align-items:center;padding-top:12px;border-top:1px solid rgba(255,255,255,.08)}
+.cut-lineup-page .form-select.form-select-sm{min-width:190px}
+@media(max-width:575.98px){.cut-lineup-invite-metrics{width:100%;justify-content:stretch}.cut-lineup-invite-metrics span{flex:1}.cut-lineup-email-editor{grid-template-columns:1fr}.cut-lineup-email-editor .btn{width:100%}.cut-lineup-page .form-select.form-select-sm{width:100%;min-width:0}}
