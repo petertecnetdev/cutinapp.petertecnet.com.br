@@ -37,6 +37,13 @@ const dateLabel = (value) => {
 };
 const errorMessage = (error) => error?.response?.data?.message || error?.response?.data?.error || "Não foi possível concluir a operação.";
 const referralStatusLabel = (status) => ({ accepted: "Ativado", pending: "Pendente", expired: "Expirado", revoked: "Revogado" }[status] || status);
+const onboardingStatusLabel = (status) => ({
+  awaiting_activation: "Aguardando acesso",
+  awaiting_agreement: "Aguardando contrato",
+  awaiting_payout: "Aguardando Pix",
+  awaiting_payments: "Checkout pendente",
+  ready_to_sell: "Pronto para vender",
+}[status] || referralStatusLabel(status));
 
 export default function AcquisitionDashboardPage() {
   const [dashboard, setDashboard] = useState(null);
@@ -266,8 +273,13 @@ export default function AcquisitionDashboardPage() {
                 {(dashboard?.recent_referrals || []).map((referral) => (
                   <article key={referral.id}>
                     <div><strong>{referral.production?.name || referral.name || referral.email}</strong><small>{referral.email}</small></div>
-                    <span className={`acq-status acq-status--${referral.status}`}>{referralStatusLabel(referral.status)}</span>
-                    <small>{referral.commissions_count || 0} evento(s) · {dateLabel(referral.created_at)}</small>
+                    {(() => {
+                      const onboardingStatus = ["expired", "revoked"].includes(referral.status)
+                        ? referral.status
+                        : (referral.onboarding?.status || referral.status);
+                      return <span className={`acq-status acq-status--${onboardingStatus}`}>{onboardingStatusLabel(onboardingStatus)}</span>;
+                    })()}
+                    <small>{referral.commissions_count || 0} evento(s) · {referral.onboarding?.completion ? `${referral.onboarding.completion.completed}/${referral.onboarding.completion.total} etapas · ` : ""}{dateLabel(referral.created_at)}</small>
                     {["pending", "expired"].includes(referral.status) && <button type="button" className="acq-link" onClick={() => resend(referral.id)}>{referral.status === "expired" ? "Gerar novo convite" : "Reenviar convite"}</button>}
                   </article>
                 ))}
