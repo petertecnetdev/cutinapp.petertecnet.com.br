@@ -1297,6 +1297,8 @@ export default function EventManagePage() {
   const deletingOne = /^delete-\d+$/.test(String(busyId));
   const deletingAll = busyId === "delete-all";
   const deletingMany = busyId === "delete-selected";
+  const bulkBusy = bulkPublishing || deletingAll || deletingMany || busyId === "bulk-action";
+  const isEventBusy = (eventId) => busyId === eventId || String(busyId) === `duplicate-${eventId}` || String(busyId) === `agenda-${eventId}` || String(busyId) === `delete-${eventId}`;
 
   const renderActions = (event) => (
     <div className="cut-event-admin-actions">
@@ -1306,16 +1308,16 @@ export default function EventManagePage() {
           variant="outline-light"
           title="Ações do evento"
           aria-label={`Ações para ${event.title}`}
-          disabled={Boolean(busyId) || bulkPublishing}
+          disabled={isEventBusy(event.id) || bulkBusy}
         >
           <i className="fa-solid fa-ellipsis" />
         </Dropdown.Toggle>
         <Dropdown.Menu>
-          <Dropdown.Item onClick={() => navigate(`/event/edit/${event.id}`)} disabled={Boolean(busyId)}><i className="fa-solid fa-pen" />Editar evento</Dropdown.Item>
-          <Dropdown.Item onClick={() => navigate(`/event/${event.id}/lineup`)} disabled={Boolean(busyId)}><i className="fa-solid fa-music" />Line-up / programação</Dropdown.Item>
-          <Dropdown.Item onClick={() => openDuplicate(event)} disabled={Boolean(busyId)}><i className="fa-regular fa-copy" />Duplicar evento</Dropdown.Item>
+          <Dropdown.Item onClick={() => navigate(`/event/edit/${event.id}`)} disabled={isEventBusy(event.id) || bulkBusy}><i className="fa-solid fa-pen" />Editar evento</Dropdown.Item>
+          <Dropdown.Item onClick={() => navigate(`/event/${event.id}/lineup`)} disabled={isEventBusy(event.id) || bulkBusy}><i className="fa-solid fa-music" />Line-up / programação</Dropdown.Item>
+          <Dropdown.Item onClick={() => openDuplicate(event)} disabled={isEventBusy(event.id) || bulkBusy}><i className="fa-regular fa-copy" />Duplicar evento</Dropdown.Item>
           {!event.is_cancelled && (
-            <Dropdown.Item onClick={() => openAgenda(event)} disabled={Boolean(busyId)}>
+            <Dropdown.Item onClick={() => openAgenda(event)} disabled={isEventBusy(event.id) || bulkBusy}>
               <i className="fa-solid fa-calendar-week" />Adicionar à agenda semanal
             </Dropdown.Item>
           )}
@@ -1330,13 +1332,13 @@ export default function EventManagePage() {
           {event.is_published && !event.is_cancelled && <Dropdown.Item onClick={() => share(event)}><i className="fa-solid fa-share-nodes" />Compartilhar</Dropdown.Item>}
           {!event.is_cancelled && <Dropdown.Divider />}
           {!event.is_cancelled && (
-            <Dropdown.Item className={event.is_published ? "text-warning" : "text-success"} onClick={() => publication(event)} disabled={busyId === event.id}>
+            <Dropdown.Item className={event.is_published ? "text-warning" : "text-success"} onClick={() => publication(event)} disabled={isEventBusy(event.id) || bulkBusy}>
               <i className={event.is_published ? "fa-solid fa-eye-slash" : "fa-solid fa-rocket"} />
               {event.is_published ? "Despublicar" : "Publicar"}
             </Dropdown.Item>
           )}
           <Dropdown.Divider />
-          <Dropdown.Item className="text-danger" onClick={() => openDeleteEvent(event)} disabled={Boolean(busyId)}>
+          <Dropdown.Item className="text-danger" onClick={() => openDeleteEvent(event)} disabled={isEventBusy(event.id) || bulkBusy}>
             <i className="fa-regular fa-trash-can" />Excluir evento
           </Dropdown.Item>
         </Dropdown.Menu>
@@ -1365,7 +1367,7 @@ export default function EventManagePage() {
   return (
     <div className="cut-app-page cut-event-manager-page">
       <NavlogComponent />
-      {(busyId || bulkPublishing) && <ProcessingIndicatorComponent label={processingLabel} />}
+      {bulkBusy && <ProcessingIndicatorComponent label={processingLabel} />}
 
       <Container className="cut-page-container py-4 py-lg-5">
         <header className="cut-event-manager-hero">
@@ -1598,7 +1600,7 @@ export default function EventManagePage() {
                             selected={selectedEventIdSet.has(Number(event.id))}
                             pinned={pinnedEventIds.includes(Number(event.id))}
                             viewMode={viewMode}
-                            disabled={Boolean(busyId) || bulkPublishing || deletingAll}
+                            disabled={isEventBusy(event.id) || bulkBusy}
                             actions={renderActions(event)}
                             onToggleSelected={toggleEventSelection}
                             onTogglePin={togglePinnedEvent}
