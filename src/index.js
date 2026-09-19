@@ -67,9 +67,6 @@ import { trackTelemetry } from "./utils/telemetry";
 import { installOverlayLayoutManager } from "./utils/overlayLayoutManager";
 import { installGlobalSweetAlertBridge } from "./utils/sweetAlert";
 
-// Padroniza feedbacks transitórios e chamadas legadas de alert() em SweetAlert.
-// A ponte mantém banners persistentes dentro de cards/modais inline e deduplica
-// re-renderizações, evitando o loop que existia na implementação anterior.
 installGlobalSweetAlertBridge();
 installGlobalImageFallbacks();
 installNavigationRecovery();
@@ -87,10 +84,6 @@ if (typeof window !== "undefined") {
   }, { passive: true });
 }
 
-// The mobile navigation shell controls the fixed bottom navigation and must be
-// installed before the first React paint. Deferring this initialization allowed
-// .cut-mobile-bottom-nav to render in normal document flow, which produced the
-// duplicated/stacked mobile menu seen above the event content until idle time.
 if (typeof window !== "undefined" && !window.location.pathname.startsWith("/checkout/")) {
   installInstagramMobileShell();
 }
@@ -128,4 +121,12 @@ root.render(
   </React.StrictMode>
 );
 
-reportWebVitals((metric) => trackTelemetry("web_vital", { name: metric.name, value: Math.round(metric.value * 100) / 100, rating: metric.rating || null }));
+reportWebVitals((metric) => trackTelemetry("web_vital", {
+  name: metric.name,
+  value: Math.round(metric.value * 100) / 100,
+  delta: Math.round((metric.delta || 0) * 100) / 100,
+  rating: metric.rating || null,
+  navigation_type: metric.navigationType || null,
+  metric_id: metric.id || null,
+  path: typeof window !== "undefined" ? window.location.pathname : null,
+}));
