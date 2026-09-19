@@ -49,6 +49,9 @@
 .cut-public-gallery__item{
   position:relative;
   min-height:220px;
+  content-visibility:auto;
+  contain:layout paint style;
+  contain-intrinsic-size:260px 220px;
   overflow:hidden;
   padding:0;
   border:1px solid rgba(148,163,184,.14);
