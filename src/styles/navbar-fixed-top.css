@@ -50,3 +50,10 @@ body {
     z-index: 2147483647 !important;
   }
 }
+
+
+/* Standalone landing pages keep their own sticky navigation in document flow.
+ * The global fixed-app-navbar offset must not create a blank strip above them. */
+body:has(.cut-landing) {
+  padding-top: 0 !important;
+}
