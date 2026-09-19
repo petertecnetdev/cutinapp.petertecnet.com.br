@@ -273,7 +273,7 @@ export default function ProductionUpdatePage() {
   const pendingImages = Boolean(logo || background);
 
   return (
-    <Form className="cut-app-page cut-production-themed-page cut-production-inline-editor" style={pageStyle} onSubmit={submit} onBlur={handleFormBlur} noValidate>
+    <div className="cut-app-page cut-production-themed-page cut-production-inline-editor" style={pageStyle} onBlur={handleFormBlur}>
       <NavlogComponent />
       {saving && pendingImages && <ProcessingIndicatorComponent label="Salvando imagens da produção" />}
 
@@ -539,6 +539,6 @@ export default function ProductionUpdatePage() {
           </div>
         </div>
       </Container>
-    </Form>
+    </div>
   );
 }
