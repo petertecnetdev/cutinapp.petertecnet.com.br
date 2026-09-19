@@ -111,6 +111,7 @@ export default function ProductionGalleryManager({
   albums = [],
   publicSlug = "",
   coverUrl = "",
+  locationReady = false,
   onMediaChange,
   onAlbumsChange,
   onCoverChange,
@@ -893,6 +894,7 @@ export default function ProductionGalleryManager({
 
       <div className="cut-gallery-manager__checklist" aria-label="Conclusão visual da produção">
         <span className="is-done"><i className="fa-solid fa-circle-check" />Identidade</span>
+        <span className={locationReady ? "is-done" : "is-pending"}><i className={locationReady ? "fa-solid fa-circle-check" : "fa-regular fa-circle"} />Localização</span>
         <span className={coverUrl ? "is-done" : "is-pending"}><i className={coverUrl ? "fa-solid fa-circle-check" : "fa-regular fa-circle"} />Capa</span>
         <span className={items.length >= 4 ? "is-done" : "is-pending"}><i className={items.length >= 4 ? "fa-solid fa-circle-check" : "fa-regular fa-circle"} />Galeria {Math.min(items.length, 4)}/4</span>
       </div>
@@ -1102,7 +1104,7 @@ export default function ProductionGalleryManager({
         <i className="fa-solid fa-cloud-arrow-up" />
         <div>
           <strong>{remaining > 0 ? "Arraste fotos para cá ou clique para escolher" : "Galeria completa"}</strong>
-          <span>{remaining > 0 ? `JPG, PNG ou WebP · até 10 MB por foto · ${remaining} espaços disponíveis` : `Limite de ${LIMIT} fotos atingido`}</span>
+          <span>{remaining > 0 ? `JPG, PNG ou WebP · até 10 MB · recomendado 1200 × 900 px ou maior · ${remaining} espaços disponíveis` : `Limite de ${LIMIT} fotos atingido`}</span>
         </div>
       </div>
 
@@ -1444,6 +1446,7 @@ ProductionGalleryManager.propTypes = {
   albums: PropTypes.arrayOf(PropTypes.object),
   publicSlug: PropTypes.string,
   coverUrl: PropTypes.string,
+  locationReady: PropTypes.bool,
   onMediaChange: PropTypes.func,
   onAlbumsChange: PropTypes.func,
   onCoverChange: PropTypes.func,
