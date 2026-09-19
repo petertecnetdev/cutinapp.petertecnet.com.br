@@ -278,13 +278,17 @@
   animation:cut-public-gallery-skeleton 1.35s linear infinite;
 }
 
-.cut-public-gallery__item:has(img[style*="display: none"]){
+.cut-public-gallery__item.is-loaded,
+.cut-public-gallery__item.has-error{
   animation:none;
-  background:linear-gradient(145deg,#0d1724,#07101a);
 }
 
-.cut-public-gallery__item:has(img:not([style*="display: none"])){
-  animation:none;
+.cut-public-gallery__item.is-loaded{
+  background:#07101a;
+}
+
+.cut-public-gallery__item.has-error{
+  background:linear-gradient(145deg,#0d1724,#07101a);
 }
 
 .cut-public-gallery__broken,
