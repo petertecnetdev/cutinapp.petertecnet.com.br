@@ -1,5 +1,6 @@
 import {
   clearCommerceClientState,
+  invalidateCommerceScopeReadiness,
   isCommerceScopeReady,
   synchronizeCommerceScope,
 } from "./commerceSessionScope";
@@ -34,6 +35,31 @@ describe("commerceSessionScope", () => {
 
     expect(result.scope).toBe("user:20");
     expect(localStorage.getItem("cutinapp_checkout_evento-b")).not.toBeNull();
+  });
+
+  test("temporarily hides commerce state while a new auth token is being resolved", () => {
+    synchronizeCommerceScope({ id: 25 });
+    localStorage.setItem("cutinapp_checkout_evento-pending-auth", JSON.stringify({ tickets: [{ id: 5, quantity: 1 }] }));
+
+    invalidateCommerceScopeReadiness();
+
+    expect(isCommerceScopeReady()).toBe(false);
+    expect(localStorage.getItem("cutinapp_checkout_evento-pending-auth")).not.toBeNull();
+
+    synchronizeCommerceScope({ id: 25 });
+    expect(isCommerceScopeReady()).toBe(true);
+    expect(localStorage.getItem("cutinapp_checkout_evento-pending-auth")).not.toBeNull();
+  });
+
+  test("clears hidden commerce state if the resolved identity is a different user", () => {
+    synchronizeCommerceScope({ id: 26 });
+    localStorage.setItem("cutinapp_checkout_evento-account-switch", JSON.stringify({ tickets: [{ id: 6, quantity: 1 }] }));
+
+    invalidateCommerceScopeReadiness();
+    synchronizeCommerceScope({ id: 27 });
+
+    expect(isCommerceScopeReady()).toBe(true);
+    expect(localStorage.getItem("cutinapp_checkout_evento-account-switch")).toBeNull();
   });
 
   test("clears commerce state when switching between authenticated users", () => {
