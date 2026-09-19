@@ -1,3 +1,4 @@
+import { showConfirmation } from "../../utils/sweetAlert";
 import React, { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import PropTypes from "prop-types";
 import { Alert, Button, Form, Modal } from "react-bootstrap";
@@ -110,7 +111,7 @@ export default function EventCommunitySection({ event, isOwner = false }) {
   };
 
   const remove = async (postId) => {
-    if (!window.confirm("Remover esta publicação e suas respostas?")) return;
+    if (!(await showConfirmation({ title: "Remover publicação?", text: "A publicação e todas as respostas serão removidas.", confirmButtonText: "Remover" }))) return;
     setBusy(true);
     try { await cutinappService.deleteEventPost(postId); await refresh(); }
     catch (err) { setMessage({ type: "danger", text: err?.message || "Não foi possível remover a publicação." }); }
