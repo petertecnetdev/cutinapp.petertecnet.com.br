@@ -6,6 +6,7 @@ import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorCo
 import CityAutocompleteControl from "../../components/location/CityAutocompleteControl";
 import eventService from "../../services/EventService";
 import cutinappService from "../../services/CutinappService";
+import creativeService from "../../services/CreativeService";
 import { storageUrl } from "../../config";
 import { AuthContext } from "../../context/AuthContext";
 import { clearEventCreationDraft, readEventCreationDraft, writeEventCreationDraft } from "../../utils/eventCreationDraft";
@@ -60,6 +61,17 @@ const eventInitials = (title) => String(title || "EV")
   .slice(0, 2)
   .map((part) => part[0]?.toUpperCase())
   .join("") || "EV";
+
+const dataUriToImageFile = async (dataUri, title = "evento") => {
+  const value = String(dataUri || "");
+  if (!/^data:image\/(?:jpeg|jpg|png|webp);base64,/i.test(value)) throw new Error("Imagem gerada pela IA inválida.");
+  const response = await fetch(value);
+  const blob = await response.blob();
+  if (!blob.size) throw new Error("Imagem gerada pela IA vazia.");
+  const extension = blob.type.includes("png") ? "png" : blob.type.includes("webp") ? "webp" : "jpg";
+  const slug = String(title || "evento").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "evento";
+  return new File([blob], `evento-${slug}-ia.${extension}`, { type: blob.type || "image/jpeg" });
+};
 
 const REUSE_EVENTS_PER_PAGE = 8;
 
@@ -774,10 +786,56 @@ export default function EventCreatePage() {
 
     setLoading(true);
     try {
+      let effectiveImage = form.image;
+      if (!effectiveImage) {
+        try {
+          const production = productions.find((item) => String(item.id) === String(form.production_id));
+          const generated = await creativeService.generateEventFlyerBackground({
+            title: form.title,
+            description: form.description,
+            productionName: production?.name || "",
+            venue: form.venue,
+            city: form.city,
+            uf: form.uf,
+            format: "cover",
+            style: "automatic",
+            intensity: "balanced",
+            candidateCount: 1,
+            includeCandidates: false,
+          });
+          const dataUri = String(generated?.image?.data_uri || "");
+          const generatedFile = await dataUriToImageFile(dataUri, form.title);
+          const validation = await validateEventPosterFile(generatedFile);
+          if (!validation.ok) throw new Error(validation.message || "A arte criada automaticamente não passou na validação.");
+          effectiveImage = generatedFile;
+          try {
+            window.PeterTecnetTelemetry?.track?.("event_cover_auto_generated", {
+              label: form.title,
+              target: String(form.production_id || "event_creation"),
+              metadata: { source: "ai", model: generated?.image?.model || "unknown" },
+            });
+          } catch (_) {
+            // Telemetry must never interrupt event creation.
+          }
+        } catch (imageError) {
+          try {
+            window.PeterTecnetTelemetry?.track?.("event_cover_auto_generation_failed", {
+              label: form.title,
+              target: String(form.production_id || "event_creation"),
+              metadata: { reason: String(imageError?.message || "unknown").slice(0, 250), fallback: "initials" },
+            });
+          } catch (_) {
+            // Telemetry must never interrupt event creation.
+          }
+        }
+      }
+
       const payload = new FormData();
       Object.entries(form).forEach(([key, value]) => {
+        if (key === "image") return;
         if (value !== null && String(value).trim() !== "") payload.append(key, value);
       });
+      if (effectiveImage) payload.append("image", effectiveImage);
       payload.append("use_production_items", useProductionItems ? "1" : "0");
 
       const response = await eventService.store(payload);
