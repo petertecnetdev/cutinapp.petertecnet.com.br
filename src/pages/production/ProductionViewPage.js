@@ -4,8 +4,8 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import EventArtwork from "../../components/event/EventArtwork";
-import ProductionCommunitySection from "../../components/production/ProductionCommunitySection";
-import ProductionGallery from "../../components/production/ProductionGallery";
+const ProductionCommunitySection = React.lazy(() => import("../../components/production/ProductionCommunitySection"));
+const ProductionGallery = React.lazy(() => import("../../components/production/ProductionGallery"));
 import { FormattedText } from "../../components/editor/FormattedText";
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
@@ -63,16 +63,16 @@ export default function ProductionViewPage() {
     window.open(whatsappUrl, "_blank", "noopener,noreferrer");
   };
 
-  if (loading) return <div className="cut-app-page"><NavlogComponent /><ProcessingIndicatorComponent label="Abrindo produção" /></div>;
+  if (loading) return <div className="cut-app-page cut-production-themed-page"><NavlogComponent /><ProcessingIndicatorComponent label="Abrindo produção" /></div>;
 
-  const heroStyle = production?.background ? { backgroundImage: `linear-gradient(90deg,rgba(2,8,13,.94),rgba(2,8,13,.66) 52%,rgba(2,8,13,.28)),linear-gradient(180deg,rgba(2,8,13,.08),rgba(2,8,13,.94)),url(${mediaUrl(production.background)})` } : undefined;
+  const heroStyle = production?.background ? { "--cut-production-public-hero-image": `url(${JSON.stringify(mediaUrl(production.background))})` } : undefined;
   const locationLabel = production ? ([production.formatted_address || [production.address, production.address_number].filter(Boolean).join(", "), production.neighborhood, production.city, production.uf].filter(Boolean).join(" · ") || "Localização não informada") : "";
 
   return <div className="cut-app-page">
     <NavlogComponent />
     <Container className="cut-page-container pt-4">{location.state?.created && <Alert variant="success">Produção criada com sucesso.</Alert>}{location.state?.updated && <Alert variant="success">Alterações salvas com sucesso.</Alert>}{error && <Alert variant="danger" dismissible onClose={() => setError("")}>{error}</Alert>}</Container>
     {production && <>
-      <section className="cut-profile-hero" style={heroStyle}><Container className="cut-page-container"><div className="cut-profile-hero__content"><div className="cut-profile-avatar cut-profile-avatar--square">{production.logo ? <img src={mediaUrl(production.logo)} alt={`Logo de ${production.name}`} /> : <span>{initials(production.name)}</span>}</div><div><span className="cut-eyebrow">Produção Cutinapp</span><h1>{production.name}</h1><p>{production.description || "Produção de eventos e experiências."}</p><div className="cut-social-stats"><span><i className="fa-regular fa-calendar me-1" />{production.events_count || events.length} eventos</span><span><i className="fa-regular fa-eye me-1" />{analytics.total_views || 0} visualizações</span><span><i className="fa-regular fa-user me-1" />{production.followers_count || 0} seguidores</span>{production.city && <span><i className="fa-solid fa-location-dot me-1" />{production.city}{production.uf ? ` - ${production.uf}` : ""}</span>}</div><div className="cut-card-actions mt-3"><Button variant="outline-light" onClick={() => navigate("/production/mine")}>Minhas produções</Button><Button variant="outline-light" onClick={() => navigate(`/production/edit/${production.id}`)}>Editar</Button><Button onClick={() => navigate(`/event/create?productionId=${production.id}`)}>Criar evento</Button>{production.slug && <Button variant="outline-light" onClick={() => navigate(`/production/${production.slug}/public`)}><i className="fa-solid fa-arrow-up-right-from-square me-2" />Ver página pública</Button>}<Button variant="success" onClick={shareProductionOnWhatsApp} aria-label={`Compartilhar ${production.name} pelo WhatsApp`} title="Compartilhar pelo WhatsApp"><i className="fa-brands fa-whatsapp me-2" />Compartilhar</Button></div></div></div></Container></section>
+      <section className="cut-profile-hero cut-production-themed-page__hero cut-production-themed-page__hero--public" style={heroStyle}><Container className="cut-page-container"><div className="cut-profile-hero__content"><div className="cut-profile-avatar cut-profile-avatar--square">{production.logo ? <img src={mediaUrl(production.logo)} alt={`Logo de ${production.name}`} /> : <span>{initials(production.name)}</span>}</div><div><span className="cut-eyebrow">Produção Cutinapp</span><h1>{production.name}</h1><p>{production.description || "Produção de eventos e experiências."}</p><div className="cut-social-stats"><span><i className="fa-regular fa-calendar me-1" />{production.events_count || events.length} eventos</span><span><i className="fa-regular fa-eye me-1" />{analytics.total_views || 0} visualizações</span><span><i className="fa-regular fa-user me-1" />{production.followers_count || 0} seguidores</span>{production.city && <span><i className="fa-solid fa-location-dot me-1" />{production.city}{production.uf ? ` - ${production.uf}` : ""}</span>}</div><div className="cut-card-actions mt-3"><Button variant="outline-light" onClick={() => navigate("/production/mine")}>Minhas produções</Button><Button variant="outline-light" onClick={() => navigate(`/production/edit/${production.id}`)}>Editar</Button><Button onClick={() => navigate(`/event/create?productionId=${production.id}`)}>Criar evento</Button>{production.slug && <Button variant="outline-light" onClick={() => navigate(`/production/${production.slug}/public`)}><i className="fa-solid fa-arrow-up-right-from-square me-2" />Ver página pública</Button>}<Button variant="success" onClick={shareProductionOnWhatsApp} aria-label={`Compartilhar ${production.name} pelo WhatsApp`} title="Compartilhar pelo WhatsApp"><i className="fa-brands fa-whatsapp me-2" />Compartilhar</Button></div></div></div></Container></section>
 
       <Container className="cut-page-container py-4 py-lg-5">
         <div className="cut-production-workspace-grid">
@@ -86,16 +86,16 @@ export default function ProductionViewPage() {
 
         <section className="cut-production-section"><div className="cut-production-section-head"><div><span className="cut-eyebrow">Agenda</span><h2>Eventos desta produção</h2></div><Button variant="outline-light" onClick={() => navigate(`/event/create?productionId=${production.id}`)}><i className="fa-solid fa-plus me-2" />Novo evento</Button></div>{events.length === 0 ? <Card className="cut-empty-state"><Card.Body><p>Nenhum evento cadastrado nesta produção ainda.</p></Card.Body></Card> : <div className="cut-production-events-carousel">{events.map((event) => <article className="cut-production-event-slide" key={event.id} role="link" tabIndex={0} aria-label={`Abrir evento ${event.title}`} onClick={() => navigate(`/event/${event.slug}`)} onKeyDown={(e) => activateOnKeyboard(e, () => navigate(`/event/${event.slug}`))}><div className="cut-production-event-slide__media"><EventArtwork image={event.image} title={event.title} alt={event.title} loading="lazy" decoding="async" fallbackClassName="cut-production-event-slide__fallback" /></div><div className="cut-production-event-slide__body"><span className="cut-eyebrow">{event.category || "Evento"}</span><h3>{event.title}</h3><p><i className="fa-regular fa-calendar me-2" />{fmt(event.start_date)}</p><p><i className="fa-solid fa-location-dot me-2" />{event.venue || event.city || "Local a definir"}</p></div></article>)}</div>}</section>
 
-        <ProductionGallery
+        <React.Suspense fallback={<div className="cut-production-section" aria-hidden="true" />}><ProductionGallery
           media={media}
           albums={galleryAlbums}
           productionName={production.name}
           productionType={production.type}
           isOwner
           onManage={() => navigate(`/production/edit/${production.id}#production-editor-gallery`)}
-        />
+        /></React.Suspense>
 
-        <ProductionCommunitySection production={production} isOwner />
+        <React.Suspense fallback={null}><ProductionCommunitySection production={production} isOwner /></React.Suspense>
       </Container>
 
       <Modal show={showViewers} onHide={() => setShowViewers(false)} centered><Modal.Header closeButton><Modal.Title>Quem visualizou</Modal.Title></Modal.Header><Modal.Body>{analytics.viewers?.length ? <div className="cut-viewer-list">{analytics.viewers.map((viewer) => <div className="cut-viewer-row" key={viewer.id}><div className="cut-viewer-avatar">{viewer.avatar ? <img src={mediaUrl(viewer.avatar)} alt="" /> : initials(viewer.name)}</div><div><strong>{viewer.name}</strong><small>{viewer.last_viewed_at ? `Última visita: ${fmt(viewer.last_viewed_at)}` : "Visitou a produção"}</small></div><span>{viewer.views_count} {viewer.views_count === 1 ? "visita" : "visitas"}</span></div>)}</div> : <p className="text-muted mb-0">As visualizações anônimas entram no total, mas só usuários identificados aparecem nesta lista.</p>}</Modal.Body></Modal>
