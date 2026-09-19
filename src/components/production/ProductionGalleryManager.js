@@ -435,6 +435,22 @@ export default function ProductionGalleryManager({
     void saveOrder(normalized, previous);
   };
 
+  const makePrimary = (mediaId) => {
+    const previous = [...itemsRef.current].sort(byPosition);
+    const from = previous.findIndex((item) => Number(item.id) === Number(mediaId));
+    if (from <= 0) {
+      setMessage("Esta foto já é a principal da galeria.");
+      return;
+    }
+    const next = [...previous];
+    const [moved] = next.splice(from, 1);
+    next.unshift(moved);
+    const normalized = normalizePositions(next);
+    commitItems(normalized);
+    void saveOrder(normalized, previous);
+    setMessage("Foto definida como principal da galeria. A capa da página não foi alterada.");
+  };
+
   const handleDropOnCard = (targetId) => {
     if (!draggedId || Number(draggedId) === Number(targetId) || sortMode !== "custom") return;
     const previous = [...items].sort(byPosition);
@@ -1429,6 +1445,7 @@ export default function ProductionGalleryManager({
                 </div>
 
                 <div className="cut-gallery-editor__secondary-actions">
+                  <Button type="button" variant="outline-light" disabled={editBusy || Number(editing.position) === 0} onClick={() => makePrimary(editing.id)}><i className="fa-solid fa-arrow-up me-2" />Foto principal</Button>
                   <Button type="button" variant="outline-light" disabled={editBusy} onClick={useAsCover}><i className="fa-regular fa-image me-2" />Usar como capa</Button>
                   {editing.original_url && <Button as="a" variant="outline-light" href={editing.original_url} target="_blank" rel="noopener noreferrer" download={editing.original_name || true}><i className="fa-solid fa-arrow-down me-2" />Baixar original</Button>}
                   <Button type="button" variant="outline-danger" disabled={editBusy} onClick={() => deleteIds([Number(editing.id)])}><i className="fa-regular fa-trash-can me-2" />Remover</Button>
