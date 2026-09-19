@@ -395,7 +395,7 @@ export default function EventViewPage() {
       const duplicatedId = Number(response?.event?.id || 0);
       if (!duplicatedId) throw new Error("A API não retornou a nova edição criada.");
       navigate(`/event/edit/${duplicatedId}`, {
-        state: { success: response?.message || "Nova edição criada como rascunho." },
+        state: { success: response?.message || "Nova edição criada e publicada automaticamente." },
       });
     } catch (err) {
       setError(err?.message || "Não foi possível duplicar este evento.");
