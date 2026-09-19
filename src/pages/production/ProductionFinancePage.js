@@ -1,29 +1,16 @@
 /* eslint-disable react/prop-types */
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Badge, Button, Card, Col, Container, Form, Row, Table } from "react-bootstrap";
-import { ThemeProvider } from "@aws-amplify/ui-react";
-import { FaceLivenessDetectorCore } from "@aws-amplify/ui-react-liveness";
-import "@aws-amplify/ui-react/styles.css";
 import { useLocation, useNavigate } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import commerceService from "../../services/CommerceService";
 import cutinappService from "../../services/CutinappService";
-import financeService from "../../services/FinanceService";
 import { estimateNetRevenueEconomics } from "../../utils/netRevenueEconomics";
 import { evaluateRecoveryRolloutReadiness } from "../../utils/recoveryRolloutReadiness";
 
 const money = (value) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
 const percent = (value) => `${Number(value || 0).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 2 })}%`;
-const dateTime = (value) => value ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(value)) : "—";
-const payoutStatus = {
-  pending: { label: "Solicitado", bg: "warning" },
-  processing: { label: "Enviando Pix", bg: "info" },
-  provider_unknown: { label: "Em conciliação", bg: "warning" },
-  paid: { label: "Pago", bg: "success" },
-  failed: { label: "Falhou", bg: "danger" },
-  cancelled: { label: "Cancelado", bg: "secondary" },
-};
 const paymentMethodLabel = {
   pix: "Pix",
   card: "Cartão",
@@ -93,41 +80,24 @@ export default function ProductionFinancePage() {
   const focus = params.get("focus") || "";
   const [productions, setProductions] = useState([]);
   const [productionId, setProductionId] = useState(params.get("production") || "");
-  const [finance, setFinance] = useState(null);
+  const [paymentAccount, setPaymentAccount] = useState(null);
   const [summary, setSummary] = useState(null);
   const [revenueFunnel, setRevenueFunnel] = useState(null);
   const [revenueDays, setRevenueDays] = useState(30);
-  const [identityForm, setIdentityForm] = useState({ legal_name: "", document_number: "", birthdate: "" });
-  const [frontDocument, setFrontDocument] = useState(null);
-  const [backDocument, setBackDocument] = useState(null);
-  const [pixType, setPixType] = useState("CPF");
-  const [pixKey, setPixKey] = useState("");
-  const [payoutAmount, setPayoutAmount] = useState("");
-  const [liveness, setLiveness] = useState(null);
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
   const loadFinance = useCallback(async (id) => {
-    const [financeOverview, financial, funnel] = await Promise.all([
-      financeService.overview(id),
+    const [account, financial, funnel] = await Promise.all([
+      commerceService.paymentAccount(id),
       commerceService.financialSummary(id),
       commerceService.revenueFunnel(id, revenueDays),
     ]);
-    setFinance(financeOverview);
+    setPaymentAccount(account);
     setSummary(financial);
     setRevenueFunnel(funnel);
-    setPayoutAmount(String(financeOverview?.balance?.available || ""));
-
-    const identity = financeOverview?.identity;
-    const prefill = identity?.profile_prefill || {};
-    const beneficiary = identity?.beneficiary || {};
-    setIdentityForm((current) => ({
-      legal_name: beneficiary.legal_name || prefill.legal_name || current.legal_name || "",
-      document_number: current.document_number || "",
-      birthdate: beneficiary.birthdate || prefill.birthdate || current.birthdate || "",
-    }));
   }, [revenueDays]);
 
   useEffect(() => {
@@ -147,42 +117,29 @@ export default function ProductionFinancePage() {
   useEffect(() => {
     if (!productionId) return undefined;
     let active = true;
-    setLoading(true); setError(""); setSuccess(""); setLiveness(null);
+    setLoading(true); setError("");
     loadFinance(productionId)
-      .catch((err) => active && setError(err?.message || "Não foi possível carregar os recebimentos."))
+      .catch((err) => active && setError(err?.message || "Não foi possível carregar os dados financeiros."))
       .finally(() => active && setLoading(false));
     return () => { active = false; };
   }, [productionId, loadFinance]);
 
   const production = productions.find((row) => String(row.id) === String(productionId));
-  const identity = finance?.identity;
-  const beneficiary = identity?.beneficiary;
-  const verification = identity?.verification;
-  const destination = finance?.destination;
-  const balance = finance?.balance || {};
-  const livenessRequired = identity?.liveness_required !== false;
-  const identityVerified = Boolean(identity?.ready_for_pix);
-  const documentUploaded = Boolean(verification?.document_front_uploaded);
-  const livenessVerified = verification?.liveness_status === "passed" && verification?.face_match_status === "passed";
-  const pixVerified = Boolean(destination?.verified_at && ["active", "cooling"].includes(destination?.status));
-  const available = Number(balance.available || 0);
-  // producer-finance-focus-scroll: take the producer directly to the first unresolved receiving step.
+  const merchantConnected = paymentAccount?.provider === "mercadopago" && paymentAccount?.status === "connected";
+
+  useEffect(() => {
+    if (params.get("payment_provider") !== "connected") return;
+    setSuccess("Mercado Pago conectado. O split automático está ativo para esta produção.");
+  }, [params]);
+
   useEffect(() => {
     if (focus !== "activation" || loading || !productionId) return undefined;
-    const targetId = !beneficiary
-      ? "producer-finance-identity"
-      : !documentUploaded
-        ? "producer-finance-document"
-        : livenessRequired && !livenessVerified
-          ? "producer-finance-liveness"
-          : !pixVerified
-            ? "producer-finance-pix"
-            : "producer-finance-activation";
     const timer = window.setTimeout(() => {
-      document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      document.getElementById("producer-finance-activation")?.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 160);
     return () => window.clearTimeout(timer);
-  }, [focus, loading, productionId, beneficiary, documentUploaded, livenessRequired, livenessVerified, pixVerified]);
+  }, [focus, loading, productionId]);
+
   const grossRevenue = Number(revenueFunnel?.gross_revenue || 0);
   const platformRevenue = Number(revenueFunnel?.platform_revenue || 0);
   const processorFees = Number(revenueFunnel?.processor_fees || 0);
@@ -279,92 +236,23 @@ export default function ProductionFinancePage() {
     recoveredPlatformContributionAfterProcessing: revenueFunnel?.recovered_platform_contribution_after_processing,
   }), [grossRevenue, platformRevenue, processorFees, platformProcessorFees, revenueFunnel?.platform_contribution_after_processing, revenueFunnel?.orders_paid, revenueFunnel?.platform_revenue_at_risk, revenueFunnel?.recovered_platform_revenue, revenueFunnel?.recovered_platform_contribution_after_processing]);
 
-  const run = async (task, successMessage) => {
+  const connectMercadoPago = async () => {
+    if (!productionId) return;
     setWorking(true); setError(""); setSuccess("");
     try {
-      const result = await task();
-      setSuccess(result?.message || successMessage || "Atualização concluída.");
-      await loadFinance(productionId);
-      return result;
+      const response = await commerceService.connectMercadoPago(productionId);
+      const authorizationUrl = String(response?.authorization_url || "").trim();
+      if (!authorizationUrl) throw new Error("O Mercado Pago não retornou a autorização.");
+      window.location.assign(authorizationUrl);
     } catch (err) {
-      const validation = err?.response?.data?.errors;
-      const firstValidation = validation && Object.values(validation).flat()[0];
-      setError(firstValidation || err?.response?.data?.message || err?.message || "Não foi possível concluir esta etapa.");
-      return null;
-    } finally {
+      setError(err?.response?.data?.message || err?.message || "Não foi possível iniciar a conexão com o Mercado Pago.");
       setWorking(false);
     }
-  };
-
-  const saveIdentity = () => run(
-    () => financeService.saveIdentity(productionId, {
-      legal_name: identityForm.legal_name || undefined,
-      document_type: "CPF",
-      document_number: identityForm.document_number || undefined,
-      birthdate: identityForm.birthdate || undefined,
-    }),
-    "Dados de identidade confirmados."
-  );
-
-  const uploadDocuments = () => {
-    if (!frontDocument) { setError("Envie uma foto da frente do documento com foto."); return; }
-    run(() => financeService.uploadDocument(productionId, frontDocument, backDocument), "Documento enviado.");
-  };
-
-  const startLiveness = async () => {
-    setWorking(true); setError(""); setSuccess("");
-    try {
-      const session = await financeService.startLiveness(productionId);
-      setLiveness(session);
-    } catch (err) {
-      setError(err?.response?.data?.message || err?.message || "Não foi possível iniciar a prova de vida.");
-    } finally {
-      setWorking(false);
-    }
-  };
-
-  const finishLiveness = useCallback(async () => {
-    if (!liveness?.session_id || !productionId) return;
-    setWorking(true); setError("");
-    try {
-      const response = await financeService.completeLiveness(productionId, liveness.session_id);
-      setLiveness(null);
-      setSuccess(response?.message || "Identidade confirmada.");
-      await loadFinance(productionId);
-    } catch (err) {
-      setLiveness(null);
-      setError(err?.response?.data?.message || err?.message || "A prova de vida não foi aprovada. Tente novamente.");
-      await loadFinance(productionId);
-    } finally {
-      setWorking(false);
-    }
-  }, [liveness, productionId, loadFinance]);
-
-  const credentialProvider = useCallback(async () => {
-    const credentials = liveness?.credentials || {};
-    return {
-      accessKeyId: credentials.accessKeyId,
-      secretAccessKey: credentials.secretAccessKey,
-      sessionToken: credentials.sessionToken,
-      expiration: credentials.expiration ? new Date(credentials.expiration) : undefined,
-    };
-  }, [liveness]);
-
-  const savePix = () => {
-    if (!pixKey.trim()) { setError("Informe a chave Pix que receberá os repasses."); return; }
-    run(() => financeService.savePix(productionId, pixType, pixKey.trim()), "Chave Pix verificada.")
-      .then((result) => result && setPixKey(""));
-  };
-
-  const requestPayout = () => {
-    const amount = Number(String(payoutAmount).replace(",", "."));
-    if (!amount || amount <= 0) { setError("Informe um valor válido para receber."); return; }
-    run(() => financeService.requestPayout(productionId, amount), "Repasse Pix iniciado.");
   };
 
   return <div className="cut-app-page">
     <NavlogComponent />
-    {(loading || working) && <ProcessingIndicatorComponent label={working ? "Protegendo sua operação" : "Atualizando recebimentos"} />}
+    {(loading || working) && <ProcessingIndicatorComponent label={working ? "Abrindo o Mercado Pago" : "Atualizando financeiro"} />}
     <Container className="cut-page-container py-4 py-lg-5">
       <div className="cut-page-heading">
         <div>
@@ -377,7 +265,7 @@ export default function ProductionFinancePage() {
 
       {error && <Alert variant="danger">{error}</Alert>}
       {success && <Alert variant="success">{success}</Alert>}
-      {focus === "activation" && productionId && <Alert variant="info" className="mb-4"><strong>Resolva a ativação dos recebimentos.</strong> A Cutinapp levou você até a primeira etapa pendente. Conclua identidade, documento, prova de vida e chave Pix conforme necessário; depois volte ao evento e continue.</Alert>}
+      {focus === "activation" && productionId && <Alert variant="info" className="mb-4"><strong>Ative as vendas pagas.</strong> Autorize a conta Mercado Pago da produção. Depois disso, os pagamentos serão divididos automaticamente, sem repasse manual da Cutinapp.</Alert>}
 
       <Card className="cut-production-card mb-4"><Card.Body className="p-4">
         <Form.Group><Form.Label>Produção</Form.Label><Form.Select value={productionId} onChange={(event) => setProductionId(event.target.value)}><option value="">Selecione</option>{productions.map((row) => <option key={row.id} value={row.id}>{row.name}</option>)}</Form.Select></Form.Group>
@@ -386,28 +274,33 @@ export default function ProductionFinancePage() {
       {productionId && <>
         <Row className="g-4">
           <Col lg={5}><Card id="producer-finance-activation" className="cut-production-card h-100"><Card.Body className="p-4">
-            <span className="cut-eyebrow">Segurança financeira</span>
-            <h2 className="mt-2 mb-3">Ativação do recebimento</h2>
-            <p className="text-secondary">Isso é feito uma vez. Depois de aprovado, você usa apenas sua chave Pix para receber.</p>
-            <StatusLine ok={Boolean(beneficiary)} title="Dados do titular" detail={beneficiary?.document_masked || "Usaremos os dados da sua conta."} />
-            <StatusLine ok={documentUploaded} title="Documento com foto" detail={verification?.document_status === "face_confirmed" ? "Documento confirmado pela biometria facial." : "RG, CNH ou outro documento oficial com foto."} />
-            {livenessRequired && <StatusLine ok={livenessVerified} title="Reconhecimento facial e prova de vida" detail={livenessVerified ? "Identidade facial confirmada." : "Evita uso de foto, vídeo ou identidade de terceiros."} />}
-            <StatusLine ok={pixVerified} title="Chave Pix" detail={destination ? `${destination.pix_key_masked} • ${destination.holder_name || "titular verificado"}` : "Pode ser de qualquer instituição participante do Pix."} />
-            {destination?.status === "cooling" && <Alert variant="warning" className="mt-3 mb-0">A chave foi alterada recentemente. As vendas continuam ativas, mas novos repasses ficam protegidos até {dateTime(destination.cooling_until)}.</Alert>}
+            <span className="cut-eyebrow">Mercado Pago Marketplace</span>
+            <h2 className="mt-2 mb-3">{merchantConnected ? "Split automático ativo" : "Conecte a conta da produção"}</h2>
+            <p className="text-secondary">
+              {merchantConnected
+                ? "A conta está autorizada. O pagamento do comprador é processado na conta do produtor e a comissão da Cutinapp é separada automaticamente."
+                : "A Cutinapp não ficará com o saldo do produtor. Para vender ingressos pagos, autorize a conta Mercado Pago que receberá as vendas."}
+            </p>
+            <StatusLine ok={merchantConnected} title="Conta Mercado Pago" detail={merchantConnected ? "Autorização ativa para esta produção." : "Obrigatória apenas para vendas pagas."} />
+            <StatusLine ok={merchantConnected} title="Repasse automático" detail={merchantConnected ? "Não existe solicitação de saque ou Pix manual pela Cutinapp." : "Será ativado junto com a conexão."} />
+            <StatusLine ok={merchantConnected} title="Comissão Cutinapp" detail={merchantConnected ? "Separada automaticamente no pagamento por application_fee." : "Aplicada somente quando houver uma venda paga."} />
+            <Button className="mt-3" onClick={connectMercadoPago} disabled={working}>
+              {merchantConnected ? "Reconectar Mercado Pago" : "Conectar Mercado Pago"}
+            </Button>
           </Card.Body></Card></Col>
 
           <Col lg={7}><Card className="cut-production-card h-100"><Card.Body className="p-4">
             <span className="cut-eyebrow">Resumo financeiro</span><h2 className="mt-2 mb-4">{production?.name || "Produção"}</h2>
             <Row className="g-3">
               <Col sm={6}><RevenueMetric label="Volume bruto" value={money(summary?.gross_sales)} /></Col>
-              <Col sm={6}><RevenueMetric label="Crédito do produtor" value={money(balance.producer_credit)} /></Col>
-              <Col sm={6}><RevenueMetric label="Aguardando liberação" value={money(balance.pending_release)} /></Col>
-              <Col sm={6}><RevenueMetric label="Reserva de segurança" value={money(balance.security_reserve)} /></Col>
+              <Col sm={6}><RevenueMetric label="Receita do produtor" value={money(summary?.organization_earned)} /></Col>
+              <Col sm={6}><RevenueMetric label="Comissão Cutinapp" value={money(summary?.platform_fees)} /></Col>
+              <Col sm={6}><RevenueMetric label="Processamento" value={money(summary?.processor_fees)} /></Col>
             </Row>
-            <Alert variant={finance?.ready_for_sales ? "success" : "warning"} className="mt-4 mb-0">
-              {finance?.ready_for_sales
-                ? "Vendas pagas habilitadas. O comprador paga normalmente e seus valores ficam registrados para repasse na chave Pix verificada."
-                : "Conclua a verificação abaixo e cadastre sua chave Pix para ativar vendas pagas."}
+            <Alert variant={merchantConnected ? "success" : "warning"} className="mt-4 mb-0">
+              {merchantConnected
+                ? "Vendas pagas habilitadas com Mercado Pago e split automático. Não há repasse manual da Cutinapp para esta produção."
+                : "Vendas gratuitas continuam disponíveis. Para cobrar ingressos, conecte o Mercado Pago da produção."}
             </Alert>
           </Card.Body></Card></Col>
         </Row>
@@ -630,96 +523,9 @@ export default function ProductionFinancePage() {
           {(revenueFunnel.payment_methods || []).length > 0 && <div className="table-responsive mt-4"><Table variant="dark" hover className="align-middle mb-0"><thead><tr><th>Pagamento</th><th>Checkouts</th><th>Pagos</th><th>Conversão</th><th>GMV</th><th>Receita plataforma</th><th>Receita líquida</th><th>Margem/GMV</th><th>GMV em risco</th></tr></thead><tbody>{revenueFunnel.payment_methods.map((row) => <tr key={row.payment_method}><td>{paymentMethodLabel[row.payment_method] || row.payment_method}</td><td>{row.orders_created}</td><td>{row.orders_paid}</td><td>{percent(row.conversion_rate)}</td><td>{money(row.gross_revenue)}</td><td>{money(row.platform_revenue)}</td><td>{money(row.platform_contribution_after_processing ?? (Number(row.platform_revenue || 0) - Number((row.processor_fees_borne_by_platform ?? row.processor_fees) || 0)))}</td><td>{percent(row.platform_contribution_margin)}</td><td>{money(row.gross_at_risk)}</td></tr>)}</tbody></Table></div>}
         </Card.Body></Card>}
 
-        {!identityVerified && <Card id="producer-finance-identity" className="cut-production-card mt-4"><Card.Body className="p-4">
-          <span className="cut-eyebrow">Etapa 1</span><h2 className="mt-2">Confirme quem receberá</h2>
-          <p className="text-secondary">Se seus dados já estiverem completos na conta Peter, você só confirma. Não pedimos conta bancária.</p>
-          <Row className="g-3">
-            <Col md={5}><Form.Group><Form.Label>Nome completo</Form.Label><Form.Control value={identityForm.legal_name} onChange={(e) => setIdentityForm((v) => ({ ...v, legal_name: e.target.value }))} placeholder="Nome civil completo" /></Form.Group></Col>
-            <Col md={3}><Form.Group><Form.Label>CPF</Form.Label><Form.Control value={identityForm.document_number} onChange={(e) => setIdentityForm((v) => ({ ...v, document_number: e.target.value }))} placeholder={identity?.profile_prefill?.has_document_number ? "CPF já salvo na conta" : "000.000.000-00"} /></Form.Group></Col>
-            <Col md={4}><Form.Group><Form.Label>Data de nascimento</Form.Label><Form.Control type="date" value={identityForm.birthdate} onChange={(e) => setIdentityForm((v) => ({ ...v, birthdate: e.target.value }))} /></Form.Group></Col>
-          </Row>
-          <Button className="mt-3" onClick={saveIdentity} disabled={working}>Confirmar dados</Button>
-        </Card.Body></Card>}
-
-        {beneficiary && !documentUploaded && <Card id="producer-finance-document" className="cut-production-card mt-4"><Card.Body className="p-4">
-          <span className="cut-eyebrow">Etapa 2</span><h2 className="mt-2">Documento com foto</h2>
-          <p className="text-secondary">Envie fotos nítidas. Os arquivos ficam privados e são usados para a verificação de identidade.</p>
-          <Row className="g-3"><Col md={6}><Form.Group><Form.Label>Frente do documento</Form.Label><Form.Control type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setFrontDocument(e.target.files?.[0] || null)} /></Form.Group></Col><Col md={6}><Form.Group><Form.Label>Verso, se houver</Form.Label><Form.Control type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setBackDocument(e.target.files?.[0] || null)} /></Form.Group></Col></Row>
-          <Form.Text className="d-block mt-3 text-secondary">Ao enviar, você autoriza o tratamento dos dados estritamente para verificação de identidade, prevenção a fraude e segurança dos recebimentos.</Form.Text>
-          <Button className="mt-3" onClick={uploadDocuments} disabled={working || !frontDocument}>Enviar documento</Button>
-        </Card.Body></Card>}
-
-        {livenessRequired && documentUploaded && !identityVerified && !liveness && <Card id="producer-finance-liveness" className="cut-production-card mt-4"><Card.Body className="p-4">
-          <span className="cut-eyebrow">Etapa 3</span><h2 className="mt-2">Prova de vida</h2>
-          <p className="text-secondary">A câmera fará uma verificação rápida de presença real e comparará o rosto com o documento enviado.</p>
-          <Button onClick={startLiveness} disabled={working}>Iniciar reconhecimento facial</Button>
-        </Card.Body></Card>}
-
-        {livenessRequired && liveness && <Card id="producer-finance-liveness" className="cut-production-card mt-4"><Card.Body className="p-4">
-          <span className="cut-eyebrow">Verificação facial segura</span><h2 className="mt-2 mb-3">Siga as instruções da câmera</h2>
-          <div style={{ maxWidth: 620, margin: "0 auto" }}>
-            <ThemeProvider>
-              <FaceLivenessDetectorCore
-                sessionId={liveness.session_id}
-                region={liveness.region}
-                onAnalysisComplete={finishLiveness}
-                onError={(livenessError) => {
-                  setError(livenessError?.error?.message || "Não foi possível concluir a prova de vida.");
-                  setLiveness(null);
-                }}
-                onUserCancel={() => setLiveness(null)}
-                config={{ credentialProvider }}
-              />
-            </ThemeProvider>
-          </div>
-        </Card.Body></Card>}
-
-        {identityVerified && <Card id="producer-finance-pix" className="cut-production-card mt-4"><Card.Body className="p-4">
-          <span className="cut-eyebrow">{livenessRequired ? "Etapa 4" : "Etapa 3"}</span><h2 className="mt-2">Sua chave Pix</h2>
-          {destination && <Alert variant={destination.status === "active" ? "success" : "warning"}>Destino atual: <strong>{destination.pix_key_masked}</strong> — {destination.holder_name}. A chave foi consultada e vinculada ao CPF verificado.</Alert>}
-          <Row className="g-3 align-items-end">
-            <Col md={3}><Form.Group><Form.Label>Tipo</Form.Label><Form.Select value={pixType} onChange={(e) => setPixType(e.target.value)}><option value="CPF">CPF</option><option value="CNPJ">CNPJ</option><option value="EMAIL">E-mail</option><option value="PHONE">Telefone</option><option value="EVP">Chave aleatória</option></Form.Select></Form.Group></Col>
-            <Col md={6}><Form.Group><Form.Label>Chave Pix</Form.Label><Form.Control value={pixKey} onChange={(e) => setPixKey(e.target.value)} placeholder="Informe sua chave Pix" /></Form.Group></Col>
-            <Col md={3}><Button className="w-100" onClick={savePix} disabled={working || !pixKey.trim()}>{destination ? "Alterar chave" : "Verificar chave"}</Button></Col>
-          </Row>
-          {destination && <Form.Text className="d-block mt-3 text-secondary">Trocas de chave recebem uma trava temporária de segurança para impedir que uma conta invadida desvie seus valores.</Form.Text>}
-        </Card.Body></Card>}
-
-        <Card className="cut-production-card mt-4"><Card.Body className="p-4">
-          <div className="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4"><div><span className="cut-eyebrow">Saldo</span><h2 className="mt-2 mb-1">Receber na sua chave Pix</h2><p className="text-secondary mb-0">Somente valores já liberados podem ser enviados. A reserva ajuda a cobrir cancelamentos, reembolsos e contestações.</p></div><Badge bg={finance?.ready_for_payout ? "success" : "warning"}>{finance?.ready_for_payout ? "Pix ativo" : "Aguardando ativação"}</Badge></div>
-          <Row className="g-3 mb-4">
-            <Col md={3}><RevenueMetric label="Crédito" value={money(balance.producer_credit)} /></Col>
-            <Col md={3}><RevenueMetric label="Reserva" value={money(balance.security_reserve)} /></Col>
-            <Col md={3}><RevenueMetric label="Em processamento" value={money(balance.payout_pending)} /></Col>
-            <Col md={3}><RevenueMetric label="Disponível" value={money(available)} /></Col>
-          </Row>
-
-          {finance?.ready_for_payout && available > 0 && <div className="d-flex flex-column flex-md-row gap-2 align-items-md-end mb-4"><Form.Group className="flex-grow-1"><Form.Label>Valor a receber</Form.Label><Form.Control type="number" min="0.01" step="0.01" max={available} value={payoutAmount} onChange={(event) => setPayoutAmount(event.target.value)} /></Form.Group><Button onClick={requestPayout} disabled={working}>Receber via Pix</Button></div>}
-          {!finance?.ready_for_payout && <Alert variant="secondary">Conclua a verificação e ative sua chave Pix para receber.</Alert>}
-          {finance?.ready_for_payout && available <= 0 && <Alert variant="secondary">Ainda não há saldo liberado para repasse.</Alert>}
-
-          {(finance?.payouts || []).length > 0 && <div className="table-responsive mt-4">
-            <Table variant="dark" hover className="align-middle mb-0">
-              <thead><tr><th>Referência</th><th>Solicitado em</th><th>Valor</th><th>Status</th><th>Comprovante</th></tr></thead>
-              <tbody>{finance.payouts.map((row) => {
-                const status = payoutStatus[row.status] || { label: row.status, bg: "secondary" };
-                return <tr key={row.id}>
-                  <td><small>{row.reference}</small></td>
-                  <td>{dateTime(row.requested_at)}</td>
-                  <td><strong>{money(row.amount)}</strong></td>
-                  <td>
-                    <Badge bg={status.bg}>{status.label}</Badge>
-                    {row.failure_reason && <small className="d-block text-danger mt-1">{row.failure_reason}</small>}
-                  </td>
-                  <td>{row.receipt_url
-                    ? <Button as="a" href={row.receipt_url} target="_blank" rel="noreferrer" size="sm" variant="outline-light">Ver comprovante</Button>
-                    : <span className="text-secondary small">{row.status === "paid" ? "Processando comprovante" : "—"}</span>}
-                  </td>
-                </tr>;
-              })}</tbody>
-            </Table>
-          </div>}
-        </Card.Body></Card>
+        {merchantConnected && <Alert variant="secondary" className="mt-4 mb-0">
+          <strong>Recebimento direto ativo.</strong> O saldo das novas vendas pagas não fica disponível para saque na Cutinapp. Consulte a conta Mercado Pago conectada para disponibilidade, tarifas do provedor e movimentação financeira. Repasses antigos continuam preservados no histórico da API para auditoria.
+        </Alert>}
       </>}
     </Container>
   </div>;
