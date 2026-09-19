@@ -45,6 +45,7 @@ import "./styles/navbar-fixed-top.css";
 import "./styles/event-view-premium-hero.css";
 import "./styles/cutinapp-cinematic-glass.css";
 import "./styles/overlay-layout-system.css";
+import "./styles/mobile-productivity-v3.css";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import AppErrorBoundary from "./components/AppErrorBoundary";
@@ -68,7 +69,9 @@ import { installEventFlyerBackground } from "./utils/eventFlyerBackground";
 import { trackTelemetry } from "./utils/telemetry";
 import { installOverlayLayoutManager } from "./utils/overlayLayoutManager";
 import { installGlobalSweetAlertBridge } from "./utils/sweetAlert";
+import { getMobileRuntimeProfile, installMobilePerformanceProfile, scheduleIdleWork } from "./utils/mobilePerformance";
 
+installMobilePerformanceProfile();
 installGlobalSweetAlertBridge();
 installGlobalImageFallbacks();
 installNavigationRecovery();
@@ -79,11 +82,17 @@ installOverlayLayoutManager();
 
 if (typeof window !== "undefined") {
   let scrollTimer;
-  window.addEventListener("scroll", () => {
-    document.body.classList.add("is-scrolling");
-    window.clearTimeout(scrollTimer);
-    scrollTimer = window.setTimeout(() => document.body.classList.remove("is-scrolling"), 120);
-  }, { passive: true });
+  let scrollFrame = null;
+  const syncScrollState = () => {
+    if (scrollFrame !== null) return;
+    scrollFrame = window.requestAnimationFrame(() => {
+      document.body.classList.add("is-scrolling");
+      window.clearTimeout(scrollTimer);
+      scrollTimer = window.setTimeout(() => document.body.classList.remove("is-scrolling"), 110);
+      scrollFrame = null;
+    });
+  };
+  window.addEventListener("scroll", syncScrollState, { passive: true });
 }
 
 if (typeof window !== "undefined" && !window.location.pathname.startsWith("/checkout/")) {
@@ -91,22 +100,23 @@ if (typeof window !== "undefined" && !window.location.pathname.startsWith("/chec
 }
 
 const installDeferredEnhancers = () => {
+  const profile = getMobileRuntimeProfile();
   installClipboardFallback();
   installGlobalImagePerformance();
 
   if (!window.location.pathname.startsWith("/checkout/")) {
     installPasswordFieldEnhancer();
     installPeterWhatsappFallback();
-    installEventFlyerBackground();
+    if (!profile.constrainedNetwork) installEventFlyerBackground();
   }
 };
 
 if (typeof window !== "undefined") {
-  if (typeof window.requestIdleCallback === "function") {
-    window.requestIdleCallback(installDeferredEnhancers, { timeout: 1200 });
-  } else {
-    window.setTimeout(installDeferredEnhancers, 350);
-  }
+  const profile = getMobileRuntimeProfile();
+  scheduleIdleWork(installDeferredEnhancers, {
+    timeout: profile.constrainedNetwork ? 2800 : 1400,
+    fallbackDelay: profile.constrainedNetwork ? 900 : 420,
+  });
 }
 
 const root = ReactDOM.createRoot(document.getElementById("root"));

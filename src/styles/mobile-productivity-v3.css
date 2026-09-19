@@ -1,0 +1,350 @@
+/*
+ * Cutinapp mobile productivity layer v3.
+ * This is the final mobile-first override layer. It intentionally contains no
+ * custom overlay stacking values; floating surfaces remain governed by
+ * overlay-layout-system.css.
+ */
+
+@media (max-width: 991.98px) {
+  :root {
+    --cut-mobile-content-gutter: 12px;
+    --cut-mobile-control-height: 46px;
+    --cut-mobile-card-radius: 16px;
+    --cut-mobile-bottom-nav-height: 70px;
+  }
+
+  html {
+    scroll-padding-top: calc(var(--cut-navbar-fixed-height, 64px) + 10px);
+  }
+
+  body.cut-mobile-runtime {
+    line-height: 1.45;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body.cut-mobile-runtime main,
+  body.cut-mobile-runtime [role="main"] {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  body.cut-mobile-runtime .cut-page-container,
+  body.cut-mobile-runtime .container,
+  body.cut-mobile-runtime .container-fluid {
+    padding-left: max(var(--cut-mobile-content-gutter), env(safe-area-inset-left, 0px)) !important;
+    padding-right: max(var(--cut-mobile-content-gutter), env(safe-area-inset-right, 0px)) !important;
+  }
+
+  body.cut-mobile-runtime h1 {
+    font-size: clamp(1.7rem, 7vw, 2.35rem);
+    line-height: 1.08;
+    letter-spacing: -.035em;
+  }
+
+  body.cut-mobile-runtime h2 {
+    font-size: clamp(1.25rem, 5.4vw, 1.75rem);
+    line-height: 1.15;
+  }
+
+  body.cut-mobile-runtime p,
+  body.cut-mobile-runtime li {
+    overflow-wrap: anywhere;
+  }
+
+  body.cut-mobile-runtime input,
+  body.cut-mobile-runtime select,
+  body.cut-mobile-runtime textarea {
+    min-height: var(--cut-mobile-control-height);
+    font-size: 16px !important;
+  }
+
+  body.cut-mobile-runtime textarea {
+    min-height: 108px;
+  }
+
+  body.cut-mobile-runtime .btn:not(.btn-sm),
+  body.cut-mobile-runtime button:not(.navbar-toggler):not(.dropdown-toggle) {
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+
+  body.cut-mobile-runtime .cut-page-heading,
+  body.cut-mobile-runtime .cut-section-heading,
+  body.cut-mobile-runtime .cut-event-manager-hero {
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  body.cut-mobile-runtime .cut-page-heading p,
+  body.cut-mobile-runtime .cut-section-heading p,
+  body.cut-mobile-runtime .cut-event-manager-hero p {
+    max-width: 62ch;
+    font-size: .92rem;
+    line-height: 1.5;
+  }
+
+  body.cut-mobile-runtime .cut-panel,
+  body.cut-mobile-runtime .card,
+  body.cut-mobile-runtime .cut-event-card,
+  body.cut-mobile-runtime .cut-production-card,
+  body.cut-mobile-runtime .cut-pass-card,
+  body.cut-mobile-runtime .cut-artist-card,
+  body.cut-mobile-runtime .cut-feed-card,
+  body.cut-mobile-runtime .cut-notification-card,
+  body.cut-mobile-runtime .cut-community-post {
+    border-radius: var(--cut-mobile-card-radius) !important;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, .14) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  body.cut-mobile-runtime .cut-event-card,
+  body.cut-mobile-runtime .cut-production-card,
+  body.cut-mobile-runtime .cut-pass-card,
+  body.cut-mobile-runtime .cut-artist-card,
+  body.cut-mobile-runtime .cut-feed-card,
+  body.cut-mobile-runtime .cut-notification-card,
+  body.cut-mobile-runtime .cut-community-post,
+  body.cut-mobile-runtime .cut-producer-event-card,
+  body.cut-mobile-runtime .cut-event-admin-table tbody tr {
+    content-visibility: auto;
+    contain: layout paint style;
+    contain-intrinsic-size: auto 320px;
+  }
+
+  body.cut-mobile-runtime .cut-fx-stage,
+  body.cut-network-constrained .cut-fx-stage {
+    display: none !important;
+  }
+
+  body.cut-mobile-runtime .cut-navbar__inner {
+    min-height: 58px !important;
+  }
+
+  body.cut-mobile-runtime .cut-navbar__brand small {
+    display: none !important;
+  }
+
+  body.cut-mobile-runtime .cut-navbar__brand img {
+    width: 34px !important;
+    height: 34px !important;
+    flex-basis: 34px !important;
+  }
+
+  body.cut-mobile-runtime .cut-navbar__brand strong {
+    font-size: .98rem !important;
+  }
+
+  body.cut-mobile-runtime .cut-mobile-bottom-nav {
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    min-height: var(--cut-mobile-bottom-nav-height) !important;
+    background: rgba(12, 9, 27, .985) !important;
+    border-top: 1px solid rgba(255, 255, 255, .1) !important;
+    box-shadow: 0 -5px 20px rgba(0, 0, 0, .22) !important;
+  }
+
+  body.cut-mobile-runtime .cut-mobile-bottom-nav > a,
+  body.cut-mobile-runtime .cut-mobile-bottom-nav > button {
+    min-width: 0 !important;
+    min-height: 56px !important;
+    gap: 4px !important;
+    padding: 7px 4px !important;
+  }
+
+  body.cut-mobile-runtime .cut-mobile-bottom-nav > a > span,
+  body.cut-mobile-runtime .cut-mobile-bottom-nav > button > span,
+  html[data-cut-instagram-shell="active"] body.cut-mobile-runtime .cut-mobile-bottom-nav > :not(.active):not(.cut-mobile-bottom-nav__primary) > span {
+    position: static !important;
+    display: block !important;
+    width: auto !important;
+    height: auto !important;
+    overflow: visible !important;
+    clip: auto !important;
+    opacity: .78 !important;
+    transform: none !important;
+    white-space: nowrap !important;
+    font-size: .66rem !important;
+    line-height: 1 !important;
+  }
+
+  body.cut-mobile-runtime .cut-mobile-bottom-nav > .active > span {
+    opacity: 1 !important;
+  }
+
+  body.cut-mobile-runtime .cut-mobile-bottom-nav > .active {
+    background: rgba(122, 73, 255, .11) !important;
+    box-shadow: none !important;
+  }
+
+  body.cut-mobile-runtime .cut-mobile-bottom-nav i {
+    font-size: 1rem !important;
+  }
+
+  body.cut-mobile-runtime .cut-collapsible-filters {
+    border-radius: 14px;
+  }
+
+  body.cut-mobile-runtime .cut-collapsible-filters__toggle {
+    min-height: 52px;
+    padding: 9px 11px;
+  }
+
+  body.cut-mobile-runtime .cut-collapsible-filters__icon {
+    width: 32px;
+    height: 32px;
+    flex-basis: 32px;
+    border-radius: 10px;
+  }
+
+  body.cut-mobile-runtime .cut-collapsible-filters__title small {
+    font-size: .7rem;
+  }
+
+  body.cut-mobile-runtime .cut-event-manager-hero {
+    flex-direction: column;
+  }
+
+  body.cut-mobile-runtime .cut-event-manager-new {
+    width: 100%;
+  }
+
+  body.cut-mobile-runtime .cut-event-manager-summary {
+    margin-inline: calc(var(--cut-mobile-content-gutter) * -1);
+    padding-inline: var(--cut-mobile-content-gutter);
+    scroll-snap-type: x proximity;
+  }
+
+  body.cut-mobile-runtime .cut-event-manager-summary > * {
+    scroll-snap-align: start;
+  }
+
+  body.cut-mobile-runtime .cut-event-manager-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 8px;
+    margin-block: 12px;
+    padding: 8px;
+    border-radius: 14px;
+    background: rgba(9, 9, 29, .9);
+  }
+
+  body.cut-mobile-runtime .cut-event-manager-search {
+    min-width: 0;
+    width: 100%;
+    flex-basis: auto;
+  }
+
+  body.cut-mobile-runtime .cut-event-manager-toolbar__right {
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  body.cut-mobile-runtime .cut-event-manager-toolbar__right .form-select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  body.cut-mobile-runtime .cut-event-admin-table tbody {
+    gap: 9px;
+  }
+
+  body.cut-mobile-runtime .cut-event-admin-table tbody tr {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    gap: 8px 10px !important;
+    padding: 11px !important;
+    border-radius: 15px !important;
+    box-shadow: none !important;
+  }
+
+  body.cut-mobile-runtime .cut-event-admin-table tbody td {
+    grid-column: 1 / -1;
+  }
+
+  body.cut-mobile-runtime .cut-event-admin-table tbody td:last-child {
+    justify-self: end;
+  }
+
+  body.cut-mobile-runtime .table-responsive {
+    margin-inline: calc(var(--cut-mobile-content-gutter) * -1);
+    padding-inline: var(--cut-mobile-content-gutter);
+  }
+
+  body.cut-mobile-runtime .modal {
+    padding-inline: 0 !important;
+  }
+
+  body.cut-mobile-runtime .modal-dialog {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: auto 0 0 !important;
+    min-height: 100%;
+    display: flex;
+    align-items: flex-end;
+  }
+
+  body.cut-mobile-runtime .modal-content {
+    max-height: min(88dvh, 760px);
+    overflow: hidden;
+    border-radius: 22px 22px 0 0 !important;
+  }
+
+  body.cut-mobile-runtime .modal-body {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  body.cut-mobile-runtime .modal-footer {
+    gap: 8px;
+  }
+
+  body.cut-mobile-runtime .modal-footer .btn {
+    flex: 1 1 150px;
+  }
+
+  body.cut-mobile-runtime img:not([width]):not([height]) {
+    height: auto;
+  }
+
+  body.cut-network-constrained *,
+  body.cut-reduced-motion * {
+    scroll-behavior: auto !important;
+  }
+
+  body.cut-network-constrained [class*="aurora"],
+  body.cut-network-constrained [class*="glow"],
+  body.cut-network-constrained [class*="particle"] {
+    animation: none !important;
+    filter: none !important;
+  }
+}
+
+@media (max-width: 389.98px) {
+  body.cut-mobile-runtime {
+    --cut-mobile-content-gutter: 10px;
+  }
+
+  body.cut-mobile-runtime .cut-mobile-bottom-nav > a > span,
+  body.cut-mobile-runtime .cut-mobile-bottom-nav > button > span {
+    font-size: .61rem !important;
+  }
+
+  body.cut-mobile-runtime .cut-instagram-mobile-actions {
+    gap: 4px !important;
+  }
+
+  body.cut-mobile-runtime .cut-instagram-mobile-action:first-child {
+    display: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.cut-mobile-runtime *,
+  body.cut-mobile-runtime *::before,
+  body.cut-mobile-runtime *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
