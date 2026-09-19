@@ -23,6 +23,17 @@ import {
 import NotificationPermissionControl from "./NotificationPermissionControl";
 
 const CAPABILITY_CACHE_TTL = 5 * 60 * 1000;
+const NAV_RUNTIME_CACHE_TTL = 45 * 1000;
+const navigationRuntimeCache = new Map();
+
+const runtimeCacheFor = (userId) => navigationRuntimeCache.get(String(userId || "")) || {};
+const writeRuntimeCache = (userId, patch) => {
+  if (!userId) return;
+  const key = String(userId);
+  navigationRuntimeCache.set(key, { ...runtimeCacheFor(userId), ...patch });
+};
+const runtimeCacheFresh = (timestamp, ttl = NAV_RUNTIME_CACHE_TTL) => Number(timestamp || 0) > 0 && Date.now() - Number(timestamp) < ttl;
+
 const capabilityCacheKey = (userId) => `cutinapp:navigation-capabilities:${userId || "guest"}`;
 
 const readStored = (key) => {
@@ -75,14 +86,15 @@ export default function NavlogComponent() {
   const navigate = useNavigate();
   const location = useLocation();
   const userId = user?.id;
+  const initialRuntimeCache = runtimeCacheFor(userId);
   const [open, setOpen] = useState(false);
-  const [productions, setProductions] = useState([]);
+  const [productions, setProductions] = useState(() => initialRuntimeCache.productions || []);
   const [selectedProduction, setSelectedProduction] = useState(() => readStored(PRODUCTION_STORAGE_KEY) || "");
   const [capabilityEvidence, setCapabilityEvidence] = useState(() => readCapabilityEvidence(userId));
   const [usage, setUsage] = useState(() => readNavigationUsage(readStored(NAV_USAGE_STORAGE_KEY)));
-  const [unreadNotifications, setUnreadNotifications] = useState(0);
-  const [notificationPreview, setNotificationPreview] = useState([]);
-  const [pendingArtistInvitations, setPendingArtistInvitations] = useState(0);
+  const [unreadNotifications, setUnreadNotifications] = useState(() => Number(initialRuntimeCache.unreadNotifications || 0));
+  const [notificationPreview, setNotificationPreview] = useState(() => initialRuntimeCache.notificationPreview || []);
+  const [pendingArtistInvitations, setPendingArtistInvitations] = useState(() => Number(initialRuntimeCache.pendingArtistInvitations || 0));
 
   const capabilities = useMemo(() => resolveNavigationCapabilities(user, capabilityEvidence), [user, capabilityEvidence]);
   const actorMenus = useMemo(() => actorMenusFor(capabilities), [capabilities]);
@@ -93,6 +105,18 @@ export default function NavlogComponent() {
 
   useEffect(() => {
     setCapabilityEvidence(readCapabilityEvidence(userId));
+    if (!userId) {
+      setProductions([]);
+      setUnreadNotifications(0);
+      setNotificationPreview([]);
+      setPendingArtistInvitations(0);
+      return;
+    }
+    const cached = runtimeCacheFor(userId);
+    if (Array.isArray(cached.productions)) setProductions(cached.productions);
+    if (Array.isArray(cached.notificationPreview)) setNotificationPreview(cached.notificationPreview);
+    if (cached.unreadNotifications !== undefined) setUnreadNotifications(Number(cached.unreadNotifications || 0));
+    if (cached.pendingArtistInvitations !== undefined) setPendingArtistInvitations(Number(cached.pendingArtistInvitations || 0));
   }, [userId]);
 
   useEffect(() => { setOpen(false); }, [location.pathname, location.search, location.hash]);
@@ -122,22 +146,31 @@ export default function NavlogComponent() {
     if (!userId) { setProductions([]); return undefined; }
     let mounted = true;
     let timer;
+    const cached = runtimeCacheFor(userId);
+    if (runtimeCacheFresh(cached.productionsAt) && Array.isArray(cached.productions)) {
+      setProductions(cached.productions);
+      const evidence = { hasProductions: cached.productions.length > 0, productionCount: cached.productions.length };
+      setCapabilityEvidence((current) => ({ ...current, ...evidence }));
+      return () => { mounted = false; };
+    }
+
     const loadOwnership = async () => {
       try {
         const data = await cutinappService.myProductions();
         if (!mounted) return;
         const list = Array.isArray(data) ? data : [];
         setProductions(list);
+        writeRuntimeCache(userId, { productions: list, productionsAt: Date.now() });
         const evidence = { hasProductions: list.length > 0, productionCount: list.length };
         setCapabilityEvidence((current) => ({ ...current, ...evidence }));
         cacheCapabilityEvidence(userId, evidence);
       } catch (_) { /* optional enrichment */ }
     };
     if (typeof window !== "undefined" && "requestIdleCallback" in window) {
-      const id = window.requestIdleCallback(loadOwnership, { timeout: 900 });
-      return () => { mounted = false; window.cancelIdleCallback?.(id); };
+      const idleId = window.requestIdleCallback(loadOwnership, { timeout: 1200 });
+      return () => { mounted = false; window.cancelIdleCallback?.(idleId); };
     }
-    timer = window.setTimeout(loadOwnership, 0);
+    timer = window.setTimeout(loadOwnership, 150);
     return () => { mounted = false; window.clearTimeout(timer); };
   }, [userId]);
 
@@ -148,56 +181,95 @@ export default function NavlogComponent() {
     }
 
     let mounted = true;
-    const refreshInvitations = async () => {
+    const refreshInvitations = async (force = false) => {
+      const cached = runtimeCacheFor(userId);
+      if (!force && runtimeCacheFresh(cached.invitationsAt)) {
+        if (mounted) setPendingArtistInvitations(Number(cached.pendingArtistInvitations || 0));
+        return;
+      }
       try {
         const response = await artistService.invitations({ per_page: 1 });
-        if (mounted) setPendingArtistInvitations(Number(response?.pending_count || 0));
+        if (!mounted) return;
+        const nextCount = Number(response?.pending_count || 0);
+        setPendingArtistInvitations(nextCount);
+        writeRuntimeCache(userId, { pendingArtistInvitations: nextCount, invitationsAt: Date.now() });
       } catch (_) {
-        if (mounted) setPendingArtistInvitations(0);
+        // Preserve the last known count instead of flashing back to zero on transient failures.
       }
     };
 
     refreshInvitations();
     const timer = window.setInterval(refreshInvitations, 60000);
-    window.addEventListener("focus", refreshInvitations);
-    window.addEventListener("cutinapp:artist-invitations-updated", refreshInvitations);
+    const onFocus = () => refreshInvitations(false);
+    const onUpdated = () => refreshInvitations(true);
+    window.addEventListener("focus", onFocus);
+    window.addEventListener("cutinapp:artist-invitations-updated", onUpdated);
     return () => {
       mounted = false;
       window.clearInterval(timer);
-      window.removeEventListener("focus", refreshInvitations);
-      window.removeEventListener("cutinapp:artist-invitations-updated", refreshInvitations);
+      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("cutinapp:artist-invitations-updated", onUpdated);
     };
   }, [userId]);
 
   useEffect(() => {
     if (!userId) { setUnreadNotifications(0); setNotificationPreview([]); return undefined; }
     let mounted = true;
-    const refresh = async () => {
+
+    const refresh = async (force = false) => {
       if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+      const cached = runtimeCacheFor(userId);
+      if (!force && runtimeCacheFresh(cached.notificationsAt)) {
+        if (mounted) {
+          setUnreadNotifications(Number(cached.unreadNotifications || 0));
+          setNotificationPreview(Array.isArray(cached.notificationPreview) ? cached.notificationPreview : []);
+        }
+        return;
+      }
       try {
         const response = await cutinappService.notifications({ per_page: 6 });
         if (!mounted) return;
-        setUnreadNotifications(Number(response?.unread_count || 0));
-        setNotificationPreview(response?.notifications?.data || []);
+        const nextUnread = Number(response?.unread_count || 0);
+        const nextPreview = response?.notifications?.data || [];
+        setUnreadNotifications(nextUnread);
+        setNotificationPreview(nextPreview);
+        writeRuntimeCache(userId, {
+          unreadNotifications: nextUnread,
+          notificationPreview: nextPreview,
+          notificationsAt: Date.now(),
+        });
       } catch (_) { /* notifications never block navigation */ }
     };
-    const onVisible = () => document.visibilityState === "visible" && refresh();
-    refresh();
+
+    const onVisible = () => document.visibilityState === "visible" && refresh(false);
+    const onFocus = () => refresh(false);
+    const onUpdated = () => refresh(true);
+    refresh(false);
     const disconnect = subscribeToUserNotifications(userId, (notification) => {
       if (!mounted) return;
-      if (!notification?.read_at) setUnreadNotifications((current) => current + 1);
-      setNotificationPreview((current) => [notification, ...current.filter((entry) => entry?.id !== notification?.id)].slice(0, 6));
+      if (!notification?.read_at) {
+        setUnreadNotifications((current) => {
+          const next = current + 1;
+          writeRuntimeCache(userId, { unreadNotifications: next, notificationsAt: Date.now() });
+          return next;
+        });
+      }
+      setNotificationPreview((current) => {
+        const next = [notification, ...current.filter((entry) => entry?.id !== notification?.id)].slice(0, 6);
+        writeRuntimeCache(userId, { notificationPreview: next, notificationsAt: Date.now() });
+        return next;
+      });
     });
     const timer = window.setInterval(refresh, 60000);
-    window.addEventListener("focus", refresh);
-    window.addEventListener("cutinapp:notifications-updated", refresh);
+    window.addEventListener("focus", onFocus);
+    window.addEventListener("cutinapp:notifications-updated", onUpdated);
     document.addEventListener("visibilitychange", onVisible);
     return () => {
       mounted = false;
       if (typeof disconnect === "function") disconnect();
       window.clearInterval(timer);
-      window.removeEventListener("focus", refresh);
-      window.removeEventListener("cutinapp:notifications-updated", refresh);
+      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("cutinapp:notifications-updated", onUpdated);
       document.removeEventListener("visibilitychange", onVisible);
     };
   }, [userId]);
@@ -225,8 +297,16 @@ export default function NavlogComponent() {
     if (!entry.read_at) {
       try {
         await cutinappService.markNotificationRead(entry.id);
-        setUnreadNotifications((current) => Math.max(0, current - 1));
-        setNotificationPreview((current) => current.map((item) => item.id === entry.id ? { ...item, read_at: new Date().toISOString() } : item));
+        setUnreadNotifications((current) => {
+          const next = Math.max(0, current - 1);
+          writeRuntimeCache(userId, { unreadNotifications: next, notificationsAt: Date.now() });
+          return next;
+        });
+        setNotificationPreview((current) => {
+          const next = current.map((item) => item.id === entry.id ? { ...item, read_at: new Date().toISOString() } : item);
+          writeRuntimeCache(userId, { notificationPreview: next, notificationsAt: Date.now() });
+          return next;
+        });
         window.dispatchEvent(new CustomEvent("cutinapp:notifications-updated"));
       } catch (_) { /* continue to destination */ }
     }

@@ -22,6 +22,9 @@ import lazyWithPreload from "./utils/lazyWithPreload";
 
 const EventFlyerAssistant = lazy(() => import("./components/EventFlyerAssistant"));
 const EventSeriesLauncher = lazy(() => import("./components/EventSeriesLauncher"));
+const GlobalImageInputEnhancer = lazy(() => import("./components/GlobalImageInputEnhancer"));
+const GlobalAiDescriptionEnhancer = lazy(() => import("./components/GlobalAiDescriptionEnhancer"));
+const MediaLibraryInputEnhancer = lazy(() => import("./components/MediaLibraryInputEnhancer"));
 const HomePage = lazyWithPreload(() => import("./pages/LandingPageV2"));
 const FeedPage = lazyWithPreload(() => import("./pages/FeedPage"));
 const BlogPage = lazyWithPreload(() => import("./pages/blog/BlogPage"));
@@ -151,13 +154,40 @@ function AppRoutes() {
   const needsEventFlyerAssistant = location.pathname === "/event/create" || /^\/event\/edit\/[^/]+$/.test(location.pathname);
   const needsEventSeriesLauncher = location.pathname === "/event/manage";
   const performanceCriticalRoute = location.pathname.startsWith("/checkout/");
+  const interactionHeavyRoute = performanceCriticalRoute
+    || location.pathname.startsWith("/production/edit/")
+    || location.pathname.startsWith("/event/edit/")
+    || location.pathname === "/event/create"
+    || location.pathname === "/event/manage"
+    || location.pathname.startsWith("/messages")
+    || location.pathname.startsWith("/checkin")
+    || location.pathname.startsWith("/admin/")
+    || location.pathname.startsWith("/producer/");
+  const needsFormEnhancers = location.pathname.startsWith("/admin/")
+    || location.pathname === "/event/create"
+    || location.pathname.startsWith("/event/edit/")
+    || location.pathname === "/event/manage"
+    || location.pathname === "/production/create"
+    || location.pathname.startsWith("/production/edit/")
+    || location.pathname.startsWith("/production/") && location.pathname.includes("/agenda/")
+    || location.pathname === "/user/edit"
+    || location.pathname === "/artist/manage"
+    || location.pathname === "/artist/onboarding"
+    || location.pathname === "/ticket/create";
   const routeKey = `${location.pathname}${location.search}`;
 
   return <>
     <ConnectionStatus />
     {user && <MessagingNotificationBridge />}
     <GlobalSearchOverlay />
-    {!performanceCriticalRoute && <CutinappVisualEffects />}
+    {!interactionHeavyRoute && <CutinappVisualEffects />}
+    {needsFormEnhancers && (
+      <Suspense fallback={null}>
+        <GlobalImageInputEnhancer />
+        <GlobalAiDescriptionEnhancer />
+        <MediaLibraryInputEnhancer />
+      </Suspense>
+    )}
     <AppErrorBoundary resetKey={routeKey}>
       <Suspense fallback={<ProcessingIndicatorComponent label="Carregando página" />}>
         <SeoManager />

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Button, Card, Col, Container, Form, Row } from "react-bootstrap";
 import { useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
@@ -7,7 +7,6 @@ import EventArtwork from "../../components/event/EventArtwork";
 import { FormattedText, FormattedTextEditor } from "../../components/editor/FormattedText";
 import LocationFields from "../../components/location/LocationFields";
 import ProductionGallery from "../../components/production/ProductionGallery";
-import ProductionGalleryManager from "../../components/production/ProductionGalleryManager";
 import useAutoSave from "../../hooks/useAutoSave";
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
@@ -33,7 +32,8 @@ const autosaveLabel = (status) => {
 };
 
 const MemoProductionGallery = React.memo(ProductionGallery);
-const MemoProductionGalleryManager = React.memo(ProductionGalleryManager);
+const loadProductionGalleryManager = () => import("../../components/production/ProductionGalleryManager");
+const LazyProductionGalleryManager = lazy(loadProductionGalleryManager);
 
 const initials = (name) => String(name || "P")
   .split(/\s+/)
@@ -247,32 +247,47 @@ export default function ProductionUpdatePage() {
     flushAutoSave();
   };
 
-  const toggleGalleryManager = useCallback(() => {
-    setGalleryManagerOpen((value) => {
-      const next = !value;
-      if (typeof window !== "undefined" && window.history?.replaceState) {
-        const nextUrl = new URL(window.location.href);
-        nextUrl.hash = next ? "production-editor-gallery" : "";
-        window.history.replaceState(window.history.state, "", nextUrl);
-      }
-      if (next) {
-        window.requestAnimationFrame(() => document.getElementById("production-editor-gallery")?.scrollIntoView({ behavior: "smooth", block: "start" }));
-      }
-      return next;
-    });
+  const openGalleryManager = useCallback(() => {
+    setGalleryManagerOpen(true);
+  }, []);
+
+  const closeGalleryManager = useCallback(() => {
+    setGalleryManagerOpen(false);
   }, []);
 
   useEffect(() => {
+    if (typeof window === "undefined") return undefined;
     const syncGalleryFromHash = () => {
       const shouldOpen = String(window.location.hash || "").replace(/^#/, "") === "production-editor-gallery";
-      if (!shouldOpen) return;
-      setGalleryManagerOpen(true);
-      window.requestAnimationFrame(() => document.getElementById("production-editor-gallery")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+      if (shouldOpen) setGalleryManagerOpen(true);
     };
     syncGalleryFromHash();
     window.addEventListener("hashchange", syncGalleryFromHash);
     return () => window.removeEventListener("hashchange", syncGalleryFromHash);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.history?.replaceState) return undefined;
+
+    const nextUrl = new URL(window.location.href);
+    if (galleryManagerOpen) nextUrl.hash = "production-editor-gallery";
+    else if (nextUrl.hash === "#production-editor-gallery") nextUrl.hash = "";
+    window.history.replaceState(window.history.state, "", nextUrl);
+
+    if (!galleryManagerOpen) return undefined;
+
+    let secondFrame = null;
+    const firstFrame = window.requestAnimationFrame(() => {
+      secondFrame = window.requestAnimationFrame(() => {
+        document.getElementById("production-editor-gallery")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(firstFrame);
+      if (secondFrame) window.cancelAnimationFrame(secondFrame);
+    };
+  }, [galleryManagerOpen]);
 
   const handleGalleryCoverChange = useCallback((cover) => {
     const nextBackground = cover?.background || cover?.url || "";
@@ -534,37 +549,80 @@ export default function ProductionUpdatePage() {
           )}
         </section>
 
+        <section className="cut-production-inline-editor__galleryEntry" aria-label="Gerenciamento da galeria">
+          <div>
+            <span className="cut-eyebrow">Galeria da produção</span>
+            <strong>{galleryMedia.length ? `${galleryMedia.length} foto${galleryMedia.length === 1 ? "" : "s"} publicada${galleryMedia.length === 1 ? "" : "s"}` : "Comece sua galeria"}</strong>
+            <small>Adicione, organize, destaque e escolha as melhores imagens sem sair desta página.</small>
+          </div>
+          <div>
+            <Button
+              type="button"
+              onMouseEnter={loadProductionGalleryManager}
+              onFocus={loadProductionGalleryManager}
+              onClick={openGalleryManager}
+              aria-expanded={galleryManagerOpen}
+              aria-controls="production-editor-gallery"
+            >
+              <i className="fa-solid fa-plus me-2" />Adicionar fotos
+            </Button>
+            <Button
+              type="button"
+              variant="outline-light"
+              onMouseEnter={loadProductionGalleryManager}
+              onFocus={loadProductionGalleryManager}
+              onClick={galleryManagerOpen ? closeGalleryManager : openGalleryManager}
+              aria-expanded={galleryManagerOpen}
+              aria-controls="production-editor-gallery"
+            >
+              <i className="fa-solid fa-images me-2" />{galleryManagerOpen ? "Fechar gerenciador" : "Gerenciar galeria"}
+            </Button>
+          </div>
+        </section>
+
         <MemoProductionGallery
           media={galleryMedia}
           albums={galleryAlbums}
           productionName={productionMeta?.name || displayName}
           productionType={form.type}
           isOwner
-          onManage={toggleGalleryManager}
+          onManage={openGalleryManager}
         />
 
         {galleryManagerOpen && (
-          <section id="production-editor-gallery" className="cut-production-inline-editor__galleryManager">
+          <section id="production-editor-gallery" className="cut-production-inline-editor__galleryManager" aria-live="polite">
             <div className="cut-production-inline-editor__sectionHead">
               <div>
                 <span className="cut-eyebrow">Editar galeria</span>
                 <h2>Gerencie as fotos sem sair da página</h2>
               </div>
-              <Button type="button" variant="outline-light" onClick={toggleGalleryManager}><i className="fa-regular fa-eye me-2" />Voltar à visualização</Button>
+              <Button type="button" variant="outline-light" onClick={closeGalleryManager}><i className="fa-regular fa-eye me-2" />Voltar à visualização</Button>
             </div>
-            <MemoProductionGalleryManager
-              organizationId={id}
-              productionName={productionMeta?.name || displayName}
-              productionType={form.type}
-              media={galleryMedia}
-              albums={galleryAlbums}
-              publicSlug={publicSlug}
-              coverUrl={bgPreview}
-              locationReady={locationReady}
-              onMediaChange={setGalleryMedia}
-              onAlbumsChange={setGalleryAlbums}
-              onCoverChange={handleGalleryCoverChange}
-            />
+            <Suspense
+              fallback={
+                <div className="cut-production-inline-editor__galleryLoading" role="status">
+                  <i className="fa-solid fa-circle-notch fa-spin" />
+                  <div>
+                    <strong>Abrindo gerenciador da galeria</strong>
+                    <span>Carregando somente as ferramentas necessárias para manter a edição rápida.</span>
+                  </div>
+                </div>
+              }
+            >
+              <LazyProductionGalleryManager
+                organizationId={id}
+                productionName={productionMeta?.name || displayName}
+                productionType={form.type}
+                media={galleryMedia}
+                albums={galleryAlbums}
+                publicSlug={publicSlug}
+                coverUrl={bgPreview}
+                locationReady={locationReady}
+                onMediaChange={setGalleryMedia}
+                onAlbumsChange={setGalleryAlbums}
+                onCoverChange={handleGalleryCoverChange}
+              />
+            </Suspense>
           </section>
         )}
 
