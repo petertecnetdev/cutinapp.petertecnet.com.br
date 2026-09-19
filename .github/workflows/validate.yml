@@ -26,6 +26,7 @@ jobs:
           fi
       - run: npm run lint:overlays
       - run: npm run lint:dialogs
+      - run: npm run lint:react-stability
       - run: CI=true npm test -- --watchAll=false
       - run: npm run build
       - run: npm run perf:budget

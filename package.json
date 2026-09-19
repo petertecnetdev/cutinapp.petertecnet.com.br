@@ -10,7 +10,8 @@
     "eject": "react-scripts eject",
     "perf:budget": "node scripts/check-performance-budget.js",
     "lint:overlays": "node scripts/check-overlay-policy.js",
-    "lint:dialogs": "node scripts/check-dialog-policy.js"
+    "lint:dialogs": "node scripts/check-dialog-policy.js",
+    "lint:react-stability": "node scripts/check-react-stability.js"
   },
   "keywords": [],
   "author": "Peter Tecnet",
