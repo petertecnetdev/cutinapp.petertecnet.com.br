@@ -153,7 +153,7 @@ export default function ProductionGallery({
               <button
                 type="button"
                 key={item.id}
-                className={`cut-public-gallery__item ${item.is_featured ? "is-featured" : ""}`}
+                className={`cut-public-gallery__item ${item.is_featured ? "is-featured" : ""} ${loadedIds.has(Number(item.id)) ? "is-loaded" : ""} ${failedIds.has(Number(item.id)) ? "has-error" : ""}`}
                 onClick={() => setLightboxIndex(index)}
                 aria-label={`Abrir foto ${index + 1} de ${filtered.length}`}
               >
