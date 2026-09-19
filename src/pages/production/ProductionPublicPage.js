@@ -6,8 +6,8 @@ import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import ProductionTicketCartModal from "../../components/event/ProductionTicketCartModal";
 import EventArtwork from "../../components/event/EventArtwork";
-import ProductionCommunitySection from "../../components/production/ProductionCommunitySection";
-import ProductionGallery from "../../components/production/ProductionGallery";
+const ProductionCommunitySection = React.lazy(() => import("../../components/production/ProductionCommunitySection"));
+const ProductionGallery = React.lazy(() => import("../../components/production/ProductionGallery"));
 import { FormattedText } from "../../components/editor/FormattedText";
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
@@ -324,7 +324,7 @@ export default function ProductionPublicPage() {
         )}
       </section>
 
-      <ProductionGallery
+      <React.Suspense fallback={<div className="cut-production-section" aria-hidden="true" />}><ProductionGallery
         media={media}
         albums={galleryAlbums}
         productionName={production.name}
@@ -333,13 +333,13 @@ export default function ProductionPublicPage() {
         canReport={Boolean(user)}
         onManage={() => navigate(`/production/edit/${production.id}#production-editor-gallery`)}
         onReport={(mediaId, payload) => cutinappService.reportProductionMedia(slug, mediaId, payload)}
-      />
+      /></React.Suspense>
 
       {artists.length > 0 && <section className="cut-production-section"><div className="cut-production-section-head"><div><span className="cut-eyebrow">Conexões</span><h2>Artistas relacionados</h2></div></div><div className="cut-artist-strip">{artists.map((artist) => <button key={artist.id} onClick={() => navigate(`/artist/${artist.slug}`)}><span>{artist.stage_name?.slice(0, 2).toUpperCase()}</span><strong>{artist.stage_name}</strong></button>)}</div></section>}
 
       {past.length > 0 && <section className="cut-production-section"><Card className="cut-panel"><Card.Body className="p-4"><span className="cut-eyebrow">Histórico</span><h2 className="cut-section-title">Eventos anteriores</h2>{past.slice(0, 12).map((event) => <button key={event.id} className="cut-history-link" onClick={() => navigate(`/event/${event.slug}`)}><strong>{event.title}</strong><span>{fmt(event.start_date)}</span></button>)}</Card.Body></Card></section>}
 
-      <ProductionCommunitySection production={production} />
+      <React.Suspense fallback={null}><ProductionCommunitySection production={production} /></React.Suspense>
     </Container>
 
     <a
