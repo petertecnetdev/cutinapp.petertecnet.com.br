@@ -38,17 +38,21 @@ export default function EventExperienceEditorSurface({
   };
 
   return (
-    <div className="cut-event-inline-editor">
+    <div className="cut-event-inline-editor cut-event-view-page">
       <section className="cut-event-banner-stage cut-event-inline-editor__banner" aria-label={`Prévia da imagem de ${title}`}>
         <Container className="cut-page-container">
           <div className="cut-event-inline-editor__modebar">
             <div>
-              <span className="cut-event-inline-editor__modepill"><i className={mode === "create" ? "fa-solid fa-plus" : "fa-regular fa-pen-to-square"} /> {modeLabel}</span>
-              <small>Você edita diretamente na mesma estrutura que o visitante verá.</small>
+              <span className="cut-event-inline-editor__modepill">
+                <i className={mode === "create" ? "fa-solid fa-plus" : "fa-regular fa-pen-to-square"} /> {modeLabel}
+              </span>
+              <small>Edite cada informação exatamente no ponto em que ela aparece para o visitante.</small>
             </div>
             <div className="cut-event-inline-editor__modeActions">
               {secondaryActions}
-              <Button type="button" onClick={onSave} disabled={saving}><i className="fa-solid fa-check me-2" />{saving ? "Salvando..." : primaryLabel}</Button>
+              <Button type="button" onClick={onSave} disabled={saving}>
+                <i className="fa-solid fa-check me-2" />{saving ? "Salvando..." : primaryLabel}
+              </Button>
             </div>
           </div>
 
@@ -75,14 +79,12 @@ export default function EventExperienceEditorSurface({
 
       <section className="cut-event-summary-strip">
         <Container className="cut-page-container">
-          <div className="cut-event-summary-card cut-event-inline-editor__summary">
+          <div className="cut-event-summary-card">
             <div className="cut-event-summary-card__content">
-              <div className="cut-event-inline-editor__eyebrowRow">
-                <span className="cut-eyebrow">{mode === "create" ? "Novo evento" : "Evento Cutinapp"}</span>
-                <span className="cut-event-inline-editor__liveBadge"><i className="fa-solid fa-eye" /> Prévia ao vivo</span>
+              <div className="d-flex flex-wrap gap-2 mb-3">
+                <span className="badge text-bg-dark">{mode === "create" ? "Novo evento" : "Evento Cutinapp"}</span>
+                <span className="badge text-bg-info text-dark"><i className="fa-solid fa-eye me-1" />Prévia ao vivo</span>
               </div>
-
-              {productionControl || (productionName && <span className="cut-inline-profile-link">Por {productionName}</span>)}
 
               <Form.Control
                 name="title"
@@ -98,22 +100,36 @@ export default function EventExperienceEditorSurface({
               <div className="cut-event-summary-card__meta cut-event-inline-editor__summaryMeta">
                 <label>
                   <i className="fa-regular fa-calendar" aria-hidden="true" />
-                  <span><strong>Início</strong><Form.Control type="datetime-local" name="start_date" value={form?.start_date || ""} onChange={onChange} isInvalid={Boolean(fieldError("start_date"))} /></span>
-                </label>
-                <label>
-                  <i className="fa-regular fa-clock" aria-hidden="true" />
-                  <span><strong>Término</strong><Form.Control type="datetime-local" name="end_date" value={form?.end_date || ""} onChange={onChange} isInvalid={Boolean(fieldError("end_date"))} /></span>
+                  <span>
+                    <strong>Data e horário</strong>
+                    <div className="cut-event-inline-editor__datePair">
+                      <Form.Control type="datetime-local" name="start_date" value={form?.start_date || ""} onChange={onChange} isInvalid={Boolean(fieldError("start_date"))} aria-label="Início do evento" />
+                      <Form.Control type="datetime-local" name="end_date" value={form?.end_date || ""} onChange={onChange} isInvalid={Boolean(fieldError("end_date"))} aria-label="Término do evento" />
+                    </div>
+                  </span>
                 </label>
                 <label>
                   <i className="fa-solid fa-location-dot" aria-hidden="true" />
-                  <span><strong>Local</strong><Form.Control name="venue" value={form?.venue || ""} onChange={onChange} placeholder="Nome do espaço" /></span>
+                  <span>
+                    <strong>Local</strong>
+                    <Form.Control name="venue" value={form?.venue || ""} onChange={onChange} placeholder="Nome do espaço" aria-label="Local do evento" />
+                  </span>
                 </label>
               </div>
+
+              {productionName && <span className="cut-inline-profile-link mt-3">Por {productionName}</span>}
             </div>
 
             <div className="cut-card-actions cut-event-summary-card__actions">
-              <Button type="button" variant="outline-light" onClick={() => document.getElementById("event-editor-about")?.scrollIntoView({ behavior: "smooth", block: "start" })}><i className="fa-regular fa-pen-to-square me-2" />Descrição</Button>
-              <Button type="button" variant="outline-light" onClick={() => document.getElementById("event-editor-location")?.scrollIntoView({ behavior: "smooth", block: "start" })}><i className="fa-solid fa-location-dot me-2" />Localização</Button>
+              <Button type="button" variant="outline-light" onClick={() => document.getElementById("event-editor-about")?.scrollIntoView({ behavior: "smooth", block: "start" })}>
+                <i className="fa-regular fa-pen-to-square me-2" />Sobre o evento
+              </Button>
+              <Button type="button" variant="outline-light" onClick={() => document.getElementById("event-editor-location")?.scrollIntoView({ behavior: "smooth", block: "start" })}>
+                <i className="fa-solid fa-location-dot me-2" />Localização
+              </Button>
+              <Button type="button" variant="light" onClick={onSave} disabled={saving}>
+                <i className="fa-solid fa-floppy-disk me-2" />{saving ? "Salvando..." : primaryLabel}
+              </Button>
             </div>
           </div>
         </Container>
@@ -126,44 +142,100 @@ export default function EventExperienceEditorSurface({
               <Card.Body className="p-4 p-lg-5">
                 <span className="cut-eyebrow">Sobre o evento</span>
                 <h2 className="cut-section-title mt-2">Informações</h2>
-                <Form.Group className="mt-3">
-                  <Form.Label>Descrição</Form.Label>
-                  <Form.Control as="textarea" rows={7} name="description" value={form?.description || ""} onChange={onChange} placeholder="Conte ao público o que torna este evento especial." isInvalid={Boolean(fieldError("description"))} />
+
+                <Form.Group className="mb-4 cut-event-inline-editor__publicField">
+                  <Form.Label>Descrição exibida ao público</Form.Label>
+                  <Form.Control
+                    as="textarea"
+                    rows={7}
+                    name="description"
+                    value={form?.description || ""}
+                    onChange={onChange}
+                    placeholder="Conte ao público o que torna este evento especial."
+                    isInvalid={Boolean(fieldError("description"))}
+                  />
                   {fieldError("description") && <Form.Control.Feedback type="invalid">{fieldError("description")}</Form.Control.Feedback>}
                 </Form.Group>
-                <div className="cut-event-details cut-event-inline-editor__details mt-4">
-                  <div><i className="fa-regular fa-calendar" /><span><strong>Início</strong><Form.Control type="datetime-local" name="start_date" value={form?.start_date || ""} onChange={onChange} /></span></div>
-                  <div><i className="fa-regular fa-clock" /><span><strong>Término</strong><Form.Control type="datetime-local" name="end_date" value={form?.end_date || ""} onChange={onChange} /></span></div>
-                  <div><i className="fa-solid fa-location-dot" /><span><strong>Local</strong><Form.Control name="venue" value={form?.venue || ""} onChange={onChange} placeholder="Nome do espaço" /></span></div>
-                  <div><i className="fa-solid fa-map" /><span><strong>Cidade</strong>{cityControl || <div className="cut-event-inline-editor__cityRow"><Form.Control name="city" value={form?.city || ""} onChange={onChange} placeholder="Cidade" /><Form.Control name="uf" maxLength={2} value={form?.uf || ""} onChange={onChange} placeholder="UF" /></div>}</span></div>
+
+                <div className="cut-event-details">
+                  <div>
+                    <i className="fa-regular fa-calendar" />
+                    <span><strong>Início</strong><Form.Control type="datetime-local" name="start_date" value={form?.start_date || ""} onChange={onChange} /></span>
+                  </div>
+                  <div>
+                    <i className="fa-regular fa-clock" />
+                    <span><strong>Término</strong><Form.Control type="datetime-local" name="end_date" value={form?.end_date || ""} onChange={onChange} /></span>
+                  </div>
+                  <div>
+                    <i className="fa-solid fa-location-dot" />
+                    <span><strong>Local</strong><Form.Control name="venue" value={form?.venue || ""} onChange={onChange} placeholder="Nome do espaço" /></span>
+                  </div>
+                  <div>
+                    <i className="fa-solid fa-map" />
+                    <span>
+                      <strong>Cidade</strong>
+                      {cityControl || <div className="cut-event-inline-editor__cityRow"><Form.Control name="city" value={form?.city || ""} onChange={onChange} placeholder="Cidade" /><Form.Control name="uf" maxLength={2} value={form?.uf || ""} onChange={onChange} placeholder="UF" /></div>}
+                    </span>
+                  </div>
                 </div>
               </Card.Body>
             </Card>
 
-            <Card id="event-editor-location" className="cut-panel cut-event-inline-editor__viewCard">
-              <Card.Body className="p-4 p-lg-5">
-                <span className="cut-eyebrow">Localização</span>
-                <h2 className="cut-section-title mt-2">Como chegar</h2>
-                <Form.Group className="mt-3">
-                  <Form.Label>Endereço</Form.Label>
-                  <Form.Control name="address" value={form?.address || ""} onChange={onChange} placeholder="Rua, número e complemento" isInvalid={Boolean(fieldError("address"))} />
-                  {fieldError("address") && <Form.Control.Feedback type="invalid">{fieldError("address")}</Form.Control.Feedback>}
-                </Form.Group>
-                <Form.Group className="mt-3">
-                  <Form.Label>Link do Google Maps</Form.Label>
-                  <Form.Control type="url" name="google_maps_url" value={form?.google_maps_url || ""} onChange={onChange} placeholder="https://maps.app.goo.gl/..." />
-                </Form.Group>
-                {mapEmbedUrl ? <iframe className="cut-event-inline-editor__map mt-3" title={`Mapa de ${title}`} src={mapEmbedUrl} loading="lazy" referrerPolicy="no-referrer-when-downgrade" /> : <p className="text-secondary mt-3 mb-0">O mapa aparecerá aqui assim que o endereço for informado.</p>}
+            {(productionControl || productionName) && (
+              <Card className="cut-panel mb-4 cut-event-inline-editor__viewCard">
+                <Card.Body className="p-4">
+                  <span className="cut-eyebrow">Responsável</span>
+                  <div className="cut-production-inline cut-event-inline-editor__productionCard">
+                    <div>
+                      <h2>{productionName || "Escolha a produção"}</h2>
+                      <p>Esta é a produção que aparecerá como responsável na página pública do evento.</p>
+                    </div>
+                    <div className="cut-event-inline-editor__productionControl">{productionControl || <span className="cut-inline-profile-link">Por {productionName}</span>}</div>
+                  </div>
+                </Card.Body>
+              </Card>
+            )}
+
+            <Card id="event-editor-location" className="cut-panel cut-event-inline-editor__mapShell">
+              <Card.Body className="p-4">
+                <div className="cut-event-inline-editor__mapEditor">
+                  <Form.Group>
+                    <Form.Label>Endereço usado na página</Form.Label>
+                    <Form.Control name="address" value={form?.address || ""} onChange={onChange} placeholder="Rua, número e complemento" isInvalid={Boolean(fieldError("address"))} />
+                    {fieldError("address") && <Form.Control.Feedback type="invalid">{fieldError("address")}</Form.Control.Feedback>}
+                  </Form.Group>
+                  <Form.Group>
+                    <Form.Label>Link do Google Maps</Form.Label>
+                    <Form.Control type="url" name="google_maps_url" value={form?.google_maps_url || ""} onChange={onChange} placeholder="https://maps.app.goo.gl/..." />
+                  </Form.Group>
+                </div>
               </Card.Body>
+              {mapEmbedUrl ? (
+                <iframe className="cut-event-inline-editor__map" title={`Mapa de ${title}`} src={mapEmbedUrl} loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
+              ) : (
+                <div className="cut-event-inline-editor__mapEmpty">
+                  <i className="fa-solid fa-map-location-dot" />
+                  <strong>O mapa aparecerá aqui</strong>
+                  <span>Informe endereço, cidade ou local para visualizar exatamente como ficará para o visitante.</span>
+                </div>
+              )}
             </Card>
           </Col>
 
           <Col lg={4}>
             <Card className="cut-panel cut-event-inline-editor__sidebarCard">
               <Card.Body className="p-4">
-                <span className="cut-eyebrow">Resultado visual</span>
-                <h2 className="cut-section-title mt-2">Você está vendo a página enquanto cria</h2>
-                <p className="text-secondary">Imagem, título, data, local e descrição aparecem na mesma ordem da página pública.</p>
+                <span className="cut-eyebrow">Gestão</span>
+                <h2 className="cut-section-title mt-2">Ferramentas do evento</h2>
+                <p className="text-secondary">A coluna ocupa o mesmo lugar das ferramentas do produtor na página pública.</p>
+
+                <div className="cut-owner-actions mt-4">
+                  <Button type="button" onClick={onSave} disabled={saving}><i className="fa-solid fa-floppy-disk me-2" />{saving ? "Salvando..." : primaryLabel}</Button>
+                  {secondaryActions}
+                  <Button type="button" variant="outline-light" onClick={() => document.getElementById("event-editor-about")?.scrollIntoView({ behavior: "smooth", block: "start" })}>Editar informações</Button>
+                  <Button type="button" variant="outline-light" onClick={() => document.getElementById("event-editor-location")?.scrollIntoView({ behavior: "smooth", block: "start" })}>Editar localização</Button>
+                </div>
+
                 <div className="cut-event-inline-editor__readiness">
                   <span className={form?.title?.trim() ? "is-ok" : ""}><i className="fa-solid fa-circle-check" /> Nome</span>
                   <span className={imagePreview ? "is-ok" : ""}><i className="fa-solid fa-circle-check" /> Imagem</span>
