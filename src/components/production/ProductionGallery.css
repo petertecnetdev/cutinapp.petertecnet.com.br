@@ -370,3 +370,33 @@
   .cut-gallery-lightbox__report-form{width:100%}
   .cut-gallery-lightbox__report-form>div .btn{flex:1}
 }
+
+
+@media(max-width:575px){
+  .cut-public-gallery__grid{
+    display:grid;
+    grid-auto-flow:column;
+    grid-auto-columns:min(76vw,300px);
+    grid-template-columns:none;
+    grid-template-rows:220px;
+    gap:8px;
+    overflow-x:auto;
+    overflow-y:hidden;
+    padding:2px 2px 8px;
+    scroll-snap-type:x mandatory;
+    scrollbar-width:none;
+  }
+  .cut-public-gallery__grid::-webkit-scrollbar{display:none}
+  .cut-public-gallery__item,
+  .cut-public-gallery__item:nth-child(8n+1),
+  .cut-public-gallery__item.is-featured{
+    grid-column:auto;
+    grid-row:auto;
+    min-height:220px;
+    width:100%;
+    scroll-snap-align:start;
+  }
+  .cut-public-gallery__more{
+    justify-content:flex-start;
+  }
+}
