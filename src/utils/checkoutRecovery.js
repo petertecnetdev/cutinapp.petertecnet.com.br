@@ -36,6 +36,12 @@ const normalizePaymentMethod = (paymentMethod) => {
   return ["pix", "card"].includes(normalized) ? normalized : null;
 };
 
+export const isCheckoutPaymentSnapshotResumable = (paymentSnapshot, recovery) => {
+  const snapshotOrderId = String(paymentSnapshot?.order?.public_id || "").trim();
+  const recoveryOrderId = String(recovery?.orderPublicId || "").trim();
+  return Boolean(snapshotOrderId && recoveryOrderId && snapshotOrderId === recoveryOrderId);
+};
+
 export const clearCheckoutRecovery = (slug) => {
   if (!slug) return false;
   const removed = safeRemoveLocalItem(storageKey(slug));

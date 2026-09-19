@@ -7,6 +7,8 @@ import {
   writeCheckoutRecovery,
 } from "./checkoutRecovery";
 import { clearEventCart, readEventCart, writeEventCart } from "./eventCartStorage";
+import { COMMERCE_SCOPE_CHANGE_EVENT, isCommerceScopeReady } from "./commerceSessionScope";
+import { safeRemoveSessionItem } from "./safeStorage";
 import { trackTelemetry } from "./telemetry";
 import "../styles/persistent-cart.css";
 
@@ -254,6 +256,7 @@ const updateLineQuantity = (cart, line, nextQuantity) => {
     : currentLines.map((item) => Number(item.id) === line.id ? { ...item, quantity: normalized } : item);
   const nextSelection = { ...selection, [key]: nextLines };
   const recovery = readCheckoutRecovery(cart.slug);
+  safeRemoveSessionItem(`cutinapp_payment_${cart.slug}`);
 
   if (quantity(nextSelection) <= 0) {
     clearEventCart(cart.slug);
@@ -289,6 +292,7 @@ const goToCheckout = (cart) => {
 };
 
 const clearCart = (cart) => {
+  safeRemoveSessionItem(`cutinapp_payment_${cart.slug}`);
   clearEventCart(cart.slug);
   clearCheckoutRecovery(cart.slug);
   openedSlug = null;
@@ -517,6 +521,11 @@ const renderSheet = (host, cart) => {
 
 const render = async () => {
   const sequence = ++renderSequence;
+  if (!isCommerceScopeReady()) {
+    openedSlug = null;
+    removeCartUi();
+    return;
+  }
   syncCart();
   const cart = pendingCart();
 
@@ -565,6 +574,7 @@ export const installPersistentCart = () => {
     "cutinapp:route-change",
     CHECKOUT_RECOVERY_CHANGE_EVENT,
     CART_CHANGE_EVENT,
+    COMMERCE_SCOPE_CHANGE_EVENT,
     "popstate",
     "pageshow",
     "focus",
@@ -580,6 +590,7 @@ export const installPersistentCart = () => {
       "cutinapp:route-change",
       CHECKOUT_RECOVERY_CHANGE_EVENT,
       CART_CHANGE_EVENT,
+      COMMERCE_SCOPE_CHANGE_EVENT,
       "popstate",
       "pageshow",
       "focus",

@@ -4,6 +4,7 @@ import artistService from "../services/ArtistService";
 import authService from "../services/AuthService";
 import { subscribeToAuthTokenChanges } from "../utils/authSessionSync";
 import { cacheAuthUser, readCachedAuthUser } from "../utils/authUserCache";
+import { clearCommerceClientState, synchronizeCommerceScope } from "../utils/commerceSessionScope";
 
 export const AuthContext = createContext({
   user: null,
@@ -25,12 +26,14 @@ export function AuthProvider({ children }) {
 
   const refreshUser = useCallback(async () => {
     if (!authService.getToken()) {
+      synchronizeCommerceScope(null);
       setUser(null);
       return null;
     }
 
     try {
       const currentUser = await authService.me();
+      synchronizeCommerceScope(currentUser);
 
       if (currentUser?.email_verified_at) {
         try {
@@ -95,6 +98,8 @@ export function AuthProvider({ children }) {
       if (!active) return;
 
       if (!newToken) {
+        clearCommerceClientState();
+        synchronizeCommerceScope(null);
         setUser(null);
         setLoading(false);
         return;

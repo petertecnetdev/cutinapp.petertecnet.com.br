@@ -1,6 +1,7 @@
 import apiClient from "./ApiClient";
 import { clearAuthToken, getAuthToken, setAuthToken } from "../utils/authTokenStorage";
 import { clearCachedAuthUser } from "../utils/authUserCache";
+import { synchronizeCommerceScope } from "../utils/commerceSessionScope";
 import {
   safeGetLocalItem,
   safeRemoveLocalItem,
@@ -27,6 +28,7 @@ const authService = {
     clearAuthToken();
     clearCachedAuthUser();
     safeRemoveLocalItem(EMAIL_VERIFICATION_DEFERRED_TOKEN_KEY);
+    synchronizeCommerceScope(null);
   },
 
   finishAuthentication: (payload) => {
