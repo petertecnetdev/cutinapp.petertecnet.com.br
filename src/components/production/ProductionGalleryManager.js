@@ -718,6 +718,12 @@ export default function ProductionGalleryManager({
         </div>
       </div>
 
+      <div className="cut-gallery-manager__checklist" aria-label="Conclusão visual da produção">
+        <span className="is-done"><i className="fa-solid fa-circle-check" />Identidade</span>
+        <span className={coverUrl ? "is-done" : "is-pending"}><i className={coverUrl ? "fa-solid fa-circle-check" : "fa-regular fa-circle"} />Capa</span>
+        <span className={items.length >= 4 ? "is-done" : "is-pending"}><i className={items.length >= 4 ? "fa-solid fa-circle-check" : "fa-regular fa-circle"} />Galeria {Math.min(items.length, 4)}/4</span>
+      </div>
+
       <div className="cut-gallery-manager__toolbar">
         <div className="cut-gallery-manager__toolbar-primary">
           <Button type="button" onClick={() => inputRef.current?.click()} disabled={remaining <= 0}>
@@ -742,6 +748,11 @@ export default function ProductionGalleryManager({
           <Button type="button" variant="outline-light" onClick={createAlbum}>
             <i className="fa-regular fa-folder-open me-2" />Novo álbum
           </Button>
+          {coverUrl && remaining > 0 && (
+            <Button type="button" variant="outline-light" onClick={importCover}>
+              <i className="fa-regular fa-copy me-2" />Adicionar capa à galeria
+            </Button>
+          )}
           {publicSlug && (
             <Button
               as="a"
@@ -760,6 +771,16 @@ export default function ProductionGalleryManager({
             <button type="button" className={mode === "manage" ? "is-active" : ""} onClick={() => setMode("manage")}>Gerenciar</button>
             <button type="button" className={mode === "view" ? "is-active" : ""} onClick={() => { setMode("view"); exitSelection(); }}>Visualizar</button>
           </div>
+          <Form.Select
+            size="sm"
+            value={filterAlbum}
+            onChange={(event) => setFilterAlbum(event.target.value)}
+            aria-label="Filtrar galeria por álbum"
+          >
+            <option value="all">Todas as fotos</option>
+            <option value="">Galeria principal</option>
+            {localAlbums.map((album) => <option key={album.id} value={album.id}>{album.name}</option>)}
+          </Form.Select>
           <Form.Select
             size="sm"
             value={sortMode}
@@ -790,6 +811,19 @@ export default function ProductionGalleryManager({
           <strong>{selectedCount} {selectedCount === 1 ? "foto selecionada" : "fotos selecionadas"}</strong>
           <div>
             <Button type="button" size="sm" variant="outline-light" onClick={selectAll}>Selecionar todas</Button>
+            <Form.Select
+              size="sm"
+              value={bulkAlbumId}
+              onChange={(event) => setBulkAlbumId(event.target.value)}
+              aria-label="Mover fotos selecionadas para álbum"
+              disabled={!selectedCount}
+            >
+              <option value="">Galeria principal</option>
+              {localAlbums.map((album) => <option key={album.id} value={album.id}>{album.name}</option>)}
+            </Form.Select>
+            <Button type="button" size="sm" variant="outline-light" disabled={!selectedCount} onClick={moveSelectedToAlbum}>
+              <i className="fa-regular fa-folder me-2" />Mover
+            </Button>
             <Button type="button" size="sm" variant="danger" disabled={!selectedCount} onClick={() => deleteIds(Array.from(selectedIds))}>
               <i className="fa-regular fa-trash-can me-2" />Remover
             </Button>
