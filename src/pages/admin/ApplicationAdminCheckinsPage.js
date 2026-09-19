@@ -1,3 +1,4 @@
+import { showTextPrompt } from "../../utils/sweetAlert";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Badge, Button, Card, Col, Container, Form, Row, Spinner } from "react-bootstrap";
 import NavlogComponent from "../../components/NavlogComponent";
@@ -60,7 +61,7 @@ export default function ApplicationAdminCheckinsPage() {
   }, [load, lastPage, loading, loadingMore, page]);
 
   const invalidate = async (pass) => {
-    const reason = window.prompt("Motivo da invalidação administrativa:");
+    const reason = await showTextPrompt({ title: "Invalidar ingresso?", text: "Informe o motivo da invalidação administrativa.", inputLabel: "Motivo", inputPlaceholder: "Descreva o motivo", confirmButtonText: "Invalidar", required: true });
     if (!reason?.trim()) return;
     setBusyId(pass.id); setError(""); setSuccess("");
     try {
