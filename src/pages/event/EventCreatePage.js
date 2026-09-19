@@ -11,7 +11,6 @@ import { AuthContext } from "../../context/AuthContext";
 import { clearEventCreationDraft, readEventCreationDraft, writeEventCreationDraft } from "../../utils/eventCreationDraft";
 import { showImportantAlert, showProducerAgreementRequired } from "../../utils/sweetAlert";
 import { EVENT_POSTER_HINT, validateEventPosterFile } from "../../utils/eventPoster";
-import { eventInitials } from "../../utils/eventMedia";
 
 const pad = (value) => String(value).padStart(2, "0");
 const toLocalInput = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
