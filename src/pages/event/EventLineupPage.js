@@ -1,3 +1,4 @@
+import { showTextPrompt } from "../../utils/sweetAlert";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Badge, Button, Card, Col, Container, Form, Row, Spinner } from "react-bootstrap";
 import { useNavigate, useParams } from "react-router-dom";
@@ -344,7 +345,7 @@ export default function EventLineupPage() {
   };
 
   const cancelInvitation = async (invitation, label = "este convite") => {
-    const reason = window.prompt(`Motivo do cancelamento de ${label} (opcional):`, "") ?? null;
+    const reason = await showTextPrompt({ title: "Cancelar convite?", text: `Motivo do cancelamento de ${label} (opcional).`, inputLabel: "Motivo", inputPlaceholder: "Motivo opcional", confirmButtonText: "Cancelar convite" });
     if (reason === null) return;
     setBusy(true); setError(""); setSuccess("");
     try {
