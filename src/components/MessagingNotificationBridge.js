@@ -3,8 +3,8 @@ import { AuthContext } from "../context/AuthContext";
 import messagingService from "../services/MessagingService";
 import { subscribeToUserNotifications } from "../services/RealtimeNotificationService";
 import { ensureWebPushSubscription, showLocalNotification } from "../services/WebPushService";
+import { getMobileRuntimeProfile, scheduleIdleWork } from "../utils/mobilePerformance";
 
-const HEARTBEAT_MS = 45000;
 const PERMISSION_EVENT = "cutinapp:notification-permission-changed";
 
 export default function MessagingNotificationBridge() {
@@ -15,12 +15,20 @@ export default function MessagingNotificationBridge() {
     if (!user?.id) return undefined;
 
     let stopped = false;
-    const heartbeat = () => messagingService.heartbeat().catch(() => undefined);
-    heartbeat();
-    const timer = window.setInterval(heartbeat, HEARTBEAT_MS);
+    const profile = getMobileRuntimeProfile();
+    const heartbeatMs = profile.constrainedNetwork ? 120000 : 60000;
+    const heartbeat = () => {
+      if (stopped || document.visibilityState === "hidden") return;
+      messagingService.heartbeat().catch(() => undefined);
+    };
+    const cancelInitialHeartbeat = scheduleIdleWork(heartbeat, {
+      timeout: profile.constrainedNetwork ? 3200 : 1800,
+      fallbackDelay: profile.mobile ? 900 : 500,
+    });
+    const timer = window.setInterval(heartbeat, heartbeatMs);
 
     const preparePush = async () => {
-      if (stopped) return;
+      if (stopped || document.visibilityState === "hidden") return;
       try {
         pushReadyRef.current = await ensureWebPushSubscription();
       } catch (_) {
@@ -28,9 +36,18 @@ export default function MessagingNotificationBridge() {
       }
     };
 
-    preparePush();
+    const cancelInitialPush = scheduleIdleWork(preparePush, {
+      timeout: profile.constrainedNetwork ? 4200 : 2400,
+      fallbackDelay: profile.mobile ? 1200 : 700,
+    });
     const permissionChanged = () => preparePush();
+    const onVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      heartbeat();
+      if (!pushReadyRef.current) preparePush();
+    };
     window.addEventListener(PERMISSION_EVENT, permissionChanged);
+    document.addEventListener("visibilitychange", onVisible);
 
     const unsubscribeRealtime = subscribeToUserNotifications(user.id, (notification) => {
       if (!notification || notification.type !== "direct_message") return;
@@ -46,8 +63,11 @@ export default function MessagingNotificationBridge() {
 
     return () => {
       stopped = true;
+      cancelInitialHeartbeat();
+      cancelInitialPush();
       window.clearInterval(timer);
       window.removeEventListener(PERMISSION_EVENT, permissionChanged);
+      document.removeEventListener("visibilitychange", onVisible);
       unsubscribeRealtime?.();
     };
   }, [user?.id]);
