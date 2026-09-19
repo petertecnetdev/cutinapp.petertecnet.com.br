@@ -131,6 +131,43 @@ describe("CutinappService production gallery manager", () => {
     );
   });
 
+  test("crops and reprocesses media through generic organization routes", async () => {
+    const cropPayload = { aspect: "cover", zoom: 125, focal_x: 58, focal_y: 42 };
+    appApiClient.post
+      .mockResolvedValueOnce({ data: { media: { id: 35, width: 1920, height: 700 } } })
+      .mockResolvedValueOnce({ data: { media: { id: 35, width: 1800, height: 1200 } } });
+
+    await cutinappService.cropProductionMedia(25, 35, cropPayload);
+    await cutinappService.reprocessProductionMedia(25, 35);
+
+    expect(appApiClient.post).toHaveBeenNthCalledWith(
+      1,
+      "/organizations/25/media/35/crop",
+      cropPayload,
+      { headers: { "Idempotency-Key": expect.any(String) } },
+    );
+    expect(appApiClient.post).toHaveBeenNthCalledWith(
+      2,
+      "/organizations/25/media/35/reprocess",
+      undefined,
+      { headers: { "Idempotency-Key": expect.any(String) } },
+    );
+  });
+
+  test("loads cover recommendations and visually similar media", async () => {
+    appApiClient.get
+      .mockResolvedValueOnce({ data: { recommendations: [{ id: 51, recommendation: { score: 91 } }] } })
+      .mockResolvedValueOnce({ data: { pairs: [{ similarity: 98, left: { id: 51 }, right: { id: 52 } }] } });
+
+    const recommendations = await cutinappService.productionMediaRecommendations(25);
+    const similar = await cutinappService.productionMediaSimilar(25);
+
+    expect(appApiClient.get).toHaveBeenNthCalledWith(1, "/organizations/25/media-recommendations");
+    expect(appApiClient.get).toHaveBeenNthCalledWith(2, "/organizations/25/media-similar");
+    expect(recommendations.recommendations[0].recommendation.score).toBe(91);
+    expect(similar.pairs[0].similarity).toBe(98);
+  });
+
   test("creates, lists and removes albums through generic organization routes", async () => {
     appApiClient.post.mockResolvedValueOnce({ data: { album: { id: 4, name: "Camarote" } } });
     appApiClient.get.mockResolvedValueOnce({ data: { albums: [{ id: 4, name: "Camarote" }] } });
