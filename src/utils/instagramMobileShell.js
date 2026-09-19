@@ -105,7 +105,6 @@ const syncNavbarScrollState = () => {
   const navbar = document.querySelector(".cut-capability-nav");
   if (!navbar) return;
   const y = Math.max(0, window.scrollY || 0);
-  const delta = y - lastScrollY;
   navbar.classList.toggle("cut-mobile-nav--scrolled", y > 10);
   navbar.classList.toggle("cut-mobile-nav--compact", y > 56);
 
