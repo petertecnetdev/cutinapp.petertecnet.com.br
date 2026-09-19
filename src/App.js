@@ -25,7 +25,7 @@ const EventSeriesLauncher = lazy(() => import("./components/EventSeriesLauncher"
 const GlobalImageInputEnhancer = lazy(() => import("./components/GlobalImageInputEnhancer"));
 const GlobalAiDescriptionEnhancer = lazy(() => import("./components/GlobalAiDescriptionEnhancer"));
 const MediaLibraryInputEnhancer = lazy(() => import("./components/MediaLibraryInputEnhancer"));
-const HomePage = lazyWithPreload(() => import("./pages/LandingPageV2"));
+const LandingPage = lazyWithPreload(() => import("./pages/LandingPageV2"));\nconst HomeHubPage = lazyWithPreload(() => import("./pages/HomeHubPage"));
 const FeedPage = lazyWithPreload(() => import("./pages/FeedPage"));
 const BlogPage = lazyWithPreload(() => import("./pages/blog/BlogPage"));
 const BlogArticlePage = lazy(() => import("./pages/blog/BlogArticlePage"));
@@ -111,10 +111,11 @@ function AppRoutes() {
       ProductionListPage.preload();
       BlogPage.preload();
       if (user) {
+        HomeHubPage.preload();
         FeedPage.preload();
         MyPassesPage.preload();
       } else {
-        HomePage.preload();
+        LandingPage.preload();
       }
     };
     const idle = window.requestIdleCallback ? window.requestIdleCallback(run, { timeout: 1600 }) : window.setTimeout(run, 350);
@@ -192,7 +193,7 @@ function AppRoutes() {
       <Suspense fallback={<ProcessingIndicatorComponent label="Carregando página" />}>
         <SeoManager />
         <Routes>
-          <Route path="/" element={user ? <Navigate to="/event" replace /> : <HomePage />} />
+          <Route path="/" element={user ? protectedRoute(<HomeHubPage />) : <LandingPage />} />
           <Route path="/login" element={guestRoute(<LoginPage />)} />
           <Route path="/register" element={guestRoute(<RegisterPage />)} />
           <Route path="/password-email" element={guestRoute(<PasswordEmailPage />)} />
