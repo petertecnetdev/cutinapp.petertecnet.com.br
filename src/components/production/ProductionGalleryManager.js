@@ -888,6 +888,10 @@ export default function ProductionGalleryManager({
                   <i className="fa-regular fa-copy me-2" />Adicionar capa à galeria
                 </Button>
               )}
+              <Button type="button" size="sm" variant="outline-light" disabled={!items.length || smartBusy} onClick={loadSmartAnalysis}>
+                <i className={smartBusy ? "fa-solid fa-circle-notch fa-spin me-2" : "fa-solid fa-wand-magic-sparkles me-2"} />
+                {smartBusy ? "Analisando..." : "Analisar galeria"}
+              </Button>
             </div>
 
             <div className="cut-gallery-manager__toolbar-secondary">
