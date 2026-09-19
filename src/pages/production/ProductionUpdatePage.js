@@ -282,9 +282,7 @@ export default function ProductionUpdatePage() {
   const pageBackground = bgPreview || logoPreview;
   const pageStyle = pageBackground ? { "--cut-production-page-bg": `url(${JSON.stringify(pageBackground)})` } : undefined;
   const heroStyle = bgPreview ? {
-    backgroundImage: `linear-gradient(90deg,rgba(2,8,13,.82),rgba(2,8,13,.42) 55%,rgba(2,8,13,.24)),linear-gradient(180deg,rgba(2,8,13,.08),rgba(2,8,13,.64)),url("${bgPreview}")`,
-    backgroundPosition: "center",
-    backgroundSize: "cover",
+    "--cut-production-editor-hero-image": `url(${JSON.stringify(bgPreview)})`,
   } : undefined;
   const mapEmbedUrl = mapQuery ? `https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed` : "";
   const pendingImages = Boolean(logo || background);
