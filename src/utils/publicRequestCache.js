@@ -29,6 +29,28 @@ const writeSession = (key, entry) => {
   }
 };
 
+const store = (key, data) => {
+  const entry = { at: Date.now(), data };
+  memory.set(key, entry);
+  writeSession(key, entry);
+  return entry.data;
+};
+
+const revalidate = (client, key, url, params, fallback) => {
+  if (inflight.has(key)) return inflight.get(key);
+
+  const request = client.get(url, { params })
+    .then((response) => store(key, response.data))
+    .catch((error) => {
+      if (fallback !== undefined) return fallback;
+      throw error;
+    })
+    .finally(() => inflight.delete(key));
+
+  inflight.set(key, request);
+  return request;
+};
+
 export const invalidatePublicRequestCache = (prefix = "") => {
   for (const key of memory.keys()) if (!prefix || key.startsWith(prefix)) memory.delete(key);
   if (typeof window === "undefined") return;
@@ -48,23 +70,16 @@ export const cachedPublicGet = async (client, url, { params = {}, ttlMs = 15000,
   const key = keyFor(url, params);
   const now = Date.now();
   const cached = memory.get(key) || readSession(key);
+  const age = cached ? now - cached.at : Infinity;
 
-  if (cached && now - cached.at <= ttlMs) return cached.data;
-  if (inflight.has(key)) return inflight.get(key);
+  if (cached && age <= ttlMs) return cached.data;
 
-  const request = client.get(url, { params })
-    .then((response) => {
-      const entry = { at: Date.now(), data: response.data };
-      memory.set(key, entry);
-      writeSession(key, entry);
-      return entry.data;
-    })
-    .catch((error) => {
-      if (cached && now - cached.at <= staleMs) return cached.data;
-      throw error;
-    })
-    .finally(() => inflight.delete(key));
+  // Stale-while-revalidate: conteúdo aceitável aparece imediatamente enquanto
+  // uma única requisição em segundo plano atualiza o cache para a próxima leitura.
+  if (cached && age <= staleMs) {
+    void revalidate(client, key, url, params, cached.data);
+    return cached.data;
+  }
 
-  inflight.set(key, request);
-  return request;
+  return revalidate(client, key, url, params);
 };
