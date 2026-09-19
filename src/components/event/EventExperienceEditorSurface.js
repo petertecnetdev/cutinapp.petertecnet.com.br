@@ -29,7 +29,7 @@ export default function EventExperienceEditorSurface({
   const mapEmbedUrl = useMemo(() => buildMapEmbedUrl(form), [form]);
   const title = form?.title?.trim() || "Nome do evento";
   const modeLabel = mode === "create" ? "Criando evento" : "Editando evento";
-  const primaryLabel = saveLabel || (mode === "create" ? "Criar rascunho" : "Salvar agora");
+  const primaryLabel = saveLabel || (mode === "create" ? "Criar e publicar" : "Salvar agora");
 
   const fieldError = (name) => {
     const value = errors?.[name];
@@ -46,7 +46,7 @@ export default function EventExperienceEditorSurface({
               <span className="cut-event-inline-editor__modepill">
                 <i className={mode === "create" ? "fa-solid fa-plus" : "fa-regular fa-pen-to-square"} /> {modeLabel}
               </span>
-              <small>Edite cada informação exatamente no ponto em que ela aparece para o visitante.</small>
+              <small>{mode === "create" ? "Preencha cada informação no mesmo ponto em que ela aparecerá ao visitante. Ao criar, o evento já será publicado." : "Edite cada informação exatamente no ponto em que ela aparece para o visitante."}</small>
             </div>
             <div className="cut-event-inline-editor__modeActions">
               <Button type="button" onClick={onSave} disabled={saving}>
@@ -83,6 +83,7 @@ export default function EventExperienceEditorSurface({
               <div className="d-flex flex-wrap gap-2 mb-3">
                 <span className="badge text-bg-dark">{mode === "create" ? "Novo evento" : "Evento Cutinapp"}</span>
                 <span className="badge text-bg-info text-dark"><i className="fa-solid fa-eye me-1" />Prévia ao vivo</span>
+                {mode === "create" && <span className="badge text-bg-success"><i className="fa-solid fa-globe me-1" />Publicação automática</span>}
               </div>
 
               <Form.Control
