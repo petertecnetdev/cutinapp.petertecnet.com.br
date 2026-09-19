@@ -39,6 +39,19 @@ const publishApiFailure = ({ requestId, requestUrl, method, status, code }) => {
 
 const wait = (delayMs) => new Promise((resolve) => setTimeout(resolve, delayMs));
 
+const stableSerialize = (value) => {
+  if (value == null) return "";
+  if (typeof value !== "object") return String(value);
+  if (Array.isArray(value)) return `[${value.map(stableSerialize).join(",")}]`;
+  return `{${Object.keys(value).sort().map((key) => `${key}:${stableSerialize(value[key])}`).join(",")}}`;
+};
+
+const getDedupeKey = (config) => {
+  if (String(config?.method || "get").toLowerCase() !== "get") return null;
+  if (config?.signal || config?.responseType === "stream") return null;
+  return `${config.baseURL || ""}|${config.url || ""}|${stableSerialize(config.params)}`;
+};
+
 export const createApiClient = (baseURL) => {
   const client = axios.create({
     baseURL,
@@ -48,6 +61,7 @@ export const createApiClient = (baseURL) => {
       "X-Peter-App": appSlug,
     },
   });
+  const inFlightGets = new Map();
 
   client.interceptors.request.use((config) => {
     const token = getAuthToken();
@@ -132,6 +146,22 @@ export const createApiClient = (baseURL) => {
       return Promise.reject(normalizedError);
     }
   );
+
+  const rawRequest = client.request.bind(client);
+  client.request = (config = {}) => {
+    const normalizedConfig = typeof config === "string" ? { url: config } : config;
+    const dedupeKey = getDedupeKey({ baseURL, ...normalizedConfig });
+    if (!dedupeKey) return rawRequest(config);
+
+    const existing = inFlightGets.get(dedupeKey);
+    if (existing) return existing;
+
+    const request = rawRequest(config).finally(() => {
+      if (inFlightGets.get(dedupeKey) === request) inFlightGets.delete(dedupeKey);
+    });
+    inFlightGets.set(dedupeKey, request);
+    return request;
+  };
 
   return client;
 };
