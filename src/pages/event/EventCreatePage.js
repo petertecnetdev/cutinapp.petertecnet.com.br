@@ -286,10 +286,10 @@ export default function EventCreatePage() {
   }, [adminAuthorized, form.production_id, loadingProductions, productions]);
 
   useEffect(() => {
-    if (!error) return;
+    if (!error || adminAuthorized === null) return;
     const message = error;
     const productionId = String(form.production_id || "");
-    const requiresAgreement = !adminAuthorized && /termo de adesão|contrato do produtor|assinar.*termo/i.test(message);
+    const requiresAgreement = adminAuthorized === false && /termo de adesão|contrato do produtor|assinar.*termo/i.test(message);
     setError("");
 
     void (async () => {
