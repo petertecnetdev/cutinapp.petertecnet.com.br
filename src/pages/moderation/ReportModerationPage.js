@@ -1,18 +1,34 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Badge, Button, Card, Col, Container, Form, Row } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import CollapsibleFilterPanel from "../../components/CollapsibleFilterPanel";
 import cutinappService from "../../services/CutinappService";
+import "./ReportModerationPage.css";
 
 const labels = { open: "Aberta", reviewing: "Em análise", resolved: "Resolvida", dismissed: "Descartada" };
 const variants = { open: "danger", reviewing: "warning", resolved: "success", dismissed: "secondary" };
-const reasonLabels = { fraud: "Fraude ou golpe", misleading: "Informações enganosas", safety: "Risco à segurança", illegal: "Conteúdo ilegal", hate: "Ódio/discriminação", harassment: "Assédio", spam: "Spam", copyright: "Direitos autorais", other: "Outro" };
-const fmt = (value) => value ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(new Date(value)) : "";
+const reasonLabels = {
+  fraud: "Fraude ou golpe",
+  misleading: "Informações enganosas",
+  safety: "Risco à segurança",
+  illegal: "Conteúdo ilegal",
+  hate: "Ódio/discriminação",
+  harassment: "Assédio",
+  spam: "Spam",
+  copyright: "Direitos autorais",
+  inappropriate: "Conteúdo inadequado",
+  privacy: "Privacidade",
+  other: "Outro",
+};
+const fmt = (value) => value
+  ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(new Date(value))
+  : "";
 const MODERATION_SKELETON_KEYS = ["moderation-skeleton-1", "moderation-skeleton-2", "moderation-skeleton-3", "moderation-skeleton-4"];
 
 export default function ReportModerationPage() {
   const navigate = useNavigate();
+  const [source, setSource] = useState("events");
   const [data, setData] = useState(null);
   const [status, setStatus] = useState("open");
   const [query, setQuery] = useState("");
@@ -20,50 +36,187 @@ export default function ReportModerationPage() {
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState(null);
   const [notes, setNotes] = useState({});
+  const [removeMedia, setRemoveMedia] = useState({});
+
   const activeFilterCount = Number(Boolean(query.trim())) + Number(status !== "open");
+  const noteKey = (report) => source + ":" + String(report.id);
 
   const load = useCallback(async () => {
-    setLoading(true); setError("");
-    try { setData(await cutinappService.moderationReports({ status: status || undefined, q: query || undefined, per_page: 50 })); }
-    catch (err) { setError(err?.message || "Não foi possível carregar as denúncias. Confirme se sua conta possui acesso de moderação."); }
-    finally { setLoading(false); }
-  }, [status, query]);
+    setLoading(true);
+    setError("");
+    try {
+      const params = { status: status || undefined, q: query || undefined, per_page: 50 };
+      const response = source === "media"
+        ? await cutinappService.productionMediaReports(params)
+        : await cutinappService.moderationReports(params);
+      setData(response);
+    } catch (err) {
+      setError(err?.response?.data?.message || err?.message || "Não foi possível carregar as denúncias. Confirme se sua conta possui acesso de moderação.");
+    } finally {
+      setLoading(false);
+    }
+  }, [source, status, query]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { void load(); }, [load]);
 
   const update = async (report, nextStatus) => {
-    setBusyId(report.id); setError("");
+    setBusyId(report.id);
+    setError("");
     try {
-      await cutinappService.updateModerationReport(report.id, { status: nextStatus, moderation_note: notes[report.id] || report.moderation_note || "" });
+      const moderationNote = notes[noteKey(report)] ?? report.moderation_note ?? "";
+      if (source === "media") {
+        await cutinappService.reviewProductionMediaReport(report.id, {
+          status: nextStatus,
+          moderation_note: moderationNote,
+          remove_media: Boolean(removeMedia[report.id]) && nextStatus === "resolved",
+        });
+      } else {
+        await cutinappService.updateModerationReport(report.id, {
+          status: nextStatus,
+          moderation_note: moderationNote,
+        });
+      }
       await load();
-    } catch (err) { setError(err?.message || "Não foi possível atualizar esta denúncia."); }
-    finally { setBusyId(null); }
+    } catch (err) {
+      setError(err?.response?.data?.message || err?.message || "Não foi possível atualizar esta denúncia.");
+    } finally {
+      setBusyId(null);
+    }
   };
 
   const reports = data?.reports?.data || [];
   const counts = data?.counts || {};
+  const reporterName = (report) => [report.reporter_first_name, report.reporter_last_name].filter(Boolean).join(" ") || report.reporter_email;
+  const totalOpen = Number(counts.open || 0);
+  const pageDescription = useMemo(
+    () => source === "media"
+      ? "Analise denúncias de imagens publicadas nas galerias das produções e remova conteúdo quando necessário."
+      : "Analise relatos de usuários sobre eventos sem expor informações desnecessárias na área pública.",
+    [source],
+  );
+
   const clearFilters = () => {
     setStatus("open");
     setQuery("");
   };
 
-  return <div className="cut-app-page"><NavlogComponent /><Container className="cut-page-container py-4 py-lg-5">
-    <div className="cut-page-heading"><div><span className="cut-eyebrow">Segurança da comunidade</span><h1>Moderação de denúncias</h1><p>Analise relatos de usuários sem expor informações desnecessárias na área pública.</p></div></div>
-    {error && <Alert variant="danger">{error}</Alert>}
-    <Card className="cut-panel mb-4"><Card.Body>
-      <CollapsibleFilterPanel title="Pesquisar e filtrar denúncias" activeCount={activeFilterCount} defaultOpen={activeFilterCount > 0}>
-        <div className="cut-moderation-stats">{Object.keys(labels).map((key) => <button type="button" key={key} className={status === key ? "active" : ""} onClick={() => setStatus(key)}><strong>{counts[key] || 0}</strong><span>{labels[key]}</span></button>)}</div>
-        <Row className="g-3 align-items-end"><Col md={8}><Form.Label>Pesquisar</Form.Label><Form.Control value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Evento, participante, e-mail ou conteúdo da denúncia" /></Col><Col md={4}><Button className="w-100" onClick={load}>Pesquisar</Button></Col></Row>
-        {activeFilterCount > 0 && <div className="d-flex justify-content-end"><Button type="button" variant="outline-light" size="sm" onClick={clearFilters}>Limpar filtros</Button></div>}
-      </CollapsibleFilterPanel>
-    </Card.Body></Card>
-    {loading ? <div className="cut-notification-list" aria-busy="true">{MODERATION_SKELETON_KEYS.map((key) => <div className="cut-notification-skeleton" key={key} />)}</div> : reports.length === 0 ? <Card className="cut-empty-state"><Card.Body><i className="fa-solid fa-shield-halved cut-empty-icon" /><h2>Nenhuma denúncia neste filtro</h2><p>Não existem denúncias para a situação selecionada.</p></Card.Body></Card> : <div className="cut-moderation-list">{reports.map((report) => <Card className="cut-panel cut-report-card" key={report.id}><Card.Body>
-      <div className="cut-report-card__head"><div><Badge bg={variants[report.status] || "secondary"}>{labels[report.status] || report.status}</Badge><span>{reasonLabels[report.reason] || report.reason}</span></div><time>{fmt(report.created_at)}</time></div>
-      <button type="button" className="cut-report-card__event" onClick={() => navigate(`/event/${report.event_slug}`)}><strong>{report.event_title}</strong><i className="fa-solid fa-arrow-up-right-from-square" /></button>
-      <p>{report.details || "O usuário não adicionou detalhes."}</p>
-      <small>Enviada por {[report.reporter_first_name, report.reporter_last_name].filter(Boolean).join(" ") || report.reporter_email} · {report.reporter_email}</small>
-      <Form.Group className="mt-3"><Form.Label>Nota da moderação</Form.Label><Form.Control as="textarea" rows={2} value={notes[report.id] ?? report.moderation_note ?? ""} onChange={(e) => setNotes((current) => ({ ...current, [report.id]: e.target.value }))} placeholder="Registre o que foi verificado e a decisão tomada." /></Form.Group>
-      <div className="cut-card-actions mt-3"><Button variant="outline-warning" disabled={busyId === report.id} onClick={() => update(report, "reviewing")}>Em análise</Button><Button variant="outline-success" disabled={busyId === report.id} onClick={() => update(report, "resolved")}>Resolver</Button><Button variant="outline-secondary" disabled={busyId === report.id} onClick={() => update(report, "dismissed")}>Descartar</Button></div>
-    </Card.Body></Card>)}</div>}
-  </Container></div>;
+  return <div className="cut-app-page">
+    <NavlogComponent />
+    <Container className="cut-page-container py-4 py-lg-5">
+      <div className="cut-page-heading">
+        <div>
+          <span className="cut-eyebrow">Segurança da comunidade</span>
+          <h1>Moderação de denúncias</h1>
+          <p>{pageDescription}</p>
+        </div>
+      </div>
+
+      <div className="cut-moderation-source-switch" role="tablist" aria-label="Tipo de denúncia">
+        <button type="button" role="tab" aria-selected={source === "events"} className={source === "events" ? "is-active" : ""} onClick={() => { setSource("events"); setData(null); }}>
+          <i className="fa-regular fa-calendar me-2" />Eventos
+        </button>
+        <button type="button" role="tab" aria-selected={source === "media"} className={source === "media" ? "is-active" : ""} onClick={() => { setSource("media"); setData(null); }}>
+          <i className="fa-regular fa-images me-2" />Fotos da produção
+          {source !== "media" && totalOpen > 0 && <span className="cut-moderation-source-switch__badge">{totalOpen}</span>}
+        </button>
+      </div>
+
+      {error && <Alert variant="danger">{error}</Alert>}
+
+      <Card className="cut-panel mb-4">
+        <Card.Body>
+          <CollapsibleFilterPanel title="Pesquisar e filtrar denúncias" activeCount={activeFilterCount} defaultOpen={activeFilterCount > 0}>
+            <div className="cut-moderation-stats">
+              {Object.keys(labels).map((key) => (
+                <button type="button" key={key} className={status === key ? "active" : ""} onClick={() => setStatus(key)}>
+                  <strong>{counts[key] || 0}</strong><span>{labels[key]}</span>
+                </button>
+              ))}
+            </div>
+            <Row className="g-3 align-items-end">
+              <Col md={8}>
+                <Form.Label>Pesquisar</Form.Label>
+                <Form.Control
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder={source === "media" ? "Produção, legenda, denunciante ou conteúdo" : "Evento, participante, e-mail ou conteúdo da denúncia"}
+                />
+              </Col>
+              <Col md={4}><Button className="w-100" onClick={load}>Pesquisar</Button></Col>
+            </Row>
+            {activeFilterCount > 0 && <div className="d-flex justify-content-end"><Button type="button" variant="outline-light" size="sm" onClick={clearFilters}>Limpar filtros</Button></div>}
+          </CollapsibleFilterPanel>
+        </Card.Body>
+      </Card>
+
+      {loading ? (
+        <div className="cut-notification-list" aria-busy="true">{MODERATION_SKELETON_KEYS.map((key) => <div className="cut-notification-skeleton" key={key} />)}</div>
+      ) : reports.length === 0 ? (
+        <Card className="cut-empty-state"><Card.Body><i className="fa-solid fa-shield-halved cut-empty-icon" /><h2>Nenhuma denúncia neste filtro</h2><p>Não existem denúncias para a situação selecionada.</p></Card.Body></Card>
+      ) : (
+        <div className="cut-moderation-list">
+          {reports.map((report) => (
+            <Card className="cut-panel cut-report-card" key={source + ":" + report.id}>
+              <Card.Body>
+                <div className="cut-report-card__head">
+                  <div><Badge bg={variants[report.status] || "secondary"}>{labels[report.status] || report.status}</Badge><span>{reasonLabels[report.reason] || report.reason}</span></div>
+                  <time>{fmt(report.created_at)}</time>
+                </div>
+
+                {source === "media" ? (
+                  <div className="cut-media-report">
+                    <button type="button" className="cut-media-report__preview" onClick={() => report.media_url && window.open(report.media_url, "_blank", "noopener,noreferrer")} disabled={!report.media_url}>
+                      {report.media_url ? <img src={report.media_url} alt={report.media_caption || "Foto denunciada"} loading="lazy" /> : <span><i className="fa-regular fa-image" />Imagem indisponível</span>}
+                    </button>
+                    <div className="cut-media-report__body">
+                      <button type="button" className="cut-report-card__event" onClick={() => navigate("/production/" + report.organization_slug + "/public#galeria")}>
+                        <strong>{report.organization_name}</strong><i className="fa-solid fa-arrow-up-right-from-square" />
+                      </button>
+                      {report.media_caption && <p className="cut-media-report__caption">Legenda: {report.media_caption}</p>}
+                      <p>{report.details || "O usuário não adicionou detalhes."}</p>
+                      <small>Enviada por {reporterName(report)} · {report.reporter_email}</small>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <button type="button" className="cut-report-card__event" onClick={() => navigate("/event/" + report.event_slug)}><strong>{report.event_title}</strong><i className="fa-solid fa-arrow-up-right-from-square" /></button>
+                    <p>{report.details || "O usuário não adicionou detalhes."}</p>
+                    <small>Enviada por {reporterName(report)} · {report.reporter_email}</small>
+                  </>
+                )}
+
+                <Form.Group className="mt-3">
+                  <Form.Label>Nota da moderação</Form.Label>
+                  <Form.Control
+                    as="textarea"
+                    rows={2}
+                    value={notes[noteKey(report)] ?? report.moderation_note ?? ""}
+                    onChange={(event) => setNotes((current) => ({ ...current, [noteKey(report)]: event.target.value }))}
+                    placeholder="Registre o que foi verificado e a decisão tomada."
+                  />
+                </Form.Group>
+
+                {source === "media" && (
+                  <Form.Check
+                    className="mt-3"
+                    type="switch"
+                    id={"remove-media-report-" + report.id}
+                    checked={Boolean(removeMedia[report.id])}
+                    onChange={(event) => setRemoveMedia((current) => ({ ...current, [report.id]: event.target.checked }))}
+                    label="Remover esta foto da galeria ao resolver a denúncia"
+                  />
+                )}
+
+                <div className="cut-card-actions mt-3">
+                  <Button variant="outline-warning" disabled={busyId === report.id} onClick={() => update(report, "reviewing")}>Em análise</Button>
+                  <Button variant="outline-success" disabled={busyId === report.id} onClick={() => update(report, "resolved")}>{source === "media" && removeMedia[report.id] ? "Resolver e remover foto" : "Resolver"}</Button>
+                  <Button variant="outline-secondary" disabled={busyId === report.id} onClick={() => update(report, "dismissed")}>Descartar</Button>
+                </div>
+              </Card.Body>
+            </Card>
+          ))}
+        </div>
+      )}
+    </Container>
+  </div>;
 }
