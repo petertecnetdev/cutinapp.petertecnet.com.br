@@ -6,10 +6,10 @@ import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorCo
 import EntityEditorShell, { EditorSection } from "../../components/editor/EntityEditorShell";
 import { FormattedText, FormattedTextEditor } from "../../components/editor/FormattedText";
 import LocationFields from "../../components/location/LocationFields";
+import ProductionGalleryManager from "../../components/production/ProductionGalleryManager";
 import useAutoSave from "../../hooks/useAutoSave";
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
-import { showConfirmation } from "../../utils/sweetAlert";
 import "./production-editor.css";
 
 const media = (path) => !path ? "" : /^https?:\/\//i.test(path) ? path : `${storageUrl}${String(path).replace(/^\/?storage\//, "").replace(/^\//, "")}`;
@@ -52,10 +52,7 @@ export default function ProductionUpdatePage() {
   const [logoPreview, setLogoPreview] = useState("");
   const [bgPreview, setBgPreview] = useState("");
   const [galleryMedia, setGalleryMedia] = useState([]);
-  const [galleryFiles, setGalleryFiles] = useState([]);
-  const [galleryCaption, setGalleryCaption] = useState("");
-  const [galleryBusy, setGalleryBusy] = useState(false);
-  const [galleryInputKey, setGalleryInputKey] = useState(0);
+  const [galleryAlbums, setGalleryAlbums] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -82,6 +79,7 @@ export default function ProductionUpdatePage() {
       setLogoPreview(media(production.logo));
       setBgPreview(media(production.background));
       setGalleryMedia(Array.isArray(workspace?.media) ? workspace.media : []);
+      setGalleryAlbums(Array.isArray(workspace?.gallery?.albums) ? workspace.gallery.albums : []);
     }).catch((err) => active && setError(err?.message || "Não foi possível carregar a produção."))
       .finally(() => active && setLoading(false));
     return () => { active = false; };
@@ -149,6 +147,21 @@ export default function ProductionUpdatePage() {
     if (autoSaveError) setError(autoSaveError?.message || "Não foi possível salvar automaticamente.");
   }, [autoSaveError]);
 
+  useEffect(() => {
+    const syncSectionFromHash = () => {
+      const hash = String(window.location.hash || "").replace(/^#/, "");
+      if (sections.some((section) => section.key === hash)) {
+        setActiveSection(hash);
+        window.requestAnimationFrame(() => {
+          document.getElementById(hash)?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      }
+    };
+    syncSectionFromHash();
+    window.addEventListener("hashchange", syncSectionFromHash);
+    return () => window.removeEventListener("hashchange", syncSectionFromHash);
+  }, []);
+
   const change = (event) => {
     const { name, value } = event.target;
     setForm((current) => ({ ...current, [name]: name === "uf" ? value.toUpperCase().slice(0, 2) : value }));
@@ -170,69 +183,6 @@ export default function ProductionUpdatePage() {
       if (!current[field]) return current;
       const next = { ...current }; delete next[field]; return next;
     });
-  };
-
-  const chooseGalleryFiles = (event) => {
-    const available = Math.max(0, 16 - galleryMedia.length);
-    const selected = Array.from(event.target.files || []).slice(0, available);
-    setGalleryFiles(selected);
-  };
-
-  const uploadGalleryPhotos = async () => {
-    if (!galleryFiles.length || galleryBusy) return;
-    const available = Math.max(0, 16 - galleryMedia.length);
-    const selected = galleryFiles.slice(0, available);
-    if (!selected.length) {
-      setError("A galeria já atingiu o limite de 16 fotos.");
-      return;
-    }
-
-    setGalleryBusy(true);
-    setError("");
-    setSuccess("");
-    try {
-      const uploaded = [];
-      for (const file of selected) {
-        const data = new FormData();
-        data.append("photo", file);
-        if (galleryCaption.trim()) data.append("caption", galleryCaption.trim());
-        const response = await cutinappService.uploadProductionMedia(id, data);
-        if (response?.media) uploaded.push(response.media);
-      }
-      if (uploaded.length) {
-        setGalleryMedia((current) => [...current, ...uploaded].slice(0, 16));
-        setSuccess(uploaded.length === 1 ? "Foto adicionada à galeria." : `${uploaded.length} fotos adicionadas à galeria.`);
-      }
-      setGalleryFiles([]);
-      setGalleryCaption("");
-      setGalleryInputKey((current) => current + 1);
-    } catch (err) {
-      setError(err?.response?.data?.message || err?.message || "Não foi possível adicionar as fotos.");
-    } finally {
-      setGalleryBusy(false);
-    }
-  };
-
-  const removeGalleryPhoto = async (item) => {
-    if (!item?.id || galleryBusy) return;
-    const confirmed = await showConfirmation({
-      title: "Remover foto?",
-      text: "A imagem deixará de aparecer na galeria pública desta produção.",
-      confirmButtonText: "Remover",
-    });
-    if (!confirmed) return;
-
-    setGalleryBusy(true);
-    setError("");
-    try {
-      await cutinappService.deleteProductionMedia(id, item.id);
-      setGalleryMedia((current) => current.filter((mediaItem) => Number(mediaItem.id) !== Number(item.id)));
-      setSuccess("Foto removida da galeria.");
-    } catch (err) {
-      setError(err?.response?.data?.message || err?.message || "Não foi possível remover a foto.");
-    } finally {
-      setGalleryBusy(false);
-    }
   };
 
   const submit = async (event) => {
@@ -271,6 +221,9 @@ export default function ProductionUpdatePage() {
   const location = [form.city, form.uf].filter(Boolean).join(" - ");
   const publicSlug = productionMeta?.slug;
   const previewStyle = bgPreview ? { backgroundImage: `linear-gradient(90deg,rgba(2,8,13,.94),rgba(2,8,13,.62) 55%,rgba(2,8,13,.32)),linear-gradient(180deg,rgba(2,8,13,.06),rgba(2,8,13,.92)),url("${bgPreview}")` } : undefined;
+  const editorSections = sections.map((section) => section.key === "production-editor-gallery"
+    ? { ...section, label: `Galeria · ${galleryMedia.length}` }
+    : section);
 
   const preview = (
     <div className="cut-production-live-preview">
@@ -390,7 +343,7 @@ export default function ProductionUpdatePage() {
         eyebrow="Editar produção"
         title={displayName}
         description="Edite a produção vendo, no mesmo contexto, como identidade, localização, descrição e imagens aparecem para o público."
-        sections={sections}
+        sections={editorSections}
         activeSection={activeSection}
         onSectionChange={setActiveSection}
         status={autoSaveStatus}
@@ -489,81 +442,22 @@ export default function ProductionUpdatePage() {
           id="production-editor-gallery"
           eyebrow="Imagens da produção"
           title={form.type === "fixed" ? "Fotos do espaço" : "Galeria da produção"}
-          hint="Monte um álbum visual para mostrar ambiente, estrutura, bastidores e experiências. As fotos aparecem na página pública em formato de galeria."
+          hint="Gerencie as fotos como uma biblioteca visual: envie em lote, edite legendas, reorganize, crie álbuns e escolha destaques sem perder o contexto da página pública."
         >
-          <div className="cut-production-gallery-editor">
-            <div className="cut-production-gallery-editor__head">
-              <div>
-                <strong>{galleryMedia.length}/16 fotos</strong>
-                <span>{form.type === "fixed" ? "Mostre o espaço como ele realmente é." : "Mostre a identidade e os melhores momentos da produção."}</span>
-              </div>
-              <span className="cut-production-gallery-editor__badge"><i className="fa-brands fa-instagram" /> Estilo galeria</span>
-            </div>
-
-            <div className="cut-production-gallery-editor__uploader" data-image-upload-scope="production-gallery">
-              <Form.Group>
-                <Form.Label>Adicionar fotos</Form.Label>
-                <Form.Control
-                  key={galleryInputKey}
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  multiple
-                  disabled={galleryBusy || galleryMedia.length >= 16}
-                  onChange={chooseGalleryFiles}
-                />
-                <Form.Text>Você pode selecionar várias imagens de uma vez. JPG, PNG ou WebP, até 10 MB por foto.</Form.Text>
-              </Form.Group>
-              <Form.Group>
-                <Form.Label>Legenda opcional</Form.Label>
-                <Form.Control
-                  value={galleryCaption}
-                  maxLength={180}
-                  disabled={galleryBusy || galleryMedia.length >= 16}
-                  onChange={(event) => setGalleryCaption(event.target.value)}
-                  placeholder="Ex.: Pista principal, camarote, área externa..."
-                />
-                <Form.Text>A legenda será aplicada às fotos selecionadas neste envio.</Form.Text>
-              </Form.Group>
-              <div className="cut-production-gallery-editor__upload-action">
-                <Button
-                  type="button"
-                  disabled={!galleryFiles.length || galleryBusy || galleryMedia.length >= 16}
-                  onClick={uploadGalleryPhotos}
-                >
-                  {galleryBusy ? <><i className="fa-solid fa-spinner fa-spin me-2" />Enviando...</> : <><i className="fa-solid fa-cloud-arrow-up me-2" />Publicar fotos</>}
-                </Button>
-                {galleryFiles.length > 0 && <small>{galleryFiles.length} {galleryFiles.length === 1 ? "imagem selecionada" : "imagens selecionadas"}</small>}
-              </div>
-            </div>
-
-            {galleryMedia.length === 0 ? (
-              <div className="cut-production-gallery-editor__empty">
-                <i className="fa-regular fa-images" />
-                <strong>Nenhuma foto publicada ainda</strong>
-                <span>Adicione imagens para transformar esta página em uma vitrine visual da produção.</span>
-              </div>
-            ) : (
-              <div className="cut-production-gallery-grid cut-production-gallery-grid--editor">
-                {galleryMedia.map((item, index) => (
-                  <figure className="cut-production-gallery-item cut-production-gallery-item--editor" key={item.id}>
-                    <img src={media(item.url)} alt={item.caption || `Foto ${index + 1} de ${displayName}`} loading="lazy" />
-                    <span className="cut-production-gallery-item__index">{String(index + 1).padStart(2, "0")}</span>
-                    {item.caption && <figcaption>{item.caption}</figcaption>}
-                    <button
-                      type="button"
-                      className="cut-production-gallery-remove"
-                      onClick={() => removeGalleryPhoto(item)}
-                      disabled={galleryBusy}
-                      aria-label={`Remover foto ${index + 1}`}
-                      title="Remover foto"
-                    >
-                      <i className="fa-solid fa-xmark" />
-                    </button>
-                  </figure>
-                ))}
-              </div>
-            )}
-          </div>
+          <ProductionGalleryManager
+            organizationId={id}
+            productionName={displayName}
+            productionType={form.type}
+            media={galleryMedia}
+            albums={galleryAlbums}
+            publicSlug={publicSlug}
+            onMediaChange={setGalleryMedia}
+            onAlbumsChange={setGalleryAlbums}
+            onCoverChange={(cover) => {
+              if (cover?.background) setBgPreview(cover.background);
+              if (cover?.path) setProductionMeta((current) => ({ ...current, background: cover.path }));
+            }}
+          />
         </EditorSection>
       </EntityEditorShell>
     </Form>
