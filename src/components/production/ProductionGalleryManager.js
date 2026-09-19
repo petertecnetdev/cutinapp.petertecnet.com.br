@@ -140,6 +140,12 @@ export default function ProductionGalleryManager({
   const [replaceProgress, setReplaceProgress] = useState(0);
   const [aiBusy, setAiBusy] = useState("");
   const [bulkAlbumId, setBulkAlbumId] = useState("");
+  const [smartOpen, setSmartOpen] = useState(false);
+  const [smartBusy, setSmartBusy] = useState(false);
+  const [recommendations, setRecommendations] = useState([]);
+  const [similarPairs, setSimilarPairs] = useState([]);
+  const [cropAspect, setCropAspect] = useState("square");
+  const [cropZoom, setCropZoom] = useState(100);
   const [undo, setUndo] = useState(null);
   const inputRef = useRef(null);
   const abortControllers = useRef(new Map());
@@ -184,6 +190,8 @@ export default function ProductionGalleryManager({
   }, [items, sortMode, filterAlbum]);
 
   const recommendedCoverId = useMemo(() => {
+    if (recommendations[0]?.id) return recommendations[0].id;
+
     const candidates = items.filter((item) => {
       const width = Number(item.width || 0);
       const height = Number(item.height || 0);
@@ -192,12 +200,12 @@ export default function ProductionGalleryManager({
     candidates.sort((left, right) => {
       const leftRatio = Number(left.width || 0) / Math.max(1, Number(left.height || 1));
       const rightRatio = Number(right.width || 0) / Math.max(1, Number(right.height || 1));
-      const leftScore = (Number(left.width || 0) * Number(left.height || 0)) - (Math.abs(leftRatio - 2.2) * 250000);
-      const rightScore = (Number(right.width || 0) * Number(right.height || 0)) - (Math.abs(rightRatio - 2.2) * 250000);
+      const leftScore = Number(left.cover_score || 0) || ((Number(left.width || 0) * Number(left.height || 0)) - (Math.abs(leftRatio - 2.2) * 250000));
+      const rightScore = Number(right.cover_score || 0) || ((Number(right.width || 0) * Number(right.height || 0)) - (Math.abs(rightRatio - 2.2) * 250000));
       return rightScore - leftScore;
     });
     return candidates[0]?.id || null;
-  }, [items]);
+  }, [items, recommendations]);
 
   const previewingIndex = previewingId == null
     ? -1
@@ -482,6 +490,8 @@ export default function ProductionGalleryManager({
     setEditFeatured(Boolean(item.is_featured));
     setEditFocalX(Number(item.focal_x ?? 50));
     setEditFocalY(Number(item.focal_y ?? 50));
+    setCropAspect("square");
+    setCropZoom(100);
     setReplaceProgress(0);
   };
 
@@ -527,6 +537,78 @@ export default function ProductionGalleryManager({
       setMessage("Foto rotacionada.");
     } catch (rotateError) {
       setError(rotateError?.response?.data?.message || rotateError?.message || "Não foi possível rotacionar a foto.");
+    } finally {
+      setEditBusy(false);
+    }
+  };
+
+  const applyCrop = async () => {
+    if (!editing || editBusy) return;
+    setEditBusy(true);
+    clearFeedback();
+    try {
+      const response = await cutinappService.cropProductionMedia(organizationId, editing.id, {
+        aspect: cropAspect,
+        zoom: Number(cropZoom),
+        focal_x: Number(editFocalX),
+        focal_y: Number(editFocalY),
+      });
+      mergeUpdatedItem(response?.media);
+      setCropZoom(100);
+      setEditFocalX(50);
+      setEditFocalY(50);
+      setMessage("Recorte aplicado. O arquivo original foi preservado.");
+    } catch (cropError) {
+      setError(cropError?.response?.data?.message || cropError?.message || "Não foi possível recortar a foto.");
+    } finally {
+      setEditBusy(false);
+    }
+  };
+
+  const reprocessImage = async (target = editing) => {
+    if (!target?.id || editBusy) return;
+    setEditBusy(true);
+    clearFeedback();
+    try {
+      const response = await cutinappService.reprocessProductionMedia(organizationId, target.id);
+      mergeUpdatedItem(response?.media);
+      setMessage("Imagem reprocessada a partir do original.");
+    } catch (reprocessError) {
+      setError(reprocessError?.response?.data?.message || reprocessError?.message || "Não foi possível reprocessar a imagem.");
+    } finally {
+      setEditBusy(false);
+    }
+  };
+
+  const loadSmartAnalysis = async () => {
+    if (smartBusy) return;
+    setSmartBusy(true);
+    clearFeedback();
+    try {
+      const [recommendationResponse, similarResponse] = await Promise.all([
+        cutinappService.productionMediaRecommendations(organizationId),
+        cutinappService.productionMediaSimilar(organizationId),
+      ]);
+      setRecommendations(Array.isArray(recommendationResponse?.recommendations) ? recommendationResponse.recommendations : []);
+      setSimilarPairs(Array.isArray(similarResponse?.pairs) ? similarResponse.pairs : []);
+      setSmartOpen(true);
+    } catch (analysisError) {
+      setError(analysisError?.response?.data?.message || analysisError?.message || "Não foi possível analisar a galeria.");
+    } finally {
+      setSmartBusy(false);
+    }
+  };
+
+  const useRecommendedAsCover = async (item) => {
+    if (!item?.id || editBusy) return;
+    setEditBusy(true);
+    clearFeedback();
+    try {
+      const response = await cutinappService.setProductionMediaCover(organizationId, item.id);
+      onCoverChange?.(response);
+      setMessage("Capa atualizada com a foto recomendada.");
+    } catch (coverError) {
+      setError(coverError?.response?.data?.message || coverError?.message || "Não foi possível atualizar a capa.");
     } finally {
       setEditBusy(false);
     }
