@@ -4,6 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import EntityEditorShell, { EditorSection } from "../../components/editor/EntityEditorShell";
+import { FormattedText, FormattedTextEditor } from "../../components/editor/FormattedText";
 import LocationFields from "../../components/location/LocationFields";
 import useAutoSave from "../../hooks/useAutoSave";
 import cutinappService from "../../services/CutinappService";
@@ -208,7 +209,7 @@ export default function ProductionUpdatePage() {
       </div>
       <div className="cut-editor-preview-body">
         <h4>Sobre a produção</h4>
-        <p>{form.description?.trim() || "Sua descrição aparecerá aqui na página pública."}</p>
+        <FormattedText className="cut-editor-preview-description" value={form.description} emptyText="Sua descrição aparecerá aqui na página pública." />
         {(form.instagram_url || form.website_url) && <div className="cut-editor-preview-meta">{form.instagram_url && <span><i className="fa-brands fa-instagram me-1" />Instagram</span>}{form.website_url && <span><i className="fa-solid fa-globe me-1" />Site</span>}</div>}
       </div>
     </>
@@ -243,7 +244,18 @@ export default function ProductionUpdatePage() {
         </EditorSection>
 
         <EditorSection id="production-editor-about" eyebrow="Seção Sobre" title="Apresentação" hint="Este texto aparece logo após o topo da página pública.">
-          <Form.Group><Form.Label>Descrição da produção</Form.Label><Form.Control as="textarea" rows={6} name="description" value={form.description} onChange={change} placeholder="Conte o que torna esta produção ou espaço especial." /></Form.Group>
+          <Form.Group>
+            <Form.Label>Descrição da produção</Form.Label>
+            <FormattedTextEditor
+              value={form.description}
+              onChange={(description) => setForm((current) => ({ ...current, description }))}
+              placeholder="Conte o que torna esta produção ou espaço especial. Use títulos, listas e destaques para deixar a leitura mais clara."
+              maxLength={10000}
+              rows={9}
+              ariaLabel="Descrição formatada da produção"
+            />
+            <Form.Text>Use negrito, itálico, títulos, listas, citações, links e separadores. A prévia mostra exatamente como o texto será exibido ao público.</Form.Text>
+          </Form.Group>
         </EditorSection>
 
         <EditorSection id="production-editor-location" eyebrow="Seção Localização" title="Onde acontece" hint="Os dados abaixo alimentam endereço, mapa e contexto geográfico da view.">
