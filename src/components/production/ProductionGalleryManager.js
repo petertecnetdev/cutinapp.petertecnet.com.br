@@ -691,7 +691,7 @@ export default function ProductionGalleryManager({
                   />
                   {(item.status === "uploading" || item.progress > 0) && <ProgressBar now={item.progress} />}
                   {item.error && <small className="text-danger">{item.error}</small>}
-                  {item.warnings?.map((warning, index) => <small className="text-warning" key={index}>{warning}</small>)}
+                  {item.warnings?.map((warning) => <small className="text-warning" key={`${item.id}:${warning}`}>{warning}</small>)}
                 </div>
                 <button
                   type="button"
