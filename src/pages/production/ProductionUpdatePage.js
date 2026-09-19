@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Button, Card, Col, Container, Form, Row } from "react-bootstrap";
 import { useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
@@ -31,6 +31,9 @@ const autosaveLabel = (status) => {
   if (status === "error") return "Falha ao salvar";
   return "Salvamento automático ativo";
 };
+
+const MemoProductionGallery = React.memo(ProductionGallery);
+const MemoProductionGalleryManager = React.memo(ProductionGalleryManager);
 
 const initials = (name) => String(name || "P")
   .split(/\s+/)
@@ -71,6 +74,7 @@ export default function ProductionUpdatePage() {
   const [success, setSuccess] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
+  const lastBlurFlushAt = useRef(0);
 
   useEffect(() => {
     let active = true;
@@ -236,8 +240,22 @@ export default function ProductionUpdatePage() {
   const handleFormBlur = (event) => {
     const element = event.target;
     if (!element || element.type === "file" || element.type === "submit" || element.type === "button") return;
+    if (autoSaveStatus !== "dirty") return;
+    const now = Date.now();
+    if (now - lastBlurFlushAt.current < 500) return;
+    lastBlurFlushAt.current = now;
     flushAutoSave();
   };
+
+  const toggleGalleryManager = useCallback(() => {
+    setGalleryManagerOpen((value) => !value);
+  }, []);
+
+  const handleGalleryCoverChange = useCallback((cover) => {
+    const nextBackground = cover?.background || cover?.url || "";
+    if (nextBackground) setBgPreview(media(nextBackground));
+    if (cover?.path) setProductionMeta((current) => ({ ...current, background: cover.path }));
+  }, []);
 
   const mapQuery = useMemo(() => {
     if (!form?.location_public) return "";
@@ -490,13 +508,13 @@ export default function ProductionUpdatePage() {
           )}
         </section>
 
-        <ProductionGallery
+        <MemoProductionGallery
           media={galleryMedia}
           albums={galleryAlbums}
-          productionName={displayName}
+          productionName={productionMeta?.name || displayName}
           productionType={form.type}
           isOwner
-          onManage={() => setGalleryManagerOpen((value) => !value)}
+          onManage={toggleGalleryManager}
         />
 
         {galleryManagerOpen && (
@@ -508,9 +526,9 @@ export default function ProductionUpdatePage() {
               </div>
               <Button type="button" variant="outline-light" onClick={() => setGalleryManagerOpen(false)}><i className="fa-regular fa-eye me-2" />Voltar à visualização</Button>
             </div>
-            <ProductionGalleryManager
+            <MemoProductionGalleryManager
               organizationId={id}
-              productionName={displayName}
+              productionName={productionMeta?.name || displayName}
               productionType={form.type}
               media={galleryMedia}
               albums={galleryAlbums}
@@ -518,11 +536,7 @@ export default function ProductionUpdatePage() {
               coverUrl={bgPreview}
               onMediaChange={setGalleryMedia}
               onAlbumsChange={setGalleryAlbums}
-              onCoverChange={(cover) => {
-                const nextBackground = cover?.background || cover?.url || "";
-                if (nextBackground) setBgPreview(media(nextBackground));
-                if (cover?.path) setProductionMeta((current) => ({ ...current, background: cover.path }));
-              }}
+              onCoverChange={handleGalleryCoverChange}
             />
           </section>
         )}
