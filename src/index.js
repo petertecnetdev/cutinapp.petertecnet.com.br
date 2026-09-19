@@ -65,12 +65,12 @@ import { installPersistentCart } from "./utils/persistentCart";
 import { installEventFlyerBackground } from "./utils/eventFlyerBackground";
 import { trackTelemetry } from "./utils/telemetry";
 import { installOverlayLayoutManager } from "./utils/overlayLayoutManager";
+import { installGlobalSweetAlertBridge } from "./utils/sweetAlert";
 
-// Bootstrap/API error banners must remain non-blocking. The former global
-// SweetAlert bridge converted every transient .alert-danger into a modal;
-// components that retried/re-rendered the failed request then recreated the
-// alert, trapping users in an "Entendi" -> modal -> "Entendi" loop.
-// Purpose-built flows may still import/show SweetAlert explicitly.
+// Padroniza feedbacks transitórios e chamadas legadas de alert() em SweetAlert.
+// A ponte mantém banners persistentes dentro de cards/modais inline e deduplica
+// re-renderizações, evitando o loop que existia na implementação anterior.
+installGlobalSweetAlertBridge();
 installGlobalImageFallbacks();
 installNavigationRecovery();
 installEventViewScrollReset();
