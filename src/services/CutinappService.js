@@ -329,6 +329,28 @@ const reorderProductionMedia = createIdempotentMutation({
   )).data,
 });
 
+const bulkUpdateProductionMedia = createIdempotentMutation({
+  storagePrefix: "cutinapp_production_media_bulk_update_attempt_",
+  keyPrefix: "production-media-bulk-update",
+  requestKeyFor: (organizationId, mediaIds = [], payload = {}) => `${Number(organizationId)}:${createMutationRequestKey({ mediaIds: mediaIds.map(Number).sort((a, b) => a - b), payload })}`,
+  mutate: async ({ idempotencyKey }, organizationId, mediaIds = [], payload = {}) => (await appApiClient.patch(
+    `/organizations/${Number(organizationId)}/media-bulk`,
+    { ...payload, media_ids: mediaIds.map(Number) },
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
+const importProductionCoverToGallery = createIdempotentMutation({
+  storagePrefix: "cutinapp_production_media_import_cover_attempt_",
+  keyPrefix: "production-media-import-cover",
+  requestKeyFor: (organizationId) => String(Number(organizationId)),
+  mutate: async ({ idempotencyKey }, organizationId) => (await appApiClient.post(
+    `/organizations/${Number(organizationId)}/media-import-cover`,
+    undefined,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
 const bulkDeleteProductionMedia = createIdempotentMutation({
   storagePrefix: "cutinapp_production_media_bulk_delete_attempt_",
   keyPrefix: "production-media-delete",
@@ -659,6 +681,8 @@ const cutinappService = {
   replaceProductionMedia,
   rotateProductionMedia,
   reorderProductionMedia,
+  bulkUpdateProductionMedia,
+  importProductionCoverToGallery,
   bulkDeleteProductionMedia,
   restoreProductionMedia,
   setProductionMediaCover,
