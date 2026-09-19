@@ -135,12 +135,6 @@ const productionAddress = (production) => {
   return [street, details].filter(Boolean).join(" · ") || production.location || "";
 };
 
-const priceLabel = (value) => {
-  const price = Number(value);
-  if (!Number.isFinite(price)) return "";
-  return price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-};
-
 export default function EventCreatePage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -161,7 +155,6 @@ export default function EventCreatePage() {
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
-  const [optionalDetailsOpen, setOptionalDetailsOpen] = useState(false);
   const [draftRestored, setDraftRestored] = useState(false);
   const [existingEvents, setExistingEvents] = useState([]);
   const [existingEventsLoading, setExistingEventsLoading] = useState(false);
@@ -848,9 +841,6 @@ export default function EventCreatePage() {
     } catch (err) {
       const errors = err?.errors || {};
       setFieldErrors(errors);
-      if (["google_maps_url", "max_attendees", "contact_email", "contact_phone"].some((field) => errors?.[field])) {
-        setOptionalDetailsOpen(true);
-      }
       setError(err?.message || "Não foi possível criar o evento.");
     } finally {
       setLoading(false);
