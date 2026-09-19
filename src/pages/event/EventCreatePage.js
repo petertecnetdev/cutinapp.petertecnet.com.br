@@ -10,7 +10,6 @@ import cutinappService from "../../services/CutinappService";
 import creativeService from "../../services/CreativeService";
 import { storageUrl } from "../../config";
 import { AuthContext } from "../../context/AuthContext";
-import { clearEventCreationDraft, readEventCreationDraft, writeEventCreationDraft } from "../../utils/eventCreationDraft";
 import { showImportantAlert, showProducerAgreementRequired } from "../../utils/sweetAlert";
 import { EVENT_POSTER_HINT, validateEventPosterFile } from "../../utils/eventPoster";
 
@@ -155,7 +154,6 @@ export default function EventCreatePage() {
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
-  const [draftRestored, setDraftRestored] = useState(false);
   const [existingEvents, setExistingEvents] = useState([]);
   const [existingEventsLoading, setExistingEventsLoading] = useState(false);
   const [reusePickerOpen, setReusePickerOpen] = useState(false);
@@ -170,7 +168,6 @@ export default function EventCreatePage() {
   const [reuseSearchQuery, setReuseSearchQuery] = useState("");
   const [selectedReuseEvent, setSelectedReuseEvent] = useState(null);
   const [reusingEvent, setReusingEvent] = useState(false);
-  const draftOwnerId = Number(user?.id || 0);
   const agreementChecksRef = useRef(new Set());
 
   const agreementUrl = (productionId) => {
@@ -183,48 +180,6 @@ export default function EventCreatePage() {
     navigate(agreementUrl(productionId));
   };
 
-  useEffect(() => {
-    if (!draftOwnerId) return;
-    const draft = readEventCreationDraft(draftOwnerId);
-    if (!draft?.form) return;
-
-    setForm((current) => ({ ...current, ...draft.form, image: null }));
-    setUseProductionItems(Boolean(draft.useProductionItems));
-    setDraftRestored(true);
-    try {
-      window.PeterTecnetTelemetry?.track?.("producer_event_draft_restored", {
-        label: "Rascunho de criação de evento recuperado",
-        target: String(draft.form.production_id || "event_creation"),
-        metadata: { activation_stage: "event_creation", next_step: "create_ticket" },
-      });
-    } catch (_) {
-      // Telemetry must never interrupt producer onboarding.
-    }
-  }, [draftOwnerId]);
-
-  useEffect(() => {
-    if (!draftOwnerId || loading) return;
-    const hasMeaningfulInput = Boolean(
-      form.production_id || form.title.trim() || form.description.trim() || form.address.trim() || form.city.trim()
-    );
-    if (!hasMeaningfulInput) return;
-
-    const timer = window.setTimeout(() => {
-      writeEventCreationDraft(draftOwnerId, { form, useProductionItems });
-    }, 300);
-    return () => window.clearTimeout(timer);
-  }, [draftOwnerId, form, useProductionItems, loading]);
-
-  useEffect(() => {
-    if (!draftRestored) return;
-    setDraftRestored(false);
-    void showImportantAlert({
-      title: "Rascunho recuperado",
-      text: "Recuperamos o preenchimento deste evento para você continuar de onde parou.",
-      icon: "info",
-      confirmButtonText: "Continuar",
-    });
-  }, [draftRestored]);
 
   useEffect(() => {
     const productionId = String(form.production_id || "");
@@ -830,12 +785,12 @@ export default function EventCreatePage() {
       });
       if (effectiveImage) payload.append("image", effectiveImage);
       payload.append("use_production_items", useProductionItems ? "1" : "0");
+      payload.append("is_published", "1");
 
       const response = await eventService.store(payload);
       const eventId = Number(response?.event?.id || 0);
       if (!eventId) throw new Error("A API informou sucesso, mas não retornou o evento criado.");
-      if (response?.event?.is_published !== false) throw new Error("O evento deveria ter sido criado como rascunho, mas a API retornou outro estado.");
-      if (draftOwnerId) clearEventCreationDraft(draftOwnerId);
+      if (response?.event?.is_published !== true) throw new Error("O evento foi criado, mas a API não confirmou a publicação automática.");
       navigate(`/ticket/create?eventId=${eventId}`, { replace: true });
     } catch (err) {
       const errors = err?.errors || {};
@@ -893,7 +848,7 @@ export default function EventCreatePage() {
           onImageChange={chooseImage}
           onSave={submitFromSurface}
           saving={loading}
-          saveLabel="Criar rascunho"
+          saveLabel="Criar e publicar"
           productionName={selectedProduction?.name || ""}
           productionControl={
             <Form.Group className="cut-event-inline-editor__productionControl">
@@ -977,7 +932,7 @@ export default function EventCreatePage() {
             </div>
           </details>
 
-          <div className="cut-form-actions mt-4"><Button type="button" variant="outline-light" disabled={loading} onClick={() => navigate("/event/manage")}>Cancelar</Button><Button type="button" onClick={submitFromSurface} disabled={loading}>{loading ? "Criando..." : "Criar rascunho e configurar primeiro lote"}</Button></div>
+          <div className="cut-form-actions mt-4"><Button type="button" variant="outline-light" disabled={loading} onClick={() => navigate("/event/manage")}>Cancelar</Button><Button type="button" onClick={submitFromSurface} disabled={loading}>{loading ? "Criando e publicando..." : "Criar evento e configurar primeiro lote"}</Button></div>
         </EventExperienceEditorSurface>
       )}
     </div>
