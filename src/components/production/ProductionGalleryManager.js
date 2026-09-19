@@ -152,9 +152,32 @@ export default function ProductionGalleryManager({
   };
 
   const displayedItems = useMemo(() => {
-    const copy = [...items];
-    return sortMode === "recent" ? copy.sort(byRecent) : copy.sort(byPosition);
-  }, [items, sortMode]);
+    const filtered = filterAlbum === "all"
+      ? [...items]
+      : items.filter((item) => String(item.album_id || "") === String(filterAlbum));
+    return sortMode === "recent" ? filtered.sort(byRecent) : filtered.sort(byPosition);
+  }, [items, sortMode, filterAlbum]);
+
+  const recommendedCoverId = useMemo(() => {
+    const candidates = items.filter((item) => {
+      const width = Number(item.width || 0);
+      const height = Number(item.height || 0);
+      return width >= 1200 && height >= 600 && width / Math.max(1, height) >= 1.35;
+    });
+    candidates.sort((left, right) => {
+      const leftRatio = Number(left.width || 0) / Math.max(1, Number(left.height || 1));
+      const rightRatio = Number(right.width || 0) / Math.max(1, Number(right.height || 1));
+      const leftScore = (Number(left.width || 0) * Number(left.height || 0)) - (Math.abs(leftRatio - 2.2) * 250000);
+      const rightScore = (Number(right.width || 0) * Number(right.height || 0)) - (Math.abs(rightRatio - 2.2) * 250000);
+      return rightScore - leftScore;
+    });
+    return candidates[0]?.id || null;
+  }, [items]);
+
+  const previewingIndex = previewingId == null
+    ? -1
+    : displayedItems.findIndex((item) => Number(item.id) === Number(previewingId));
+  const previewing = previewingIndex >= 0 ? displayedItems[previewingIndex] : null;
 
   const remaining = Math.max(0, LIMIT - items.length);
   const selectedCount = selectedIds.size;
