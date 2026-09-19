@@ -1,3 +1,4 @@
+import { showConfirmation } from "../../utils/sweetAlert";
 import React, { useContext, useEffect, useMemo, useState } from "react";
 import { Alert, Badge, Button, Card, Col, Container, Form, Modal, Row, Spinner } from "react-bootstrap";
 import NavlogComponent from "../../components/NavlogComponent";
@@ -84,13 +85,13 @@ export default function AdminBlogPage() {
   };
 
   const publish = async (entry) => {
-    if (!window.confirm(`Publicar “${entry.title}” agora?`)) return;
+    if (!(await showConfirmation({ title: "Publicar artigo?", text: `“${entry.title}” ficará disponível imediatamente.`, icon: "question", confirmButtonText: "Publicar" }))) return;
     try { await blogService.publish(entry.id); setNotice("Artigo publicado."); await load(); }
     catch (err) { setError(err.message || "Não foi possível publicar."); }
   };
 
   const remove = async (entry) => {
-    if (!window.confirm(`Excluir definitivamente “${entry.title}”?`)) return;
+    if (!(await showConfirmation({ title: "Excluir artigo?", text: `“${entry.title}” será excluído definitivamente.`, confirmButtonText: "Excluir" }))) return;
     try { await blogService.remove(entry.id); setNotice("Artigo excluído."); await load(); }
     catch (err) { setError(err.message || "Não foi possível excluir."); }
   };
