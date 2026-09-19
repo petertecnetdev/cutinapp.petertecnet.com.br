@@ -6,8 +6,6 @@ import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import ProductionTicketCartModal from "../../components/event/ProductionTicketCartModal";
 import EventArtwork from "../../components/event/EventArtwork";
-const ProductionCommunitySection = React.lazy(() => import("../../components/production/ProductionCommunitySection"));
-const ProductionGallery = React.lazy(() => import("../../components/production/ProductionGallery"));
 import { FormattedText } from "../../components/editor/FormattedText";
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
@@ -17,22 +15,63 @@ import { subscribeGalleryUpdates } from "../../utils/gallerySync";
 import "./production-experience.css";
 import "../../components/WhatsAppFloatingButton.css";
 
+const ProductionCommunitySection = React.lazy(() => import("../../components/production/ProductionCommunitySection"));
+const ProductionGallery = React.lazy(() => import("../../components/production/ProductionGallery"));
+
 const mediaUrl = (value) => {
   if (!value) return "";
   if (/^https?:\/\//i.test(value)) return value;
   return `${storageUrl}${String(value).replace(/^\/?storage\//, "").replace(/^\//, "")}`;
 };
-const fmt = (value) => value ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(new Date(value)) : "Data a definir";
+
+const fmt = (value) => value
+  ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(new Date(value))
+  : "Data a definir";
+
+const initials = (name) => String(name || "U").split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
+
 const eventDateBadge = (value) => {
-  if (!value) return { day: "—", month: "DATA" };
+  if (!value) return { day: "—", month: "DATA", weekday: "" };
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return { day: "—", month: "DATA" };
+  if (Number.isNaN(date.getTime())) return { day: "—", month: "DATA", weekday: "" };
   return {
     day: new Intl.DateTimeFormat("pt-BR", { day: "2-digit", timeZone: "America/Sao_Paulo" }).format(date),
     month: new Intl.DateTimeFormat("pt-BR", { month: "short", timeZone: "America/Sao_Paulo" }).format(date).replace(".", "").toUpperCase(),
+    weekday: new Intl.DateTimeFormat("pt-BR", { weekday: "short", timeZone: "America/Sao_Paulo" }).format(date).replace(".", ""),
   };
 };
-const initials = (name) => String(name || "U").split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
+
+const eventPrice = (event) => {
+  const candidates = [event?.starting_price, event?.min_price, event?.price_from, event?.lowest_price, event?.ticket_price, event?.price];
+  const numeric = candidates.map(Number).find((value) => Number.isFinite(value) && value >= 0);
+  if (numeric == null) return "";
+  if (numeric === 0) return "Grátis";
+  return `A partir de ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(numeric)}`;
+};
+
+const ticketAvailability = (event) => {
+  if (event?.sold_out === true || event?.is_sold_out === true) return { label: "Esgotado", soldOut: true };
+  const remaining = [event?.available_tickets, event?.tickets_available, event?.remaining_tickets, event?.capacity_remaining]
+    .map(Number)
+    .find((value) => Number.isFinite(value));
+  if (remaining === 0) return { label: "Esgotado", soldOut: true };
+  if (remaining > 0 && remaining <= 20) return { label: `Últimos ${remaining}`, soldOut: false };
+  if (event?.available === false) return { label: "Indisponível", soldOut: true };
+  return { label: "Ingressos disponíveis", soldOut: false };
+};
+
+const eventMoment = (value) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const now = new Date();
+  const eventDay = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const diffDays = Math.round((eventDay - today) / 86400000);
+  if (diffDays === 0) return "Hoje";
+  if (diffDays > 0 && diffDays <= 7) return "Esta semana";
+  return "";
+};
 
 export default function ProductionPublicPage() {
   const { slug } = useParams();
@@ -41,13 +80,17 @@ export default function ProductionPublicPage() {
   const [data, setData] = useState(null);
   const [experience, setExperience] = useState({ analytics: { total_views: 0, unique_viewers: 0, viewers: [] }, media: [], gallery: { albums: [] } });
   const [loading, setLoading] = useState(true);
+  const [secondaryLoading, setSecondaryLoading] = useState(true);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [showViewers, setShowViewers] = useState(false);
   const [ticketCartOpen, setTicketCartOpen] = useState(false);
   const [sellableUpcoming, setSellableUpcoming] = useState([]);
-  const [agendaIndex, setAgendaIndex] = useState(0);
-  const agendaCarouselRef = useRef(null);
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+  const [showMap, setShowMap] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [agendaVisible, setAgendaVisible] = useState(8);
+  const mapSectionRef = useRef(null);
 
   const loadCore = useCallback(async () => {
     const response = await cutinappService.publicProduction(slug);
@@ -57,40 +100,49 @@ export default function ProductionPublicPage() {
 
   useEffect(() => {
     let active = true;
-    setLoading(true); setError("");
+    setLoading(true);
+    setSecondaryLoading(true);
+    setError("");
+    setDescriptionExpanded(false);
+    setShowMap(false);
+    setAgendaVisible(8);
+
     (async () => {
       try {
         const core = await cutinappService.publicProduction(slug);
         if (!active) return;
         setData(core);
+        setLoading(false);
+
         const productionId = Number(core?.production?.id || 0);
+        const tasks = [];
+
         if (productionId > 0) {
-          try {
-            const sellable = await cutinappService.publicEvents({ production_id: productionId, available: 1, view: "compact", per_page: 24, sort: "soonest" });
-            if (active) setSellableUpcoming(sellable?.events?.data || []);
-          } catch { if (active) setSellableUpcoming([]); }
+          tasks.push(
+            cutinappService.publicEvents({ production_id: productionId, available: 1, view: "compact", per_page: 24, sort: "soonest" })
+              .then((response) => { if (active) setSellableUpcoming(response?.events?.data || response?.data || []); })
+              .catch(() => { if (active) setSellableUpcoming([]); })
+          );
         }
-        try {
-          const details = await cutinappService.productionExperience(slug);
-          if (active) setExperience(details);
-        } catch { /* a página principal continua disponível mesmo se métricas falharem */ }
+
+        tasks.push(
+          cutinappService.productionExperience(slug)
+            .then((details) => { if (active) setExperience(details); })
+            .catch(() => null)
+        );
+
+        await Promise.allSettled(tasks);
+        if (active) setSecondaryLoading(false);
       } catch (err) {
-        if (active) setError(err?.message || "Produção não encontrada.");
-      } finally { if (active) setLoading(false); }
+        if (!active) return;
+        setError(err?.message || "Produção não encontrada.");
+        setLoading(false);
+        setSecondaryLoading(false);
+      }
     })();
+
     return () => { active = false; };
   }, [slug]);
-
-  const toggleFollow = async () => {
-    if (!user) return navigate("/login", { state: { from: `/production/${slug}/public` } });
-    setBusy(true);
-    try {
-      if (data.production.is_following) await cutinappService.unfollow("production", data.production.id);
-      else await cutinappService.follow("production", data.production.id);
-      await loadCore();
-    } catch (err) { setError(err?.message || "Não foi possível atualizar o acompanhamento."); }
-    finally { setBusy(false); }
-  };
 
   const production = data?.production;
 
@@ -108,9 +160,9 @@ export default function ProductionPublicPage() {
           if (active) setExperience(details);
           if (payload?.action === "cover" && active) await loadCore();
         } catch (_) {
-          // A página continua com o último estado válido.
+          // Keep the last valid public state.
         }
-      }, 180);
+      }, 220);
     });
 
     return () => {
@@ -120,171 +172,172 @@ export default function ProductionPublicPage() {
     };
   }, [production?.id, slug, loadCore]);
 
-  const isOwner = Boolean(user && production && Number(production.user_id) === Number(user.id));
-  const upcoming = data?.upcoming || [];
-  const past = data?.past || [];
-  const artists = data?.artists || [];
+  const toggleFollow = async () => {
+    if (!user) return navigate("/login", { state: { from: `/production/${slug}/public` } });
+    setBusy(true);
+    try {
+      if (data.production.is_following) await cutinappService.unfollow("production", data.production.id);
+      else await cutinappService.follow("production", data.production.id);
+      await loadCore();
+    } catch (err) {
+      setError(err?.message || "Não foi possível atualizar o acompanhamento.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (loading) {
+    return <div className="cut-app-page"><NavlogComponent /><ProcessingIndicatorComponent label="Carregando produção" /></div>;
+  }
+
+  if (!data || !production) {
+    return <div className="cut-app-page"><NavlogComponent /><Container className="py-5"><Alert variant="danger">{error || "Produção não encontrada."}</Alert></Container></div>;
+  }
+
+  const isOwner = Boolean(user && Number(production.user_id) === Number(user.id));
+  const upcoming = Array.isArray(data?.upcoming) ? data.upcoming : [];
+  const past = Array.isArray(data?.past) ? data.past : [];
+  const artists = Array.isArray(data?.artists) ? data.artists : [];
   const analytics = experience?.analytics || { total_views: 0, unique_viewers: 0, viewers: [] };
-  const media = experience?.media || [];
-  const galleryAlbums = experience?.gallery?.albums || [];
+  const media = Array.isArray(experience?.media) ? experience.media : [];
+  const galleryAlbums = Array.isArray(experience?.gallery?.albums) ? experience.gallery.albums : [];
   const instagramHref = safeExternalHref(production?.instagram_url);
   const websiteHref = safeExternalHref(production?.website_url);
-  const pageBackground = mediaUrl(production?.background || production?.logo);
   const publicHeroStyle = production?.background
     ? { "--cut-production-public-hero-image": `url(${JSON.stringify(mediaUrl(production.background))})` }
     : undefined;
-  const mapQuery = useMemo(() => {
-    if (!production?.location_public) return "";
-    if (production.latitude && production.longitude) return `${production.latitude},${production.longitude}`;
-    return production.formatted_address || [production.address, production.address_number, production.neighborhood, production.city, production.uf].filter(Boolean).join(", ");
-  }, [production]);
+
+  const mapQuery = production?.location_public
+    ? (production.latitude && production.longitude
+      ? `${production.latitude},${production.longitude}`
+      : production.formatted_address || [production.address, production.address_number, production.neighborhood, production.city, production.uf].filter(Boolean).join(", "))
+    : "";
   const mapEmbedUrl = mapQuery ? `https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed` : "";
-
-  useEffect(() => {
-    setAgendaIndex(0);
-    if (agendaCarouselRef.current) agendaCarouselRef.current.scrollLeft = 0;
-  }, [slug, upcoming.length]);
-
-  const syncAgendaPosition = () => {
-    const carousel = agendaCarouselRef.current;
-    if (!carousel) return;
-    const slides = Array.from(carousel.querySelectorAll(".cut-production-event-slide"));
-    if (!slides.length) return;
-
-    const center = carousel.scrollLeft + (carousel.clientWidth / 2);
-    let closestIndex = 0;
-    let closestDistance = Number.POSITIVE_INFINITY;
-
-    slides.forEach((slide, index) => {
-      const slideCenter = slide.offsetLeft + (slide.offsetWidth / 2);
-      const distance = Math.abs(slideCenter - center);
-      if (distance < closestDistance) {
-        closestDistance = distance;
-        closestIndex = index;
-      }
-    });
-
-    setAgendaIndex(closestIndex);
-  };
-
-  const goToAgendaEvent = (index) => {
-    const carousel = agendaCarouselRef.current;
-    if (!carousel) return;
-    const slides = Array.from(carousel.querySelectorAll(".cut-production-event-slide"));
-    if (!slides.length) return;
-
-    const nextIndex = Math.min(Math.max(0, index), slides.length - 1);
-    slides[nextIndex]?.scrollIntoView({
-      behavior: "smooth",
-      block: "nearest",
-      inline: "start",
-    });
-    setAgendaIndex(nextIndex);
-  };
-
-  const moveAgenda = (direction) => {
-    goToAgendaEvent(agendaIndex + direction);
-  };
-
-  if (loading) return <div className="cut-app-page"><NavlogComponent /><ProcessingIndicatorComponent label="Carregando produção" /></div>;
-  if (!data || !production) return <div className="cut-app-page"><NavlogComponent /><Container className="py-5"><Alert variant="danger">{error || "Produção não encontrada."}</Alert></Container></div>;
-
+  const mapsHref = mapQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}` : "";
   const productionUrl = `${window.location.origin}/production/${encodeURIComponent(slug)}/public`;
   const whatsappShareMessage = `Olha esta produção na Cutinapp: ${production.name}\n${productionUrl}`;
   const whatsappShareHref = `https://wa.me/?text=${encodeURIComponent(whatsappShareMessage)}`;
-  const pageStyle = pageBackground ? { "--cut-production-page-bg": `url(${JSON.stringify(pageBackground)})` } : undefined;
+  const descriptionText = String(production.description || "");
+  const longDescription = descriptionText.replace(/<[^>]*>/g, "").length > 420;
+  const visibleUpcoming = upcoming.slice(0, agendaVisible);
+  const nextEvent = upcoming[0] || null;
 
-  return <div className="cut-app-page cut-production-themed-page" style={pageStyle}><NavlogComponent />
-    <section className="cut-profile-hero cut-production-themed-page__hero cut-production-themed-page__hero--public" style={publicHeroStyle}><Container className="cut-page-container"><div className="cut-profile-hero__content"><div className="cut-profile-avatar cut-profile-avatar--square">{production.logo ? <img src={mediaUrl(production.logo)} alt={production.name} /> : <span>{initials(production.name)}</span>}</div><div><span className="cut-eyebrow">Produção Cutinapp</span><h1>{production.name}</h1><p>{production.city ? `${production.city}${production.uf ? ` - ${production.uf}` : ""}` : ""}</p><div className="cut-social-stats"><span>{production.followers_count || 0} seguidores</span><button type="button" className="cut-inline-profile-link" onClick={() => setShowViewers(true)}><i className="fa-regular fa-eye" /> {analytics.total_views || 0} visualizações</button><span>{upcoming.length} próximos eventos</span></div><div className="cut-card-actions mt-3"><Button onClick={toggleFollow} disabled={busy}>{production.is_following ? "Seguindo" : "Seguir produção"}</Button>{isOwner && <Button variant="outline-light" onClick={() => navigate(`/production/edit/${production.id}`)}><i className="fa-regular fa-pen-to-square me-2" />Editar produção</Button>}{sellableUpcoming.length > 0 && <Button variant="success" onClick={() => setTicketCartOpen(true)}><i className="fa-solid fa-cart-plus me-2" />Adquirir ingresso</Button>}<Button variant="outline-light" onClick={() => navigate(`/agenda/${slug}`)}><i className="fa-regular fa-calendar-days me-2" />Ver agenda</Button>{instagramHref && <Button as="a" href={instagramHref} target="_blank" rel="noopener noreferrer" variant="outline-light" className="cut-production-icon-link cut-production-icon-link--instagram" aria-label="Instagram" title="Instagram"><i className="fa-brands fa-instagram" /></Button>}{websiteHref && <Button as="a" href={websiteHref} target="_blank" rel="noopener noreferrer" variant="outline-light" className="cut-production-icon-link" aria-label="Site" title="Site"><i className="fa-solid fa-globe" /></Button>}</div></div></div></Container></section>
+  const shareNative = async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: production.name, text: `Conheça ${production.name} na Cutinapp`, url: productionUrl });
+        return;
+      }
+      await navigator.clipboard.writeText(productionUrl);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch (_) {
+      // User cancelling native share is not an error.
+    }
+  };
 
-    <Container className="cut-page-container py-5">{error && <Alert variant="danger" dismissible onClose={() => setError("")}>{error}</Alert>}
-      <div className="cut-production-public-about">
-        <Card className="cut-panel"><Card.Body className="p-4 p-lg-5"><span className="cut-eyebrow">Sobre a produção</span><h2 className="cut-section-title mt-2">{production.name}</h2><FormattedText className="cut-body-copy" value={production.description} emptyText="Esta produção ainda não adicionou uma apresentação pública." /><div className="cut-production-public-social">{instagramHref && <Button as="a" href={instagramHref} target="_blank" rel="noopener noreferrer" variant="outline-light"><i className="fa-brands fa-instagram me-2" />Instagram</Button>}{websiteHref && <Button as="a" href={websiteHref} target="_blank" rel="noopener noreferrer" variant="outline-light"><i className="fa-solid fa-globe me-2" />Site</Button>}</div></Card.Body></Card>
-        <Card className="cut-panel cut-production-location-card"><Card.Body className="p-4"><span className="cut-eyebrow">Localização</span><h2 className="cut-section-title mt-2">Onde acontece</h2>{mapEmbedUrl ? <><div className="cut-production-location-copy"><i className="fa-solid fa-location-dot" /><span>{production.formatted_address || [production.address, production.address_number, production.city, production.uf].filter(Boolean).join(", ")}</span></div><iframe title={`Mapa de ${production.name}`} loading="lazy" referrerPolicy="no-referrer-when-downgrade" src={mapEmbedUrl} /></> : <p className="text-muted mb-0">Esta produção ainda não publicou sua localização.</p>}</Card.Body></Card>
-      </div>
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(productionUrl);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch (_) {
+      setError("Não foi possível copiar o link automaticamente.");
+    }
+  };
 
-      <section className="cut-production-section cut-production-agenda-section">
-        <div className="cut-production-section-head cut-production-agenda-head">
-          <div>
-            <span className="cut-eyebrow">Agenda</span>
-            <h2>Próximos eventos</h2>
-            <p className="cut-production-agenda-copy">Escolha uma data, navegue pelas próximas experiências e abra o evento para ver ingressos e detalhes.</p>
-          </div>
-          <div className="cut-production-agenda-actions">
-            {upcoming.length > 0 && (
-              <span className="cut-production-agenda-counter" aria-live="polite">
-                <strong>{Math.min(agendaIndex + 1, upcoming.length)}</strong>
-                <span>de</span>
-                <strong>{upcoming.length}</strong>
-              </span>
-            )}
-            {upcoming.length > 1 && (
-              <div className="cut-production-agenda-controls" aria-label="Controles da agenda">
-                <button
-                  type="button"
-                  className="cut-production-agenda-control"
-                  onClick={() => moveAgenda(-1)}
-                  disabled={agendaIndex <= 0}
-                  aria-label="Evento anterior"
-                  title="Evento anterior"
-                >
-                  <i className="fa-solid fa-chevron-left" />
-                </button>
-                <button
-                  type="button"
-                  className="cut-production-agenda-control"
-                  onClick={() => moveAgenda(1)}
-                  disabled={agendaIndex >= upcoming.length - 1}
-                  aria-label="Próximo evento"
-                  title="Próximo evento"
-                >
-                  <i className="fa-solid fa-chevron-right" />
-                </button>
+  const revealMap = () => {
+    setShowMap(true);
+    window.requestAnimationFrame(() => mapSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }));
+  };
+
+  return (
+    <div className="cut-app-page cut-production-themed-page">
+      <NavlogComponent />
+
+      <section className="cut-profile-hero cut-production-themed-page__hero cut-production-themed-page__hero--public" style={publicHeroStyle}>
+        <Container className="cut-page-container">
+          <div className="cut-profile-hero__content cut-production-public-identity">
+            <div className="cut-profile-avatar cut-profile-avatar--square cut-production-public-logo">
+              {production.logo
+                ? <img src={mediaUrl(production.logo)} alt={production.name} loading="eager" decoding="async" />
+                : <span>{initials(production.name)}</span>}
+            </div>
+            <div className="cut-production-public-hero-copy">
+              <div className="cut-production-public-meta-row">
+                <span className="cut-eyebrow">Produção Cutinapp</span>
+                <span className="cut-production-type-chip">{production.type === "fixed" ? "Espaço fixo" : "Produção independente"}</span>
               </div>
-            )}
-            <Button variant="outline-light" className="cut-production-agenda-open" onClick={() => navigate(`/agenda/${slug}`)}>
-              <i className="fa-regular fa-calendar-days me-2" />
-              Agenda completa
-            </Button>
-          </div>
-        </div>
+              <h1>{production.name}</h1>
+              <p className="cut-production-public-location">{production.city ? <><i className="fa-solid fa-location-dot" />{production.city}{production.uf ? ` - ${production.uf}` : ""}</> : "Eventos e experiências"}</p>
 
-        {upcoming.length === 0 ? (
-          <Card className="cut-empty-state">
-            <Card.Body>
-              <span className="cut-production-agenda-empty-icon"><i className="fa-regular fa-calendar" /></span>
-              <h3>Nenhum próximo evento anunciado</h3>
-              <p>Quando a produção publicar uma nova data, ela aparecerá aqui.</p>
-            </Card.Body>
-          </Card>
-        ) : (
-          <>
-            <div className="cut-production-agenda-shell">
-              <div
-                ref={agendaCarouselRef}
-                className="cut-production-events-carousel"
-                onScroll={syncAgendaPosition}
-                aria-label="Próximos eventos da produção"
-              >
-                {upcoming.map((event, index) => {
+              <div className="cut-social-stats">
+                <span>{production.followers_count || 0} seguidores</span>
+                <button type="button" className="cut-inline-profile-link" onClick={() => setShowViewers(true)}><i className="fa-regular fa-eye" /> {analytics.total_views || 0} visualizações</button>
+                <span>{upcoming.length} próximos eventos</span>
+              </div>
+
+              {nextEvent && (
+                <button type="button" className="cut-production-next-event-chip" onClick={() => navigate(`/event/${nextEvent.slug}`)}>
+                  <i className="fa-regular fa-calendar" />
+                  <span><strong>Próximo:</strong> {nextEvent.title}</span>
+                  <i className="fa-solid fa-arrow-right" />
+                </button>
+              )}
+
+              <div className="cut-card-actions mt-3 cut-production-public-primary-actions">
+                <Button onClick={toggleFollow} disabled={busy}>{production.is_following ? "Seguindo" : "Seguir"}</Button>
+                {sellableUpcoming.length > 0 && <Button variant="success" onClick={() => setTicketCartOpen(true)}><i className="fa-solid fa-ticket me-2" />Ingressos</Button>}
+                <Button variant="outline-light" onClick={shareNative}><i className="fa-solid fa-share-nodes me-2" />Compartilhar</Button>
+                <div className="cut-production-public-more">
+                  {isOwner && <Button variant="outline-light" onClick={() => navigate(`/production/edit/${production.id}`)} title="Editar produção"><i className="fa-regular fa-pen-to-square" /></Button>}
+                  {instagramHref && <Button as="a" href={instagramHref} target="_blank" rel="noopener noreferrer" variant="outline-light" title="Instagram"><i className="fa-brands fa-instagram" /></Button>}
+                  {websiteHref && <Button as="a" href={websiteHref} target="_blank" rel="noopener noreferrer" variant="outline-light" title="Site"><i className="fa-solid fa-globe" /></Button>}
+                </div>
+              </div>
+            </div>
+          </div>
+        </Container>
+      </section>
+
+      <Container className="cut-page-container py-4 py-lg-5">
+        {error && <Alert variant="danger" dismissible onClose={() => setError("")}>{error}</Alert>}
+
+        <section className="cut-production-section cut-production-agenda-section cut-production-agenda-section--priority">
+          <div className="cut-production-section-head cut-production-agenda-head">
+            <div>
+              <span className="cut-eyebrow">Agenda</span>
+              <h2>Próximos eventos</h2>
+              <p className="cut-production-agenda-copy">As próximas experiências desta produção, em ordem de data.</p>
+            </div>
+            <Button variant="outline-light" onClick={() => navigate(`/agenda/${slug}`)}><i className="fa-regular fa-calendar-days me-2" />Ver todos</Button>
+          </div>
+
+          {upcoming.length === 0 ? (
+            <Card className="cut-empty-state"><Card.Body><span className="cut-production-agenda-empty-icon"><i className="fa-regular fa-calendar" /></span><h3>Nenhum próximo evento anunciado</h3><p>Quando uma nova data for publicada, ela aparecerá aqui.</p></Card.Body></Card>
+          ) : (
+            <>
+              <div className="cut-production-events-carousel" aria-label="Próximos eventos da produção">
+                {visibleUpcoming.map((event, index) => {
                   const badge = eventDateBadge(event.start_date);
+                  const availability = ticketAvailability(event);
+                  const moment = eventMoment(event.start_date);
+                  const price = eventPrice(event);
                   return (
                     <article
-                      className={"cut-production-event-slide" + (index === agendaIndex ? " is-active" : "")}
+                      className={`cut-production-event-slide ${index === 0 ? "is-featured" : ""}`}
                       key={event.id}
                       role="link"
                       tabIndex={0}
                       aria-label={`Abrir evento ${event.title}`}
                       onClick={() => navigate(`/event/${event.slug}`)}
                       onKeyDown={(e) => activateOnKeyboard(e, () => navigate(`/event/${event.slug}`))}
+                      onMouseEnter={() => { if (event.image) { const image = new Image(); image.src = mediaUrl(event.image); } }}
                     >
                       <div className="cut-production-event-slide__media">
-                        <EventArtwork image={event.image} title={event.title} alt={event.title} loading="lazy" decoding="async" fallbackClassName="cut-production-event-slide__fallback" />
-                        <span className="cut-production-event-date" aria-label={fmt(event.start_date)}>
-                          <strong>{badge.day}</strong>
-                          <small>{badge.month}</small>
-                        </span>
-                        <span className="cut-production-event-slide__number">{String(index + 1).padStart(2, "0")}</span>
+                        <EventArtwork image={event.image} title={event.title} alt={event.title} loading={index < 2 ? "eager" : "lazy"} decoding="async" fallbackClassName="cut-production-event-slide__fallback" />
+                        <span className="cut-production-event-date"><small>{badge.weekday}</small><strong>{badge.day}</strong><small>{badge.month}</small></span>
+                        {moment && <span className="cut-production-event-moment">{moment}</span>}
                       </div>
                       <div className="cut-production-event-slide__body">
                         <span className="cut-eyebrow">{event.category || "Evento"}</span>
@@ -293,73 +346,87 @@ export default function ProductionPublicPage() {
                           <p><i className="fa-regular fa-clock" />{fmt(event.start_date)}</p>
                           <p><i className="fa-solid fa-location-dot" />{event.venue || event.city || "Local a definir"}</p>
                         </div>
+                        <div className="cut-production-event-commercial">
+                          {price && <strong>{price}</strong>}
+                          <span className={availability.soldOut ? "is-sold-out" : ""}>{availability.label}</span>
+                        </div>
                         <div className="cut-production-event-slide__cta">
                           <span>Ver evento</span>
-                          <i className="fa-solid fa-arrow-right" />
+                          {!availability.soldOut && <button type="button" onClick={(e) => { e.stopPropagation(); navigate(`/event/${event.slug}`); }}>Comprar ingresso</button>}
                         </div>
                       </div>
                     </article>
                   );
                 })}
               </div>
-            </div>
+              {agendaVisible < upcoming.length && <div className="cut-production-progressive-actions"><Button variant="outline-light" onClick={() => setAgendaVisible((current) => current + 8)}>Carregar mais eventos</Button><span>{Math.min(agendaVisible, upcoming.length)} de {upcoming.length}</span></div>}
+            </>
+          )}
+        </section>
 
-            {upcoming.length > 1 && (
-              <div className="cut-production-agenda-pagination" aria-label="Navegação rápida da agenda">
-                {upcoming.map((event, index) => (
-                  <button
-                    key={event.id}
-                    type="button"
-                    className={index === agendaIndex ? "is-active" : ""}
-                    onClick={() => goToAgendaEvent(index)}
-                    aria-label={`Ir para ${event.title}`}
-                    aria-current={index === agendaIndex ? "true" : undefined}
-                  >
-                    <span />
-                  </button>
-                ))}
+        <div className="cut-production-public-about">
+          <Card className="cut-panel cut-production-about-card">
+            <Card.Body className="p-4 p-lg-5">
+              <span className="cut-eyebrow">Sobre</span>
+              <h2 className="cut-section-title mt-2">{production.fantasy || production.name}</h2>
+              <div className={`cut-production-description ${descriptionExpanded ? "is-expanded" : ""}`}>
+                <FormattedText className="cut-body-copy" value={production.description} emptyText="Esta produção ainda não adicionou uma apresentação pública." />
               </div>
-            )}
-          </>
-        )}
-      </section>
+              {longDescription && <Button variant="link" className="cut-production-description-toggle" onClick={() => setDescriptionExpanded((value) => !value)}>{descriptionExpanded ? "Mostrar menos" : "Ver mais"}</Button>}
+              <div className="cut-production-public-social">
+                {instagramHref && <Button as="a" href={instagramHref} target="_blank" rel="noopener noreferrer" variant="outline-light"><i className="fa-brands fa-instagram me-2" />Instagram</Button>}
+                {websiteHref && <Button as="a" href={websiteHref} target="_blank" rel="noopener noreferrer" variant="outline-light"><i className="fa-solid fa-globe me-2" />Site</Button>}
+                <Button variant="outline-light" onClick={copyLink}><i className="fa-regular fa-copy me-2" />{copied ? "Link copiado" : "Copiar link"}</Button>
+              </div>
+            </Card.Body>
+          </Card>
 
-      <React.Suspense fallback={<div className="cut-production-section" aria-hidden="true" />}><ProductionGallery
-        media={media}
-        albums={galleryAlbums}
-        productionName={production.name}
-        productionType={production.type}
-        isOwner={isOwner}
-        canReport={Boolean(user)}
-        onManage={() => navigate(`/production/edit/${production.id}#production-editor-gallery`)}
-        onReport={(mediaId, payload) => cutinappService.reportProductionMedia(slug, mediaId, payload)}
-      /></React.Suspense>
+          <Card className="cut-panel cut-production-location-card" ref={mapSectionRef}>
+            <Card.Body className="p-4">
+              <span className="cut-eyebrow">Localização</span>
+              <h2 className="cut-section-title mt-2">Onde acontece</h2>
+              {mapQuery ? (
+                <>
+                  <div className="cut-production-location-copy"><i className="fa-solid fa-location-dot" /><span>{production.formatted_address || [production.address, production.address_number, production.neighborhood, production.city, production.uf].filter(Boolean).join(", ")}</span></div>
+                  <div className="cut-production-location-actions">
+                    {!showMap && <Button variant="outline-light" onClick={revealMap}><i className="fa-regular fa-map me-2" />Ver no mapa</Button>}
+                    <Button as="a" href={mapsHref} target="_blank" rel="noopener noreferrer"><i className="fa-solid fa-route me-2" />Como chegar</Button>
+                  </div>
+                  {showMap && <iframe title={`Mapa de ${production.name}`} loading="lazy" referrerPolicy="no-referrer-when-downgrade" src={mapEmbedUrl} />}
+                </>
+              ) : <p className="text-muted mb-0">Esta produção ainda não publicou sua localização.</p>}
+            </Card.Body>
+          </Card>
+        </div>
 
-      {artists.length > 0 && <section className="cut-production-section"><div className="cut-production-section-head"><div><span className="cut-eyebrow">Conexões</span><h2>Artistas relacionados</h2></div></div><div className="cut-artist-strip">{artists.map((artist) => <button key={artist.id} onClick={() => navigate(`/artist/${artist.slug}`)}><span>{artist.stage_name?.slice(0, 2).toUpperCase()}</span><strong>{artist.stage_name}</strong></button>)}</div></section>}
+        <React.Suspense fallback={<div className="cut-production-section cut-production-skeleton-block" aria-hidden="true" />}>
+          <ProductionGallery
+            media={media}
+            albums={galleryAlbums}
+            productionName={production.name}
+            productionType={production.type}
+            isOwner={isOwner}
+            canReport={Boolean(user)}
+            onManage={() => navigate(`/production/edit/${production.id}#production-editor-gallery`)}
+            onReport={(mediaId, payload) => cutinappService.reportProductionMedia(slug, mediaId, payload)}
+          />
+        </React.Suspense>
 
-      {past.length > 0 && <section className="cut-production-section"><Card className="cut-panel"><Card.Body className="p-4"><span className="cut-eyebrow">Histórico</span><h2 className="cut-section-title">Eventos anteriores</h2>{past.slice(0, 12).map((event) => <button key={event.id} className="cut-history-link" onClick={() => navigate(`/event/${event.slug}`)}><strong>{event.title}</strong><span>{fmt(event.start_date)}</span></button>)}</Card.Body></Card></section>}
+        {artists.length > 0 && <section className="cut-production-section"><div className="cut-production-section-head"><div><span className="cut-eyebrow">Conexões</span><h2>Artistas relacionados</h2></div></div><div className="cut-artist-strip">{artists.map((artist) => <button key={artist.id} onClick={() => navigate(`/artist/${artist.slug}`)}><span>{artist.stage_name?.slice(0, 2).toUpperCase()}</span><strong>{artist.stage_name}</strong></button>)}</div></section>}
 
-      <React.Suspense fallback={null}><ProductionCommunitySection production={production} /></React.Suspense>
-    </Container>
+        {past.length > 0 && <section className="cut-production-section"><Card className="cut-panel"><Card.Body className="p-4"><span className="cut-eyebrow">Histórico</span><h2 className="cut-section-title">Eventos anteriores</h2>{past.slice(0, 8).map((event) => <button key={event.id} className="cut-history-link" onClick={() => navigate(`/event/${event.slug}`)}><strong>{event.title}</strong><span>{fmt(event.start_date)}</span></button>)}</Card.Body></Card></section>}
 
-    <a
-      className="cut-whatsapp-fab"
-      href={whatsappShareHref}
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label="Compartilhar produção no WhatsApp"
-      title="Compartilhar produção no WhatsApp"
-    >
-      <i className="fa-brands fa-whatsapp" aria-hidden="true" />
-      <span>Compartilhar</span>
-    </a>
+        {!secondaryLoading && <React.Suspense fallback={<div className="cut-production-section cut-production-skeleton-block" aria-hidden="true" />}><ProductionCommunitySection production={production} isOwner={isOwner} /></React.Suspense>}
+      </Container>
 
-    <ProductionTicketCartModal
-      show={ticketCartOpen}
-      onHide={() => setTicketCartOpen(false)}
-      productionSlug={slug}
-    />
+      <a className="cut-whatsapp-fab" href={whatsappShareHref} target="_blank" rel="noopener noreferrer" aria-label="Compartilhar produção no WhatsApp" title="Compartilhar produção no WhatsApp"><i className="fa-brands fa-whatsapp" aria-hidden="true" /><span>Compartilhar</span></a>
 
-    <Modal show={showViewers} onHide={() => setShowViewers(false)} centered><Modal.Header closeButton><Modal.Title>Quem visualizou</Modal.Title></Modal.Header><Modal.Body>{analytics.viewers?.length ? <div className="cut-viewer-list">{analytics.viewers.map((viewer) => <div className="cut-viewer-row" key={viewer.id}><div className="cut-viewer-avatar">{viewer.avatar ? <img src={mediaUrl(viewer.avatar)} alt="" /> : initials(viewer.name)}</div><div><strong>{viewer.name}</strong><small>{viewer.last_viewed_at ? `Última visita: ${fmt(viewer.last_viewed_at)}` : "Visitou a produção"}</small></div><span>{viewer.views_count} {viewer.views_count === 1 ? "visita" : "visitas"}</span></div>)}</div> : <p className="text-muted mb-0">As visualizações anônimas entram no total. Usuários identificados aparecem aqui quando acessarem a página.</p>}</Modal.Body></Modal>
-  </div>;
+      <ProductionTicketCartModal show={ticketCartOpen} onHide={() => setTicketCartOpen(false)} productionSlug={slug} />
+
+      <Modal show={showViewers} onHide={() => setShowViewers(false)} centered>
+        <Modal.Header closeButton><Modal.Title>Quem visualizou</Modal.Title></Modal.Header>
+        <Modal.Body>{analytics.viewers?.length ? <div className="cut-viewer-list">{analytics.viewers.map((viewer) => <div className="cut-viewer-row" key={viewer.id}><div className="cut-viewer-avatar">{viewer.avatar ? <img src={mediaUrl(viewer.avatar)} alt="" loading="lazy" decoding="async" /> : initials(viewer.name)}</div><div><strong>{viewer.name}</strong><small>{viewer.last_viewed_at ? `Última visita: ${fmt(viewer.last_viewed_at)}` : "Visitou a produção"}</small></div><span>{viewer.views_count} {viewer.views_count === 1 ? "visita" : "visitas"}</span></div>)}</div> : <p className="text-muted mb-0">As visualizações anônimas entram no total. Usuários identificados aparecem aqui quando acessarem a página.</p>}</Modal.Body>
+      </Modal>
+    </div>
+  );
 }
