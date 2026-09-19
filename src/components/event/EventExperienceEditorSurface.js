@@ -29,7 +29,7 @@ export default function EventExperienceEditorSurface({
   const mapEmbedUrl = useMemo(() => buildMapEmbedUrl(form), [form]);
   const title = form?.title?.trim() || "Nome do evento";
   const modeLabel = mode === "create" ? "Criando evento" : "Editando evento";
-  const primaryLabel = saveLabel || (mode === "create" ? "Criar rascunho" : "Salvar agora");
+  const primaryLabel = saveLabel || (mode === "create" ? "Criar e publicar" : "Salvar agora");
 
   const fieldError = (name) => {
     const value = errors?.[name];
