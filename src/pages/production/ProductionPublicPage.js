@@ -13,6 +13,7 @@ import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
 import { safeExternalHref } from "../../utils/safeUrl";
 import { activateOnKeyboard } from "../../utils/keyboardActivation";
+import { subscribeGalleryUpdates } from "../../utils/gallerySync";
 import "./production-experience.css";
 import "../../components/WhatsAppFloatingButton.css";
 
@@ -92,6 +93,33 @@ export default function ProductionPublicPage() {
   };
 
   const production = data?.production;
+
+  useEffect(() => {
+    const productionId = Number(production?.id || 0);
+    if (!productionId) return undefined;
+
+    let active = true;
+    let timer = null;
+    const unsubscribe = subscribeGalleryUpdates(productionId, (payload) => {
+      if (timer) window.clearTimeout(timer);
+      timer = window.setTimeout(async () => {
+        try {
+          const details = await cutinappService.productionExperience(slug);
+          if (active) setExperience(details);
+          if (payload?.action === "cover" && active) await loadCore();
+        } catch (_) {
+          // A página continua com o último estado válido.
+        }
+      }, 180);
+    });
+
+    return () => {
+      active = false;
+      if (timer) window.clearTimeout(timer);
+      unsubscribe();
+    };
+  }, [production?.id, slug, loadCore]);
+
   const isOwner = Boolean(user && production && Number(production.user_id) === Number(user.id));
   const upcoming = data?.upcoming || [];
   const past = data?.past || [];
