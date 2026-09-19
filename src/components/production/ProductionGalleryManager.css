@@ -474,6 +474,7 @@
   transform:scale(1.025);
 }
 
+.cut-gallery-card__primary,
 .cut-gallery-card__featured,
 .cut-gallery-card__album{
   position:absolute;
@@ -491,10 +492,20 @@
   font-weight:850;
 }
 
+.cut-gallery-card__primary{
+  left:7px;
+  top:7px;
+  color:#bae6fd;
+}
+
 .cut-gallery-card__featured{
   left:7px;
   top:7px;
   color:#fde68a;
+}
+
+.cut-gallery-card:has(.cut-gallery-card__primary) .cut-gallery-card__featured{
+  top:35px;
 }
 
 .cut-gallery-card__album{
