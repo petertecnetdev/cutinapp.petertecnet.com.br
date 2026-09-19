@@ -388,6 +388,17 @@ const setProductionMediaCover = createIdempotentMutation({
   },
 });
 
+const reportProductionMedia = createIdempotentMutation({
+  storagePrefix: "cutinapp_production_media_report_attempt_",
+  keyPrefix: "production-media-report",
+  requestKeyFor: (slug, mediaId, payload = {}) => `${String(slug || "").trim().toLowerCase()}:${Number(mediaId)}:${createMutationRequestKey(payload)}`,
+  mutate: async ({ idempotencyKey }, slug, mediaId, payload = {}) => (await appApiClient.post(
+    `/organizations/public/${encodeURIComponent(String(slug || "").trim())}/media/${Number(mediaId)}/report`,
+    payload,
+    { headers: { "Idempotency-Key": idempotencyKey } },
+  )).data,
+});
+
 const createProductionMediaAlbum = createIdempotentMutation({
   storagePrefix: "cutinapp_production_media_album_create_attempt_",
   keyPrefix: "production-media-album",
@@ -686,6 +697,9 @@ const cutinappService = {
   bulkDeleteProductionMedia,
   restoreProductionMedia,
   setProductionMediaCover,
+  reportProductionMedia,
+  productionMediaReports: async (params = {}) => (await appApiClient.get("/organization-media-reports", { params })).data,
+  reviewProductionMediaReport: async (reportId, payload = {}) => (await appApiClient.patch(`/organization-media-reports/${Number(reportId)}`, payload)).data,
   productionMediaAlbums: async (organizationId) => (await appApiClient.get(`/organizations/${Number(organizationId)}/media-albums`)).data.albums || [],
   createProductionMediaAlbum,
   deleteProductionMediaAlbum,

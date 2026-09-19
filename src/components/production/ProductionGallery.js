@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import PropTypes from "prop-types";
-import { Button, Modal } from "react-bootstrap";
+import { Alert, Button, Form, Modal } from "react-bootstrap";
 import "./ProductionGallery.css";
 
 const sortByPosition = (left, right) => Number(left?.position || 0) - Number(right?.position || 0);
@@ -11,13 +11,20 @@ export default function ProductionGallery({
   productionName,
   productionType = "independent",
   isOwner = false,
+  canReport = false,
   onManage,
+  onReport,
 }) {
   const [activeAlbum, setActiveAlbum] = useState("all");
   const [visibleCount, setVisibleCount] = useState(12);
   const [lightboxIndex, setLightboxIndex] = useState(-1);
   const [loadedIds, setLoadedIds] = useState(() => new Set());
   const [failedIds, setFailedIds] = useState(() => new Set());
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportReason, setReportReason] = useState("inappropriate");
+  const [reportDetails, setReportDetails] = useState("");
+  const [reportBusy, setReportBusy] = useState(false);
+  const [reportFeedback, setReportFeedback] = useState("");
   const touchStartX = useRef(null);
   const initialLoadStartedAt = useRef(typeof performance !== "undefined" ? performance.now() : Date.now());
   const initialLoadTracked = useRef(false);
@@ -84,6 +91,25 @@ export default function ProductionGallery({
       if (next >= filtered.length) return 0;
       return next;
     });
+  };
+
+  const submitReport = async () => {
+    if (!current || !onReport || reportBusy) return;
+    setReportBusy(true);
+    setReportFeedback("");
+    try {
+      const response = await onReport(current.id, {
+        reason: reportReason,
+        details: reportDetails.trim() || undefined,
+      });
+      setReportFeedback(response?.message || "Denúncia enviada para análise.");
+      setReportDetails("");
+      setReportOpen(false);
+    } catch (error) {
+      setReportFeedback(error?.response?.data?.message || error?.message || "Não foi possível enviar a denúncia.");
+    } finally {
+      setReportBusy(false);
+    }
   };
 
   const onTouchStart = (event) => {
@@ -200,7 +226,11 @@ export default function ProductionGallery({
 
       <Modal
         show={Boolean(current)}
-        onHide={() => setLightboxIndex(-1)}
+        onHide={() => {
+          setLightboxIndex(-1);
+          setReportOpen(false);
+          setReportFeedback("");
+        }}
         centered
         size="xl"
         className="cut-gallery-lightbox"
@@ -238,6 +268,42 @@ export default function ProductionGallery({
             </div>
           )}
           {current?.caption && <p className="cut-gallery-lightbox__caption">{current.caption}</p>}
+          {reportFeedback && <Alert variant={reportFeedback.includes("Não foi possível") ? "danger" : "success"} className="mt-3 mb-0">{reportFeedback}</Alert>}
+          {canReport && !isOwner && current && (
+            <div className="cut-gallery-lightbox__report">
+              {!reportOpen ? (
+                <Button type="button" size="sm" variant="outline-light" onClick={() => { setReportOpen(true); setReportFeedback(""); }}>
+                  <i className="fa-regular fa-flag me-2" />Denunciar foto
+                </Button>
+              ) : (
+                <div className="cut-gallery-lightbox__report-form">
+                  <strong>Denunciar esta foto</strong>
+                  <Form.Select value={reportReason} onChange={(event) => setReportReason(event.target.value)} aria-label="Motivo da denúncia">
+                    <option value="inappropriate">Conteúdo inadequado</option>
+                    <option value="fraud">Fraude ou golpe</option>
+                    <option value="misleading">Conteúdo enganoso</option>
+                    <option value="copyright">Direitos autorais</option>
+                    <option value="privacy">Privacidade</option>
+                    <option value="other">Outro motivo</option>
+                  </Form.Select>
+                  <Form.Control
+                    as="textarea"
+                    rows={3}
+                    maxLength={1000}
+                    value={reportDetails}
+                    onChange={(event) => setReportDetails(event.target.value)}
+                    placeholder="Explique o problema, se necessário."
+                  />
+                  <div>
+                    <Button type="button" size="sm" variant="outline-light" disabled={reportBusy} onClick={() => setReportOpen(false)}>Cancelar</Button>
+                    <Button type="button" size="sm" variant="danger" disabled={reportBusy} onClick={submitReport}>
+                      {reportBusy ? "Enviando..." : "Enviar denúncia"}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </Modal.Body>
       </Modal>
     </section>
@@ -250,5 +316,7 @@ ProductionGallery.propTypes = {
   productionName: PropTypes.string.isRequired,
   productionType: PropTypes.string,
   isOwner: PropTypes.bool,
+  canReport: PropTypes.bool,
   onManage: PropTypes.func,
+  onReport: PropTypes.func,
 };

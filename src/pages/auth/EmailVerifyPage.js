@@ -66,7 +66,10 @@ export default function EmailVerifyPage() {
     (async () => {
       try {
         const response = await authService.emailVerificationState();
-        if (active) setVerificationState(response?.email_verification || null);
+        if (active) {
+          setVerificationState(response?.email_verification || null);
+          setMessage((current) => current?.type === "error" ? null : current);
+        }
       } catch (err) {
         if (active) {
           setMessage({
@@ -139,6 +142,7 @@ export default function EmailVerifyPage() {
     try {
       const response = await authService.deferEmailVerification();
       setVerificationState(response?.email_verification || verificationState);
+      setMessage(null);
       navigate(returnTo, { replace: true, state: { artistClaim: location.state?.artistClaim || null } });
     } catch (err) {
       if (err?.status === 403) {

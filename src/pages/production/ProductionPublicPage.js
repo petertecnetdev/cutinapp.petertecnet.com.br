@@ -299,7 +299,9 @@ export default function ProductionPublicPage() {
         productionName={production.name}
         productionType={production.type}
         isOwner={isOwner}
+        canReport={Boolean(user)}
         onManage={() => navigate(`/production/edit/${production.id}#production-editor-gallery`)}
+        onReport={(mediaId, payload) => cutinappService.reportProductionMedia(slug, mediaId, payload)}
       />
 
       {artists.length > 0 && <section className="cut-production-section"><div className="cut-production-section-head"><div><span className="cut-eyebrow">Conexões</span><h2>Artistas relacionados</h2></div></div><div className="cut-artist-strip">{artists.map((artist) => <button key={artist.id} onClick={() => navigate(`/artist/${artist.slug}`)}><span>{artist.stage_name?.slice(0, 2).toUpperCase()}</span><strong>{artist.stage_name}</strong></button>)}</div></section>}
