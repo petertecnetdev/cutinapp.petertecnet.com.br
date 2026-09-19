@@ -14,9 +14,9 @@ const routeOf = (node) => {
 const labelOf = (node) => node?.querySelector?.("span")?.textContent?.trim() || node?.textContent?.trim() || "";
 
 const iconFor = (route) => {
-  if (route.startsWith("/event")) return "fa-regular fa-calendar-days";
   if (route.startsWith("/feed")) return "fa-solid fa-house";
-  if (route.startsWith("/messages")) return "fa-regular fa-paper-plane";
+  if (route.startsWith("/search")) return "fa-solid fa-magnifying-glass";
+  if (route.startsWith("/event")) return "fa-regular fa-calendar-days";
   if (route.startsWith("/passes")) return "fa-solid fa-ticket";
   if (route.startsWith("/profile")) return "fa-regular fa-circle-user";
   return "fa-regular fa-circle";
@@ -24,9 +24,9 @@ const iconFor = (route) => {
 
 const rank = (node) => {
   const route = routeOf(node);
-  if (route.startsWith("/event")) return 1;
-  if (route.startsWith("/feed")) return 2;
-  if (route.startsWith("/messages")) return 3;
+  if (route.startsWith("/feed")) return 1;
+  if (route.startsWith("/search")) return 2;
+  if (route.startsWith("/event")) return 3;
   if (route.startsWith("/passes")) return 4;
   if (route.startsWith("/profile")) return 5;
   return 20;
@@ -58,7 +58,7 @@ const prepareBottomNav = () => {
     if (icon && icon.className !== desiredIcon) icon.className = desiredIcon;
     if (!node.getAttribute("aria-label") && label) node.setAttribute("aria-label", label);
     if (node.getAttribute("title") !== (label || "Navegação")) node.setAttribute("title", label || "Navegação");
-    if (itemRank === 3 && node.querySelector("span")) node.querySelector("span").textContent = "Mensagens";
+    if (itemRank === 3 && node.querySelector("span")) node.querySelector("span").textContent = "Eventos";
     if (node.dataset.cutNavInteraction !== "true") {
       node.dataset.cutNavInteraction = "true";
       node.addEventListener("pointerdown", () => haptic(itemRank === 3 ? 12 : 7), { passive: true });
@@ -109,9 +109,9 @@ const syncNavbarScrollState = () => {
   navbar.classList.toggle("cut-mobile-nav--scrolled", y > 10);
   navbar.classList.toggle("cut-mobile-nav--compact", y > 56);
 
-  const canHide = y > 160 && Math.abs(delta) > 4 && !document.body.classList.contains("cut-mobile-keyboard-open");
-  if (canHide && delta > 0) navbar.classList.add("cut-mobile-nav--hidden");
-  if (delta < 0 || y < 80) navbar.classList.remove("cut-mobile-nav--hidden");
+  // The mobile header stays visible. Compacting it saves space without making
+  // navigation disappear while the user is scanning or recovering from a scroll.
+  navbar.classList.remove("cut-mobile-nav--hidden");
   lastScrollY = y;
 };
 
