@@ -63,11 +63,26 @@ const updateProduction = createIdempotentMutation({
   storagePrefix: "cutinapp_production_update_attempt_",
   keyPrefix: "production-update",
   requestKeyFor: (organizationId, payload) => `${Number(organizationId)}:${productionRequestKey(payload)}`,
-  mutate: async ({ idempotencyKey }, organizationId, payload) => rename((await appApiClient.patch(
-    `/organizations/${Number(organizationId)}`,
-    payload,
-    { headers: { "Idempotency-Key": idempotencyKey } },
-  )).data, "organization", "production"),
+  mutate: async ({ idempotencyKey }, organizationId, payload) => {
+    const url = `/organizations/${Number(organizationId)}`;
+    const config = { headers: { "Idempotency-Key": idempotencyKey } };
+    const isMultipartForm = payload
+      && typeof payload.entries === "function"
+      && typeof payload.append === "function";
+
+    // PHP does not populate multipart/form-data bodies for PATCH requests.
+    // Production editing always uses FormData so images can travel with the
+    // same payload. Send it as POST with Laravel's method override instead;
+    // Laravel routes it as PATCH after PHP has parsed all text/file fields.
+    if (isMultipartForm) {
+      if (typeof payload.has !== "function" || !payload.has("_method")) {
+        payload.append("_method", "PATCH");
+      }
+      return rename((await appApiClient.post(url, payload, config)).data, "organization", "production");
+    }
+
+    return rename((await appApiClient.patch(url, payload, config)).data, "organization", "production");
+  },
 });
 
 const deleteProduction = createIdempotentMutation({
