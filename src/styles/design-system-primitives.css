@@ -1,0 +1,98 @@
+/* Cutinapp Design System primitives.
+ * Shared contracts for points 81–100: controls, icons, surfaces and states.
+ * Prefer these primitives over page-specific copies.
+ */
+:root {
+  --cut-control-height-sm: 36px;
+  --cut-control-height-md: 44px;
+  --cut-control-height-lg: 52px;
+  --cut-icon-sm: 16px;
+  --cut-icon-md: 20px;
+  --cut-icon-lg: 24px;
+  --cut-icon-xl: 32px;
+  --cut-control-bg: var(--cut-surface-1);
+  --cut-control-bg-hover: var(--cut-surface-2);
+  --cut-control-border: var(--cut-border);
+  --cut-control-border-focus: var(--cut-border-focus);
+}
+
+.cut-control,
+.cut-app-page :where(.form-control, .form-select, textarea.form-control) {
+  min-height: var(--cut-control-height-md);
+  border: 1px solid var(--cut-control-border);
+  border-radius: var(--cut-radius-md);
+  background: var(--cut-control-bg);
+  color: var(--cut-text);
+  transition: border-color var(--cut-duration-normal) var(--cut-ease-standard),
+    background-color var(--cut-duration-normal) var(--cut-ease-standard),
+    box-shadow var(--cut-duration-normal) var(--cut-ease-standard);
+}
+
+.cut-app-page :where(.form-control, .form-select, textarea.form-control):hover:not(:disabled) {
+  border-color: var(--cut-border-strong);
+  background: var(--cut-control-bg-hover);
+}
+
+.cut-app-page :where(.form-control, .form-select, textarea.form-control):focus {
+  border-color: var(--cut-control-border-focus);
+  background: var(--cut-surface-2);
+  box-shadow: var(--cut-shadow-focus);
+}
+
+.cut-app-page textarea.form-control {
+  min-height: 112px;
+  resize: vertical;
+}
+
+.cut-icon { width: var(--cut-icon-md); height: var(--cut-icon-md); font-size: var(--cut-icon-md); line-height: 1; flex: 0 0 auto; }
+.cut-icon--sm { width: var(--cut-icon-sm); height: var(--cut-icon-sm); font-size: var(--cut-icon-sm); }
+.cut-icon--lg { width: var(--cut-icon-lg); height: var(--cut-icon-lg); font-size: var(--cut-icon-lg); }
+.cut-icon--xl { width: var(--cut-icon-xl); height: var(--cut-icon-xl); font-size: var(--cut-icon-xl); }
+
+.cut-btn,
+.cut-app-page .btn {
+  min-height: var(--cut-control-height-md);
+  border-radius: var(--cut-radius-md);
+  font-weight: var(--cut-weight-medium);
+  transition: transform var(--cut-duration-fast) var(--cut-ease-standard),
+    border-color var(--cut-duration-normal) var(--cut-ease-standard),
+    background-color var(--cut-duration-normal) var(--cut-ease-standard),
+    box-shadow var(--cut-duration-normal) var(--cut-ease-standard);
+}
+.cut-app-page .btn:active:not(:disabled) { transform: scale(.98); }
+.cut-app-page .btn:disabled,
+.cut-app-page .btn[aria-disabled="true"] { cursor: not-allowed; opacity: .58; }
+
+.cut-surface {
+  border: 1px solid var(--cut-border);
+  border-radius: var(--cut-radius-xl);
+  background: var(--cut-gradient-surface);
+  box-shadow: var(--cut-shadow-md);
+}
+.cut-surface--interactive {
+  transition: transform var(--cut-duration-normal) var(--cut-ease-standard),
+    border-color var(--cut-duration-normal) var(--cut-ease-standard),
+    box-shadow var(--cut-duration-normal) var(--cut-ease-standard);
+}
+@media (hover: hover) and (pointer: fine) {
+  .cut-surface--interactive:hover {
+    transform: translateY(-2px);
+    border-color: var(--cut-border-strong);
+    box-shadow: var(--cut-shadow-lg);
+  }
+}
+
+.cut-state-loading { cursor: progress; }
+.cut-state-error { border-color: rgba(255, 102, 135, .28) !important; }
+.cut-state-success { border-color: rgba(78, 231, 178, .26) !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cut-app-page *,
+  .cut-app-page *::before,
+  .cut-app-page *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
