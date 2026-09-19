@@ -936,6 +936,62 @@ export default function ProductionGalleryManager({
         </div>
       )}
 
+      {smartOpen && (
+        <section className="cut-gallery-smart" aria-label="Análise inteligente da galeria">
+          <div className="cut-gallery-smart__head">
+            <div>
+              <span className="cut-eyebrow">Análise visual</span>
+              <h4>Qualidade, capa e fotos semelhantes</h4>
+              <p>A Cutinapp compara resolução, formato, exposição, detalhes e semelhança visual sem bloquear sua publicação.</p>
+            </div>
+            <button type="button" onClick={() => setSmartOpen(false)} aria-label="Fechar análise"><i className="fa-solid fa-xmark" /></button>
+          </div>
+
+          {recommendations.length > 0 && (
+            <div className="cut-gallery-smart__recommendations">
+              <strong>Sugestões para capa</strong>
+              <div className="cut-gallery-smart__recommendation-grid">
+                {recommendations.slice(0, 3).map((item, index) => (
+                  <article key={item.id} className={index === 0 ? "is-top" : ""}>
+                    <img src={item.thumbnail_url || item.url} alt={item.alt_text || item.caption || ("Foto de " + productionName)} loading="lazy" />
+                    <div>
+                      <span>Nota visual {item.recommendation?.score ?? item.cover_score ?? 0}/100</span>
+                      <strong>{index === 0 ? "Melhor opção atual" : ("Opção " + (index + 1))}</strong>
+                      <small>{(item.recommendation?.reasons || []).join(" · ")}</small>
+                    </div>
+                    <div className="cut-gallery-smart__actions">
+                      <Button type="button" size="sm" variant="outline-light" onClick={() => openEditor(item)}>Gerenciar</Button>
+                      <Button type="button" size="sm" disabled={editBusy} onClick={() => useRecommendedAsCover(item)}>Usar como capa</Button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="cut-gallery-smart__similar">
+            <div className="cut-gallery-smart__similar-head">
+              <strong>Fotos muito parecidas</strong>
+              <span>{similarPairs.length ? (similarPairs.length + (similarPairs.length === 1 ? " par encontrado" : " pares encontrados")) : "Nenhuma repetição visual forte encontrada"}</span>
+            </div>
+            {similarPairs.slice(0, 6).map((pair) => (
+              <article key={String(pair.left.id) + ":" + String(pair.right.id)}>
+                <button type="button" onClick={() => openEditor(pair.left)} aria-label="Gerenciar primeira foto semelhante">
+                  <img src={pair.left.thumbnail_url || pair.left.url} alt="" loading="lazy" />
+                </button>
+                <div>
+                  <strong>{pair.similarity}% semelhantes</strong>
+                  <span>Compare antes de excluir; a Cutinapp apenas sugere.</span>
+                </div>
+                <button type="button" onClick={() => openEditor(pair.right)} aria-label="Gerenciar segunda foto semelhante">
+                  <img src={pair.right.thumbnail_url || pair.right.url} alt="" loading="lazy" />
+                </button>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
       {selectionMode && (
         <div className="cut-gallery-manager__selection">
           <strong>{selectedCount} {selectedCount === 1 ? "foto selecionada" : "fotos selecionadas"}</strong>
