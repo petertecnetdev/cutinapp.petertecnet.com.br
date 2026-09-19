@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import PropTypes from "prop-types";
 import { Alert, Button, Form, Modal, ProgressBar } from "react-bootstrap";
 import cutinappService from "../../services/CutinappService";
+import aiContentService from "../../services/AiContentService";
 import { showConfirmation, showTextPrompt } from "../../utils/sweetAlert";
 import "./ProductionGalleryManager.css";
 
@@ -25,6 +26,54 @@ const humanBytes = (value) => {
 
 const byPosition = (left, right) => Number(left?.position || 0) - Number(right?.position || 0);
 const byRecent = (left, right) => new Date(right?.created_at || 0).getTime() - new Date(left?.created_at || 0).getTime();
+
+const analyzeImageFile = async (file) => {
+  if (typeof document === "undefined" || typeof createImageBitmap !== "function") return [];
+  try {
+    const bitmap = await createImageBitmap(file);
+    const canvas = document.createElement("canvas");
+    const size = 96;
+    canvas.width = size;
+    canvas.height = size;
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    if (!context) {
+      bitmap.close?.();
+      return [];
+    }
+    context.drawImage(bitmap, 0, 0, size, size);
+    bitmap.close?.();
+    const pixels = context.getImageData(0, 0, size, size).data;
+    let brightnessTotal = 0;
+    let edgeTotal = 0;
+    let edgeSamples = 0;
+    const gray = new Float32Array(size * size);
+
+    for (let index = 0, pixel = 0; index < pixels.length; index += 4, pixel += 1) {
+      const value = (pixels[index] * .2126) + (pixels[index + 1] * .7152) + (pixels[index + 2] * .0722);
+      gray[pixel] = value;
+      brightnessTotal += value;
+    }
+
+    for (let y = 0; y < size - 1; y += 1) {
+      for (let x = 0; x < size - 1; x += 1) {
+        const index = (y * size) + x;
+        edgeTotal += Math.abs(gray[index] - gray[index + 1]);
+        edgeTotal += Math.abs(gray[index] - gray[index + size]);
+        edgeSamples += 2;
+      }
+    }
+
+    const brightness = brightnessTotal / gray.length;
+    const sharpness = edgeSamples ? edgeTotal / edgeSamples : 0;
+    const warnings = [];
+    if (brightness < 52) warnings.push("A foto parece bastante escura; confira se os detalhes estão visíveis.");
+    if (sharpness < 7.5) warnings.push("A foto pode estar desfocada ou com poucos detalhes.");
+    if (bitmap.width < 900 || bitmap.height < 600) warnings.push("A resolução é baixa para telas grandes.");
+    return warnings;
+  } catch (_) {
+    return [];
+  }
+};
 
 const normalizePositions = (items) => items.map((item, position) => ({ ...item, position }));
 
