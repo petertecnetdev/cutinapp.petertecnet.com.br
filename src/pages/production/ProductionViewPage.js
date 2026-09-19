@@ -1,11 +1,11 @@
-import { showConfirmation } from "../../utils/sweetAlert";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Button, Card, Container, Form, Modal } from "react-bootstrap";
+import { Alert, Button, Card, Container, Modal } from "react-bootstrap";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import EventArtwork from "../../components/event/EventArtwork";
 import ProductionCommunitySection from "../../components/production/ProductionCommunitySection";
+import ProductionGallery from "../../components/production/ProductionGallery";
 import { FormattedText } from "../../components/editor/FormattedText";
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
@@ -29,9 +29,6 @@ export default function ProductionViewPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showViewers, setShowViewers] = useState(false);
-  const [photo, setPhoto] = useState(null);
-  const [caption, setCaption] = useState("");
-  const [mediaBusy, setMediaBusy] = useState(false);
 
   const load = useCallback(async () => {
     setError("");
@@ -45,6 +42,7 @@ export default function ProductionViewPage() {
   const events = workspace?.events || [];
   const analytics = workspace?.analytics || { total_views: 0, unique_viewers: 0, viewers: [] };
   const media = workspace?.media || [];
+  const galleryAlbums = workspace?.gallery?.albums || [];
   const instagramHref = safeExternalHref(production?.instagram_url);
   const websiteHref = safeExternalHref(production?.website_url);
 
@@ -55,27 +53,6 @@ export default function ProductionViewPage() {
     return address || [production.name, production.city, production.uf].filter(Boolean).join(", ");
   }, [production]);
   const mapEmbedUrl = mapQuery ? `https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed` : "";
-
-  const uploadPhoto = async () => {
-    if (!photo || !production) return;
-    setMediaBusy(true); setError("");
-    try {
-      const data = new FormData(); data.append("photo", photo); if (caption.trim()) data.append("caption", caption.trim());
-      await cutinappService.uploadProductionMedia(production.id, data);
-      setPhoto(null); setCaption("");
-      const input = document.getElementById("production-gallery-photo"); if (input) input.value = "";
-      await load();
-    } catch (err) { setError(err?.message || "Não foi possível adicionar a foto."); }
-    finally { setMediaBusy(false); }
-  };
-  const removePhoto = async (mediaId) => {
-    if (!production) return;
-    if (!(await showConfirmation({ title: "Remover foto?", text: "Esta foto será removida da galeria da produção.", confirmButtonText: "Remover" }))) return;
-    setMediaBusy(true);
-    try { await cutinappService.deleteProductionMedia(production.id, mediaId); await load(); }
-    catch (err) { setError(err?.message || "Não foi possível remover a foto."); }
-    finally { setMediaBusy(false); }
-  };
 
   const shareProductionOnWhatsApp = () => {
     if (!production) return;
@@ -109,7 +86,14 @@ export default function ProductionViewPage() {
 
         <section className="cut-production-section"><div className="cut-production-section-head"><div><span className="cut-eyebrow">Agenda</span><h2>Eventos desta produção</h2></div><Button variant="outline-light" onClick={() => navigate(`/event/create?productionId=${production.id}`)}><i className="fa-solid fa-plus me-2" />Novo evento</Button></div>{events.length === 0 ? <Card className="cut-empty-state"><Card.Body><p>Nenhum evento cadastrado nesta produção ainda.</p></Card.Body></Card> : <div className="cut-production-events-carousel">{events.map((event) => <article className="cut-production-event-slide" key={event.id} role="link" tabIndex={0} aria-label={`Abrir evento ${event.title}`} onClick={() => navigate(`/event/${event.slug}`)} onKeyDown={(e) => activateOnKeyboard(e, () => navigate(`/event/${event.slug}`))}><div className="cut-production-event-slide__media"><EventArtwork image={event.image} title={event.title} alt={event.title} loading="lazy" decoding="async" fallbackClassName="cut-production-event-slide__fallback" /></div><div className="cut-production-event-slide__body"><span className="cut-eyebrow">{event.category || "Evento"}</span><h3>{event.title}</h3><p><i className="fa-regular fa-calendar me-2" />{fmt(event.start_date)}</p><p><i className="fa-solid fa-location-dot me-2" />{event.venue || event.city || "Local a definir"}</p></div></article>)}</div>}</section>
 
-        <section className="cut-production-section cut-production-gallery"><div className="cut-production-section-head"><div><span className="cut-eyebrow">{production.type === "fixed" ? "Seu espaço" : "Galeria"}</span><h2>{production.type === "fixed" ? "Fotos do espaço" : "Fotos da produção"}</h2></div><span className="text-muted">{media.length}/16 fotos</span></div><div className="cut-production-gallery-upload"><Form.Control id="production-gallery-photo" type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => setPhoto(e.target.files?.[0] || null)} /><Form.Control value={caption} maxLength={180} onChange={(e) => setCaption(e.target.value)} placeholder="Legenda opcional" /><Button disabled={!photo || mediaBusy} onClick={uploadPhoto}>{mediaBusy ? "Enviando..." : <><i className="fa-solid fa-camera me-2" />Adicionar foto</>}</Button></div>{media.length === 0 ? <Card className="cut-empty-state"><Card.Body><p>{production.type === "fixed" ? "Mostre ao público como é o seu espaço." : "Adicione imagens que ajudem o público a conhecer sua produção."}</p></Card.Body></Card> : <div className="cut-production-gallery-grid">{media.map((item) => <figure className="cut-production-gallery-item" key={item.id}><img src={mediaUrl(item.url)} alt={item.caption || `Foto de ${production.name}`} loading="lazy" />{item.caption && <figcaption>{item.caption}</figcaption>}<button type="button" className="cut-production-gallery-remove" onClick={() => removePhoto(item.id)} aria-label="Remover foto"><i className="fa-solid fa-xmark" /></button></figure>)}</div>}</section>
+        <ProductionGallery
+          media={media}
+          albums={galleryAlbums}
+          productionName={production.name}
+          productionType={production.type}
+          isOwner
+          onManage={() => navigate(`/production/edit/${production.id}#production-editor-gallery`)}
+        />
 
         <ProductionCommunitySection production={production} isOwner />
       </Container>
