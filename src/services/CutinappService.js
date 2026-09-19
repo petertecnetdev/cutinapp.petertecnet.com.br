@@ -2,8 +2,15 @@ import appApiClient from "./AppApiClient";
 import { createIdempotentMutation, createMutationRequestKey } from "../utils/idempotencyAttempts";
 import { cachedPublicGet, invalidatePublicRequestCache } from "../utils/publicRequestCache";
 import { trackSearchConversion } from "../utils/searchAttribution";
+import { notifyGalleryUpdate } from "../utils/gallerySync";
 
 const unwrap = (value) => Array.isArray(value) ? value : Array.isArray(value?.data) ? value.data : [];
+const finishGalleryMutation = (organizationId, action, data) => {
+  invalidatePublicRequestCache("/organizations");
+  notifyGalleryUpdate(organizationId, { action });
+  return data;
+};
+
 const SEARCH_SESSION_KEY = "cutinapp:search-session:v1";
 const searchSessionHeaders = () => {
   if (typeof window === "undefined") return {};
@@ -58,8 +65,7 @@ const createProduction = createIdempotentMutation({
     const data = rename((await appApiClient.post("/organizations", payload, {
       headers: { "Idempotency-Key": idempotencyKey },
     })).data, "organization", "production");
-    invalidatePublicRequestCache("/organizations");
-    return data;
+    return finishGalleryMutation(organizationId, "cover", data);
   },
 });
 
@@ -270,107 +276,143 @@ const uploadProductionMedia = createIdempotentMutation({
   storagePrefix: "cutinapp_production_media_upload_attempt_",
   keyPrefix: "production-media-upload",
   requestKeyFor: (organizationId, formData) => `${Number(organizationId)}:${createMutationRequestKey(formData)}`,
-  mutate: async ({ idempotencyKey }, organizationId, formData, options = {}) => (await appApiClient.post(
-    `/organizations/${Number(organizationId)}/media`,
-    formData,
-    {
-      headers: { "Idempotency-Key": idempotencyKey },
-      onUploadProgress: options.onUploadProgress,
-      signal: options.signal,
-    },
-  )).data,
+  mutate: async ({ idempotencyKey }, organizationId, formData, options = {}) => finishGalleryMutation(
+    organizationId,
+    "upload",
+    (await appApiClient.post(
+      `/organizations/${Number(organizationId)}/media`,
+      formData,
+      {
+        headers: { "Idempotency-Key": idempotencyKey },
+        onUploadProgress: options.onUploadProgress,
+        signal: options.signal,
+      },
+    )).data,
+  ),
 });
 
 const updateProductionMedia = createIdempotentMutation({
   storagePrefix: "cutinapp_production_media_update_attempt_",
   keyPrefix: "production-media-update",
   requestKeyFor: (organizationId, mediaId, payload = {}) => `${Number(organizationId)}:${Number(mediaId)}:${createMutationRequestKey(payload)}`,
-  mutate: async ({ idempotencyKey }, organizationId, mediaId, payload = {}) => (await appApiClient.patch(
-    `/organizations/${Number(organizationId)}/media/${Number(mediaId)}`,
-    payload,
-    { headers: { "Idempotency-Key": idempotencyKey } },
-  )).data,
+  mutate: async ({ idempotencyKey }, organizationId, mediaId, payload = {}) => finishGalleryMutation(
+    organizationId,
+    "update",
+    (await appApiClient.patch(
+      `/organizations/${Number(organizationId)}/media/${Number(mediaId)}`,
+      payload,
+      { headers: { "Idempotency-Key": idempotencyKey } },
+    )).data,
+  ),
 });
 
 const replaceProductionMedia = createIdempotentMutation({
   storagePrefix: "cutinapp_production_media_replace_attempt_",
   keyPrefix: "production-media-replace",
   requestKeyFor: (organizationId, mediaId, formData) => `${Number(organizationId)}:${Number(mediaId)}:${createMutationRequestKey(formData)}`,
-  mutate: async ({ idempotencyKey }, organizationId, mediaId, formData, options = {}) => (await appApiClient.post(
-    `/organizations/${Number(organizationId)}/media/${Number(mediaId)}/replace`,
-    formData,
-    {
-      headers: { "Idempotency-Key": idempotencyKey },
-      onUploadProgress: options.onUploadProgress,
-      signal: options.signal,
-    },
-  )).data,
+  mutate: async ({ idempotencyKey }, organizationId, mediaId, formData, options = {}) => finishGalleryMutation(
+    organizationId,
+    "replace",
+    (await appApiClient.post(
+      `/organizations/${Number(organizationId)}/media/${Number(mediaId)}/replace`,
+      formData,
+      {
+        headers: { "Idempotency-Key": idempotencyKey },
+        onUploadProgress: options.onUploadProgress,
+        signal: options.signal,
+      },
+    )).data,
+  ),
 });
 
 const rotateProductionMedia = createIdempotentMutation({
   storagePrefix: "cutinapp_production_media_rotate_attempt_",
   keyPrefix: "production-media-rotate",
   requestKeyFor: (organizationId, mediaId, degrees) => `${Number(organizationId)}:${Number(mediaId)}:${Number(degrees)}`,
-  mutate: async ({ idempotencyKey }, organizationId, mediaId, degrees) => (await appApiClient.post(
-    `/organizations/${Number(organizationId)}/media/${Number(mediaId)}/rotate`,
-    { degrees: Number(degrees) },
-    { headers: { "Idempotency-Key": idempotencyKey } },
-  )).data,
+  mutate: async ({ idempotencyKey }, organizationId, mediaId, degrees) => finishGalleryMutation(
+    organizationId,
+    "rotate",
+    (await appApiClient.post(
+      `/organizations/${Number(organizationId)}/media/${Number(mediaId)}/rotate`,
+      { degrees: Number(degrees) },
+      { headers: { "Idempotency-Key": idempotencyKey } },
+    )).data,
+  ),
 });
 
 const reorderProductionMedia = createIdempotentMutation({
   storagePrefix: "cutinapp_production_media_reorder_attempt_",
   keyPrefix: "production-media-reorder",
   requestKeyFor: (organizationId, mediaIds = []) => `${Number(organizationId)}:${createMutationRequestKey(mediaIds.map(Number))}`,
-  mutate: async ({ idempotencyKey }, organizationId, mediaIds = []) => (await appApiClient.patch(
-    `/organizations/${Number(organizationId)}/media-order`,
-    { media_ids: mediaIds.map(Number) },
-    { headers: { "Idempotency-Key": idempotencyKey } },
-  )).data,
+  mutate: async ({ idempotencyKey }, organizationId, mediaIds = []) => finishGalleryMutation(
+    organizationId,
+    "reorder",
+    (await appApiClient.patch(
+      `/organizations/${Number(organizationId)}/media-order`,
+      { media_ids: mediaIds.map(Number) },
+      { headers: { "Idempotency-Key": idempotencyKey } },
+    )).data,
+  ),
 });
 
 const bulkUpdateProductionMedia = createIdempotentMutation({
   storagePrefix: "cutinapp_production_media_bulk_update_attempt_",
   keyPrefix: "production-media-bulk-update",
   requestKeyFor: (organizationId, mediaIds = [], payload = {}) => `${Number(organizationId)}:${createMutationRequestKey({ mediaIds: mediaIds.map(Number).sort((a, b) => a - b), payload })}`,
-  mutate: async ({ idempotencyKey }, organizationId, mediaIds = [], payload = {}) => (await appApiClient.patch(
-    `/organizations/${Number(organizationId)}/media-bulk`,
-    { ...payload, media_ids: mediaIds.map(Number) },
-    { headers: { "Idempotency-Key": idempotencyKey } },
-  )).data,
+  mutate: async ({ idempotencyKey }, organizationId, mediaIds = [], payload = {}) => finishGalleryMutation(
+    organizationId,
+    "bulk-update",
+    (await appApiClient.patch(
+      `/organizations/${Number(organizationId)}/media-bulk`,
+      { ...payload, media_ids: mediaIds.map(Number) },
+      { headers: { "Idempotency-Key": idempotencyKey } },
+    )).data,
+  ),
 });
 
 const importProductionCoverToGallery = createIdempotentMutation({
   storagePrefix: "cutinapp_production_media_import_cover_attempt_",
   keyPrefix: "production-media-import-cover",
   requestKeyFor: (organizationId) => String(Number(organizationId)),
-  mutate: async ({ idempotencyKey }, organizationId) => (await appApiClient.post(
-    `/organizations/${Number(organizationId)}/media-import-cover`,
-    undefined,
-    { headers: { "Idempotency-Key": idempotencyKey } },
-  )).data,
+  mutate: async ({ idempotencyKey }, organizationId) => finishGalleryMutation(
+    organizationId,
+    "import-cover",
+    (await appApiClient.post(
+      `/organizations/${Number(organizationId)}/media-import-cover`,
+      undefined,
+      { headers: { "Idempotency-Key": idempotencyKey } },
+    )).data,
+  ),
 });
 
 const bulkDeleteProductionMedia = createIdempotentMutation({
   storagePrefix: "cutinapp_production_media_bulk_delete_attempt_",
   keyPrefix: "production-media-delete",
   requestKeyFor: (organizationId, mediaIds = []) => `${Number(organizationId)}:${createMutationRequestKey(mediaIds.map(Number).sort((a, b) => a - b))}`,
-  mutate: async ({ idempotencyKey }, organizationId, mediaIds = []) => (await appApiClient.post(
-    `/organizations/${Number(organizationId)}/media-delete`,
-    { media_ids: mediaIds.map(Number) },
-    { headers: { "Idempotency-Key": idempotencyKey } },
-  )).data,
+  mutate: async ({ idempotencyKey }, organizationId, mediaIds = []) => finishGalleryMutation(
+    organizationId,
+    "delete",
+    (await appApiClient.post(
+      `/organizations/${Number(organizationId)}/media-delete`,
+      { media_ids: mediaIds.map(Number) },
+      { headers: { "Idempotency-Key": idempotencyKey } },
+    )).data,
+  ),
 });
 
 const restoreProductionMedia = createIdempotentMutation({
   storagePrefix: "cutinapp_production_media_restore_attempt_",
   keyPrefix: "production-media-restore",
   requestKeyFor: (organizationId, mediaIds = []) => `${Number(organizationId)}:${createMutationRequestKey(mediaIds.map(Number).sort((a, b) => a - b))}`,
-  mutate: async ({ idempotencyKey }, organizationId, mediaIds = []) => (await appApiClient.post(
-    `/organizations/${Number(organizationId)}/media-restore`,
-    { media_ids: mediaIds.map(Number) },
-    { headers: { "Idempotency-Key": idempotencyKey } },
-  )).data,
+  mutate: async ({ idempotencyKey }, organizationId, mediaIds = []) => finishGalleryMutation(
+    organizationId,
+    "restore",
+    (await appApiClient.post(
+      `/organizations/${Number(organizationId)}/media-restore`,
+      { media_ids: mediaIds.map(Number) },
+      { headers: { "Idempotency-Key": idempotencyKey } },
+    )).data,
+  ),
 });
 
 const setProductionMediaCover = createIdempotentMutation({
