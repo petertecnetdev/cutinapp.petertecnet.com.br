@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import PropTypes from "prop-types";
-import { Alert, Button, Form, Modal, ProgressBar } from "react-bootstrap";
+import { Alert, Button, Form, Modal, Offcanvas, ProgressBar } from "react-bootstrap";
 import cutinappService from "../../services/CutinappService";
 import aiContentService from "../../services/AiContentService";
 import { showConfirmation, showTextPrompt } from "../../utils/sweetAlert";
@@ -1288,11 +1288,19 @@ export default function ProductionGalleryManager({
         </Modal.Body>
       </Modal>
 
-      <Modal show={Boolean(editing)} onHide={() => !editBusy && setEditing(null)} centered size="lg" className="cut-gallery-editor-modal" backdrop={editBusy ? "static" : true} keyboard={!editBusy}>
-        <Modal.Header closeButton={!editBusy}>
-          <Modal.Title>Gerenciar foto</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
+      <Offcanvas
+        show={Boolean(editing)}
+        onHide={() => !editBusy && setEditing(null)}
+        placement="end"
+        className="cut-gallery-editor-panel"
+        backdrop={editBusy ? "static" : true}
+        keyboard={!editBusy}
+        scroll={false}
+      >
+        <Offcanvas.Header closeButton={!editBusy}>
+          <Offcanvas.Title>Gerenciar foto</Offcanvas.Title>
+        </Offcanvas.Header>
+        <Offcanvas.Body>
           {editing && (
             <div className="cut-gallery-editor">
               <div className="cut-gallery-editor__preview">
@@ -1428,12 +1436,12 @@ export default function ProductionGalleryManager({
               </div>
             </div>
           )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button type="button" variant="outline-light" disabled={editBusy} onClick={() => setEditing(null)}>Cancelar</Button>
-          <Button type="button" disabled={editBusy} onClick={saveEdit}>{editBusy ? "Salvando..." : "Salvar alterações"}</Button>
-        </Modal.Footer>
-      </Modal>
+          <div className="cut-gallery-editor-panel__footer">
+            <Button type="button" variant="outline-light" disabled={editBusy} onClick={() => setEditing(null)}>Cancelar</Button>
+            <Button type="button" disabled={editBusy} onClick={saveEdit}>{editBusy ? "Salvando..." : "Salvar alterações"}</Button>
+          </div>
+        </Offcanvas.Body>
+      </Offcanvas>
     </div>
   );
 }
