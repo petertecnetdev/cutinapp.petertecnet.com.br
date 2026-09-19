@@ -26,6 +26,7 @@ export default function ProductionGallery({
   const [reportBusy, setReportBusy] = useState(false);
   const [reportFeedback, setReportFeedback] = useState("");
   const touchStartX = useRef(null);
+  const lightboxTriggerRef = useRef(null);
   const initialLoadStartedAt = useRef(typeof performance !== "undefined" ? performance.now() : Date.now());
   const initialLoadTracked = useRef(false);
 
@@ -82,6 +83,20 @@ export default function ProductionGallery({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [lightboxIndex, filtered.length]);
+
+  const openLightbox = (index, trigger) => {
+    lightboxTriggerRef.current = trigger || document.activeElement;
+    setLightboxIndex(index);
+  };
+
+  const closeLightbox = () => {
+    setLightboxIndex(-1);
+    setReportOpen(false);
+    setReportFeedback("");
+    const trigger = lightboxTriggerRef.current;
+    lightboxTriggerRef.current = null;
+    window.setTimeout(() => trigger?.focus?.({ preventScroll: true }), 0);
+  };
 
   const move = (direction) => {
     if (!filtered.length) return;
@@ -180,7 +195,7 @@ export default function ProductionGallery({
                 type="button"
                 key={item.id}
                 className={`cut-public-gallery__item ${item.is_featured ? "is-featured" : ""} ${loadedIds.has(Number(item.id)) ? "is-loaded" : ""} ${failedIds.has(Number(item.id)) ? "has-error" : ""}`}
-                onClick={() => setLightboxIndex(index)}
+                onClick={(event) => openLightbox(index, event.currentTarget)}
                 aria-label={`Abrir foto ${index + 1} de ${filtered.length}`}
               >
                 <img
@@ -226,11 +241,7 @@ export default function ProductionGallery({
 
       <Modal
         show={Boolean(current)}
-        onHide={() => {
-          setLightboxIndex(-1);
-          setReportOpen(false);
-          setReportFeedback("");
-        }}
+        onHide={closeLightbox}
         centered
         size="xl"
         className="cut-gallery-lightbox"
