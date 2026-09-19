@@ -1,0 +1,872 @@
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import PropTypes from "prop-types";
+import { Alert, Button, Form, Modal, ProgressBar } from "react-bootstrap";
+import cutinappService from "../../services/CutinappService";
+import { showConfirmation, showTextPrompt } from "../../utils/sweetAlert";
+import "./ProductionGalleryManager.css";
+
+const LIMIT = 40;
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const ACCEPTED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+const fileKey = (file) => [
+  file.name,
+  file.size,
+  file.type,
+  file.lastModified,
+].join(":");
+
+const humanBytes = (value) => {
+  const bytes = Number(value || 0);
+  if (!Number.isFinite(bytes) || bytes <= 0) return "";
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1).replace(".", ",")} MB`;
+};
+
+const byPosition = (left, right) => Number(left?.position || 0) - Number(right?.position || 0);
+const byRecent = (left, right) => new Date(right?.created_at || 0).getTime() - new Date(left?.created_at || 0).getTime();
+
+const normalizePositions = (items) => items.map((item, position) => ({ ...item, position }));
+
+export default function ProductionGalleryManager({
+  organizationId,
+  productionName,
+  productionType = "independent",
+  media = [],
+  albums = [],
+  publicSlug = "",
+  onMediaChange,
+  onAlbumsChange,
+  onCoverChange,
+}) {
+  const [items, setItems] = useState(() => normalizePositions([...media].sort(byPosition)));
+  const [localAlbums, setLocalAlbums] = useState(albums);
+  const [queue, setQueue] = useState([]);
+  const [mode, setMode] = useState("manage");
+  const [sortMode, setSortMode] = useState("custom");
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
+  const [draggedId, setDraggedId] = useState(null);
+  const [dropActive, setDropActive] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [orderStatus, setOrderStatus] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [editCaption, setEditCaption] = useState("");
+  const [editAlt, setEditAlt] = useState("");
+  const [editAlbumId, setEditAlbumId] = useState("");
+  const [editFeatured, setEditFeatured] = useState(false);
+  const [editFocalX, setEditFocalX] = useState(50);
+  const [editFocalY, setEditFocalY] = useState(50);
+  const [editBusy, setEditBusy] = useState(false);
+  const [replaceProgress, setReplaceProgress] = useState(0);
+  const [undo, setUndo] = useState(null);
+  const inputRef = useRef(null);
+  const abortControllers = useRef(new Map());
+  const undoTimer = useRef(null);
+
+  useEffect(() => {
+    setItems(normalizePositions([...media].sort(byPosition)));
+  }, [media]);
+
+  useEffect(() => {
+    setLocalAlbums(Array.isArray(albums) ? albums : []);
+  }, [albums]);
+
+  useEffect(() => () => {
+    abortControllers.current.forEach((controller) => controller.abort());
+    queue.forEach((item) => {
+      if (item.preview?.startsWith("blob:")) URL.revokeObjectURL(item.preview);
+    });
+    if (undoTimer.current) window.clearTimeout(undoTimer.current);
+  }, [queue]);
+
+  const commitItems = (next) => {
+    const normalized = normalizePositions([...next]);
+    setItems(normalized);
+    onMediaChange?.(normalized);
+  };
+
+  const displayedItems = useMemo(() => {
+    const copy = [...items];
+    return sortMode === "recent" ? copy.sort(byRecent) : copy.sort(byPosition);
+  }, [items, sortMode]);
+
+  const remaining = Math.max(0, LIMIT - items.length);
+  const selectedCount = selectedIds.size;
+  const recommendedMissing = Math.max(0, 4 - items.length);
+  const galleryLabel = productionType === "fixed" ? "Fotos do espaço" : "Galeria da produção";
+
+  const clearFeedback = () => {
+    setError("");
+    setMessage("");
+  };
+
+  const addFiles = (files) => {
+    clearFeedback();
+    const candidates = Array.from(files || []);
+    if (!candidates.length) return;
+
+    const existingSignatures = new Set(queue.map((item) => item.signature));
+    const available = Math.max(0, remaining - queue.filter((item) => !["done", "cancelled"].includes(item.status)).length);
+    const next = [];
+    const rejected = [];
+
+    candidates.forEach((file) => {
+      if (next.length >= available) {
+        rejected.push(`${file.name}: limite de ${LIMIT} fotos atingido`);
+        return;
+      }
+      if (!ACCEPTED_TYPES.has(file.type)) {
+        rejected.push(`${file.name}: formato não suportado`);
+        return;
+      }
+      if (file.size > MAX_FILE_SIZE) {
+        rejected.push(`${file.name}: maior que 10 MB`);
+        return;
+      }
+      const signature = fileKey(file);
+      if (existingSignatures.has(signature) || next.some((item) => item.signature === signature)) {
+        rejected.push(`${file.name}: arquivo repetido nesta seleção`);
+        return;
+      }
+      next.push({
+        id: `queue-${Date.now()}-${next.length}-${Math.random().toString(36).slice(2)}`,
+        signature,
+        file,
+        preview: URL.createObjectURL(file),
+        caption: "",
+        status: "pending",
+        progress: 0,
+        error: "",
+        warnings: [],
+      });
+    });
+
+    setQueue((current) => [...current.filter((item) => item.status !== "done"), ...next]);
+    if (rejected.length) setError(rejected.slice(0, 4).join(" · "));
+  };
+
+  const onFileChange = (event) => {
+    addFiles(event.target.files);
+    event.target.value = "";
+  };
+
+  const onDrop = (event) => {
+    event.preventDefault();
+    setDropActive(false);
+    addFiles(event.dataTransfer.files);
+  };
+
+  const updateQueueItem = (id, changes) => {
+    setQueue((current) => current.map((item) => item.id === id ? { ...item, ...changes } : item));
+  };
+
+  const removeQueueItem = (id) => {
+    const item = queue.find((candidate) => candidate.id === id);
+    abortControllers.current.get(id)?.abort();
+    abortControllers.current.delete(id);
+    if (item?.preview?.startsWith("blob:")) URL.revokeObjectURL(item.preview);
+    setQueue((current) => current.filter((candidate) => candidate.id !== id));
+  };
+
+  const uploadOne = async (item) => {
+    const controller = new AbortController();
+    abortControllers.current.set(item.id, controller);
+    updateQueueItem(item.id, { status: "uploading", progress: 1, error: "" });
+    const payload = new FormData();
+    payload.append("photo", item.file);
+    if (item.caption.trim()) payload.append("caption", item.caption.trim());
+    payload.append("alt_text", item.caption.trim() || `${productionName} - foto da galeria`);
+
+    try {
+      const response = await cutinappService.uploadProductionMedia(organizationId, payload, {
+        signal: controller.signal,
+        onUploadProgress: (progressEvent) => {
+          const total = Number(progressEvent.total || item.file.size || 0);
+          const loaded = Number(progressEvent.loaded || 0);
+          const progress = total > 0 ? Math.min(99, Math.max(1, Math.round((loaded / total) * 100))) : 50;
+          updateQueueItem(item.id, { progress });
+        },
+      });
+      if (response?.media) {
+        commitItems([...items.filter((existing) => Number(existing.id) !== Number(response.media.id)), response.media]);
+      }
+      updateQueueItem(item.id, {
+        status: "done",
+        progress: 100,
+        warnings: [response?.warning, ...(response?.quality_warnings || [])].filter(Boolean),
+      });
+      return response?.media || null;
+    } catch (uploadError) {
+      const cancelled = controller.signal.aborted || uploadError?.code === "ERR_CANCELED";
+      updateQueueItem(item.id, {
+        status: cancelled ? "cancelled" : "error",
+        progress: cancelled ? 0 : item.progress,
+        error: cancelled ? "Envio cancelado." : (uploadError?.response?.data?.message || uploadError?.message || "Falha no envio."),
+      });
+      return null;
+    } finally {
+      abortControllers.current.delete(item.id);
+    }
+  };
+
+  const uploadQueue = async () => {
+    if (uploading) return;
+    setUploading(true);
+    clearFeedback();
+    const pending = queue.filter((item) => item.status === "pending" || item.status === "error" || item.status === "cancelled");
+    let uploadedCount = 0;
+
+    for (const item of pending) {
+      const uploaded = await uploadOne(item);
+      if (uploaded) uploadedCount += 1;
+    }
+
+    setUploading(false);
+    if (uploadedCount > 0) setMessage(uploadedCount === 1 ? "Foto publicada na galeria." : `${uploadedCount} fotos publicadas na galeria.`);
+  };
+
+  const cancelAllUploads = () => {
+    abortControllers.current.forEach((controller) => controller.abort());
+  };
+
+  const clearCompletedQueue = () => {
+    queue.filter((item) => item.status === "done").forEach((item) => {
+      if (item.preview?.startsWith("blob:")) URL.revokeObjectURL(item.preview);
+    });
+    setQueue((current) => current.filter((item) => item.status !== "done"));
+  };
+
+  const saveOrder = async (next, previous) => {
+    setOrderStatus("Salvando ordem...");
+    try {
+      const response = await cutinappService.reorderProductionMedia(organizationId, next.map((item) => item.id));
+      const ordered = Array.isArray(response?.media) ? response.media : next;
+      commitItems(ordered);
+      setOrderStatus("Ordem salva");
+      window.setTimeout(() => setOrderStatus(""), 1800);
+    } catch (orderError) {
+      commitItems(previous);
+      setOrderStatus("");
+      setError(orderError?.response?.data?.message || orderError?.message || "Não foi possível salvar a nova ordem.");
+    }
+  };
+
+  const moveItem = (mediaId, direction) => {
+    if (sortMode !== "custom") {
+      setSortMode("custom");
+      return;
+    }
+    const previous = [...items].sort(byPosition);
+    const from = previous.findIndex((item) => Number(item.id) === Number(mediaId));
+    const to = Math.min(Math.max(0, from + direction), previous.length - 1);
+    if (from < 0 || from === to) return;
+    const next = [...previous];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    const normalized = normalizePositions(next);
+    commitItems(normalized);
+    void saveOrder(normalized, previous);
+  };
+
+  const handleDropOnCard = (targetId) => {
+    if (!draggedId || Number(draggedId) === Number(targetId) || sortMode !== "custom") return;
+    const previous = [...items].sort(byPosition);
+    const from = previous.findIndex((item) => Number(item.id) === Number(draggedId));
+    const to = previous.findIndex((item) => Number(item.id) === Number(targetId));
+    if (from < 0 || to < 0) return;
+    const next = [...previous];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    const normalized = normalizePositions(next);
+    setDraggedId(null);
+    commitItems(normalized);
+    void saveOrder(normalized, previous);
+  };
+
+  const toggleSelected = (id) => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(Number(id))) next.delete(Number(id));
+      else next.add(Number(id));
+      return next;
+    });
+  };
+
+  const exitSelection = () => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const selectAll = () => {
+    setSelectedIds(new Set(displayedItems.map((item) => Number(item.id))));
+  };
+
+  const deleteIds = async (ids) => {
+    if (!ids.length) return;
+    const confirmed = await showConfirmation({
+      title: ids.length === 1 ? "Remover foto?" : `Remover ${ids.length} fotos?`,
+      text: ids.length === 1
+        ? "Ela deixará de aparecer na página pública. Você poderá desfazer por alguns instantes."
+        : "As imagens deixarão de aparecer na página pública. Você poderá desfazer por alguns instantes.",
+      confirmButtonText: "Remover",
+    });
+    if (!confirmed) return;
+
+    const previous = items;
+    commitItems(items.filter((item) => !ids.includes(Number(item.id))));
+    setEditing(null);
+    exitSelection();
+    clearFeedback();
+
+    try {
+      await cutinappService.bulkDeleteProductionMedia(organizationId, ids);
+      setUndo({ ids, previous });
+      setMessage(ids.length === 1 ? "Foto removida." : "Fotos removidas.");
+      if (undoTimer.current) window.clearTimeout(undoTimer.current);
+      undoTimer.current = window.setTimeout(() => setUndo(null), 10000);
+    } catch (deleteError) {
+      commitItems(previous);
+      setError(deleteError?.response?.data?.message || deleteError?.message || "Não foi possível remover as fotos.");
+    }
+  };
+
+  const undoDelete = async () => {
+    if (!undo?.ids?.length) return;
+    clearFeedback();
+    try {
+      const response = await cutinappService.restoreProductionMedia(organizationId, undo.ids);
+      commitItems(Array.isArray(response?.media) ? response.media : undo.previous);
+      setMessage("Fotos restauradas.");
+      setUndo(null);
+      if (undoTimer.current) window.clearTimeout(undoTimer.current);
+    } catch (restoreError) {
+      setError(restoreError?.response?.data?.message || restoreError?.message || "Não foi possível restaurar as fotos.");
+    }
+  };
+
+  const openEditor = (item) => {
+    clearFeedback();
+    setEditing(item);
+    setEditCaption(item.caption || "");
+    setEditAlt(item.alt_text || item.caption || "");
+    setEditAlbumId(item.album_id ? String(item.album_id) : "");
+    setEditFeatured(Boolean(item.is_featured));
+    setEditFocalX(Number(item.focal_x ?? 50));
+    setEditFocalY(Number(item.focal_y ?? 50));
+    setReplaceProgress(0);
+  };
+
+  const mergeUpdatedItem = (updated) => {
+    if (!updated) return;
+    const next = items.map((item) => Number(item.id) === Number(updated.id) ? { ...item, ...updated } : (
+      updated.is_featured ? { ...item, is_featured: false } : item
+    ));
+    commitItems(next);
+    setEditing((current) => current && Number(current.id) === Number(updated.id) ? { ...current, ...updated } : current);
+  };
+
+  const saveEdit = async () => {
+    if (!editing || editBusy) return;
+    setEditBusy(true);
+    clearFeedback();
+    try {
+      const response = await cutinappService.updateProductionMedia(organizationId, editing.id, {
+        caption: editCaption.trim() || null,
+        alt_text: editAlt.trim() || null,
+        album_id: editAlbumId ? Number(editAlbumId) : null,
+        is_featured: editFeatured,
+        focal_x: Number(editFocalX),
+        focal_y: Number(editFocalY),
+      });
+      mergeUpdatedItem(response?.media);
+      setMessage("Informações da foto atualizadas.");
+      setEditing(null);
+    } catch (editError) {
+      setError(editError?.response?.data?.message || editError?.message || "Não foi possível atualizar a foto.");
+    } finally {
+      setEditBusy(false);
+    }
+  };
+
+  const rotate = async (degrees) => {
+    if (!editing || editBusy) return;
+    setEditBusy(true);
+    clearFeedback();
+    try {
+      const response = await cutinappService.rotateProductionMedia(organizationId, editing.id, degrees);
+      mergeUpdatedItem(response?.media);
+      setMessage("Foto rotacionada.");
+    } catch (rotateError) {
+      setError(rotateError?.response?.data?.message || rotateError?.message || "Não foi possível rotacionar a foto.");
+    } finally {
+      setEditBusy(false);
+    }
+  };
+
+  const useAsCover = async () => {
+    if (!editing || editBusy) return;
+    const confirmed = await showConfirmation({
+      title: "Usar como capa?",
+      text: "A imagem será recortada para o formato horizontal da capa sem alterar a foto original da galeria.",
+      confirmButtonText: "Usar como capa",
+    });
+    if (!confirmed) return;
+    setEditBusy(true);
+    clearFeedback();
+    try {
+      const response = await cutinappService.setProductionMediaCover(organizationId, editing.id);
+      onCoverChange?.(response);
+      setMessage("Capa da produção atualizada.");
+    } catch (coverError) {
+      setError(coverError?.response?.data?.message || coverError?.message || "Não foi possível usar esta foto como capa.");
+    } finally {
+      setEditBusy(false);
+    }
+  };
+
+  const replaceImage = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || !editing || editBusy) return;
+    if (!ACCEPTED_TYPES.has(file.type) || file.size > MAX_FILE_SIZE) {
+      setError("Escolha uma imagem JPG, PNG ou WebP de até 10 MB.");
+      return;
+    }
+
+    setEditBusy(true);
+    setReplaceProgress(1);
+    clearFeedback();
+    const payload = new FormData();
+    payload.append("photo", file);
+    try {
+      const response = await cutinappService.replaceProductionMedia(organizationId, editing.id, payload, {
+        onUploadProgress: (progressEvent) => {
+          const total = Number(progressEvent.total || file.size);
+          const progress = total > 0 ? Math.round((Number(progressEvent.loaded || 0) / total) * 100) : 50;
+          setReplaceProgress(Math.min(99, Math.max(1, progress)));
+        },
+      });
+      setReplaceProgress(100);
+      mergeUpdatedItem(response?.media);
+      setMessage("Foto substituída sem perder a posição e a legenda.");
+    } catch (replaceError) {
+      setError(replaceError?.response?.data?.message || replaceError?.message || "Não foi possível substituir a foto.");
+    } finally {
+      setEditBusy(false);
+      window.setTimeout(() => setReplaceProgress(0), 800);
+    }
+  };
+
+  const createAlbum = async () => {
+    const name = await showTextPrompt({
+      title: "Novo álbum",
+      text: "Crie um agrupamento para organizar as fotos sem tirá-las da galeria principal.",
+      inputLabel: "Nome do álbum",
+      inputPlaceholder: "Ex.: Camarote",
+      confirmButtonText: "Criar álbum",
+      required: true,
+    });
+    if (!name) return;
+
+    clearFeedback();
+    try {
+      const response = await cutinappService.createProductionMediaAlbum(organizationId, name);
+      const next = [...localAlbums, response.album].filter(Boolean);
+      setLocalAlbums(next);
+      onAlbumsChange?.(next);
+      setMessage("Álbum criado.");
+    } catch (albumError) {
+      setError(albumError?.response?.data?.message || albumError?.message || "Não foi possível criar o álbum.");
+    }
+  };
+
+  const deleteAlbum = async (album) => {
+    const confirmed = await showConfirmation({
+      title: `Remover álbum "${album.name}"?`,
+      text: "As fotos não serão excluídas; elas voltarão para a galeria principal.",
+      confirmButtonText: "Remover álbum",
+    });
+    if (!confirmed) return;
+    try {
+      await cutinappService.deleteProductionMediaAlbum(organizationId, album.id);
+      const nextAlbums = localAlbums.filter((item) => Number(item.id) !== Number(album.id));
+      const nextItems = items.map((item) => Number(item.album_id) === Number(album.id) ? { ...item, album_id: null } : item);
+      setLocalAlbums(nextAlbums);
+      onAlbumsChange?.(nextAlbums);
+      commitItems(nextItems);
+      setMessage("Álbum removido.");
+    } catch (albumError) {
+      setError(albumError?.response?.data?.message || albumError?.message || "Não foi possível remover o álbum.");
+    }
+  };
+
+  const suggestAlt = () => {
+    const detail = editCaption.trim() || (productionType === "fixed" ? "foto do espaço" : "foto da produção");
+    setEditAlt(`${productionName} - ${detail}`);
+  };
+
+  const overallUploadProgress = useMemo(() => {
+    const active = queue.filter((item) => item.status !== "cancelled");
+    if (!active.length) return 0;
+    return Math.round(active.reduce((sum, item) => sum + Number(item.progress || 0), 0) / active.length);
+  }, [queue]);
+
+  return (
+    <div className="cut-gallery-manager">
+      <div className="cut-gallery-manager__summary">
+        <div>
+          <span className="cut-eyebrow">{productionType === "fixed" ? "Seu estabelecimento" : "Identidade visual"}</span>
+          <h3>{galleryLabel}</h3>
+          <p>
+            {items.length === 0
+              ? "Mostre ambiente, estrutura, bastidores e experiências para quem está conhecendo sua produção."
+              : recommendedMissing > 0
+                ? `Adicione mais ${recommendedMissing} ${recommendedMissing === 1 ? "foto" : "fotos"} para deixar a página mais completa.`
+                : "Sua galeria já tem uma boa base visual. Reordene e destaque as melhores imagens."}
+          </p>
+        </div>
+        <div className="cut-gallery-manager__score">
+          <strong>{items.length}<small>/{LIMIT}</small></strong>
+          <span>{items.length >= 4 ? "Boa galeria" : "Fotos publicadas"}</span>
+        </div>
+      </div>
+
+      <div className="cut-gallery-manager__toolbar">
+        <div className="cut-gallery-manager__toolbar-primary">
+          <Button type="button" onClick={() => inputRef.current?.click()} disabled={remaining <= 0}>
+            <i className="fa-solid fa-plus me-2" />Adicionar fotos
+          </Button>
+          <input
+            ref={inputRef}
+            type="file"
+            hidden
+            multiple
+            accept="image/jpeg,image/png,image/webp"
+            onChange={onFileChange}
+          />
+          <Button
+            type="button"
+            variant={selectionMode ? "light" : "outline-light"}
+            onClick={() => selectionMode ? exitSelection() : setSelectionMode(true)}
+            disabled={!items.length}
+          >
+            <i className="fa-regular fa-square-check me-2" />{selectionMode ? "Cancelar seleção" : "Selecionar"}
+          </Button>
+          <Button type="button" variant="outline-light" onClick={createAlbum}>
+            <i className="fa-regular fa-folder-open me-2" />Novo álbum
+          </Button>
+          {publicSlug && (
+            <Button
+              as="a"
+              variant="outline-light"
+              href={`/production/${publicSlug}/public#galeria`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <i className="fa-regular fa-eye me-2" />Ver como visitante
+            </Button>
+          )}
+        </div>
+
+        <div className="cut-gallery-manager__toolbar-secondary">
+          <div className="cut-gallery-manager__mode" role="group" aria-label="Modo da galeria">
+            <button type="button" className={mode === "manage" ? "is-active" : ""} onClick={() => setMode("manage")}>Gerenciar</button>
+            <button type="button" className={mode === "view" ? "is-active" : ""} onClick={() => { setMode("view"); exitSelection(); }}>Visualizar</button>
+          </div>
+          <Form.Select
+            size="sm"
+            value={sortMode}
+            onChange={(event) => setSortMode(event.target.value)}
+            aria-label="Ordenação da galeria"
+          >
+            <option value="custom">Ordem personalizada</option>
+            <option value="recent">Mais recentes</option>
+          </Form.Select>
+          {orderStatus && <span className="cut-gallery-manager__order-status"><i className="fa-solid fa-check" />{orderStatus}</span>}
+        </div>
+      </div>
+
+      {localAlbums.length > 0 && (
+        <div className="cut-gallery-manager__albums" aria-label="Álbuns da produção">
+          <span>Álbuns:</span>
+          {localAlbums.map((album) => (
+            <span className="cut-gallery-manager__album" key={album.id}>
+              <i className="fa-regular fa-folder" />{album.name}
+              <button type="button" onClick={() => deleteAlbum(album)} aria-label={`Remover álbum ${album.name}`}><i className="fa-solid fa-xmark" /></button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {selectionMode && (
+        <div className="cut-gallery-manager__selection">
+          <strong>{selectedCount} {selectedCount === 1 ? "foto selecionada" : "fotos selecionadas"}</strong>
+          <div>
+            <Button type="button" size="sm" variant="outline-light" onClick={selectAll}>Selecionar todas</Button>
+            <Button type="button" size="sm" variant="danger" disabled={!selectedCount} onClick={() => deleteIds(Array.from(selectedIds))}>
+              <i className="fa-regular fa-trash-can me-2" />Remover
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {message && <Alert variant="success" dismissible onClose={() => setMessage("")}>{message}</Alert>}
+      {error && <Alert variant="danger" dismissible onClose={() => setError("")}>{error}</Alert>}
+      {undo && (
+        <Alert variant="warning" className="cut-gallery-manager__undo">
+          <span>Você removeu {undo.ids.length === 1 ? "uma foto" : `${undo.ids.length} fotos`}.</span>
+          <Button type="button" size="sm" variant="warning" onClick={undoDelete}>Desfazer</Button>
+        </Alert>
+      )}
+
+      <div
+        className={`cut-gallery-dropzone ${dropActive ? "is-active" : ""} ${remaining <= 0 ? "is-disabled" : ""}`}
+        onDragEnter={(event) => { event.preventDefault(); if (remaining > 0) setDropActive(true); }}
+        onDragOver={(event) => event.preventDefault()}
+        onDragLeave={(event) => { if (event.currentTarget === event.target) setDropActive(false); }}
+        onDrop={onDrop}
+        onClick={() => remaining > 0 && inputRef.current?.click()}
+        role="button"
+        tabIndex={remaining > 0 ? 0 : -1}
+        onKeyDown={(event) => {
+          if (remaining > 0 && (event.key === "Enter" || event.key === " ")) {
+            event.preventDefault();
+            inputRef.current?.click();
+          }
+        }}
+        aria-label="Adicionar fotos à galeria"
+      >
+        <i className="fa-solid fa-cloud-arrow-up" />
+        <div>
+          <strong>{remaining > 0 ? "Arraste fotos para cá ou clique para escolher" : "Galeria completa"}</strong>
+          <span>{remaining > 0 ? `JPG, PNG ou WebP · até 10 MB por foto · ${remaining} espaços disponíveis` : `Limite de ${LIMIT} fotos atingido`}</span>
+        </div>
+      </div>
+
+      {queue.length > 0 && (
+        <section className="cut-gallery-upload-queue" aria-label="Fila de envio">
+          <div className="cut-gallery-upload-queue__head">
+            <div>
+              <strong>Fila de upload</strong>
+              <span>{queue.length} {queue.length === 1 ? "arquivo" : "arquivos"}</span>
+            </div>
+            <div>
+              {queue.some((item) => item.status === "done") && <Button type="button" size="sm" variant="outline-light" onClick={clearCompletedQueue}>Limpar concluídos</Button>}
+              {uploading && <Button type="button" size="sm" variant="outline-danger" onClick={cancelAllUploads}>Cancelar envios</Button>}
+              <Button type="button" size="sm" disabled={uploading || !queue.some((item) => ["pending", "error", "cancelled"].includes(item.status))} onClick={uploadQueue}>
+                {uploading ? "Enviando..." : "Publicar selecionadas"}
+              </Button>
+            </div>
+          </div>
+          {uploading && <ProgressBar now={overallUploadProgress} label={`${overallUploadProgress}%`} />}
+          <div className="cut-gallery-upload-queue__items">
+            {queue.map((item) => (
+              <article key={item.id} className={`cut-gallery-upload-item is-${item.status}`}>
+                <img src={item.preview} alt="" />
+                <div className="cut-gallery-upload-item__body">
+                  <div className="cut-gallery-upload-item__name">
+                    <strong title={item.file.name}>{item.file.name}</strong>
+                    <span>{humanBytes(item.file.size)}</span>
+                  </div>
+                  <Form.Control
+                    size="sm"
+                    value={item.caption}
+                    maxLength={180}
+                    disabled={item.status === "uploading" || item.status === "done"}
+                    onChange={(event) => updateQueueItem(item.id, { caption: event.target.value })}
+                    placeholder="Legenda individual opcional"
+                    aria-label={`Legenda de ${item.file.name}`}
+                  />
+                  {(item.status === "uploading" || item.progress > 0) && <ProgressBar now={item.progress} />}
+                  {item.error && <small className="text-danger">{item.error}</small>}
+                  {item.warnings?.map((warning, index) => <small className="text-warning" key={index}>{warning}</small>)}
+                </div>
+                <button
+                  type="button"
+                  className="cut-gallery-upload-item__remove"
+                  onClick={() => removeQueueItem(item.id)}
+                  aria-label={item.status === "uploading" ? `Cancelar envio de ${item.file.name}` : `Remover ${item.file.name} da fila`}
+                  title={item.status === "uploading" ? "Cancelar envio" : "Remover da fila"}
+                >
+                  <i className="fa-solid fa-xmark" />
+                </button>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {items.length === 0 ? (
+        <div className="cut-gallery-manager__empty">
+          <i className="fa-regular fa-images" />
+          <strong>Sua galeria ainda está vazia</strong>
+          <p>
+            {productionType === "fixed"
+              ? "Comece com fotos da entrada, pista, palco, bar, camarote, mesas e área externa."
+              : "Comece com eventos anteriores, bastidores, estrutura, equipe e momentos que representem sua produção."}
+          </p>
+          <Button type="button" onClick={() => inputRef.current?.click()}><i className="fa-solid fa-plus me-2" />Adicionar primeiras fotos</Button>
+        </div>
+      ) : (
+        <div className={`cut-gallery-manager__grid is-${mode}`}>
+          {displayedItems.map((item, index) => {
+            const selected = selectedIds.has(Number(item.id));
+            return (
+              <article
+                key={item.id}
+                className={`cut-gallery-card ${selected ? "is-selected" : ""} ${item.is_featured ? "is-featured" : ""}`}
+                draggable={mode === "manage" && sortMode === "custom" && !selectionMode}
+                onDragStart={() => setDraggedId(item.id)}
+                onDragOver={(event) => { if (draggedId) event.preventDefault(); }}
+                onDrop={(event) => { event.preventDefault(); handleDropOnCard(item.id); }}
+              >
+                <button
+                  type="button"
+                  className="cut-gallery-card__image"
+                  onClick={() => selectionMode ? toggleSelected(item.id) : openEditor(item)}
+                  aria-label={selectionMode ? `${selected ? "Desmarcar" : "Selecionar"} foto ${index + 1}` : `Abrir foto ${index + 1}`}
+                >
+                  <img
+                    src={item.thumbnail_url || item.url}
+                    alt={item.alt_text || item.caption || `Foto de ${productionName}`}
+                    loading="lazy"
+                    decoding="async"
+                    style={{ objectPosition: `${item.focal_x ?? 50}% ${item.focal_y ?? 50}%` }}
+                  />
+                </button>
+
+                {item.is_featured && <span className="cut-gallery-card__featured"><i className="fa-solid fa-star" />Destaque</span>}
+                {item.album_id && <span className="cut-gallery-card__album"><i className="fa-regular fa-folder" />{localAlbums.find((album) => Number(album.id) === Number(item.album_id))?.name || "Álbum"}</span>}
+                {selectionMode && (
+                  <button type="button" className={`cut-gallery-card__check ${selected ? "is-selected" : ""}`} onClick={() => toggleSelected(item.id)} aria-label={selected ? "Desmarcar foto" : "Selecionar foto"}>
+                    <i className={selected ? "fa-solid fa-circle-check" : "fa-regular fa-circle"} />
+                  </button>
+                )}
+
+                {mode === "manage" && !selectionMode && (
+                  <>
+                    <div className="cut-gallery-card__index" title="Arraste para reorganizar">
+                      <i className="fa-solid fa-grip" />
+                      <span>{String(index + 1).padStart(2, "0")}</span>
+                    </div>
+                    <button type="button" className="cut-gallery-card__edit" onClick={() => openEditor(item)} aria-label={`Gerenciar foto ${index + 1}`} title="Gerenciar foto">
+                      <i className="fa-solid fa-ellipsis" />
+                    </button>
+                    {sortMode === "custom" && (
+                      <div className="cut-gallery-card__move" aria-label="Alterar posição">
+                        <button type="button" disabled={index === 0} onClick={() => moveItem(item.id, -1)} aria-label="Mover foto para trás"><i className="fa-solid fa-chevron-left" /></button>
+                        <button type="button" disabled={index === displayedItems.length - 1} onClick={() => moveItem(item.id, 1)} aria-label="Mover foto para frente"><i className="fa-solid fa-chevron-right" /></button>
+                      </div>
+                    )}
+                  </>
+                )}
+                {item.caption && <div className="cut-gallery-card__caption">{item.caption}</div>}
+              </article>
+            );
+          })}
+        </div>
+      )}
+
+      <Modal show={Boolean(editing)} onHide={() => !editBusy && setEditing(null)} centered size="lg" className="cut-gallery-editor-modal" backdrop={editBusy ? "static" : true} keyboard={!editBusy}>
+        <Modal.Header closeButton={!editBusy}>
+          <Modal.Title>Gerenciar foto</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {editing && (
+            <div className="cut-gallery-editor">
+              <div className="cut-gallery-editor__preview">
+                <img
+                  src={editing.url}
+                  alt={editAlt || editCaption || `Foto de ${productionName}`}
+                  style={{ objectPosition: `${editFocalX}% ${editFocalY}%` }}
+                />
+                <div className="cut-gallery-editor__preview-actions">
+                  <Button type="button" size="sm" variant="dark" disabled={editBusy} onClick={() => rotate(90)}><i className="fa-solid fa-rotate-right me-2" />Girar</Button>
+                  <Form.Label className="btn btn-sm btn-dark mb-0">
+                    <i className="fa-solid fa-image me-2" />Substituir
+                    <Form.Control type="file" hidden accept="image/jpeg,image/png,image/webp" onChange={replaceImage} disabled={editBusy} />
+                  </Form.Label>
+                </div>
+                {replaceProgress > 0 && <ProgressBar now={replaceProgress} label={`${replaceProgress}%`} />}
+              </div>
+
+              <div className="cut-gallery-editor__form">
+                <Form.Group>
+                  <Form.Label>Legenda</Form.Label>
+                  <Form.Control as="textarea" rows={3} maxLength={180} value={editCaption} onChange={(event) => setEditCaption(event.target.value)} placeholder="Explique o que aparece nesta foto." />
+                  <Form.Text>{editCaption.length}/180</Form.Text>
+                </Form.Group>
+
+                <Form.Group>
+                  <div className="d-flex align-items-center justify-content-between gap-2 mb-1">
+                    <Form.Label className="mb-0">Texto alternativo</Form.Label>
+                    <Button type="button" size="sm" variant="outline-light" onClick={suggestAlt}>Sugerir</Button>
+                  </div>
+                  <Form.Control maxLength={255} value={editAlt} onChange={(event) => setEditAlt(event.target.value)} placeholder="Descreva a imagem para acessibilidade e SEO." />
+                </Form.Group>
+
+                <Form.Group>
+                  <Form.Label>Álbum</Form.Label>
+                  <Form.Select value={editAlbumId} onChange={(event) => setEditAlbumId(event.target.value)}>
+                    <option value="">Galeria principal</option>
+                    {localAlbums.map((album) => <option key={album.id} value={album.id}>{album.name}</option>)}
+                  </Form.Select>
+                </Form.Group>
+
+                <div className="cut-gallery-editor__focal">
+                  <div>
+                    <Form.Label>Enquadramento horizontal</Form.Label>
+                    <Form.Range min={0} max={100} value={editFocalX} onChange={(event) => setEditFocalX(Number(event.target.value))} />
+                  </div>
+                  <div>
+                    <Form.Label>Enquadramento vertical</Form.Label>
+                    <Form.Range min={0} max={100} value={editFocalY} onChange={(event) => setEditFocalY(Number(event.target.value))} />
+                  </div>
+                </div>
+
+                <Form.Check
+                  type="switch"
+                  id="production-media-featured"
+                  checked={editFeatured}
+                  onChange={(event) => setEditFeatured(event.target.checked)}
+                  label="Destacar esta foto na galeria"
+                />
+
+                <div className="cut-gallery-editor__meta">
+                  {editing.width && editing.height && <span><i className="fa-solid fa-expand" />{editing.width} × {editing.height}</span>}
+                  {editing.file_size && <span><i className="fa-regular fa-file-image" />{humanBytes(editing.file_size)}</span>}
+                  {editing.created_at && <span><i className="fa-regular fa-clock" />{new Date(editing.created_at).toLocaleDateString("pt-BR")}</span>}
+                </div>
+
+                <div className="cut-gallery-editor__secondary-actions">
+                  <Button type="button" variant="outline-light" disabled={editBusy} onClick={useAsCover}><i className="fa-regular fa-image me-2" />Usar como capa</Button>
+                  {editing.original_url && <Button as="a" variant="outline-light" href={editing.original_url} target="_blank" rel="noopener noreferrer"><i className="fa-solid fa-arrow-down me-2" />Abrir original</Button>}
+                  <Button type="button" variant="outline-danger" disabled={editBusy} onClick={() => deleteIds([Number(editing.id)])}><i className="fa-regular fa-trash-can me-2" />Remover</Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button type="button" variant="outline-light" disabled={editBusy} onClick={() => setEditing(null)}>Cancelar</Button>
+          <Button type="button" disabled={editBusy} onClick={saveEdit}>{editBusy ? "Salvando..." : "Salvar alterações"}</Button>
+        </Modal.Footer>
+      </Modal>
+    </div>
+  );
+}
+
+ProductionGalleryManager.propTypes = {
+  organizationId: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+  productionName: PropTypes.string.isRequired,
+  productionType: PropTypes.string,
+  media: PropTypes.arrayOf(PropTypes.object),
+  albums: PropTypes.arrayOf(PropTypes.object),
+  publicSlug: PropTypes.string,
+  onMediaChange: PropTypes.func,
+  onAlbumsChange: PropTypes.func,
+  onCoverChange: PropTypes.func,
+};
