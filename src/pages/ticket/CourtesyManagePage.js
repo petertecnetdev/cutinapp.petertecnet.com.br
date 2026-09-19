@@ -1,3 +1,4 @@
+import { showConfirmation } from "../../utils/sweetAlert";
 import React, { useEffect, useMemo, useState } from "react";
 import { Alert, Badge, Button, Card, Col, Container, Form, Row } from "react-bootstrap";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
@@ -111,7 +112,7 @@ export default function CourtesyManagePage() {
   };
 
   const remove = async (ticket) => {
-    if (!window.confirm(`Remover o ingresso “${ticket.name}”?`)) return;
+    if (!(await showConfirmation({ title: "Remover ingresso?", text: `O ingresso “${ticket.name}” será removido.`, confirmButtonText: "Remover" }))) return;
     setBusyId(ticket.id);
     setError("");
     setSuccess("");
