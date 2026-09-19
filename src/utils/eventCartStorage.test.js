@@ -1,10 +1,30 @@
-import { clearEventCart, isFulfilledCheckoutResult, writeEventCart } from "./eventCartStorage";
+import { clearEventCart, isFulfilledCheckoutResult, mergeEventCartTickets, writeEventCart } from "./eventCartStorage";
 import { readCheckoutRecovery, writeCheckoutRecovery } from "./checkoutRecovery";
 
 describe("fulfilled checkout storage cleanup", () => {
   beforeEach(() => {
     window.localStorage.clear();
     window.sessionStorage.clear();
+  });
+
+  test("merges production ticket selections into the same canonical event cart", () => {
+    const result = mergeEventCartTickets({
+      eventId: 77,
+      eventDate: "2026-09-20T20:00:00-03:00",
+      tickets: [{ id: 1, quantity: 2 }],
+      items: [{ id: 9, quantity: 1 }],
+    }, [
+      { id: 1, quantity: 3, maxQuantity: 4 },
+      { id: 2, quantity: 2, maxQuantity: 5 },
+    ]);
+
+    expect(result.selection.tickets).toEqual([
+      { id: 1, quantity: 4 },
+      { id: 2, quantity: 2 },
+    ]);
+    expect(result.selection.items).toEqual([{ id: 9, quantity: 1 }]);
+    expect(result.addedQuantity).toBe(4);
+    expect(result.itemCount).toBe(7);
   });
 
   test("recognizes only paid orders with completed fulfillment", () => {
