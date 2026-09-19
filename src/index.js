@@ -68,6 +68,7 @@ import { installEventFlyerBackground } from "./utils/eventFlyerBackground";
 import { trackTelemetry } from "./utils/telemetry";
 import { installOverlayLayoutManager } from "./utils/overlayLayoutManager";
 import { installGlobalSweetAlertBridge } from "./utils/sweetAlert";
+import { installFrontendErrorMonitoring } from "./utils/frontendErrorMonitoring";
 
 installGlobalSweetAlertBridge();
 installGlobalImageFallbacks();
@@ -76,6 +77,7 @@ installEventViewScrollReset();
 installCartCompletionCleanup();
 installPersistentCart();
 installOverlayLayoutManager();
+installFrontendErrorMonitoring();
 
 if (typeof window !== "undefined") {
   let scrollTimer;
