@@ -1,0 +1,61 @@
+/*
+ * Cutinapp global style entry.
+ * Keep the application bundle pointed at this file only. Internal layers stay
+ * split by responsibility so the cascade remains maintainable while avoiding
+ * dozens of independent CSS entry imports in src/index.js.
+ */
+
+/* 1. Foundation: tokens, reset/base and layout */
+@import "./tokens.css";
+@import "./global.css";
+@import "./layout.css";
+
+/* 2. Shared primitives and components */
+@import "./design-system-primitives.css";
+@import "./components.css";
+@import "./domains.css";
+@import "./community.css";
+@import "./social-network.css";
+@import "./profile-actors.css";
+
+/* 3. Responsive and navigation */
+@import "./responsive.css";
+@import "./nexus-mobile-nav.css";
+@import "./mobile-stability.css";
+@import "./peter-navbar-standard.css";
+@import "./cutinapp-mobile-final.css";
+@import "./advanced-navbar.css";
+@import "./instagram-mobile-shell.css";
+@import "./mobile-footer-regression-fixes.css";
+@import "./mobile-navigation-v2.css";
+@import "./mobile-hamburger-recovery.css";
+@import "./desktop-navbar-overflow-fix.css";
+@import "./responsive-hardening.css";
+@import "./navbar-fixed-top.css";
+
+/* 4. Feature presentation */
+@import "../pages/HomeDiscovery.css";
+@import "./logo-theme.css";
+@import "./interactive-effects.css";
+@import "./error-boundary.css";
+@import "./checkout-recovery-cta.css";
+@import "./peter-branding-bridge.css";
+@import "./event-view-mobile-cleanup.css";
+@import "./event-view-polish.css";
+@import "./event-flyer-background.css";
+@import "./event-view-shotgun-layout.css";
+@import "./messages-mobile-composer-spacing.css";
+@import "./global-search-overlay.css";
+@import "../pages/checkout/Coupon.css";
+@import "./cart-menu-safe-layer.css";
+@import "./event-view-premium-hero.css";
+@import "./overlay-layout-system.css";
+
+/* 5. System polish. Keep these late because they intentionally refine legacy rules. */
+@import "./apple-glass-system.css";
+@import "./apple-glass-polish.css";
+@import "./ux-quality-system.css";
+@import "./cutinapp-cinematic-glass.css";
+
+/* 6. Performance must stay last so low-cost scroll/mobile overrides win. */
+@import "./performance.css";
