@@ -248,7 +248,30 @@ export default function ProductionUpdatePage() {
   };
 
   const toggleGalleryManager = useCallback(() => {
-    setGalleryManagerOpen((value) => !value);
+    setGalleryManagerOpen((value) => {
+      const next = !value;
+      if (typeof window !== "undefined" && window.history?.replaceState) {
+        const nextUrl = new URL(window.location.href);
+        nextUrl.hash = next ? "production-editor-gallery" : "";
+        window.history.replaceState(window.history.state, "", nextUrl);
+      }
+      if (next) {
+        window.requestAnimationFrame(() => document.getElementById("production-editor-gallery")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+      }
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    const syncGalleryFromHash = () => {
+      const shouldOpen = String(window.location.hash || "").replace(/^#/, "") === "production-editor-gallery";
+      if (!shouldOpen) return;
+      setGalleryManagerOpen(true);
+      window.requestAnimationFrame(() => document.getElementById("production-editor-gallery")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    };
+    syncGalleryFromHash();
+    window.addEventListener("hashchange", syncGalleryFromHash);
+    return () => window.removeEventListener("hashchange", syncGalleryFromHash);
   }, []);
 
   const handleGalleryCoverChange = useCallback((cover) => {
@@ -286,6 +309,11 @@ export default function ProductionUpdatePage() {
   } : undefined;
   const mapEmbedUrl = mapQuery ? `https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed` : "";
   const pendingImages = Boolean(logo || background);
+  const locationReady = Boolean(
+    (form.latitude && form.longitude)
+    || form.formatted_address
+    || (form.city && form.uf)
+  );
 
   return (
     <div className="cut-app-page cut-production-themed-page cut-production-inline-editor" style={pageStyle} onBlur={handleFormBlur}>
@@ -522,7 +550,7 @@ export default function ProductionUpdatePage() {
                 <span className="cut-eyebrow">Editar galeria</span>
                 <h2>Gerencie as fotos sem sair da página</h2>
               </div>
-              <Button type="button" variant="outline-light" onClick={() => setGalleryManagerOpen(false)}><i className="fa-regular fa-eye me-2" />Voltar à visualização</Button>
+              <Button type="button" variant="outline-light" onClick={toggleGalleryManager}><i className="fa-regular fa-eye me-2" />Voltar à visualização</Button>
             </div>
             <MemoProductionGalleryManager
               organizationId={id}
@@ -532,6 +560,7 @@ export default function ProductionUpdatePage() {
               albums={galleryAlbums}
               publicSlug={publicSlug}
               coverUrl={bgPreview}
+              locationReady={locationReady}
               onMediaChange={setGalleryMedia}
               onAlbumsChange={setGalleryAlbums}
               onCoverChange={handleGalleryCoverChange}
