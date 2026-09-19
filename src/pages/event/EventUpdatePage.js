@@ -3,7 +3,7 @@ import { Alert, Button, Card, Col, Container, Form, Row } from "react-bootstrap"
 import { useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
-import { EventHealthBadge, EventMetrics } from "../../components/event/EventManagerEnhancements";
+import { EventMetrics } from "../../components/event/EventManagerEnhancements";
 import EventProductSalesManager from "../../components/event/EventProductSalesManager";
 import EventExperienceEditorSurface from "../../components/event/EventExperienceEditorSurface";
 import useAutoSave from "../../hooks/useAutoSave";
