@@ -415,9 +415,9 @@ export const showProducerAgreementRequired = ({
   productionName = "esta produção",
 } = {}) => showImportantAlert({
   title: "Termo de adesão pendente",
-  text: `Antes de criar o primeiro evento de ${productionName}, é necessário ler e assinar o termo de adesão.`,
+  text: `Para ativar vendas de ingressos pagos em ${productionName}, o responsável pela produção precisa ler e assinar o termo de adesão. O evento pode ser preparado antes da assinatura.`,
   icon: "warning",
-  confirmButtonText: "Ler e assinar agora",
+  confirmButtonText: "Revisar e assinar",
   cancelButtonText: "Agora não",
   showCancelButton: true,
   allowOutsideClick: false,

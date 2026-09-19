@@ -3,6 +3,7 @@ import { Button, Card, Col, Container, Form, Row } from "react-bootstrap";
 import { useLocation, useNavigate } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
+import { loadApplicationAdminContext } from "../../components/ApplicationAdminGate";
 import CityAutocompleteControl from "../../components/location/CityAutocompleteControl";
 import eventService from "../../services/EventService";
 import cutinappService from "../../services/CutinappService";
@@ -10,6 +11,7 @@ import creativeService from "../../services/CreativeService";
 import { storageUrl } from "../../config";
 import { AuthContext } from "../../context/AuthContext";
 import { clearEventCreationDraft, readEventCreationDraft, writeEventCreationDraft } from "../../utils/eventCreationDraft";
+import { isPeterTecnetRoot } from "../../utils/applicationRoles";
 import { showImportantAlert, showProducerAgreementRequired } from "../../utils/sweetAlert";
 import { EVENT_POSTER_HINT, validateEventPosterFile } from "../../utils/eventPoster";
 
@@ -162,6 +164,7 @@ export default function EventCreatePage() {
   const [submitted, setSubmitted] = useState(false);
   const [optionalDetailsOpen, setOptionalDetailsOpen] = useState(false);
   const [draftRestored, setDraftRestored] = useState(false);
+  const [adminAuthorized, setAdminAuthorized] = useState(null);
   const [existingEvents, setExistingEvents] = useState([]);
   const [existingEventsLoading, setExistingEventsLoading] = useState(false);
   const [reusePickerOpen, setReusePickerOpen] = useState(false);
@@ -189,6 +192,31 @@ export default function EventCreatePage() {
     if (!productionId) return;
     navigate(agreementUrl(productionId));
   };
+
+  useEffect(() => {
+    let active = true;
+
+    if (!user) {
+      setAdminAuthorized(false);
+      return () => { active = false; };
+    }
+
+    if (isPeterTecnetRoot(user)) {
+      setAdminAuthorized(true);
+      return () => { active = false; };
+    }
+
+    setAdminAuthorized(null);
+    loadApplicationAdminContext()
+      .then((context) => {
+        if (active) setAdminAuthorized(Boolean(context?.authorized));
+      })
+      .catch(() => {
+        if (active) setAdminAuthorized(false);
+      });
+
+    return () => { active = false; };
+  }, [user]);
 
   useEffect(() => {
     if (!draftOwnerId) return;
@@ -235,6 +263,7 @@ export default function EventCreatePage() {
 
   useEffect(() => {
     const productionId = String(form.production_id || "");
+    if (adminAuthorized === null || adminAuthorized) return undefined;
     if (!productionId || loadingProductions || agreementChecksRef.current.has(productionId)) return undefined;
 
     agreementChecksRef.current.add(productionId);
@@ -254,13 +283,13 @@ export default function EventCreatePage() {
       });
 
     return () => { active = false; };
-  }, [form.production_id, loadingProductions, productions]);
+  }, [adminAuthorized, form.production_id, loadingProductions, productions]);
 
   useEffect(() => {
-    if (!error) return;
+    if (!error || adminAuthorized === null) return;
     const message = error;
     const productionId = String(form.production_id || "");
-    const requiresAgreement = /termo de adesão|primeiro evento/i.test(message);
+    const requiresAgreement = adminAuthorized === false && /termo de adesão|contrato do produtor|assinar.*termo/i.test(message);
     setError("");
 
     void (async () => {
@@ -280,7 +309,7 @@ export default function EventCreatePage() {
         confirmButtonText: "Entendi",
       });
     })();
-  }, [error, form.production_id, productions]);
+  }, [adminAuthorized, error, form.production_id, productions]);
 
   useEffect(() => {
     let active = true;
