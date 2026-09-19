@@ -2,9 +2,9 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Badge, Button, Container, Form, Modal, Spinner } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
+import EventArtwork from "../../components/event/EventArtwork";
 import appApiClient from "../../services/AppApiClient";
 import applicationAdminEventService from "../../services/ApplicationAdminEventService";
-import { storageUrl } from "../../config";
 import "./ApplicationAdminEventsPage.css";
 
 const PAGE_SIZE = 12;
@@ -29,12 +29,6 @@ const formatEventDate = (value) => {
     minute: "2-digit",
     timeZone: "America/Sao_Paulo",
   }).format(date);
-};
-
-const eventImage = (event) => {
-  if (!event?.image) return "";
-  const image = String(event.image);
-  return /^https?:\/\//i.test(image) ? image : `${storageUrl}${image.replace(/^\/+/, "")}`;
 };
 
 const eventStatus = (event) => {
@@ -230,7 +224,6 @@ export default function ApplicationAdminEventsPage() {
 
       {loading && !events.length ? <div className="text-center py-5"><Spinner /><p className="mt-2">Carregando eventos...</p></div> : <div className="cut-admin-event-list">
         {events.map((event) => {
-          const image = eventImage(event);
           const status = eventStatus(event);
           const eventId = Number(event.id);
           const selected = selectedEventIds.includes(eventId);
@@ -245,7 +238,7 @@ export default function ApplicationAdminEventsPage() {
             </div>
             <button type="button" className="cut-admin-event-row__main" onClick={() => navigate(`/event/edit/${event.id}`)} aria-label={`Editar ${event.title || "evento"}`}>
               <div className="cut-admin-event-row__media">
-                {image ? <img src={image} alt="" loading="lazy" decoding="async" /> : <i className="fa-regular fa-calendar" aria-hidden="true" />}
+                <EventArtwork image={event.image} title={event.title} alt="" loading="lazy" decoding="async" />
               </div>
               <div className="cut-admin-event-row__content">
                 <div className="cut-admin-event-row__title-line">
