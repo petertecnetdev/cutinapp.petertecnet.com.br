@@ -24,7 +24,6 @@ const productionIsValid = (value) => {
   if (!value?.name || value.name.trim().length < 2) return false;
   const cnpjDigits = String(value.cnpj || "").replace(/\D/g, "");
   if (cnpjDigits !== "" && cnpjDigits.length !== 14) return false;
-  if ((value.city || value.uf) && !value.city_id) return false;
   return true;
 };
 
@@ -86,7 +85,6 @@ export default function ProductionUpdatePage() {
   const nameInvalid = submitted && (!form?.name || form.name.trim().length < 2);
   const cnpjDigits = String(form?.cnpj || "").replace(/\D/g, "");
   const cnpjInvalid = submitted && cnpjDigits !== "" && cnpjDigits.length !== 14;
-  const locationInvalid = submitted && Boolean((form?.city || form?.uf) && !form?.city_id);
   const canSave = useMemo(() => Boolean(form?.name?.trim()) && !saving, [form, saving]);
 
   const persistProduction = async (nextForm, { includeFiles = false, silent = false } = {}) => {
@@ -109,7 +107,11 @@ export default function ProductionUpdatePage() {
       profile.location_public = Boolean(nextForm.location_public);
       await cutinappService.updateProductionExperience(id, profile);
 
-      if (response?.production) setProductionMeta((current) => ({ ...current, ...response.production }));
+      if (response?.production) {
+        setProductionMeta((current) => ({ ...current, ...response.production }));
+        if (includeFiles && logo && response.production.logo) setLogoPreview(media(response.production.logo));
+        if (includeFiles && background && response.production.background) setBgPreview(media(response.production.background));
+      }
       if (includeFiles) {
         setLogo(null);
         setBackground(null);
@@ -166,7 +168,7 @@ export default function ProductionUpdatePage() {
     setError("");
     setFieldErrors({});
     if (!productionIsValid(form)) {
-      setError(locationInvalid ? "Selecione a cidade pela lista oficial antes de salvar." : "Revise os campos destacados antes de salvar.");
+      setError("Revise os campos destacados antes de salvar.");
       return;
     }
     try { await persistProduction(form, { includeFiles: true, silent: false }); } catch { /* mensagem já exibida */ }
@@ -246,7 +248,6 @@ export default function ProductionUpdatePage() {
 
         <EditorSection id="production-editor-location" eyebrow="Seção Localização" title="Onde acontece" hint="Os dados abaixo alimentam endereço, mapa e contexto geográfico da view.">
           <LocationFields value={form} onChange={setForm} showPublicToggle />
-          {locationInvalid && <Alert variant="warning" className="mt-3 mb-0">Selecione a cidade na lista de resultados.</Alert>}
         </EditorSection>
 
         <EditorSection id="production-editor-social" eyebrow="Ações da view" title="Contato e links" hint="Links públicos ficam próximos às ações principais da produção.">
