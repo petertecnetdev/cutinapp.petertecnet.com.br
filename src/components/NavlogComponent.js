@@ -21,6 +21,7 @@ import {
   readNavigationUsage,
 } from "../navigation/navigationRegistry";
 import NotificationPermissionControl from "./NotificationPermissionControl";
+import { getMobileRuntimeProfile, scheduleIdleWork } from "../utils/mobilePerformance";
 
 const CAPABILITY_CACHE_TTL = 5 * 60 * 1000;
 const capabilityCacheKey = (userId) => `cutinapp:navigation-capabilities:${userId || "guest"}`;
@@ -148,7 +149,9 @@ export default function NavlogComponent() {
     }
 
     let mounted = true;
+    const profile = getMobileRuntimeProfile();
     const refreshInvitations = async () => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
       try {
         const response = await artistService.invitations({ per_page: 1 });
         if (mounted) setPendingArtistInvitations(Number(response?.pending_count || 0));
@@ -157,12 +160,16 @@ export default function NavlogComponent() {
       }
     };
 
-    refreshInvitations();
-    const timer = window.setInterval(refreshInvitations, 60000);
+    const cancelInitial = scheduleIdleWork(refreshInvitations, {
+      timeout: profile.constrainedNetwork ? 3200 : 1800,
+      fallbackDelay: profile.mobile ? 900 : 500,
+    });
+    const timer = window.setInterval(refreshInvitations, profile.constrainedNetwork ? 180000 : 90000);
     window.addEventListener("focus", refreshInvitations);
     window.addEventListener("cutinapp:artist-invitations-updated", refreshInvitations);
     return () => {
       mounted = false;
+      cancelInitial();
       window.clearInterval(timer);
       window.removeEventListener("focus", refreshInvitations);
       window.removeEventListener("cutinapp:artist-invitations-updated", refreshInvitations);
@@ -172,28 +179,34 @@ export default function NavlogComponent() {
   useEffect(() => {
     if (!userId) { setUnreadNotifications(0); setNotificationPreview([]); return undefined; }
     let mounted = true;
+    const profile = getMobileRuntimeProfile();
+    const previewSize = profile.mobile ? 4 : 6;
     const refresh = async () => {
       if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
       try {
-        const response = await cutinappService.notifications({ per_page: 6 });
+        const response = await cutinappService.notifications({ per_page: previewSize });
         if (!mounted) return;
         setUnreadNotifications(Number(response?.unread_count || 0));
         setNotificationPreview(response?.notifications?.data || []);
       } catch (_) { /* notifications never block navigation */ }
     };
     const onVisible = () => document.visibilityState === "visible" && refresh();
-    refresh();
+    const cancelInitial = scheduleIdleWork(refresh, {
+      timeout: profile.constrainedNetwork ? 2800 : 1500,
+      fallbackDelay: profile.mobile ? 700 : 350,
+    });
     const disconnect = subscribeToUserNotifications(userId, (notification) => {
       if (!mounted) return;
       if (!notification?.read_at) setUnreadNotifications((current) => current + 1);
-      setNotificationPreview((current) => [notification, ...current.filter((entry) => entry?.id !== notification?.id)].slice(0, 6));
+      setNotificationPreview((current) => [notification, ...current.filter((entry) => entry?.id !== notification?.id)].slice(0, previewSize));
     });
-    const timer = window.setInterval(refresh, 60000);
+    const timer = window.setInterval(refresh, profile.constrainedNetwork ? 180000 : 90000);
     window.addEventListener("focus", refresh);
     window.addEventListener("cutinapp:notifications-updated", refresh);
     document.addEventListener("visibilitychange", onVisible);
     return () => {
       mounted = false;
+      cancelInitial();
       if (typeof disconnect === "function") disconnect();
       window.clearInterval(timer);
       window.removeEventListener("focus", refresh);
@@ -297,10 +310,10 @@ export default function NavlogComponent() {
       </Navbar>
 
       <nav className="cut-mobile-bottom-nav" aria-label="Navegação principal mobile">
-        <Link to="/feed" className={active("/feed") ? "active" : ""} aria-current={active("/feed") ? "page" : undefined}><i className="fa-solid fa-bolt" /><span>Feed</span></Link>
+        <Link to="/feed" className={active("/feed") ? "active" : ""} aria-current={active("/feed") ? "page" : undefined}><i className="fa-solid fa-house" /><span>Início</span></Link>
         <Link to="/search" className={active("/search") ? "active" : ""} aria-current={active("/search") ? "page" : undefined}><i className="fa-solid fa-magnifying-glass" /><span>Buscar</span></Link>
         <Link to="/event" className={active("/event") ? "active" : ""} aria-current={active("/event") ? "page" : undefined}><i className="fa-regular fa-calendar-days" /><span>Eventos</span></Link>
-        <Link to="/messages" className={active("/messages") ? "active" : ""} aria-current={active("/messages") ? "page" : undefined} aria-label="Mensagens"><i className="fa-regular fa-paper-plane" /><span>Mensagens</span></Link>
+        <Link to="/passes" className={active("/passes") ? "active" : ""} aria-current={active("/passes") ? "page" : undefined} aria-label="Meus ingressos"><i className="fa-solid fa-ticket" /><span>Ingressos</span></Link>
         <Link to="/profile" className={active("/profile") ? "active" : ""} aria-current={active("/profile") ? "page" : undefined}><i className="fa-regular fa-user" /><span>Perfil</span></Link>
       </nav>
     </>
