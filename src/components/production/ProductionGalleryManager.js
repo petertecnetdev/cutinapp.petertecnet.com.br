@@ -928,6 +928,13 @@ export default function ProductionGalleryManager({
           </p>
           <Button type="button" onClick={() => inputRef.current?.click()}><i className="fa-solid fa-plus me-2" />Adicionar primeiras fotos</Button>
         </div>
+      ) : displayedItems.length === 0 ? (
+        <div className="cut-gallery-manager__filter-empty">
+          <i className="fa-regular fa-folder-open" />
+          <strong>Nenhuma foto neste filtro</strong>
+          <span>Escolha outro álbum ou volte para “Todas as fotos”.</span>
+          <Button type="button" size="sm" variant="outline-light" onClick={() => setFilterAlbum("all")}>Mostrar todas</Button>
+        </div>
       ) : (
         <div className={`cut-gallery-manager__grid is-${mode}`}>
           {displayedItems.map((item, index) => {
@@ -944,8 +951,12 @@ export default function ProductionGalleryManager({
                 <button
                   type="button"
                   className="cut-gallery-card__image"
-                  onClick={() => selectionMode ? toggleSelected(item.id) : openEditor(item)}
-                  aria-label={selectionMode ? `${selected ? "Desmarcar" : "Selecionar"} foto ${index + 1}` : `Abrir foto ${index + 1}`}
+                  onClick={() => {
+                    if (selectionMode) toggleSelected(item.id);
+                    else if (mode === "view") setPreviewingId(item.id);
+                    else openEditor(item);
+                  }}
+                  aria-label={selectionMode ? `${selected ? "Desmarcar" : "Selecionar"} foto ${index + 1}` : mode === "view" ? `Visualizar foto ${index + 1}` : `Gerenciar foto ${index + 1}`}
                 >
                   <img
                     src={item.thumbnail_url || item.url}
@@ -953,10 +964,16 @@ export default function ProductionGalleryManager({
                     loading="lazy"
                     decoding="async"
                     style={{ objectPosition: `${item.focal_x ?? 50}% ${item.focal_y ?? 50}%` }}
+                    onLoad={(event) => event.currentTarget.parentElement?.classList.add("is-loaded")}
+                    onError={(event) => {
+                      event.currentTarget.style.display = "none";
+                      event.currentTarget.parentElement?.classList.add("has-error");
+                    }}
                   />
                 </button>
 
                 {item.is_featured && <span className="cut-gallery-card__featured"><i className="fa-solid fa-star" />Destaque</span>}
+                {Number(item.id) === Number(recommendedCoverId) && !item.is_featured && <span className="cut-gallery-card__cover-tip"><i className="fa-solid fa-wand-magic-sparkles" />Boa para capa</span>}
                 {item.album_id && <span className="cut-gallery-card__album"><i className="fa-regular fa-folder" />{localAlbums.find((album) => Number(album.id) === Number(item.album_id))?.name || "Álbum"}</span>}
                 {selectionMode && (
                   <button type="button" className={`cut-gallery-card__check ${selected ? "is-selected" : ""}`} onClick={() => toggleSelected(item.id)} aria-label={selected ? "Desmarcar foto" : "Selecionar foto"}>
@@ -981,7 +998,7 @@ export default function ProductionGalleryManager({
                     )}
                   </>
                 )}
-                {item.caption && <div className="cut-gallery-card__caption">{item.caption}</div>}
+                {item.caption && <span className="cut-gallery-card__caption-indicator" title={item.caption} aria-label="Esta foto possui legenda"><i className="fa-solid fa-align-left" /></span>}
               </article>
             );
           })}
