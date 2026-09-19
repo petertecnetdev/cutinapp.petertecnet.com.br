@@ -28,7 +28,10 @@ export default function ProductionViewPage() {
   const [workspace, setWorkspace] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [showViewers, setShowViewers] = useState(false);\n  const [showMap, setShowMap] = useState(false);\n  const [descriptionExpanded, setDescriptionExpanded] = useState(false);\n  const [eventsVisible, setEventsVisible] = useState(8);
+  const [showViewers, setShowViewers] = useState(false);
+  const [showMap, setShowMap] = useState(false);
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+  const [eventsVisible, setEventsVisible] = useState(8);
 
   const load = useCallback(async () => {
     setError("");
