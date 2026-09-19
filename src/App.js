@@ -25,7 +25,8 @@ const EventSeriesLauncher = lazy(() => import("./components/EventSeriesLauncher"
 const GlobalImageInputEnhancer = lazy(() => import("./components/GlobalImageInputEnhancer"));
 const GlobalAiDescriptionEnhancer = lazy(() => import("./components/GlobalAiDescriptionEnhancer"));
 const MediaLibraryInputEnhancer = lazy(() => import("./components/MediaLibraryInputEnhancer"));
-const LandingPage = lazyWithPreload(() => import("./pages/LandingPageV2"));\nconst HomeHubPage = lazyWithPreload(() => import("./pages/HomeHubPage"));
+const LandingPage = lazyWithPreload(() => import("./pages/LandingPageV2"));
+const HomeHubPage = lazyWithPreload(() => import("./pages/HomeHubPage"));
 const FeedPage = lazyWithPreload(() => import("./pages/FeedPage"));
 const BlogPage = lazyWithPreload(() => import("./pages/blog/BlogPage"));
 const BlogArticlePage = lazy(() => import("./pages/blog/BlogArticlePage"));

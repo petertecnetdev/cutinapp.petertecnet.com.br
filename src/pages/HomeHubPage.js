@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import PropTypes from "prop-types";
 import { Container } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import NavlogComponent from "../components/NavlogComponent";
@@ -85,6 +86,16 @@ function DiscoveryRail({ eyebrow, title, description, to, toLabel, children, emp
     </section>
   );
 }
+
+DiscoveryRail.propTypes = {
+  eyebrow: PropTypes.node.isRequired,
+  title: PropTypes.string.isRequired,
+  description: PropTypes.node,
+  to: PropTypes.string,
+  toLabel: PropTypes.string,
+  children: PropTypes.node,
+  empty: PropTypes.node,
+};
 
 function LoadingRail() {
   return (
