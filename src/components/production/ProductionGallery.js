@@ -223,7 +223,7 @@ export default function ProductionGallery({
                 {failedIds.has(Number(item.id)) && <span className="cut-public-gallery__broken"><i className="fa-regular fa-image" />Imagem indisponível</span>}
                 <span className="cut-public-gallery__shade" />
                 {item.is_featured && <span className="cut-public-gallery__featured"><i className="fa-solid fa-star" />Destaque</span>}
-                {item.caption && <span className="cut-public-gallery__caption">{item.caption}</span>}
+                {item.caption && <span className="cut-public-gallery__caption-indicator" title="Esta foto possui legenda" aria-hidden="true"><i className="fa-solid fa-align-left" /></span>}
                 <span className="cut-public-gallery__zoom"><i className="fa-solid fa-expand" /></span>
               </button>
             ))}
