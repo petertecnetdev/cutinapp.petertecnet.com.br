@@ -170,7 +170,7 @@
 .cut-filter-shortcuts button:active { transform: scale(.98); }
 .cut-active-filters button span { color: var(--cut-primary); }
 .cut-clear-filters { margin-left: auto !important; }
-.cut-recent-cities > span { color: var(--cut-text-muted); font-size: .76rem; font-weight: 780; }
+.cut-recent-cities > span { flex: 0 0 auto; min-width: max-content; color: var(--cut-text-muted); font-size: .76rem; font-weight: 780; white-space: nowrap; }
 
 .cut-pagination { display: flex; justify-content: center; align-items: center; gap: 14px; padding-top: 8px; }
 .cut-pagination span { color: var(--cut-text-muted); font-size: .82rem; }
