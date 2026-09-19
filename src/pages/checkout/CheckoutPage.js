@@ -41,7 +41,6 @@ export default function CheckoutPage() {
   const [paymentNow, setPaymentNow] = useState(() => Date.now());
   const [error, setError] = useState("");
   const [pixCopyStatus, setPixCopyStatus] = useState("idle");
-  const [pixCopied, setPixCopied] = useState(false);
   const [payerDocument, setPayerDocument] = useState(() => String(user?.cpf || ""));
   const [couponCode, setCouponCode] = useState("");
   const [coupon, setCoupon] = useState(null);
@@ -567,7 +566,7 @@ export default function CheckoutPage() {
     if (!refreshedOrder) return;
     if (String(refreshedOrder?.status || "").toLowerCase() === "paid") return;
     if (!isPendingPixExpired(refreshedOrder, Date.now())) return;
-    setResult(null); setError(""); setPixCopyStatus("idle"); setPixCopied(false);
+    setResult(null); setError(""); setPixCopyStatus("idle");
     safeRemoveSessionItem(paymentStorageKey);
     writeCheckoutRecovery(slug, { selection, orderPublicId: null, couponCode: coupon?.code || null });
     trackCheckout("pix_expired_recovery_ready", { label: "Novo PIX liberado após confirmação do vencimento", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(refreshedOrder?.total || payableTotal || 0), payment_method: "pix", outcome: "ready" } });
@@ -575,13 +574,9 @@ export default function CheckoutPage() {
   const copyPix = async () => {
     const pixCode = result?.payment?.qr_code; if (!pixCode) return; const copied = await copyText(pixCode);
     if (!copied) { setPixCopyStatus("error"); setError("Não foi possível copiar automaticamente neste navegador. Toque e segure o código PIX exibido nesta tela para selecionar e copiar."); trackCheckout("pix_code_copy_failed", { label: "Falha ao copiar código PIX", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(result?.order?.total || payableTotal || 0), payment_method: "pix", outcome: "error" } }); return; }
-    setPixCopyStatus("copied"); setPixCopied(true); setError(""); trackCheckout("pix_code_copied", { label: "Código PIX copiado", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(result?.order?.total || payableTotal || 0), payment_method: "pix", outcome: "success" } }); window.setTimeout(() => setPixCopyStatus("idle"), 2500);
+    setPixCopyStatus("copied"); setError(""); trackCheckout("pix_code_copied", { label: "Código PIX copiado", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(result?.order?.total || payableTotal || 0), payment_method: "pix", outcome: "success" } }); window.setTimeout(() => setPixCopyStatus("idle"), 2500);
   };
 
-  const verifyPixAfterCopy = () => {
-    trackCheckout("pix_post_copy_status_check_clicked", { label: "Verificar PIX após copiar código", target: slug, metadata: { event_id: Number(catalog?.event?.id || 0), amount: Number(result?.order?.total || payableTotal || 0), payment_method: "pix", order_public_id: result?.order?.public_id || null } });
-    syncCurrentPayment({ manual: true });
-  };
 
   const handleMobilePaymentCta = () => {
     const startsPixPayment = method === "pix" && pixAvailable;
