@@ -97,6 +97,36 @@ html:has(.modal.show) .cut-persistent-cart__amount strong { font-size: .69rem !i
   html:has(.cut-navbar .navbar-collapse.collapsing) .cut-event-buy-cta-fixed { visibility: hidden !important; pointer-events: none !important; }
 }
 
+/* Event editor has its own fixed action rail (Preview / Save / Publish).
+ * Reserve that rail in the same stacking contract as the bottom navigation so
+ * the persistent cart can never cover producer actions again. */
+@media (max-width: 991.98px) {
+  body:has(.cut-event-manager-v2) {
+    --cut-event-editor-actions-height: 64px;
+    --cut-cart-safe-bottom: calc(
+      var(--cut-mobile-bottom-nav-height, 72px)
+      + var(--cut-event-editor-actions-height)
+      + var(--cut-cart-bar-height)
+      + 32px
+      + env(safe-area-inset-bottom, 0px)
+    );
+  }
+
+  body:has(.cut-event-manager-v2) .cut-persistent-cart__bar {
+    bottom: calc(
+      var(--cut-mobile-bottom-nav-height, 72px)
+      + var(--cut-event-editor-actions-height)
+      + var(--cut-cart-gap)
+      + env(safe-area-inset-bottom, 0px)
+    ) !important;
+  }
+
+  body:has(.cut-event-manager-v2) .cev2-main {
+    padding-bottom: var(--cut-cart-safe-bottom) !important;
+    scroll-padding-bottom: var(--cut-cart-safe-bottom) !important;
+  }
+}
+
 @media (min-width: 992px) {
   body.cut-has-persistent-cart { padding-bottom: 0 !important; }
   .cut-persistent-cart__bar { bottom: 24px !important; }
