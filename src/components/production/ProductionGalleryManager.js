@@ -1005,6 +1005,25 @@ export default function ProductionGalleryManager({
         </div>
       )}
 
+      <Modal show={Boolean(previewing)} onHide={() => setPreviewingId(null)} centered size="lg" className="cut-gallery-manager-preview">
+        <Modal.Header closeButton>
+          <Modal.Title>Prévia da foto</Modal.Title>
+          {previewing && <span className="cut-gallery-manager-preview__count">{previewingIndex + 1} de {displayedItems.length}</span>}
+        </Modal.Header>
+        <Modal.Body>
+          {previewing && (
+            <>
+              <div className="cut-gallery-manager-preview__stage">
+                {displayedItems.length > 1 && <button type="button" className="is-prev" onClick={() => movePreview(-1)} aria-label="Foto anterior"><i className="fa-solid fa-chevron-left" /></button>}
+                <img src={previewing.url} alt={previewing.alt_text || previewing.caption || `Foto de ${productionName}`} />
+                {displayedItems.length > 1 && <button type="button" className="is-next" onClick={() => movePreview(1)} aria-label="Próxima foto"><i className="fa-solid fa-chevron-right" /></button>}
+              </div>
+              {previewing.caption && <p className="cut-gallery-manager-preview__caption">{previewing.caption}</p>}
+            </>
+          )}
+        </Modal.Body>
+      </Modal>
+
       <Modal show={Boolean(editing)} onHide={() => !editBusy && setEditing(null)} centered size="lg" className="cut-gallery-editor-modal" backdrop={editBusy ? "static" : true} keyboard={!editBusy}>
         <Modal.Header closeButton={!editBusy}>
           <Modal.Title>Gerenciar foto</Modal.Title>
@@ -1030,15 +1049,32 @@ export default function ProductionGalleryManager({
 
               <div className="cut-gallery-editor__form">
                 <Form.Group>
-                  <Form.Label>Legenda</Form.Label>
+                  <div className="d-flex align-items-center justify-content-between gap-2 mb-1">
+                    <Form.Label className="mb-0">Legenda</Form.Label>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline-light"
+                      disabled={!editCaption.trim() || Boolean(aiBusy)}
+                      onClick={improveCaptionWithAi}
+                    >
+                      <i className={aiBusy === "caption" ? "fa-solid fa-circle-notch fa-spin me-2" : "fa-solid fa-wand-magic-sparkles me-2"} />
+                      Aprimorar com IA
+                    </Button>
+                  </div>
                   <Form.Control as="textarea" rows={3} maxLength={180} value={editCaption} onChange={(event) => setEditCaption(event.target.value)} placeholder="Explique o que aparece nesta foto." />
-                  <Form.Text>{editCaption.length}/180</Form.Text>
+                  <Form.Text>{editCaption.length}/180 · A IA só aprimora o que você informar, sem inventar elementos da foto.</Form.Text>
                 </Form.Group>
 
                 <Form.Group>
                   <div className="d-flex align-items-center justify-content-between gap-2 mb-1">
                     <Form.Label className="mb-0">Texto alternativo</Form.Label>
-                    <Button type="button" size="sm" variant="outline-light" onClick={suggestAlt}>Sugerir</Button>
+                    <div className="d-flex gap-1">
+                      <Button type="button" size="sm" variant="outline-light" onClick={suggestAlt}>Sugerir</Button>
+                      <Button type="button" size="sm" variant="outline-light" disabled={Boolean(aiBusy)} onClick={suggestAltWithAi}>
+                        <i className={aiBusy === "alt" ? "fa-solid fa-circle-notch fa-spin me-1" : "fa-solid fa-wand-magic-sparkles me-1"} />IA
+                      </Button>
+                    </div>
                   </div>
                   <Form.Control maxLength={255} value={editAlt} onChange={(event) => setEditAlt(event.target.value)} placeholder="Descreva a imagem para acessibilidade e SEO." />
                 </Form.Group>
@@ -1062,23 +1098,27 @@ export default function ProductionGalleryManager({
                   </div>
                 </div>
 
-                <Form.Check
-                  type="switch"
-                  id="production-media-featured"
-                  checked={editFeatured}
-                  onChange={(event) => setEditFeatured(event.target.checked)}
-                  label="Destacar esta foto na galeria"
-                />
+                <div>
+                  <Form.Check
+                    type="switch"
+                    id="production-media-featured"
+                    checked={editFeatured}
+                    onChange={(event) => setEditFeatured(event.target.checked)}
+                    label="Destacar esta foto na galeria"
+                  />
+                  <Form.Text>Você pode destacar até 6 imagens para dar mais presença visual à página pública.</Form.Text>
+                </div>
 
                 <div className="cut-gallery-editor__meta">
                   {editing.width && editing.height && <span><i className="fa-solid fa-expand" />{editing.width} × {editing.height}</span>}
                   {editing.file_size && <span><i className="fa-regular fa-file-image" />{humanBytes(editing.file_size)}</span>}
                   {editing.created_at && <span><i className="fa-regular fa-clock" />{new Date(editing.created_at).toLocaleDateString("pt-BR")}</span>}
+                  {editing.uploaded_by?.name && <span><i className="fa-regular fa-user" />{editing.uploaded_by.name}</span>}
                 </div>
 
                 <div className="cut-gallery-editor__secondary-actions">
                   <Button type="button" variant="outline-light" disabled={editBusy} onClick={useAsCover}><i className="fa-regular fa-image me-2" />Usar como capa</Button>
-                  {editing.original_url && <Button as="a" variant="outline-light" href={editing.original_url} target="_blank" rel="noopener noreferrer"><i className="fa-solid fa-arrow-down me-2" />Abrir original</Button>}
+                  {editing.original_url && <Button as="a" variant="outline-light" href={editing.original_url} target="_blank" rel="noopener noreferrer" download={editing.original_name || true}><i className="fa-solid fa-arrow-down me-2" />Baixar original</Button>}
                   <Button type="button" variant="outline-danger" disabled={editBusy} onClick={() => deleteIds([Number(editing.id)])}><i className="fa-regular fa-trash-can me-2" />Remover</Button>
                 </div>
               </div>
@@ -1101,6 +1141,7 @@ ProductionGalleryManager.propTypes = {
   media: PropTypes.arrayOf(PropTypes.object),
   albums: PropTypes.arrayOf(PropTypes.object),
   publicSlug: PropTypes.string,
+  coverUrl: PropTypes.string,
   onMediaChange: PropTypes.func,
   onAlbumsChange: PropTypes.func,
   onCoverChange: PropTypes.func,
