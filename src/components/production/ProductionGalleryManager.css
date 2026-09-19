@@ -71,6 +71,58 @@
   gap:8px;
 }
 
+.cut-gallery-manager__more{
+  position:relative;
+  margin-left:auto;
+}
+
+.cut-gallery-manager__more>summary{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  min-height:38px;
+  padding:0 12px;
+  border:1px solid rgba(148,163,184,.18);
+  border-radius:11px;
+  background:rgba(15,23,42,.56);
+  color:var(--cut-text-muted);
+  cursor:pointer;
+  list-style:none;
+  font-size:.75rem;
+  font-weight:850;
+  user-select:none;
+}
+
+.cut-gallery-manager__more>summary::-webkit-details-marker{
+  display:none;
+}
+
+.cut-gallery-manager__more>summary:hover,
+.cut-gallery-manager__more[open]>summary{
+  border-color:rgba(192,132,252,.34);
+  background:rgba(168,85,247,.09);
+  color:#fff;
+}
+
+.cut-gallery-manager__more-panel{
+  display:grid;
+  gap:10px;
+  min-width:min(620px,82vw);
+  margin-top:9px;
+  padding:12px;
+  border:1px solid rgba(148,163,184,.14);
+  border-radius:14px;
+  background:rgba(5,12,22,.96);
+  box-shadow:0 18px 44px rgba(0,0,0,.24);
+}
+
+.cut-gallery-manager__more-actions{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:8px;
+}
+
 .cut-gallery-manager__toolbar-secondary .form-select{
   width:auto;
   min-width:180px;
@@ -259,6 +311,9 @@
 
 .cut-gallery-upload-item{
   display:grid;
+  content-visibility:auto;
+  contain:layout paint style;
+  contain-intrinsic-size:90px;
   grid-template-columns:72px minmax(0,1fr) 34px;
   gap:11px;
   align-items:center;
@@ -364,6 +419,9 @@
 .cut-gallery-card{
   position:relative;
   aspect-ratio:1/1;
+  content-visibility:auto;
+  contain:layout paint style;
+  contain-intrinsic-size:260px 260px;
   overflow:hidden;
   border:1px solid rgba(148,163,184,.14);
   border-radius:14px;
@@ -614,6 +672,9 @@
 @media(max-width:991px){
   .cut-gallery-manager__toolbar{align-items:stretch;flex-direction:column}
   .cut-gallery-manager__toolbar-primary,.cut-gallery-manager__toolbar-secondary{width:100%}
+  .cut-gallery-manager__more{width:100%;margin-left:0}
+  .cut-gallery-manager__more>summary{width:100%;justify-content:center}
+  .cut-gallery-manager__more-panel{min-width:0;width:100%}
   .cut-gallery-manager__toolbar-secondary{justify-content:space-between}
   .cut-gallery-manager__grid{grid-template-columns:repeat(3,minmax(0,1fr))}
   .cut-gallery-editor{grid-template-columns:1fr}
@@ -627,6 +688,9 @@
   .cut-gallery-manager__score strong{font-size:1.35rem}
   .cut-gallery-manager__toolbar-primary{display:grid;grid-template-columns:1fr 1fr}
   .cut-gallery-manager__toolbar-primary .btn{font-size:.74rem;padding-left:8px;padding-right:8px}
+  .cut-gallery-manager__toolbar-primary .btn:nth-of-type(3){grid-column:1/-1}
+  .cut-gallery-manager__more-actions{display:grid;grid-template-columns:1fr}
+  .cut-gallery-manager__more-actions .btn{width:100%}
   .cut-gallery-manager__toolbar-secondary{align-items:stretch;flex-direction:column}
   .cut-gallery-manager__toolbar-secondary .form-select{width:100%}
   .cut-gallery-manager__mode{width:max-content}
