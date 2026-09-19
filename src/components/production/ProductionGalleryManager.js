@@ -469,12 +469,17 @@ export default function ProductionGalleryManager({
 
   const deleteIds = async (ids) => {
     if (!ids.length) return;
+    const singleItem = ids.length === 1
+      ? itemsRef.current.find((item) => Number(item.id) === Number(ids[0]))
+      : null;
     const confirmed = await showConfirmation({
       title: ids.length === 1 ? "Remover foto?" : `Remover ${ids.length} fotos?`,
       text: ids.length === 1
         ? "Ela deixará de aparecer na página pública. Você poderá desfazer por alguns instantes."
         : "As imagens deixarão de aparecer na página pública. Você poderá desfazer por alguns instantes.",
       confirmButtonText: "Remover",
+      imageUrl: singleItem?.thumbnail_url || singleItem?.url || null,
+      imageAlt: singleItem?.alt_text || singleItem?.caption || "Foto selecionada para remoção",
     });
     if (!confirmed) return;
 
@@ -1026,6 +1031,7 @@ export default function ProductionGalleryManager({
           <strong>{selectedCount} {selectedCount === 1 ? "foto selecionada" : "fotos selecionadas"}</strong>
           <div>
             <Button type="button" size="sm" variant="outline-light" onClick={selectAll}>Selecionar todas</Button>
+            <Button type="button" size="sm" variant="outline-light" disabled={!selectedCount} onClick={() => setSelectedIds(new Set())}>Desmarcar todas</Button>
             <Form.Select
               size="sm"
               value={bulkAlbumId}
