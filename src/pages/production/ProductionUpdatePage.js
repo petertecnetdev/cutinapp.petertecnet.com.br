@@ -260,7 +260,6 @@ export default function ProductionUpdatePage() {
   }
 
   const displayName = form.name?.trim() || "Sua produção";
-  const location = [form.city, form.uf].filter(Boolean).join(" - ");
   const publicSlug = productionMeta?.slug;
   const pageBackground = bgPreview || logoPreview;
   const pageStyle = pageBackground ? { "--cut-production-page-bg": `url(${JSON.stringify(pageBackground)})` } : undefined;
