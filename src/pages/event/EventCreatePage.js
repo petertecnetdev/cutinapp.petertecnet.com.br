@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import CityAutocompleteControl from "../../components/location/CityAutocompleteControl";
+import EventExperienceEditorSurface from "../../components/event/EventExperienceEditorSurface";
 import eventService from "../../services/EventService";
 import cutinappService from "../../services/CutinappService";
 import creativeService from "../../services/CreativeService";
@@ -858,6 +859,15 @@ export default function EventCreatePage() {
 
   const invalid = (field, local = false) => Boolean(local || firstError(fieldErrors, field));
   const selectedProduction = productions.find((item) => String(item.id) === String(form.production_id));
+  const surfaceErrors = {
+    ...fieldErrors,
+    ...(requiredInvalid?.title ? { title: ["Informe o nome do evento."] } : {}),
+    ...(requiredInvalid?.description ? { description: ["Descreva o evento."] } : {}),
+    ...(requiredInvalid?.address ? { address: ["Informe o endereço do evento."] } : {}),
+    ...(requiredInvalid?.start_date ? { start_date: [startTooSoonInvalid ? "Escolha um horário futuro." : "Informe quando o evento começa."] } : {}),
+    ...(requiredInvalid?.end_date ? { end_date: [dateInvalid ? "O término precisa ser posterior ao início." : "Informe quando o evento termina."] } : {}),
+  };
+  const submitFromSurface = () => submit({ preventDefault: () => {} });
 
   return (
     <div className="cut-app-page">
@@ -1118,81 +1128,69 @@ export default function EventCreatePage() {
             </Card.Body>
           </Card>
         ) : (
-          <Form onSubmit={submit} noValidate>
-            <Row className="g-4">
-              <Col lg={8}><Card className="cut-panel h-100"><Card.Body className="p-4 p-lg-5"><h2 className="cut-section-title">Informações do evento</h2><Row className="g-3">
-                <Col xs={12}><Form.Group><Form.Label>Produção *</Form.Label><Form.Select name="production_id" value={form.production_id} onChange={change} isInvalid={invalid("production_id", requiredInvalid.production_id)}><option value="">Selecione</option>{productions.map((production) => <option key={production.id} value={production.id}>{production.name}</option>)}</Form.Select><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "production_id") || "Selecione a produção responsável."}</Form.Control.Feedback></Form.Group></Col>
-
-                {form.production_id && <Col xs={12}><div className="cut-info-box d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3"><div><strong>{productionTemplateApplied ? "Dados da produção aplicados" : "Cadastro rápido"}</strong><span>{productionTemplateApplied ? "Os campos continuam editáveis. Mude apenas o que for diferente neste evento." : `Use nome, descrição, local, endereço e contato de ${selectedProduction?.name || "sua produção"} como ponto de partida.`}</span></div><Button type="button" variant={productionTemplateApplied ? "outline-light" : "primary"} disabled={loadingProductionData} onClick={applyProductionData}>{loadingProductionData ? "Carregando..." : productionTemplateApplied ? "Aplicar novamente" : "Usar dados da produção"}</Button></div></Col>}
-
-                <Col xs={12}><Form.Group><Form.Label>Nome do evento *</Form.Label><Form.Control name="title" value={form.title} onChange={change} placeholder="Ex.: Noite de Lançamento" isInvalid={invalid("title", requiredInvalid.title)} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "title") || "Informe o nome do evento."}</Form.Control.Feedback></Form.Group></Col>
-                <Col xs={12}><Form.Group><Form.Label>Descrição *</Form.Label><Form.Control as="textarea" rows={5} name="description" value={form.description} onChange={change} isInvalid={invalid("description", requiredInvalid.description)} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "description") || "Descreva o evento."}</Form.Control.Feedback></Form.Group></Col>
-                <Col md={6}><Form.Group><Form.Label>Início *</Form.Label><Form.Control type="datetime-local" min={minStart} name="start_date" value={form.start_date} onChange={change} isInvalid={invalid("start_date", requiredInvalid.start_date)} /><Form.Text>Eventos de hoje são permitidos. Escolha um horário futuro.</Form.Text><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "start_date") || (startTooSoonInvalid ? "Escolha um horário futuro." : "Informe quando o evento começa.")}</Form.Control.Feedback></Form.Group></Col>
-                <Col md={6}><Form.Group><Form.Label>Término *</Form.Label><Form.Control type="datetime-local" min={form.start_date || minStart} name="end_date" value={form.end_date} onChange={change} isInvalid={invalid("end_date", requiredInvalid.end_date)} /><Form.Text>É sugerido automaticamente 2 horas após o início.</Form.Text><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "end_date") || (dateInvalid ? "O término precisa ser posterior ao início." : "Informe quando o evento termina.")}</Form.Control.Feedback></Form.Group></Col>
-                <Col md={5}><Form.Group><Form.Label>Local</Form.Label><Form.Control name="venue" value={form.venue} onChange={change} placeholder="Nome do espaço" isInvalid={invalid("venue")} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "venue")}</Form.Control.Feedback></Form.Group></Col>
-                <Col md={7}><Form.Group><Form.Label>Endereço *</Form.Label><Form.Control name="address" value={form.address} onChange={change} placeholder="Rua, número e complemento" isInvalid={invalid("address", requiredInvalid.address)} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "address") || "Informe o endereço do evento."}</Form.Control.Feedback></Form.Group></Col>
-                <Col md={8}>
-                  <Form.Group className="cut-autocomplete">
-                    <Form.Label>Cidade *</Form.Label>
-                    <CityAutocompleteControl
-                      value={form.city}
-                      onChange={changeCityLocation}
-                      isInvalid={invalid("city", requiredInvalid.city)}
-                      placeholder="Digite ao menos 2 letras"
-                      required
-                    />
-                    {invalid("city", requiredInvalid.city) && <div className="invalid-feedback d-block">{firstError(fieldErrors, "city") || "Informe a cidade do evento."}</div>}
-                    <Form.Text>Selecione a cidade na lista para preencher a UF automaticamente.</Form.Text>
-                  </Form.Group>
-                </Col>
-                <Col md={4}><Form.Group><Form.Label>UF *</Form.Label><Form.Control maxLength={2} name="uf" value={form.uf} onChange={change} placeholder="UF" isInvalid={invalid("uf", requiredInvalid.uf || ufInvalid)} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "uf") || "Use 2 letras."}</Form.Control.Feedback></Form.Group></Col>
-
-                <Col xs={12}>
-                  <div className="cut-info-box">
-                    <strong>Essencial concluído primeiro</strong>
-                    <span>Maps, capacidade, contatos e itens são opcionais. Você pode completar esses detalhes agora ou depois, sem bloquear a criação do primeiro lote.</span>
-                    <Button
-                      type="button"
-                      variant="outline-light"
-                      size="sm"
-                      className="mt-3 align-self-start"
-                      aria-expanded={optionalDetailsOpen}
-                      onClick={() => {
-                        const nextOpen = !optionalDetailsOpen;
-                        setOptionalDetailsOpen(nextOpen);
-                        if (nextOpen) {
-                          try {
-                            window.PeterTecnetTelemetry?.track?.("producer_event_optional_details_opened", {
-                              label: "Detalhes opcionais do evento abertos",
-                              target: String(form.production_id || "event_creation"),
-                              metadata: { activation_stage: "event_creation", next_step: "create_ticket" },
-                            });
-                          } catch (_) {
-                            // Telemetry must never interrupt producer onboarding.
-                          }
-                        }
-                      }}
-                    >
-                      {optionalDetailsOpen ? "Ocultar detalhes opcionais" : "Adicionar detalhes opcionais"}
-                    </Button>
+          <EventExperienceEditorSurface
+            mode="create"
+            form={form}
+            imagePreview={preview}
+            onChange={change}
+            onImageChange={chooseImage}
+            onSave={submitFromSurface}
+            saving={loading}
+            saveLabel="Criar rascunho"
+            productionName={selectedProduction?.name || ""}
+            productionControl={
+              <Form.Group className="cut-event-inline-editor__productionControl">
+                <Form.Label>Produção responsável</Form.Label>
+                <Form.Select name="production_id" value={form.production_id} onChange={change} isInvalid={invalid("production_id", requiredInvalid.production_id)}>
+                  <option value="">Selecione a produção</option>
+                  {productions.map((production) => <option key={production.id} value={production.id}>{production.name}</option>)}
+                </Form.Select>
+                <Form.Control.Feedback type="invalid">{firstError(fieldErrors, "production_id") || "Selecione a produção responsável."}</Form.Control.Feedback>
+              </Form.Group>
+            }
+            cityControl={
+              <div className="cut-event-inline-editor__cityRow">
+                <CityAutocompleteControl value={form.city} onChange={changeCityLocation} isInvalid={invalid("city", requiredInvalid.city)} placeholder="Cidade" required />
+                <Form.Control name="uf" maxLength={2} value={form.uf} onChange={change} placeholder="UF" isInvalid={invalid("uf", requiredInvalid.uf || ufInvalid)} />
+              </div>
+            }
+            errors={surfaceErrors}
+            imageHelp={EVENT_POSTER_HINT + " JPG, PNG ou WebP, até 5 MB."}
+            secondaryActions={<Button type="button" variant="outline-light" disabled={loading} onClick={() => navigate("/event/manage")}><i className="fa-solid fa-xmark me-2" />Cancelar</Button>}
+          >
+            {form.production_id && (
+              <Card className="cut-panel mt-4">
+                <Card.Body className="p-4">
+                  <div className="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+                    <div>
+                      <span className="cut-eyebrow">Produção aplicada</span>
+                      <h2 className="cut-section-title mt-2 mb-1">{selectedProduction?.name || "Sua produção"}</h2>
+                      <p className="text-secondary mb-0">{productionTemplateApplied ? "Os dados da produção já estão servindo como base. Altere somente o que for diferente neste evento." : "Você pode usar os dados da produção como ponto de partida."}</p>
+                    </div>
+                    <Button type="button" variant="outline-light" disabled={loadingProductionData} onClick={applyProductionData}>{loadingProductionData ? "Carregando..." : productionTemplateApplied ? "Aplicar novamente" : "Usar dados da produção"}</Button>
                   </div>
-                </Col>
+                </Card.Body>
+              </Card>
+            )}
 
-                {optionalDetailsOpen && <>
-                  <Col xs={12}><Form.Group><Form.Label>Link do Google Maps</Form.Label><Form.Control type="url" name="google_maps_url" value={form.google_maps_url} onChange={change} placeholder="https://maps.app.goo.gl/... ou https://www.google.com/maps/..." isInvalid={invalid("google_maps_url")} /><Form.Text>Cole o link do local no Google Maps para facilitar a chegada do participante.</Form.Text><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "google_maps_url")}</Form.Control.Feedback></Form.Group></Col>
-                  <Col md={6}><Form.Group><Form.Label>Capacidade</Form.Label><Form.Control type="number" min="1" max="1000000" name="max_attendees" value={form.max_attendees} onChange={change} isInvalid={invalid("max_attendees", capacityInvalid)} /><Form.Text>Deixe vazio se não quiser controlar capacidade geral.</Form.Text><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "max_attendees") || "A capacidade deve ser maior que zero."}</Form.Control.Feedback></Form.Group></Col>
-                  <Col md={6}><Form.Group><Form.Label>E-mail de contato</Form.Label><Form.Control type="email" name="contact_email" value={form.contact_email} onChange={change} isInvalid={invalid("contact_email")} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "contact_email")}</Form.Control.Feedback></Form.Group></Col>
-                  <Col md={6}><Form.Group><Form.Label>Telefone de contato</Form.Label><Form.Control name="contact_phone" value={form.contact_phone} onChange={change} isInvalid={invalid("contact_phone")} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "contact_phone")}</Form.Control.Feedback></Form.Group></Col>
+            <details className="cut-event-inline-editor__advanced">
+              <summary><span><i className="fa-solid fa-sliders me-2" />Detalhes opcionais e itens</span><i className="fa-solid fa-chevron-down" /></summary>
+              <div>
+                <Row className="g-3">
+                  <Col xs={12}><Form.Group><Form.Label>Link do Google Maps</Form.Label><Form.Control type="url" name="google_maps_url" value={form.google_maps_url} onChange={change} placeholder="https://maps.app.goo.gl/..." /></Form.Group></Col>
+                  <Col md={4}><Form.Group><Form.Label>Capacidade</Form.Label><Form.Control type="number" min="1" max="1000000" name="max_attendees" value={form.max_attendees} onChange={change} isInvalid={capacityInvalid} /></Form.Group></Col>
+                  <Col md={4}><Form.Group><Form.Label>E-mail de contato</Form.Label><Form.Control type="email" name="contact_email" value={form.contact_email} onChange={change} /></Form.Group></Col>
+                  <Col md={4}><Form.Group><Form.Label>Telefone de contato</Form.Label><Form.Control name="contact_phone" value={form.contact_phone} onChange={change} /></Form.Group></Col>
+                </Row>
+                {form.production_id && <div className="cut-info-box mt-3"><div className="d-flex align-items-start justify-content-between gap-3 flex-wrap"><div><strong>Itens da produção</strong><span>{loadingProductionItems ? "Consultando itens..." : productionItems.length > 0 ? `${productionItems.length} item(ns) ativo(s) disponíveis para este evento.` : "Esta produção ainda não possui itens ativos."}</span></div><Form.Check type="switch" id="use-production-items" label="Usar os mesmos itens" checked={useProductionItems} disabled={loadingProductionItems || productionItems.length === 0} onChange={(event) => setUseProductionItems(event.target.checked)} /></div>{itemLoadError && <div className="text-warning small mt-2">{itemLoadError}</div>}</div>}
+              </div>
+            </details>
 
-                  {form.production_id && <Col xs={12}><div className="cut-info-box"><div className="d-flex align-items-start justify-content-between gap-3 flex-wrap"><div><strong>Itens da produção</strong><span>{loadingProductionItems ? "Consultando os itens cadastrados..." : productionItems.length > 0 ? `${productionItems.length} item(ns) ativo(s) estão disponíveis. Você pode usar os mesmos itens neste evento sem cadastrá-los novamente.` : "Esta produção ainda não possui itens ativos para reaproveitar."}</span></div><Form.Check type="switch" id="use-production-items" label="Usar os mesmos itens" checked={useProductionItems} disabled={loadingProductionItems || productionItems.length === 0} onChange={(event) => setUseProductionItems(event.target.checked)} /></div>{itemLoadError && <div className="text-warning small mt-2">{itemLoadError}</div>}{useProductionItems && productionItems.length > 0 && <div className="d-flex flex-wrap gap-2 mt-3">{productionItems.slice(0, 8).map((item) => <span key={item.id} className="badge rounded-pill text-bg-dark">{item.name}{item.price !== null && item.price !== undefined ? ` · ${priceLabel(item.price)}` : ""}</span>)}{productionItems.length > 8 && <span className="badge rounded-pill text-bg-dark">+{productionItems.length - 8} itens</span>}</div>}</div></Col>}
-                </>}
-              </Row></Card.Body></Card></Col>
-
-              <Col lg={4}><Card className="cut-panel h-100"><Card.Body className="p-4"><h2 className="cut-section-title">Imagem do evento</h2>{preview ? <img src={preview} alt="Prévia do evento" className="cut-upload-preview cut-upload-preview--event" /> : <div className="cut-upload-placeholder cut-upload-placeholder--event"><strong className="cut-event-upload-initials">{eventInitials(form.title)}</strong><span>Se você não enviar uma arte, a IA tentará criar uma automaticamente.</span></div>}<Form.Control className="mt-3" name="image" data-event-image-input="true" data-image-kind="event-poster" type="file" accept="image/png,image/jpeg,image/webp" onChange={chooseImage} isInvalid={invalid("image")} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors, "image")}</Form.Control.Feedback><Form.Text>{EVENT_POSTER_HINT} JPG, PNG ou WebP, até 5 MB.</Form.Text><div className="cut-info-box mt-4"><strong>Próxima etapa</strong><span>Depois de salvar, você configura o primeiro lote de ingressos e segue direto para a publicação.</span></div></Card.Body></Card></Col>
-            </Row>
-
-            <div className="cut-form-actions mt-4"><Button type="button" variant="outline-light" disabled={loading} onClick={() => navigate("/event/manage")}>Cancelar</Button><Button type="submit" disabled={loading}>{loading ? "Criando..." : "Criar rascunho e configurar primeiro lote"}</Button></div>
-          </Form>
+            <div className="cut-form-actions mt-4">
+              <Button type="button" variant="outline-light" disabled={loading} onClick={() => navigate("/event/manage")}>Cancelar</Button>
+              <Button type="button" onClick={submitFromSurface} disabled={loading}>{loading ? "Criando..." : "Criar rascunho e configurar primeiro lote"}</Button>
+            </div>
+          </EventExperienceEditorSurface>
         )}
       </Container>
     </div>
