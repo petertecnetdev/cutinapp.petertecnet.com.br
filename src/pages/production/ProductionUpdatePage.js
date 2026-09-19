@@ -310,7 +310,7 @@ export default function ProductionUpdatePage() {
             </div>
             <div className="cut-production-inline-editor__modeActions">
               {publicSlug && <Button type="button" variant="outline-light" onClick={() => navigate(`/production/${publicSlug}/public`)}><i className="fa-regular fa-eye me-2" />Ver página</Button>}
-              <Button type="submit" disabled={!canSave}><i className="fa-solid fa-check me-2" />{saving ? "Salvando..." : "Salvar agora"}</Button>
+              <Button type="button" onClick={submit} disabled={!canSave}><i className="fa-solid fa-check me-2" />{saving ? "Salvando..." : "Salvar agora"}</Button>
             </div>
           </div>
 
@@ -535,7 +535,7 @@ export default function ProductionUpdatePage() {
           </div>
           <div>
             {publicSlug && <Button type="button" variant="outline-light" onClick={() => navigate(`/production/${publicSlug}/public`)}>Ver página pública</Button>}
-            <Button type="submit" disabled={!canSave}>{saving ? "Salvando..." : "Salvar alterações"}</Button>
+            <Button type="button" onClick={submit} disabled={!canSave}>{saving ? "Salvando..." : "Salvar alterações"}</Button>
           </div>
         </div>
       </Container>
