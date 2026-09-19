@@ -43,7 +43,6 @@ export default function ProductionPublicPage() {
   const [showViewers, setShowViewers] = useState(false);
   const [ticketCartOpen, setTicketCartOpen] = useState(false);
   const [sellableUpcoming, setSellableUpcoming] = useState([]);
-  const [isOwner, setIsOwner] = useState(false);
   const [agendaIndex, setAgendaIndex] = useState(0);
   const agendaCarouselRef = useRef(null);
 
@@ -79,27 +78,6 @@ export default function ProductionPublicPage() {
     return () => { active = false; };
   }, [slug]);
 
-  useEffect(() => {
-    let active = true;
-    const productionId = Number(data?.production?.id || 0);
-
-    if (!user || productionId <= 0) {
-      setIsOwner(false);
-      return () => { active = false; };
-    }
-
-    cutinappService.myProductions()
-      .then((productions) => {
-        if (!active) return;
-        setIsOwner(Array.isArray(productions) && productions.some((item) => Number(item?.id) === productionId));
-      })
-      .catch(() => {
-        if (active) setIsOwner(false);
-      });
-
-    return () => { active = false; };
-  }, [user, data?.production?.id]);
-
   const toggleFollow = async () => {
     if (!user) return navigate("/login", { state: { from: `/production/${slug}/public` } });
     setBusy(true);
@@ -112,6 +90,7 @@ export default function ProductionPublicPage() {
   };
 
   const production = data?.production;
+  const isOwner = Boolean(user && production && Number(production.user_id) === Number(user.id));
   const upcoming = data?.upcoming || [];
   const past = data?.past || [];
   const artists = data?.artists || [];
