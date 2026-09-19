@@ -84,6 +84,7 @@ export default function ProductionGalleryManager({
   media = [],
   albums = [],
   publicSlug = "",
+  coverUrl = "",
   onMediaChange,
   onAlbumsChange,
   onCoverChange,
@@ -93,6 +94,7 @@ export default function ProductionGalleryManager({
   const [queue, setQueue] = useState([]);
   const [mode, setMode] = useState("manage");
   const [sortMode, setSortMode] = useState("custom");
+  const [filterAlbum, setFilterAlbum] = useState("all");
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [draggedId, setDraggedId] = useState(null);
@@ -102,6 +104,7 @@ export default function ProductionGalleryManager({
   const [orderStatus, setOrderStatus] = useState("");
   const [uploading, setUploading] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [previewingId, setPreviewingId] = useState(null);
   const [editCaption, setEditCaption] = useState("");
   const [editAlt, setEditAlt] = useState("");
   const [editAlbumId, setEditAlbumId] = useState("");
@@ -110,6 +113,8 @@ export default function ProductionGalleryManager({
   const [editFocalY, setEditFocalY] = useState(50);
   const [editBusy, setEditBusy] = useState(false);
   const [replaceProgress, setReplaceProgress] = useState(0);
+  const [aiBusy, setAiBusy] = useState("");
+  const [bulkAlbumId, setBulkAlbumId] = useState("");
   const [undo, setUndo] = useState(null);
   const inputRef = useRef(null);
   const abortControllers = useRef(new Map());
