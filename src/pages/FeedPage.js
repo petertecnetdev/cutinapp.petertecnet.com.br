@@ -1,5 +1,5 @@
 import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
-import { Alert, Button, Card, Container, Form } from "react-bootstrap";
+import { Alert, Button, Card, Container, Dropdown, Form } from "react-bootstrap";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import NavlogComponent from "../components/NavlogComponent";
@@ -8,6 +8,7 @@ import cutinappService from "../services/CutinappService";
 import ticketAvailabilityService from "../services/TicketAvailabilityService";
 import { storageUrl } from "../config";
 import { trackTelemetry } from "../utils/telemetry";
+import { showConfirmation } from "../utils/sweetAlert";
 import "./FeedPage.css";
 
 const fmt = (value) => value ? new Intl.DateTimeFormat("pt-BR", { weekday: "short", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" }).format(new Date(value)) : "";
@@ -44,6 +45,18 @@ const withTicketAvailability = (post, availability = {}) => {
       : post?.replies,
   };
 };
+const removePostFromActivity = (posts = [], postId) => posts
+  .filter((post) => Number(post?.id) !== Number(postId))
+  .map((post) => {
+    if (!Array.isArray(post?.replies) || post.replies.length === 0) return post;
+    const replies = post.replies.filter((reply) => Number(reply?.id) !== Number(postId));
+    if (replies.length === post.replies.length) return post;
+    return {
+      ...post,
+      replies,
+      comments_count: Math.max(0, Number(post.comments_count ?? post.replies.length) - 1),
+    };
+  });
 
 export default function FeedPage() {
   const navigate = useNavigate();
@@ -168,6 +181,50 @@ export default function FeedPage() {
     }
   };
 
+  const isOwnPost = (post) => Boolean(user?.id && post?.user_id) && Number(post.user_id) === Number(user.id);
+
+  const deletePost = async (post, depth = 0) => {
+    if (!requireLogin() || busyPosts.has(post.id) || !isOwnPost(post)) return;
+    const isReply = depth > 0 || Number(post.parent_id || 0) > 0;
+    const confirmed = await showConfirmation({
+      title: isReply ? "Excluir comentário?" : "Excluir publicação?",
+      text: isReply
+        ? "Seu comentário deixará de aparecer no Feed. Essa ação não pode ser desfeita."
+        : "Sua publicação e as respostas dela deixarão de aparecer no Feed. Essa ação não pode ser desfeita.",
+      icon: "warning",
+      confirmButtonText: "Excluir",
+      cancelButtonText: "Cancelar",
+    });
+    if (!confirmed) return;
+
+    setPostBusy(post.id, true);
+    setError("");
+    setSuccess("");
+    try {
+      await cutinappService.deleteEventPost(post.id);
+      setCommunityActivity((current) => removePostFromActivity(current, post.id));
+      if (replyTo === post.id) {
+        setReplyTo(null);
+        setReplyBody("");
+      }
+      setSuccess(isReply ? "Comentário excluído." : "Publicação excluída.");
+      trackTelemetry("feed_post_deleted", {
+        label: isReply ? "Comentário excluído no Feed" : "Publicação excluída no Feed",
+        target: String(post.id),
+        metadata: {
+          source: "feed",
+          post_id: Number(post.id),
+          event_id: Number(post.event_id || 0) || null,
+          is_reply: isReply,
+        },
+      });
+    } catch (err) {
+      setError(err?.response?.data?.message || err?.message || "Não foi possível excluir esta publicação.");
+    } finally {
+      setPostBusy(post.id, false);
+    }
+  };
+
   const openReply = (post) => {
     if (!requireLogin()) return;
     setReplyTo(replyTo === post.id ? null : post.id);
@@ -190,16 +247,36 @@ export default function FeedPage() {
   const renderPost = (post, depth = 0) => {
     const availabilityLabel = ticketAvailabilityLabel(post);
     const canBuyTickets = hasSellableTickets(post);
+    const ownsPost = isOwnPost(post);
+    const isReply = depth > 0 || Number(post.parent_id || 0) > 0;
 
     return <article className={`cut-feed-post${depth ? " cut-feed-post--reply" : ""}`} key={`${depth}-${post.id}`}>
     <div className="cut-feed-post__header">
       <button type="button" className="cut-feed-post__avatar cut-feed-post__profile-link" onClick={() => openProfile(post)} aria-label={`Abrir perfil de ${authorName(post)}`}>
         {post.avatar ? <img src={imageUrl(post.avatar)} alt="" /> : <span>{initials(post)}</span>}
       </button>
-      <div>
+      <div className="cut-feed-post__identity">
         <button type="button" className="cut-feed-post__author" onClick={() => openProfile(post)}>{authorName(post)}</button>
         <small>{fmt(post.created_at)} · Público</small>
       </div>
+      {ownsPost && <Dropdown align="end" className="cut-feed-post__manage">
+        <Dropdown.Toggle
+          variant="link"
+          size="sm"
+          disabled={busyPosts.has(post.id)}
+          aria-label={isReply ? "Gerenciar seu comentário" : "Gerenciar sua publicação"}
+          title={isReply ? "Gerenciar comentário" : "Gerenciar publicação"}
+        >
+          <i className={busyPosts.has(post.id) ? "fa-solid fa-spinner fa-spin" : "fa-solid fa-ellipsis"} />
+        </Dropdown.Toggle>
+        <Dropdown.Menu>
+          <Dropdown.Header>{isReply ? "Gerenciar comentário" : "Gerenciar publicação"}</Dropdown.Header>
+          <Dropdown.Item className="cut-feed-post__manage-danger" onClick={() => deletePost(post, depth)}>
+            <i className="fa-regular fa-trash-can" />
+            <span>{isReply ? "Excluir comentário" : "Excluir publicação"}</span>
+          </Dropdown.Item>
+        </Dropdown.Menu>
+      </Dropdown>}
     </div>
 
     {(post.event_slug || post.production_slug) && <div className="cut-feed-post__context">

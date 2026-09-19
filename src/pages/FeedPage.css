@@ -22,11 +22,28 @@
 .cut-feed-capabilities { display:flex; flex-wrap:wrap; gap:8px; margin:-4px 0 22px; max-width:100%; }
 .cut-feed-capabilities span { display:inline-flex; align-items:center; gap:7px; padding:7px 11px; border-radius:999px; background:rgba(255,255,255,.055); border:1px solid rgba(255,255,255,.07); color:rgba(255,255,255,.7); font-size:.76rem; font-weight:700; }
 .cut-feed-stream { display:grid; gap:16px; min-width:0; }
-.cut-feed-social-card { min-width:0; max-width:100%; border:1px solid rgba(255,255,255,.08)!important; border-radius:20px!important; background:linear-gradient(180deg,rgba(14,18,36,.96),rgba(10,13,28,.96))!important; overflow:hidden; box-shadow:0 12px 35px rgba(0,0,0,.14)!important; }
+.cut-feed-social-card { min-width:0; max-width:100%; border:1px solid rgba(255,255,255,.08)!important; border-radius:20px!important; background:linear-gradient(180deg,rgba(14,18,36,.96),rgba(10,13,28,.96))!important; overflow:visible; box-shadow:0 12px 35px rgba(0,0,0,.14)!important; }
 .cut-feed-social-card:hover { transform:none!important; }
 .cut-feed-social-card .card-body { padding:18px!important; min-width:0; }
 .cut-feed-post__header { display:flex; align-items:center; gap:12px; margin-bottom:14px; }
-.cut-feed-post__header > div:last-child { display:grid; min-width:0; }
+.cut-feed-post__identity { display:grid; min-width:0; flex:1 1 auto; }
+.cut-feed-post__manage { margin-left:auto; flex:0 0 auto; }
+.cut-feed-post__manage .dropdown-toggle { width:36px; height:36px; padding:0!important; border:0!important; border-radius:10px!important; display:grid; place-items:center; background:transparent!important; color:rgba(255,255,255,.56)!important; box-shadow:none!important; text-decoration:none!important; }
+.cut-feed-post__manage .dropdown-toggle::after { display:none!important; }
+.cut-feed-post__manage .dropdown-toggle:hover,
+.cut-feed-post__manage .dropdown-toggle:focus-visible,
+.cut-feed-post__manage.show .dropdown-toggle { background:rgba(255,255,255,.075)!important; color:#fff!important; }
+.cut-feed-post__manage .dropdown-toggle:focus-visible { outline:2px solid rgba(71,196,255,.62); outline-offset:2px; }
+.cut-feed-post__manage .dropdown-toggle:disabled { opacity:.6; }
+.cut-feed-post__manage .dropdown-menu { min-width:210px; padding:6px; border:1px solid rgba(255,255,255,.1); border-radius:13px; background:#101426; box-shadow:0 16px 34px rgba(0,0,0,.34); }
+.cut-feed-post__manage .dropdown-header { padding:7px 10px 5px; color:rgba(255,255,255,.46); font-size:.69rem; font-weight:800; letter-spacing:.04em; text-transform:uppercase; }
+.cut-feed-post__manage .dropdown-item { display:flex; align-items:center; gap:9px; min-height:38px; padding:8px 10px; border-radius:9px; color:rgba(255,255,255,.82); font-size:.82rem; font-weight:700; }
+.cut-feed-post__manage .dropdown-item:hover,
+.cut-feed-post__manage .dropdown-item:focus { background:rgba(255,255,255,.075); color:#fff; }
+.cut-feed-post__manage .dropdown-item--danger,
+.cut-feed-post__manage .cut-feed-post__manage-danger { color:#ff91aa; }
+.cut-feed-post__manage .cut-feed-post__manage-danger:hover,
+.cut-feed-post__manage .cut-feed-post__manage-danger:focus { background:rgba(255,79,121,.12); color:#ffb2c4; }
 .cut-feed-post__header strong { font-size:.98rem; }
 .cut-feed-post__header small { color:rgba(255,255,255,.48); font-size:.76rem; margin-top:2px; }
 .cut-feed-post__avatar { width:44px; height:44px; flex:0 0 44px; border-radius:50%; overflow:hidden; display:grid; place-items:center; background:rgba(255,255,255,.08); font-weight:800; border:1px solid rgba(255,255,255,.08); }
