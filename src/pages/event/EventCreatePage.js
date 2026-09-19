@@ -787,7 +787,6 @@ export default function EventCreatePage() {
       const response = await eventService.store(payload);
       const eventId = Number(response?.event?.id || 0);
       if (!eventId) throw new Error("A API informou sucesso, mas não retornou o evento criado.");
-      if (response?.event?.is_published !== true) throw new Error("O evento deveria ter sido criado e publicado automaticamente, mas a API retornou outro estado.");
       navigate(`/ticket/create?eventId=${eventId}`, { replace: true });
     } catch (err) {
       const errors = err?.errors || {};
