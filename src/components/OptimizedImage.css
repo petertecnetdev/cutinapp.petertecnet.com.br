@@ -1,0 +1,49 @@
+.cut-optimized-image {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  width: 100%;
+  background: color-mix(in srgb, currentColor 5%, transparent);
+}
+
+.cut-optimized-image__placeholder {
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  opacity: 0.045;
+  transform: scale(1.02);
+  transition: opacity 180ms ease;
+}
+
+.cut-optimized-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+.cut-optimized-image.is-loaded img {
+  opacity: 1;
+}
+
+.cut-optimized-image.is-loaded .cut-optimized-image__placeholder {
+  opacity: 0;
+}
+
+.cut-optimized-image--fallback {
+  display: grid;
+  place-items: center;
+  min-height: 2.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cut-optimized-image img,
+  .cut-optimized-image__placeholder {
+    transition: none;
+  }
+}
