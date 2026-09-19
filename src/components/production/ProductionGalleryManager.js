@@ -1293,6 +1293,35 @@ export default function ProductionGalleryManager({
                   </Form.Select>
                 </Form.Group>
 
+                <section className="cut-gallery-editor__crop-controls">
+                  <div className="cut-gallery-editor__crop-heading">
+                    <div>
+                      <strong>Recorte real</strong>
+                      <span>O original fica preservado para você poder reprocessar depois.</span>
+                    </div>
+                    <Button type="button" size="sm" disabled={editBusy} onClick={applyCrop}>
+                      <i className="fa-solid fa-crop-simple me-2" />Aplicar recorte
+                    </Button>
+                  </div>
+                  <div className="cut-gallery-editor__crop-ratios" role="group" aria-label="Formato do recorte">
+                    {[
+                      ["square", "1:1"],
+                      ["portrait", "4:5"],
+                      ["landscape", "4:3"],
+                      ["cover", "Capa"],
+                    ].map(([value, label]) => (
+                      <button type="button" key={value} className={cropAspect === value ? "is-active" : ""} onClick={() => setCropAspect(value)}>{label}</button>
+                    ))}
+                  </div>
+                  <Form.Group>
+                    <div className="d-flex justify-content-between gap-2">
+                      <Form.Label>Zoom do recorte</Form.Label>
+                      <span className="cut-gallery-editor__crop-value">{cropZoom}%</span>
+                    </div>
+                    <Form.Range min={100} max={300} step={5} value={cropZoom} onChange={(event) => setCropZoom(Number(event.target.value))} />
+                  </Form.Group>
+                </section>
+
                 <div className="cut-gallery-editor__focal">
                   <div>
                     <Form.Label>Enquadramento horizontal</Form.Label>
@@ -1318,6 +1347,9 @@ export default function ProductionGalleryManager({
                 <div className="cut-gallery-editor__meta">
                   {editing.width && editing.height && <span><i className="fa-solid fa-expand" />{editing.width} × {editing.height}</span>}
                   {editing.file_size && <span><i className="fa-regular fa-file-image" />{humanBytes(editing.file_size)}</span>}
+                  {editing.cover_score != null && <span><i className="fa-solid fa-wand-magic-sparkles" />Capa {editing.cover_score}/100</span>}
+                  {editing.brightness_score != null && <span><i className="fa-regular fa-sun" />Luz {editing.brightness_score}/100</span>}
+                  {editing.sharpness_score != null && <span><i className="fa-solid fa-crosshairs" />Detalhe {editing.sharpness_score}/100</span>}
                   {editing.created_at && <span><i className="fa-regular fa-clock" />{new Date(editing.created_at).toLocaleDateString("pt-BR")}</span>}
                   {editing.uploaded_by?.name && <span><i className="fa-regular fa-user" />{editing.uploaded_by.name}</span>}
                 </div>
