@@ -1,6 +1,7 @@
 /* eslint-disable react/prop-types */
-import React, { useEffect, useMemo, useState } from "react";
-import { eventImageUrl, eventInitials } from "../../utils/eventMedia";
+import React, { useMemo } from "react";
+import OptimizedImage from "../OptimizedImage";
+import { eventImageUrl } from "../../utils/eventMedia";
 
 export default function EventArtwork({
   image,
@@ -9,35 +10,22 @@ export default function EventArtwork({
   className = "",
   fallbackClassName = "",
   fallbackStyle,
+  loading,
+  fetchPriority,
   ...imageProps
 }) {
   const src = useMemo(() => eventImageUrl(image), [image]);
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    setFailed(false);
-  }, [src]);
-
-  if (!src || failed) {
-    return (
-      <span
-        className={fallbackClassName}
-        style={fallbackStyle}
-        role="img"
-        aria-label={`Imagem de ${title || "evento"} indisponível`}
-      >
-        {eventInitials(title)}
-      </span>
-    );
-  }
+  const eager = loading === "eager" || fetchPriority === "high";
 
   return (
-    <img
+    <OptimizedImage
       {...imageProps}
       src={src}
       alt={alt ?? `Imagem de ${title || "evento"}`}
-      className={className}
-      onError={() => setFailed(true)}
+      className={`${className} ${!src ? fallbackClassName : ""}`.trim()}
+      fallbackLabel={title || "Cutinapp"}
+      eager={eager}
+      style={fallbackStyle}
     />
   );
 }
