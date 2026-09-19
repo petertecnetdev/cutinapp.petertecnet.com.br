@@ -9,6 +9,21 @@ import "./ProductionGalleryManager.css";
 const LIMIT = 40;
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const ACCEPTED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const UPLOAD_CONCURRENCY = 2;
+
+const waitForIdle = () => new Promise((resolve) => {
+  if (typeof window === "undefined") {
+    resolve();
+    return;
+  }
+  if (typeof window.requestIdleCallback === "function") {
+    window.requestIdleCallback(() => resolve(), { timeout: 700 });
+    return;
+  }
+  window.setTimeout(resolve, 24);
+});
+
+let imageAnalysisChain = Promise.resolve();
 
 const fileKey = (file) => [
   file.name,
@@ -27,7 +42,7 @@ const humanBytes = (value) => {
 const byPosition = (left, right) => Number(left?.position || 0) - Number(right?.position || 0);
 const byRecent = (left, right) => new Date(right?.created_at || 0).getTime() - new Date(left?.created_at || 0).getTime();
 
-const analyzeImageFile = async (file) => {
+const analyzeImageFileNow = async (file) => {
   if (typeof document === "undefined" || typeof createImageBitmap !== "function") return [];
   try {
     const bitmap = await createImageBitmap(file);
@@ -75,6 +90,14 @@ const analyzeImageFile = async (file) => {
   } catch (_) {
     return [];
   }
+};
+
+const analyzeImageFile = (file) => {
+  const task = imageAnalysisChain
+    .then(() => waitForIdle())
+    .then(() => analyzeImageFileNow(file));
+  imageAnalysisChain = task.catch(() => []);
+  return task;
 };
 
 const normalizePositions = (items) => items.map((item, position) => ({ ...item, position }));
@@ -310,13 +333,24 @@ export default function ProductionGalleryManager({
     clearFeedback();
     const pending = queue.filter((item) => item.status === "pending" || item.status === "error" || item.status === "cancelled");
     let uploadedCount = 0;
+    let cursor = 0;
 
-    for (const item of pending) {
-      const uploaded = await uploadOne(item);
-      if (uploaded) uploadedCount += 1;
+    const worker = async () => {
+      while (cursor < pending.length) {
+        const index = cursor;
+        cursor += 1;
+        const uploaded = await uploadOne(pending[index]);
+        if (uploaded) uploadedCount += 1;
+      }
+    };
+
+    try {
+      const workerCount = Math.min(UPLOAD_CONCURRENCY, pending.length);
+      await Promise.all(Array.from({ length: workerCount }, () => worker()));
+    } finally {
+      setUploading(false);
     }
 
-    setUploading(false);
     if (uploadedCount > 0) setMessage(uploadedCount === 1 ? "Foto publicada na galeria." : `${uploadedCount} fotos publicadas na galeria.`);
   };
 
@@ -745,16 +779,8 @@ export default function ProductionGalleryManager({
             onClick={() => selectionMode ? exitSelection() : setSelectionMode(true)}
             disabled={!items.length}
           >
-            <i className="fa-regular fa-square-check me-2" />{selectionMode ? "Cancelar seleção" : "Selecionar"}
+            <i className="fa-regular fa-square-check me-2" />{selectionMode ? "Concluir seleção" : "Gerenciar / selecionar"}
           </Button>
-          <Button type="button" variant="outline-light" onClick={createAlbum}>
-            <i className="fa-regular fa-folder-open me-2" />Novo álbum
-          </Button>
-          {coverUrl && remaining > 0 && (
-            <Button type="button" variant="outline-light" onClick={importCover}>
-              <i className="fa-regular fa-copy me-2" />Adicionar capa à galeria
-            </Button>
-          )}
           {publicSlug && (
             <Button
               as="a"
@@ -768,32 +794,48 @@ export default function ProductionGalleryManager({
           )}
         </div>
 
-        <div className="cut-gallery-manager__toolbar-secondary">
-          <div className="cut-gallery-manager__mode" role="group" aria-label="Modo da galeria">
-            <button type="button" className={mode === "manage" ? "is-active" : ""} onClick={() => setMode("manage")}>Gerenciar</button>
-            <button type="button" className={mode === "view" ? "is-active" : ""} onClick={() => { setMode("view"); exitSelection(); }}>Visualizar</button>
+        <details className="cut-gallery-manager__more">
+          <summary><i className="fa-solid fa-sliders" />Mais opções</summary>
+          <div className="cut-gallery-manager__more-panel">
+            <div className="cut-gallery-manager__more-actions">
+              <Button type="button" size="sm" variant="outline-light" onClick={createAlbum}>
+                <i className="fa-regular fa-folder-open me-2" />Novo álbum
+              </Button>
+              {coverUrl && remaining > 0 && (
+                <Button type="button" size="sm" variant="outline-light" onClick={importCover}>
+                  <i className="fa-regular fa-copy me-2" />Adicionar capa à galeria
+                </Button>
+              )}
+            </div>
+
+            <div className="cut-gallery-manager__toolbar-secondary">
+              <div className="cut-gallery-manager__mode" role="group" aria-label="Modo da galeria">
+                <button type="button" className={mode === "manage" ? "is-active" : ""} onClick={() => setMode("manage")}>Gerenciar</button>
+                <button type="button" className={mode === "view" ? "is-active" : ""} onClick={() => { setMode("view"); exitSelection(); }}>Visualizar</button>
+              </div>
+              <Form.Select
+                size="sm"
+                value={filterAlbum}
+                onChange={(event) => setFilterAlbum(event.target.value)}
+                aria-label="Filtrar galeria por álbum"
+              >
+                <option value="all">Todas as fotos</option>
+                <option value="">Galeria principal</option>
+                {localAlbums.map((album) => <option key={album.id} value={album.id}>{album.name}</option>)}
+              </Form.Select>
+              <Form.Select
+                size="sm"
+                value={sortMode}
+                onChange={(event) => setSortMode(event.target.value)}
+                aria-label="Ordenação da galeria"
+              >
+                <option value="custom">Ordem personalizada</option>
+                <option value="recent">Mais recentes</option>
+              </Form.Select>
+              {orderStatus && <span className="cut-gallery-manager__order-status"><i className="fa-solid fa-check" />{orderStatus}</span>}
+            </div>
           </div>
-          <Form.Select
-            size="sm"
-            value={filterAlbum}
-            onChange={(event) => setFilterAlbum(event.target.value)}
-            aria-label="Filtrar galeria por álbum"
-          >
-            <option value="all">Todas as fotos</option>
-            <option value="">Galeria principal</option>
-            {localAlbums.map((album) => <option key={album.id} value={album.id}>{album.name}</option>)}
-          </Form.Select>
-          <Form.Select
-            size="sm"
-            value={sortMode}
-            onChange={(event) => setSortMode(event.target.value)}
-            aria-label="Ordenação da galeria"
-          >
-            <option value="custom">Ordem personalizada</option>
-            <option value="recent">Mais recentes</option>
-          </Form.Select>
-          {orderStatus && <span className="cut-gallery-manager__order-status"><i className="fa-solid fa-check" />{orderStatus}</span>}
-        </div>
+        </details>
       </div>
 
       {localAlbums.length > 0 && (
