@@ -49,7 +49,6 @@ export default function EventExperienceEditorSurface({
               <small>Edite cada informação exatamente no ponto em que ela aparece para o visitante.</small>
             </div>
             <div className="cut-event-inline-editor__modeActions">
-              {secondaryActions}
               <Button type="button" onClick={onSave} disabled={saving}>
                 <i className="fa-solid fa-check me-2" />{saving ? "Salvando..." : primaryLabel}
               </Button>
