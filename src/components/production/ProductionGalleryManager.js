@@ -1230,19 +1230,27 @@ export default function ProductionGalleryManager({
           {editing && (
             <div className="cut-gallery-editor">
               <div className="cut-gallery-editor__preview">
-                <img
-                  src={editing.url}
-                  alt={editAlt || editCaption || `Foto de ${productionName}`}
-                  style={{ objectPosition: `${editFocalX}% ${editFocalY}%` }}
-                />
+                <div className={"cut-gallery-editor__crop-preview is-" + cropAspect}>
+                  <img
+                    src={editing.url}
+                    alt={editAlt || editCaption || ("Foto de " + productionName)}
+                    style={{
+                      objectPosition: String(editFocalX) + "% " + String(editFocalY) + "%",
+                      transform: "scale(" + (Number(cropZoom) / 100) + ")",
+                    }}
+                    onError={(event) => event.currentTarget.parentElement?.classList.add("has-error")}
+                  />
+                  <span className="cut-gallery-editor__crop-grid" aria-hidden="true" />
+                </div>
                 <div className="cut-gallery-editor__preview-actions">
                   <Button type="button" size="sm" variant="dark" disabled={editBusy} onClick={() => rotate(90)}><i className="fa-solid fa-rotate-right me-2" />Girar</Button>
+                  <Button type="button" size="sm" variant="dark" disabled={editBusy} onClick={() => reprocessImage()}><i className="fa-solid fa-arrows-rotate me-2" />Reprocessar</Button>
                   <Form.Label className="btn btn-sm btn-dark mb-0">
                     <i className="fa-solid fa-image me-2" />Substituir
                     <Form.Control type="file" hidden accept="image/jpeg,image/png,image/webp" onChange={replaceImage} disabled={editBusy} />
                   </Form.Label>
                 </div>
-                {replaceProgress > 0 && <ProgressBar now={replaceProgress} label={`${replaceProgress}%`} />}
+                {replaceProgress > 0 && <ProgressBar now={replaceProgress} label={String(replaceProgress) + "%"} />}
               </div>
 
               <div className="cut-gallery-editor__form">
