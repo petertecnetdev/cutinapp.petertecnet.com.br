@@ -1,3 +1,4 @@
+import { showConfirmation } from "../../utils/sweetAlert";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Badge, Button, Card, Col, Container, Form, Modal, Row, Spinner } from "react-bootstrap";
 import NavlogComponent from "../../components/NavlogComponent";
@@ -115,7 +116,7 @@ export default function ApplicationAdminTicketsPage() {
   };
 
   const remove = async (ticket) => {
-    if (!window.confirm(`Excluir definitivamente o lote "${ticket.name}"? Esta ação só é permitida quando não existem emissões vinculadas.`)) return;
+    if (!(await showConfirmation({ title: "Excluir lote?", text: `O lote “${ticket.name}” será excluído definitivamente. A ação só é permitida quando não existem emissões vinculadas.`, confirmButtonText: "Excluir" }))) return;
     setBusy(true);
     setError("");
     try {
