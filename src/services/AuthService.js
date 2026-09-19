@@ -1,7 +1,7 @@
 import apiClient from "./ApiClient";
 import { clearAuthToken, getAuthToken, setAuthToken } from "../utils/authTokenStorage";
 import { clearCachedAuthUser } from "../utils/authUserCache";
-import { synchronizeCommerceScope } from "../utils/commerceSessionScope";
+import { invalidateCommerceScopeReadiness, synchronizeCommerceScope } from "../utils/commerceSessionScope";
 import {
   safeGetLocalItem,
   safeRemoveLocalItem,
@@ -20,6 +20,10 @@ const extractToken = (payload = {}) =>
 const authService = {
   getToken: getAuthToken,
   setToken: (token) => {
+    // Hide persisted commerce state until /me confirms which account owns the new token.
+    // Same-user token rotation preserves the cart; a real account switch is cleared by
+    // synchronizeCommerceScope as soon as the authenticated identity is known.
+    invalidateCommerceScopeReadiness();
     safeRemoveLocalItem(EMAIL_VERIFICATION_DEFERRED_TOKEN_KEY);
     clearCachedAuthUser();
     setAuthToken(token);
