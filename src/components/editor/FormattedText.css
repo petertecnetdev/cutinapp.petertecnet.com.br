@@ -1,0 +1,219 @@
+.cut-formatted-editor {
+  border: 1px solid rgba(148, 163, 184, .24);
+  border-radius: 18px;
+  overflow: hidden;
+  background: rgba(5, 10, 18, .72);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .025);
+}
+
+.cut-formatted-editor:focus-within {
+  border-color: rgba(217, 70, 239, .58);
+  box-shadow: 0 0 0 3px rgba(168, 85, 247, .11);
+}
+
+.cut-formatted-editor__topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px;
+  border-bottom: 1px solid rgba(148, 163, 184, .15);
+  background: rgba(15, 23, 42, .72);
+}
+
+.cut-formatted-editor__toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.cut-formatted-editor__tool {
+  width: 34px;
+  height: 34px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: #cbd5e1;
+  transition: background .16s ease, border-color .16s ease, color .16s ease, transform .16s ease;
+}
+
+.cut-formatted-editor__tool:hover,
+.cut-formatted-editor__tool:focus-visible {
+  border-color: rgba(168, 85, 247, .38);
+  background: rgba(168, 85, 247, .13);
+  color: #f5d0fe;
+  outline: none;
+}
+
+.cut-formatted-editor__tool:active {
+  transform: translateY(1px);
+}
+
+.cut-formatted-editor__modes {
+  display: inline-flex;
+  flex: 0 0 auto;
+  padding: 3px;
+  border: 1px solid rgba(148, 163, 184, .15);
+  border-radius: 10px;
+  background: rgba(2, 6, 23, .5);
+}
+
+.cut-formatted-editor__modes button {
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #94a3b8;
+  font-size: .76rem;
+  font-weight: 700;
+  padding: 6px 9px;
+}
+
+.cut-formatted-editor__modes button.is-active {
+  background: rgba(168, 85, 247, .17);
+  color: #f5d0fe;
+}
+
+.cut-formatted-editor__input.form-control {
+  min-height: 230px;
+  resize: vertical;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none !important;
+  background: transparent;
+  color: #f8fafc;
+  padding: 18px;
+  line-height: 1.65;
+}
+
+.cut-formatted-editor__input.form-control::placeholder {
+  color: #64748b;
+}
+
+.cut-formatted-editor__preview {
+  min-height: 230px;
+  padding: 18px;
+  background: rgba(2, 8, 16, .36);
+}
+
+.cut-formatted-editor__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 9px 12px;
+  border-top: 1px solid rgba(148, 163, 184, .12);
+  color: #64748b;
+  font-size: .74rem;
+}
+
+.cut-formatted-editor__footer strong {
+  color: #94a3b8;
+}
+
+.cut-formatted-text {
+  color: inherit;
+  line-height: 1.72;
+  overflow-wrap: anywhere;
+}
+
+.cut-formatted-text > :first-child {
+  margin-top: 0;
+}
+
+.cut-formatted-text > :last-child {
+  margin-bottom: 0;
+}
+
+.cut-formatted-text p {
+  margin: 0 0 1rem;
+  white-space: normal;
+}
+
+.cut-formatted-text h3,
+.cut-formatted-text h4 {
+  color: inherit;
+  font-weight: 800;
+  line-height: 1.2;
+  margin: 1.4rem 0 .65rem;
+}
+
+.cut-formatted-text h3 {
+  font-size: 1.28em;
+}
+
+.cut-formatted-text h4 {
+  font-size: 1.08em;
+}
+
+.cut-formatted-text ul,
+.cut-formatted-text ol {
+  margin: .45rem 0 1rem;
+  padding-left: 1.35rem;
+}
+
+.cut-formatted-text li {
+  margin: .32rem 0;
+  padding-left: .2rem;
+}
+
+.cut-formatted-text blockquote {
+  margin: 1rem 0;
+  padding: .8rem 1rem;
+  border-left: 3px solid #d946ef;
+  border-radius: 0 10px 10px 0;
+  background: rgba(217, 70, 239, .08);
+  color: #dbeafe;
+}
+
+.cut-formatted-text a {
+  color: #67e8f9;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.cut-formatted-text code {
+  border: 1px solid rgba(148, 163, 184, .18);
+  border-radius: 6px;
+  background: rgba(15, 23, 42, .8);
+  padding: .1em .35em;
+  color: #f0abfc;
+}
+
+.cut-formatted-text hr {
+  border: 0;
+  border-top: 1px solid rgba(148, 163, 184, .24);
+  margin: 1.35rem 0;
+  opacity: 1;
+}
+
+.cut-editor-preview-description.cut-formatted-text {
+  font-size: .88rem;
+  color: #cbd5e1;
+}
+
+@media (max-width: 767.98px) {
+  .cut-formatted-editor__topbar {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+
+  .cut-formatted-editor__modes {
+    align-self: flex-start;
+  }
+
+  .cut-formatted-editor__tool {
+    width: 38px;
+    height: 38px;
+  }
+
+  .cut-formatted-editor__footer {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+}
