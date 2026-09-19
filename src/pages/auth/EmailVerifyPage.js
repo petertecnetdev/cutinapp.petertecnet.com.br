@@ -35,6 +35,7 @@ export default function EmailVerifyPage() {
   const resendInFlightRef = useRef(false);
   const normalized = useMemo(() => code.trim(), [code]);
   const returnTo = location.state?.from || "/dashboard";
+  const resendCooldownActive = resendCooldown > 0;
 
   const startResendCooldown = (seconds = DEFAULT_RESEND_COOLDOWN_SECONDS) => {
     const normalizedSeconds = Math.max(1, Math.ceil(Number(seconds) || DEFAULT_RESEND_COOLDOWN_SECONDS));
@@ -43,7 +44,7 @@ export default function EmailVerifyPage() {
   };
 
   useEffect(() => {
-    if (resendCooldown <= 0) {
+    if (!resendCooldownActive) {
       safeRemoveSessionItem(RESEND_COOLDOWN_KEY);
       return undefined;
     }
@@ -57,7 +58,7 @@ export default function EmailVerifyPage() {
     }, 1000);
 
     return () => window.clearInterval(timer);
-  }, [resendCooldown > 0]);
+  }, [resendCooldownActive]);
 
   useEffect(() => {
     let active = true;
