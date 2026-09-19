@@ -19,6 +19,7 @@ import SeoManager from "./components/SeoManager";
 import authService from "./services/AuthService";
 import { hasContextRole } from "./utils/applicationRoles";
 import lazyWithPreload from "./utils/lazyWithPreload";
+import { getMobileRuntimeProfile, scheduleIdleWork, shouldEnableDecorativeEffects, shouldPreloadSecondaryRoutes } from "./utils/mobilePerformance";
 
 const EventFlyerAssistant = lazy(() => import("./components/EventFlyerAssistant"));
 const EventSeriesLauncher = lazy(() => import("./components/EventSeriesLauncher"));
@@ -102,20 +103,27 @@ function AppRoutes() {
 
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
+    const profile = getMobileRuntimeProfile();
     const run = () => {
       EventPage.preload();
-      EventDiscoverySeoPage.preload();
-      ProductionListPage.preload();
-      BlogPage.preload();
       if (user) {
         FeedPage.preload();
         MyPassesPage.preload();
       } else {
         HomePage.preload();
       }
+
+      if (shouldPreloadSecondaryRoutes()) {
+        EventDiscoverySeoPage.preload();
+        ProductionListPage.preload();
+        BlogPage.preload();
+      }
     };
-    const idle = window.requestIdleCallback ? window.requestIdleCallback(run, { timeout: 1600 }) : window.setTimeout(run, 350);
-    return () => window.cancelIdleCallback ? window.cancelIdleCallback(idle) : window.clearTimeout(idle);
+
+    return scheduleIdleWork(run, {
+      timeout: profile.constrainedNetwork ? 3000 : 1700,
+      fallbackDelay: profile.mobile ? 700 : 380,
+    });
   }, [user]);
 
   if (loading) return <ProcessingIndicatorComponent label="Preparando Cutinapp" />;
@@ -151,13 +159,16 @@ function AppRoutes() {
   const needsEventFlyerAssistant = location.pathname === "/event/create" || /^\/event\/edit\/[^/]+$/.test(location.pathname);
   const needsEventSeriesLauncher = location.pathname === "/event/manage";
   const performanceCriticalRoute = location.pathname.startsWith("/checkout/");
+  const runtimeProfile = getMobileRuntimeProfile();
+  const enableGlobalSearchOverlay = !runtimeProfile.mobile;
+  const enableVisualEffects = !performanceCriticalRoute && shouldEnableDecorativeEffects();
   const routeKey = `${location.pathname}${location.search}`;
 
   return <>
     <ConnectionStatus />
     {user && <MessagingNotificationBridge />}
-    <GlobalSearchOverlay />
-    {!performanceCriticalRoute && <CutinappVisualEffects />}
+    {enableGlobalSearchOverlay && <GlobalSearchOverlay />}
+    {enableVisualEffects && <CutinappVisualEffects />}
     <AppErrorBoundary resetKey={routeKey}>
       <Suspense fallback={<ProcessingIndicatorComponent label="Carregando página" />}>
         <SeoManager />
