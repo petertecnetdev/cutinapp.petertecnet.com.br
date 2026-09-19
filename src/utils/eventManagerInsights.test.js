@@ -91,6 +91,22 @@ describe("eventManagerInsights", () => {
     expect(eventAlerts(event).some((alert) => alert.key === "published-no-sales")).toBe(true);
   });
 
+  test("surfaces pending artist invitations as actionable event alerts", () => {
+    const event = baseEvent({
+      artists: [
+        { id: 1, stage_name: "DJ Aurora", pivot: { status: "invited" } },
+        { id: 2, stage_name: "Banda Solar", pivot: { status: "accepted" } },
+      ],
+    });
+
+    expect(eventAlerts(event)).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        key: "artist-invites-pending",
+        tone: "warning",
+      }),
+    ]));
+  });
+
   test("detects strong sales and nearly sold out inventory", () => {
     const almostSoldOut = baseEvent({
       operational_metrics: {
