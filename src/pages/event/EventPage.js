@@ -4,9 +4,9 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import CollapsibleFilterPanel from "../../components/CollapsibleFilterPanel";
+import EventArtwork from "../../components/event/EventArtwork";
 import eventService from "../../services/EventService";
 import cutinappService from "../../services/CutinappService";
-import { storageUrl } from "../../config";
 import { PERIOD_OPTIONS, paramsFromSearch, periodLabel, readDiscoveryPreference, readRecentCities, saveDiscoveryPreference } from "../../utils/discoveryFilters";
 import "./EventPage.css";
 
@@ -255,7 +255,7 @@ export default function EventPage() {
                 return <Col xs={12} md={6} xl={4} key={event.id}>
                   <Card className="cut-event-card h-100" role="button" tabIndex={0} aria-label={`Abrir evento ${event.title}`} onMouseEnter={() => eventService.view(event.slug).catch(() => {})} onFocus={() => eventService.view(event.slug).catch(() => {})} onClick={() => navigate(`/event/${event.slug}`)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/event/${event.slug}`); } }}>
                     <div className="cut-event-card__media">
-                      {event.image ? <img src={`${storageUrl}${String(event.image).replace(/^\//, "")}`} alt={event.title} loading="lazy" decoding="async" /> : <div className="cut-event-card__placeholder"><i className="fa-regular fa-calendar" /></div>}
+                      <EventArtwork image={event.image} title={event.title} alt={event.title} loading="lazy" decoding="async" fallbackClassName="cut-event-card__placeholder" />
                       {event.category && <Badge bg="dark" className="cut-event-card__category">{event.category}</Badge>}
                       <Badge bg={availabilityBadge.bg} text={availabilityBadge.text} className="cut-event-card__badge">{availabilityBadge.label}</Badge>
                     </div>
