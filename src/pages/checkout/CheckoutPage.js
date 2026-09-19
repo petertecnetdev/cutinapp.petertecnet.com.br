@@ -5,7 +5,7 @@ import MercadoPagoCardForm from "../../components/payment/MercadoPagoCardForm";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import { AuthContext } from "../../context/AuthContext";
 import commerceService from "../../services/CommerceService";
-import { clearCheckoutRecovery, readCheckoutRecovery, writeCheckoutRecovery } from "../../utils/checkoutRecovery";
+import { clearCheckoutRecovery, isCheckoutPaymentSnapshotResumable, readCheckoutRecovery, writeCheckoutRecovery } from "../../utils/checkoutRecovery";
 import { copyText } from "../../utils/clipboard";
 import { resolveCheckoutPaymentMethod } from "../../utils/paymentMethod";
 import { paymentReviewState } from "../../utils/paymentReviewState";
@@ -88,7 +88,7 @@ export default function CheckoutPage() {
 
     let hasSessionPayment = false;
     const storedPayment = fromState ? null : safeGetSessionJson(paymentStorageKey);
-    if (storedPayment?.order?.public_id) {
+    if (isCheckoutPaymentSnapshotResumable(storedPayment, recovery)) {
       hasSessionPayment = true;
       setMethod(resolveCheckoutPaymentMethod(storedPayment));
       setResult(storedPayment);
@@ -97,6 +97,16 @@ export default function CheckoutPage() {
         setCouponCode(storedCouponCode);
         setCoupon({ code: storedCouponCode, discount_amount: Number(storedPayment?.order?.discount_amount || 0), total: Number(storedPayment?.order?.total || 0), subtotal: Number(storedPayment?.order?.subtotal || 0) });
       }
+    } else if (storedPayment?.order?.public_id) {
+      safeRemoveSessionItem(paymentStorageKey);
+      trackCheckout("checkout_stale_payment_snapshot_discarded", {
+        label: "Snapshot de pagamento antigo descartado após alteração do carrinho",
+        target: slug,
+        metadata: {
+          stored_order_public_id: storedPayment.order.public_id,
+          recovery_order_public_id: recovery?.orderPublicId || null,
+        },
+      });
     }
 
     if (!fromState && !hasSessionPayment && recovery?.orderPublicId) {
