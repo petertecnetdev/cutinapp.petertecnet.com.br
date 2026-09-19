@@ -399,8 +399,7 @@ export default function EventUpdatePage() {
           <div className="d-flex flex-column flex-xl-row justify-content-between gap-4">
             <div className="flex-grow-1">
               <span className="cut-eyebrow">Saúde do evento</span>
-              <h2 className="cut-section-title mt-2">Operação e publicação</h2>
-              <div className="cev2-progress mb-4"><span style={{ width: `${readiness}%` }} /></div>
+              <h2 className="cut-section-title mt-2">Operação e publicação</h2>\n              <div className="small text-secondary mb-3"><i className="fa-solid fa-cloud-arrow-up me-2" />{autoSaveStatus === "saving" ? "Salvando automaticamente..." : autoSaveStatus === "error" ? "Falha no salvamento automático" : autoSaveStatus === "dirty" ? "Alterações pendentes" : "Salvamento automático ativo"}{lastSavedAt ? ` · último salvamento ${lastSavedAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : ""}</div>\n              <div className="cev2-progress mb-4"><span style={{ width: `${readiness}%` }} /></div>
               <div className="cev2-metrics">
                 <div className="cev2-metric"><small>Pronto</small><strong>{readiness}%</strong></div>
                 <div className="cev2-metric"><small>Faturamento</small><strong>{money(metrics.grossSales)}</strong></div>
