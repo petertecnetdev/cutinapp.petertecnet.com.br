@@ -7,6 +7,7 @@ import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorCo
 import ProductionTicketCartModal from "../../components/event/ProductionTicketCartModal";
 import EventArtwork from "../../components/event/EventArtwork";
 import ProductionCommunitySection from "../../components/production/ProductionCommunitySection";
+import ProductionGallery from "../../components/production/ProductionGallery";
 import { FormattedText } from "../../components/editor/FormattedText";
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
@@ -37,7 +38,7 @@ export default function ProductionPublicPage() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const [data, setData] = useState(null);
-  const [experience, setExperience] = useState({ analytics: { total_views: 0, unique_viewers: 0, viewers: [] }, media: [] });
+  const [experience, setExperience] = useState({ analytics: { total_views: 0, unique_viewers: 0, viewers: [] }, media: [], gallery: { albums: [] } });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -97,6 +98,7 @@ export default function ProductionPublicPage() {
   const artists = data?.artists || [];
   const analytics = experience?.analytics || { total_views: 0, unique_viewers: 0, viewers: [] };
   const media = experience?.media || [];
+  const galleryAlbums = experience?.gallery?.albums || [];
   const instagramHref = safeExternalHref(production?.instagram_url);
   const websiteHref = safeExternalHref(production?.website_url);
   const pageBackground = mediaUrl(production?.background || production?.logo);
@@ -291,7 +293,14 @@ export default function ProductionPublicPage() {
         )}
       </section>
 
-      {media.length > 0 && <section className="cut-production-section cut-production-gallery"><div className="cut-production-section-head"><div><span className="cut-eyebrow">{production.type === "fixed" ? "O espaço" : "Galeria"}</span><h2>{production.type === "fixed" ? "Conheça o local" : "Fotos da produção"}</h2></div></div><div className="cut-production-gallery-grid">{media.map((item) => <figure className="cut-production-gallery-item" key={item.id}><img src={mediaUrl(item.url)} alt={item.caption || `Foto de ${production.name}`} loading="lazy" />{item.caption && <figcaption>{item.caption}</figcaption>}</figure>)}</div></section>}
+      <ProductionGallery
+        media={media}
+        albums={galleryAlbums}
+        productionName={production.name}
+        productionType={production.type}
+        isOwner={isOwner}
+        onManage={() => navigate(`/production/edit/${production.id}#production-editor-gallery`)}
+      />
 
       {artists.length > 0 && <section className="cut-production-section"><div className="cut-production-section-head"><div><span className="cut-eyebrow">Conexões</span><h2>Artistas relacionados</h2></div></div><div className="cut-artist-strip">{artists.map((artist) => <button key={artist.id} onClick={() => navigate(`/artist/${artist.slug}`)}><span>{artist.stage_name?.slice(0, 2).toUpperCase()}</span><strong>{artist.stage_name}</strong></button>)}</div></section>}
 
