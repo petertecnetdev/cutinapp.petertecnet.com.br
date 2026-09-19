@@ -47,6 +47,7 @@ import "./styles/cutinapp-cinematic-glass.css";
 import "./styles/overlay-layout-system.css";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
+import AppErrorBoundary from "./components/AppErrorBoundary";
 import MediaLibraryInputEnhancer from "./components/MediaLibraryInputEnhancer";
 import GlobalImageInputEnhancer from "./components/GlobalImageInputEnhancer";
 import GlobalAiDescriptionEnhancer from "./components/GlobalAiDescriptionEnhancer";
@@ -111,14 +112,16 @@ if (typeof window !== "undefined") {
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <React.StrictMode>
-    <PeterAccountGateway apiBaseUrl={apiBaseUrl} appSlug={appSlug}>
-      <AuthProvider>
-        <App />
-        <GlobalImageInputEnhancer />
-        <GlobalAiDescriptionEnhancer />
-        <MediaLibraryInputEnhancer />
-      </AuthProvider>
-    </PeterAccountGateway>
+    <AppErrorBoundary>
+      <PeterAccountGateway apiBaseUrl={apiBaseUrl} appSlug={appSlug}>
+        <AuthProvider>
+          <App />
+          <GlobalImageInputEnhancer />
+          <GlobalAiDescriptionEnhancer />
+          <MediaLibraryInputEnhancer />
+        </AuthProvider>
+      </PeterAccountGateway>
+    </AppErrorBoundary>
   </React.StrictMode>
 );
 
