@@ -1,0 +1,113 @@
+.cut-moderation-source-switch{
+  display:flex;
+  gap:8px;
+  margin:0 0 18px;
+  padding:4px;
+  width:max-content;
+  max-width:100%;
+  border:1px solid rgba(148,163,184,.14);
+  border-radius:14px;
+  background:rgba(15,23,42,.54);
+}
+
+.cut-moderation-source-switch>button{
+  position:relative;
+  min-height:40px;
+  padding:8px 12px;
+  border:1px solid transparent;
+  border-radius:10px;
+  background:transparent;
+  color:var(--cut-text-muted);
+  font-size:.78rem;
+  font-weight:850;
+}
+
+.cut-moderation-source-switch>button.is-active{
+  border-color:rgba(168,85,247,.24);
+  background:rgba(168,85,247,.12);
+  color:#fff;
+}
+
+.cut-moderation-source-switch__badge{
+  display:inline-grid;
+  place-items:center;
+  min-width:19px;
+  height:19px;
+  margin-left:7px;
+  padding:0 5px;
+  border-radius:999px;
+  background:#dc3545;
+  color:#fff;
+  font-size:.62rem;
+  font-weight:900;
+}
+
+.cut-media-report{
+  display:grid;
+  grid-template-columns:150px minmax(0,1fr);
+  gap:14px;
+  margin-top:12px;
+}
+
+.cut-media-report__preview{
+  width:150px;
+  aspect-ratio:1/1;
+  overflow:hidden;
+  padding:0;
+  border:1px solid rgba(148,163,184,.14);
+  border-radius:14px;
+  background:#07101a;
+}
+
+.cut-media-report__preview img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+.cut-media-report__preview>span{
+  width:100%;
+  height:100%;
+  display:grid;
+  place-items:center;
+  align-content:center;
+  gap:6px;
+  color:var(--cut-text-muted);
+  font-size:.7rem;
+}
+
+.cut-media-report__preview>span i{
+  font-size:1.4rem;
+}
+
+.cut-media-report__body{
+  min-width:0;
+}
+
+.cut-media-report__caption{
+  margin:.55rem 0;
+  padding:.55rem .7rem;
+  border-left:2px solid rgba(168,85,247,.45);
+  background:rgba(168,85,247,.05);
+  color:var(--cut-text-soft);
+  font-size:.76rem;
+}
+
+@media(max-width:575.98px){
+  .cut-moderation-source-switch{
+    width:100%;
+  }
+
+  .cut-moderation-source-switch>button{
+    flex:1 1 0;
+  }
+
+  .cut-media-report{
+    grid-template-columns:1fr;
+  }
+
+  .cut-media-report__preview{
+    width:100%;
+    aspect-ratio:16/10;
+  }
+}
