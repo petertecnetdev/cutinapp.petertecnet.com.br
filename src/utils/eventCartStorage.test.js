@@ -1,4 +1,5 @@
-import { clearEventCart, isFulfilledCheckoutResult } from "./eventCartStorage";
+import { clearEventCart, isFulfilledCheckoutResult, writeEventCart } from "./eventCartStorage";
+import { readCheckoutRecovery, writeCheckoutRecovery } from "./checkoutRecovery";
 
 describe("fulfilled checkout storage cleanup", () => {
   beforeEach(() => {
@@ -28,6 +29,39 @@ describe("fulfilled checkout storage cleanup", () => {
     expect(window.localStorage.getItem(cartKey)).toBeNull();
     expect(window.sessionStorage.getItem(paymentKey)).toBeNull();
     expect(window.localStorage.getItem(recoveryKey)).toBeNull();
+  });
+
+  test("keeps draft recovery synchronized with cart changes", () => {
+    const slug = "evento-edicao";
+
+    writeCheckoutRecovery(slug, {
+      selection: { tickets: [{ id: 1, quantity: 3 }] },
+      couponCode: "VIP10",
+      paymentMethod: "card",
+    });
+
+    writeEventCart(slug, {
+      eventId: 77,
+      tickets: [{ id: 1, quantity: 1 }],
+      items: [{ id: 9, quantity: 2 }],
+    });
+
+    expect(readCheckoutRecovery(slug)?.selection).toEqual({
+      tickets: [{ id: 1, quantity: 1 }],
+      items: [{ id: 9, quantity: 2 }],
+    });
+    expect(readCheckoutRecovery(slug)?.couponCode).toBe("VIP10");
+    expect(readCheckoutRecovery(slug)?.paymentMethod).toBe("card");
+  });
+
+  test("clears draft recovery when the participant empties the cart", () => {
+    const slug = "evento-vazio";
+    writeEventCart(slug, { tickets: [{ id: 5, quantity: 1 }], items: [] });
+    expect(readCheckoutRecovery(slug)).not.toBeNull();
+
+    clearEventCart(slug);
+
+    expect(readCheckoutRecovery(slug)).toBeNull();
   });
 
   test("keeps pending payment recovery intact when only the cart is cleared", () => {
