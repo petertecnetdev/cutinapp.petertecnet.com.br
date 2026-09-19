@@ -1133,6 +1133,18 @@ export default function ProductionGalleryManager({
                 onDragStart={() => setDraggedId(item.id)}
                 onDragOver={(event) => { if (draggedId) event.preventDefault(); }}
                 onDrop={(event) => { event.preventDefault(); handleDropOnCard(item.id); }}
+                tabIndex={mode === "manage" && sortMode === "custom" && !selectionMode ? 0 : -1}
+                onKeyDown={(event) => {
+                  if (!(event.altKey || event.ctrlKey) || sortMode !== "custom" || selectionMode) return;
+                  if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+                    event.preventDefault();
+                    moveItem(item.id, -1);
+                  } else if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+                    event.preventDefault();
+                    moveItem(item.id, 1);
+                  }
+                }}
+                aria-label={mode === "manage" ? ("Foto " + (index + 1) + ". Use Alt mais setas para reorganizar.") : undefined}
               >
                 <button
                   type="button"
