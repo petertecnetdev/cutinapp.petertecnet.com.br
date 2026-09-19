@@ -16,7 +16,7 @@ export default function ProductionGallery({
   onReport,
 }) {
   const [activeAlbum, setActiveAlbum] = useState("all");
-  const [visibleCount, setVisibleCount] = useState(12);
+  const [visibleCount, setVisibleCount] = useState(8);
   const [lightboxIndex, setLightboxIndex] = useState(-1);
   const [loadedIds, setLoadedIds] = useState(() => new Set());
   const [failedIds, setFailedIds] = useState(() => new Set());
@@ -41,7 +41,7 @@ export default function ProductionGallery({
 
   useEffect(() => {
     if (initialLoadTracked.current || media.length === 0) return;
-    const initialIds = media.slice().sort(sortByPosition).slice(0, 12).map((item) => Number(item.id));
+    const initialIds = media.slice().sort(sortByPosition).slice(0, 8).map((item) => Number(item.id));
     const settled = initialIds.filter((id) => loadedIds.has(id) || failedIds.has(id)).length;
     if (settled < initialIds.length) return;
 
@@ -65,7 +65,7 @@ export default function ProductionGallery({
   }, [media, loadedIds, failedIds]);
 
   useEffect(() => {
-    setVisibleCount(12);
+    setVisibleCount(8);
     setLightboxIndex(-1);
   }, [activeAlbum]);
 
@@ -199,7 +199,11 @@ export default function ProductionGallery({
                 aria-label={`Abrir foto ${index + 1} de ${filtered.length}`}
               >
                 <img
-                  src={item.thumbnail_url || item.url}
+                  src={item.thumbnail_url || item.medium_url || item.url}
+                  srcSet={item.medium_url && item.thumbnail_url ? `${item.thumbnail_url} 480w, ${item.medium_url} 960w, ${item.url} 1600w` : undefined}
+                  sizes="(max-width: 575px) 50vw, (max-width: 991px) 33vw, 25vw"
+                  width={item.width || 640}
+                  height={item.height || 480}
                   alt={item.alt_text || item.caption || `Foto de ${productionName}`}
                   loading="lazy"
                   decoding="async"
@@ -231,8 +235,8 @@ export default function ProductionGallery({
 
           {visibleCount < filtered.length && (
             <div className="cut-public-gallery__more">
-              <Button type="button" variant="outline-light" onClick={() => setVisibleCount((count) => count + 12)}>
-                Ver mais fotos <span>{Math.min(12, filtered.length - visibleCount)}</span>
+              <Button type="button" variant="outline-light" onClick={() => setVisibleCount(filtered.length)}>
+                Ver todas as fotos <span>{filtered.length - visibleCount}</span>
               </Button>
             </div>
           )}
@@ -260,6 +264,8 @@ export default function ProductionGallery({
               )}
               <img
                 src={current.url}
+                loading="eager"
+                decoding="async"
                 alt={current.alt_text || current.caption || `Foto de ${productionName}`}
                 onError={(event) => {
                   event.currentTarget.style.display = "none";
