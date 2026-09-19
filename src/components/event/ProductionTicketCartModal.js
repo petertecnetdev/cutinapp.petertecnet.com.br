@@ -4,7 +4,9 @@ import { Alert, Button, Form, Modal, Spinner } from "react-bootstrap";
 import commerceService from "../../services/CommerceService";
 import cutinappService from "../../services/CutinappService";
 import { checkoutQuantityLimit, resolveCheckoutQuantity } from "../../utils/checkoutAddOns";
-import { addTicketsToCommerceCart } from "../../utils/commerceCart";
+import { readCheckoutRecovery } from "../../utils/checkoutRecovery";
+import { mergeEventCartTickets, readEventCart, writeEventCart } from "../../utils/eventCartStorage";
+import { safeRemoveSessionItem } from "../../utils/safeStorage";
 import "../../styles/event-ticket-purchase.css";
 
 const money = (value) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
@@ -162,15 +164,37 @@ export default function ProductionTicketCartModal({ show, onHide, productionSlug
     setAdding(true);
     setError("");
     try {
-      const result = addTicketsToCommerceCart({
-        event: catalog?.event || selectedEvent,
-        production: production || currentEvent?.production,
-        tickets: selectedTickets,
+      const eventForCart = catalog?.event || selectedEvent;
+      const eventSlug = String(eventForCart?.slug || selectedSlug || "").trim();
+      const eventId = Number(eventForCart?.id || 0);
+      if (!eventSlug || !eventId) throw new Error("Não foi possível identificar o evento selecionado.");
+
+      const pendingRecovery = readCheckoutRecovery(eventSlug);
+      if (pendingRecovery?.orderPublicId) {
+        throw new Error("Já existe um pagamento em andamento para este evento. Retome essa compra antes de alterar o carrinho.");
+      }
+
+      const stored = readEventCart(eventSlug);
+      const sameEvent = stored && Number(stored?.eventId || 0) === eventId;
+      const baseSelection = sameEvent ? stored : {
+        eventId,
+        eventDate: eventForCart?.start_date || null,
+        tickets: [],
+        items: [],
+      };
+      const result = mergeEventCartTickets(baseSelection, selectedTickets);
+      if (!result.addedQuantity) throw new Error("A quantidade máxima disponível destes ingressos já está no carrinho.");
+
+      safeRemoveSessionItem(`cutinapp_payment_${eventSlug}`);
+      writeEventCart(eventSlug, {
+        ...result.selection,
+        eventId,
+        eventDate: eventForCart?.start_date || result.selection?.eventDate || null,
       });
 
       trackCart("production_ticket_added_to_cart", {
         label: "Ingresso de evento da produção adicionado ao carrinho",
-        target: selectedEvent.slug,
+        target: eventSlug,
         metadata: {
           event_id: Number(selectedEvent.id || catalog?.event?.id || 0),
           production_id: Number(production?.id || currentEvent?.production_id || currentEvent?.production?.id || 0),
