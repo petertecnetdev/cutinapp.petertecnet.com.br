@@ -217,7 +217,7 @@ export default function ProductionGalleryManager({
         rejected.push(`${file.name}: arquivo repetido nesta seleção`);
         return;
       }
-      next.push({
+      const queueItem = {
         id: `queue-${Date.now()}-${next.length}-${Math.random().toString(36).slice(2)}`,
         signature,
         file,
@@ -227,6 +227,10 @@ export default function ProductionGalleryManager({
         progress: 0,
         error: "",
         warnings: [],
+      };
+      next.push(queueItem);
+      void analyzeImageFile(file).then((warnings) => {
+        if (warnings.length) updateQueueItem(queueItem.id, { warnings });
       });
     });
 
