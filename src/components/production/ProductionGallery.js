@@ -16,7 +16,11 @@ export default function ProductionGallery({
   const [activeAlbum, setActiveAlbum] = useState("all");
   const [visibleCount, setVisibleCount] = useState(12);
   const [lightboxIndex, setLightboxIndex] = useState(-1);
+  const [loadedIds, setLoadedIds] = useState(() => new Set());
+  const [failedIds, setFailedIds] = useState(() => new Set());
   const touchStartX = useRef(null);
+  const initialLoadStartedAt = useRef(typeof performance !== "undefined" ? performance.now() : Date.now());
+  const initialLoadTracked = useRef(false);
 
   const filtered = useMemo(() => {
     const ordered = [...media].sort(sortByPosition);
@@ -26,6 +30,31 @@ export default function ProductionGallery({
 
   const visible = filtered.slice(0, visibleCount);
   const current = lightboxIndex >= 0 ? filtered[lightboxIndex] : null;
+
+  useEffect(() => {
+    if (initialLoadTracked.current || media.length === 0) return;
+    const initialIds = media.slice().sort(sortByPosition).slice(0, 12).map((item) => Number(item.id));
+    const settled = initialIds.filter((id) => loadedIds.has(id) || failedIds.has(id)).length;
+    if (settled < initialIds.length) return;
+
+    initialLoadTracked.current = true;
+    const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+    const durationMs = Math.max(0, Math.round(now - initialLoadStartedAt.current));
+    try {
+      window.PeterTecnetTelemetry?.track?.("production_gallery_loaded", {
+        label: "Galeria pública da produção",
+        target: String(window.location?.pathname || ""),
+        metadata: {
+          photos_total: media.length,
+          photos_initial: initialIds.length,
+          failures: initialIds.filter((id) => failedIds.has(id)).length,
+          duration_ms: durationMs,
+        },
+      });
+    } catch (_) {
+      // Telemetry must never block gallery rendering.
+    }
+  }, [media, loadedIds, failedIds]);
 
   useEffect(() => {
     setVisibleCount(12);
@@ -134,7 +163,23 @@ export default function ProductionGallery({
                   loading="lazy"
                   decoding="async"
                   style={{ objectPosition: `${item.focal_x ?? 50}% ${item.focal_y ?? 50}%` }}
+                  onLoad={() => {
+                    setLoadedIds((currentIds) => {
+                      const nextIds = new Set(currentIds);
+                      nextIds.add(Number(item.id));
+                      return nextIds;
+                    });
+                  }}
+                  onError={(event) => {
+                    event.currentTarget.style.display = "none";
+                    setFailedIds((currentIds) => {
+                      const nextIds = new Set(currentIds);
+                      nextIds.add(Number(item.id));
+                      return nextIds;
+                    });
+                  }}
                 />
+                {failedIds.has(Number(item.id)) && <span className="cut-public-gallery__broken"><i className="fa-regular fa-image" />Imagem indisponível</span>}
                 <span className="cut-public-gallery__shade" />
                 {item.is_featured && <span className="cut-public-gallery__featured"><i className="fa-solid fa-star" />Destaque</span>}
                 {item.caption && <span className="cut-public-gallery__caption">{item.caption}</span>}
@@ -172,7 +217,19 @@ export default function ProductionGallery({
                   <i className="fa-solid fa-chevron-left" />
                 </button>
               )}
-              <img src={current.url} alt={current.alt_text || current.caption || `Foto de ${productionName}`} />
+              <img
+                src={current.url}
+                alt={current.alt_text || current.caption || `Foto de ${productionName}`}
+                onError={(event) => {
+                  event.currentTarget.style.display = "none";
+                  setFailedIds((currentIds) => {
+                    const nextIds = new Set(currentIds);
+                    nextIds.add(Number(current.id));
+                    return nextIds;
+                  });
+                }}
+              />
+              {failedIds.has(Number(current.id)) && <span className="cut-gallery-lightbox__broken"><i className="fa-regular fa-image" />Imagem indisponível</span>}
               {filtered.length > 1 && (
                 <button type="button" className="cut-gallery-lightbox__nav is-next" onClick={() => move(1)} aria-label="Próxima foto">
                   <i className="fa-solid fa-chevron-right" />
