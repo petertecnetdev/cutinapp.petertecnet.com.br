@@ -21,6 +21,7 @@ export default function EntityEditorShell({
   lastSavedAt,
   preview,
   previewLabel = "Prévia ao vivo",
+  previewPlacement = "aside",
   primaryAction,
   secondaryActions,
   children,
@@ -33,7 +34,7 @@ export default function EntityEditorShell({
   };
 
   return (
-    <div className="cut-entity-editor">
+    <div className={`cut-entity-editor ${previewPlacement === "top" ? "cut-entity-editor--preview-top" : ""}`.trim()}>
       <header className="cut-entity-editor__header">
         <Container className="cut-page-container">
           <div className="cut-entity-editor__heading">
@@ -53,6 +54,18 @@ export default function EntityEditorShell({
           </div>
         </Container>
       </header>
+
+      {preview && previewPlacement === "top" && (
+        <Container className="cut-page-container cut-entity-editor__livePreviewWrap">
+          <div className="cut-entity-editor__livePreviewHeading">
+            <div>
+              <span className="cut-eyebrow">{previewLabel}</span>
+              <small>O topo abaixo acompanha suas alterações antes de você publicar.</small>
+            </div>
+          </div>
+          <div className="cut-entity-editor__livePreview">{preview}</div>
+        </Container>
+      )}
 
       {sections.length > 0 && (
         <nav className="cut-entity-editor__nav" aria-label="Seções do editor">
@@ -77,15 +90,17 @@ export default function EntityEditorShell({
       <Container className="cut-page-container cut-entity-editor__body">
         <div className="cut-entity-editor__grid">
           <main className="cut-entity-editor__main">{children}</main>
-          <aside className="cut-entity-editor__aside">
-            <div className="cut-entity-editor__previewSticky">
-              <div className="cut-entity-editor__previewHeading">
-                <span className="cut-eyebrow">{previewLabel}</span>
-                <small>Atualiza enquanto você edita</small>
+          {preview && previewPlacement !== "top" && (
+            <aside className="cut-entity-editor__aside">
+              <div className="cut-entity-editor__previewSticky">
+                <div className="cut-entity-editor__previewHeading">
+                  <span className="cut-eyebrow">{previewLabel}</span>
+                  <small>Atualiza enquanto você edita</small>
+                </div>
+                {preview}
               </div>
-              {preview}
-            </div>
-          </aside>
+            </aside>
+          )}
         </div>
       </Container>
     </div>
