@@ -3,6 +3,7 @@ import { Alert, Badge, Button, Container } from "react-bootstrap";
 import { useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
+import EventArtwork from "../../components/event/EventArtwork";
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
 import "./production-agenda-public.css";
@@ -323,9 +324,7 @@ export default function ProductionAgendaPublicPage() {
                       <>
                         <div className="cut-public-weekly__event">
                           <div className="cut-public-weekly__event-media">
-                            {event.image
-                              ? <img src={mediaUrl(event.image)} alt={event.title} loading="lazy" decoding="async" />
-                              : <span>{initials(event.title)}</span>}
+                            <EventArtwork image={event.image} title={event.title} alt={event.title} loading="lazy" decoding="async" />
                           </div>
                           <div className="cut-public-weekly__event-copy">
                             <h3>{event.title}</h3>
@@ -352,9 +351,7 @@ export default function ProductionAgendaPublicPage() {
           {nextEvent && (
             <section className="cut-public-agenda-next" aria-label="Próximo evento">
               <div className="cut-public-agenda-next__media">
-                {nextEvent.image
-                  ? <img src={mediaUrl(nextEvent.image)} alt={nextEvent.title} />
-                  : <div className="cut-public-agenda-event__fallback"><span>{initials(nextEvent.title)}</span></div>}
+                <EventArtwork image={nextEvent.image} title={nextEvent.title} alt={nextEvent.title} fallbackClassName="cut-public-agenda-event__fallback" />
               </div>
               <div className="cut-public-agenda-next__body">
                 <span className="cut-eyebrow">Próximo evento</span>
@@ -396,9 +393,7 @@ export default function ProductionAgendaPublicPage() {
                   return (
                   <article className="cut-public-agenda-event" key={event.id}>
                     <div className="cut-public-agenda-event__media">
-                      {event.image
-                        ? <img src={mediaUrl(event.image)} alt={event.title} loading="lazy" decoding="async" />
-                        : <div className="cut-public-agenda-event__fallback"><span>{initials(event.title)}</span></div>}
+                      <EventArtwork image={event.image} title={event.title} alt={event.title} loading="lazy" decoding="async" fallbackClassName="cut-public-agenda-event__fallback" />
                     </div>
                     <div className="cut-public-agenda-event__body">
                       <div className="cut-public-agenda-event__date">
