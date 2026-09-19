@@ -143,39 +143,49 @@ export default function HomeHubPage() {
       setProductions(mergedProductions);
       setLoading(false);
 
-      const catalogEvents = eventList.filter((event) => event?.slug).slice(0, 4);
+      const catalogEvents = eventList.filter((event) => event?.slug).slice(0, 12);
       if (!catalogEvents.length) {
         setItems([]);
         setItemsLoading(false);
         return;
       }
 
-      const catalogResults = await Promise.allSettled(
-        catalogEvents.map((event) => commerceService.catalog(event.slug))
-      );
+      let discoveredItems = [];
+      const catalogBatchSize = 4;
+
+      for (let offset = 0; offset < catalogEvents.length && discoveredItems.length < 12; offset += catalogBatchSize) {
+        const batchEvents = catalogEvents.slice(offset, offset + catalogBatchSize);
+        const catalogResults = await Promise.allSettled(
+          batchEvents.map((event) => commerceService.catalog(event.slug))
+        );
+
+        if (!active) return;
+
+        const batchItems = catalogResults.flatMap((result, index) => {
+          if (result.status !== "fulfilled") return [];
+
+          const sourceEvent = batchEvents[index];
+          const catalog = result.value || {};
+          const catalogEvent = { ...sourceEvent, ...(catalog.event || {}) };
+          const production = sourceEvent?.production || catalogEvent?.production || null;
+
+          return (Array.isArray(catalog.items) ? catalog.items : [])
+            .filter((item) => item?.available !== false && item?.is_active !== false)
+            .map((item) => ({
+              ...item,
+              __event: catalogEvent,
+              __production: production,
+            }));
+        });
+
+        discoveredItems = uniqueBy(
+          [...discoveredItems, ...batchItems],
+          (item) => `${item?.__event?.id || item?.__event?.slug || "event"}:${item?.id || item?.name || ""}`
+        ).slice(0, 12);
+      }
 
       if (!active) return;
-
-      const discoveredItems = catalogResults.flatMap((result, index) => {
-        if (result.status !== "fulfilled") return [];
-        const sourceEvent = catalogEvents[index];
-        const catalog = result.value || {};
-        const catalogEvent = catalog.event || sourceEvent;
-        const production = catalogEvent?.production || sourceEvent?.production || null;
-
-        return (Array.isArray(catalog.items) ? catalog.items : [])
-          .filter((item) => item?.available !== false && item?.is_active !== false)
-          .map((item) => ({
-            ...item,
-            __event: catalogEvent,
-            __production: production,
-          }));
-      });
-
-      setItems(uniqueBy(
-        discoveredItems,
-        (item) => `${item?.__event?.id || item?.__event?.slug || "event"}:${item?.id || item?.name || ""}`
-      ).slice(0, 12));
+      setItems(discoveredItems);
       setItemsLoading(false);
     };
 
@@ -231,19 +241,39 @@ export default function HomeHubPage() {
             toLabel="Todos os eventos"
             empty={empty("fa-regular fa-calendar", "Nenhum evento por aqui ainda", "Quando novos eventos forem publicados, eles aparecerão nesta faixa.")}
           >
-            {events.map((event) => (
-              <Link to={`/event/${event.slug}`} className="cut-home-hub__eventCard" key={event.id}>
-                <div className="cut-home-hub__eventMedia">
-                  <EventArtwork image={event.image} title={event.title} alt={event.title} loading="lazy" decoding="async" />
-                  <span>{dateLabel(event.start_date)}</span>
-                </div>
-                <div className="cut-home-hub__eventBody">
-                  <h3>{event.title}</h3>
-                  <p><i className="fa-solid fa-location-dot" /> {event.venue || event.city || "Local a confirmar"}</p>
-                  {event.production?.name && <small>{event.production.name}</small>}
-                </div>
-              </Link>
-            ))}
+            {events.map((event) => {
+              const production = event.production || {};
+              const productionLogo = mediaUrl(production.logo || production.photo || production.image);
+              const productionHref = production.slug ? `/production/${production.slug}/public` : "/productions";
+
+              return (
+                <article className="cut-home-hub__eventCard" key={event.id}>
+                  <Link to={`/event/${event.slug}`} className="cut-home-hub__eventMainLink" aria-label={`Ver evento ${event.title}`}>
+                    <div className="cut-home-hub__eventMedia">
+                      <EventArtwork image={event.image} title={event.title} alt={event.title} loading="lazy" decoding="async" />
+                      <span>{dateLabel(event.start_date)}</span>
+                    </div>
+                    <div className="cut-home-hub__eventBody">
+                      <h3>{event.title}</h3>
+                      <p><i className="fa-solid fa-location-dot" /> {event.venue || event.city || "Local a confirmar"}</p>
+                    </div>
+                  </Link>
+
+                  {production.name && (
+                    <Link to={productionHref} className="cut-home-hub__eventProduction" aria-label={`Ver produção ${production.name}`}>
+                      <span className="cut-home-hub__eventProductionAvatar">
+                        {productionLogo ? <img src={productionLogo} alt="" loading="lazy" decoding="async" /> : initials(production.name)}
+                      </span>
+                      <span className="cut-home-hub__eventProductionCopy">
+                        <small>Produção responsável</small>
+                        <strong>{production.name}</strong>
+                      </span>
+                      <i className="fa-solid fa-chevron-right" />
+                    </Link>
+                  )}
+                </article>
+              );
+            })}
           </DiscoveryRail>
         )}
 
