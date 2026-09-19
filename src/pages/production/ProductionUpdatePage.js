@@ -10,16 +10,17 @@ import useAutoSave from "../../hooks/useAutoSave";
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
 import { showConfirmation } from "../../utils/sweetAlert";
+import "./production-editor.css";
 
 const media = (path) => !path ? "" : /^https?:\/\//i.test(path) ? path : `${storageUrl}${String(path).replace(/^\/?storage\//, "").replace(/^\//, "")}`;
 const firstError = (errors, field) => Array.isArray(errors?.[field]) ? errors[field][0] || "" : typeof errors?.[field] === "string" ? errors[field] : "";
 const experienceKeys = ["type","city_id","city","uf","cep","address","address_number","neighborhood","address_complement","address_reference","formatted_address","latitude","longitude","place_id","google_maps_url","location_public"];
 const sections = [
+  { key: "production-editor-media", label: "Capa e logo", icon: "fa-regular fa-image" },
   { key: "production-editor-identity", label: "Identidade", icon: "fa-regular fa-id-card" },
   { key: "production-editor-about", label: "Sobre", icon: "fa-regular fa-align-left" },
   { key: "production-editor-location", label: "Localização", icon: "fa-solid fa-location-dot" },
   { key: "production-editor-social", label: "Contato e links", icon: "fa-solid fa-link" },
-  { key: "production-editor-media", label: "Logo e capa", icon: "fa-regular fa-image" },
   { key: "production-editor-gallery", label: "Galeria", icon: "fa-regular fa-images" },
 ];
 
@@ -246,6 +247,17 @@ export default function ProductionUpdatePage() {
     try { await persistProduction(form, { includeFiles: true, silent: false }); } catch { /* mensagem já exibida */ }
   };
 
+  const saveImages = async () => {
+    setSubmitted(true);
+    setError("");
+    setFieldErrors({});
+    if (!productionIsValid(form)) {
+      setError("Revise os campos destacados antes de salvar as imagens.");
+      return;
+    }
+    try { await persistProduction(form, { includeFiles: true, silent: false }); } catch { /* mensagem já exibida */ }
+  };
+
   const handleFormBlur = (event) => {
     const element = event.target;
     if (!element || element.type === "file" || element.type === "submit" || element.type === "button") return;
@@ -258,32 +270,116 @@ export default function ProductionUpdatePage() {
   const displayName = form.fantasy?.trim() || form.name?.trim() || "Sua produção";
   const location = [form.city, form.uf].filter(Boolean).join(" - ");
   const publicSlug = productionMeta?.slug;
-  const previewStyle = bgPreview ? { backgroundImage: `url("${bgPreview}")` } : undefined;
+  const previewStyle = bgPreview ? { backgroundImage: `linear-gradient(90deg,rgba(2,8,13,.94),rgba(2,8,13,.62) 55%,rgba(2,8,13,.32)),linear-gradient(180deg,rgba(2,8,13,.06),rgba(2,8,13,.92)),url("${bgPreview}")` } : undefined;
 
   const preview = (
-    <>
-      <div className="cut-editor-preview-hero" style={previewStyle}>
-        <div className="cut-editor-preview-hero__content">
-          <div className="cut-editor-preview-avatar is-square">
-            {logoPreview ? <img src={logoPreview} alt="" /> : <span>{initials(displayName)}</span>}
+    <div className="cut-production-live-preview">
+      <section className={`cut-production-live-hero ${bgPreview ? "has-cover" : "is-empty"}`} style={previewStyle}>
+        <input
+          id="production-background-upload-top"
+          className="visually-hidden"
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          data-pt-image-enhancer="off"
+          data-media-library="off"
+          aria-label="Selecionar capa da produção"
+          onChange={chooseFile(setBackground, setBgPreview, "background")}
+        />
+        <input
+          id="production-logo-upload-top"
+          className="visually-hidden"
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          data-pt-image-enhancer="off"
+          data-media-library="off"
+          aria-label="Selecionar logo da produção"
+          onChange={chooseFile(setLogo, setLogoPreview, "logo")}
+        />
+
+        <div className="cut-production-live-hero__actions" aria-label="Editar imagens do topo">
+          {(logo || background) && <span className="cut-production-live-hero__pending"><i className="fa-solid fa-circle" /> Imagem pronta para salvar</span>}
+          <label className="btn btn-light cut-production-live-hero__coverButton" htmlFor="production-background-upload-top">
+            <i className="fa-regular fa-image me-2" />
+            {bgPreview ? "Trocar capa" : "Adicionar capa"}
+          </label>
+          {(logo || background) && (
+            <Button type="button" onClick={saveImages} disabled={saving}>
+              {saving ? <><i className="fa-solid fa-spinner fa-spin me-2" />Salvando...</> : <><i className="fa-solid fa-check me-2" />Salvar imagens</>}
+            </Button>
+          )}
+        </div>
+
+        <div className="cut-production-live-hero__content">
+          <div className="cut-production-live-hero__avatarWrap">
+            <div className="cut-production-live-hero__avatar">
+              {logoPreview ? <img src={logoPreview} alt={`Logo de ${displayName}`} /> : <span>{initials(displayName)}</span>}
+            </div>
+            <label className="cut-production-live-hero__logoButton" htmlFor="production-logo-upload-top" aria-label={logoPreview ? "Trocar logo da produção" : "Adicionar logo da produção"} title={logoPreview ? "Trocar logo" : "Adicionar logo"}>
+              <i className="fa-solid fa-camera" />
+            </label>
           </div>
-          <div className="cut-editor-preview-copy">
-            <span className="cut-eyebrow">Produção Cutinapp</span>
-            <h3>{displayName}</h3>
-            <p>{location || "Cidade e localização aparecem aqui"}</p>
-            <div className="cut-editor-preview-meta">
-              <span><i className="fa-regular fa-calendar me-1" />Eventos</span>
-              <span><i className="fa-regular fa-eye me-1" />Visualizações</span>
+
+          <div className="cut-production-live-hero__copy">
+            <span className="cut-eyebrow">Produção Cutinapp · prévia ao vivo</span>
+            <h2>{displayName}</h2>
+            <p>{location || "Adicione cidade e estado para completar o topo da página."}</p>
+            <div className="cut-production-live-hero__meta">
+              <span><i className="fa-regular fa-calendar" /> {productionMeta?.events_count || 0} eventos</span>
+              <span><i className="fa-regular fa-user" /> {productionMeta?.followers_count || 0} seguidores</span>
+              <span><i className="fa-regular fa-eye" /> Página pública</span>
             </div>
           </div>
         </div>
+
+        {!bgPreview && (
+          <div className="cut-production-live-hero__emptyHint">
+            <i className="fa-solid fa-panorama" />
+            <strong>Sua capa começa aqui</strong>
+            <span>Use uma imagem horizontal. O botão “Adicionar capa” fica sempre visível no topo do editor.</span>
+          </div>
+        )}
+      </section>
+
+      <div className="cut-production-live-preview__body">
+        <article className="cut-production-live-preview__card">
+          <span className="cut-eyebrow">Sobre a produção</span>
+          <h3>{form.fantasy?.trim() || displayName}</h3>
+          <FormattedText
+            className="cut-production-live-preview__description"
+            value={form.description}
+            emptyText="A descrição formatada aparecerá aqui, no mesmo contexto em que o público vai ler."
+          />
+        </article>
+
+        <article className="cut-production-live-preview__card">
+          <span className="cut-eyebrow">Onde encontrar</span>
+          <h3>{location || "Localização ainda não informada"}</h3>
+          <p>{form.address || form.formatted_address || "Endereço, mapa e referências aparecem nesta área da página."}</p>
+          <div className="cut-production-live-preview__links">
+            {form.instagram_url && <span><i className="fa-brands fa-instagram" /> Instagram</span>}
+            {form.website_url && <span><i className="fa-solid fa-globe" /> Site</span>}
+          </div>
+        </article>
+
+        <article className="cut-production-live-preview__card cut-production-live-preview__galleryCard">
+          <div className="cut-production-live-preview__galleryHead">
+            <div>
+              <span className="cut-eyebrow">{form.type === "fixed" ? "Fotos do espaço" : "Galeria"}</span>
+              <h3>{galleryMedia.length ? `${galleryMedia.length} foto${galleryMedia.length === 1 ? "" : "s"} publicada${galleryMedia.length === 1 ? "" : "s"}` : "Sua galeria aparecerá aqui"}</h3>
+            </div>
+          </div>
+          {galleryMedia.length > 0 ? (
+            <div className="cut-production-live-preview__galleryStrip">
+              {galleryMedia.slice(0, 5).map((item, index) => (
+                <img key={item.id} src={media(item.url)} alt={item.caption || `Foto ${index + 1} de ${displayName}`} loading="lazy" />
+              ))}
+            </div>
+          ) : (
+            <p>Adicione fotos na seção Galeria para visualizar a composição da página antes de sair do editor.</p>
+          )}
+        </article>
       </div>
-      <div className="cut-editor-preview-body">
-        <h4>Sobre a produção</h4>
-        <FormattedText className="cut-editor-preview-description" value={form.description} emptyText="Sua descrição aparecerá aqui na página pública." />
-        {(form.instagram_url || form.website_url) && <div className="cut-editor-preview-meta">{form.instagram_url && <span><i className="fa-brands fa-instagram me-1" />Instagram</span>}{form.website_url && <span><i className="fa-solid fa-globe me-1" />Site</span>}</div>}
-      </div>
-    </>
+    </div>
   );
 
   return <div className="cut-app-page"><NavlogComponent />{saving && (logo || background) && <ProcessingIndicatorComponent label="Salvando imagens da produção" />}
@@ -301,10 +397,58 @@ export default function ProductionUpdatePage() {
         statusLabel={autosaveLabel(autoSaveStatus)}
         lastSavedAt={lastSavedAt}
         preview={preview}
-        previewLabel="Prévia da página da produção"
+        previewLabel="Página da produção enquanto você edita"
+        previewPlacement="top"
         secondaryActions={<><Button type="button" variant="outline-light" onClick={() => navigate(`/production/${id}`)}>Gerenciar</Button>{publicSlug && <Button type="button" variant="outline-light" onClick={() => navigate(`/production/${publicSlug}/public`)}>Ver página</Button>}</>}
         primaryAction={<Button type="submit" disabled={!canSave}>{saving ? "Salvando..." : logo || background ? "Salvar imagens" : "Salvar agora"}</Button>}
       >
+        <EditorSection id="production-editor-media" eyebrow="Topo da página" title="Capa e logo" hint="Essas duas imagens formam o hero da produção. Você também pode trocá-las diretamente na prévia acima.">
+          <Row className="g-4">
+            <Col md={5} data-image-upload-scope="production-logo">
+              <Form.Group>
+                <Form.Label>Logo</Form.Label>
+                {logoPreview && <img className="cut-upload-preview cut-upload-preview--logo mb-3" src={logoPreview} alt="Prévia da logo" />}
+                <Form.Control
+                  id="production-logo-upload"
+                  name="production_logo"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  data-image-kind="logo"
+                  data-label="logo da produção"
+                  aria-label="Selecionar logo da produção"
+                  onChange={chooseFile(setLogo, setLogoPreview, "logo")}
+                />
+                <Form.Text>Use uma imagem nítida, preferencialmente quadrada, que continue legível em tamanhos pequenos.</Form.Text>
+              </Form.Group>
+            </Col>
+            <Col md={7} data-image-upload-scope="production-background">
+              <Form.Group>
+                <Form.Label>Capa</Form.Label>
+                {bgPreview && <img className="cut-upload-preview mb-3" src={bgPreview} alt="Prévia da capa" />}
+                <Form.Control
+                  id="production-background-upload"
+                  name="production_background"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  data-image-kind="cover"
+                  data-label="capa da produção"
+                  aria-label="Selecionar capa da produção"
+                  onChange={chooseFile(setBackground, setBgPreview, "background")}
+                />
+                <Form.Text>Prefira imagem horizontal. O enquadramento acima reproduz o hero usado na página da produção.</Form.Text>
+              </Form.Group>
+            </Col>
+          </Row>
+          {(logo || background) && (
+            <div className="cut-production-editor-media-actions">
+              <span><i className="fa-solid fa-circle-info" /> A prévia já foi atualizada. Salve para publicar as novas imagens.</span>
+              <Button type="button" onClick={saveImages} disabled={saving}>
+                {saving ? "Salvando..." : "Salvar capa e logo"}
+              </Button>
+            </div>
+          )}
+        </EditorSection>
+
         <EditorSection id="production-editor-identity" eyebrow="Topo da view" title="Identidade" hint="Nome, tipo e dados que identificam a produção para o público.">
           <Row className="g-3">
             <Col md={7}><Form.Group><Form.Label>Nome *</Form.Label><Form.Control name="name" value={form.name} onChange={change} isInvalid={nameInvalid || Boolean(firstError(fieldErrors,"name"))} /><Form.Control.Feedback type="invalid">{firstError(fieldErrors,"name") || "Informe um nome com pelo menos 2 caracteres."}</Form.Control.Feedback></Form.Group></Col>
@@ -341,13 +485,6 @@ export default function ProductionUpdatePage() {
           </Row>
         </EditorSection>
 
-        <EditorSection id="production-editor-media" eyebrow="Topo da view" title="Logo e capa" hint="A capa compõe o fundo do hero e a logo representa a produção em toda a Cutinapp.">
-          <Row className="g-4">
-            <Col md={5}><Form.Group><Form.Label>Logo</Form.Label>{logoPreview && <img className="cut-upload-preview cut-upload-preview--logo mb-3" src={logoPreview} alt="Prévia da logo" />}<Form.Control type="file" accept="image/png,image/jpeg,image/webp" onChange={chooseFile(setLogo,setLogoPreview,"logo")} /><Form.Text>Use uma imagem nítida que continue legível em tamanhos pequenos.</Form.Text></Form.Group></Col>
-            <Col md={7}><Form.Group><Form.Label>Capa</Form.Label>{bgPreview && <img className="cut-upload-preview mb-3" src={bgPreview} alt="Prévia da capa" />}<Form.Control type="file" accept="image/png,image/jpeg,image/webp" onChange={chooseFile(setBackground,setBgPreview,"background")} /><Form.Text>Prefira imagem horizontal. A prévia lateral mostra o recorte usado no topo.</Form.Text></Form.Group></Col>
-          </Row>
-        </EditorSection>
-
         <EditorSection
           id="production-editor-gallery"
           eyebrow="Imagens da produção"
@@ -363,7 +500,7 @@ export default function ProductionUpdatePage() {
               <span className="cut-production-gallery-editor__badge"><i className="fa-brands fa-instagram" /> Estilo galeria</span>
             </div>
 
-            <div className="cut-production-gallery-editor__uploader">
+            <div className="cut-production-gallery-editor__uploader" data-image-upload-scope="production-gallery">
               <Form.Group>
                 <Form.Label>Adicionar fotos</Form.Label>
                 <Form.Control
