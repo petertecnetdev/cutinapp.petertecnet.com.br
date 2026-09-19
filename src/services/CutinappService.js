@@ -764,7 +764,7 @@ const cutinappService = {
     { params },
   )).data.data,
   productionWorkspace: async (id) => (await appApiClient.get(`/organizations/${id}/workspace`)).data,
-  productionExperience: async (slug) => (await appApiClient.get(`/organizations/public/${slug}/experience`)).data,
+  productionExperience: async (slug) => cachedPublicGet(appApiClient, `/organizations/public/${slug}/experience`, { ttlMs: 20000, staleMs: 120000 }),
   updateProductionExperience,
   productionCommunity: async (slug, params = {}) => (await appApiClient.get(`/organizations/public/${slug}/community`, { params })).data,
   createProductionPost: (organizationId, payload) => createProductionCommunityPost(organizationId, payload),
