@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import PropTypes from "prop-types";
 import { Button, Card, Col, Container, Form, Row } from "react-bootstrap";
 import EventArtwork from "./EventArtwork";
 import "./EventExperienceEditorSurface.css";
@@ -180,3 +181,32 @@ export default function EventExperienceEditorSurface({
     </div>
   );
 }
+
+
+EventExperienceEditorSurface.propTypes = {
+  mode: PropTypes.oneOf(["create", "edit"]),
+  form: PropTypes.shape({
+    title: PropTypes.string,
+    description: PropTypes.string,
+    venue: PropTypes.string,
+    address: PropTypes.string,
+    google_maps_url: PropTypes.string,
+    city: PropTypes.string,
+    uf: PropTypes.string,
+    start_date: PropTypes.string,
+    end_date: PropTypes.string,
+  }).isRequired,
+  imagePreview: PropTypes.string,
+  onChange: PropTypes.func.isRequired,
+  onImageChange: PropTypes.func.isRequired,
+  onSave: PropTypes.func.isRequired,
+  saving: PropTypes.bool,
+  saveLabel: PropTypes.string,
+  productionName: PropTypes.string,
+  productionControl: PropTypes.node,
+  cityControl: PropTypes.node,
+  errors: PropTypes.objectOf(PropTypes.oneOfType([PropTypes.string, PropTypes.arrayOf(PropTypes.string)])),
+  imageHelp: PropTypes.string,
+  secondaryActions: PropTypes.node,
+  children: PropTypes.node,
+};
