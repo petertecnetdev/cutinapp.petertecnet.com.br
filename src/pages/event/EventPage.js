@@ -141,7 +141,11 @@ export default function EventPage() {
     setLocationBusy(true);
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
-        update({ lat: coords.latitude.toFixed(6), lng: coords.longitude.toFixed(6), radius_km: 50, city: "", uf: "" });
+        // Preserve the selected city/UF while enabling precise proximity.
+        // A number of valid legacy events have city/UF but no stored coordinates yet;
+        // keeping the city context lets the API include them as a local fallback
+        // instead of making the discovery list appear empty.
+        update({ lat: coords.latitude.toFixed(6), lng: coords.longitude.toFixed(6), radius_km: 50 });
         setLocationBusy(false);
       },
       () => {
