@@ -170,7 +170,6 @@ export default function EventCreatePage() {
   const [reuseSearchQuery, setReuseSearchQuery] = useState("");
   const [selectedReuseEvent, setSelectedReuseEvent] = useState(null);
   const [reusingEvent, setReusingEvent] = useState(false);
-  const minStart = useMemo(() => toLocalInput(minimumEventStart()), []);
   const draftOwnerId = Number(user?.id || 0);
   const agreementChecksRef = useRef(new Set());
 
