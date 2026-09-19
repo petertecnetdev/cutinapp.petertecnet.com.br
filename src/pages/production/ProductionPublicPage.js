@@ -5,6 +5,7 @@ import { AuthContext } from "../../context/AuthContext";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import ProductionTicketCartModal from "../../components/event/ProductionTicketCartModal";
+import EventArtwork from "../../components/event/EventArtwork";
 import ProductionCommunitySection from "../../components/production/ProductionCommunitySection";
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
@@ -243,11 +244,7 @@ export default function ProductionPublicPage() {
                       onKeyDown={(e) => activateOnKeyboard(e, () => navigate(`/event/${event.slug}`))}
                     >
                       <div className="cut-production-event-slide__media">
-                        {event.image ? (
-                          <img src={mediaUrl(event.image)} alt={event.title} loading="lazy" decoding="async" />
-                        ) : (
-                          <div className="cut-production-event-slide__fallback"><i className="fa-regular fa-calendar" /></div>
-                        )}
+                        <EventArtwork image={event.image} title={event.title} alt={event.title} loading="lazy" decoding="async" fallbackClassName="cut-production-event-slide__fallback" />
                         <span className="cut-production-event-date" aria-label={fmt(event.start_date)}>
                           <strong>{badge.day}</strong>
                           <small>{badge.month}</small>
