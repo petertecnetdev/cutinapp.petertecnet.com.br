@@ -593,6 +593,100 @@ export default function ProductionGalleryManager({
     }
   };
 
+  const moveSelectedToAlbum = async () => {
+    if (!selectedCount) return;
+    clearFeedback();
+    try {
+      const response = await cutinappService.bulkUpdateProductionMedia(
+        organizationId,
+        Array.from(selectedIds),
+        { album_id: bulkAlbumId ? Number(bulkAlbumId) : null },
+      );
+      if (Array.isArray(response?.media)) commitItems(response.media);
+      setMessage(bulkAlbumId ? "Fotos movidas para o álbum." : "Fotos movidas para a galeria principal.");
+      exitSelection();
+      setBulkAlbumId("");
+    } catch (bulkError) {
+      setError(bulkError?.response?.data?.message || bulkError?.message || "Não foi possível mover as fotos.");
+    }
+  };
+
+  const importCover = async () => {
+    clearFeedback();
+    try {
+      const response = await cutinappService.importProductionCoverToGallery(organizationId);
+      if (response?.media) {
+        const exists = itemsRef.current.some((item) => Number(item.id) === Number(response.media.id));
+        if (!exists) commitItems([...itemsRef.current, response.media]);
+      }
+      setMessage(response?.message || "Capa adicionada à galeria.");
+    } catch (importError) {
+      setError(importError?.response?.data?.message || importError?.message || "Não foi possível adicionar a capa à galeria.");
+    }
+  };
+
+  const improveCaptionWithAi = async () => {
+    if (!editCaption.trim() || aiBusy) {
+      if (!editCaption.trim()) setError("Escreva uma legenda curta primeiro para a IA aprimorar sem inventar o conteúdo da foto.");
+      return;
+    }
+    setAiBusy("caption");
+    clearFeedback();
+    try {
+      const result = await aiContentService.generateDescription({
+        entityType: "production-media-caption",
+        title: productionName,
+        currentDescription: editCaption,
+        context: {
+          purpose: "Aprimorar uma legenda de foto para galeria. Seja fiel ao texto informado e não invente elementos visuais.",
+          album: localAlbums.find((album) => String(album.id) === String(editAlbumId))?.name || "",
+        },
+        tone: "curto, natural, descritivo e convidativo",
+        action: "improve",
+      });
+      const caption = String(result?.description || "").replace(/\s+/g, " ").replace(/^["']|["']$/g, "").trim().slice(0, 180);
+      if (caption) setEditCaption(caption);
+    } catch (aiError) {
+      setError(aiError?.message || "Não foi possível aprimorar a legenda com IA.");
+    } finally {
+      setAiBusy("");
+    }
+  };
+
+  const suggestAltWithAi = async () => {
+    const base = editCaption.trim() || editAlt.trim();
+    if (!base || aiBusy) {
+      if (!base) suggestAlt();
+      return;
+    }
+    setAiBusy("alt");
+    clearFeedback();
+    try {
+      const result = await aiContentService.generateDescription({
+        entityType: "production-media-alt",
+        title: productionName,
+        currentDescription: base,
+        context: {
+          purpose: "Gerar texto alternativo curto para acessibilidade e SEO somente com os fatos presentes na legenda.",
+        },
+        tone: "objetivo, acessível, factual e sem linguagem promocional",
+        action: "rewrite",
+      });
+      const alt = String(result?.description || "").replace(/\s+/g, " ").replace(/^["']|["']$/g, "").trim().slice(0, 255);
+      if (alt) setEditAlt(alt);
+    } catch (_) {
+      suggestAlt();
+    } finally {
+      setAiBusy("");
+    }
+  };
+
+  const movePreview = (direction) => {
+    if (!displayedItems.length || previewingIndex < 0) return;
+    const nextIndex = (previewingIndex + direction + displayedItems.length) % displayedItems.length;
+    setPreviewingId(displayedItems[nextIndex].id);
+  };
+
   const suggestAlt = () => {
     const detail = editCaption.trim() || (productionType === "fixed" ? "foto do espaço" : "foto da produção");
     setEditAlt(`${productionName} - ${detail}`);
