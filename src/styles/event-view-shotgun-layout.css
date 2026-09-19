@@ -523,3 +523,26 @@
     align-self: flex-end;
   }
 }
+
+
+/* The event artwork must always preserve the image exactly as uploaded.
+ * Atmospheric effects belong to the page background, never to the flyer. */
+.cut-event-view-page .cut-event-banner-frame,
+.cut-event-view-page .cut-event-banner-placeholder {
+  filter: none !important;
+}
+
+.cut-event-view-page .cut-event-banner-frame::before,
+.cut-event-view-page .cut-event-banner-frame::after {
+  content: none !important;
+  display: none !important;
+}
+
+.cut-event-view-page .cut-event-banner-frame .cut-optimized-image,
+.cut-event-view-page .cut-event-banner-frame .cut-optimized-image img,
+.cut-event-view-page .cut-event-banner-frame > img {
+  filter: none !important;
+  opacity: 1 !important;
+  mix-blend-mode: normal !important;
+  background: transparent !important;
+}
