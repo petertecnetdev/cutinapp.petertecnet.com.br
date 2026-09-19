@@ -4,6 +4,7 @@ import { Alert, Button, Form, Modal, ProgressBar } from "react-bootstrap";
 import cutinappService from "../../services/CutinappService";
 import aiContentService from "../../services/AiContentService";
 import { showConfirmation, showTextPrompt } from "../../utils/sweetAlert";
+import { subscribeGalleryUpdates } from "../../utils/gallerySync";
 import "./ProductionGalleryManager.css";
 
 const LIMIT = 40;
@@ -166,6 +167,34 @@ export default function ProductionGalleryManager({
   useEffect(() => {
     queueRef.current = queue;
   }, [queue]);
+
+  useEffect(() => {
+    let active = true;
+    let timer = null;
+    const unsubscribe = subscribeGalleryUpdates(organizationId, () => {
+      if (timer) window.clearTimeout(timer);
+      timer = window.setTimeout(async () => {
+        try {
+          const workspace = await cutinappService.productionWorkspace(organizationId);
+          if (!active) return;
+          const nextMedia = normalizePositions([...(workspace?.media || [])].sort(byPosition));
+          const nextAlbums = Array.isArray(workspace?.gallery?.albums) ? workspace.gallery.albums : [];
+          itemsRef.current = nextMedia;
+          setItems(nextMedia);
+          setLocalAlbums(nextAlbums);
+          onMediaChange?.(nextMedia);
+          onAlbumsChange?.(nextAlbums);
+        } catch (_) {
+          // A mutação que originou o evento já atualizou a tela local.
+        }
+      }, 180);
+    });
+    return () => {
+      active = false;
+      if (timer) window.clearTimeout(timer);
+      unsubscribe();
+    };
+  }, [organizationId, onMediaChange, onAlbumsChange]);
 
   useEffect(() => () => {
     abortControllers.current.forEach((controller) => controller.abort());
