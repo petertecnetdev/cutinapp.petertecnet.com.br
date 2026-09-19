@@ -268,3 +268,165 @@
   content:none!important;
   display:none!important;
 }
+
+
+/* Public event view parity: create/edit use the same visual hierarchy as EventViewPage. */
+.cut-event-inline-editor.cut-event-view-page{
+  width:100%;
+}
+
+.cut-event-inline-editor .cut-event-summary-card{
+  align-items:flex-start;
+}
+
+.cut-event-inline-editor__summaryMeta{
+  grid-template-columns:minmax(0,1.25fr) minmax(0,.75fr);
+}
+
+.cut-event-inline-editor__summaryMeta>label{
+  min-width:0;
+}
+
+.cut-event-inline-editor__datePair{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+}
+
+.cut-event-inline-editor__publicField .form-label,
+.cut-event-inline-editor__mapEditor .form-label,
+.cut-event-inline-editor__productionControl .form-label{
+  color:var(--cut-text-muted);
+  font-size:.76rem;
+  font-weight:800;
+}
+
+.cut-event-inline-editor__publicField textarea.form-control{
+  min-height:180px;
+  resize:vertical;
+  background:rgba(255,255,255,.035);
+  border-color:rgba(255,255,255,.12);
+  color:#fff;
+  line-height:1.65;
+}
+
+.cut-event-inline-editor .cut-event-details .form-control,
+.cut-event-inline-editor__mapEditor .form-control,
+.cut-event-inline-editor__mapEditor .form-select,
+.cut-event-inline-editor__productionControl .form-control,
+.cut-event-inline-editor__productionControl .form-select{
+  background:rgba(255,255,255,.035);
+  border-color:rgba(255,255,255,.12);
+  color:#fff;
+}
+
+.cut-event-inline-editor .cut-event-details>div{
+  min-width:0;
+}
+
+.cut-event-inline-editor .cut-event-details>div>span{
+  min-width:0;
+  width:100%;
+}
+
+.cut-event-inline-editor__productionCard{
+  align-items:center;
+}
+
+.cut-event-inline-editor__productionControl{
+  width:min(100%,360px);
+  flex:0 1 360px;
+}
+
+.cut-event-inline-editor__productionControl .form-group,
+.cut-event-inline-editor__productionControl .mb-3{
+  margin-bottom:0!important;
+}
+
+.cut-event-inline-editor__mapShell{
+  overflow:hidden;
+}
+
+.cut-event-inline-editor__mapEditor{
+  display:grid;
+  grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);
+  gap:12px;
+}
+
+.cut-event-inline-editor__map{
+  display:block;
+  width:100%;
+  height:360px;
+  min-height:360px;
+  border:0;
+  border-radius:0;
+  background:rgba(255,255,255,.03);
+}
+
+.cut-event-inline-editor__mapEmpty{
+  min-height:280px;
+  display:grid;
+  place-items:center;
+  align-content:center;
+  gap:8px;
+  padding:32px;
+  text-align:center;
+  color:var(--cut-text-muted);
+  border-top:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.015);
+}
+
+.cut-event-inline-editor__mapEmpty i{
+  font-size:2rem;
+  color:#d28cff;
+}
+
+.cut-event-inline-editor__mapEmpty strong{
+  color:#fff;
+}
+
+.cut-event-inline-editor__mapEmpty span{
+  max-width:520px;
+}
+
+.cut-event-inline-editor__sidebarCard .cut-owner-actions{
+  display:grid;
+  gap:9px;
+}
+
+.cut-event-inline-editor__sidebarCard .cut-owner-actions .btn{
+  width:100%;
+  text-align:left;
+}
+
+@media(max-width:991.98px){
+  .cut-event-inline-editor__summaryMeta,
+  .cut-event-inline-editor__mapEditor{
+    grid-template-columns:1fr;
+  }
+
+  .cut-event-inline-editor__productionCard{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+  .cut-event-inline-editor__productionControl{
+    width:100%;
+    flex-basis:auto;
+  }
+}
+
+@media(max-width:575.98px){
+  .cut-event-inline-editor__datePair{
+    grid-template-columns:1fr;
+  }
+
+  .cut-event-inline-editor__map{
+    height:300px;
+    min-height:300px;
+  }
+
+  .cut-event-inline-editor__publicField textarea.form-control{
+    min-height:150px;
+  }
+}
