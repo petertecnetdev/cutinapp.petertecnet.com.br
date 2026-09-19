@@ -69,9 +69,20 @@ export default function EventPage() {
   const [error, setError] = useState("");
   const [locationBusy, setLocationBusy] = useState(false);
   const [draftSearch, setDraftSearch] = useState(searchParams.get("q") || "");
+  const [isMobileViewport, setIsMobileViewport] = useState(() =>
+    typeof window !== "undefined" && window.matchMedia("(max-width: 767.98px)").matches
+  );
 
   const filters = useMemo(() => paramsFromSearch(searchParams), [searchParams]);
   const recentCities = useMemo(() => readRecentCities(), [filters.city]);
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 767.98px)");
+    const syncViewport = (event) => setIsMobileViewport(event.matches);
+    setIsMobileViewport(media.matches);
+    media.addEventListener?.("change", syncViewport);
+    return () => media.removeEventListener?.("change", syncViewport);
+  }, []);
 
   useEffect(() => {
     cutinappService.discoveryFacets().then(setFacets).catch(() => {});
@@ -180,7 +191,7 @@ export default function EventPage() {
         {error && <Alert variant="danger">{error}</Alert>}
 
         <Card className="cut-discovery-shell mb-4"><Card.Body>
-          <CollapsibleFilterPanel title="Pesquisar e filtrar eventos" activeCount={activeFilterCount} defaultOpen={activeFilterCount > 0}>
+          <CollapsibleFilterPanel key={isMobileViewport ? "mobile-filters" : "desktop-filters"} title="Pesquisar e filtrar eventos" activeCount={activeFilterCount} defaultOpen={!isMobileViewport && activeFilterCount > 0}>
             <div className="cut-discovery-primary">
               <Form.Select value={cityValue} onChange={(e) => {
                 const [city, uf] = e.target.value.split("|");
