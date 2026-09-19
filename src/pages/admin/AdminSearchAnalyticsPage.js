@@ -1,3 +1,4 @@
+import { showConfirmation } from "../../utils/sweetAlert";
 import React, { useEffect, useMemo, useState } from "react";
 import { Alert, Badge, Button, Card, Col, Container, Form, Modal, Row, Spinner, Table } from "react-bootstrap";
 import NavlogComponent from "../../components/NavlogComponent";
@@ -100,7 +101,7 @@ export default function AdminSearchAnalyticsPage() {
   };
 
   const deleteCampaign = async (campaign) => {
-    if (!window.confirm(`Excluir a campanha “${campaign.label || campaign.id}”?`)) return;
+    if (!(await showConfirmation({ title: "Excluir campanha?", text: `“${campaign.label || campaign.id}” será removida.`, confirmButtonText: "Excluir" }))) return;
     try {
       await cutinappService.deleteAdminSearchCampaign(campaign.id);
       setCampaigns((current) => current.filter((item) => item.id !== campaign.id));
