@@ -456,3 +456,44 @@
     min-height: 38px;
   }
 }
+
+
+/* Mobile discovery rail hardening — keep labels and chips readable. */
+@media (max-width: 767.98px) {
+  .cut-event-discovery-page .cut-recent-cities,
+  .cut-event-discovery-page .cut-filter-shortcuts,
+  .cut-event-discovery-page .cut-active-filters {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .cut-event-discovery-page .cut-recent-cities > span {
+    flex: 0 0 auto;
+    min-width: max-content;
+    white-space: nowrap;
+    overflow-wrap: normal;
+    word-break: normal;
+  }
+
+  .cut-event-discovery-page .cut-recent-cities button,
+  .cut-event-discovery-page .cut-filter-shortcuts button,
+  .cut-event-discovery-page .cut-active-filters button {
+    flex: 0 0 auto;
+    min-width: max-content;
+    white-space: nowrap;
+  }
+
+  .cut-event-discovery-page .cut-active-filters .cut-clear-filters {
+    margin-left: auto !important;
+  }
+}
