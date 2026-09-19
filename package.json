@@ -8,7 +8,8 @@
     "build": "node scripts/zero-downtime-build.js",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "perf:budget": "node scripts/check-performance-budget.js"
+    "perf:budget": "node scripts/check-performance-budget.js",
+    "lint:overlays": "node scripts/check-overlay-policy.js"
   },
   "keywords": [],
   "author": "Peter Tecnet",
