@@ -251,3 +251,20 @@
     font-size:clamp(2rem,12vw,3.2rem);
   }
 }
+
+
+/* Keep create/edit artwork visually identical to the original upload. */
+.cut-event-inline-editor__artwork,
+.cut-event-inline-editor__artwork .cut-optimized-image,
+.cut-event-inline-editor__artwork .cut-optimized-image img,
+.cut-event-inline-editor__artwork > img {
+  filter:none!important;
+  opacity:1!important;
+  mix-blend-mode:normal!important;
+}
+
+.cut-event-inline-editor__artwork::before,
+.cut-event-inline-editor__artwork::after{
+  content:none!important;
+  display:none!important;
+}
