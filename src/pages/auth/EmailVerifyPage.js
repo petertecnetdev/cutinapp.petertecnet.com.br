@@ -1,10 +1,26 @@
-import React, { useContext, useEffect, useMemo, useState } from "react";
+import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Button, Form } from "react-bootstrap";
 import { useLocation, useNavigate } from "react-router-dom";
 import AuthPageShell from "../../components/auth/AuthPageShell";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import { AuthContext } from "../../context/AuthContext";
 import authService from "../../services/AuthService";
+import { safeGetSessionItem, safeRemoveSessionItem, safeSetSessionItem } from "../../utils/safeStorage";
+
+const RESEND_COOLDOWN_KEY = "cutinapp_email_verification_resend_available_at";
+const DEFAULT_RESEND_COOLDOWN_SECONDS = 60;
+
+const initialResendCooldown = () => {
+  const availableAt = Number(safeGetSessionItem(RESEND_COOLDOWN_KEY) || 0);
+  if (!availableAt) return 0;
+  return Math.max(0, Math.ceil((availableAt - Date.now()) / 1000));
+};
+
+const retryAfterSeconds = (error) => {
+  const raw = Number(error?.retryAfter || error?.data?.retry_after || DEFAULT_RESEND_COOLDOWN_SECONDS);
+  if (!Number.isFinite(raw) || raw <= 0) return DEFAULT_RESEND_COOLDOWN_SECONDS;
+  return Math.max(1, Math.ceil(raw));
+};
 
 export default function EmailVerifyPage() {
   const navigate = useNavigate();
@@ -15,8 +31,33 @@ export default function EmailVerifyPage() {
   const [stateLoading, setStateLoading] = useState(true);
   const [message, setMessage] = useState(null);
   const [verificationState, setVerificationState] = useState(null);
+  const [resendCooldown, setResendCooldown] = useState(initialResendCooldown);
+  const resendInFlightRef = useRef(false);
   const normalized = useMemo(() => code.trim(), [code]);
   const returnTo = location.state?.from || "/dashboard";
+
+  const startResendCooldown = (seconds = DEFAULT_RESEND_COOLDOWN_SECONDS) => {
+    const normalizedSeconds = Math.max(1, Math.ceil(Number(seconds) || DEFAULT_RESEND_COOLDOWN_SECONDS));
+    safeSetSessionItem(RESEND_COOLDOWN_KEY, Date.now() + (normalizedSeconds * 1000));
+    setResendCooldown(normalizedSeconds);
+  };
+
+  useEffect(() => {
+    if (resendCooldown <= 0) {
+      safeRemoveSessionItem(RESEND_COOLDOWN_KEY);
+      return undefined;
+    }
+
+    const timer = window.setInterval(() => {
+      setResendCooldown((current) => {
+        const next = Math.max(0, current - 1);
+        if (next === 0) safeRemoveSessionItem(RESEND_COOLDOWN_KEY);
+        return next;
+      });
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [resendCooldown > 0]);
 
   useEffect(() => {
     let active = true;
@@ -61,16 +102,31 @@ export default function EmailVerifyPage() {
   };
 
   const resend = async () => {
-    if (loading) return;
+    if (loading || resendCooldown > 0 || resendInFlightRef.current) return;
+    resendInFlightRef.current = true;
     setLoading(true);
     setMessage(null);
     try {
       const response = await authService.resendCodeEmailVerification();
       setCode("");
-      setMessage({ type: "success", text: response?.message || "Novo código enviado. Use somente o mais recente." });
+      startResendCooldown(DEFAULT_RESEND_COOLDOWN_SECONDS);
+      setMessage({
+        type: "success",
+        text: response?.message || "Novo código enviado. Use somente o mais recente. Você poderá solicitar outro em 60 segundos.",
+      });
     } catch (err) {
-      setMessage({ type: "error", text: err?.message || "Não foi possível reenviar o código." });
+      if (err?.status === 429) {
+        const seconds = retryAfterSeconds(err);
+        startResendCooldown(seconds);
+        setMessage({
+          type: "error",
+          text: `Aguarde ${seconds} segundos antes de solicitar outro código. O código mais recente continua válido por 30 minutos.`,
+        });
+      } else {
+        setMessage({ type: "error", text: err?.message || "Não foi possível reenviar o código." });
+      }
     } finally {
+      resendInFlightRef.current = false;
       setLoading(false);
     }
   };
@@ -164,8 +220,8 @@ export default function EmailVerifyPage() {
         <Button type="submit" className="cut-primary-action" disabled={!normalized || loading}>
           Verificar e-mail
         </Button>
-        <Button type="button" variant="outline-light" onClick={resend} disabled={loading}>
-          Reenviar código
+        <Button type="button" variant="outline-light" onClick={resend} disabled={loading || resendCooldown > 0}>
+          {resendCooldown > 0 ? `Reenviar em ${resendCooldown}s` : "Reenviar código"}
         </Button>
 
         {!stateLoading && canDefer && (
