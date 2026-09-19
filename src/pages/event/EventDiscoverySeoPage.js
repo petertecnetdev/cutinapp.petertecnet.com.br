@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Alert, Badge, Button, Card, Col, Container, Row } from "react-bootstrap";
 import { Link, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
+import EventArtwork from "../../components/event/EventArtwork";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import SeoHead, { SITE_URL } from "../../components/SeoHead";
 import eventService from "../../services/EventService";
@@ -264,7 +265,7 @@ export default function EventDiscoverySeoPage() {
         <Row className="g-4">
           {events.map((event) => <Col key={event.id || event.slug} md={6} xl={4}>
             <Card className="cut-panel h-100 overflow-hidden">
-              {event.image && <Card.Img variant="top" src={absoluteAssetUrl(event.image)} alt={`Flyer de ${event.title}`} style={{ aspectRatio: "16 / 9", objectFit: "cover" }} />}
+              <EventArtwork image={event.image} title={event.title} alt={`Flyer de ${event.title}`} className="card-img-top" style={{ aspectRatio: "16 / 9", objectFit: "cover" }} fallbackClassName="cut-event-seo-card-initials" fallbackStyle={{ aspectRatio: "16 / 9", display: "grid", placeItems: "center", fontSize: "2.6rem", fontWeight: 900 }} />
               <Card.Body className="p-4 d-flex flex-column">
                 <div className="d-flex flex-wrap gap-2 mb-2">{event.category && <Badge bg="dark">{event.category}</Badge>}{event.city && <Badge bg="secondary">{event.city}{event.uf ? ` - ${event.uf}` : ""}</Badge>}</div>
                 <h3 className="h5">{event.title}</h3>
