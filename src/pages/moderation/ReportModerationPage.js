@@ -9,6 +9,7 @@ const labels = { open: "Aberta", reviewing: "Em análise", resolved: "Resolvida"
 const variants = { open: "danger", reviewing: "warning", resolved: "success", dismissed: "secondary" };
 const reasonLabels = { fraud: "Fraude ou golpe", misleading: "Informações enganosas", safety: "Risco à segurança", illegal: "Conteúdo ilegal", hate: "Ódio/discriminação", harassment: "Assédio", spam: "Spam", copyright: "Direitos autorais", other: "Outro" };
 const fmt = (value) => value ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(new Date(value)) : "";
+const MODERATION_SKELETON_KEYS = ["moderation-skeleton-1", "moderation-skeleton-2", "moderation-skeleton-3", "moderation-skeleton-4"];
 
 export default function ReportModerationPage() {
   const navigate = useNavigate();
@@ -56,7 +57,7 @@ export default function ReportModerationPage() {
         {activeFilterCount > 0 && <div className="d-flex justify-content-end"><Button type="button" variant="outline-light" size="sm" onClick={clearFilters}>Limpar filtros</Button></div>}
       </CollapsibleFilterPanel>
     </Card.Body></Card>
-    {loading ? <div className="cut-notification-list" aria-busy="true">{Array.from({ length: 4 }).map((_, index) => <div className="cut-notification-skeleton" key={index} />)}</div> : reports.length === 0 ? <Card className="cut-empty-state"><Card.Body><i className="fa-solid fa-shield-halved cut-empty-icon" /><h2>Nenhuma denúncia neste filtro</h2><p>Não existem denúncias para a situação selecionada.</p></Card.Body></Card> : <div className="cut-moderation-list">{reports.map((report) => <Card className="cut-panel cut-report-card" key={report.id}><Card.Body>
+    {loading ? <div className="cut-notification-list" aria-busy="true">{MODERATION_SKELETON_KEYS.map((key) => <div className="cut-notification-skeleton" key={key} />)}</div> : reports.length === 0 ? <Card className="cut-empty-state"><Card.Body><i className="fa-solid fa-shield-halved cut-empty-icon" /><h2>Nenhuma denúncia neste filtro</h2><p>Não existem denúncias para a situação selecionada.</p></Card.Body></Card> : <div className="cut-moderation-list">{reports.map((report) => <Card className="cut-panel cut-report-card" key={report.id}><Card.Body>
       <div className="cut-report-card__head"><div><Badge bg={variants[report.status] || "secondary"}>{labels[report.status] || report.status}</Badge><span>{reasonLabels[report.reason] || report.reason}</span></div><time>{fmt(report.created_at)}</time></div>
       <button type="button" className="cut-report-card__event" onClick={() => navigate(`/event/${report.event_slug}`)}><strong>{report.event_title}</strong><i className="fa-solid fa-arrow-up-right-from-square" /></button>
       <p>{report.details || "O usuário não adicionou detalhes."}</p>

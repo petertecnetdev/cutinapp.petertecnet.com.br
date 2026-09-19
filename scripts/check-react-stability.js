@@ -17,7 +17,6 @@ const BASELINE = new Map([
   ["src/pages/FeedPage.js:array index", 1],
   ["src/pages/blog/BlogArticlePage.js:array index", 2],
   ["src/pages/event/EventUpdatePage.js:array index", 1],
-  ["src/pages/moderation/ReportModerationPage.js:array index", 1],
   ["src/pages/production/ProductionCreatePage.js:array index", 1],
   ["src/pages/search/GlobalSearchPage.js:array index", 1],
 ]);
