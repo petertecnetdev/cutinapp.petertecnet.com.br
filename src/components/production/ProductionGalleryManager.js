@@ -65,25 +65,34 @@ export default function ProductionGalleryManager({
   const inputRef = useRef(null);
   const abortControllers = useRef(new Map());
   const undoTimer = useRef(null);
+  const itemsRef = useRef(items);
+  const queueRef = useRef(queue);
 
   useEffect(() => {
-    setItems(normalizePositions([...media].sort(byPosition)));
+    const next = normalizePositions([...media].sort(byPosition));
+    itemsRef.current = next;
+    setItems(next);
   }, [media]);
 
   useEffect(() => {
     setLocalAlbums(Array.isArray(albums) ? albums : []);
   }, [albums]);
 
+  useEffect(() => {
+    queueRef.current = queue;
+  }, [queue]);
+
   useEffect(() => () => {
     abortControllers.current.forEach((controller) => controller.abort());
-    queue.forEach((item) => {
+    queueRef.current.forEach((item) => {
       if (item.preview?.startsWith("blob:")) URL.revokeObjectURL(item.preview);
     });
     if (undoTimer.current) window.clearTimeout(undoTimer.current);
-  }, [queue]);
+  }, []);
 
   const commitItems = (next) => {
     const normalized = normalizePositions([...next]);
+    itemsRef.current = normalized;
     setItems(normalized);
     onMediaChange?.(normalized);
   };
@@ -191,7 +200,7 @@ export default function ProductionGalleryManager({
         },
       });
       if (response?.media) {
-        commitItems([...items.filter((existing) => Number(existing.id) !== Number(response.media.id)), response.media]);
+        commitItems([...itemsRef.current.filter((existing) => Number(existing.id) !== Number(response.media.id)), response.media]);
       }
       updateQueueItem(item.id, {
         status: "done",
