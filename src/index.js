@@ -78,10 +78,18 @@ installFrontendErrorMonitoring();
 
 if (typeof window !== "undefined") {
   let scrollTimer;
+  let isScrolling = false;
+  const markScrollEnd = () => {
+    isScrolling = false;
+    document.body.classList.remove("is-scrolling");
+  };
   window.addEventListener("scroll", () => {
-    document.body.classList.add("is-scrolling");
+    if (!isScrolling) {
+      isScrolling = true;
+      document.body.classList.add("is-scrolling");
+    }
     window.clearTimeout(scrollTimer);
-    scrollTimer = window.setTimeout(() => document.body.classList.remove("is-scrolling"), 120);
+    scrollTimer = window.setTimeout(markScrollEnd, 120);
   }, { passive: true });
 }
 
