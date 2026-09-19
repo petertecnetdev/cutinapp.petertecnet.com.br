@@ -1,0 +1,197 @@
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import PropTypes from "prop-types";
+import { Button, Modal } from "react-bootstrap";
+import "./ProductionGallery.css";
+
+const sortByPosition = (left, right) => Number(left?.position || 0) - Number(right?.position || 0);
+
+export default function ProductionGallery({
+  media = [],
+  albums = [],
+  productionName,
+  productionType = "independent",
+  isOwner = false,
+  onManage,
+}) {
+  const [activeAlbum, setActiveAlbum] = useState("all");
+  const [visibleCount, setVisibleCount] = useState(12);
+  const [lightboxIndex, setLightboxIndex] = useState(-1);
+  const touchStartX = useRef(null);
+
+  const filtered = useMemo(() => {
+    const ordered = [...media].sort(sortByPosition);
+    if (activeAlbum === "all") return ordered;
+    return ordered.filter((item) => String(item.album_id || "") === String(activeAlbum));
+  }, [media, activeAlbum]);
+
+  const visible = filtered.slice(0, visibleCount);
+  const current = lightboxIndex >= 0 ? filtered[lightboxIndex] : null;
+
+  useEffect(() => {
+    setVisibleCount(12);
+    setLightboxIndex(-1);
+  }, [activeAlbum]);
+
+  useEffect(() => {
+    if (lightboxIndex < 0) return undefined;
+    const handleKeyDown = (event) => {
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        setLightboxIndex((currentIndex) => currentIndex <= 0 ? filtered.length - 1 : currentIndex - 1);
+      } else if (event.key === "ArrowRight") {
+        event.preventDefault();
+        setLightboxIndex((currentIndex) => currentIndex >= filtered.length - 1 ? 0 : currentIndex + 1);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [lightboxIndex, filtered.length]);
+
+  const move = (direction) => {
+    if (!filtered.length) return;
+    setLightboxIndex((currentIndex) => {
+      const next = currentIndex + direction;
+      if (next < 0) return filtered.length - 1;
+      if (next >= filtered.length) return 0;
+      return next;
+    });
+  };
+
+  const onTouchStart = (event) => {
+    touchStartX.current = event.touches?.[0]?.clientX ?? null;
+  };
+
+  const onTouchEnd = (event) => {
+    const start = touchStartX.current;
+    const end = event.changedTouches?.[0]?.clientX;
+    touchStartX.current = null;
+    if (start == null || end == null) return;
+    const delta = end - start;
+    if (Math.abs(delta) < 45) return;
+    move(delta > 0 ? -1 : 1);
+  };
+
+  if (!media.length && !isOwner) return null;
+
+  const galleryTitle = productionType === "fixed" ? "Conheça o espaço" : "Galeria da produção";
+
+  return (
+    <section id="galeria" className="cut-production-section cut-public-gallery">
+      <div className="cut-production-section-head cut-public-gallery__head">
+        <div>
+          <span className="cut-eyebrow">{productionType === "fixed" ? "O espaço" : "Imagens"}</span>
+          <h2>{galleryTitle}</h2>
+          <p>{media.length} {media.length === 1 ? "foto publicada" : "fotos publicadas"}</p>
+        </div>
+        {isOwner && (
+          <Button type="button" variant="outline-light" onClick={onManage}>
+            <i className="fa-solid fa-images me-2" />Gerenciar galeria
+          </Button>
+        )}
+      </div>
+
+      {albums.length > 0 && media.length > 0 && (
+        <div className="cut-public-gallery__filters" aria-label="Álbuns da galeria">
+          <button type="button" className={activeAlbum === "all" ? "is-active" : ""} onClick={() => setActiveAlbum("all")}>Todas</button>
+          {albums.map((album) => (
+            <button
+              type="button"
+              key={album.id}
+              className={String(activeAlbum) === String(album.id) ? "is-active" : ""}
+              onClick={() => setActiveAlbum(String(album.id))}
+            >
+              {album.name}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {media.length === 0 ? (
+        <div className="cut-public-gallery__owner-empty">
+          <i className="fa-regular fa-images" />
+          <div>
+            <strong>Sua página ainda não possui fotos da galeria</strong>
+            <span>Adicione pelo menos quatro imagens para mostrar melhor a produção ao público.</span>
+          </div>
+          <Button type="button" onClick={onManage}>Adicionar fotos</Button>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="cut-public-gallery__album-empty">Este álbum ainda não possui fotos.</div>
+      ) : (
+        <>
+          <div className="cut-public-gallery__grid">
+            {visible.map((item, index) => (
+              <button
+                type="button"
+                key={item.id}
+                className={`cut-public-gallery__item ${item.is_featured ? "is-featured" : ""}`}
+                onClick={() => setLightboxIndex(index)}
+                aria-label={`Abrir foto ${index + 1} de ${filtered.length}`}
+              >
+                <img
+                  src={item.thumbnail_url || item.url}
+                  alt={item.alt_text || item.caption || `Foto de ${productionName}`}
+                  loading="lazy"
+                  decoding="async"
+                  style={{ objectPosition: `${item.focal_x ?? 50}% ${item.focal_y ?? 50}%` }}
+                />
+                <span className="cut-public-gallery__shade" />
+                {item.is_featured && <span className="cut-public-gallery__featured"><i className="fa-solid fa-star" />Destaque</span>}
+                {item.caption && <span className="cut-public-gallery__caption">{item.caption}</span>}
+                <span className="cut-public-gallery__zoom"><i className="fa-solid fa-expand" /></span>
+              </button>
+            ))}
+          </div>
+
+          {visibleCount < filtered.length && (
+            <div className="cut-public-gallery__more">
+              <Button type="button" variant="outline-light" onClick={() => setVisibleCount((count) => count + 12)}>
+                Ver mais fotos <span>{Math.min(12, filtered.length - visibleCount)}</span>
+              </Button>
+            </div>
+          )}
+        </>
+      )}
+
+      <Modal
+        show={Boolean(current)}
+        onHide={() => setLightboxIndex(-1)}
+        centered
+        size="xl"
+        className="cut-gallery-lightbox"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>{productionName}</Modal.Title>
+          {current && <span className="cut-gallery-lightbox__count">{lightboxIndex + 1} de {filtered.length}</span>}
+        </Modal.Header>
+        <Modal.Body onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+          {current && (
+            <div className="cut-gallery-lightbox__stage">
+              {filtered.length > 1 && (
+                <button type="button" className="cut-gallery-lightbox__nav is-prev" onClick={() => move(-1)} aria-label="Foto anterior">
+                  <i className="fa-solid fa-chevron-left" />
+                </button>
+              )}
+              <img src={current.url} alt={current.alt_text || current.caption || `Foto de ${productionName}`} />
+              {filtered.length > 1 && (
+                <button type="button" className="cut-gallery-lightbox__nav is-next" onClick={() => move(1)} aria-label="Próxima foto">
+                  <i className="fa-solid fa-chevron-right" />
+                </button>
+              )}
+            </div>
+          )}
+          {current?.caption && <p className="cut-gallery-lightbox__caption">{current.caption}</p>}
+        </Modal.Body>
+      </Modal>
+    </section>
+  );
+}
+
+ProductionGallery.propTypes = {
+  media: PropTypes.arrayOf(PropTypes.object),
+  albums: PropTypes.arrayOf(PropTypes.object),
+  productionName: PropTypes.string.isRequired,
+  productionType: PropTypes.string,
+  isOwner: PropTypes.bool,
+  onManage: PropTypes.func,
+};
