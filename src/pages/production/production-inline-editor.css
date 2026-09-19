@@ -655,3 +655,41 @@ body.is-scrolling .cut-production-inline-editor__footerActions{
     transition:none;
   }
 }
+
+
+/* Create/edit share the same visual contract as production view: original cover, localized contrast only. */
+.cut-production-inline-editor__hero{
+  background-image:var(--cut-production-editor-hero-image,none)!important;
+  background-position:center!important;
+  background-size:cover!important;
+  background-repeat:no-repeat!important;
+}
+.cut-production-inline-editor__hero::after{display:none!important}
+.cut-production-inline-editor__hero .cut-profile-hero__content{
+  padding:18px;
+  border-radius:24px;
+  background:linear-gradient(90deg,rgba(2,8,13,.82),rgba(2,8,13,.58) 72%,rgba(2,8,13,.18));
+}
+.cut-production-inline-editor.cut-production-themed-page::before{display:none!important}
+.cut-production-inline-editor.cut-production-themed-page::after{
+  position:absolute;
+  background:linear-gradient(180deg,#02080d 0%,#030a10 100%);
+}
+.cut-production-inline-editor .cut-panel{
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+  box-shadow:none!important;
+}
+.cut-production-inline-editor .cut-production-section,
+.cut-production-inline-editor .cut-production-public-about{
+  content-visibility:auto;
+  contain:layout paint style;
+  contain-intrinsic-size:520px;
+}
+@media(max-width:575.98px){
+  .cut-production-inline-editor__hero .cut-profile-hero__content{
+    padding:13px;
+    border-radius:18px;
+    background:rgba(2,8,13,.78);
+  }
+}
