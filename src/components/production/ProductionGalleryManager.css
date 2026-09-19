@@ -1200,3 +1200,51 @@
   .cut-gallery-editor__crop-preview.is-cover{min-height:150px}
   .cut-gallery-card__move{touch-action:manipulation}
 }
+
+
+.cut-gallery-editor-panel{
+  --bs-offcanvas-width:min(980px,96vw);
+  border-left:1px solid rgba(148,163,184,.16);
+  background:#050b12;
+  color:var(--cut-text);
+}
+
+.cut-gallery-editor-panel .offcanvas-header{
+  border-bottom:1px solid rgba(148,163,184,.12);
+}
+
+.cut-gallery-editor-panel .offcanvas-title{
+  font-size:1rem;
+  font-weight:900;
+}
+
+.cut-gallery-editor-panel .offcanvas-body{
+  display:grid;
+  align-content:start;
+  gap:18px;
+  padding-bottom:96px;
+}
+
+.cut-gallery-editor-panel__footer{
+  position:sticky;
+  bottom:-16px;
+  z-index:5;
+  display:flex;
+  justify-content:flex-end;
+  gap:8px;
+  margin:8px -16px -16px;
+  padding:12px 16px max(12px,env(safe-area-inset-bottom));
+  border-top:1px solid rgba(148,163,184,.14);
+  background:rgba(5,11,18,.95);
+  backdrop-filter:blur(16px);
+}
+
+@media(max-width:575px){
+  .cut-gallery-editor-panel{
+    --bs-offcanvas-width:100vw;
+  }
+
+  .cut-gallery-editor-panel__footer .btn{
+    flex:1;
+  }
+}
