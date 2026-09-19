@@ -108,16 +108,19 @@
   backdrop-filter:blur(10px);
 }
 
-.cut-public-gallery__caption{
+.cut-public-gallery__caption-indicator{
   position:absolute;
-  left:11px;
-  right:48px;
-  bottom:10px;
+  left:9px;
+  bottom:9px;
+  width:34px;
+  height:34px;
+  display:grid;
+  place-items:center;
+  border:1px solid rgba(255,255,255,.15);
+  border-radius:50%;
+  background:rgba(2,8,13,.68);
   color:#fff;
-  font-size:.74rem;
-  font-weight:750;
-  line-height:1.35;
-  text-shadow:0 1px 8px rgba(0,0,0,.5);
+  font-size:.72rem;
 }
 
 .cut-public-gallery__zoom{
