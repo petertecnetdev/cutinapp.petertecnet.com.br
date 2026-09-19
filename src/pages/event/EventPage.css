@@ -497,3 +497,112 @@
     margin-left: auto !important;
   }
 }
+
+
+/* Mobile-first discovery entry — prioritize event cards over filters. */
+@media (max-width: 767.98px) {
+  .cut-event-discovery-page .cut-page-container {
+    padding-top: 10px !important;
+  }
+
+  .cut-event-discovery-page .cut-page-heading {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .cut-event-discovery-page .cut-page-heading h1 {
+    margin: 5px 0 0;
+    font-size: clamp(1.95rem, 8.8vw, 2.55rem);
+    line-height: .98;
+  }
+
+  .cut-event-discovery-page .cut-page-heading p {
+    display: none;
+  }
+
+  .cut-event-discovery-page .cut-page-heading > .btn {
+    align-self: end;
+    min-height: 38px;
+    padding: 7px 11px !important;
+    border-radius: 12px !important;
+    font-size: .72rem;
+    white-space: nowrap;
+  }
+
+  .cut-event-discovery-page .cut-discovery-shell {
+    margin-bottom: 10px !important;
+    border-radius: 16px !important;
+  }
+
+  .cut-event-discovery-page .cut-discovery-shell > .card-body {
+    gap: 8px;
+    padding: 7px !important;
+  }
+
+  .cut-event-discovery-page .cut-collapsible-filters {
+    border-radius: 14px;
+  }
+
+  .cut-event-discovery-page .cut-collapsible-filters__toggle {
+    min-height: 52px;
+    padding: 8px 10px;
+  }
+
+  .cut-event-discovery-page .cut-collapsible-filters__icon {
+    width: 32px;
+    height: 32px;
+    flex-basis: 32px;
+    border-radius: 10px;
+  }
+
+  .cut-event-discovery-page .cut-collapsible-filters__title {
+    gap: 9px;
+  }
+
+  .cut-event-discovery-page .cut-collapsible-filters__title strong {
+    font-size: .8rem;
+  }
+
+  .cut-event-discovery-page .cut-collapsible-filters__title small {
+    font-size: .66rem;
+  }
+
+  .cut-event-discovery-page .cut-recent-cities {
+    display: none;
+  }
+
+  .cut-event-discovery-page .cut-active-filters {
+    width: 100%;
+    gap: 6px;
+    padding: 1px 1px 2px;
+  }
+
+  .cut-event-discovery-page .cut-active-filters button {
+    min-height: 32px;
+    padding: 5px 9px;
+    font-size: .68rem;
+  }
+
+  .cut-event-discovery-page .cut-active-filters .cut-clear-filters {
+    margin-left: 0 !important;
+  }
+
+  .cut-event-discovery-results {
+    margin: 4px 0 8px;
+  }
+
+  .cut-event-discovery-results__title {
+    gap: 1px;
+  }
+
+  .cut-event-discovery-results__title strong {
+    font-size: .92rem;
+  }
+
+  .cut-event-discovery-results__title span {
+    font-size: .68rem;
+  }
+}
