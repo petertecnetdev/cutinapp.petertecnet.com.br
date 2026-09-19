@@ -48,9 +48,6 @@ import "./styles/overlay-layout-system.css";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import AppErrorBoundary from "./components/AppErrorBoundary";
-import MediaLibraryInputEnhancer from "./components/MediaLibraryInputEnhancer";
-import GlobalImageInputEnhancer from "./components/GlobalImageInputEnhancer";
-import GlobalAiDescriptionEnhancer from "./components/GlobalAiDescriptionEnhancer";
 import PeterAccountGateway from "./components/PeterAccountGateway";
 import { apiBaseUrl, appSlug } from "./config";
 import reportWebVitals from "./reportWebVitals";
@@ -118,9 +115,6 @@ root.render(
       <PeterAccountGateway apiBaseUrl={apiBaseUrl} appSlug={appSlug}>
         <AuthProvider>
           <App />
-          <GlobalImageInputEnhancer />
-          <GlobalAiDescriptionEnhancer />
-          <MediaLibraryInputEnhancer />
         </AuthProvider>
       </PeterAccountGateway>
     </AppErrorBoundary>
