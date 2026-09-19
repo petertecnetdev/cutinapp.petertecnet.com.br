@@ -449,6 +449,27 @@ export default function ProductionGalleryManager({
     void saveOrder(normalized, previous);
   };
 
+  const handleTouchReorderEnd = (event, sourceId) => {
+    if (sortMode !== "custom" || selectionMode) return;
+    const touch = event.changedTouches?.[0];
+    if (!touch || typeof document === "undefined") return;
+    const target = document.elementFromPoint(touch.clientX, touch.clientY)?.closest?.("[data-gallery-media-id]");
+    const targetId = Number(target?.dataset?.galleryMediaId || 0);
+    if (!targetId || Number(sourceId) === targetId) return;
+    setDraggedId(sourceId);
+    const previous = [...itemsRef.current].sort(byPosition);
+    const from = previous.findIndex((item) => Number(item.id) === Number(sourceId));
+    const to = previous.findIndex((item) => Number(item.id) === targetId);
+    if (from < 0 || to < 0) return;
+    const next = [...previous];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    const normalized = normalizePositions(next);
+    setDraggedId(null);
+    commitItems(normalized);
+    void saveOrder(normalized, previous);
+  };
+
   const toggleSelected = (id) => {
     setSelectedIds((current) => {
       const next = new Set(current);
@@ -1163,6 +1184,7 @@ export default function ProductionGalleryManager({
             return (
               <article
                 key={item.id}
+                data-gallery-media-id={item.id}
                 className={`cut-gallery-card ${selected ? "is-selected" : ""} ${item.is_featured ? "is-featured" : ""}`}
                 draggable={mode === "manage" && sortMode === "custom" && !selectionMode}
                 onDragStart={() => setDraggedId(item.id)}
@@ -1216,10 +1238,17 @@ export default function ProductionGalleryManager({
 
                 {mode === "manage" && !selectionMode && (
                   <>
-                    <div className="cut-gallery-card__index" title="Arraste para reorganizar">
+                    <button
+                      type="button"
+                      className="cut-gallery-card__index"
+                      title="Arraste para reorganizar"
+                      aria-label={"Arrastar foto " + (index + 1) + " para outra posição"}
+                      onTouchStart={() => setDraggedId(item.id)}
+                      onTouchEnd={(event) => handleTouchReorderEnd(event, item.id)}
+                    >
                       <i className="fa-solid fa-grip" />
                       <span>{String(index + 1).padStart(2, "0")}</span>
-                    </div>
+                    </button>
                     <button type="button" className="cut-gallery-card__edit" onClick={() => openEditor(item)} aria-label={`Gerenciar foto ${index + 1}`} title="Gerenciar foto">
                       <i className="fa-solid fa-ellipsis" />
                     </button>
