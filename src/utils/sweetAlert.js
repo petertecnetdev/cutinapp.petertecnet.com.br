@@ -203,6 +203,8 @@ export const showImportantAlert = async ({
   recoveryContext = null,
   recoveryAction = null,
   enableRecoveryAction = true,
+  imageUrl = null,
+  imageAlt = "",
 }) => {
   const Swal = getSwal() || await waitForSwal();
 
@@ -232,6 +234,7 @@ export const showImportantAlert = async ({
     background: "#0d0d24",
     color: "#f7f5ff",
     backdrop: "rgba(2, 3, 18, .78)",
+    ...(imageUrl ? { imageUrl, imageAlt, imageHeight: 180 } : {}),
   });
 
   if (result?.isConfirmed && effectiveRecoveryAction?.url && typeof window !== "undefined") {
@@ -337,6 +340,8 @@ export const showConfirmation = async ({
   confirmButtonText = "Confirmar",
   cancelButtonText = "Cancelar",
   allowOutsideClick = false,
+  imageUrl = null,
+  imageAlt = "",
 } = {}) => {
   const result = await showImportantAlert({
     title,
@@ -348,6 +353,8 @@ export const showConfirmation = async ({
     allowOutsideClick,
     allowEscapeKey: true,
     enableRecoveryAction: false,
+    imageUrl,
+    imageAlt,
   });
   return Boolean(result?.isConfirmed);
 };
