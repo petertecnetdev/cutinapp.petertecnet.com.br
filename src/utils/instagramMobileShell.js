@@ -100,7 +100,6 @@ const ensureTopActions = () => {
   }
 };
 
-let lastScrollY = 0;
 const syncNavbarScrollState = () => {
   const navbar = document.querySelector(".cut-capability-nav");
   if (!navbar) return;
@@ -111,7 +110,6 @@ const syncNavbarScrollState = () => {
   // The mobile header stays visible. Compacting it saves space without making
   // navigation disappear while the user is scanning or recovering from a scroll.
   navbar.classList.remove("cut-mobile-nav--hidden");
-  lastScrollY = y;
 };
 
 const isTextInput = (target) => target instanceof Element && Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
@@ -187,7 +185,6 @@ export const installInstagramMobileShell = () => {
   const onNavigation = () => queue();
 
   queue();
-  lastScrollY = Math.max(0, window.scrollY || 0);
 
   // React can mutate large feeds/lists many times per second. Re-running the shell on
   // every DOM mutation was unnecessary and expensive, so only navigation mount/unmount
