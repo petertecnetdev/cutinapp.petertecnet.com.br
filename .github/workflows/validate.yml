@@ -25,6 +25,7 @@ jobs:
             exit 1
           fi
       - run: npm run lint:overlays
+      - run: npm run lint:dialogs
       - run: CI=true npm test -- --watchAll=false
       - run: npm run build
       - run: npm run perf:budget
