@@ -7,6 +7,7 @@ import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorCo
 import ProductionTicketCartModal from "../../components/event/ProductionTicketCartModal";
 import EventArtwork from "../../components/event/EventArtwork";
 import ProductionCommunitySection from "../../components/production/ProductionCommunitySection";
+import { FormattedText } from "../../components/editor/FormattedText";
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
 import { safeExternalHref } from "../../utils/safeUrl";
@@ -165,7 +166,7 @@ export default function ProductionPublicPage() {
 
     <Container className="cut-page-container py-5">{error && <Alert variant="danger" dismissible onClose={() => setError("")}>{error}</Alert>}
       <div className="cut-production-public-about">
-        <Card className="cut-panel"><Card.Body className="p-4 p-lg-5"><span className="cut-eyebrow">Sobre a produção</span><h2 className="cut-section-title mt-2">{production.name}</h2><p className="cut-body-copy">{production.description || "Esta produção ainda não adicionou uma apresentação pública."}</p><div className="cut-production-public-social">{instagramHref && <Button as="a" href={instagramHref} target="_blank" rel="noopener noreferrer" variant="outline-light"><i className="fa-brands fa-instagram me-2" />Instagram</Button>}{websiteHref && <Button as="a" href={websiteHref} target="_blank" rel="noopener noreferrer" variant="outline-light"><i className="fa-solid fa-globe me-2" />Site</Button>}</div></Card.Body></Card>
+        <Card className="cut-panel"><Card.Body className="p-4 p-lg-5"><span className="cut-eyebrow">Sobre a produção</span><h2 className="cut-section-title mt-2">{production.name}</h2><FormattedText className="cut-body-copy" value={production.description} emptyText="Esta produção ainda não adicionou uma apresentação pública." /><div className="cut-production-public-social">{instagramHref && <Button as="a" href={instagramHref} target="_blank" rel="noopener noreferrer" variant="outline-light"><i className="fa-brands fa-instagram me-2" />Instagram</Button>}{websiteHref && <Button as="a" href={websiteHref} target="_blank" rel="noopener noreferrer" variant="outline-light"><i className="fa-solid fa-globe me-2" />Site</Button>}</div></Card.Body></Card>
         <Card className="cut-panel cut-production-location-card"><Card.Body className="p-4"><span className="cut-eyebrow">Localização</span><h2 className="cut-section-title mt-2">Onde acontece</h2>{mapEmbedUrl ? <><div className="cut-production-location-copy"><i className="fa-solid fa-location-dot" /><span>{production.formatted_address || [production.address, production.address_number, production.city, production.uf].filter(Boolean).join(", ")}</span></div><iframe title={`Mapa de ${production.name}`} loading="lazy" referrerPolicy="no-referrer-when-downgrade" src={mapEmbedUrl} /></> : <p className="text-muted mb-0">Esta produção ainda não publicou sua localização.</p>}</Card.Body></Card>
       </div>
 
