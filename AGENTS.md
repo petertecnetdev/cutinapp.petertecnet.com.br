@@ -21,3 +21,8 @@ Ao terminar:
 Owner/Pedro tem prioridade máxima. Não duplique tarefa com lock de outro agente. Não ultrapasse o limite de delegações. Não grave segredos no repositório. Não crie ciclos artificiais para contornar limites de tarefas do ChatGPT.
 
 Bootstrap: `petertecnetdev/petertecnet.com.br/.agents/TASK_BOOTSTRAP.md`.
+
+## Overlay/UI safety
+- Nenhum novo elemento `fixed`/`sticky` deve definir z-index alto ou offset inferior arbitrário.
+- Use `src/styles/overlay-layout-system.css` e `src/utils/overlayLayoutManager.js` como fonte única de verdade.
+- Antes de concluir alterações de UI mobile, rode `npm run lint:overlays` e os testes; colisões de overlays são regressões bloqueantes.
