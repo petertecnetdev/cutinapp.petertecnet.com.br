@@ -149,11 +149,22 @@ export const resolveAlertRecoveryAction = (message, context = {}) => {
   return null;
 };
 
+const shouldConvertBootstrapAlert = (element) => {
+  if (!(element instanceof HTMLElement)) return false;
+  if (!element.matches(".alert")) return false;
+  if (element.closest(".swal2-container")) return false;
+  if (element.dataset.ptSwalIgnore === "true" || element.dataset.ptSwal === "false") return false;
+  if (element.dataset.ptSwal === "true") return true;
+
+  // Banners persistentes dentro de cards/modais continuam inline. Feedbacks
+  // transitórios (dismissible) e erros/sucessos de página usam SweetAlert.
+  if (element.classList.contains("alert-dismissible")) return true;
+  if (element.closest(".modal, .card, .cut-panel")) return false;
+  return element.classList.contains("alert-danger") || element.classList.contains("alert-success");
+};
+
 const bootstrapAlertInfo = (element) => {
-  if (!(element instanceof HTMLElement)) return null;
-  if (!element.matches(".alert")) return null;
-  if (element.closest(".swal2-container")) return null;
-  if (element.dataset.ptSwalIgnore === "true") return null;
+  if (!shouldConvertBootstrapAlert(element)) return null;
 
   const text = alertElementText(element);
 
@@ -234,16 +245,35 @@ const installBootstrapAlertObserver = () => {
   if (typeof document === "undefined") return () => undefined;
 
   let observer = null;
+  const recentlyShown = new Map();
+  const dedupeWindowMs = 15000;
+
+  const markHidden = (element) => {
+    element.dataset.ptSwalConverted = "true";
+    element.style.setProperty("display", "none", "important");
+  };
 
   const convert = (element) => {
     const info = bootstrapAlertInfo(element);
     if (!info || element.dataset.ptSwalKey === info.key) return;
 
     element.dataset.ptSwalKey = info.key;
-    element.dataset.ptSwalConverted = "true";
-    element.style.setProperty("display", "none", "important");
+    markHidden(element);
 
+    const now = Date.now();
+    const lastShownAt = Number(recentlyShown.get(info.key) || 0);
     const closeButton = element.querySelector(".btn-close, [data-bs-dismiss='alert']");
+
+    if (now - lastShownAt < dedupeWindowMs) {
+      if (closeButton instanceof HTMLElement && document.body.contains(closeButton)) closeButton.click();
+      return;
+    }
+
+    recentlyShown.set(info.key, now);
+    for (const [key, timestamp] of recentlyShown.entries()) {
+      if (now - timestamp > dedupeWindowMs * 4) recentlyShown.delete(key);
+    }
+
     void showImportantAlert({
       title: info.title,
       text: info.text,
@@ -298,6 +328,67 @@ const installBootstrapAlertObserver = () => {
     document.removeEventListener("DOMContentLoaded", start);
     observer?.disconnect();
   };
+};
+
+export const showConfirmation = async ({
+  title = "Confirmar ação",
+  text = "Deseja continuar?",
+  icon = "warning",
+  confirmButtonText = "Confirmar",
+  cancelButtonText = "Cancelar",
+  allowOutsideClick = false,
+} = {}) => {
+  const result = await showImportantAlert({
+    title,
+    text,
+    icon,
+    confirmButtonText,
+    cancelButtonText,
+    showCancelButton: true,
+    allowOutsideClick,
+    allowEscapeKey: true,
+    enableRecoveryAction: false,
+  });
+  return Boolean(result?.isConfirmed);
+};
+
+export const showTextPrompt = async ({
+  title = "Informe os dados",
+  text = "",
+  inputLabel = "",
+  inputPlaceholder = "",
+  inputValue = "",
+  confirmButtonText = "Confirmar",
+  cancelButtonText = "Cancelar",
+  required = false,
+} = {}) => {
+  const Swal = getSwal() || await waitForSwal();
+  if (!Swal) return null;
+
+  const result = await Swal.fire({
+    title,
+    text: normalizeMultilineText(text),
+    input: "text",
+    inputLabel,
+    inputPlaceholder,
+    inputValue,
+    showCancelButton: true,
+    confirmButtonText,
+    cancelButtonText,
+    reverseButtons: true,
+    buttonsStyling: false,
+    customClass: defaultClasses,
+    allowOutsideClick: false,
+    allowEscapeKey: true,
+    background: "#0d0d24",
+    color: "#f7f5ff",
+    backdrop: "rgba(2, 3, 18, .78)",
+    inputValidator: required
+      ? (value) => String(value || "").trim() ? undefined : "Preencha este campo para continuar."
+      : undefined,
+  });
+
+  return result?.isConfirmed ? String(result.value ?? "") : null;
 };
 
 export const installGlobalSweetAlertBridge = () => {
