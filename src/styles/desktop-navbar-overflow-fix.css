@@ -1,14 +1,29 @@
-/* Desktop navbar overflow guard.
- * Mantém menus de perfis/admin, conta e launcher do ecossistema em áreas
- * independentes e permite quebra controlada quando o usuário possui muitas
- * capacidades (caso do Super Admin).
+/*
+ * Desktop navbar stability guard.
+ *
+ * Invariants:
+ * 1. The sticky navbar owns a stacking layer above ordinary page content.
+ * 2. Dropdowns never participate in the navbar/document flow on desktop.
+ * 3. Dropdown content is always contained by its own surface and scrolls
+ *    internally when it is taller than the available viewport.
+ * 4. The primary navigation never wraps to a second row on desktop.
+ *
+ * Keep this layer desktop-only. The mobile drawer intentionally uses in-flow
+ * dropdowns and is handled by advanced-navbar/mobile-hamburger-recovery.
  */
 
 @media (min-width: 992px) {
+  .cut-capability-nav {
+    /* Above ordinary page stacking contexts, below Bootstrap modal/backdrop. */
+    z-index: 1040 !important;
+    isolation: isolate;
+  }
+
   .cut-capability-nav .cut-navbar__inner {
     width: calc(100% - 40px) !important;
     max-width: 1680px !important;
     gap: 10px !important;
+    overflow: visible !important;
   }
 
   .cut-capability-nav .navbar-collapse {
@@ -17,6 +32,7 @@
     align-items: center;
     gap: 8px;
     min-width: 0;
+    overflow: visible !important;
   }
 
   .cut-capability-nav .cut-navbar__links {
@@ -25,8 +41,14 @@
     max-width: 100%;
     margin-inline: 0 !important;
     justify-content: center;
-    flex-wrap: nowrap;
+    flex-wrap: nowrap !important;
     overflow: visible !important;
+  }
+
+  .cut-capability-nav .cut-navbar__links > .dropdown,
+  .cut-capability-nav .cut-navbar__account > .dropdown {
+    position: relative;
+    flex: 0 0 auto;
   }
 
   .cut-capability-nav .cut-navbar__account,
@@ -39,6 +61,66 @@
 
   .cut-capability-nav .cut-navbar__account {
     margin-left: 0 !important;
+  }
+
+  /*
+   * React-Bootstrap mounts dropdowns inside the navbar. A page card with its
+   * own stacking context could otherwise paint over the lower menu entries,
+   * which made a single menu look duplicated/fragmented. Keep every desktop
+   * navbar dropdown in the navbar layer and constrain tall menus internally.
+   */
+  .cut-capability-nav .cut-actor-menu > .dropdown-menu,
+  .cut-capability-nav .cut-context-menu > .dropdown-menu,
+  .cut-capability-nav .cut-navbar__quick-toggle > .dropdown-menu,
+  .cut-capability-nav .cut-navbar__account .dropdown-menu {
+    z-index: 1045 !important;
+    max-height: min(72vh, calc(100dvh - 92px));
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+
+  .cut-capability-nav .cut-actor-menu > .dropdown-menu.show,
+  .cut-capability-nav .cut-context-menu > .dropdown-menu.show,
+  .cut-capability-nav .cut-navbar__quick-toggle > .dropdown-menu.show,
+  .cut-capability-nav .cut-navbar__account .dropdown-menu.show {
+    display: block !important;
+  }
+
+  .cut-capability-nav .cut-nav-notification-menu {
+    position: relative !important;
+    align-self: center !important;
+  }
+
+  .cut-capability-nav .cut-nav-notification-menu > .dropdown-menu {
+    position: absolute !important;
+    inset: auto 0 auto auto !important;
+    top: calc(100% + 10px) !important;
+    right: 0 !important;
+    left: auto !important;
+    bottom: auto !important;
+    transform: none !important;
+    margin: 0 !important;
+    z-index: 1045 !important;
+    width: min(390px, calc(100vw - 24px)) !important;
+    max-height: min(72vh, 640px);
+    overflow: hidden !important;
+  }
+
+  .cut-capability-nav .cut-nav-notification-menu > .dropdown-menu.show {
+    display: block !important;
+  }
+
+  .cut-capability-nav .cut-notification-popover {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .cut-capability-nav .cut-notification-popover__list {
+    max-height: min(52vh, 430px) !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
   }
 }
 
@@ -67,6 +149,10 @@
     font-size: .75rem !important;
   }
 
+  .cut-capability-nav .cut-navbar__primary-link:nth-of-type(n + 7) {
+    display: none !important;
+  }
+
   .cut-capability-nav .cut-navbar__user {
     max-width: 145px !important;
   }
@@ -90,9 +176,8 @@
 
   .cut-capability-nav .cut-navbar__links {
     justify-content: flex-start;
-    flex-wrap: wrap !important;
+    flex-wrap: nowrap !important;
     column-gap: 0 !important;
-    row-gap: 2px !important;
   }
 
   .cut-capability-nav .cut-navbar__links .nav-link,
@@ -100,6 +185,10 @@
     min-height: 36px !important;
     padding: 5px 6px !important;
     font-size: .72rem !important;
+  }
+
+  .cut-capability-nav .cut-navbar__primary-link:nth-of-type(n + 5) {
+    display: none !important;
   }
 
   .cut-capability-nav .cut-navbar__user {
@@ -124,9 +213,8 @@
 
   .cut-capability-nav .cut-navbar__links {
     justify-content: flex-start;
-    flex-wrap: wrap !important;
+    flex-wrap: nowrap !important;
     column-gap: 0 !important;
-    row-gap: 1px !important;
   }
 
   .cut-capability-nav .cut-navbar__links .nav-link,
@@ -134,6 +222,11 @@
     min-height: 34px !important;
     padding: 4px 5px !important;
     font-size: .7rem !important;
+  }
+
+  /* Preserve the most important destinations and move the rest to actor/account menus. */
+  .cut-capability-nav .cut-navbar__primary-link:nth-of-type(n + 5) {
+    display: none !important;
   }
 
   .cut-capability-nav .cut-navbar__user {
@@ -152,55 +245,5 @@
 
   .cut-capability-nav .cut-navbar__account .dropdown-toggle::after {
     margin-left: 2px !important;
-  }
-}
-
-
-/*
- * Desktop notification popover isolation.
- *
- * React-Bootstrap/Bootstrap can temporarily resolve navbar dropdown menus as
- * in-flow elements while the menu is being opened/repositioned. When the
- * notification preview contains several rows, that makes the sticky navbar
- * grow to hundreds of pixels and vertically centers the entire navigation.
- *
- * Keep the notification dropdown out of document flow on desktop and anchor
- * it directly below the bell. The mobile drawer intentionally keeps its own
- * in-flow submenu behavior in the <= 991.98px layers.
- */
-@media (min-width: 992px) {
-  .cut-capability-nav .cut-nav-notification-menu {
-    position: relative !important;
-    align-self: center !important;
-  }
-
-  .cut-capability-nav .cut-nav-notification-menu > .dropdown-menu {
-    position: absolute !important;
-    inset: auto 0 auto auto !important;
-    top: calc(100% + 10px) !important;
-    right: 0 !important;
-    left: auto !important;
-    bottom: auto !important;
-    transform: none !important;
-    margin: 0 !important;
-    z-index: 2200 !important;
-    width: min(390px, calc(100vw - 24px)) !important;
-    max-height: min(72vh, 640px);
-    overflow: hidden !important;
-  }
-
-  .cut-capability-nav .cut-nav-notification-menu > .dropdown-menu.show {
-    display: block !important;
-  }
-
-  .cut-capability-nav .cut-notification-popover {
-    width: 100% !important;
-    max-width: 100% !important;
-  }
-
-  .cut-capability-nav .cut-notification-popover__list {
-    max-height: min(52vh, 430px) !important;
-    overflow-y: auto !important;
-    overscroll-behavior: contain;
   }
 }
