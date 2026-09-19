@@ -1,12 +1,15 @@
 import {
   safeGetLocalItem,
+  safeGetSessionItem,
   safeSetLocalItem,
+  safeSetSessionItem,
 } from "./safeStorage";
 
 export const COMMERCE_SCOPE_CHANGE_EVENT = "cutinapp:commerce-scope-change";
 
 const COMMERCE_SCOPE_KEY = "cutinapp_commerce_scope_v1";
 const COMMERCE_SCOPE_VERSION_KEY = "cutinapp_commerce_scope_version";
+const COMMERCE_SESSION_SCOPE_KEY = "cutinapp_commerce_session_scope_v1";
 const COMMERCE_SCOPE_VERSION = "2";
 const COMMERCE_STORAGE_PREFIXES = [
   "cutinapp_checkout_",
@@ -66,11 +69,25 @@ const notifyCommerceScopeChange = (scope, cleared) => {
   });
 };
 
-export const isCommerceScopeReady = () => safeGetLocalItem(COMMERCE_SCOPE_VERSION_KEY) === COMMERCE_SCOPE_VERSION;
+export const isCommerceScopeReady = () => {
+  const localScope = safeGetLocalItem(COMMERCE_SCOPE_KEY);
+  const sessionScope = safeGetSessionItem(COMMERCE_SESSION_SCOPE_KEY);
+  return safeGetLocalItem(COMMERCE_SCOPE_VERSION_KEY) === COMMERCE_SCOPE_VERSION
+    && Boolean(localScope)
+    && sessionScope === localScope;
+};
 
 export const clearCommerceClientState = ({ notify = true } = {}) => {
   if (typeof window === "undefined") return 0;
-  const cleared = removeMatchingKeys(window.localStorage) + removeMatchingKeys(window.sessionStorage);
+  let localStorage = null;
+  let sessionStorage = null;
+  try {
+    localStorage = window.localStorage;
+    sessionStorage = window.sessionStorage;
+  } catch (_) {
+    return 0;
+  }
+  const cleared = removeMatchingKeys(localStorage) + removeMatchingKeys(sessionStorage);
   if (notify) notifyCommerceScopeChange(safeGetLocalItem(COMMERCE_SCOPE_KEY) || "guest", cleared);
   return cleared;
 };
@@ -81,20 +98,27 @@ export const synchronizeCommerceScope = (user) => {
     clearCommerceClientState();
     safeSetLocalItem(COMMERCE_SCOPE_KEY, "guest");
     safeSetLocalItem(COMMERCE_SCOPE_VERSION_KEY, COMMERCE_SCOPE_VERSION);
+    safeSetSessionItem(COMMERCE_SESSION_SCOPE_KEY, "guest");
     notifyCommerceScopeChange("guest", true);
     return { scope: "guest", cleared: true };
   }
 
   const currentScope = safeGetLocalItem(COMMERCE_SCOPE_KEY);
-  const migrated = isCommerceScopeReady();
+  const currentSessionScope = safeGetSessionItem(COMMERCE_SESSION_SCOPE_KEY);
+  const migrated = safeGetLocalItem(COMMERCE_SCOPE_VERSION_KEY) === COMMERCE_SCOPE_VERSION;
   const guestToAuthenticated = currentScope === "guest" && nextScope.startsWith("user");
+  const sessionGuestToAuthenticated = currentSessionScope === "guest" && nextScope.startsWith("user");
+  const localScopeMismatch = Boolean(currentScope) && currentScope !== nextScope && !guestToAuthenticated;
+  const sessionScopeMismatch = Boolean(currentSessionScope) && currentSessionScope !== nextScope && !sessionGuestToAuthenticated;
   const mustClear = !migrated
     || (!currentScope && nextScope !== "guest")
-    || (Boolean(currentScope) && currentScope !== nextScope && !guestToAuthenticated);
+    || localScopeMismatch
+    || sessionScopeMismatch;
 
   const cleared = mustClear ? clearCommerceClientState({ notify: false }) : 0;
   safeSetLocalItem(COMMERCE_SCOPE_KEY, nextScope);
   safeSetLocalItem(COMMERCE_SCOPE_VERSION_KEY, COMMERCE_SCOPE_VERSION);
+  safeSetSessionItem(COMMERCE_SESSION_SCOPE_KEY, nextScope);
   notifyCommerceScopeChange(nextScope, cleared);
 
   return { scope: nextScope, cleared: cleared > 0 };
