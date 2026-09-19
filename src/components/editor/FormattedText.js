@@ -1,8 +1,9 @@
 import React, { useMemo, useRef, useState } from "react";
+import PropTypes from "prop-types";
 import { safeExternalHref } from "../../utils/safeUrl";
 import "./FormattedText.css";
 
-const INLINE_PATTERN = /(\*\*[^*\n]+\*\*|\*[^*\n]+\*|\`[^\`\n]+\`|\[[^\]\n]+\]\([^)\n]+\))/g;
+const INLINE_PATTERN = /(\*\*[^*\n]+\*\*|\*[^*\n]+\*|`[^`\n]+`|\[[^\]\n]+\]\([^)\n]+\))/g;
 
 const renderInline = (value, keyPrefix = "inline") => String(value || "")
   .split(INLINE_PATTERN)
@@ -151,6 +152,12 @@ export function FormattedText({ value, className = "", emptyText = "" }) {
   return <div className={`cut-formatted-text ${className}`.trim()}>{blocks}</div>;
 }
 
+FormattedText.propTypes = {
+  value: PropTypes.string,
+  className: PropTypes.string,
+  emptyText: PropTypes.string,
+};
+
 const TOOLBAR = [
   { key: "bold", label: "Negrito", icon: "fa-solid fa-bold" },
   { key: "italic", label: "Itálico", icon: "fa-solid fa-italic" },
@@ -222,7 +229,7 @@ export function FormattedTextEditor({
     const allPrefixed = nonEmpty.length > 0 && nonEmpty.every((line) => line.startsWith(prefix));
     return lines.map((line) => {
       if (!line.trim()) return line;
-      return allPrefixed ? line.slice(prefix.length) : `${prefix}${line.replace(/^(?:##?\#?\s+|>\s+|[-*]\s+|\d+\.\s+)/, "")}`;
+      return allPrefixed ? line.slice(prefix.length) : `${prefix}${line.replace(/^(?:##?#?\s+|>\s+|[-*]\s+|\d+\.\s+)/, "")}`;
     });
   });
 
@@ -233,7 +240,7 @@ export function FormattedTextEditor({
     return lines.map((line) => {
       if (!line.trim()) return line;
       if (allNumbered) return line.replace(/^\d+\.\s+/, "");
-      const clean = line.replace(/^(?:##?\#?\s+|>\s+|[-*]\s+|\d+\.\s+)/, "");
+      const clean = line.replace(/^(?:##?#?\s+|>\s+|[-*]\s+|\d+\.\s+)/, "");
       return `${number++}. ${clean}`;
     });
   });
@@ -261,7 +268,7 @@ export function FormattedTextEditor({
     .replace(/^(?:###?\s+|>\s+|[-*]\s+|\d+\.\s+)/, "")
     .replace(/\*\*([^*]+)\*\*/g, "$1")
     .replace(/\*([^*]+)\*/g, "$1")
-    .replace(/\`([^\`]+)\`/g, "$1")
+    .replace(/`([^`]+)`/g, "$1")
     .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")));
 
   const applyTool = (tool) => {
@@ -333,6 +340,15 @@ export function FormattedTextEditor({
       </div>
     </div>
   );
-}
+} 
+
+FormattedTextEditor.propTypes = {
+  value: PropTypes.string,
+  onChange: PropTypes.func.isRequired,
+  placeholder: PropTypes.string,
+  maxLength: PropTypes.number,
+  rows: PropTypes.number,
+  ariaLabel: PropTypes.string,
+};
 
 export default FormattedTextEditor;
