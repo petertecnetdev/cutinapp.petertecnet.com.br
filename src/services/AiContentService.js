@@ -1,4 +1,5 @@
 import apiClient from "./ApiClient";
+import appApiClient from "./AppApiClient";
 
 const cleanString = (value, maxLength) => String(value ?? "").trim().slice(0, maxLength);
 
@@ -96,7 +97,8 @@ class AiContentService {
     }
 
     // Compatibility path for an older API deployment that still exposes the
-    // Cutinapp creative-text route while /ai/content/description rolls out.
+    // app-scoped creative-text capability while /ai/content/description rolls out.
+    // AppApiClient owns /api/v1/apps/{application}, keeping this service generic.
     try {
       const legacyPayload = {
         purpose: "event_description",
@@ -108,8 +110,8 @@ class AiContentService {
         tone: payload.tone,
         action: payload.action,
       };
-      const response = await apiClient.post(
-        "/v1/apps/cutinapp/creative/texts",
+      const response = await appApiClient.post(
+        "/creative/texts",
         legacyPayload,
         { timeout: 80000 },
       );
