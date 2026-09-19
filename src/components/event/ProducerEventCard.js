@@ -8,6 +8,7 @@ import {
   EventMetrics,
   EventPerformanceBadge,
 } from "./EventManagerEnhancements";
+import EventArtwork from "./EventArtwork";
 import { storageUrl } from "../../config";
 import {
   eventAlerts,
@@ -155,9 +156,7 @@ function ProducerEventCard({
       </div>
 
       <button type="button" className="cut-producer-event-card__media" onClick={() => onQuickView?.(event)} aria-label={`Ver resumo de ${event.title}`}>
-        {eventImage
-          ? <img src={mediaUrl(eventImage)} alt="" loading="lazy" decoding="async" />
-          : <span>{initials(event.title)}</span>}
+        <EventArtwork image={eventImage} title={event.title} alt="" loading="lazy" decoding="async" />
       </button>
 
       <div className="cut-producer-event-card__main">
@@ -227,9 +226,7 @@ function ProducerEventCard({
     </div>
 
     <button type="button" className="cut-producer-event-card__media" onClick={() => onQuickView?.(event)} aria-label={`Ver resumo de ${event.title}`}>
-      {eventImage
-        ? <img src={mediaUrl(eventImage)} alt="" loading="lazy" decoding="async" />
-        : <span>{initials(event.title)}</span>}
+      <EventArtwork image={eventImage} title={event.title} alt="" loading="lazy" decoding="async" />
       <span className="cut-producer-event-card__media-overlay"><i className="fa-regular fa-eye" />Visão rápida</span>
     </button>
 

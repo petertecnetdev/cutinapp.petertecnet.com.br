@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import eventService from "../services/EventService";
 import cutinappService from "../services/CutinappService";
 import PeterTecnetSignature from "../components/PeterTecnetSignature";
+import EventArtwork from "../components/event/EventArtwork";
 import { storageUrl } from "../config";
 import { readDiscoveryPreference, saveDiscoveryPreference } from "../utils/discoveryFilters";
 import "./HomePage.css";
@@ -285,8 +286,8 @@ export default function HomePage() {
                   <small>{locationLabel}</small>
                 </div>
                 <div className="cut-home-discovery__sceneEventMedia">
-                  {featuredEvent?.image
-                    ? <img src={mediaUrl(featuredEvent.image)} alt="" />
+                  {featuredEvent
+                    ? <EventArtwork image={featuredEvent.image} title={featuredEvent.title} alt="" />
                     : <span><i className="fa-regular fa-calendar-days" /></span>}
                 </div>
                 <div className="cut-home-discovery__sceneEventCopy">
@@ -454,7 +455,7 @@ export default function HomePage() {
                     {events.map((event) => (
                       <Link key={event.id} to={`/event/${event.slug}`} className="cut-home-discovery__eventCard">
                         <div className="cut-home-discovery__eventImage">
-                          {event.image ? <img src={mediaUrl(event.image)} alt={event.title} loading="lazy" /> : <span><i className="fa-regular fa-calendar" /></span>}
+                          <EventArtwork image={event.image} title={event.title} alt={event.title} loading="lazy" decoding="async" />
                           {event.free_ticket_lots_count > 0 && <b>GRÁTIS</b>}
                         </div>
                         <div className="cut-home-discovery__eventInfo">

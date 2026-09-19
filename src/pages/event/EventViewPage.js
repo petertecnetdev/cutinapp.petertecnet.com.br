@@ -7,6 +7,7 @@ import WhatsAppFloatingButton from "../../components/WhatsAppFloatingButton";
 import EventCommunitySection from "../../components/event/EventCommunitySection";
 import EventCommercePanel from "../../components/event/EventCommercePanel";
 import EventFlyerModal from "../../components/event/EventFlyerModal";
+import EventArtwork from "../../components/event/EventArtwork";
 import { AuthContext } from "../../context/AuthContext";
 import eventService from "../../services/EventService";
 import cutinappService from "../../services/CutinappService";
@@ -411,7 +412,9 @@ export default function EventViewPage() {
     {!loading && event && <>
       <section className="cut-event-banner-stage" aria-label={`Imagem do evento ${event.title}`}>
         <Container className="cut-page-container">
-          {flyerUrl ? <div className="cut-event-banner-frame"><img src={flyerUrl} alt={`Banner do evento ${event.title}`} /></div> : <div className="cut-event-banner-placeholder"><i className="fa-regular fa-image" aria-hidden="true" /></div>}
+          <div className={flyerUrl ? "cut-event-banner-frame" : "cut-event-banner-placeholder"}>
+            <EventArtwork image={event.image} title={event.title} alt={`Banner do evento ${event.title}`} fallbackClassName="cut-event-banner-initials" />
+          </div>
         </Container>
       </section>
 
