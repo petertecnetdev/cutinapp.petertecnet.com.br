@@ -15,6 +15,7 @@ const statusLabel = {
   awaiting_owner: "Aguardando produtor",
   awaiting_agreement: "Contrato pendente",
   awaiting_payout: "Recebimentos pendentes",
+  awaiting_payment: "Pagamento indisponível",
   ready_to_sell: "Pronto para vender",
 };
 
@@ -153,7 +154,7 @@ export default function AssistedProducerOnboardingPage() {
                 <td><strong>{row.organization.name}</strong><small className="d-block text-secondary">{row.organization.city || "Cidade não informada"}</small></td>
                 <td>{row.owner.first_name}<small className="d-block text-secondary">{row.owner.email}</small></td>
                 <td style={{ minWidth: 150 }}><ProgressBar now={row.progress} label={`${row.progress}%`} /></td>
-                <td><Badge bg={row.sales_ready ? "success" : "warning"}>{statusLabel[row.status] || row.status}</Badge></td>
+                <td><Badge bg={row.sales_ready ? "success" : row.status === "awaiting_payment" ? "danger" : "warning"}>{statusLabel[row.status] || row.status}</Badge>{row.sales_ready && !row.payout_ready && <small className="d-block text-warning mt-1">Pix pendente para repasses</small>}</td>
                 <td>{row.handoff_sent_at ? new Date(row.handoff_sent_at).toLocaleString("pt-BR") : "Pendente"}</td>
                 <td><div className="d-flex gap-2">
                   <Button size="sm" variant="outline-light" onClick={() => void resend(row.organization.id)} disabled={resendingId === row.organization.id}>{resendingId === row.organization.id ? "Enviando..." : "Reenviar e-mail"}</Button>
