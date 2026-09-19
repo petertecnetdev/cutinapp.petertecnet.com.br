@@ -5,6 +5,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
+import EventArtwork from "../../components/event/EventArtwork";
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
 import { safeExternalHref } from "../../utils/safeUrl";
@@ -36,16 +37,13 @@ const TYPE_LABELS = { solo: "Artista solo", band: "Banda", duo: "Duo", group: "G
 const GROUP_TYPES = new Set(["band", "duo", "group", "collective", "orchestra"]);
 
 function ArtistEventCard({ event, onOpen, status = "confirmed" }) {
-  const image = mediaUrl(event?.image);
   const location = [event?.venue, event?.city].filter(Boolean).join(" · ");
   const pending = status === "pending";
 
   return (
     <button type="button" className="artist-profile-event-card cut-event-mini" onClick={onOpen}>
       <span className="artist-profile-event-card__media">
-        {image
-          ? <img src={image} alt="" loading="lazy" />
-          : <span className="artist-profile-event-card__placeholder"><i className="fa-solid fa-music" /></span>}
+        <EventArtwork image={event?.image} title={event?.title} alt="" loading="lazy" fallbackClassName="artist-profile-event-card__placeholder" />
         <span className={`artist-profile-event-card__status ${pending ? "is-pending" : ""}`}>
           {pending ? "Aguardando confirmação" : "Confirmado"}
         </span>
