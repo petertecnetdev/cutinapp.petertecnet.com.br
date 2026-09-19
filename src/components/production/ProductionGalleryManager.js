@@ -40,6 +40,8 @@ const analyzeImageFile = async (file) => {
       bitmap.close?.();
       return [];
     }
+    const sourceWidth = bitmap.width;
+    const sourceHeight = bitmap.height;
     context.drawImage(bitmap, 0, 0, size, size);
     bitmap.close?.();
     const pixels = context.getImageData(0, 0, size, size).data;
@@ -68,7 +70,7 @@ const analyzeImageFile = async (file) => {
     const warnings = [];
     if (brightness < 52) warnings.push("A foto parece bastante escura; confira se os detalhes estão visíveis.");
     if (sharpness < 7.5) warnings.push("A foto pode estar desfocada ou com poucos detalhes.");
-    if (bitmap.width < 900 || bitmap.height < 600) warnings.push("A resolução é baixa para telas grandes.");
+    if (sourceWidth < 900 || sourceHeight < 600) warnings.push("A resolução é baixa para telas grandes.");
     return warnings;
   } catch (_) {
     return [];
