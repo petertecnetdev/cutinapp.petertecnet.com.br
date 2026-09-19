@@ -1,3 +1,4 @@
+import { showConfirmation } from "../../utils/sweetAlert";
 import React, { useEffect, useMemo, useState } from "react";
 import { Alert, Badge, Button, Card, Container, Form, Spinner } from "react-bootstrap";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
@@ -198,9 +199,11 @@ export default function ProductionAgendaManager() {
   const removeDay = async (day, schedule) => {
     if (!schedule?.id || removingDay !== null) return;
     const currentEvent = scheduleEvent(schedule);
-    const confirmed = window.confirm(
-      `Remover “${currentEvent?.title || "este evento"}” de ${day.label.toLowerCase()}? O evento original não será excluído.`
-    );
+    const confirmed = await showConfirmation({
+      title: "Remover da agenda?",
+      text: `Remover “${currentEvent?.title || "este evento"}” de ${day.label.toLowerCase()}? O evento original não será excluído.`,
+      confirmButtonText: "Remover da agenda",
+    });
     if (!confirmed) return;
 
     setRemovingDay(day.value);
