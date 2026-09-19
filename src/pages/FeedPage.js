@@ -181,16 +181,23 @@ export default function FeedPage() {
     }
   };
 
+  const isAdministrator = user?.profile?.name === "Administrador";
   const isOwnPost = (post) => Boolean(user?.id && post?.user_id) && Number(post.user_id) === Number(user.id);
+  const canManagePost = (post) => isOwnPost(post) || isAdministrator;
 
   const deletePost = async (post, depth = 0) => {
-    if (!requireLogin() || busyPosts.has(post.id) || !isOwnPost(post)) return;
+    if (!requireLogin() || busyPosts.has(post.id) || !canManagePost(post)) return;
     const isReply = depth > 0 || Number(post.parent_id || 0) > 0;
+    const moderatingOtherUser = isAdministrator && !isOwnPost(post);
     const confirmed = await showConfirmation({
-      title: isReply ? "Excluir comentário?" : "Excluir publicação?",
-      text: isReply
-        ? "Seu comentário deixará de aparecer no Feed. Essa ação não pode ser desfeita."
-        : "Sua publicação e as respostas dela deixarão de aparecer no Feed. Essa ação não pode ser desfeita.",
+      title: moderatingOtherUser
+        ? `Excluir ${isReply ? "comentário" : "publicação"} de ${authorName(post)}?`
+        : isReply ? "Excluir comentário?" : "Excluir publicação?",
+      text: moderatingOtherUser
+        ? `Como administrador, você está removendo conteúdo de outro usuário. ${isReply ? "O comentário" : "A publicação e suas respostas"} deixará de aparecer no Feed. Essa ação não pode ser desfeita.`
+        : isReply
+          ? "Seu comentário deixará de aparecer no Feed. Essa ação não pode ser desfeita."
+          : "Sua publicação e as respostas dela deixarão de aparecer no Feed. Essa ação não pode ser desfeita.",
       icon: "warning",
       confirmButtonText: "Excluir",
       cancelButtonText: "Cancelar",
@@ -207,15 +214,21 @@ export default function FeedPage() {
         setReplyTo(null);
         setReplyBody("");
       }
-      setSuccess(isReply ? "Comentário excluído." : "Publicação excluída.");
+      setSuccess(moderatingOtherUser
+        ? (isReply ? "Comentário removido pela moderação." : "Publicação removida pela moderação.")
+        : (isReply ? "Comentário excluído." : "Publicação excluída."));
       trackTelemetry("feed_post_deleted", {
-        label: isReply ? "Comentário excluído no Feed" : "Publicação excluída no Feed",
+        label: moderatingOtherUser
+          ? (isReply ? "Comentário moderado no Feed" : "Publicação moderada no Feed")
+          : (isReply ? "Comentário excluído no Feed" : "Publicação excluída no Feed"),
         target: String(post.id),
         metadata: {
           source: "feed",
           post_id: Number(post.id),
           event_id: Number(post.event_id || 0) || null,
           is_reply: isReply,
+          moderated_by_admin: moderatingOtherUser,
+          post_author_user_id: Number(post.user_id || 0) || null,
         },
       });
     } catch (err) {
@@ -248,6 +261,8 @@ export default function FeedPage() {
     const availabilityLabel = ticketAvailabilityLabel(post);
     const canBuyTickets = hasSellableTickets(post);
     const ownsPost = isOwnPost(post);
+    const canManage = canManagePost(post);
+    const moderatingOtherUser = isAdministrator && !ownsPost;
     const isReply = depth > 0 || Number(post.parent_id || 0) > 0;
 
     return <article className={`cut-feed-post${depth ? " cut-feed-post--reply" : ""}`} key={`${depth}-${post.id}`}>
@@ -259,18 +274,24 @@ export default function FeedPage() {
         <button type="button" className="cut-feed-post__author" onClick={() => openProfile(post)}>{authorName(post)}</button>
         <small>{fmt(post.created_at)} · Público</small>
       </div>
-      {ownsPost && <Dropdown align="end" className="cut-feed-post__manage">
+      {canManage && <Dropdown align="end" className="cut-feed-post__manage">
         <Dropdown.Toggle
           variant="link"
           size="sm"
           disabled={busyPosts.has(post.id)}
-          aria-label={isReply ? "Gerenciar seu comentário" : "Gerenciar sua publicação"}
-          title={isReply ? "Gerenciar comentário" : "Gerenciar publicação"}
+          aria-label={moderatingOtherUser
+            ? (isReply ? "Moderar comentário" : "Moderar publicação")
+            : (isReply ? "Gerenciar seu comentário" : "Gerenciar sua publicação")}
+          title={moderatingOtherUser
+            ? (isReply ? "Moderar comentário" : "Moderar publicação")
+            : (isReply ? "Gerenciar comentário" : "Gerenciar publicação")}
         >
           <i className={busyPosts.has(post.id) ? "fa-solid fa-spinner fa-spin" : "fa-solid fa-ellipsis"} />
         </Dropdown.Toggle>
         <Dropdown.Menu>
-          <Dropdown.Header>{isReply ? "Gerenciar comentário" : "Gerenciar publicação"}</Dropdown.Header>
+          <Dropdown.Header>{moderatingOtherUser
+            ? (isReply ? "Moderação do comentário" : "Moderação da publicação")
+            : (isReply ? "Gerenciar comentário" : "Gerenciar publicação")}</Dropdown.Header>
           <Dropdown.Item className="cut-feed-post__manage-danger" onClick={() => deletePost(post, depth)}>
             <i className="fa-regular fa-trash-can" />
             <span>{isReply ? "Excluir comentário" : "Excluir publicação"}</span>
