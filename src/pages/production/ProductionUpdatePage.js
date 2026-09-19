@@ -314,6 +314,7 @@ export default function ProductionUpdatePage() {
             media={galleryMedia}
             albums={galleryAlbums}
             publicSlug={publicSlug}
+            coverUrl={bgPreview}
             onMediaChange={setGalleryMedia}
             onAlbumsChange={setGalleryAlbums}
             onCoverChange={(cover) => {
