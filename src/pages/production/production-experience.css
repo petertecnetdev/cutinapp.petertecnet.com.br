@@ -444,3 +444,69 @@
 .cut-production-gallery-item--editor .cut-production-gallery-remove{z-index:3}
 @media(max-width:991px){.cut-production-gallery-editor__uploader{grid-template-columns:1fr 1fr}.cut-production-gallery-editor__upload-action{grid-column:1/-1;display:flex;align-items:center}.cut-production-gallery-editor__upload-action small{text-align:left}.cut-production-gallery-grid--editor{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:575px){.cut-production-gallery-editor__head{align-items:flex-start;flex-direction:column}.cut-production-gallery-editor__uploader{grid-template-columns:1fr;padding:13px}.cut-production-gallery-editor__upload-action{grid-column:auto;display:grid}.cut-production-gallery-grid--editor{grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}.cut-production-gallery-item--editor{border-radius:8px}.cut-production-gallery-item--editor figcaption{display:none}.cut-production-gallery-item__index{left:5px;top:5px;padding:3px 5px}.cut-production-gallery-item--editor .cut-production-gallery-remove{right:5px;top:5px;width:30px;height:30px}}
+
+
+/* Public production view: fast, content-first rendering. Keep media faithful and defer below-fold work. */
+.cut-production-themed-page:not(.cut-production-inline-editor)::before{display:none!important}
+.cut-production-themed-page:not(.cut-production-inline-editor)::after{position:absolute;background:linear-gradient(180deg,#02080d 0%,#030a10 100%)}
+.cut-production-themed-page__hero--public{
+  min-height:clamp(320px,46vw,520px);
+  background-image:var(--cut-production-public-hero-image,none)!important;
+  background-position:center!important;
+  background-size:cover!important;
+}
+.cut-production-themed-page__hero--public::after{display:none!important}
+.cut-production-themed-page__hero--public .cut-profile-hero__content{
+  width:min(860px,100%);
+  padding:18px;
+  border-radius:24px;
+  background:linear-gradient(90deg,rgba(2,8,13,.82),rgba(2,8,13,.58) 72%,rgba(2,8,13,.18));
+}
+.cut-production-themed-page:not(.cut-production-inline-editor) .cut-panel,
+.cut-production-themed-page:not(.cut-production-inline-editor) .cut-empty-state,
+.cut-production-themed-page:not(.cut-production-inline-editor) .cut-production-event-slide{
+  background:#071018!important;
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+  box-shadow:none!important;
+}
+.cut-production-themed-page:not(.cut-production-inline-editor) .cut-production-section,
+.cut-production-themed-page:not(.cut-production-inline-editor) .cut-public-gallery,
+.cut-production-themed-page:not(.cut-production-inline-editor) .cut-production-public-about{
+  content-visibility:auto;
+  contain:layout paint style;
+  contain-intrinsic-size:520px;
+}
+.cut-production-themed-page:not(.cut-production-inline-editor) .cut-production-location-card iframe{
+  content-visibility:auto;
+  border:0;
+}
+.cut-production-themed-page:not(.cut-production-inline-editor) .cut-production-event-slide{
+  contain:layout paint style;
+}
+.cut-production-themed-page:not(.cut-production-inline-editor) .cut-production-event-slide__media img{
+  transition:transform .16s ease;
+}
+@media(max-width:575.98px){
+  .cut-production-themed-page__hero--public{min-height:300px}
+  .cut-production-themed-page__hero--public .cut-profile-hero__content{
+    padding:13px;
+    border-radius:18px;
+    background:rgba(2,8,13,.78);
+  }
+  .cut-production-themed-page:not(.cut-production-inline-editor) .cut-page-container.py-5{
+    padding-top:1.5rem!important;
+    padding-bottom:2rem!important;
+  }
+  .cut-production-themed-page:not(.cut-production-inline-editor) .cut-production-section{margin-top:26px}
+}
+@media(prefers-reduced-motion:reduce){
+  .cut-production-themed-page:not(.cut-production-inline-editor) *,
+  .cut-production-themed-page:not(.cut-production-inline-editor) *::before,
+  .cut-production-themed-page:not(.cut-production-inline-editor) *::after{
+    scroll-behavior:auto!important;
+    animation-duration:.01ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.01ms!important;
+  }
+}
