@@ -1,6 +1,7 @@
 import {
   safeGetLocalItem,
   safeGetSessionItem,
+  safeRemoveSessionItem,
   safeSetLocalItem,
   safeSetSessionItem,
 } from "./safeStorage";
@@ -67,6 +68,13 @@ const notifyCommerceScopeChange = (scope, cleared) => {
       // UI refresh must never break authentication or checkout.
     }
   });
+};
+
+export const invalidateCommerceScopeReadiness = () => {
+  if (typeof window === "undefined") return false;
+  const removed = safeRemoveSessionItem(COMMERCE_SESSION_SCOPE_KEY);
+  notifyCommerceScopeChange(safeGetLocalItem(COMMERCE_SCOPE_KEY) || "guest", 0);
+  return removed;
 };
 
 export const isCommerceScopeReady = () => {
