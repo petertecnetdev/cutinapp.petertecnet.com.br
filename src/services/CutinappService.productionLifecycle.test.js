@@ -25,30 +25,36 @@ describe("CutinappService production lifecycle idempotency", () => {
     sessionStorage.clear();
   });
 
-  test("updates a production with an idempotency key and preserves the production facade", async () => {
-    appApiClient.patch.mockResolvedValueOnce({ data: { organization: { id: 90, name: "Nova Produção" } } });
+  test("updates a multipart production through Laravel method override and preserves every form field", async () => {
+    appApiClient.post.mockResolvedValueOnce({ data: { organization: { id: 90, name: "Nova Produção" } } });
 
     const result = await cutinappService.updateProduction("90", productionPayload("Nova Produção"));
 
-    expect(appApiClient.patch).toHaveBeenCalledWith(
+    expect(appApiClient.post).toHaveBeenCalledWith(
       "/organizations/90",
       expect.any(FormData),
       { headers: { "Idempotency-Key": expect.any(String) } },
     );
+    const submitted = appApiClient.post.mock.calls[0][1];
+    expect(submitted.get("_method")).toBe("PATCH");
+    expect(submitted.get("name")).toBe("Nova Produção");
+    expect(submitted.get("type")).toBe("independent");
+    expect(appApiClient.patch).not.toHaveBeenCalled();
     expect(result.production).toEqual({ id: 90, name: "Nova Produção" });
     expect(result.organization).toBeUndefined();
   });
 
-  test("reuses the update key after an uncertain network failure", async () => {
-    appApiClient.patch
+  test("reuses the update key after an uncertain multipart network failure", async () => {
+    appApiClient.post
       .mockRejectedValueOnce({ code: "ERR_NETWORK", message: "Network Error" })
       .mockResolvedValueOnce({ data: { organization: { id: 91 } } });
 
     await expect(cutinappService.updateProduction(91, productionPayload())).rejects.toMatchObject({ code: "ERR_NETWORK" });
-    const firstKey = appApiClient.patch.mock.calls[0][2].headers["Idempotency-Key"];
+    const firstKey = appApiClient.post.mock.calls[0][2].headers["Idempotency-Key"];
 
     await expect(cutinappService.updateProduction("91", productionPayload())).resolves.toMatchObject({ production: { id: 91 } });
-    expect(appApiClient.patch.mock.calls[1][2].headers["Idempotency-Key"]).toBe(firstKey);
+    expect(appApiClient.post.mock.calls[1][2].headers["Idempotency-Key"]).toBe(firstKey);
+    expect(appApiClient.post.mock.calls[1][1].get("_method")).toBe("PATCH");
   });
 
   test("deletes a production idempotently and coalesces concurrent deletion", async () => {
