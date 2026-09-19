@@ -65,7 +65,8 @@ const createProduction = createIdempotentMutation({
     const data = rename((await appApiClient.post("/organizations", payload, {
       headers: { "Idempotency-Key": idempotencyKey },
     })).data, "organization", "production");
-    return finishGalleryMutation(organizationId, "cover", data);
+    invalidatePublicRequestCache("/organizations");
+    return data;
   },
 });
 
@@ -340,6 +341,36 @@ const rotateProductionMedia = createIdempotentMutation({
   ),
 });
 
+const cropProductionMedia = createIdempotentMutation({
+  storagePrefix: "cutinapp_production_media_crop_attempt_",
+  keyPrefix: "production-media-crop",
+  requestKeyFor: (organizationId, mediaId, payload = {}) => `${Number(organizationId)}:${Number(mediaId)}:${createMutationRequestKey(payload)}`,
+  mutate: async ({ idempotencyKey }, organizationId, mediaId, payload = {}) => finishGalleryMutation(
+    organizationId,
+    "crop",
+    (await appApiClient.post(
+      `/organizations/${Number(organizationId)}/media/${Number(mediaId)}/crop`,
+      payload,
+      { headers: { "Idempotency-Key": idempotencyKey } },
+    )).data,
+  ),
+});
+
+const reprocessProductionMedia = createIdempotentMutation({
+  storagePrefix: "cutinapp_production_media_reprocess_attempt_",
+  keyPrefix: "production-media-reprocess",
+  requestKeyFor: (organizationId, mediaId) => `${Number(organizationId)}:${Number(mediaId)}`,
+  mutate: async ({ idempotencyKey }, organizationId, mediaId) => finishGalleryMutation(
+    organizationId,
+    "reprocess",
+    (await appApiClient.post(
+      `/organizations/${Number(organizationId)}/media/${Number(mediaId)}/reprocess`,
+      undefined,
+      { headers: { "Idempotency-Key": idempotencyKey } },
+    )).data,
+  ),
+});
+
 const reorderProductionMedia = createIdempotentMutation({
   storagePrefix: "cutinapp_production_media_reorder_attempt_",
   keyPrefix: "production-media-reorder",
@@ -425,8 +456,7 @@ const setProductionMediaCover = createIdempotentMutation({
       undefined,
       { headers: { "Idempotency-Key": idempotencyKey } },
     )).data;
-    invalidatePublicRequestCache("/organizations");
-    return data;
+    return finishGalleryMutation(organizationId, "cover", data);
   },
 });
 
@@ -445,31 +475,43 @@ const createProductionMediaAlbum = createIdempotentMutation({
   storagePrefix: "cutinapp_production_media_album_create_attempt_",
   keyPrefix: "production-media-album",
   requestKeyFor: (organizationId, name) => `${Number(organizationId)}:${String(name || "").trim().toLowerCase()}`,
-  mutate: async ({ idempotencyKey }, organizationId, name) => (await appApiClient.post(
-    `/organizations/${Number(organizationId)}/media-albums`,
-    { name: String(name || "").trim() },
-    { headers: { "Idempotency-Key": idempotencyKey } },
-  )).data,
+  mutate: async ({ idempotencyKey }, organizationId, name) => finishGalleryMutation(
+    organizationId,
+    "album-create",
+    (await appApiClient.post(
+      `/organizations/${Number(organizationId)}/media-albums`,
+      { name: String(name || "").trim() },
+      { headers: { "Idempotency-Key": idempotencyKey } },
+    )).data,
+  ),
 });
 
 const deleteProductionMediaAlbum = createIdempotentMutation({
   storagePrefix: "cutinapp_production_media_album_delete_attempt_",
   keyPrefix: "production-media-album-delete",
   requestKeyFor: (organizationId, albumId) => `${Number(organizationId)}:${Number(albumId)}`,
-  mutate: async ({ idempotencyKey }, organizationId, albumId) => (await appApiClient.delete(
-    `/organizations/${Number(organizationId)}/media-albums/${Number(albumId)}`,
-    { headers: { "Idempotency-Key": idempotencyKey } },
-  )).data,
+  mutate: async ({ idempotencyKey }, organizationId, albumId) => finishGalleryMutation(
+    organizationId,
+    "album-delete",
+    (await appApiClient.delete(
+      `/organizations/${Number(organizationId)}/media-albums/${Number(albumId)}`,
+      { headers: { "Idempotency-Key": idempotencyKey } },
+    )).data,
+  ),
 });
 
 const deleteProductionMedia = createIdempotentMutation({
   storagePrefix: "cutinapp_production_media_delete_attempt_",
   keyPrefix: "production-media-delete",
   requestKeyFor: (organizationId, mediaId) => `${Number(organizationId)}:${Number(mediaId)}`,
-  mutate: async ({ idempotencyKey }, organizationId, mediaId) => (await appApiClient.delete(
-    `/organizations/${Number(organizationId)}/media/${Number(mediaId)}`,
-    { headers: { "Idempotency-Key": idempotencyKey } },
-  )).data,
+  mutate: async ({ idempotencyKey }, organizationId, mediaId) => finishGalleryMutation(
+    organizationId,
+    "delete",
+    (await appApiClient.delete(
+      `/organizations/${Number(organizationId)}/media/${Number(mediaId)}`,
+      { headers: { "Idempotency-Key": idempotencyKey } },
+    )).data,
+  ),
 });
 
 const createArtist = createIdempotentMutation({
@@ -733,6 +775,10 @@ const cutinappService = {
   updateProductionMedia,
   replaceProductionMedia,
   rotateProductionMedia,
+  cropProductionMedia,
+  reprocessProductionMedia,
+  productionMediaRecommendations: async (organizationId) => (await appApiClient.get(`/organizations/${Number(organizationId)}/media-recommendations`)).data,
+  productionMediaSimilar: async (organizationId) => (await appApiClient.get(`/organizations/${Number(organizationId)}/media-similar`)).data,
   reorderProductionMedia,
   bulkUpdateProductionMedia,
   importProductionCoverToGallery,
