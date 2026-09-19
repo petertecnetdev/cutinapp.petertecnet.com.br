@@ -54,9 +54,13 @@ const createProduction = createIdempotentMutation({
   storagePrefix: "cutinapp_production_create_attempt_",
   keyPrefix: "production",
   requestKeyFor: productionRequestKey,
-  mutate: async ({ idempotencyKey }, payload) => rename((await appApiClient.post("/organizations", payload, {
-    headers: { "Idempotency-Key": idempotencyKey },
-  })).data, "organization", "production"),
+  mutate: async ({ idempotencyKey }, payload) => {
+    const data = rename((await appApiClient.post("/organizations", payload, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    })).data, "organization", "production");
+    invalidatePublicRequestCache("/organizations");
+    return data;
+  },
 });
 
 const updateProduction = createIdempotentMutation({
@@ -74,14 +78,18 @@ const updateProduction = createIdempotentMutation({
     // Production editing always uses FormData so images can travel with the
     // same payload. Send it as POST with Laravel's method override instead;
     // Laravel routes it as PATCH after PHP has parsed all text/file fields.
+    let data;
     if (isMultipartForm) {
       if (typeof payload.has !== "function" || !payload.has("_method")) {
         payload.append("_method", "PATCH");
       }
-      return rename((await appApiClient.post(url, payload, config)).data, "organization", "production");
+      data = rename((await appApiClient.post(url, payload, config)).data, "organization", "production");
+    } else {
+      data = rename((await appApiClient.patch(url, payload, config)).data, "organization", "production");
     }
 
-    return rename((await appApiClient.patch(url, payload, config)).data, "organization", "production");
+    invalidatePublicRequestCache("/organizations");
+    return data;
   },
 });
 
@@ -89,10 +97,14 @@ const deleteProduction = createIdempotentMutation({
   storagePrefix: "cutinapp_production_delete_attempt_",
   keyPrefix: "production-delete",
   requestKeyFor: (organizationId) => String(Number(organizationId)),
-  mutate: async ({ idempotencyKey }, organizationId) => (await appApiClient.delete(
-    `/organizations/${Number(organizationId)}`,
-    { headers: { "Idempotency-Key": idempotencyKey } },
-  )).data,
+  mutate: async ({ idempotencyKey }, organizationId) => {
+    const data = (await appApiClient.delete(
+      `/organizations/${Number(organizationId)}`,
+      { headers: { "Idempotency-Key": idempotencyKey } },
+    )).data;
+    invalidatePublicRequestCache("/organizations");
+    return data;
+  },
 });
 
 const updateProductionExperience = createIdempotentMutation({
