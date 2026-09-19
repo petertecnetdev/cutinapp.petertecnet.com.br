@@ -239,3 +239,37 @@ body:has(.cut-event-series-launcher):has(.cut-whatsapp-fab) .cut-event-series-al
     transition: none !important;
   }
 }
+
+
+/* Runtime-measured safe layout. JS measures real surfaces; CSS only consumes it. */
+:root {
+  --cut-safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --cut-runtime-bottom-nav-height: var(--cut-mobile-bottom-nav-height, 0px);
+  --cut-runtime-action-bar-height: 0px;
+  --cut-runtime-cart-height: var(--cut-cart-bar-height, 0px);
+  --cut-runtime-cart-bottom: 24px;
+  --cut-runtime-safe-bottom: 24px;
+}
+body.cut-has-persistent-cart { padding-bottom: var(--cut-runtime-safe-bottom) !important; }
+body.cut-has-persistent-cart main,
+body.cut-has-persistent-cart [role="main"],
+body.cut-has-persistent-cart .cut-page-content,
+body.cut-has-persistent-cart .cev2-main {
+  scroll-padding-bottom: var(--cut-runtime-safe-bottom) !important;
+}
+.cut-persistent-cart__bar { bottom: var(--cut-runtime-cart-bottom) !important; }
+@media (max-width: 991.98px) {
+  body.cut-has-persistent-cart .cut-page-container:last-of-type,
+  body.cut-has-persistent-cart .cev2-main { padding-bottom: var(--cut-runtime-safe-bottom) !important; }
+  body.cut-has-event-action-rail .cev2-mobile-actions {
+    bottom: var(--cut-runtime-bottom-nav-height) !important;
+    z-index: var(--cut-layer-floating) !important;
+  }
+  body.cut-overlay-compact .cut-persistent-cart__bar {
+    min-height: 54px !important;
+  }
+  html.cut-keyboard-open .cut-persistent-cart__bar,
+  body.cut-mobile-keyboard-open .cut-persistent-cart__bar {
+    max-width: min(238px, calc(100vw - 28px)) !important;
+  }
+}
