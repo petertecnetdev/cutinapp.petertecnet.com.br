@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Button, Container, Form, Modal, ProgressBar } from "react-bootstrap";
+import { Alert, Button, Card, Col, Container, Form, Row } from "react-bootstrap";
 import { useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
-import EventArtwork from "../../components/event/EventArtwork";
-import { EventHealthBadge, EventMetrics } from "../../components/event/EventManagerEnhancements";
+import { EventMetrics } from "../../components/event/EventManagerEnhancements";
 import EventProductSalesManager from "../../components/event/EventProductSalesManager";
+import EventExperienceEditorSurface from "../../components/event/EventExperienceEditorSurface";
 import useAutoSave from "../../hooks/useAutoSave";
 import eventService from "../../services/EventService";
 import cutinappService from "../../services/CutinappService";
@@ -79,7 +79,6 @@ export default function EventUpdatePage() {
   const [couponForm, setCouponForm] = useState({ code: "", discount_type: "percentage", discount_value: "" });
   const [couponSaving, setCouponSaving] = useState(false);
   const [auditRows, setAuditRows] = useState([]);
-  const [previewOpen, setPreviewOpen] = useState(false);
 
   const applyEvent = (item) => {
     setEventData(item);
@@ -362,50 +361,90 @@ export default function EventUpdatePage() {
   if (loading) return <div className="cut-app-page"><NavlogComponent /><ProcessingIndicatorComponent label="Carregando gerenciador do evento" /></div>;
   if (!form) return <div className="cut-app-page"><NavlogComponent /><Container className="py-5"><div className="cev2-card text-center"><h2>Evento indisponível</h2><p className="text-secondary mb-3">Não foi possível abrir este evento.</p><Button type="button" onClick={() => navigate("/event/manage")}>Voltar para meus eventos</Button></div></Container></div>;
 
+  const publicViewPath = eventData?.slug ? `/event/${eventData.slug}` : "";
+  const productionName = eventData?.production?.name || eventData?.production_name || "Produção";
+  const imagePreview = preview || coverUrl(eventData?.image);
+
   return <div className="cut-app-page cut-event-manager-v2" onBlur={(event) => {
     const nextTarget = event.relatedTarget;
-    const movingToAction = nextTarget instanceof HTMLElement && Boolean(nextTarget.closest("button, .pt-ai-description"));
+    const movingToAction = nextTarget instanceof HTMLElement && Boolean(nextTarget.closest("button, .pt-ai-description, .cut-event-inline-editor"));
     if (!movingToAction && event.target?.type !== "file") flushAutoSave();
   }}>
     <NavlogComponent />
     {(publishing || (saving && image)) && <ProcessingIndicatorComponent label={publishing ? "Atualizando publicação" : "Salvando evento"} />}
 
-    <header className="cev2-hero"><Container className="cut-page-container"><div className="cev2-hero-grid"><div><span className="cev2-eyebrow">Gerenciador do evento</span><h1 className="cev2-title">{form.title || "Evento sem nome"}</h1><p className="cev2-sub">Edite, monetize, divulgue e acompanhe tudo em um só lugar.</p></div><div className="cev2-status"><span className="cev2-pill">{eventData?.is_published ? "Publicado" : "Rascunho"}</span><span className="cev2-pill">{autoSaveStatus === "saving" ? "Salvando…" : autoSaveStatus === "error" ? "Falha no autosave" : "Autosave ativo"}</span><EventHealthBadge event={eventData || {}} /></div></div></Container></header>
+    <EventExperienceEditorSurface
+      mode="edit"
+      form={form}
+      imagePreview={imagePreview}
+      onChange={change}
+      onImageChange={chooseImage}
+      onSave={saveNow}
+      saving={saving}
+      saveLabel="Salvar agora"
+      productionName={productionName}
+      errors={fieldErrors}
+      imageHelp={EVENT_POSTER_HINT + " JPG, PNG ou WebP, até 5 MB."}
+      secondaryActions={<>
+        {publicViewPath && <Button type="button" variant="outline-light" onClick={() => navigate(publicViewPath)}><i className="fa-regular fa-eye me-2" />Ver página</Button>}
+        <Button type="button" variant={eventData?.is_published ? "outline-light" : "primary"} onClick={togglePublication} disabled={publishing}>{eventData?.is_published ? "Despublicar" : "Publicar"}</Button>
+      </>}
+    >
+      {hasSales && <Alert variant="warning" className="mt-4"><strong>Evento com vendas.</strong> Alterações críticas de data e horário exigem confirmação.</Alert>}
+      {error && <Alert variant="danger" dismissible onClose={() => setError("")}>{error}</Alert>}
+      {success && <Alert variant="success" dismissible onClose={() => setSuccess("")}>{success}</Alert>}
 
-    <nav className="cev2-tabs"><Container className="cut-page-container"><div className="cev2-tabs-inner">{SECTIONS.map(([key, label, icon]) => <button key={key} type="button" className={`cev2-tab ${section === key ? "is-active" : ""}`} onClick={() => scrollSection(key)}><i className={`${icon} me-2`} />{label}</button>)}</div></Container></nav>
+      <Card className="cut-panel mt-4">
+        <Card.Body className="p-4 p-lg-5">
+          <div className="d-flex flex-column flex-xl-row justify-content-between gap-4">
+            <div className="flex-grow-1">
+              <span className="cut-eyebrow">Saúde do evento</span>
+              <h2 className="cut-section-title mt-2">Operação e publicação</h2>\n              <div className="small text-secondary mb-3"><i className="fa-solid fa-cloud-arrow-up me-2" />{autoSaveStatus === "saving" ? "Salvando automaticamente..." : autoSaveStatus === "error" ? "Falha no salvamento automático" : autoSaveStatus === "dirty" ? "Alterações pendentes" : "Salvamento automático ativo"}{lastSavedAt ? ` · último salvamento ${lastSavedAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : ""}</div>\n              <div className="cev2-progress mb-4"><span style={{ width: `${readiness}%` }} /></div>
+              <div className="cev2-metrics">
+                <div className="cev2-metric"><small>Pronto</small><strong>{readiness}%</strong></div>
+                <div className="cev2-metric"><small>Faturamento</small><strong>{money(metrics.grossSales)}</strong></div>
+                <div className="cev2-metric"><small>Ingressos vendidos</small><strong>{metrics.ticketsSold || 0}</strong></div>
+                <div className="cev2-metric"><small>Visualizações</small><strong>{metrics.views || 0}</strong></div>
+              </div>
+            </div>
+            <div className="cev2-health">
+              <div className="cev2-health-score" style={{ "--health": `${health.score}%` }}><span>{health.score}</span></div>
+              <div>
+                <h3 className="h5 mb-2">Checklist</h3>
+                <div className="cev2-checklist">{checks.map(([ok, label]) => <span key={label} className={`cev2-check ${ok ? "is-ok" : ""}`}><i className={ok ? "fa-solid fa-circle-check" : "fa-regular fa-circle"} />{label}</span>)}</div>
+              </div>
+            </div>
+          </div>
+        </Card.Body>
+      </Card>
 
-    <Container className="cut-page-container cev2-main">
-      {hasSales && <div className="cev2-card cev2-danger-note"><strong>Evento com vendas.</strong> Alterações críticas de data e horário exigem confirmação.</div>}
-      <div className="cev2-grid">
-        <main>
-          <section id="event-editor-overview" className="cev2-card"><div className="cev2-kicker"><div><span className="cev2-eyebrow">Visão geral</span><h2>Saúde e operação</h2></div><strong>{readiness}% pronto</strong></div><div className="cev2-progress mb-4"><span style={{ width: `${readiness}%` }} /></div><div className="cev2-metrics mb-4"><div className="cev2-metric"><small>Faturamento</small><strong>{money(metrics.grossSales)}</strong></div><div className="cev2-metric"><small>Ingressos vendidos</small><strong>{metrics.ticketsSold || 0}</strong></div><div className="cev2-metric"><small>Visualizações</small><strong>{metrics.views || 0}</strong></div><div className="cev2-metric"><small>Conversão</small><strong>{Number(metrics.conversionRate || 0).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%</strong></div></div><div className="cev2-health"><div className="cev2-health-score" style={{ "--health": `${health.score}%` }}><span>{health.score}</span></div><div><h2>Checklist de publicação</h2><div className="cev2-checklist">{checks.map(([ok, label]) => <span key={label} className={`cev2-check ${ok ? "is-ok" : ""}`}><i className={ok ? "fa-solid fa-circle-check" : "fa-regular fa-circle"} />{label}</span>)}</div></div></div></section>
-
-          <section id="event-editor-info" className="cev2-card"><span className="cev2-eyebrow">Informações</span><h2>Dados essenciais</h2><div className="cev2-form-grid"><div className="cev2-field is-wide"><label>Nome do evento</label><Form.Control name="title" value={form.title} onChange={change} isInvalid={Boolean(fieldErrors?.title)} /></div><div className="cev2-field is-wide"><label>Descrição</label><Form.Control as="textarea" name="description" value={form.description} onChange={change} /></div><div className="cev2-field"><label>Início</label><Form.Control type="datetime-local" name="start_date" value={form.start_date} onChange={change} /></div><div className="cev2-field"><label>Término</label><Form.Control type="datetime-local" name="end_date" value={form.end_date} onChange={change} /></div><div className="cev2-field"><label>Local</label><Form.Control name="venue" value={form.venue} onChange={change} /></div><div className="cev2-field"><label>Endereço</label><Form.Control name="address" value={form.address} onChange={change} /></div><div className="cev2-field"><label>Cidade</label><Form.Control name="city" value={form.city} onChange={change} /></div><div className="cev2-field"><label>UF</label><Form.Control name="uf" maxLength={2} value={form.uf} onChange={change} /></div></div></section>
-
-          <section id="event-editor-media" className="cev2-card"><span className="cev2-eyebrow">Arte e mídia</span><h2>Flyer e capa</h2><div className="cev2-cover"><EventArtwork image={preview} title={form.title} alt={`Capa de ${form.title}`} fallbackClassName="cev2-cover-placeholder" /></div><div className="cev2-actions"><Button onClick={() => window.dispatchEvent(new CustomEvent("cutinapp:open-event-flyer"))}>Creative Studio</Button><Form.Label className="btn btn-outline-light mb-0">Enviar imagem<Form.Control type="file" accept="image/png,image/jpeg,image/webp" data-image-kind="event-poster" onChange={chooseImage} hidden /></Form.Label>{image && <Button variant="success" onClick={saveNow}>Aplicar arte</Button>}</div><small className="cev2-help d-block mt-2">{EVENT_POSTER_HINT} JPG, PNG ou WebP, até 5 MB.</small></section>
+      <details className="cut-event-inline-editor__advanced">
+        <summary><span><i className="fa-solid fa-gear me-2" />Ferramentas avançadas do evento</span><i className="fa-solid fa-chevron-down" /></summary>
+        <div>
+          <div className="cev2-tabs-inner mb-4">
+            {SECTIONS.filter(([key]) => !["info","media","overview"].includes(key)).map(([key,label,icon]) => <button key={key} type="button" className={`cev2-tab ${section === key ? "is-active" : ""}`} onClick={() => scrollSection(key)}><i className={`${icon} me-2`} />{label}</button>)}
+          </div>
 
           <section id="event-editor-tickets" className="cev2-card"><span className="cev2-eyebrow">Ingressos</span><h2>Lotes e acesso</h2><EventMetrics event={eventData || {}} /><div className="cev2-actions mt-3"><Button onClick={() => navigate(`/ticket/create?eventId=${id}`)}>Criar lote</Button><Button variant="outline-light" onClick={() => navigate(`/event/${id}/participants`)}>Participantes</Button></div></section>
 
           <section id="event-editor-products" className="cev2-card"><EventProductSalesManager eventId={id} eventData={eventData} onSuccess={setSuccess} onError={setError} /></section>
 
-          <section id="event-editor-program" className="cev2-card"><h2>Programação</h2><Button onClick={() => navigate(`/event/${id}/lineup`)}><i className="fa-solid fa-music me-2" />Cadastrar line-up</Button><Button variant="outline-light" onClick={duplicateNextWeek}>Duplicar +7 dias</Button></section>
+          <section id="event-editor-program" className="cev2-card"><h2>Programação</h2><div className="cev2-actions"><Button onClick={() => navigate(`/event/${id}/lineup`)}><i className="fa-solid fa-music me-2" />Cadastrar line-up</Button><Button variant="outline-light" onClick={duplicateNextWeek}>Duplicar +7 dias</Button></div></section>
 
           <section id="event-editor-team" className="cev2-card"><h2>Equipe</h2><Button onClick={() => navigate(`/event/${id}/lineup`)}>Artistas e DJs</Button></section>
 
-          <section id="event-editor-promotion" className="cev2-card"><h2>Divulgação e cupons</h2><div className="cev2-actions"><Button onClick={shareWhatsapp}>WhatsApp</Button><Button onClick={copyLink}>Copiar link</Button></div><div className="cev2-form-grid"><Form.Control value={couponForm.code} onChange={(event) => setCouponForm((current) => ({ ...current, code: event.target.value.toUpperCase() }))} /><Form.Select value={couponForm.discount_type} onChange={(event) => setCouponForm((current) => ({ ...current, discount_type: event.target.value }))}><option value="percentage">Percentual</option><option value="fixed">Valor fixo</option></Form.Select><Form.Control type="number" value={couponForm.discount_value} onChange={(event) => setCouponForm((current) => ({ ...current, discount_value: event.target.value }))} /><Button onClick={createCoupon} disabled={couponSaving}>Criar cupom</Button></div>{coupons.slice(0, 6).map((coupon) => <div key={coupon.id || coupon.code}>{coupon.code}</div>)}</section>
+          <section id="event-editor-promotion" className="cev2-card"><h2>Divulgação e cupons</h2><div className="cev2-actions"><Button onClick={shareWhatsapp}>WhatsApp</Button><Button onClick={copyLink}>Copiar link</Button></div><Row className="g-2 mt-2"><Col md={4}><Form.Control value={couponForm.code} placeholder="CUPOM" onChange={(event) => setCouponForm((current) => ({ ...current, code: event.target.value.toUpperCase() }))} /></Col><Col md={3}><Form.Select value={couponForm.discount_type} onChange={(event) => setCouponForm((current) => ({ ...current, discount_type: event.target.value }))}><option value="percentage">Percentual</option><option value="fixed">Valor fixo</option></Form.Select></Col><Col md={3}><Form.Control type="number" value={couponForm.discount_value} placeholder="Desconto" onChange={(event) => setCouponForm((current) => ({ ...current, discount_value: event.target.value }))} /></Col><Col md={2}><Button className="w-100" onClick={createCoupon} disabled={couponSaving}>Criar</Button></Col></Row>{coupons.slice(0,6).map((coupon) => <div className="mt-2" key={coupon.id || coupon.code}>{coupon.code}</div>)}</section>
 
-          <section id="event-editor-settings" className="cev2-card"><h2>Configurações</h2><div className="cev2-form-grid"><Form.Control type="number" name="max_attendees" value={form.max_attendees} onChange={change} /><Form.Control type="email" name="contact_email" value={form.contact_email} onChange={change} /><Form.Control name="contact_phone" value={form.contact_phone} onChange={change} /></div><Button onClick={togglePublication} disabled={publishing}>{eventData?.is_published ? "Despublicar" : "Publicar"}</Button></section>
-        </main>
+          <section id="event-editor-settings" className="cev2-card"><h2>Configurações e contato</h2><Row className="g-3"><Col md={4}><Form.Group><Form.Label>Capacidade</Form.Label><Form.Control type="number" name="max_attendees" value={form.max_attendees} onChange={change} /></Form.Group></Col><Col md={4}><Form.Group><Form.Label>E-mail</Form.Label><Form.Control type="email" name="contact_email" value={form.contact_email} onChange={change} /></Form.Group></Col><Col md={4}><Form.Group><Form.Label>Telefone</Form.Label><Form.Control name="contact_phone" value={form.contact_phone} onChange={change} /></Form.Group></Col></Row><div className="cev2-actions mt-3"><Button onClick={togglePublication} disabled={publishing}>{eventData?.is_published ? "Despublicar" : "Publicar"}</Button></div></section>
 
-        <aside className="cev2-sidebar">
-          <div className="cev2-card cev2-shortcuts-card"><div className="cev2-shortcuts-head"><div><span className="cev2-eyebrow">Navegação rápida</span><h2>Atalhos</h2></div><span className="cev2-shortcuts-count" aria-label={`${SECTIONS.length} seções`}>{SECTIONS.length}</span></div><p className="cev2-shortcuts-copy">Acesse diretamente qualquer área deste evento.</p><div className="cev2-shortcuts-grid">{SECTIONS.map(([key, label, icon]) => <button type="button" key={key} className={`cev2-shortcut ${section === key ? "is-active" : ""}`} aria-current={section === key ? "true" : undefined} onClick={() => scrollSection(key)}><span className="cev2-shortcut-icon"><i className={icon} /></span><span className="cev2-shortcut-label">{label}</span><i className="fa-solid fa-chevron-right cev2-shortcut-arrow" aria-hidden="true" /></button>)}</div></div>
-          <div className="cev2-card"><h2>Operação</h2><div>{autoSaveStatus}</div>{lastSavedAt && <div>{lastSavedAt.toLocaleTimeString("pt-BR")}</div>}</div>
-          <div className="cev2-card"><h2>Histórico</h2>{auditRows.map((row, index) => <div key={index}>{row.label}</div>)}</div>
-        </aside>
+          <Card className="cut-panel mt-4"><Card.Body className="p-4"><span className="cut-eyebrow">Histórico da edição</span><h3 className="h5 mt-2">Alterações recentes</h3>{auditRows.length ? auditRows.map((row,index) => <div key={index} className="small text-secondary mt-2">{row.label} · {row.at.toLocaleTimeString("pt-BR")}</div>) : <p className="text-secondary mb-0">As alterações desta sessão aparecerão aqui.</p>}</Card.Body></Card>
+        </div>
+      </details>
+
+      <div className="cut-form-actions mt-4">
+        {publicViewPath && <Button variant="outline-light" type="button" onClick={() => navigate(publicViewPath)}>Ver página pública</Button>}
+        <Button type="button" onClick={saveNow} disabled={saving}>{saving ? "Salvando..." : "Salvar alterações"}</Button>
       </div>
-    </Container>
-
-    <div className="cev2-mobile-actions"><Button onClick={() => setPreviewOpen(true)}>Prévia</Button><Button onClick={saveNow} disabled={saving}>Salvar</Button><Button onClick={togglePublication} disabled={publishing}>{eventData?.is_published ? "Despublicar" : "Publicar"}</Button></div>
-    <Modal show={previewOpen} onHide={() => setPreviewOpen(false)} centered><Modal.Header closeButton><Modal.Title>Prévia</Modal.Title></Modal.Header><Modal.Body>{preview && <img src={preview} alt="" className="w-100" />}<h2>{form.title}</h2><p>{form.description}</p><ProgressBar now={readiness} /></Modal.Body></Modal>
+    </EventExperienceEditorSurface>
   </div>;
 }

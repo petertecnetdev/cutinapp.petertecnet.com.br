@@ -1,11 +1,14 @@
-import React, { useMemo, useState } from "react";
-import { Alert, Button, Card, Col, Collapse, Container, Form, Modal, Row } from "react-bootstrap";
+import React, { useEffect, useMemo, useState } from "react";
+import { Alert, Button, Card, Col, Container, Form, Modal, Row } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import LocationFields from "../../components/location/LocationFields";
+import { FormattedTextEditor } from "../../components/editor/FormattedText";
 import cutinappService from "../../services/CutinappService";
 import { runBestEffort } from "../../utils/bestEffort";
+import "./production-experience.css";
+import "./production-inline-editor.css";
 
 const initialForm = {
   name: "",
@@ -61,6 +64,11 @@ export default function ProductionCreatePage() {
   const [submitted, setSubmitted] = useState(false);
   const [logoPreview, setLogoPreview] = useState("");
   const [backgroundPreview, setBackgroundPreview] = useState("");
+
+  useEffect(() => () => {
+    if (logoPreview?.startsWith("blob:")) URL.revokeObjectURL(logoPreview);
+    if (backgroundPreview?.startsWith("blob:")) URL.revokeObjectURL(backgroundPreview);
+  }, [logoPreview, backgroundPreview]);
 
   const cnpjDigits = normalizeCnpj(form.cnpj);
   const cnpjInvalid = submitted && cnpjDigits !== "" && cnpjDigits.length !== 14;
@@ -216,208 +224,165 @@ export default function ProductionCreatePage() {
 
   const modalMessages = Object.values(fieldErrors).flat().filter(Boolean);
 
+  const displayName = form.name.trim() || "Sua produção";
+  const pageBackground = backgroundPreview || logoPreview;
+  const pageStyle = pageBackground ? { "--cut-production-page-bg": `url(${JSON.stringify(pageBackground)})` } : undefined;
+  const heroStyle = backgroundPreview ? { "--cut-production-editor-hero-image": `url(${JSON.stringify(backgroundPreview)})` } : undefined;
+  const mapQuery = form.location_public
+    ? (form.formatted_address || [form.address, form.address_number, form.neighborhood, form.city, form.uf].filter(Boolean).join(", "))
+    : "";
+  const mapEmbedUrl = mapQuery ? `https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed` : "";
+  const nameError = submitted && form.name.trim().length < 2;
+  const fieldMessage = (name) => Array.isArray(fieldErrors?.[name]) ? fieldErrors[name][0] : fieldErrors?.[name] || "";
+
   return (
-    <div className="cut-app-page">
+    <div className="cut-app-page cut-production-themed-page cut-production-inline-editor" style={pageStyle}>
       <NavlogComponent />
       {loading && <ProcessingIndicatorComponent label="Criando produção" />}
 
       <Modal show={Boolean(error)} onHide={() => setError("")} centered backdrop="static">
-        <Modal.Header closeButton>
-          <Modal.Title>Não foi possível criar a produção</Modal.Title>
-        </Modal.Header>
+        <Modal.Header closeButton><Modal.Title>Não foi possível criar a produção</Modal.Title></Modal.Header>
         <Modal.Body>
           <p className="mb-2">{error}</p>
-          {modalMessages.length > 0 && (
-            <div className="alert alert-warning mb-0" role="alert">
-              {modalMessages.map((message, index) => <div key={`${message}-${index}`}>{message}</div>)}
-            </div>
-          )}
+          {modalMessages.length > 0 && <div className="alert alert-warning mb-0" role="alert">{modalMessages.map((message, index) => <div key={`${message}-${index}`}>{message}</div>)}</div>}
         </Modal.Body>
-        <Modal.Footer>
-          <Button variant="primary" onClick={() => setError("")}>Entendi, vou corrigir</Button>
-        </Modal.Footer>
+        <Modal.Footer><Button variant="primary" onClick={() => setError("")}>Entendi, vou corrigir</Button></Modal.Footer>
       </Modal>
 
-      <Container className="cut-page-container py-4 py-lg-5">
-        <div className="cut-page-heading">
-          <div>
-            <span className="cut-eyebrow">Área do produtor</span>
-            <h1>Comece sua produção em poucos segundos</h1>
-            <p>Para criar o primeiro evento, informe apenas o nome da produção. Os demais dados podem ser completados agora ou depois.</p>
+      <Form onSubmit={submit} noValidate>
+        <section className="cut-profile-hero cut-production-themed-page__hero cut-production-inline-editor__hero" style={heroStyle}>
+          <input id="production-create-cover" className="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp" data-pt-image-enhancer="off" data-media-library="off" aria-label="Selecionar capa da produção" onChange={(event) => chooseImage("background", event)} />
+          <input id="production-create-logo" className="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp" data-pt-image-enhancer="off" data-media-library="off" aria-label="Selecionar logo da produção" onChange={(event) => chooseImage("logo", event)} />
+
+          <Container className="cut-page-container">
+            <div className="cut-production-inline-editor__modebar">
+              <div className="cut-production-inline-editor__modecopy">
+                <span className="cut-production-inline-editor__modepill"><i className="fa-solid fa-plus" /> Nova produção</span>
+                <span className="cut-production-inline-editor__saveState is-dirty">Você está montando a página pública</span>
+                <small>O que aparece aqui é a estrutura que o visitante verá.</small>
+              </div>
+              <div className="cut-production-inline-editor__modeActions">
+                <Button type="button" variant="outline-light" onClick={() => navigate("/production/mine")}><i className="fa-solid fa-xmark me-2" />Cancelar</Button>
+                <Button type="submit" disabled={!canSubmit || loading}><i className="fa-solid fa-check me-2" />{loading ? "Criando..." : "Criar produção"}</Button>
+              </div>
+            </div>
+
+            <div className="cut-profile-hero__content">
+              <div className="cut-production-inline-editor__avatarWrap">
+                <div className="cut-profile-avatar cut-profile-avatar--square">
+                  {logoPreview ? <img src={logoPreview} alt={displayName} /> : <span>{displayName.split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "P"}</span>}
+                </div>
+                <label className="cut-production-inline-editor__imageButton is-logo" htmlFor="production-create-logo" title="Adicionar logo" aria-label="Adicionar logo da produção"><i className="fa-solid fa-camera" /></label>
+              </div>
+
+              <div className="cut-production-inline-editor__heroCopy">
+                <span className="cut-eyebrow">Produção Cutinapp</span>
+                <Form.Control
+                  name="name"
+                  value={form.name}
+                  onChange={change}
+                  autoFocus
+                  autoComplete="organization"
+                  placeholder="Nome da produção"
+                  className="cut-production-inline-editor__titleInput"
+                  isInvalid={nameError || Boolean(fieldMessage("name"))}
+                  aria-label="Nome da produção"
+                />
+                {(nameError || fieldMessage("name")) && <div className="cut-production-inline-editor__fieldError">{fieldMessage("name") || "Informe um nome com pelo menos 2 caracteres."}</div>}
+
+                <div className="cut-production-inline-editor__locationLine">
+                  <Form.Control name="city" value={form.city} onChange={change} placeholder="Cidade" aria-label="Cidade" />
+                  <span>-</span>
+                  <Form.Control name="uf" value={form.uf} onChange={change} placeholder="UF" aria-label="Estado" maxLength={2} />
+                </div>
+
+                <div className="cut-social-stats">
+                  <span>0 seguidores</span>
+                  <span><i className="fa-regular fa-eye" /> prévia da página</span>
+                  <span>0 próximos eventos</span>
+                </div>
+
+                <div className="cut-card-actions mt-3 cut-production-inline-editor__heroActions">
+                  <label className="btn btn-outline-light" htmlFor="production-create-cover"><i className="fa-regular fa-image me-2" />{backgroundPreview ? "Trocar capa" : "Adicionar capa"}</label>
+                  <Button type="button" variant="outline-light" onClick={() => setShowOptionalDetails((current) => !current)}><i className="fa-solid fa-sliders me-2" />{showOptionalDetails ? "Ocultar dados" : "Dados e links"}</Button>
+                </div>
+              </div>
+            </div>
+          </Container>
+        </section>
+
+        <Container className="cut-page-container py-5">
+          {showOptionalDetails && (
+            <Card className="cut-panel cut-production-inline-editor__adminPanel mb-4">
+              <Card.Body className="p-4">
+                <div className="cut-production-inline-editor__sectionHead">
+                  <div><span className="cut-eyebrow">Dados da produção</span><h2 className="cut-section-title mt-2">Informações administrativas e links</h2><p>Esses campos complementam a página sem transformar a criação em um formulário separado.</p></div>
+                  <Button type="button" variant="outline-light" onClick={() => setShowOptionalDetails(false)}><i className="fa-solid fa-xmark me-2" />Fechar</Button>
+                </div>
+                <Row className="g-3">
+                  <Col md={6}><Form.Group><Form.Label>Nome fantasia</Form.Label><Form.Control name="fantasy" value={form.fantasy} onChange={change} /></Form.Group></Col>
+                  <Col md={3}><Form.Group><Form.Label>Tipo</Form.Label><Form.Select name="type" value={form.type} onChange={change}><option value="independent">Produção independente</option><option value="fixed">Espaço fixo / casa própria</option></Form.Select></Form.Group></Col>
+                  <Col md={3}><Form.Group><Form.Label>CNPJ</Form.Label><Form.Control name="cnpj" value={form.cnpj} onChange={change} inputMode="numeric" isInvalid={cnpjInvalid} /><Form.Control.Feedback type="invalid">Informe 14 dígitos ou deixe vazio.</Form.Control.Feedback></Form.Group></Col>
+                  <Col md={4}><Form.Group><Form.Label>Telefone</Form.Label><Form.Control name="phone" value={form.phone} onChange={change} inputMode="tel" /></Form.Group></Col>
+                  <Col md={4}><Form.Group><Form.Label>Instagram</Form.Label><Form.Control name="instagram_url" value={form.instagram_url} onChange={change} placeholder="https://instagram.com/..." /></Form.Group></Col>
+                  <Col md={4}><Form.Group><Form.Label>Site</Form.Label><Form.Control name="website_url" value={form.website_url} onChange={change} placeholder="https://..." /></Form.Group></Col>
+                </Row>
+              </Card.Body>
+            </Card>
+          )}
+
+          <div className="cut-production-public-about">
+            <Card className="cut-panel cut-production-inline-editor__viewCard">
+              <Card.Body className="p-4 p-lg-5">
+                <span className="cut-eyebrow">Sobre a produção</span>
+                <h2 className="cut-section-title mt-2">{form.fantasy?.trim() || displayName}</h2>
+                <div className="cut-production-inline-editor__inlinePanel">
+                  <FormattedTextEditor
+                    value={form.description}
+                    onChange={(description) => setForm((current) => ({ ...current, description }))}
+                    placeholder="Conte o que torna esta produção, casa ou projeto especial."
+                    maxLength={10000}
+                  />
+                  <small>Esta descrição aparecerá exatamente nesta área da página pública.</small>
+                </div>
+              </Card.Body>
+            </Card>
+
+            <Card className="cut-panel cut-production-location-card cut-production-inline-editor__viewCard">
+              <Card.Body className="p-4">
+                <span className="cut-eyebrow">Localização</span>
+                <h2 className="cut-section-title mt-2">Onde acontece</h2>
+                <div className="cut-production-inline-editor__inlinePanel cut-production-inline-editor__locationEditor">
+                  <LocationFields value={form} onChange={setForm} showPublicToggle />
+                </div>
+                {mapEmbedUrl ? <iframe title={`Prévia do mapa de ${displayName}`} loading="lazy" referrerPolicy="no-referrer-when-downgrade" src={mapEmbedUrl} /> : <p className="text-muted mt-3 mb-0">Quando você publicar a localização, o mapa aparecerá aqui para os visitantes.</p>}
+              </Card.Body>
+            </Card>
           </div>
-        </div>
 
-        <Form onSubmit={submit} noValidate>
-          <Row className="g-4">
-            <Col lg={8}>
-              <Card className="cut-panel">
-                <Card.Body className="p-4 p-lg-5">
-                  <div className="d-flex flex-column flex-md-row justify-content-between gap-3 align-items-md-start">
-                    <div>
-                      <span className="cut-eyebrow">Etapa essencial</span>
-                      <h2 className="cut-section-title mt-2">Identifique sua produção</h2>
-                      <p className="text-secondary mb-0">Você poderá editar o perfil da produção a qualquer momento.</p>
-                    </div>
-                    <span className="badge text-bg-success">1 campo obrigatório</span>
-                  </div>
+          <section className="cut-production-section cut-production-agenda-section">
+            <div className="cut-production-section-head cut-production-agenda-head">
+              <div><span className="cut-eyebrow">Agenda</span><h2>Próximos eventos</h2><p className="cut-production-agenda-copy">Depois de criar a produção, os eventos cadastrados aparecerão nesta mesma posição.</p></div>
+            </div>
+            <Card className="cut-empty-state"><Card.Body><div className="cut-production-agenda-empty-icon"><i className="fa-regular fa-calendar-plus" /></div><h3>Seu primeiro evento entra aqui</h3><p>Ao finalizar a produção, você seguirá direto para a criação do evento.</p></Card.Body></Card>
+          </section>
 
-                  <Row className="g-3 mt-1">
-                    <Col md={8}>
-                      <Form.Group>
-                        <Form.Label>Nome da produção *</Form.Label>
-                        <Form.Control
-                          name="name"
-                          value={form.name}
-                          onChange={change}
-                          autoFocus
-                          autoComplete="organization"
-                          placeholder="Ex.: Peter Eventos"
-                          isInvalid={submitted && form.name.trim().length < 2}
-                        />
-                        <Form.Control.Feedback type="invalid">Informe um nome com pelo menos 2 caracteres.</Form.Control.Feedback>
-                      </Form.Group>
-                    </Col>
-                    <Col md={4}>
-                      <Form.Group>
-                        <Form.Label>Tipo</Form.Label>
-                        <Form.Select name="type" value={form.type} onChange={change}>
-                          <option value="independent">Produção independente</option>
-                          <option value="fixed">Espaço fixo / casa própria</option>
-                        </Form.Select>
-                      </Form.Group>
-                    </Col>
-                  </Row>
+          <section className="cut-production-inline-editor__galleryEntry" aria-label="Prévia da galeria">
+            <div><span className="cut-eyebrow">Galeria da produção</span><strong>Fotos do espaço e experiências</strong><small>Depois de criar a produção, você poderá adicionar, organizar e destacar fotos exatamente nesta área.</small></div>
+            <div><Button type="button" variant="outline-light" disabled><i className="fa-regular fa-images me-2" />Disponível após criar</Button></div>
+          </section>
 
-                  <div className="cut-info-box mt-4">
-                    <strong>Fluxo rápido para o primeiro evento</strong>
-                    <span>Ao criar a produção, você seguirá automaticamente para o cadastro do evento e depois para o primeiro lote de ingressos.</span>
-                  </div>
+          {Object.keys(fieldErrors).length > 0 && <Alert variant="warning" className="mt-4">{Object.values(fieldErrors).flat().map((message, index) => <div key={index}>{message}</div>)}</Alert>}
 
-                  <div className="d-flex flex-wrap gap-2 mt-4">
-                    <Button type="submit" disabled={!canSubmit || loading}>
-                      {loading ? "Criando..." : "Criar produção e começar o evento"}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline-light"
-                      aria-expanded={showOptionalDetails}
-                      aria-controls="production-optional-details"
-                      onClick={() => {
-                        setShowOptionalDetails((current) => !current);
-                        try {
-                          window.PeterTecnetTelemetry?.track?.("producer_production_details_toggled", {
-                            label: showOptionalDetails ? "Ocultar dados opcionais" : "Completar dados opcionais",
-                            target: "production_create",
-                            metadata: { activation_stage: "production_create" },
-                          });
-                        } catch (_) {
-                          // Telemetry must never interrupt producer onboarding.
-                        }
-                      }}
-                    >
-                      {showOptionalDetails ? "Ocultar dados opcionais" : "Completar dados opcionais"}
-                    </Button>
-                  </div>
-
-                  <Collapse in={showOptionalDetails}>
-                    <div id="production-optional-details">
-                      <hr className="my-4" />
-                      <h2 className="cut-section-title">Dados opcionais</h2>
-                      <p className="text-secondary">Use estes campos para enriquecer o perfil público e facilitar a operação. Eles não bloqueiam a criação do primeiro evento.</p>
-
-                      <Row className="g-3">
-                        <Col md={6}>
-                          <Form.Group>
-                            <Form.Label>Nome fantasia</Form.Label>
-                            <Form.Control name="fantasy" value={form.fantasy} onChange={change} />
-                          </Form.Group>
-                        </Col>
-                        <Col md={6}>
-                          <Form.Group>
-                            <Form.Label>CNPJ</Form.Label>
-                            <Form.Control name="cnpj" value={form.cnpj} onChange={change} inputMode="numeric" isInvalid={cnpjInvalid} />
-                            <Form.Control.Feedback type="invalid">Informe 14 dígitos ou deixe o CNPJ vazio.</Form.Control.Feedback>
-                          </Form.Group>
-                        </Col>
-                        <Col md={6}>
-                          <Form.Group>
-                            <Form.Label>Telefone</Form.Label>
-                            <Form.Control name="phone" value={form.phone} onChange={change} inputMode="tel" />
-                          </Form.Group>
-                        </Col>
-                        <Col xs={12}>
-                          <Form.Group>
-                            <Form.Label>Descrição</Form.Label>
-                            <Form.Control as="textarea" rows={4} name="description" value={form.description} onChange={change} />
-                          </Form.Group>
-                        </Col>
-                      </Row>
-
-                      <h2 className="cut-section-title mt-4">Localização comercial</h2>
-                      <LocationFields value={form} onChange={setForm} showPublicToggle />
-
-                      <Row className="g-3 mt-1">
-                        <Col md={6}>
-                          <Form.Group>
-                            <Form.Label>Site</Form.Label>
-                            <Form.Control name="website_url" value={form.website_url} onChange={change} />
-                          </Form.Group>
-                        </Col>
-                        <Col md={6}>
-                          <Form.Group>
-                            <Form.Label>Instagram</Form.Label>
-                            <Form.Control name="instagram_url" value={form.instagram_url} onChange={change} />
-                          </Form.Group>
-                        </Col>
-                      </Row>
-
-                      <Row className="g-3 mt-2">
-                        <Col md={6}>
-                          <Form.Label>Logo</Form.Label>
-                          {logoPreview && <img className="cut-upload-preview cut-upload-preview--logo mb-3" src={logoPreview} alt="Prévia da logo" />}
-                          <Form.Control type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => chooseImage("logo", event)} />
-                        </Col>
-                        <Col md={6}>
-                          <Form.Label>Capa</Form.Label>
-                          {backgroundPreview && <img className="cut-upload-preview mb-3" src={backgroundPreview} alt="Prévia da capa" />}
-                          <Form.Control type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => chooseImage("background", event)} />
-                        </Col>
-                      </Row>
-
-                      {Object.keys(fieldErrors).length > 0 && (
-                        <Alert variant="warning" className="mt-3">
-                          {Object.values(fieldErrors).flat().map((message, index) => <div key={index}>{message}</div>)}
-                        </Alert>
-                      )}
-                    </div>
-                  </Collapse>
-                </Card.Body>
-              </Card>
-            </Col>
-
-            <Col lg={4}>
-              <Card className="cut-panel h-100">
-                <Card.Body className="p-4">
-                  <span className="cut-eyebrow">Ativação</span>
-                  <h2 className="cut-section-title mt-2">Do cadastro à venda</h2>
-                  <div className="d-grid gap-3 mt-3">
-                    <div className="cut-info-box"><strong>1. Produção</strong><span>Agora: nome e tipo.</span></div>
-                    <div className="cut-info-box"><strong>2. Evento</strong><span>Data, local e informações públicas.</span></div>
-                    <div className="cut-info-box"><strong>3. Ingressos</strong><span>Crie o primeiro lote e defina o preço.</span></div>
-                    <div className="cut-info-box"><strong>4. Publicação</strong><span>Coloque o evento no ar e compartilhe o link.</span></div>
-                  </div>
-                  <p className="text-secondary mt-3 mb-0">Nenhum plano ou cobrança adicional é criado neste fluxo. A monetização continua vinculada às vendas e serviços do evento.</p>
-                </Card.Body>
-              </Card>
-            </Col>
-          </Row>
-
-          <div className="cut-form-actions mt-4">
-            <Button variant="outline-light" type="button" onClick={() => navigate("/production/mine")}>Cancelar</Button>
-            <Button type="submit" disabled={!canSubmit || loading}>{loading ? "Criando..." : "Criar produção e começar o evento"}</Button>
+          <div className="cut-production-inline-editor__footerActions">
+            <div><strong>Página pronta para nascer</strong><span>Crie a produção e continue para o primeiro evento sem perder o contexto visual.</span></div>
+            <div>
+              <Button variant="outline-light" type="button" onClick={() => navigate("/production/mine")}>Cancelar</Button>
+              <Button type="submit" disabled={!canSubmit || loading}>{loading ? "Criando..." : "Criar produção e começar o evento"}</Button>
+            </div>
           </div>
-        </Form>
-      </Container>
+        </Container>
+      </Form>
     </div>
   );
 }
