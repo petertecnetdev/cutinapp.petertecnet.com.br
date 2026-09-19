@@ -27,6 +27,11 @@ export default function EntityEditorShell({
 }) {
   const select = (key) => {
     onSectionChange?.(key);
+    if (typeof window !== "undefined" && window.history?.replaceState) {
+      const nextUrl = new URL(window.location.href);
+      nextUrl.hash = key;
+      window.history.replaceState(window.history.state, "", nextUrl);
+    }
     requestAnimationFrame(() => {
       document.getElementById(key)?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
