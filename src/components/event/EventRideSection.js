@@ -1,3 +1,4 @@
+import { showConfirmation } from "../../utils/sweetAlert";
 import React, { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import PropTypes from "prop-types";
 import { Alert, Badge, Button, Card, Col, Form, Modal, Row, Spinner } from "react-bootstrap";
@@ -160,7 +161,7 @@ export default function EventRideSection({ event }) {
   };
 
   const cancel = async (ride) => {
-    if (!window.confirm("Cancelar este Ride? Solicitações pendentes também serão encerradas.")) return;
+    if (!(await showConfirmation({ title: "Cancelar Ride?", text: "As solicitações pendentes também serão encerradas.", confirmButtonText: "Cancelar Ride" }))) return;
     setBusy(true);
     setMessage(null);
     try {
