@@ -1,3 +1,4 @@
+import { showConfirmation } from "../../utils/sweetAlert";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Button, Card, Container, Form, Modal } from "react-bootstrap";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
@@ -66,7 +67,8 @@ export default function ProductionViewPage() {
     finally { setMediaBusy(false); }
   };
   const removePhoto = async (mediaId) => {
-    if (!production || !window.confirm("Remover esta foto da galeria?")) return;
+    if (!production) return;
+    if (!(await showConfirmation({ title: "Remover foto?", text: "Esta foto será removida da galeria da produção.", confirmButtonText: "Remover" }))) return;
     setMediaBusy(true);
     try { await cutinappService.deleteProductionMedia(production.id, mediaId); await load(); }
     catch (err) { setError(err?.message || "Não foi possível remover a foto."); }
