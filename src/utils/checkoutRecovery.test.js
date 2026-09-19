@@ -1,6 +1,7 @@
 import {
   CHECKOUT_RECOVERY_TTL_MS,
   clearCheckoutRecovery,
+  isCheckoutPaymentSnapshotResumable,
   readCheckoutRecovery,
   writeCheckoutRecovery,
 } from "./checkoutRecovery";
@@ -11,6 +12,15 @@ const now = 1_800_000_000_000;
 describe("checkoutRecovery", () => {
   beforeEach(() => localStorage.clear());
   afterEach(() => jest.restoreAllMocks());
+
+  test("resumes a stored payment only when recovery points to the same order", () => {
+    const snapshot = { order: { public_id: "order-current" } };
+
+    expect(isCheckoutPaymentSnapshotResumable(snapshot, { orderPublicId: "order-current" })).toBe(true);
+    expect(isCheckoutPaymentSnapshotResumable(snapshot, { orderPublicId: "order-old" })).toBe(false);
+    expect(isCheckoutPaymentSnapshotResumable(snapshot, { orderPublicId: null })).toBe(false);
+    expect(isCheckoutPaymentSnapshotResumable(null, { orderPublicId: "order-current" })).toBe(false);
+  });
 
   test("persists only the minimal cart, coupon code and order reference needed to recover checkout", () => {
     expect(writeCheckoutRecovery(slug, {
