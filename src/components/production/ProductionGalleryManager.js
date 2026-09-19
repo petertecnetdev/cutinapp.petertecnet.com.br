@@ -1245,6 +1245,7 @@ export default function ProductionGalleryManager({
                   />
                 </button>
 
+                {Number(item.position) === 0 && <span className="cut-gallery-card__primary"><i className="fa-solid fa-image" />Principal</span>}
                 {item.is_featured && <span className="cut-gallery-card__featured"><i className="fa-solid fa-star" />Destaque</span>}
                 {Number(item.id) === Number(recommendedCoverId) && !item.is_featured && <span className="cut-gallery-card__cover-tip"><i className="fa-solid fa-wand-magic-sparkles" />Boa para capa</span>}
                 {item.album_id && <span className="cut-gallery-card__album"><i className="fa-regular fa-folder" />{localAlbums.find((album) => Number(album.id) === Number(item.album_id))?.name || "Álbum"}</span>}
