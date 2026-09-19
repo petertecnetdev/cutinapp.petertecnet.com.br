@@ -64,6 +64,7 @@ import { installCartCompletionCleanup } from "./utils/cartCompletionCleanup";
 import { installPersistentCart } from "./utils/persistentCart";
 import { installEventFlyerBackground } from "./utils/eventFlyerBackground";
 import { trackTelemetry } from "./utils/telemetry";
+import { installOverlayLayoutManager } from "./utils/overlayLayoutManager";
 
 // Bootstrap/API error banners must remain non-blocking. The former global
 // SweetAlert bridge converted every transient .alert-danger into a modal;
@@ -75,6 +76,7 @@ installNavigationRecovery();
 installEventViewScrollReset();
 installCartCompletionCleanup();
 installPersistentCart();
+installOverlayLayoutManager();
 
 if (typeof window !== "undefined") {
   let scrollTimer;
