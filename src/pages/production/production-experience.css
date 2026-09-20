@@ -790,3 +790,113 @@
 @media(prefers-reduced-motion:reduce){
   .cut-production-skeleton-block{animation:none}
 }
+
+
+/* Production hero identity dock: keep the brand/content block anchored near the cover bottom. */
+.cut-production-themed-page__hero--public{
+  min-height:520px;
+  align-items:flex-end;
+  padding:96px 0 22px;
+}
+.cut-production-themed-page__hero--public>.cut-page-container{
+  width:100%;
+  display:flex;
+  align-items:flex-end;
+}
+.cut-production-public-identity{
+  position:relative;
+  width:min(900px,100%);
+  max-width:900px;
+  gap:20px;
+  align-items:flex-end;
+  padding:20px 22px;
+  border:1px solid #263442;
+  border-radius:26px;
+  background:#071018;
+  box-shadow:0 22px 48px #000;
+  overflow:hidden;
+}
+.cut-production-public-identity::before{
+  content:"";
+  position:absolute;
+  top:0;
+  left:22px;
+  right:22px;
+  height:2px;
+  border-radius:999px;
+  background:linear-gradient(90deg,#d65cff,#24c6ff);
+  pointer-events:none;
+}
+.cut-production-public-identity>*{
+  position:relative;
+  z-index:1;
+}
+.cut-production-public-logo{
+  width:132px;
+  height:132px;
+  flex:0 0 132px;
+  border:2px solid #344454;
+  border-radius:26px;
+  background:#0b1620;
+  box-shadow:0 12px 28px #000;
+}
+.cut-production-public-hero-copy h1{
+  margin:5px 0 7px;
+  font-size:clamp(2.25rem,4.4vw,4.15rem);
+  line-height:.98;
+  letter-spacing:-.055em;
+}
+.cut-production-public-hero-copy .cut-social-stats{
+  margin-top:4px;
+}
+.cut-production-next-event-chip{
+  background:#0c1721;
+  border-color:#2d3d4b;
+}
+.cut-production-public-primary-actions{
+  margin-top:12px!important;
+}
+@media(max-width:991.98px){
+  .cut-production-themed-page__hero--public{
+    min-height:480px;
+    padding:96px 0 18px;
+  }
+  .cut-production-public-identity{
+    width:100%;
+    max-width:none;
+    padding:18px;
+  }
+  .cut-production-public-logo{
+    width:108px;
+    height:108px;
+    flex-basis:108px;
+    border-radius:22px;
+  }
+}
+@media(max-width:767.98px){
+  .cut-production-themed-page__hero--public{
+    min-height:430px;
+    padding:110px 0 12px;
+  }
+  .cut-production-public-identity{
+    gap:12px;
+    padding:13px!important;
+    border-radius:20px;
+    background:#071018;
+  }
+  .cut-production-public-logo{
+    width:76px!important;
+    height:76px!important;
+    flex-basis:76px;
+    border-radius:18px!important;
+  }
+}
+@media(max-width:420px){
+  .cut-production-themed-page__hero--public{
+    min-height:440px;
+    padding-top:118px;
+  }
+  .cut-production-public-identity{
+    grid-template-columns:64px minmax(0,1fr);
+  }
+}
