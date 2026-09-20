@@ -50,6 +50,22 @@
     backdrop-filter: none !important;
   }
 
+  /* Page-level pseudo layers cover most of the viewport. Keeping their filters
+     disabled for the whole mobile session avoids a costly repaint when the
+     is-scrolling flag toggles at the beginning/end of every gesture. */
+  :is(
+    .cut-app-page,
+    .cut-production-themed-page
+  )::before,
+  :is(
+    .cut-app-page,
+    .cut-production-themed-page
+  )::after {
+    filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
   /* Decorative landing effects are expensive while scrolling and add no
      interaction value on compact screens. Keep the composition, skip the
      large blurred layers and perpetual compositor work. */
@@ -87,19 +103,6 @@
     filter: none !important;
     box-shadow: none !important;
     transition: none !important;
-  }
-
-  body.is-scrolling :is(
-    .cut-app-page,
-    .cut-production-themed-page
-  )::before,
-  body.is-scrolling :is(
-    .cut-app-page,
-    .cut-production-themed-page
-  )::after {
-    filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    backdrop-filter: none !important;
   }
 }
 
