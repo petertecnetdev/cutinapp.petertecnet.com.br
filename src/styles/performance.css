@@ -30,9 +30,10 @@
   .cut-notification-card,
   .cut-community-post {
     contain: layout paint style;
-    /* Filters create an extra compositing surface per card. Long feeds can
-       otherwise keep dozens of GPU layers alive even when nothing moves. */
+    /* Filters and large shadows create extra paint/compositing work per card.
+       Long feeds should stay flat and cheap while preserving borders/backgrounds. */
     filter: none;
+    box-shadow: none;
   }
 
   .apple-glass,
