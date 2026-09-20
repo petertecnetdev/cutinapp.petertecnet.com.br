@@ -59,11 +59,15 @@
     animation: none !important;
   }
 
+  /* Avoid expensive paint work while the viewport is actively moving. This
+     also covers shared panels, which appear repeatedly between list cards. */
   body.is-scrolling .apple-glass,
   body.is-scrolling .cut-glass,
   body.is-scrolling [class*="glass-card"],
   body.is-scrolling [class*="glass-panel"],
   body.is-scrolling .cut-panel,
+  body.is-scrolling .card,
+  body.is-scrolling .modal-content,
   body.is-scrolling .cut-event-card,
   body.is-scrolling .cut-production-card,
   body.is-scrolling .cut-pass-card,
