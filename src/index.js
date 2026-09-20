@@ -10,16 +10,10 @@ import PeterAccountGateway from "./components/PeterAccountGateway";
 import { apiBaseUrl, appSlug } from "./config";
 import reportWebVitals from "./reportWebVitals";
 import { installGlobalImageFallbacks } from "./utils/imageFallback";
-import { installPasswordFieldEnhancer } from "./utils/passwordFieldEnhancer";
-import { installClipboardFallback } from "./utils/clipboard";
-import { installPeterWhatsappFallback } from "./utils/peterWhatsappFallback";
-import { installGlobalImagePerformance } from "./utils/imagePerformance";
-import { installInstagramMobileShell } from "./utils/instagramMobileShell";
 import { installNavigationRecovery } from "./utils/navigationRecovery";
 import { installEventViewScrollReset } from "./utils/eventViewScrollReset";
 import { installCartCompletionCleanup } from "./utils/cartCompletionCleanup";
 import { installPersistentCart } from "./utils/persistentCart";
-import { installEventFlyerBackground } from "./utils/eventFlyerBackground";
 import { trackTelemetry } from "./utils/telemetry";
 import { installOverlayLayoutManager } from "./utils/overlayLayoutManager";
 import { installGlobalSweetAlertBridge } from "./utils/sweetAlert";
@@ -61,10 +55,25 @@ if (typeof window !== "undefined" && window.matchMedia("(max-width: 900px)").mat
   }, { passive: true });
 }
 
-const installDeferredEnhancers = () => {
+const installDeferredEnhancers = async () => {
+  const { installGlobalImagePerformance } = await import("./utils/imagePerformance");
   installGlobalImagePerformance();
 
   if (!window.location.pathname.startsWith("/checkout/")) {
+    const [
+      { installInstagramMobileShell },
+      { installClipboardFallback },
+      { installPasswordFieldEnhancer },
+      { installPeterWhatsappFallback },
+      { installEventFlyerBackground },
+    ] = await Promise.all([
+      import("./utils/instagramMobileShell"),
+      import("./utils/clipboard"),
+      import("./utils/passwordFieldEnhancer"),
+      import("./utils/peterWhatsappFallback"),
+      import("./utils/eventFlyerBackground"),
+    ]);
+
     installInstagramMobileShell();
     installClipboardFallback();
     installPasswordFieldEnhancer();
@@ -74,10 +83,16 @@ const installDeferredEnhancers = () => {
 };
 
 if (typeof window !== "undefined") {
+  const startDeferredEnhancers = () => {
+    installDeferredEnhancers().catch(() => {
+      // Enhancers are progressive; a failed optional chunk must never block app boot.
+    });
+  };
+
   if (typeof window.requestIdleCallback === "function") {
-    window.requestIdleCallback(installDeferredEnhancers, { timeout: 1200 });
+    window.requestIdleCallback(startDeferredEnhancers, { timeout: 1200 });
   } else {
-    window.setTimeout(installDeferredEnhancers, 350);
+    window.setTimeout(startDeferredEnhancers, 350);
   }
 }
 
