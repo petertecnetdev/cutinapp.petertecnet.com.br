@@ -797,3 +797,60 @@ body.is-scrolling .cut-production-inline-editor__footerActions{
     grid-column:1/-1;
   }
 }
+
+
+/* Create/edit mirror the public Facebook-style production cover. */
+.cut-production-inline-editor__hero{
+  min-height:clamp(260px,38vw,430px)!important;
+  padding:16px 0 0!important;
+  overflow:visible!important;
+  margin-bottom:92px;
+}
+.cut-production-inline-editor__hero .cut-production-inline-editor__identity{
+  width:100%!important;
+  max-width:none!important;
+  margin-top:auto!important;
+  transform:translateY(74px);
+  padding:0 18px!important;
+  gap:16px!important;
+  border:0!important;
+  border-radius:0!important;
+  background:#02080d!important;
+  box-shadow:none!important;
+  overflow:visible!important;
+}
+.cut-production-inline-editor__hero .cut-production-public-logo{
+  width:116px!important;
+  height:116px!important;
+  flex-basis:116px!important;
+  border:4px solid #02080d!important;
+  border-radius:50%!important;
+  background:#0b1620!important;
+  box-shadow:0 8px 22px #000!important;
+}
+.cut-production-inline-editor__heroCopy{
+  padding:70px 0 10px;
+}
+@media(max-width:767.98px){
+  .cut-production-inline-editor__hero{
+    min-height:300px!important;
+    margin-bottom:128px;
+  }
+  .cut-production-inline-editor__hero .cut-production-inline-editor__identity{
+    transform:translateY(108px);
+    display:grid!important;
+    grid-template-columns:84px minmax(0,1fr)!important;
+    align-items:end!important;
+    padding:0 14px!important;
+  }
+  .cut-production-inline-editor__hero .cut-production-public-logo{
+    width:84px!important;
+    height:84px!important;
+    flex-basis:84px!important;
+    border-radius:50%!important;
+  }
+  .cut-production-inline-editor__heroCopy{
+    grid-column:1/-1!important;
+    padding:0 0 8px!important;
+  }
+}
