@@ -760,6 +760,10 @@ body.is-scrolling .cut-production-inline-editor__footerActions{
     min-height:480px;
     padding:16px 0 12px;
   }
+  .cut-production-inline-editor__hero .cut-production-inline-editor__titleInput.form-control{
+    font-size:clamp(1.7rem,8vw,2.35rem);
+    line-height:1.02;
+  }
   .cut-production-inline-editor__modebar{
     margin-bottom:14px;
   }
