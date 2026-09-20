@@ -134,6 +134,22 @@ export default function ProductionPublicPage() {
     };
   }, [production?.id, slug, loadCore]);
 
+  useEffect(() => {
+    const sentinel = tabsSentinelRef.current;
+    if (!sentinel) return undefined;
+    const onScroll = () => {
+      const navHeight = document.querySelector(".navbar")?.getBoundingClientRect().height || 0;
+      setTabsPinned(sentinel.getBoundingClientRect().top <= navHeight);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, [production?.id]);
+
   const toggleFollow = async () => {
     if (!user) return navigate("/login", { state: { from: `/production/${slug}/public` } });
     setBusy(true);
@@ -181,22 +197,6 @@ export default function ProductionPublicPage() {
   const whatsappShareHref = `https://wa.me/?text=${encodeURIComponent(whatsappShareMessage)}`;
   const descriptionText = String(production.description || "");
   const longDescription = descriptionText.replace(/<[^>]*>/g, "").length > 420;
-
-  useEffect(() => {
-    const sentinel = tabsSentinelRef.current;
-    if (!sentinel) return undefined;
-    const onScroll = () => {
-      const navHeight = document.querySelector(".navbar")?.getBoundingClientRect().height || 0;
-      setTabsPinned(sentinel.getBoundingClientRect().top <= navHeight);
-    };
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-    };
-  }, [production?.id]);
 
   const goToTab = (key) => {
     setActiveTab(key);
