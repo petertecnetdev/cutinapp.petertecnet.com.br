@@ -35,9 +35,25 @@
   .apple-glass,
   .cut-glass,
   [class*="glass-card"],
-  [class*="glass-panel"] {
+  [class*="glass-panel"],
+  .cut-home-discovery__sceneCard {
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
+  }
+
+  /* Decorative landing effects are expensive while scrolling and add no
+     interaction value on compact screens. Keep the composition, skip the
+     large blurred layers and perpetual compositor work. */
+  .cut-home-discovery__ambient {
+    display: none;
+  }
+
+  .cut-home-discovery__sceneCard,
+  .cut-home-discovery__sceneHalo,
+  .cut-home-discovery__roleRail > div,
+  .cut-home-discovery__signal i,
+  .cut-home-discovery__brandCopy h1 em {
+    animation: none !important;
   }
 
   body.is-scrolling .apple-glass,
