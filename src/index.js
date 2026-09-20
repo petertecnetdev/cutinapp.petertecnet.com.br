@@ -61,15 +61,12 @@ if (typeof window !== "undefined" && window.matchMedia("(max-width: 900px)").mat
   }, { passive: true });
 }
 
-if (typeof window !== "undefined" && !window.location.pathname.startsWith("/checkout/")) {
-  installInstagramMobileShell();
-}
-
 const installDeferredEnhancers = () => {
-  installClipboardFallback();
   installGlobalImagePerformance();
 
   if (!window.location.pathname.startsWith("/checkout/")) {
+    installInstagramMobileShell();
+    installClipboardFallback();
     installPasswordFieldEnhancer();
     installPeterWhatsappFallback();
     installEventFlyerBackground();
