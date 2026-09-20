@@ -47,6 +47,11 @@ export default function ProductionPublicPage() {
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState("inicio");
   const mapSectionRef = useRef(null);
+  const contentTopRef = useRef(null);
+  const eventsSectionRef = useRef(null);
+  const photosSectionRef = useRef(null);
+  const aboutSectionRef = useRef(null);
+  const postsSectionRef = useRef(null);
 
   const loadCore = useCallback(async () => {
     const response = await cutinappService.publicProduction(slug);
@@ -175,6 +180,25 @@ export default function ProductionPublicPage() {
   const descriptionText = String(production.description || "");
   const longDescription = descriptionText.replace(/<[^>]*>/g, "").length > 420;
 
+  const goToTab = (key) => {
+    setActiveTab(key);
+    const targets = {
+      inicio: contentTopRef,
+      eventos: eventsSectionRef,
+      fotos: photosSectionRef,
+      sobre: aboutSectionRef,
+      publicacoes: postsSectionRef,
+    };
+    window.requestAnimationFrame(() => {
+      const node = targets[key]?.current;
+      if (!node) return;
+      const navOffset = document.querySelector(".cut-production-profile-tabs")?.getBoundingClientRect().height || 0;
+      const appNavOffset = document.querySelector("nav")?.getBoundingClientRect().height || 0;
+      const top = node.getBoundingClientRect().top + window.scrollY - navOffset - appNavOffset - 12;
+      window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+    });
+  };
+
   const shareNative = async () => {
     try {
       if (navigator.share) {
@@ -253,11 +277,11 @@ export default function ProductionPublicPage() {
           ["sobre", "Sobre"],
           ["publicacoes", "Publicações"],
         ].map(([key, label]) => (
-          <button key={key} type="button" className={activeTab === key ? "is-active" : ""} onClick={() => setActiveTab(key)}>{label}</button>
+          <button key={key} type="button" className={activeTab === key ? "is-active" : ""} onClick={() => goToTab(key)}>{label}</button>
         ))}
       </nav>
 
-      <Container className="cut-page-container py-4 py-lg-5">
+      <Container className="cut-page-container py-4 py-lg-5" ref={contentTopRef}>
         {error && <Alert variant="danger" dismissible onClose={() => setError("")}>{error}</Alert>}
 
         <div className="cut-production-profile-stats" aria-label="Resumo da produção">
@@ -267,6 +291,7 @@ export default function ProductionPublicPage() {
           <div><i className="fa-regular fa-heart" /><strong>{production.likes_count || 0}</strong><span>Curtidas</span></div>
         </div>
 
+        <div ref={eventsSectionRef} className="cut-production-tab-anchor" />
         <EventDiscoveryRail
           className="cut-production-section cut-production-agenda-section cut-production-agenda-section--priority"
           events={upcoming}
@@ -281,6 +306,7 @@ export default function ProductionPublicPage() {
           maxItems={12}
         />
 
+        <div ref={aboutSectionRef} className="cut-production-tab-anchor" />
         <div className="cut-production-public-about">
           <Card className="cut-panel cut-production-about-card">
             <Card.Body className="p-4 p-lg-5">
@@ -316,6 +342,7 @@ export default function ProductionPublicPage() {
           </Card>
         </div>
 
+        <div ref={photosSectionRef} className="cut-production-tab-anchor" />
         <React.Suspense fallback={<div className="cut-production-section cut-production-skeleton-block" aria-hidden="true" />}>
           <ProductionGallery
             media={media}
@@ -333,6 +360,7 @@ export default function ProductionPublicPage() {
 
         {past.length > 0 && <section className="cut-production-section"><Card className="cut-panel"><Card.Body className="p-4"><span className="cut-eyebrow">Histórico</span><h2 className="cut-section-title">Eventos anteriores</h2>{past.slice(0, 8).map((event) => <button key={event.id} className="cut-history-link" onClick={() => navigate(`/event/${event.slug}`)}><strong>{event.title}</strong><span>{fmt(event.start_date)}</span></button>)}</Card.Body></Card></section>}
 
+        <div ref={postsSectionRef} className="cut-production-tab-anchor" />
         {!secondaryLoading && <React.Suspense fallback={<div className="cut-production-section cut-production-skeleton-block" aria-hidden="true" />}><ProductionCommunitySection production={production} isOwner={isOwner} /></React.Suspense>}
       </Container>
 
