@@ -71,10 +71,10 @@
   /* The bottom navigation is fixed for the whole mobile session. Sampling and
      blurring the moving page behind it on every frame is disproportionately
      expensive on mid-range Android GPUs; its opaque-enough surface already
-     preserves contrast without the live backdrop effect. Layout/style
-     containment also prevents nav state changes from invalidating page layout. */
+     preserves contrast without the live backdrop effect. Full containment keeps
+     nav state/layout/paint invalidation isolated from the scrolling document. */
   .cut-mobile-bottom-nav {
-    contain: layout style;
+    contain: layout paint style;
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
     box-shadow: none;
