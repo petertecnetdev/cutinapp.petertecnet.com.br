@@ -10,7 +10,6 @@ import { AuthContext } from "./context/AuthContext";
 import AppErrorBoundary from "./components/AppErrorBoundary";
 import ApplicationAdminGate from "./components/ApplicationAdminGate";
 import ConnectionStatus from "./components/ConnectionStatus";
-import CutinappVisualEffects from "./components/CutinappVisualEffects";
 import GlobalSearchOverlay from "./components/GlobalSearchOverlay";
 import PeterTecnetSignature from "./components/PeterTecnetSignature";
 import ProcessingIndicatorComponent from "./components/ProcessingIndicatorComponent";
@@ -182,7 +181,6 @@ function AppRoutes() {
     <ConnectionStatus />
     {user && <MessagingNotificationBridge />}
     <GlobalSearchOverlay />
-    {!interactionHeavyRoute && <CutinappVisualEffects />}
     {needsFormEnhancers && (
       <Suspense fallback={null}>
         <GlobalImageInputEnhancer />
