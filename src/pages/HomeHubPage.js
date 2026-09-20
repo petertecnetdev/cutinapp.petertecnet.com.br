@@ -37,7 +37,7 @@ const uniqueBy = (items, keyFor) => {
   });
 };
 
-function DiscoveryRail({ eyebrow, title, description, to, toLabel, children, empty }) {
+function DiscoveryRail({ eyebrow, title, description, to, toLabel, children, empty, railClassName }) {
   const railRef = useRef(null);
   const count = React.Children.count(children);
 
@@ -69,7 +69,7 @@ function DiscoveryRail({ eyebrow, title, description, to, toLabel, children, emp
         </div>
       </div>
 
-      {count ? <div className="cut-home-hub__rail" ref={railRef}>{children}</div> : empty}
+      {count ? <div className={["cut-home-hub__rail", railClassName].filter(Boolean).join(" ")} ref={railRef}>{children}</div> : empty}
     </section>
   );
 }
@@ -82,6 +82,7 @@ DiscoveryRail.propTypes = {
   toLabel: PropTypes.string,
   children: PropTypes.node,
   empty: PropTypes.node,
+  railClassName: PropTypes.string,
 };
 
 function LoadingRail() {
@@ -229,6 +230,7 @@ export default function HomeHubPage() {
             allLabel="Todos os eventos"
             emptyTitle="Nenhum evento por aqui ainda"
             emptyText="Quando novos eventos forem publicados, eles aparecerão nesta faixa."
+            className="cut-home-hub__eventsRail"
           />
         )}
 
@@ -240,6 +242,7 @@ export default function HomeHubPage() {
             to="/productions"
             toLabel="Todas as produções"
             empty={empty("fa-solid fa-users-gear", "Nenhuma produção disponível", "As produções públicas vão aparecer aqui assim que forem publicadas.")}
+            railClassName="cut-home-hub__rail--productions"
           >
             {productions.map((production) => {
               const cover = mediaUrl(production.background || production.cover || production.banner);
@@ -271,6 +274,7 @@ export default function HomeHubPage() {
             title="Alguns itens disponíveis"
             description="Produtos e adicionais liberados pelas produções nos próximos eventos."
             empty={empty("fa-solid fa-bag-shopping", "Nenhum item disponível agora", "Quando as produções liberarem itens nos eventos, alguns deles aparecerão nesta faixa.")}
+            railClassName="cut-home-hub__rail--items"
           >
             {items.map((item) => {
               const event = item.__event || {};
@@ -279,7 +283,7 @@ export default function HomeHubPage() {
               return (
                 <Link to={event.slug ? `/event/${event.slug}/catalogo` : "/event"} className="cut-home-hub__itemCard" key={`${event.id || event.slug}-${item.id}`}>
                   <div className="cut-home-hub__itemMedia">
-                    {image ? <img src={image} alt={item.name || "Item"} loading="lazy" decoding="async" /> : <i className="fa-solid fa-bag-shopping" />}
+                    {image ? <img src={image} alt={item.name || "Item"} loading="lazy" decoding="async" /> : <span className="cut-home-hub__itemInitials" aria-hidden="true">{initials(item.name || "Item")}</span>}
                     <strong>{money.format(Number(item.price || 0))}</strong>
                   </div>
                   <div className="cut-home-hub__itemBody">
