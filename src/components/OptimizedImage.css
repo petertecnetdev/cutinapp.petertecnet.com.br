@@ -3,6 +3,7 @@
   display: block;
   overflow: hidden;
   width: 100%;
+  contain: paint;
   background: color-mix(in srgb, currentColor 5%, transparent);
 }
 
