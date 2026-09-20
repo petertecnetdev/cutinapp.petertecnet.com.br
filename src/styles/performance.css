@@ -38,6 +38,13 @@
     scroll-behavior: auto;
   }
 
+  /* Explicitly tell the browser that app controls use tap/pan gestures rather
+     than double-tap zoom. This keeps touch handling on the fast path and avoids
+     unnecessary gesture arbitration on dense mobile navigation and card UIs. */
+  :is(a, button, [role="button"], input, select, textarea) {
+    touch-action: manipulation;
+  }
+
   /* The public home has several rich sections below the hero. They are outside
      the initial viewport on phones, so defer their layout/paint until they near
      the viewport instead of paying for the entire landing page before first
