@@ -15,10 +15,13 @@
 
 /* Production profiles are long, section-heavy pages. Let the browser skip
    layout/paint for sections that are still outside the viewport while keeping
-   a learned intrinsic size to avoid scroll jumps after the first render. */
+   a learned intrinsic size to avoid scroll jumps after the first render.
+   Containment also prevents gallery/event updates inside one section from
+   invalidating layout and paint across the rest of the production profile. */
 .cut-production-themed-page .cut-panel {
   content-visibility: auto;
   contain-intrinsic-size: auto 560px;
+  contain: layout paint style;
 }
 
 @media (max-width: 900px), (prefers-reduced-motion: reduce) {
