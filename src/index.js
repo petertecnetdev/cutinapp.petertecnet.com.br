@@ -34,20 +34,30 @@ installPersistentCart();
 installOverlayLayoutManager();
 installFrontendErrorMonitoring();
 
-if (typeof window !== "undefined") {
+if (typeof window !== "undefined" && window.matchMedia("(max-width: 900px)").matches) {
   let scrollTimer;
   let isScrolling = false;
+  let scrollFrame = null;
+
   const markScrollEnd = () => {
     isScrolling = false;
     document.body.classList.remove("is-scrolling");
   };
+
+  const scheduleScrollEnd = () => {
+    scrollFrame = null;
+    window.clearTimeout(scrollTimer);
+    scrollTimer = window.setTimeout(markScrollEnd, 120);
+  };
+
   window.addEventListener("scroll", () => {
     if (!isScrolling) {
       isScrolling = true;
       document.body.classList.add("is-scrolling");
     }
-    window.clearTimeout(scrollTimer);
-    scrollTimer = window.setTimeout(markScrollEnd, 120);
+    if (scrollFrame === null) {
+      scrollFrame = window.requestAnimationFrame(scheduleScrollEnd);
+    }
   }, { passive: true });
 }
 
