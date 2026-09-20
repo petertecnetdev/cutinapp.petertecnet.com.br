@@ -37,22 +37,32 @@ const store = (key, data) => {
 };
 
 const revalidate = (client, key, url, params, fallback) => {
-  if (inflight.has(key)) return inflight.get(key);
+  const existing = inflight.get(key);
+  if (existing) return existing.promise;
 
-  const request = client.get(url, { params })
+  const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+  const request = client.get(url, { params, ...(controller ? { signal: controller.signal } : {}) })
     .then((response) => store(key, response.data))
     .catch((error) => {
       if (fallback !== undefined) return fallback;
       throw error;
     })
-    .finally(() => inflight.delete(key));
+    .finally(() => {
+      if (inflight.get(key)?.promise === request) inflight.delete(key);
+    });
 
-  inflight.set(key, request);
+  inflight.set(key, { promise: request, controller });
   return request;
 };
 
 export const invalidatePublicRequestCache = (prefix = "") => {
   for (const key of memory.keys()) if (!prefix || key.startsWith(prefix)) memory.delete(key);
+  for (const [key, entry] of inflight.entries()) {
+    if (!prefix || key.startsWith(prefix)) {
+      entry.controller?.abort();
+      inflight.delete(key);
+    }
+  }
   if (typeof window === "undefined") return;
   try {
     for (let index = window.sessionStorage.length - 1; index >= 0; index -= 1) {
