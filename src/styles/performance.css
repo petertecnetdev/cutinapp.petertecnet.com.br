@@ -45,6 +45,13 @@
     touch-action: manipulation;
   }
 
+  /* Native tap highlights repaint over controls and can linger while a route
+     transition starts. The app already provides explicit active/focus states,
+     so keep touch feedback inside those component states on Android. */
+  :is(a, button, [role="button"]) {
+    -webkit-tap-highlight-color: transparent;
+  }
+
   /* The public home has several rich sections below the hero. They are outside
      the initial viewport on phones, so defer their layout/paint until they near
      the viewport instead of paying for the entire landing page before first
