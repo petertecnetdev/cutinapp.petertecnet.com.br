@@ -25,6 +25,13 @@ const TABS = [
   ["promoter", "Promoters"],
 ];
 
+const SEARCH_STARTERS = [
+  { type: "event", icon: "fa-regular fa-calendar-days", label: "Eventos", description: "Shows, festas e experiências perto de você" },
+  { type: "production", icon: "fa-solid fa-building", label: "Produções", description: "Casas, produtores e agendas completas" },
+  { type: "artist", icon: "fa-solid fa-music", label: "Artistas", description: "Descubra quem está movimentando a cena" },
+  { type: "user", icon: "fa-regular fa-user", label: "Pessoas", description: "Encontre perfis e conexões na Cutinapp" },
+];
+
 const GROUPS = [
   ["people", "Pessoas", "user"],
   ["events", "Eventos", "event"],
@@ -607,7 +614,7 @@ export default function GlobalSearchPage() {
     <Container className="cut-global-search">
       <header className="cut-global-search__header">
         <div className="cut-global-search__title-row">
-          <div><span className="cut-eyebrow">Descobrir</span><h1>Pesquisar na Cutinapp</h1></div>
+          <div className="cut-global-search__headline"><span className="cut-eyebrow">Descobrir</span><h1>Encontre o que está acontecendo</h1><p>Eventos, pessoas, produções, artistas e experiências em uma busca só.</p></div>
           {user && query.trim() && <Button variant="outline-light" size="sm" onClick={saveCurrentSearch} disabled={currentSearchSaved}>
             <i className={currentSearchSaved ? "fa-solid fa-bookmark" : "fa-regular fa-bookmark"} /> {currentSearchSaved ? "Salva" : "Salvar"}
           </Button>}
@@ -689,12 +696,24 @@ export default function GlobalSearchPage() {
           <DiscoveryStrip title="Produções para descobrir" items={discover?.productions} onOpen={openResult} />
           <DiscoveryStrip title="Artistas para descobrir" items={discover?.artists} onOpen={openResult} />
 
-          <section className="cut-global-search__recent">
-            <div className="cut-global-search__section-heading"><h2>Recentes</h2>{recent.length > 0 && <button type="button" onClick={clearRecent}>Limpar tudo</button>}</div>
-            {recent.length === 0
-              ? <div className="cut-global-search__empty"><i className="fa-solid fa-magnifying-glass" /><strong>Encontre qualquer coisa na Cutinapp</strong><p>Busque nome, @usuário, evento, produção, artista, publicação, item, cidade, data ou gênero.</p></div>
-              : <div className="cut-global-search__results">{recent.map((item, index) => <SearchResultRow key={`${item.type}:${item.id}`} item={item} index={index} onOpen={openResult} onPrefetch={prefetchResult} onRemove={removeRecent} />)}</div>}
+          <section className="cut-global-search__starter">
+            <div className="cut-global-search__section-heading">
+              <div><span className="cut-global-search__section-kicker">Explorar</span><h2>Comece por uma categoria</h2></div>
+              <small>Escolha um caminho ou digite acima</small>
+            </div>
+            <div className="cut-global-search__starter-grid">
+              {SEARCH_STARTERS.map((entry) => <button type="button" key={entry.type} onClick={() => selectType(entry.type)} aria-label={`Pesquisar ${entry.label}`}>
+                <span className="cut-global-search__starter-icon"><i className={entry.icon} /></span>
+                <span className="cut-global-search__starter-copy"><strong>{entry.label}</strong><small>{entry.description}</small></span>
+                <i className="fa-solid fa-arrow-right cut-global-search__starter-arrow" />
+              </button>)}
+            </div>
           </section>
+
+          {recent.length > 0 && <section className="cut-global-search__recent">
+            <div className="cut-global-search__section-heading"><h2>Pesquisas recentes</h2><button type="button" onClick={clearRecent}>Limpar tudo</button></div>
+            <div className="cut-global-search__results">{recent.map((item, index) => <SearchResultRow key={`${item.type}:${item.id}`} item={item} index={index} onOpen={openResult} onPrefetch={prefetchResult} onRemove={removeRecent} />)}</div>
+          </section>}
 
           {user && saved.length > 0 && <section className="cut-global-search__saved">
             <div className="cut-global-search__section-heading"><h2>Pesquisas salvas</h2></div>

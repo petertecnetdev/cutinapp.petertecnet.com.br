@@ -10,7 +10,6 @@ import { AuthContext } from "./context/AuthContext";
 import AppErrorBoundary from "./components/AppErrorBoundary";
 import ApplicationAdminGate from "./components/ApplicationAdminGate";
 import ConnectionStatus from "./components/ConnectionStatus";
-import GlobalSearchOverlay from "./components/GlobalSearchOverlay";
 import PeterTecnetSignature from "./components/PeterTecnetSignature";
 import ProcessingIndicatorComponent from "./components/ProcessingIndicatorComponent";
 import MessagingNotificationBridge from "./components/MessagingNotificationBridge";
@@ -180,7 +179,6 @@ function AppRoutes() {
   return <>
     <ConnectionStatus />
     {user && <MessagingNotificationBridge />}
-    <GlobalSearchOverlay />
     {needsFormEnhancers && (
       <Suspense fallback={null}>
         <GlobalImageInputEnhancer />
