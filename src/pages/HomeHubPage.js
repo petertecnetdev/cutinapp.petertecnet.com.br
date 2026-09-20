@@ -3,7 +3,7 @@ import PropTypes from "prop-types";
 import { Container } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import NavlogComponent from "../components/NavlogComponent";
-import EventArtwork from "../components/event/EventArtwork";
+import EventDiscoveryRail from "../components/event/EventDiscoveryRail";
 import eventService from "../services/EventService";
 import cutinappService from "../services/CutinappService";
 import commerceService from "../services/CommerceService";
@@ -11,19 +11,6 @@ import { storageUrl } from "../config";
 import "./HomeHubPage.css";
 
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-
-const dateLabel = (value) => {
-  if (!value) return "Data a confirmar";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Data a confirmar";
-  return new Intl.DateTimeFormat("pt-BR", {
-    weekday: "short",
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-};
 
 const mediaUrl = (value) => {
   if (!value) return "";
@@ -233,48 +220,16 @@ export default function HomeHubPage() {
         </header>
 
         {loading ? <LoadingRail /> : (
-          <DiscoveryRail
+          <EventDiscoveryRail
+            events={events}
             eyebrow="Próximos eventos"
             title="Eventos para descobrir"
             description="Os próximos eventos publicados, em uma navegação horizontal simples e rápida."
-            to="/event"
-            toLabel="Todos os eventos"
-            empty={empty("fa-regular fa-calendar", "Nenhum evento por aqui ainda", "Quando novos eventos forem publicados, eles aparecerão nesta faixa.")}
-          >
-            {events.map((event) => {
-              const production = event.production || {};
-              const productionLogo = mediaUrl(production.logo || production.photo || production.image);
-              const productionHref = production.slug ? `/production/${production.slug}/public` : "/productions";
-
-              return (
-                <article className="cut-home-hub__eventCard" key={event.id}>
-                  <Link to={`/event/${event.slug}`} className="cut-home-hub__eventMainLink" aria-label={`Ver evento ${event.title}`}>
-                    <div className="cut-home-hub__eventMedia">
-                      <EventArtwork image={event.image} title={event.title} alt={event.title} loading="lazy" decoding="async" />
-                      <span>{dateLabel(event.start_date)}</span>
-                    </div>
-                    <div className="cut-home-hub__eventBody">
-                      <h3>{event.title}</h3>
-                      <p><i className="fa-solid fa-location-dot" /> {event.venue || event.city || "Local a confirmar"}</p>
-                    </div>
-                  </Link>
-
-                  {production.name && (
-                    <Link to={productionHref} className="cut-home-hub__eventProduction" aria-label={`Ver produção ${production.name}`}>
-                      <span className="cut-home-hub__eventProductionAvatar">
-                        {productionLogo ? <img src={productionLogo} alt="" loading="lazy" decoding="async" /> : initials(production.name)}
-                      </span>
-                      <span className="cut-home-hub__eventProductionCopy">
-                        <small>Produção responsável</small>
-                        <strong>{production.name}</strong>
-                      </span>
-                      <i className="fa-solid fa-chevron-right" />
-                    </Link>
-                  )}
-                </article>
-              );
-            })}
-          </DiscoveryRail>
+            allTo="/event"
+            allLabel="Todos os eventos"
+            emptyTitle="Nenhum evento por aqui ainda"
+            emptyText="Quando novos eventos forem publicados, eles aparecerão nesta faixa."
+          />
         )}
 
         {loading ? <LoadingRail /> : (
