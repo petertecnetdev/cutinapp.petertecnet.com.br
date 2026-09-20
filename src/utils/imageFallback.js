@@ -122,12 +122,11 @@ export function installGlobalImageFallbacks() {
   document.addEventListener("error", handleError, true);
   const observer = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
-      if (mutation.type === "attributes") return inspectImage(mutation.target);
       mutation.addedNodes.forEach(inspectNode);
     });
   });
   document.querySelectorAll("img").forEach(inspectImage);
-  observer.observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ["src", "srcset"] });
+  observer.observe(document.documentElement, { subtree: true, childList: true });
   const cleanup = () => {
     document.removeEventListener("error", handleError, true);
     observer.disconnect();
