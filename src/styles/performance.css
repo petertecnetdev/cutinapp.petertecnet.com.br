@@ -38,6 +38,13 @@
     display: none;
   }
 
+  /* The FX stage is a fixed full-viewport decorative layer with multiple
+     110px blurred, infinitely animated auroras. On mobile it competes with the
+     actual app for GPU/compositor time during every scroll, so omit it entirely. */
+  .cut-fx-stage {
+    display: none;
+  }
+
   /* Shared panels are used throughout long app pages. Skipping layout and paint
      until an offscreen panel approaches the viewport keeps the first render and
      long-scroll path cheaper without hiding or unmounting any content. */
