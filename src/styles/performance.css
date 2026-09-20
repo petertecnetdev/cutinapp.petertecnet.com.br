@@ -31,6 +31,13 @@
 /* Mobile/GPU performance guardrails: keep surfaces crisp without paying the
    continuous backdrop sampling cost that makes mid-range Android scroll jank. */
 @media (max-width: 900px) {
+  /* Programmatic smooth scrolling keeps the compositor busy after navigation
+     and anchor jumps. Native touch scrolling is already smooth on Android, so
+     keep route/anchor transitions immediate on compact devices. */
+  html {
+    scroll-behavior: auto;
+  }
+
   /* The global body decoration is a fixed, full-viewport pair of radial
      gradients. It carries no information and stays in the paint path while the
      document scrolls, so mobile uses the solid body background instead. */
