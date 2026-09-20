@@ -34,10 +34,11 @@
     .cut-community-post
   ) {
     contain: layout paint style;
-    /* Filters and large shadows create extra paint/compositing work per card.
-       Long feeds should stay flat and cheap while preserving borders/backgrounds. */
+    /* Filters, large shadows and transitions create extra paint/compositing work
+       per card. Long feeds stay flat and stable while preserving interaction. */
     filter: none;
     box-shadow: none;
+    transition: none;
   }
 
   .apple-glass,
