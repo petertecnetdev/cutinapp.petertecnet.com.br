@@ -4,6 +4,7 @@
 .cut-pass-card,
 .cut-artist-card,
 .cut-feed-card,
+.cut-feed-social-card,
 .cut-notification-card,
 .cut-community-post {
   content-visibility: auto;
@@ -25,6 +26,7 @@
   .cut-pass-card,
   .cut-artist-card,
   .cut-feed-card,
+  .cut-feed-social-card,
   .cut-notification-card,
   .cut-community-post {
     contain: layout paint style;
