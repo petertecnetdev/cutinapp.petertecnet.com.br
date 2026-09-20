@@ -14,7 +14,10 @@ const readSession = (key) => {
   if (typeof window === "undefined") return null;
   try {
     const raw = window.sessionStorage.getItem(`${SESSION_PREFIX}${key}`);
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    const entry = JSON.parse(raw);
+    memory.set(key, entry);
+    return entry;
   } catch (_) {
     return null;
   }
