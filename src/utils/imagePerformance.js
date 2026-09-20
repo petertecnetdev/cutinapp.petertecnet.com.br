@@ -10,14 +10,31 @@ const tune = (image) => {
   if (!image.getAttribute("fetchpriority") && !isPriorityImage(image)) image.setAttribute("fetchpriority", "low");
 };
 
+const tuneAddedImages = (records) => {
+  const roots = [];
+
+  records.forEach((record) => record.addedNodes.forEach((node) => {
+    if (!(node instanceof Element)) return;
+    if (roots.some((root) => root.contains(node))) return;
+
+    // React can report both a newly inserted subtree and descendants from the
+    // same commit. Keep only the highest root so each subtree is scanned once.
+    for (let index = roots.length - 1; index >= 0; index -= 1) {
+      if (node.contains(roots[index])) roots.splice(index, 1);
+    }
+    roots.push(node);
+  }));
+
+  roots.forEach((root) => {
+    if (root.matches("img")) tune(root);
+    root.querySelectorAll?.("img").forEach(tune);
+  });
+};
+
 export const installGlobalImagePerformance = () => {
   if (typeof window === "undefined" || typeof MutationObserver === "undefined") return () => {};
   document.querySelectorAll("img").forEach(tune);
-  const observer = new MutationObserver((records) => records.forEach((record) => record.addedNodes.forEach((node) => {
-    if (!(node instanceof Element)) return;
-    if (node.matches("img")) tune(node);
-    node.querySelectorAll?.("img").forEach(tune);
-  })));
+  const observer = new MutationObserver(tuneAddedImages);
   observer.observe(document.documentElement, { childList: true, subtree: true });
   return () => observer.disconnect();
 };
