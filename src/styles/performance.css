@@ -17,8 +17,8 @@
   }
 }
 
-/* Mobile/GPU performance guardrails: preserve the glass identity without
-   repainting expensive filters and deep shadows while the viewport moves. */
+/* Mobile/GPU performance guardrails: keep surfaces crisp without paying the
+   continuous backdrop sampling cost that makes mid-range Android scroll jank. */
 @media (max-width: 900px) {
   .cut-event-card,
   .cut-production-card,
@@ -34,8 +34,8 @@
   .cut-glass,
   [class*="glass-card"],
   [class*="glass-panel"] {
-    -webkit-backdrop-filter: blur(8px) !important;
-    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
   }
 
   body.is-scrolling .apple-glass,
@@ -47,8 +47,6 @@
   body.is-scrolling .cut-production-card,
   body.is-scrolling .cut-feed-social-card,
   body.is-scrolling .cut-community-post {
-    -webkit-backdrop-filter: none !important;
-    backdrop-filter: none !important;
     filter: none !important;
     box-shadow: none !important;
   }
