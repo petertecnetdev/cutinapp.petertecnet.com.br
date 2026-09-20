@@ -41,6 +41,17 @@
   text-transform: uppercase;
 }
 
+@media (hover: none) and (pointer: coarse) {
+  .cut-optimized-image img,
+  .cut-optimized-image__placeholder {
+    transition: none;
+  }
+
+  .cut-optimized-image__placeholder {
+    transform: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .cut-optimized-image img,
   .cut-optimized-image__placeholder {
