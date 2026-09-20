@@ -153,8 +153,8 @@
   }
 }
 
-/* Touch devices can leave :hover latched after a tap. Avoid promoting cards
-   to compositor layers for desktop-only lift effects on Android/iOS. */
+/* Touch devices can leave :hover latched after a tap. Avoid promoting repeated
+   cards and panels to compositor layers for desktop-only lift effects. */
 @media (hover: none) and (pointer: coarse) {
   :is(
     .cut-event-card,
@@ -164,9 +164,13 @@
     .cut-feed-card,
     .cut-feed-social-card,
     .cut-notification-card,
-    .cut-community-post
+    .cut-community-post,
+    .cut-panel,
+    .card
   ):hover {
     transform: none;
+    filter: none;
+    box-shadow: none;
   }
 }
 
