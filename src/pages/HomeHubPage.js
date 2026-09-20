@@ -22,6 +22,8 @@ const mediaUrl = (value) => {
 const initials = (value) => String(value || "C")
   .trim()
   .split(/\s+/)
+  .filter((part) => /^[A-Za-zÀ-ÖØ-öø-ÿ0-9]/.test(part))
+  .filter((part) => !["de", "da", "do", "das", "dos", "e"].includes(part.toLowerCase()))
   .slice(0, 2)
   .map((part) => part[0])
   .join("")
