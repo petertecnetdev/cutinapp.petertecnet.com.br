@@ -732,6 +732,11 @@ body.is-scrolling .cut-production-inline-editor__footerActions{
   flex:1 1 auto;
   width:auto;
 }
+.cut-production-inline-editor__hero .cut-production-inline-editor__titleInput.form-control{
+  font-size:clamp(2.25rem,4.4vw,4.15rem);
+  line-height:.98;
+  letter-spacing:-.055em;
+}
 @media(max-width:991.98px){
   .cut-production-inline-editor__hero{
     min-height:520px;
