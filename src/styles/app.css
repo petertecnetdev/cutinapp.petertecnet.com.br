@@ -51,11 +51,8 @@
 @import "./event-view-premium-hero.css";
 @import "./overlay-layout-system.css";
 
-/* 5. System polish. Keep these late because they intentionally refine legacy rules. */
-@import "./apple-glass-system.css";
-@import "./apple-glass-polish.css";
+/* 5. System polish without translucent/glass layers. */
 @import "./ux-quality-system.css";
-@import "./cutinapp-cinematic-glass.css";
 
 /* 6. Performance must stay last so low-cost scroll/mobile overrides win. */
 @import "./performance.css";
