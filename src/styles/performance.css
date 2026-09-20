@@ -81,28 +81,17 @@
     animation: none !important;
   }
 
-  /* Avoid expensive paint work while the viewport is actively moving. This
-     also covers shared panels, which appear repeatedly between list cards. */
-  body.is-scrolling :is(
-    .apple-glass,
-    .cut-glass,
-    [class*="glass-card"],
-    [class*="glass-panel"],
+  /* Keep repeated shared surfaces cheap for the whole mobile session. Tying
+     these overrides to body.is-scrolling forced a broad style recalculation at
+     every gesture boundary; permanent mobile rules avoid that churn. */
+  :is(
     .cut-panel,
     .card,
-    .modal-content,
-    .cut-event-card,
-    .cut-production-card,
-    .cut-pass-card,
-    .cut-artist-card,
-    .cut-feed-card,
-    .cut-feed-social-card,
-    .cut-notification-card,
-    .cut-community-post
+    .modal-content
   ) {
-    filter: none !important;
-    box-shadow: none !important;
-    transition: none !important;
+    filter: none;
+    box-shadow: none;
+    transition: none;
   }
 }
 
