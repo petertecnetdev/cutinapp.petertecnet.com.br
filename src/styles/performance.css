@@ -63,7 +63,11 @@
   body.is-scrolling .cut-panel,
   body.is-scrolling .cut-event-card,
   body.is-scrolling .cut-production-card,
+  body.is-scrolling .cut-pass-card,
+  body.is-scrolling .cut-artist-card,
+  body.is-scrolling .cut-feed-card,
   body.is-scrolling .cut-feed-social-card,
+  body.is-scrolling .cut-notification-card,
   body.is-scrolling .cut-community-post {
     filter: none !important;
     box-shadow: none !important;
