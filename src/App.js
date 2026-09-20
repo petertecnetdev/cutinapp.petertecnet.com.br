@@ -153,16 +153,6 @@ function AppRoutes() {
   const shellOwnsSignature = location.pathname === "/" || ["/login", "/register", "/password-email", "/email-verify", "/agent/activate"].includes(location.pathname);
   const needsEventFlyerAssistant = location.pathname === "/event/create" || /^\/event\/edit\/[^/]+$/.test(location.pathname);
   const needsEventSeriesLauncher = location.pathname === "/event/manage";
-  const performanceCriticalRoute = location.pathname.startsWith("/checkout/");
-  const interactionHeavyRoute = performanceCriticalRoute
-    || location.pathname.startsWith("/production/edit/")
-    || location.pathname.startsWith("/event/edit/")
-    || location.pathname === "/event/create"
-    || location.pathname === "/event/manage"
-    || location.pathname.startsWith("/messages")
-    || location.pathname.startsWith("/checkin")
-    || location.pathname.startsWith("/admin/")
-    || location.pathname.startsWith("/producer/");
   const needsFormEnhancers = location.pathname.startsWith("/admin/")
     || location.pathname === "/event/create"
     || location.pathname.startsWith("/event/edit/")

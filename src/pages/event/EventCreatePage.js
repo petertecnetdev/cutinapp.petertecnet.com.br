@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Card, Col, Container, Form, Row } from "react-bootstrap";
 import { useLocation, useNavigate } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
@@ -9,7 +9,6 @@ import eventService from "../../services/EventService";
 import cutinappService from "../../services/CutinappService";
 import creativeService from "../../services/CreativeService";
 import { storageUrl } from "../../config";
-import { AuthContext } from "../../context/AuthContext";
 import { showImportantAlert, showProducerAgreementRequired } from "../../utils/sweetAlert";
 import { EVENT_POSTER_HINT, validateEventPosterFile } from "../../utils/eventPoster";
 
@@ -137,7 +136,6 @@ const productionAddress = (production) => {
 export default function EventCreatePage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useContext(AuthContext);
   const [form, setForm] = useState(createInitialForm);
   const [productions, setProductions] = useState([]);
   const [productionItems, setProductionItems] = useState([]);
