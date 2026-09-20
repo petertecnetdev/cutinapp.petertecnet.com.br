@@ -174,7 +174,6 @@ export default function ProductionPublicPage() {
   const whatsappShareHref = `https://wa.me/?text=${encodeURIComponent(whatsappShareMessage)}`;
   const descriptionText = String(production.description || "");
   const longDescription = descriptionText.replace(/<[^>]*>/g, "").length > 420;
-  const nextEvent = upcoming[0] || null;
 
   const shareNative = async () => {
     try {
