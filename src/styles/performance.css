@@ -45,7 +45,10 @@
   .cut-glass,
   [class*="glass-card"],
   [class*="glass-panel"],
-  .cut-home-discovery__sceneCard {
+  .cut-home-discovery__sceneCard,
+  .cut-production-themed-page .cut-panel,
+  .cut-production-themed-page .cut-empty-state,
+  .cut-production-themed-page .cut-production-event-slide {
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
   }
