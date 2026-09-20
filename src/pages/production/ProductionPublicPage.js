@@ -5,12 +5,11 @@ import { AuthContext } from "../../context/AuthContext";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import ProductionTicketCartModal from "../../components/event/ProductionTicketCartModal";
-import EventArtwork from "../../components/event/EventArtwork";
+import EventDiscoveryRail from "../../components/event/EventDiscoveryRail";
 import { FormattedText } from "../../components/editor/FormattedText";
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
 import { safeExternalHref } from "../../utils/safeUrl";
-import { activateOnKeyboard } from "../../utils/keyboardActivation";
 import { subscribeGalleryUpdates } from "../../utils/gallerySync";
 import "./production-experience.css";
 import "../../components/WhatsAppFloatingButton.css";
@@ -30,49 +29,6 @@ const fmt = (value) => value
 
 const initials = (name) => String(name || "U").split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
 
-const eventDateBadge = (value) => {
-  if (!value) return { day: "—", month: "DATA", weekday: "" };
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return { day: "—", month: "DATA", weekday: "" };
-  return {
-    day: new Intl.DateTimeFormat("pt-BR", { day: "2-digit", timeZone: "America/Sao_Paulo" }).format(date),
-    month: new Intl.DateTimeFormat("pt-BR", { month: "short", timeZone: "America/Sao_Paulo" }).format(date).replace(".", "").toUpperCase(),
-    weekday: new Intl.DateTimeFormat("pt-BR", { weekday: "short", timeZone: "America/Sao_Paulo" }).format(date).replace(".", ""),
-  };
-};
-
-const eventPrice = (event) => {
-  const candidates = [event?.starting_price, event?.min_price, event?.price_from, event?.lowest_price, event?.ticket_price, event?.price];
-  const numeric = candidates.map(Number).find((value) => Number.isFinite(value) && value >= 0);
-  if (numeric == null) return "";
-  if (numeric === 0) return "Grátis";
-  return `A partir de ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(numeric)}`;
-};
-
-const ticketAvailability = (event) => {
-  if (event?.sold_out === true || event?.is_sold_out === true) return { label: "Esgotado", soldOut: true };
-  const remaining = [event?.available_tickets, event?.tickets_available, event?.remaining_tickets, event?.capacity_remaining]
-    .map(Number)
-    .find((value) => Number.isFinite(value));
-  if (remaining === 0) return { label: "Esgotado", soldOut: true };
-  if (remaining > 0 && remaining <= 20) return { label: `Últimos ${remaining}`, soldOut: false };
-  if (event?.available === false) return { label: "Indisponível", soldOut: true };
-  return { label: "Ingressos disponíveis", soldOut: false };
-};
-
-const eventMoment = (value) => {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  const now = new Date();
-  const eventDay = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  const diffDays = Math.round((eventDay - today) / 86400000);
-  if (diffDays === 0) return "Hoje";
-  if (diffDays > 0 && diffDays <= 7) return "Esta semana";
-  return "";
-};
-
 export default function ProductionPublicPage() {
   const { slug } = useParams();
   const { user } = useContext(AuthContext);
@@ -89,7 +45,6 @@ export default function ProductionPublicPage() {
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [showMap, setShowMap] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [agendaVisible, setAgendaVisible] = useState(8);
   const mapSectionRef = useRef(null);
 
   const loadCore = useCallback(async () => {
@@ -105,7 +60,6 @@ export default function ProductionPublicPage() {
     setError("");
     setDescriptionExpanded(false);
     setShowMap(false);
-    setAgendaVisible(8);
 
     (async () => {
       try {
@@ -219,7 +173,6 @@ export default function ProductionPublicPage() {
   const whatsappShareHref = `https://wa.me/?text=${encodeURIComponent(whatsappShareMessage)}`;
   const descriptionText = String(production.description || "");
   const longDescription = descriptionText.replace(/<[^>]*>/g, "").length > 420;
-  const visibleUpcoming = upcoming.slice(0, agendaVisible);
   const nextEvent = upcoming[0] || null;
 
   const shareNative = async () => {
@@ -303,66 +256,19 @@ export default function ProductionPublicPage() {
       <Container className="cut-page-container py-4 py-lg-5">
         {error && <Alert variant="danger" dismissible onClose={() => setError("")}>{error}</Alert>}
 
-        <section className="cut-production-section cut-production-agenda-section cut-production-agenda-section--priority">
-          <div className="cut-production-section-head cut-production-agenda-head">
-            <div>
-              <span className="cut-eyebrow">Agenda</span>
-              <h2>Próximos eventos</h2>
-              <p className="cut-production-agenda-copy">As próximas experiências desta produção, em ordem de data.</p>
-            </div>
-            <Button variant="outline-light" onClick={() => navigate(`/agenda/${slug}`)}><i className="fa-regular fa-calendar-days me-2" />Ver todos</Button>
-          </div>
-
-          {upcoming.length === 0 ? (
-            <Card className="cut-empty-state"><Card.Body><span className="cut-production-agenda-empty-icon"><i className="fa-regular fa-calendar" /></span><h3>Nenhum próximo evento anunciado</h3><p>Quando uma nova data for publicada, ela aparecerá aqui.</p></Card.Body></Card>
-          ) : (
-            <>
-              <div className="cut-production-events-carousel" aria-label="Próximos eventos da produção">
-                {visibleUpcoming.map((event, index) => {
-                  const badge = eventDateBadge(event.start_date);
-                  const availability = ticketAvailability(event);
-                  const moment = eventMoment(event.start_date);
-                  const price = eventPrice(event);
-                  return (
-                    <article
-                      className={`cut-production-event-slide ${index === 0 ? "is-featured" : ""}`}
-                      key={event.id}
-                      role="link"
-                      tabIndex={0}
-                      aria-label={`Abrir evento ${event.title}`}
-                      onClick={() => navigate(`/event/${event.slug}`)}
-                      onKeyDown={(e) => activateOnKeyboard(e, () => navigate(`/event/${event.slug}`))}
-                      onMouseEnter={() => { if (event.image) { const image = new Image(); image.src = mediaUrl(event.image); } }}
-                    >
-                      <div className="cut-production-event-slide__media">
-                        <EventArtwork image={event.image} title={event.title} alt={event.title} loading={index < 2 ? "eager" : "lazy"} decoding="async" fallbackClassName="cut-production-event-slide__fallback" />
-                        <span className="cut-production-event-date"><small>{badge.weekday}</small><strong>{badge.day}</strong><small>{badge.month}</small></span>
-                        {moment && <span className="cut-production-event-moment">{moment}</span>}
-                      </div>
-                      <div className="cut-production-event-slide__body">
-                        <span className="cut-eyebrow">{event.category || "Evento"}</span>
-                        <h3>{event.title}</h3>
-                        <div className="cut-production-event-meta">
-                          <p><i className="fa-regular fa-clock" />{fmt(event.start_date)}</p>
-                          <p><i className="fa-solid fa-location-dot" />{event.venue || event.city || "Local a definir"}</p>
-                        </div>
-                        <div className="cut-production-event-commercial">
-                          {price && <strong>{price}</strong>}
-                          <span className={availability.soldOut ? "is-sold-out" : ""}>{availability.label}</span>
-                        </div>
-                        <div className="cut-production-event-slide__cta">
-                          <span>Ver evento</span>
-                          {!availability.soldOut && <button type="button" onClick={(e) => { e.stopPropagation(); navigate(`/event/${event.slug}`); }}>Comprar ingresso</button>}
-                        </div>
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-              {agendaVisible < upcoming.length && <div className="cut-production-progressive-actions"><Button variant="outline-light" onClick={() => setAgendaVisible((current) => current + 8)}>Carregar mais eventos</Button><span>{Math.min(agendaVisible, upcoming.length)} de {upcoming.length}</span></div>}
-            </>
-          )}
-        </section>
+        <EventDiscoveryRail
+          className="cut-production-section cut-production-agenda-section cut-production-agenda-section--priority"
+          events={upcoming}
+          productionOverride={production}
+          eyebrow="Agenda"
+          title="Próximos eventos"
+          description="As próximas experiências desta produção, em ordem de data."
+          allTo={`/agenda/${slug}`}
+          allLabel="Ver todos"
+          emptyTitle="Nenhum próximo evento anunciado"
+          emptyText="Quando uma nova data for publicada, ela aparecerá aqui."
+          maxItems={12}
+        />
 
         <div className="cut-production-public-about">
           <Card className="cut-panel cut-production-about-card">
