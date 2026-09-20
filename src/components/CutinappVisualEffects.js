@@ -94,16 +94,18 @@ export default function CutinappVisualEffects() {
       root.style.setProperty("--cut-scroll-y", "0px");
     }
 
-    const revealNodes = Array.from(document.querySelectorAll(REVEAL_SELECTOR));
+    // O modo mobile-lite não usa animação de entrada. Evitar a varredura global do
+    // DOM e escritas de classe/style em cada card reduz trabalho síncrono por rota.
+    const revealNodes = mobileLite ? [] : Array.from(document.querySelectorAll(REVEAL_SELECTOR));
     revealNodes.forEach((node, index) => {
       node.classList.add("cut-fx-reveal");
-      node.style.setProperty("--cut-reveal-delay", mobileLite ? "0ms" : `${Math.min(index % 8, 7) * 45}ms`);
+      node.style.setProperty("--cut-reveal-delay", `${Math.min(index % 8, 7) * 45}ms`);
     });
 
     let observer = null;
-    if (reduceMotion || mobileLite || !("IntersectionObserver" in window)) {
+    if (reduceMotion || !("IntersectionObserver" in window)) {
       revealNodes.forEach((node) => node.classList.add("cut-fx-visible"));
-    } else {
+    } else if (revealNodes.length) {
       observer = new IntersectionObserver(
         (entries) => {
           entries.forEach((entry) => {
