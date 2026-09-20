@@ -46,7 +46,9 @@ export default function ProductionPublicPage() {
   const [showMap, setShowMap] = useState(false);
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState("inicio");
+  const [tabsPinned, setTabsPinned] = useState(false);
   const mapSectionRef = useRef(null);
+  const tabsSentinelRef = useRef(null);
   const contentTopRef = useRef(null);
   const eventsSectionRef = useRef(null);
   const photosSectionRef = useRef(null);
@@ -180,6 +182,22 @@ export default function ProductionPublicPage() {
   const descriptionText = String(production.description || "");
   const longDescription = descriptionText.replace(/<[^>]*>/g, "").length > 420;
 
+  useEffect(() => {
+    const sentinel = tabsSentinelRef.current;
+    if (!sentinel) return undefined;
+    const onScroll = () => {
+      const navHeight = document.querySelector(".navbar")?.getBoundingClientRect().height || 0;
+      setTabsPinned(sentinel.getBoundingClientRect().top <= navHeight);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, [production?.id]);
+
   const goToTab = (key) => {
     setActiveTab(key);
     const targets = {
@@ -269,7 +287,8 @@ export default function ProductionPublicPage() {
         </Container>
       </section>
 
-      <nav className="cut-production-profile-tabs" aria-label="Seções da produção">
+      <div ref={tabsSentinelRef} className="cut-production-tabs-sentinel" aria-hidden="true" />
+      <nav className={`cut-production-profile-tabs ${tabsPinned ? "is-fixed" : ""}` } aria-label="Seções da produção">
         {[
           ["inicio", "Início"],
           ["eventos", "Eventos"],
