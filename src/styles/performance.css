@@ -17,9 +17,8 @@
   }
 }
 
-
 /* Mobile/GPU performance guardrails: preserve the glass identity without
-   repainting dozens of expensive backdrop filters during scroll. */
+   repainting expensive filters and deep shadows while the viewport moves. */
 @media (max-width: 900px) {
   .cut-event-card,
   .cut-production-card,
@@ -42,7 +41,23 @@
   body.is-scrolling .apple-glass,
   body.is-scrolling .cut-glass,
   body.is-scrolling [class*="glass-card"],
-  body.is-scrolling [class*="glass-panel"] {
+  body.is-scrolling [class*="glass-panel"],
+  body.is-scrolling .cut-panel,
+  body.is-scrolling .cut-event-card,
+  body.is-scrolling .cut-production-card,
+  body.is-scrolling .cut-feed-social-card,
+  body.is-scrolling .cut-community-post {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    filter: none !important;
+    box-shadow: none !important;
+  }
+
+  body.is-scrolling .cut-app-page::before,
+  body.is-scrolling .cut-app-page::after,
+  body.is-scrolling .cut-production-themed-page::before,
+  body.is-scrolling .cut-production-themed-page::after {
+    filter: none !important;
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
   }
