@@ -10,31 +10,58 @@ const tune = (image) => {
   if (!image.getAttribute("fetchpriority") && !isPriorityImage(image)) image.setAttribute("fetchpriority", "low");
 };
 
-const tuneAddedImages = (records) => {
-  const roots = [];
-
+const collectAddedRoots = (records, roots) => {
   records.forEach((record) => record.addedNodes.forEach((node) => {
     if (!(node instanceof Element)) return;
     if (roots.some((root) => root.contains(node))) return;
 
-    // React can report both a newly inserted subtree and descendants from the
-    // same commit. Keep only the highest root so each subtree is scanned once.
     for (let index = roots.length - 1; index >= 0; index -= 1) {
       if (node.contains(roots[index])) roots.splice(index, 1);
     }
     roots.push(node);
   }));
-
-  roots.forEach((root) => {
-    if (root.matches("img")) tune(root);
-    root.querySelectorAll?.("img").forEach(tune);
-  });
 };
+
+const tuneRoots = (roots) => roots.splice(0).forEach((root) => {
+  if (root.matches("img")) tune(root);
+  root.querySelectorAll?.("img").forEach(tune);
+});
 
 export const installGlobalImagePerformance = () => {
   if (typeof window === "undefined" || typeof MutationObserver === "undefined") return () => {};
   document.querySelectorAll("img").forEach(tune);
-  const observer = new MutationObserver(tuneAddedImages);
+
+  const pendingRoots = [];
+  let scheduled = false;
+  let idleId = null;
+  let timeoutId = null;
+
+  const flush = () => {
+    scheduled = false;
+    idleId = null;
+    timeoutId = null;
+    tuneRoots(pendingRoots);
+  };
+
+  const scheduleFlush = () => {
+    if (scheduled) return;
+    scheduled = true;
+    if (typeof window.requestIdleCallback === "function") {
+      idleId = window.requestIdleCallback(flush, { timeout: 120 });
+      return;
+    }
+    timeoutId = window.setTimeout(flush, 32);
+  };
+
+  const observer = new MutationObserver((records) => {
+    collectAddedRoots(records, pendingRoots);
+    scheduleFlush();
+  });
+
   observer.observe(document.documentElement, { childList: true, subtree: true });
-  return () => observer.disconnect();
+  return () => {
+    observer.disconnect();
+    if (idleId !== null && typeof window.cancelIdleCallback === "function") window.cancelIdleCallback(idleId);
+    if (timeoutId !== null) window.clearTimeout(timeoutId);
+  };
 };
