@@ -31,6 +31,13 @@
 /* Mobile/GPU performance guardrails: keep surfaces crisp without paying the
    continuous backdrop sampling cost that makes mid-range Android scroll jank. */
 @media (max-width: 900px) {
+  /* The global body decoration is a fixed, full-viewport pair of radial
+     gradients. It carries no information and stays in the paint path while the
+     document scrolls, so mobile uses the solid body background instead. */
+  body::before {
+    display: none;
+  }
+
   /* Shared panels are used throughout long app pages. Skipping layout and paint
      until an offscreen panel approaches the viewport keeps the first render and
      long-scroll path cheaper without hiding or unmounting any content. */
