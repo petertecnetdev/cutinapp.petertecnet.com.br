@@ -13,6 +13,14 @@
   contain-intrinsic-size: auto 420px;
 }
 
+/* Production profiles are long, section-heavy pages. Let the browser skip
+   layout/paint for sections that are still outside the viewport while keeping
+   a learned intrinsic size to avoid scroll jumps after the first render. */
+.cut-production-themed-page .cut-panel {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 560px;
+}
+
 @media (max-width: 900px), (prefers-reduced-motion: reduce) {
   .cut-fx-pointer-light,
   .cut-fx-progress {
