@@ -23,6 +23,9 @@ const collectAddedRoots = (records, roots) => {
 };
 
 const tuneRoots = (roots) => roots.splice(0).forEach((root) => {
+  // React may replace/remove a subtree before the idle callback runs. Avoid
+  // traversing detached DOM that can no longer affect the rendered page.
+  if (!root.isConnected) return;
   if (root.matches("img")) tune(root);
   root.querySelectorAll?.("img").forEach(tune);
 });
