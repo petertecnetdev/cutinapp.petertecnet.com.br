@@ -67,6 +67,7 @@
   body.is-scrolling .cut-community-post {
     filter: none !important;
     box-shadow: none !important;
+    transition: none !important;
   }
 
   body.is-scrolling .cut-app-page::before,
