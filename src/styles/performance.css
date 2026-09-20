@@ -31,6 +31,14 @@
 /* Mobile/GPU performance guardrails: keep surfaces crisp without paying the
    continuous backdrop sampling cost that makes mid-range Android scroll jank. */
 @media (max-width: 900px) {
+  /* Shared panels are used throughout long app pages. Skipping layout and paint
+     until an offscreen panel approaches the viewport keeps the first render and
+     long-scroll path cheaper without hiding or unmounting any content. */
+  .cut-app-page .cut-panel {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 360px;
+  }
+
   :is(
     .cut-event-card,
     .cut-production-card,
