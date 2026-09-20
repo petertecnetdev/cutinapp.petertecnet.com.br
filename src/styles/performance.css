@@ -1,12 +1,14 @@
 /* Rendering containment for long discovery/social lists. */
-.cut-event-card,
-.cut-production-card,
-.cut-pass-card,
-.cut-artist-card,
-.cut-feed-card,
-.cut-feed-social-card,
-.cut-notification-card,
-.cut-community-post {
+:is(
+  .cut-event-card,
+  .cut-production-card,
+  .cut-pass-card,
+  .cut-artist-card,
+  .cut-feed-card,
+  .cut-feed-social-card,
+  .cut-notification-card,
+  .cut-community-post
+) {
   content-visibility: auto;
   contain-intrinsic-size: auto 420px;
 }
@@ -21,14 +23,16 @@
 /* Mobile/GPU performance guardrails: keep surfaces crisp without paying the
    continuous backdrop sampling cost that makes mid-range Android scroll jank. */
 @media (max-width: 900px) {
-  .cut-event-card,
-  .cut-production-card,
-  .cut-pass-card,
-  .cut-artist-card,
-  .cut-feed-card,
-  .cut-feed-social-card,
-  .cut-notification-card,
-  .cut-community-post {
+  :is(
+    .cut-event-card,
+    .cut-production-card,
+    .cut-pass-card,
+    .cut-artist-card,
+    .cut-feed-card,
+    .cut-feed-social-card,
+    .cut-notification-card,
+    .cut-community-post
+  ) {
     contain: layout paint style;
     /* Filters and large shadows create extra paint/compositing work per card.
        Long feeds should stay flat and cheap while preserving borders/backgrounds. */
@@ -62,30 +66,36 @@
 
   /* Avoid expensive paint work while the viewport is actively moving. This
      also covers shared panels, which appear repeatedly between list cards. */
-  body.is-scrolling .apple-glass,
-  body.is-scrolling .cut-glass,
-  body.is-scrolling [class*="glass-card"],
-  body.is-scrolling [class*="glass-panel"],
-  body.is-scrolling .cut-panel,
-  body.is-scrolling .card,
-  body.is-scrolling .modal-content,
-  body.is-scrolling .cut-event-card,
-  body.is-scrolling .cut-production-card,
-  body.is-scrolling .cut-pass-card,
-  body.is-scrolling .cut-artist-card,
-  body.is-scrolling .cut-feed-card,
-  body.is-scrolling .cut-feed-social-card,
-  body.is-scrolling .cut-notification-card,
-  body.is-scrolling .cut-community-post {
+  body.is-scrolling :is(
+    .apple-glass,
+    .cut-glass,
+    [class*="glass-card"],
+    [class*="glass-panel"],
+    .cut-panel,
+    .card,
+    .modal-content,
+    .cut-event-card,
+    .cut-production-card,
+    .cut-pass-card,
+    .cut-artist-card,
+    .cut-feed-card,
+    .cut-feed-social-card,
+    .cut-notification-card,
+    .cut-community-post
+  ) {
     filter: none !important;
     box-shadow: none !important;
     transition: none !important;
   }
 
-  body.is-scrolling .cut-app-page::before,
-  body.is-scrolling .cut-app-page::after,
-  body.is-scrolling .cut-production-themed-page::before,
-  body.is-scrolling .cut-production-themed-page::after {
+  body.is-scrolling :is(
+    .cut-app-page,
+    .cut-production-themed-page
+  )::before,
+  body.is-scrolling :is(
+    .cut-app-page,
+    .cut-production-themed-page
+  )::after {
     filter: none !important;
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
