@@ -693,3 +693,98 @@ body.is-scrolling .cut-production-inline-editor__footerActions{
     background:rgba(2,8,13,.78);
   }
 }
+
+
+/* Keep create/edit spatially identical to the public production hero. */
+.cut-production-inline-editor__hero{
+  min-height:560px;
+  align-items:stretch;
+  padding:24px 0 24px;
+}
+.cut-production-inline-editor__hero>.cut-page-container{
+  width:100%;
+  display:flex;
+  flex-direction:column;
+}
+.cut-production-inline-editor__modebar{
+  margin-bottom:20px;
+}
+.cut-production-inline-editor__hero .cut-production-inline-editor__identity{
+  width:min(900px,100%);
+  max-width:900px;
+  margin-top:auto;
+  padding:20px 22px;
+  align-items:flex-end;
+  border:1px solid #263442;
+  border-radius:26px;
+  background:#071018;
+  box-shadow:0 22px 48px #000;
+}
+.cut-production-inline-editor__hero .cut-production-public-logo{
+  width:132px;
+  height:132px;
+  flex-basis:132px;
+  border:2px solid #344454;
+  border-radius:26px;
+  background:#0b1620;
+}
+.cut-production-inline-editor__heroCopy{
+  flex:1 1 auto;
+  width:auto;
+}
+@media(max-width:991.98px){
+  .cut-production-inline-editor__hero{
+    min-height:520px;
+    padding:20px 0 18px;
+  }
+  .cut-production-inline-editor__hero .cut-production-inline-editor__identity{
+    width:100%;
+    max-width:none;
+    padding:18px;
+    align-items:flex-end;
+  }
+  .cut-production-inline-editor__hero .cut-production-public-logo{
+    width:108px;
+    height:108px;
+    flex-basis:108px;
+    border-radius:22px;
+  }
+}
+@media(max-width:767.98px){
+  .cut-production-inline-editor__hero{
+    min-height:480px;
+    padding:16px 0 12px;
+  }
+  .cut-production-inline-editor__modebar{
+    margin-bottom:14px;
+  }
+  .cut-production-inline-editor__hero .cut-production-inline-editor__identity{
+    gap:12px;
+    padding:13px;
+    border-radius:20px;
+    background:#071018;
+  }
+  .cut-production-inline-editor__hero .cut-production-public-logo{
+    width:76px!important;
+    height:76px!important;
+    flex-basis:76px;
+    border-radius:18px!important;
+  }
+}
+@media(max-width:420px){
+  .cut-production-inline-editor__hero{
+    min-height:500px;
+  }
+  .cut-production-inline-editor__hero .cut-production-inline-editor__identity{
+    display:grid!important;
+    grid-template-columns:64px minmax(0,1fr);
+  }
+  .cut-production-inline-editor__hero .cut-production-public-logo{
+    width:64px!important;
+    height:64px!important;
+    flex-basis:64px;
+  }
+  .cut-production-inline-editor__heroCopy{
+    grid-column:1/-1;
+  }
+}
