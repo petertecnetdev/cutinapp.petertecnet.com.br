@@ -267,15 +267,15 @@ export default function ProductionCreatePage() {
               </div>
             </div>
 
-            <div className="cut-profile-hero__content">
+            <div className="cut-profile-hero__content cut-production-public-identity cut-production-inline-editor__identity">
               <div className="cut-production-inline-editor__avatarWrap">
-                <div className="cut-profile-avatar cut-profile-avatar--square">
+                <div className="cut-profile-avatar cut-profile-avatar--square cut-production-public-logo">
                   {logoPreview ? <img src={logoPreview} alt={displayName} /> : <span>{displayName.split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "P"}</span>}
                 </div>
                 <label className="cut-production-inline-editor__imageButton is-logo" htmlFor="production-create-logo" title="Adicionar logo" aria-label="Adicionar logo da produção"><i className="fa-solid fa-camera" /></label>
               </div>
 
-              <div className="cut-production-inline-editor__heroCopy">
+              <div className="cut-production-inline-editor__heroCopy cut-production-public-hero-copy">
                 <span className="cut-eyebrow">Produção Cutinapp</span>
                 <Form.Control
                   name="name"
