@@ -139,6 +139,20 @@
     backdrop-filter: none !important;
   }
 
+  /* Bootstrap modals animate a full-viewport backdrop and dialog by default.
+     On compact devices that creates an avoidable compositing/paint burst exactly
+     when the user expects immediate feedback. Keep modal state changes instant
+     and never sample the page behind the full-screen backdrop. */
+  .modal-backdrop,
+  .modal.fade .modal-dialog {
+    transition: none !important;
+  }
+
+  .modal-backdrop {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
   /* The event discovery filter shell stays visible near the top while users
      scroll the results. Its large shadow and radial paint are decorative but
      expensive on mid-range Android GPUs, so keep the same solid panel surface. */
