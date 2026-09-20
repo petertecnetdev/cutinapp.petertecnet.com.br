@@ -101,6 +101,7 @@
   .cut-app-page .cut-panel {
     content-visibility: auto;
     contain-intrinsic-size: auto 360px;
+    contain: layout paint style;
   }
 
   :is(
