@@ -15,9 +15,8 @@ export default function MessagingNotificationBridge() {
     if (!user?.id) return undefined;
 
     let stopped = false;
+    let timer = null;
     const heartbeat = () => messagingService.heartbeat().catch(() => undefined);
-    heartbeat();
-    const timer = window.setInterval(heartbeat, HEARTBEAT_MS);
 
     const preparePush = async () => {
       if (stopped) return;
@@ -28,7 +27,16 @@ export default function MessagingNotificationBridge() {
       }
     };
 
-    preparePush();
+    const startBackgroundWork = () => {
+      if (stopped) return;
+      heartbeat();
+      timer = window.setInterval(heartbeat, HEARTBEAT_MS);
+      preparePush();
+    };
+    const idleHandle = window.requestIdleCallback
+      ? window.requestIdleCallback(startBackgroundWork, { timeout: 1800 })
+      : window.setTimeout(startBackgroundWork, 600);
+
     const permissionChanged = () => preparePush();
     window.addEventListener(PERMISSION_EVENT, permissionChanged);
 
@@ -46,7 +54,9 @@ export default function MessagingNotificationBridge() {
 
     return () => {
       stopped = true;
-      window.clearInterval(timer);
+      if (window.cancelIdleCallback && typeof idleHandle === "number") window.cancelIdleCallback(idleHandle);
+      else window.clearTimeout(idleHandle);
+      if (timer) window.clearInterval(timer);
       window.removeEventListener(PERMISSION_EVENT, permissionChanged);
       unsubscribeRealtime?.();
     };
