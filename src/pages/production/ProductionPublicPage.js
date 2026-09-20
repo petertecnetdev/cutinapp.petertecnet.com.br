@@ -45,6 +45,7 @@ export default function ProductionPublicPage() {
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [showMap, setShowMap] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState("inicio");
   const mapSectionRef = useRef(null);
 
   const loadCore = useCallback(async () => {
@@ -230,14 +231,6 @@ export default function ProductionPublicPage() {
                 <span>{upcoming.length} próximos eventos</span>
               </div>
 
-              {nextEvent && (
-                <button type="button" className="cut-production-next-event-chip" onClick={() => navigate(`/event/${nextEvent.slug}`)}>
-                  <i className="fa-regular fa-calendar" />
-                  <span><strong>Próximo:</strong> {nextEvent.title}</span>
-                  <i className="fa-solid fa-arrow-right" />
-                </button>
-              )}
-
               <div className="cut-card-actions mt-3 cut-production-public-primary-actions">
                 <Button onClick={toggleFollow} disabled={busy}>{production.is_following ? "Seguindo" : "Seguir"}</Button>
                 {sellableUpcoming.length > 0 && <Button variant="success" onClick={() => setTicketCartOpen(true)}><i className="fa-solid fa-ticket me-2" />Ingressos</Button>}
@@ -253,8 +246,27 @@ export default function ProductionPublicPage() {
         </Container>
       </section>
 
+      <nav className="cut-production-profile-tabs" aria-label="Seções da produção">
+        {[
+          ["inicio", "Início"],
+          ["eventos", "Eventos"],
+          ["fotos", "Fotos"],
+          ["sobre", "Sobre"],
+          ["publicacoes", "Publicações"],
+        ].map(([key, label]) => (
+          <button key={key} type="button" className={activeTab === key ? "is-active" : ""} onClick={() => setActiveTab(key)}>{label}</button>
+        ))}
+      </nav>
+
       <Container className="cut-page-container py-4 py-lg-5">
         {error && <Alert variant="danger" dismissible onClose={() => setError("")}>{error}</Alert>}
+
+        <div className="cut-production-profile-stats" aria-label="Resumo da produção">
+          <div><i className="fa-regular fa-eye" /><strong>{analytics.total_views || 0}</strong><span>Visualizações</span></div>
+          <div><i className="fa-regular fa-calendar" /><strong>{upcoming.length}</strong><span>Próximos eventos</span></div>
+          <div><i className="fa-solid fa-users" /><strong>{production.followers_count || 0}</strong><span>Seguidores</span></div>
+          <div><i className="fa-regular fa-heart" /><strong>{production.likes_count || 0}</strong><span>Curtidas</span></div>
+        </div>
 
         <EventDiscoveryRail
           className="cut-production-section cut-production-agenda-section cut-production-agenda-section--priority"
