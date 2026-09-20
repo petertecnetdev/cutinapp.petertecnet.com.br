@@ -62,6 +62,14 @@
     box-shadow: none;
   }
 
+  /* Bottom-nav items are permanently visible while the document moves behind
+     them. Avoid transform transitions/layer promotion on touch; background and
+     opacity still provide clear active-state feedback without compositor churn. */
+  .cut-mobile-bottom-nav :is(a, button) {
+    transform: none !important;
+    transition-property: background, opacity, color;
+  }
+
   /* Shared panels are used throughout long app pages. Skipping layout and paint
      until an offscreen panel approaches the viewport keeps the first render and
      long-scroll path cheaper without hiding or unmounting any content. */
