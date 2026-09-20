@@ -964,3 +964,187 @@
     padding:0 0 8px!important;
   }
 }
+
+
+/* Production social profile v2 — matches the approved mobile reference. */
+.cut-production-themed-page__hero--public{
+  min-height:clamp(360px,62vw,610px)!important;
+  margin-bottom:0!important;
+  padding:0!important;
+  background-position:center!important;
+  border-bottom:0!important;
+}
+.cut-production-themed-page__hero--public>.cut-page-container{
+  align-self:flex-end;
+  transform:none!important;
+  padding-bottom:0;
+}
+.cut-production-public-identity{
+  display:block!important;
+  padding:0 18px 20px!important;
+  background:linear-gradient(180deg,transparent 0%,rgba(2,8,13,.86) 35%,#02080d 100%)!important;
+}
+.cut-production-public-logo{
+  width:136px!important;
+  height:136px!important;
+  margin-bottom:8px;
+  border:4px solid #f3f6fb!important;
+  border-radius:50%!important;
+}
+.cut-production-public-hero-copy{padding:0!important}
+.cut-production-public-meta-row{display:none!important}
+.cut-production-public-hero-copy h1{
+  margin:0 0 7px!important;
+  font-size:clamp(2rem,6vw,3.25rem)!important;
+  letter-spacing:-.04em!important;
+}
+.cut-production-public-location{margin:0 0 8px!important}
+.cut-production-public-hero-copy>.cut-social-stats{
+  justify-content:flex-start;
+  margin:0 0 12px!important;
+}
+.cut-production-public-primary-actions{
+  display:grid!important;
+  grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) auto;
+  gap:10px!important;
+  width:100%;
+  margin-top:10px!important;
+}
+.cut-production-public-primary-actions>.btn{
+  min-height:48px;
+  border-radius:14px;
+  font-weight:850;
+}
+.cut-production-public-primary-actions>.btn:first-child{
+  border:0;
+  background:linear-gradient(105deg,#c03cff,#00b7ff);
+}
+.cut-production-public-more{display:contents!important}
+.cut-production-public-more .btn{
+  min-width:48px!important;
+  width:48px!important;
+  min-height:48px;
+  border-radius:14px;
+}
+.cut-production-public-more a[title="Instagram"],
+.cut-production-public-more a[title="Site"]{display:none!important}
+
+.cut-production-profile-tabs{
+  position:sticky;
+  top:var(--cut-nav-height,64px);
+  z-index:12;
+  display:flex;
+  width:100%;
+  overflow-x:auto;
+  padding:0 max(16px,calc((100vw - 1180px)/2));
+  background:#02080d;
+  border-bottom:1px solid #182330;
+  scrollbar-width:none;
+}
+.cut-production-profile-tabs::-webkit-scrollbar{display:none}
+.cut-production-profile-tabs button{
+  flex:1 0 auto;
+  min-width:92px;
+  padding:17px 12px 14px;
+  border:0;
+  border-bottom:3px solid transparent;
+  background:transparent;
+  color:#aeb7c5;
+  font-size:.84rem;
+  font-weight:800;
+}
+.cut-production-profile-tabs button.is-active{
+  border-bottom-color:#c45cff;
+  color:#e6a4ff;
+}
+.cut-production-profile-stats{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  margin:0 0 22px;
+  padding:16px 8px;
+  border:1px solid #1d2a39;
+  border-radius:18px;
+  background:#071018;
+}
+.cut-production-profile-stats>div{
+  display:grid;
+  place-items:center;
+  gap:3px;
+  min-width:0;
+  padding:0 10px;
+  border-right:1px solid #1d2a39;
+  text-align:center;
+}
+.cut-production-profile-stats>div:last-child{border-right:0}
+.cut-production-profile-stats i{font-size:1.15rem;color:#c45cff}
+.cut-production-profile-stats>div:nth-child(1) i{color:#67e8f9}
+.cut-production-profile-stats>div:nth-child(4) i{color:#f472b6}
+.cut-production-profile-stats strong{font-size:1.05rem;color:#fff}
+.cut-production-profile-stats span{font-size:.7rem;color:#9ba6b5}
+
+.cut-production-public-about{
+  display:block!important;
+}
+.cut-production-about-card,
+.cut-production-location-card{
+  border:0!important;
+  background:transparent!important;
+}
+.cut-production-about-card .card-body,
+.cut-production-location-card .card-body{
+  padding-left:0!important;
+  padding-right:0!important;
+}
+.cut-production-public-social{display:flex;gap:10px;flex-wrap:wrap}
+.cut-production-public-social .btn{border-radius:999px}
+
+@media(max-width:767.98px){
+  .cut-production-themed-page__hero--public{
+    min-height:570px!important;
+  }
+  .cut-production-public-identity{
+    display:block!important;
+    padding:0 16px 18px!important;
+  }
+  .cut-production-public-logo{
+    width:112px!important;
+    height:112px!important;
+    margin-bottom:8px;
+  }
+  .cut-production-public-hero-copy{
+    grid-column:auto!important;
+  }
+  .cut-production-public-hero-copy h1{
+    font-size:2rem!important;
+  }
+  .cut-production-public-primary-actions{
+    grid-template-columns:minmax(0,1.25fr) minmax(0,.95fr) 52px!important;
+  }
+  .cut-production-public-primary-actions>.btn{
+    width:100%!important;
+    padding-left:10px;
+    padding-right:10px;
+  }
+  .cut-production-public-more{grid-column:auto!important}
+  .cut-production-profile-tabs{
+    top:60px;
+    padding:0 6px;
+  }
+  .cut-production-profile-tabs button{
+    min-width:76px;
+    padding:15px 8px 12px;
+    font-size:.76rem;
+  }
+  .cut-production-profile-stats{
+    margin-bottom:16px;
+    padding:13px 4px;
+  }
+  .cut-production-profile-stats>div{padding:0 5px}
+  .cut-production-profile-stats span{font-size:.62rem}
+}
+@media(max-width:420px){
+  .cut-production-themed-page__hero--public{min-height:540px!important}
+  .cut-production-public-logo{width:104px!important;height:104px!important}
+  .cut-production-public-primary-actions{gap:7px!important}
+  .cut-production-profile-tabs button{min-width:72px;font-size:.72rem}
+}
