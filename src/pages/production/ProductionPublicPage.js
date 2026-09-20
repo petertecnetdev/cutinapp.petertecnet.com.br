@@ -173,6 +173,10 @@ export default function ProductionPublicPage() {
   }
 
   const isOwner = Boolean(user && Number(production.user_id) === Number(user.id));
+  const producer = production?.user || null;
+  const producerName = producer?.name || [producer?.first_name, producer?.last_name].filter(Boolean).join(" ") || producer?.user_name || "Produtor";
+  const producerAvatar = mediaUrl(producer?.avatar || producer?.photo || producer?.image);
+
   const upcoming = Array.isArray(data?.upcoming) ? data.upcoming : [];
   const past = Array.isArray(data?.past) ? data.past : [];
   const artists = Array.isArray(data?.artists) ? data.artists : [];
@@ -271,6 +275,12 @@ export default function ProductionPublicPage() {
                 <button type="button" className="cut-inline-profile-link" onClick={() => setShowViewers(true)}><i className="fa-regular fa-eye" /> {analytics.total_views || 0} visualizações</button>
                 <span>{upcoming.length} próximos eventos</span>
               </div>
+
+              {producer?.id && <button type="button" className="cut-production-producer-link" onClick={() => navigate(`/profile/${producer.id}`)} aria-label={`Abrir perfil de ${producerName}`}>
+                <span className="cut-production-producer-avatar">{producerAvatar ? <img src={producerAvatar} alt="" loading="lazy" decoding="async" /> : initials(producerName)}</span>
+                <span className="cut-production-producer-copy"><small>Produzido por</small><strong>{producerName}</strong></span>
+                <i className="fa-solid fa-chevron-right" aria-hidden="true" />
+              </button>}
 
               <div className="cut-card-actions mt-3 cut-production-public-primary-actions">
                 <Button onClick={toggleFollow} disabled={busy}>{production.is_following ? "Seguindo" : "Seguir"}</Button>
