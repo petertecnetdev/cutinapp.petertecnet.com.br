@@ -191,6 +191,16 @@
     contain: paint;
   }
 
+  /* Overlay surfaces are short-lived and interaction-blocking. Let Bootstrap
+     state changes show them immediately on mobile instead of keeping animation
+     or transition work alive over the page compositor. */
+  .dropdown-menu,
+  .modal-content,
+  .offcanvas {
+    animation: none !important;
+    transition: none !important;
+  }
+
   .collapsing,
   .offcanvas,
   .offcanvas-backdrop {
