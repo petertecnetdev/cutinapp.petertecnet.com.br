@@ -119,6 +119,8 @@
   .cut-glass,
   [class*="glass-card"],
   [class*="glass-panel"],
+  .dropdown-menu,
+  .cut-connection-status,
   .cut-home-discovery__sceneCard,
   .cut-production-themed-page .cut-panel,
   .cut-production-themed-page .cut-empty-state,
