@@ -1,6 +1,7 @@
 const memory = new Map();
 const inflight = new Map();
 const SESSION_PREFIX = "cutinapp_public_cache_v1:";
+let cacheGeneration = 0;
 
 const stable = (value) => {
   if (value == null || typeof value !== "object") return value;
@@ -30,7 +31,11 @@ const writeSession = (key, entry) => {
   // payloads can block the main thread immediately after a network response.
   // Memory is already authoritative for the current page, so persist during an
   // idle slice instead of competing with paint, scroll or the next interaction.
+  const generation = cacheGeneration;
   const persist = () => {
+    // Invalidation may happen before this idle callback. Never resurrect an
+    // entry that was deliberately removed after this write was scheduled.
+    if (generation !== cacheGeneration) return;
     try {
       window.sessionStorage.setItem(`${SESSION_PREFIX}${key}`, JSON.stringify(entry));
     } catch (_) {
@@ -72,6 +77,7 @@ const revalidate = (client, key, url, params, fallback) => {
 };
 
 export const invalidatePublicRequestCache = (prefix = "") => {
+  cacheGeneration += 1;
   for (const key of memory.keys()) if (!prefix || key.startsWith(prefix)) memory.delete(key);
   for (const [key, entry] of inflight.entries()) {
     if (!prefix || key.startsWith(prefix)) {
