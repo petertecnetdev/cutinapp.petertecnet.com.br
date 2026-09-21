@@ -32,6 +32,19 @@ const installDeferredEnhancers = async () => {
   const { installGlobalImagePerformance } = await import("./utils/imagePerformance");
   installGlobalImagePerformance();
 
+  const connection = typeof navigator !== "undefined" ? navigator.connection : null;
+  const constrainedNetwork = Boolean(
+    connection?.saveData
+    || connection?.effectiveType === "slow-2g"
+    || connection?.effectiveType === "2g"
+  );
+
+  // Keep optional convenience chunks out of the network/main-thread path on
+  // constrained mobile connections. Core image performance still installs
+  // above, while these progressive enhancers remain available after reload on
+  // normal connections.
+  if (constrainedNetwork) return;
+
   if (!window.location.pathname.startsWith("/checkout/")) {
     const [
       { installInstagramMobileShell },
