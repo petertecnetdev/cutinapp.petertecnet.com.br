@@ -161,3 +161,91 @@
     animation: none;
   }
 }
+
+/*
+ * 2026 visual language refresh
+ * A sharper, app-like hierarchy without blur/backdrop filters. The accent is
+ * concentrated on actions and edges so content stays fast and readable.
+ */
+.cut-app-page {
+  --cut-visual-surface: #0b0b1f;
+  --cut-visual-surface-raised: #11112a;
+  --cut-visual-edge: rgba(151, 113, 255, .22);
+  --cut-visual-edge-active: rgba(98, 223, 255, .44);
+  --cut-visual-shadow: 0 14px 34px rgba(0, 0, 0, .28);
+  background-color: var(--cut-bg);
+}
+
+.cut-app-page :where(h1, h2, h3) {
+  letter-spacing: -.035em;
+  text-wrap: balance;
+}
+
+.cut-app-page :where(.card, .cut-panel, .cut-surface) {
+  border-color: var(--cut-visual-edge);
+  background-color: var(--cut-visual-surface);
+  box-shadow: var(--cut-visual-shadow);
+}
+
+.cut-app-page :where(.card, .cut-panel, .cut-surface) :where(.card, .cut-panel, .cut-surface) {
+  background-color: var(--cut-visual-surface-raised);
+  box-shadow: none;
+}
+
+.cut-app-page :where(.btn-primary, .cut-btn--primary) {
+  border-color: transparent;
+  background: var(--cut-gradient-brand-horizontal);
+  color: #fff;
+  font-weight: 800;
+  letter-spacing: -.01em;
+  box-shadow: 0 8px 22px rgba(113, 65, 247, .24);
+}
+
+.cut-app-page :where(.btn-outline-primary, .cut-btn--secondary) {
+  border-color: rgba(184, 71, 250, .42);
+  background: #101027;
+  color: #f3dcff;
+}
+
+.cut-app-page :where(.badge, .cut-chip, .cut-pill) {
+  border: 1px solid rgba(151, 113, 255, .24);
+  background-color: #14142f;
+  color: #e8e5ff;
+  font-weight: 700;
+}
+
+.cut-app-page :where(.form-control, .form-select, textarea.form-control) {
+  border-color: rgba(151, 113, 255, .20);
+  background-color: #09091c;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cut-app-page :where(.card, .cut-panel, .cut-surface):hover {
+    border-color: var(--cut-visual-edge-active);
+  }
+
+  .cut-app-page :where(.btn-primary, .cut-btn--primary):hover {
+    border-color: transparent;
+    box-shadow: 0 10px 28px rgba(113, 65, 247, .32);
+  }
+}
+
+@media (max-width: 767.98px) {
+  .cut-app-page {
+    --cut-visual-shadow: 0 8px 22px rgba(0, 0, 0, .22);
+  }
+
+  .cut-app-page :where(.card, .cut-panel, .cut-surface) {
+    border-radius: 18px;
+  }
+
+  .cut-app-page :where(h1) {
+    font-size: clamp(1.75rem, 8vw, 2.35rem);
+    line-height: 1.04;
+  }
+
+  .cut-app-page :where(h2) {
+    line-height: 1.1;
+  }
+}
+
