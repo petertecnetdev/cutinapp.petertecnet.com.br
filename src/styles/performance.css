@@ -152,6 +152,9 @@
     box-shadow: none !important;
   }
 
+  /* Decorative full-page pseudo layers add a viewport-sized paint surface and
+     do not carry content. Skip them on mobile instead of merely neutralizing
+     their filters so scrolling does not keep compositing invisible effects. */
   :is(
     .cut-app-page,
     .cut-production-themed-page
@@ -160,9 +163,7 @@
     .cut-app-page,
     .cut-production-themed-page
   )::after {
-    filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    backdrop-filter: none !important;
+    display: none !important;
   }
 
   .cut-home-discovery__ambient {
