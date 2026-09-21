@@ -73,6 +73,13 @@
     box-shadow: none;
   }
 
+  /* The full-screen hamburger is a viewport-sized scroll surface. Isolate its
+     paint invalidation so scrolling the drawer does not repaint page content
+     underneath it on mid-range mobile GPUs. */
+  .cut-navbar .navbar-collapse {
+    contain: paint;
+  }
+
   /* The bottom nav is always fixed in the viewport. Avoid per-control
      transitions there so taps do not keep compositor work alive while the
      page beneath it is scrolling on mid-range mobile GPUs. */
