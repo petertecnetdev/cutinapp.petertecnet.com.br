@@ -25,11 +25,24 @@ const readSession = (key) => {
 
 const writeSession = (key, entry) => {
   if (typeof window === "undefined") return;
-  try {
-    window.sessionStorage.setItem(`${SESSION_PREFIX}${key}`, JSON.stringify(entry));
-  } catch (_) {
-    // sessionStorage pode estar indisponível; cache em memória continua funcionando.
+
+  // sessionStorage + JSON.stringify are synchronous and large discovery/feed
+  // payloads can block the main thread immediately after a network response.
+  // Memory is already authoritative for the current page, so persist during an
+  // idle slice instead of competing with paint, scroll or the next interaction.
+  const persist = () => {
+    try {
+      window.sessionStorage.setItem(`${SESSION_PREFIX}${key}`, JSON.stringify(entry));
+    } catch (_) {
+      // sessionStorage pode estar indisponível; cache em memória continua funcionando.
+    }
+  };
+
+  if (typeof window.requestIdleCallback === "function") {
+    window.requestIdleCallback(persist, { timeout: 1000 });
+    return;
   }
+  window.setTimeout(persist, 0);
 };
 
 const store = (key, data) => {
