@@ -190,6 +190,16 @@
     box-shadow: none;
     transition: none;
   }
+
+  /* Native controls can trigger expensive viewport-wide repaint when browsers
+     synthesize shadows/filters during focus. Keep mobile focus indication cheap
+     and local while retaining a visible keyboard/accessibility outline. */
+  :is(input, select, textarea, button):focus-visible {
+    filter: none;
+    box-shadow: none;
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+  }
 }
 
 @media (hover: none) and (pointer: coarse) {
