@@ -36,6 +36,11 @@
 @media (max-width: 900px) {
   html {
     scroll-behavior: auto;
+    overflow-x: clip;
+  }
+
+  body {
+    overflow-x: clip;
   }
 
   :is(a, button, [role="button"], input, select, textarea) {
@@ -60,8 +65,6 @@
     display: none;
   }
 
-  /* performance.css is the final global layer, so the nav does not need
-     specificity escalation to turn off expensive live backdrop sampling. */
   .cut-mobile-bottom-nav {
     contain: layout paint style;
     -webkit-backdrop-filter: none;
@@ -95,14 +98,9 @@
     filter: none;
     box-shadow: none;
     transition: none;
-    /* performance.css is the final global layer, so these list surfaces can
-       release compositor promotion without escalating specificity. */
     will-change: auto;
   }
 
-  /* Media inside long lists is often the largest paint/decode surface. Skip
-     rendering offscreen media independently from the card so image/video work
-     does not enter the critical scroll path on mid-range Android devices. */
   :is(
     .cut-event-card,
     .cut-production-card,
@@ -129,11 +127,6 @@
     backdrop-filter: none !important;
   }
 
-  /* Bootstrap animates collapse height and slides the offcanvas shell. Height
-     interpolation forces layout on every animation frame and the full-screen
-     offcanvas transition keeps a large layer moving while navigation changes.
-     Compact devices favor immediate state changes: menus remain functionally
-     identical while avoiding layout/compositor work on every open/close. */
   .collapsing,
   .offcanvas,
   .offcanvas-backdrop {
@@ -194,9 +187,6 @@
     transition: none;
   }
 
-  /* Native controls can trigger expensive viewport-wide repaint when browsers
-     synthesize shadows/filters during focus. Keep mobile focus indication cheap
-     and local while retaining a visible keyboard/accessibility outline. */
   :is(input, select, textarea, button):focus-visible {
     filter: none;
     box-shadow: none;
