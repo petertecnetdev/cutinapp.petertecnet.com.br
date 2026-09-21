@@ -212,6 +212,13 @@
 }
 
 @media (hover: none) and (pointer: coarse) {
+  /* Touch devices do not need hover-transition choreography. Removing it from
+     interactive controls keeps taps immediate and avoids transition/compositor
+     work competing with a gesture-driven scroll. */
+  :is(a, button, [role="button"]) {
+    transition: none;
+  }
+
   :is(
     .cut-event-card,
     .cut-production-card,
