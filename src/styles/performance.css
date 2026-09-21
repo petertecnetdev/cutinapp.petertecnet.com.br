@@ -129,6 +129,16 @@
     backdrop-filter: none !important;
   }
 
+  /* Dropdowns and connection banners are transient overlays that can overlap
+     a large part of the viewport. Keep their mobile paint path flat so opening
+     or scrolling beneath them does not continuously rasterize shadow/filter
+     effects on mid-range GPUs. */
+  .dropdown-menu,
+  .cut-connection-status {
+    filter: none !important;
+    box-shadow: none !important;
+  }
+
   .collapsing,
   .offcanvas,
   .offcanvas-backdrop {
