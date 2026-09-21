@@ -13,12 +13,6 @@
     overflow-x: clip;
   }
 
-  *,
-  *::before,
-  *::after {
-    box-sizing: border-box;
-  }
-
   html[data-cut-instagram-shell="active"] body.cut-has-mobile-bottom-nav {
     padding-bottom: calc(var(--cut-mobile-bottom-nav-height) + 12px) !important;
   }
