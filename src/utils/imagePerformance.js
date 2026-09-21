@@ -43,11 +43,12 @@ export const installGlobalImagePerformance = () => {
     scheduled = false;
     idleId = null;
     timeoutId = null;
+    if (document.hidden) return;
     tuneRoots(pendingRoots);
   };
 
   const scheduleFlush = () => {
-    if (scheduled) return;
+    if (scheduled || document.hidden || pendingRoots.length === 0) return;
     scheduled = true;
     if (typeof window.requestIdleCallback === "function") {
       idleId = window.requestIdleCallback(flush, { timeout: 120 });
@@ -61,9 +62,15 @@ export const installGlobalImagePerformance = () => {
     scheduleFlush();
   });
 
+  const handleVisibilityChange = () => {
+    if (!document.hidden) scheduleFlush();
+  };
+
+  document.addEventListener("visibilitychange", handleVisibilityChange, { passive: true });
   observer.observe(document.documentElement, { childList: true, subtree: true });
   return () => {
     observer.disconnect();
+    document.removeEventListener("visibilitychange", handleVisibilityChange);
     if (idleId !== null && typeof window.cancelIdleCallback === "function") window.cancelIdleCallback(idleId);
     if (timeoutId !== null) window.clearTimeout(timeoutId);
   };
