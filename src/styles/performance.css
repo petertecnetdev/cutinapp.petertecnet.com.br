@@ -34,57 +34,32 @@
 /* Mobile/GPU performance guardrails: keep surfaces crisp without paying the
    continuous backdrop sampling cost that makes mid-range Android scroll jank. */
 @media (max-width: 900px) {
-  /* Programmatic smooth scrolling keeps the compositor busy after navigation
-     and anchor jumps. Native touch scrolling is already smooth on Android, so
-     keep route/anchor transitions immediate on compact devices. */
   html {
     scroll-behavior: auto;
   }
 
-  /* Explicitly tell the browser that app controls use tap/pan gestures rather
-     than double-tap zoom. This keeps touch handling on the fast path and avoids
-     unnecessary gesture arbitration on dense mobile navigation and card UIs. */
   :is(a, button, [role="button"], input, select, textarea) {
     touch-action: manipulation;
   }
 
-  /* Native tap highlights repaint over controls and can linger while a route
-     transition starts. The app already provides explicit active/focus states,
-     so keep touch feedback inside those component states on Android. */
   :is(a, button, [role="button"]) {
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* The public home has several rich sections below the hero. They are outside
-     the initial viewport on phones, so defer their layout/paint until they near
-     the viewport instead of paying for the entire landing page before first
-     interaction. The learned intrinsic size keeps subsequent scroll stable and
-     containment prevents updates in one section from invalidating its siblings. */
   .cut-home-discovery main > section:not(:first-child) {
     content-visibility: auto;
     contain-intrinsic-size: auto 680px;
     contain: layout paint style;
   }
 
-  /* The global body decoration is a fixed, full-viewport pair of radial
-     gradients. It carries no information and stays in the paint path while the
-     document scrolls, so mobile uses the solid body background instead. */
   body::before {
     display: none;
   }
 
-  /* The FX stage is a fixed full-viewport decorative layer with multiple
-     110px blurred, infinitely animated auroras. On mobile it competes with the
-     actual app for GPU/compositor time during every scroll, so omit it entirely. */
   .cut-fx-stage {
     display: none;
   }
 
-  /* The bottom navigation is fixed for the whole mobile session. Sampling and
-     blurring the moving page behind it on every frame is disproportionately
-     expensive on mid-range Android GPUs; its opaque-enough surface already
-     preserves contrast without the live backdrop effect. Full containment keeps
-     nav state/layout/paint invalidation isolated from the scrolling document. */
   .cut-mobile-bottom-nav {
     contain: layout paint style;
     -webkit-backdrop-filter: none !important;
@@ -92,17 +67,11 @@
     box-shadow: none;
   }
 
-  /* Bottom-nav items are permanently visible while the document moves behind
-     them. Avoid transform transitions/layer promotion on touch; background and
-     opacity still provide clear active-state feedback without compositor churn. */
   .cut-mobile-bottom-nav :is(a, button) {
     transform: none !important;
     transition-property: background, opacity, color;
   }
 
-  /* Shared panels are used throughout long app pages. Skipping layout and paint
-     until an offscreen panel approaches the viewport keeps the first render and
-     long-scroll path cheaper without hiding or unmounting any content. */
   .cut-app-page .cut-panel {
     content-visibility: auto;
     contain-intrinsic-size: auto 360px;
@@ -120,9 +89,6 @@
     .cut-community-post
   ) {
     contain: layout paint style;
-    /* Repeated cards dominate long discovery/feed scrolls. Keep their state
-       changes immediate on mobile: entrance/hover animations can create many
-       concurrent compositor layers as new cards approach the viewport. */
     animation: none;
     filter: none;
     box-shadow: none;
@@ -141,10 +107,21 @@
     backdrop-filter: none !important;
   }
 
-  /* Bootstrap modals animate a full-viewport backdrop and dialog by default.
-     On compact devices that creates an avoidable compositing/paint burst exactly
-     when the user expects immediate feedback. Keep modal state changes instant
-     and never sample the page behind the full-screen backdrop. */
+  /* Bootstrap animates collapse height and slides the offcanvas shell. Height
+     interpolation forces layout on every animation frame and the full-screen
+     offcanvas transition keeps a large layer moving while navigation changes.
+     Compact devices favor immediate state changes: menus remain functionally
+     identical while avoiding layout/compositor work on every open/close. */
+  .collapsing,
+  .offcanvas,
+  .offcanvas-backdrop {
+    transition: none !important;
+  }
+
+  .collapsing {
+    height: auto !important;
+  }
+
   .modal-backdrop,
   .modal.fade .modal-dialog {
     transition: none !important;
@@ -155,17 +132,11 @@
     backdrop-filter: none !important;
   }
 
-  /* The event discovery filter shell stays visible near the top while users
-     scroll the results. Its large shadow and radial paint are decorative but
-     expensive on mid-range Android GPUs, so keep the same solid panel surface. */
   .cut-event-discovery-page .cut-discovery-shell {
     background: var(--cut-event-panel) !important;
     box-shadow: none !important;
   }
 
-  /* Page-level pseudo layers cover most of the viewport. Keeping their filters
-     disabled for the whole mobile session avoids a costly repaint when the
-     is-scrolling flag toggles at the beginning/end of every gesture. */
   :is(
     .cut-app-page,
     .cut-production-themed-page
@@ -179,9 +150,6 @@
     backdrop-filter: none !important;
   }
 
-  /* Decorative landing effects are expensive while scrolling and add no
-     interaction value on compact screens. Keep the composition, skip the
-     large blurred layers and perpetual compositor work. */
   .cut-home-discovery__ambient {
     display: none;
   }
@@ -194,9 +162,6 @@
     animation: none !important;
   }
 
-  /* Keep repeated shared surfaces cheap for the whole mobile session. Tying
-     these overrides to body.is-scrolling forced a broad style recalculation at
-     every gesture boundary; permanent mobile rules avoid that churn. */
   :is(
     .cut-panel,
     .card,
@@ -208,8 +173,6 @@
   }
 }
 
-/* Touch devices can leave :hover latched after a tap. Avoid promoting repeated
-   cards and panels to compositor layers for desktop-only lift effects. */
 @media (hover: none) and (pointer: coarse) {
   :is(
     .cut-event-card,
