@@ -62,7 +62,8 @@ function OptimizedImage({
         height={height}
         loading={eager ? "eager" : "lazy"}
         decoding="async"
-        fetchPriority={eager ? "high" : "auto"}
+        fetchPriority={eager ? "high" : "low"}
+        draggable="false"
         onLoad={(event) => {
           setLoaded(true);
           onLoad?.(event);
