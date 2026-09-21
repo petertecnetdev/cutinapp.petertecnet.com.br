@@ -124,6 +124,8 @@
   [class*="glass-panel"],
   .dropdown-menu,
   .cut-connection-status,
+  .modal-content,
+  .offcanvas,
   .cut-home-discovery__sceneCard,
   .cut-production-themed-page .cut-panel,
   .cut-production-themed-page .cut-empty-state,
@@ -132,12 +134,13 @@
     backdrop-filter: none !important;
   }
 
-  /* Dropdowns and connection banners are transient overlays that can overlap
-     a large part of the viewport. Keep their mobile paint path flat so opening
-     or scrolling beneath them does not continuously rasterize shadow/filter
-     effects on mid-range GPUs. */
+  /* Transient overlays can overlap most of the viewport. Keep their mobile
+     paint path flat so scrolling/touching content around them does not retain
+     extra filter/shadow compositor work on mid-range GPUs. */
   .dropdown-menu,
-  .cut-connection-status {
+  .cut-connection-status,
+  .modal-content,
+  .offcanvas {
     filter: none !important;
     box-shadow: none !important;
   }
