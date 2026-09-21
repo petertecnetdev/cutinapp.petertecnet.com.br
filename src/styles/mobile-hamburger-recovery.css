@@ -35,10 +35,9 @@
     -webkit-overflow-scrolling: touch;
     border: 0 !important;
     border-radius: 0 !important;
-    background:
-      radial-gradient(circle at 88% 7%, rgba(105, 86, 255, .18), transparent 32%),
-      radial-gradient(circle at 8% 92%, rgba(52, 199, 232, .12), transparent 34%),
-      linear-gradient(160deg, rgba(13, 31, 47, .998), rgba(5, 15, 24, .999)) !important;
+    /* Keep the viewport-sized drawer opaque and flat. Multiple full-screen
+       gradients force extra paint work while the menu itself is scrolling. */
+    background: rgb(8 22 34) !important;
     box-shadow: none !important;
     transform: translate3d(0, -14px, 0) !important;
     transform-origin: top center !important;
