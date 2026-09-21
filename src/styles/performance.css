@@ -169,6 +169,13 @@
     transition: none !important;
   }
 
+  /* Backdrops are viewport-sized fixed surfaces. Contain their paint damage so
+     opening/closing overlays does not invalidate the page underneath. */
+  .modal-backdrop,
+  .offcanvas-backdrop {
+    contain: paint;
+  }
+
   .modal-backdrop {
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
