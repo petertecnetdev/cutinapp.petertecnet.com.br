@@ -44,9 +44,6 @@
     overflow-x: clip;
   }
 
-  /* Fixed backgrounds force viewport-sized repaint work on scroll in mobile
-     browsers. Keep page backgrounds visually identical but attached to the
-     scrolling canvas so the compositor can move them without repainting. */
   html,
   body,
   .cut-app-page,
@@ -70,6 +67,17 @@
     contain: layout paint style;
   }
 
+  /* Footers are below the primary mobile journey and can be structurally rich.
+     Skip their layout/paint until the user approaches them while reserving a
+     stable learned size so long pages do less work during initial render. */
+  .cut-app-page footer,
+  .cut-home-discovery footer,
+  .cut-production-themed-page footer {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 320px;
+    contain: layout paint style;
+  }
+
   body::before {
     display: none;
   }
@@ -85,15 +93,10 @@
     box-shadow: none;
   }
 
-  /* The full-screen hamburger is a viewport-sized scroll surface. Isolate its
-     paint invalidation so scrolling the drawer does not repaint page content
-     underneath it on mid-range mobile GPUs. */
   .cut-navbar .navbar-collapse {
     contain: paint;
   }
 
-  /* Keep touch scrolling inside viewport overlays instead of chaining the
-     gesture to the page underneath when an overlay reaches either edge. */
   .cut-navbar .navbar-collapse,
   .offcanvas,
   .modal,
@@ -102,9 +105,6 @@
     overscroll-behavior: contain;
   }
 
-  /* The bottom nav is always fixed in the viewport. Avoid per-control
-     transitions there so taps do not keep compositor work alive while the
-     page beneath it is scrolling on mid-range mobile GPUs. */
   .cut-mobile-bottom-nav :is(a, button) {
     transform: none;
     transition: none;
@@ -147,9 +147,6 @@
     contain: paint;
   }
 
-  /* interactive-effects.css gives these common surfaces a 22px backdrop blur.
-     They are frequent, large scroll surfaces, so remove the residual sampling
-     path on mobile rather than limiting the optimization to glass aliases. */
   .cut-panel,
   .cut-home__visualCard,
   .cut-home__eventCard,
@@ -178,10 +175,6 @@
     backdrop-filter: none !important;
   }
 
-  /* Transient overlays can overlap most of the viewport. Keep their mobile
-     paint path flat so scrolling/touching content around them does not retain
-     extra filter/shadow compositor work on mid-range GPUs. Paint containment
-     also prevents overlay invalidations from spilling into the page beneath. */
   .dropdown-menu,
   .cut-connection-status,
   .modal-content,
@@ -191,9 +184,6 @@
     contain: paint;
   }
 
-  /* Overlay surfaces are short-lived and interaction-blocking. Let Bootstrap
-     state changes show them immediately on mobile instead of keeping animation
-     or transition work alive over the page compositor. */
   .dropdown-menu,
   .modal-content,
   .offcanvas {
@@ -216,8 +206,6 @@
     transition: none !important;
   }
 
-  /* Backdrops are viewport-sized fixed surfaces. Contain their paint damage so
-     opening/closing overlays does not invalidate the page underneath. */
   .modal-backdrop,
   .offcanvas-backdrop {
     contain: paint;
@@ -233,9 +221,6 @@
     box-shadow: none !important;
   }
 
-  /* Decorative full-page pseudo layers add a viewport-sized paint surface and
-     do not carry content. Skip them on mobile instead of merely neutralizing
-     their filters so scrolling does not keep compositing invisible effects. */
   :is(
     .cut-app-page,
     .cut-production-themed-page
@@ -278,9 +263,6 @@
 }
 
 @media (hover: none) and (pointer: coarse) {
-  /* Touch devices do not need hover-transition choreography. Removing it from
-     interactive controls keeps taps immediate and avoids transition/compositor
-     work competing with a gesture-driven scroll. */
   :is(a, button, [role="button"], input, select, textarea) {
     transition: none;
   }
