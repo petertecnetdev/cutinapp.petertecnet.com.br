@@ -95,10 +95,9 @@
     filter: none;
     box-shadow: none;
     transition: none;
-    /* Legacy card effects used will-change to keep many surfaces promoted to
-       compositor layers. On long feeds that consumes GPU memory and hurts
-       mid-range Android scrolling more than it helps. */
-    will-change: auto !important;
+    /* performance.css is the final global layer, so these list surfaces can
+       release compositor promotion without escalating specificity. */
+    will-change: auto;
   }
 
   /* Media inside long lists is often the largest paint/decode surface. Skip
