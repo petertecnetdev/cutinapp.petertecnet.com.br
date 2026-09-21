@@ -1,6 +1,6 @@
 /* Cutinapp mobile stability layer
- * Loaded last to neutralize conflicting legacy responsive rules and
- * prioritize smooth scrolling/layout correctness on mobile devices.
+ * Loaded before the final performance layer to neutralize conflicting legacy
+ * responsive rules and prioritize smooth scrolling/layout correctness.
  */
 
 html,
@@ -270,16 +270,6 @@ video {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
   }
-
-  .cut-panel,
-  .cut-dashboard__card,
-  .cut-home__eventCard,
-  .cut-home__featureGrid article,
-  .cut-event-card,
-  .cut-production-card,
-  .cut-pass-card,
-  .cut-artist-card,
-  .cut-feed-card { box-shadow: 0 8px 24px rgba(0,0,0,.18) !important; }
 }
 
 @media (max-width: 575.98px) {
