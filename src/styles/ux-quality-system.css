@@ -122,11 +122,9 @@
   padding: 12px 14px;
   border: 1px solid rgba(255, 255, 255, .16);
   border-radius: 16px;
-  background: rgba(11, 12, 34, .9);
+  background: rgb(11, 12, 34);
   color: var(--cut-readable-text);
   box-shadow: var(--cut-shadow-lg);
-  -webkit-backdrop-filter: blur(24px) saturate(155%);
-  backdrop-filter: blur(24px) saturate(155%);
 }
 
 .cut-undo-bar .btn {
