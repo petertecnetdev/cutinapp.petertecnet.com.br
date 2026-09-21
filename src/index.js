@@ -82,12 +82,23 @@ root.render(
   </React.StrictMode>
 );
 
-reportWebVitals((metric) => trackTelemetry("web_vital", {
-  name: metric.name,
-  value: Math.round(metric.value * 100) / 100,
-  delta: Math.round((metric.delta || 0) * 100) / 100,
-  rating: metric.rating || null,
-  navigation_type: metric.navigationType || null,
-  metric_id: metric.id || null,
-  path: typeof window !== "undefined" ? window.location.pathname : null,
-}));
+const enqueueWebVitalTelemetry = (metric) => {
+  const send = () => trackTelemetry("web_vital", {
+    name: metric.name,
+    value: Math.round(metric.value * 100) / 100,
+    delta: Math.round((metric.delta || 0) * 100) / 100,
+    rating: metric.rating || null,
+    navigation_type: metric.navigationType || null,
+    metric_id: metric.id || null,
+    path: typeof window !== "undefined" ? window.location.pathname : null,
+  });
+
+  if (typeof window !== "undefined" && typeof window.requestIdleCallback === "function") {
+    window.requestIdleCallback(send, { timeout: 2000 });
+    return;
+  }
+
+  window.setTimeout(send, 0);
+};
+
+reportWebVitals(enqueueWebVitalTelemetry);
