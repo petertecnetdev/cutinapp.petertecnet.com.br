@@ -147,6 +147,21 @@
     contain: paint;
   }
 
+  /* interactive-effects.css gives these common surfaces a 22px backdrop blur.
+     They are frequent, large scroll surfaces, so remove the residual sampling
+     path on mobile rather than limiting the optimization to glass aliases. */
+  .cut-panel,
+  .cut-home__visualCard,
+  .cut-home__eventCard,
+  .cut-home__featureGrid article,
+  .cut-dashboard__hero,
+  .cut-dashboard__stats article,
+  .cut-dashboard__card,
+  .cut-event-card,
+  .cut-production-card,
+  .cut-pass-card,
+  .cut-artist-card,
+  .cut-feed-card,
   .apple-glass,
   .cut-glass,
   [class*="glass-card"],
