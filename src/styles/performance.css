@@ -95,6 +95,23 @@
     transition: none;
   }
 
+  /* Keep image/video decoding and repaint invalidation inside each repeated
+     card. Media is one of the largest changing paint regions while scrolling
+     discovery/feed lists on Android; paint containment prevents those updates
+     from dirtying neighbouring cards. */
+  :is(
+    .cut-event-card,
+    .cut-production-card,
+    .cut-pass-card,
+    .cut-artist-card,
+    .cut-feed-card,
+    .cut-feed-social-card,
+    .cut-notification-card,
+    .cut-community-post
+  ) :is(img, video, picture) {
+    contain: paint;
+  }
+
   .apple-glass,
   .cut-glass,
   [class*="glass-card"],
