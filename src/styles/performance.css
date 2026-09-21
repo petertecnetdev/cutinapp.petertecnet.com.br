@@ -73,9 +73,12 @@
     box-shadow: none;
   }
 
+  /* The bottom nav is always fixed in the viewport. Avoid per-control
+     transitions there so taps do not keep compositor work alive while the
+     page beneath it is scrolling on mid-range mobile GPUs. */
   .cut-mobile-bottom-nav :is(a, button) {
     transform: none;
-    transition-property: background, opacity, color;
+    transition: none;
   }
 
   .cut-app-page .cut-panel {
