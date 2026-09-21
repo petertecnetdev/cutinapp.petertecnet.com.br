@@ -98,9 +98,20 @@ function inspectImage(image) {
 }
 
 function inspectNode(node) {
-  if (!node || node.nodeType !== 1) return;
+  if (!node || node.nodeType !== 1 || !node.isConnected) return;
   if (isImageElement(node)) inspectImage(node);
   if (typeof node.querySelectorAll === "function") node.querySelectorAll("img").forEach(inspectImage);
+}
+
+function collectAddedRoots(mutations, roots) {
+  mutations.forEach((mutation) => mutation.addedNodes.forEach((node) => {
+    if (!node || node.nodeType !== 1) return;
+    if (roots.some((root) => root.contains(node))) return;
+    for (let index = roots.length - 1; index >= 0; index -= 1) {
+      if (node.contains(roots[index])) roots.splice(index, 1);
+    }
+    roots.push(node);
+  }));
 }
 
 export function installGlobalImageFallbacks() {
@@ -120,16 +131,39 @@ export function installGlobalImageFallbacks() {
     }, 0);
   };
   document.addEventListener("error", handleError, true);
+
+  const pendingRoots = [];
+  let scheduled = false;
+  let idleId = null;
+  let timeoutId = null;
+  const flush = () => {
+    scheduled = false;
+    idleId = null;
+    timeoutId = null;
+    pendingRoots.splice(0).forEach(inspectNode);
+  };
+  const scheduleFlush = () => {
+    if (scheduled) return;
+    scheduled = true;
+    if (typeof window.requestIdleCallback === "function") {
+      idleId = window.requestIdleCallback(flush, { timeout: 120 });
+      return;
+    }
+    timeoutId = window.setTimeout(flush, 32);
+  };
   const observer = new MutationObserver((mutations) => {
-    mutations.forEach((mutation) => {
-      mutation.addedNodes.forEach(inspectNode);
-    });
+    collectAddedRoots(mutations, pendingRoots);
+    scheduleFlush();
   });
+
   document.querySelectorAll("img").forEach(inspectImage);
   observer.observe(document.documentElement, { subtree: true, childList: true });
   const cleanup = () => {
     document.removeEventListener("error", handleError, true);
     observer.disconnect();
+    if (idleId !== null && typeof window.cancelIdleCallback === "function") window.cancelIdleCallback(idleId);
+    if (timeoutId !== null) window.clearTimeout(timeoutId);
+    pendingRoots.length = 0;
     delete window[INSTALL_FLAG];
   };
   window[INSTALL_FLAG] = { cleanup };
