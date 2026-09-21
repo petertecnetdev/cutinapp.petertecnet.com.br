@@ -36,7 +36,10 @@
 /* 4. Feature presentation */
 @import "../pages/HomeDiscovery.css";
 @import "./logo-theme.css";
-@import "./interactive-effects.css";
+/* Pointer/aurora/tilt effects are desktop-only. Keeping this import scoped
+   prevents their expensive filters, transitions and backdrop rules from
+   entering the mobile cascade while preserving the desktop presentation. */
+@import "./interactive-effects.css" screen and (min-width: 901px);
 @import "./error-boundary.css";
 @import "./checkout-recovery-cta.css";
 @import "./peter-branding-bridge.css";
