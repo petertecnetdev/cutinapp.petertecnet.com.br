@@ -60,10 +60,12 @@
     display: none;
   }
 
+  /* performance.css is the final global layer, so the nav does not need
+     specificity escalation to turn off expensive live backdrop sampling. */
   .cut-mobile-bottom-nav {
     contain: layout paint style;
-    -webkit-backdrop-filter: none !important;
-    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
     box-shadow: none;
   }
 
