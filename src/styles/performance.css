@@ -151,10 +151,6 @@
   .offcanvas {
     filter: none !important;
     box-shadow: none !important;
-  }
-
-  .modal-content,
-  .offcanvas {
     contain: paint;
   }
 
