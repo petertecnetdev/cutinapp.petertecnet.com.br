@@ -58,10 +58,12 @@
   /* The public home has several rich sections below the hero. They are outside
      the initial viewport on phones, so defer their layout/paint until they near
      the viewport instead of paying for the entire landing page before first
-     interaction. The learned intrinsic size keeps subsequent scroll stable. */
+     interaction. The learned intrinsic size keeps subsequent scroll stable and
+     containment prevents updates in one section from invalidating its siblings. */
   .cut-home-discovery main > section:not(:first-child) {
     content-visibility: auto;
     contain-intrinsic-size: auto 680px;
+    contain: layout paint style;
   }
 
   /* The global body decoration is a fixed, full-viewport pair of radial
