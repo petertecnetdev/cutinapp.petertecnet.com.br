@@ -44,6 +44,18 @@
     overflow-x: clip;
   }
 
+  /* Fixed backgrounds force viewport-sized repaint work on scroll in mobile
+     browsers. Keep page backgrounds visually identical but attached to the
+     scrolling canvas so the compositor can move them without repainting. */
+  html,
+  body,
+  .cut-app-page,
+  .cut-production-themed-page,
+  .cut-home-discovery,
+  .cut-event-discovery-page {
+    background-attachment: scroll !important;
+  }
+
   :is(a, button, [role="button"], input, select, textarea) {
     touch-action: manipulation;
   }
