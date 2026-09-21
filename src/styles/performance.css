@@ -271,7 +271,7 @@
   /* Touch devices do not need hover-transition choreography. Removing it from
      interactive controls keeps taps immediate and avoids transition/compositor
      work competing with a gesture-driven scroll. */
-  :is(a, button, [role="button"]) {
+  :is(a, button, [role="button"], input, select, textarea) {
     transition: none;
   }
 
