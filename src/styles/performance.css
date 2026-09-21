@@ -11,6 +11,7 @@
 ) {
   content-visibility: auto;
   contain-intrinsic-size: auto 420px;
+  contain: layout paint style;
 }
 
 /* Production profiles are long, section-heavy pages. Let the browser skip
@@ -93,7 +94,6 @@
     .cut-notification-card,
     .cut-community-post
   ) {
-    contain: layout paint style;
     animation: none;
     filter: none;
     box-shadow: none;
