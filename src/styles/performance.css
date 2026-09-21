@@ -70,7 +70,7 @@
   }
 
   .cut-mobile-bottom-nav :is(a, button) {
-    transform: none !important;
+    transform: none;
     transition-property: background, opacity, color;
   }
 
