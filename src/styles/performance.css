@@ -80,6 +80,16 @@
     contain: paint;
   }
 
+  /* Keep touch scrolling inside viewport overlays instead of chaining the
+     gesture to the page underneath when an overlay reaches either edge. */
+  .cut-navbar .navbar-collapse,
+  .offcanvas,
+  .modal,
+  .modal-body,
+  .dropdown-menu {
+    overscroll-behavior: contain;
+  }
+
   /* The bottom nav is always fixed in the viewport. Avoid per-control
      transitions there so taps do not keep compositor work alive while the
      page beneath it is scrolling on mid-range mobile GPUs. */
