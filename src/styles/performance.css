@@ -136,13 +136,19 @@
 
   /* Transient overlays can overlap most of the viewport. Keep their mobile
      paint path flat so scrolling/touching content around them does not retain
-     extra filter/shadow compositor work on mid-range GPUs. */
+     extra filter/shadow compositor work on mid-range GPUs. Paint containment
+     also prevents overlay invalidations from spilling into the page beneath. */
   .dropdown-menu,
   .cut-connection-status,
   .modal-content,
   .offcanvas {
     filter: none !important;
     box-shadow: none !important;
+  }
+
+  .modal-content,
+  .offcanvas {
+    contain: paint;
   }
 
   .collapsing,
