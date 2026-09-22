@@ -4,7 +4,7 @@ import artistService from "../services/ArtistService";
 import authService from "../services/AuthService";
 import { subscribeToAuthTokenChanges } from "../utils/authSessionSync";
 import { cacheAuthUser, readCachedAuthUser } from "../utils/authUserCache";
-import { clearCommerceClientState, synchronizeCommerceScope } from "../utils/commerceSessionScope";
+import { resetCommerceSessionScope, synchronizeCommerceScope } from "../utils/commerceSessionScope";
 
 export const AuthContext = createContext({
   user: null,
@@ -25,8 +25,7 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(() => Boolean(authService.getToken()) && !initialUser);
 
   const resetCommerceSession = useCallback(() => {
-    clearCommerceClientState();
-    synchronizeCommerceScope(null);
+    resetCommerceSessionScope();
   }, []);
 
   const refreshUser = useCallback(async () => {
