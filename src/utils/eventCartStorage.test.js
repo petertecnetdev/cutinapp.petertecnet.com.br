@@ -27,8 +27,9 @@ describe("fulfilled checkout storage cleanup", () => {
   test("prefers a newer local cart and repairs a stale tab session snapshot", () => {
     const slug = "evento-multitab";
     const cartKey = `cutinapp_checkout_${slug}`;
-    const staleCart = { tickets: [{ id: 1, quantity: 3 }], items: [], savedAt: 1000 };
-    const freshCart = { tickets: [{ id: 1, quantity: 1 }], items: [], savedAt: 2000 };
+    const now = Date.now();
+    const staleCart = { tickets: [{ id: 1, quantity: 3 }], items: [], savedAt: now - 1000 };
+    const freshCart = { tickets: [{ id: 1, quantity: 1 }], items: [], savedAt: now };
     window.sessionStorage.setItem(cartKey, JSON.stringify(staleCart));
     window.localStorage.setItem(cartKey, JSON.stringify(freshCart));
 
@@ -39,8 +40,9 @@ describe("fulfilled checkout storage cleanup", () => {
   test("prefers shared local cart when cross-tab writes have the same timestamp", () => {
     const slug = "evento-multitab-mesmo-ms";
     const cartKey = `cutinapp_checkout_${slug}`;
-    const sessionCart = { tickets: [{ id: 1, quantity: 3 }], items: [], savedAt: 2000 };
-    const sharedCart = { tickets: [{ id: 1, quantity: 1 }], items: [], savedAt: 2000 };
+    const now = Date.now();
+    const sessionCart = { tickets: [{ id: 1, quantity: 3 }], items: [], savedAt: now };
+    const sharedCart = { tickets: [{ id: 1, quantity: 1 }], items: [], savedAt: now };
     window.sessionStorage.setItem(cartKey, JSON.stringify(sessionCart));
     window.localStorage.setItem(cartKey, JSON.stringify(sharedCart));
 
@@ -51,13 +53,14 @@ describe("fulfilled checkout storage cleanup", () => {
   test("shared clear tombstone prevents another tab from resurrecting a stale cart", () => {
     const slug = "evento-limpo-em-outra-aba";
     const cartKey = `cutinapp_checkout_${slug}`;
-    const staleTabCart = { tickets: [{ id: 8, quantity: 2 }], items: [], savedAt: 1000 };
+    const now = Date.now();
+    const staleTabCart = { tickets: [{ id: 8, quantity: 2 }], items: [], savedAt: now - 1000 };
     window.sessionStorage.setItem(cartKey, JSON.stringify(staleTabCart));
-    window.localStorage.setItem(cartKey, JSON.stringify({ cleared: true, savedAt: 2000 }));
+    window.localStorage.setItem(cartKey, JSON.stringify({ cleared: true, savedAt: now }));
 
     expect(readEventCart(slug)).toBeNull();
     expect(window.sessionStorage.getItem(cartKey)).toBeNull();
-    expect(JSON.parse(window.localStorage.getItem(cartKey))).toEqual({ cleared: true, savedAt: 2000 });
+    expect(JSON.parse(window.localStorage.getItem(cartKey))).toEqual({ cleared: true, savedAt: now });
   });
 
   test("normalizes event identity across cart and checkout recovery", () => {
