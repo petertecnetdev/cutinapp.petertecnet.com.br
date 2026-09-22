@@ -1,4 +1,4 @@
-import { clearEventCart, isFulfilledCheckoutResult, mergeEventCartTickets, writeEventCart } from "./eventCartStorage";
+import { clearEventCart, isFulfilledCheckoutResult, mergeEventCartTickets, readEventCart, writeEventCart } from "./eventCartStorage";
 import { readCheckoutRecovery, writeCheckoutRecovery } from "./checkoutRecovery";
 
 describe("fulfilled checkout storage cleanup", () => {
@@ -25,6 +25,18 @@ describe("fulfilled checkout storage cleanup", () => {
     expect(result.selection.items).toEqual([{ id: 9, quantity: 1 }]);
     expect(result.addedQuantity).toBe(4);
     expect(result.itemCount).toBe(7);
+  });
+
+  test("prefers a newer local cart and repairs a stale tab session snapshot", () => {
+    const slug = "evento-multitab";
+    const cartKey = `cutinapp_checkout_${slug}`;
+    const staleCart = { tickets: [{ id: 1, quantity: 3 }], items: [], savedAt: 1000 };
+    const freshCart = { tickets: [{ id: 1, quantity: 1 }], items: [], savedAt: 2000 };
+    window.sessionStorage.setItem(cartKey, JSON.stringify(staleCart));
+    window.localStorage.setItem(cartKey, JSON.stringify(freshCart));
+
+    expect(readEventCart(slug)).toEqual(freshCart);
+    expect(JSON.parse(window.sessionStorage.getItem(cartKey))).toEqual(freshCart);
   });
 
   test("recognizes only paid orders with completed fulfillment", () => {
