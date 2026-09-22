@@ -30,27 +30,32 @@ body {
     --cut-navbar-fixed-height: 64px;
   }
 
+  /* Mobile navigation must sit above every page/global overlay. The previous
+   * 2100 value created a parent stacking context that trapped the hamburger,
+   * so its own large z-index could not win against ecosystem/fixed overlays. */
   .cut-navbar {
     min-height: var(--cut-navbar-fixed-height) !important;
     padding-top: env(safe-area-inset-top, 0px);
+    z-index: 2147483645 !important;
+    pointer-events: auto !important;
   }
 
   body {
     padding-top: calc(var(--cut-navbar-fixed-height) + env(safe-area-inset-top, 0px));
   }
 
-  /* The existing hamburger recovery layer owns the full-screen drawer; keep
-   * its stacking order above the fixed navbar when opened. */
   .cut-navbar .navbar-collapse.show,
   .cut-navbar .navbar-collapse.collapsing {
     z-index: 2147483646 !important;
   }
 
   .cut-navbar .navbar-toggler {
+    position: relative !important;
     z-index: 2147483647 !important;
+    pointer-events: auto !important;
+    touch-action: manipulation !important;
   }
 }
-
 
 /* Standalone landing pages keep their own sticky navigation in document flow.
  * The global fixed-app-navbar offset must not create a blank strip above them. */
