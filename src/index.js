@@ -78,10 +78,21 @@ if (typeof window !== "undefined") {
     });
   };
 
-  if (typeof window.requestIdleCallback === "function") {
-    window.requestIdleCallback(startDeferredEnhancers, { timeout: 1200 });
+  const scheduleDeferredEnhancers = () => {
+    if (typeof window.requestIdleCallback === "function") {
+      window.requestIdleCallback(startDeferredEnhancers, { timeout: 1800 });
+    } else {
+      window.setTimeout(startDeferredEnhancers, 500);
+    }
+  };
+
+  // Optional chunks must not compete with the critical document, fonts and
+  // route bundle during first load. Existing sessions (document already
+  // complete) still schedule them immediately into the next idle window.
+  if (document.readyState === "complete") {
+    scheduleDeferredEnhancers();
   } else {
-    window.setTimeout(startDeferredEnhancers, 350);
+    window.addEventListener("load", scheduleDeferredEnhancers, { once: true });
   }
 }
 
