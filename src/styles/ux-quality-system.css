@@ -232,7 +232,7 @@
 
 @media (max-width: 767.98px) {
   .cut-app-page {
-    --cut-visual-shadow: 0 8px 22px rgba(0, 0, 0, .22);
+    --cut-visual-shadow: none;
   }
 
   .cut-app-page :where(.card, .cut-panel, .cut-surface) {
@@ -248,4 +248,3 @@
     line-height: 1.1;
   }
 }
-
