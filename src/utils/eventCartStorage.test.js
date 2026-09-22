@@ -18,10 +18,7 @@ describe("fulfilled checkout storage cleanup", () => {
       { id: 2, quantity: 2, maxQuantity: 5 },
     ]);
 
-    expect(result.selection.tickets).toEqual([
-      { id: 1, quantity: 4 },
-      { id: 2, quantity: 2 },
-    ]);
+    expect(result.selection.tickets).toEqual([{ id: 1, quantity: 4 }, { id: 2, quantity: 2 }]);
     expect(result.selection.items).toEqual([{ id: 9, quantity: 1 }]);
     expect(result.addedQuantity).toBe(4);
     expect(result.itemCount).toBe(7);
@@ -51,6 +48,18 @@ describe("fulfilled checkout storage cleanup", () => {
     expect(JSON.parse(window.sessionStorage.getItem(cartKey))).toEqual(sharedCart);
   });
 
+  test("shared clear tombstone prevents another tab from resurrecting a stale cart", () => {
+    const slug = "evento-limpo-em-outra-aba";
+    const cartKey = `cutinapp_checkout_${slug}`;
+    const staleTabCart = { tickets: [{ id: 8, quantity: 2 }], items: [], savedAt: 1000 };
+    window.sessionStorage.setItem(cartKey, JSON.stringify(staleTabCart));
+    window.localStorage.setItem(cartKey, JSON.stringify({ cleared: true, savedAt: 2000 }));
+
+    expect(readEventCart(slug)).toBeNull();
+    expect(window.sessionStorage.getItem(cartKey)).toBeNull();
+    expect(JSON.parse(window.localStorage.getItem(cartKey))).toEqual({ cleared: true, savedAt: 2000 });
+  });
+
   test("recognizes only paid orders with completed fulfillment", () => {
     expect(isFulfilledCheckoutResult({ order: { status: "paid", metadata: { fulfillment_status: "completed" } } })).toBe(true);
     expect(isFulfilledCheckoutResult({ order: { status: "paid", metadata: { fulfillment_status: "pending" } } })).toBe(false);
@@ -70,7 +79,7 @@ describe("fulfilled checkout storage cleanup", () => {
     clearEventCart(slug);
 
     expect(window.sessionStorage.getItem(cartKey)).toBeNull();
-    expect(window.localStorage.getItem(cartKey)).toBeNull();
+    expect(JSON.parse(window.localStorage.getItem(cartKey))?.cleared).toBe(true);
     expect(window.sessionStorage.getItem(paymentKey)).toBeNull();
     expect(window.localStorage.getItem(recoveryKey)).toBeNull();
   });
