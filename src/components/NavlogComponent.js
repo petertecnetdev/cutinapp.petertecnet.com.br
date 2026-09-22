@@ -2,6 +2,7 @@ import React, { useContext, useEffect, useMemo, useState } from "react";
 import { Container, Nav, Navbar, NavDropdown } from "react-bootstrap";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
+import { storageUrl } from "../config";
 import cutinappService from "../services/CutinappService";
 import artistService from "../services/ArtistService";
 import { subscribeToUserNotifications } from "../services/RealtimeNotificationService";
@@ -35,6 +36,14 @@ const writeRuntimeCache = (userId, patch) => {
 const runtimeCacheFresh = (timestamp, ttl = NAV_RUNTIME_CACHE_TTL) => Number(timestamp || 0) > 0 && Date.now() - Number(timestamp) < ttl;
 
 const capabilityCacheKey = (userId) => `cutinapp:navigation-capabilities:${userId || "guest"}`;
+
+const userAvatarUrl = (user) => {
+  const value = user?.avatar || user?.photo || user?.picture || user?.profile_photo || user?.profile_photo_url;
+  if (!value) return "";
+  return /^https?:/i.test(value) ? value : `${storageUrl}${String(value).replace(/^\\//, "")}`;
+};
+
+const userInitials = (user) => `${user?.first_name?.[0] || user?.name?.[0] || "C"}${user?.last_name?.[0] || ""}`.toUpperCase();
 
 const readStored = (key) => {
   if (typeof window === "undefined") return null;
@@ -329,6 +338,8 @@ export default function NavlogComponent() {
   }
 
   const selectedProductionObject = productions.find((entry) => String(entry.id) === String(selectedProduction));
+  const userAvatar = userAvatarUrl(user);
+  const userFallbackInitials = userInitials(user);
 
   return (
     <>
@@ -337,6 +348,11 @@ export default function NavlogComponent() {
           <Navbar.Brand as={Link} to="/" className="cut-navbar__brand" onClick={closeMenu}><img src="/images/logo.png" alt="Cutinapp" /><div><strong>Cutinapp</strong><small>Rede social de eventos</small></div></Navbar.Brand>
           <Navbar.Toggle aria-controls="cut-navbar" aria-label={open ? "Fechar menu" : "Abrir menu"} />
           <Navbar.Collapse id="cut-navbar">
+            <Link to="/profile" className="cut-navbar__mobile-account" onClick={closeMenu} aria-label="Abrir meu perfil">
+              <span className="cut-navbar__avatar">{userAvatar ? <img src={userAvatar} alt="" /> : userFallbackInitials}</span>
+              <span className="cut-navbar__mobile-account-copy"><strong>{user.first_name || user.name || "Minha conta"}</strong><small>{user.email}</small></span>
+              <i className="fa-solid fa-chevron-right" aria-hidden="true" />
+            </Link>
             <div className="cut-navbar__drawer-heading"><strong>Navegação</strong><small>{actorMenus.length ? `${actorMenus.length} área${actorMenus.length > 1 ? "s" : ""} de trabalho disponível${actorMenus.length > 1 ? "is" : ""}` : "Sua experiência Cutinapp"}</small></div>
 
             <Nav className="cut-navbar__links mx-auto" aria-label="Navegação principal">
@@ -364,7 +380,7 @@ export default function NavlogComponent() {
             </Nav>
 
             <Nav className="cut-navbar__account">
-              <NavDropdown align="end" title={<span className="cut-navbar__user"><span className="cut-navbar__avatar">{String(user.first_name || user.name || "C").slice(0, 2).toUpperCase()}</span><span><strong>{user.first_name || user.name || "Minha conta"}</strong><small>{user.email}</small></span></span>} id="cut-account-menu">
+              <NavDropdown align="end" title={<span className="cut-navbar__user"><span className="cut-navbar__avatar">{userAvatar ? <img src={userAvatar} alt="" /> : userFallbackInitials}</span><span><strong>{user.first_name || user.name || "Minha conta"}</strong><small>{user.email}</small></span></span>} id="cut-account-menu">
                 <div className="cut-account-menu__heading"><strong>Minha conta</strong><small>Itens pessoais disponíveis para todo usuário</small></div>
                 {accountNavigation.map((entry) => <NavDropdown.Item key={entry.id} as={Link} to={entry.to} aria-current={active(entry.to) ? "page" : undefined} onClick={() => recordUsage(entry, "account")}><i className={`${entry.icon} me-2`} />{entry.label}{entry.id === "notifications" && unreadNotifications > 0 && <span className="cut-account-inline-badge">{unreadNotifications > 99 ? "99+" : unreadNotifications}</span>}</NavDropdown.Item>)}
                 <NavDropdown.Divider />
