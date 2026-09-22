@@ -29,7 +29,10 @@ export const saveDiscoveryPreference = (value) => {
 export const readRecentCities = () => safeGetLocalJson("cutinapp.recentCities", []);
 
 export const paramsFromSearch = (searchParams) => {
-  const keys = ["q", "city", "uf", "category", "period", "date", "from", "to", "sort", "artist_id", "production_id", "free", "available", "lat", "lng", "radius_km", "page"];
+  const keys = [
+    "q", "type", "city", "uf", "category", "genre", "format", "period", "date", "from", "to",
+    "sort", "artist_id", "production_id", "free", "available", "max_price", "lat", "lng", "radius_km", "page",
+  ];
   const result = {};
   keys.forEach((key) => {
     const value = searchParams.get(key);
