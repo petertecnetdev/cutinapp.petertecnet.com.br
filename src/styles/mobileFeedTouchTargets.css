@@ -8,16 +8,21 @@
   .cut-feed-event-cta .btn,
   .cut-feed-composer__actions .btn {
     min-height: 44px;
+    min-width: 44px;
   }
 
   .cut-feed-post__actions button,
-  .cut-feed-post__manage .dropdown-toggle {
+  .cut-feed-post__manage .dropdown-toggle,
+  .cut-feed-post__context button,
+  .cut-feed-event-cta .btn,
+  .cut-feed-composer__actions .btn {
     touch-action: manipulation;
   }
 
   .cut-feed-post__author,
   .cut-feed-post__profile-link {
     min-height: 44px;
+    min-width: 44px;
     display: inline-flex;
     align-items: center;
   }
