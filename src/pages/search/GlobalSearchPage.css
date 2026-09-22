@@ -1096,6 +1096,14 @@
   .cut-global-search__content {
     gap: 28px;
   }
+
+  .cut-global-search__results > .cut-global-search__result,
+  .cut-global-search__recent > .cut-global-search__result,
+  .cut-global-search__saved-list > div {
+    content-visibility: auto;
+    contain: layout paint style;
+    contain-intrinsic-size: auto 80px;
+  }
 }
 
 @media (max-width: 575.98px) {
