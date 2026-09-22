@@ -83,3 +83,12 @@
     contain: layout paint style;
   }
 }
+
+/* iOS Safari zooms the viewport when a focused form control renders below
+   16px. Keep transactional and editor flows stable while typing so checkout,
+   search and event/production forms do not jump or require pinch-to-reset. */
+@media (max-width: 767px) {
+  :is(input, select, textarea) {
+    font-size: 16px;
+  }
+}
