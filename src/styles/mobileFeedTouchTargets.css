@@ -15,8 +15,11 @@
   .cut-feed-post__manage .dropdown-toggle,
   .cut-feed-post__context button,
   .cut-feed-event-cta .btn,
-  .cut-feed-composer__actions .btn {
+  .cut-feed-composer__actions .btn,
+  .cut-feed-post__author,
+  .cut-feed-post__profile-link {
     touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 
   .cut-feed-post__author,
@@ -25,5 +28,25 @@
     min-width: 44px;
     display: inline-flex;
     align-items: center;
+  }
+
+  /* Bootstrap menu items are actionable too: keep destructive/edit actions
+     comfortably tappable instead of falling back to the 38px desktop row. */
+  .cut-feed-post__manage .dropdown-item {
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+
+  /* Keyboard focus must remain visible even though mobile tap feedback is
+     intentionally lightweight. This also helps keyboard/assistive navigation
+     on tablets and desktop browsers using the narrow responsive layout. */
+  .cut-feed-post__actions button:focus-visible,
+  .cut-feed-post__context button:focus-visible,
+  .cut-feed-event-cta .btn:focus-visible,
+  .cut-feed-composer__actions .btn:focus-visible,
+  .cut-feed-post__author:focus-visible,
+  .cut-feed-post__profile-link:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
   }
 }
