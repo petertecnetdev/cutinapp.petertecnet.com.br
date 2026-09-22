@@ -11,7 +11,8 @@ import { clearCheckoutRecovery, readCheckoutRecovery, writeCheckoutRecovery } fr
 const CART_PREFIX = "cutinapp_checkout_";
 const CART_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000;
 const PAYMENT_PREFIX = "cutinapp_payment_";
-const keyFor = (slug) => `${CART_PREFIX}${String(slug || "").trim()}`;
+const normalizeSlug = (slug) => String(slug || "").trim();
+const keyFor = (slug) => `${CART_PREFIX}${normalizeSlug(slug)}`;
 
 export const isFulfilledCheckoutResult = (result) => String(result?.order?.status || "").toLowerCase() === "paid"
   && String(result?.order?.metadata?.fulfillment_status || "").toLowerCase() === "completed";
@@ -75,7 +76,7 @@ export const mergeEventCartTickets = (currentSelection = {}, additions = []) => 
 };
 
 export const clearEventCart = (slug) => {
-  const normalizedSlug = String(slug || "").trim();
+  const normalizedSlug = normalizeSlug(slug);
   const key = keyFor(normalizedSlug);
   const paymentKey = `${PAYMENT_PREFIX}${normalizedSlug}`;
   const persistedPayment = safeGetSessionJson(paymentKey);
@@ -131,19 +132,20 @@ export const readEventCart = (slug) => {
 };
 
 export const writeEventCart = (slug, selection) => {
+  const normalizedSlug = normalizeSlug(slug);
   if (!selection) {
-    clearEventCart(slug);
+    clearEventCart(normalizedSlug);
     return null;
   }
 
-  const key = keyFor(slug);
+  const key = keyFor(normalizedSlug);
   const cart = { ...selection, savedAt: Date.now() };
   safeSetSessionJson(key, cart);
   safeSetLocalJson(key, cart);
 
-  const recovery = readCheckoutRecovery(slug);
+  const recovery = readCheckoutRecovery(normalizedSlug);
   if (!recovery?.orderPublicId) {
-    writeCheckoutRecovery(slug, {
+    writeCheckoutRecovery(normalizedSlug, {
       selection: cart,
       orderPublicId: null,
       couponCode: recovery?.couponCode || null,
@@ -153,7 +155,7 @@ export const writeEventCart = (slug, selection) => {
 
   try {
     window.dispatchEvent(new CustomEvent("cutinapp-cart-updated", {
-      detail: { slug: String(slug || ""), cart },
+      detail: { slug: normalizedSlug, cart },
     }));
   } catch (_) {
     // Storage is best-effort in restricted browsers/webviews.
