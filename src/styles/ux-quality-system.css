@@ -143,8 +143,7 @@
   }
 
   .cut-skeleton::after {
-    animation: none;
-    transform: none;
+    display: none;
   }
 }
 
