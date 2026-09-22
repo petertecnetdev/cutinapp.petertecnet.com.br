@@ -34,6 +34,7 @@
 @import "./navbar-fixed-top.css";
 
 /* 4. Feature presentation */
+@import "../pages/HomePage.css";
 @import "../pages/HomeDiscovery.css";
 @import "./logo-theme.css";
 /* Pointer/aurora/tilt effects are desktop-only. Keeping this import scoped
