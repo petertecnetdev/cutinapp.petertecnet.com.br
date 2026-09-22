@@ -42,7 +42,7 @@ export default function CollapsibleFilterPanel({
         </span>
       </button>
 
-      <Collapse in={open}>
+      <Collapse in={open} mountOnEnter>
         <div id={panelId}>
           <div className={`cut-collapsible-filters__body ${bodyClassName}`.trim()}>{children}</div>
         </div>
