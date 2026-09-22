@@ -109,3 +109,9 @@
   .cut-feed-post__context { margin-left:0; }
   .cut-feed-event-image { aspect-ratio:16/9; border-radius:13px; }
 }
+
+@media (max-width:390px) {
+  .cut-feed-post__actions { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .cut-feed-post__actions button { min-height:44px; }
+  .cut-feed-post__actions button b { display:inline; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+}
