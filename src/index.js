@@ -38,12 +38,15 @@ const installDeferredEnhancers = async () => {
     || connection?.effectiveType === "slow-2g"
     || connection?.effectiveType === "2g"
   );
+  const constrainedDevice = Boolean(
+    (Number.isFinite(navigator?.deviceMemory) && navigator.deviceMemory <= 4)
+    || (Number.isFinite(navigator?.hardwareConcurrency) && navigator.hardwareConcurrency <= 4)
+  );
 
   // Keep optional convenience chunks out of the network/main-thread path on
-  // constrained mobile connections. Core image performance still installs
-  // above, while these progressive enhancers remain available after reload on
-  // normal connections.
-  if (constrainedNetwork) return;
+  // constrained phones. Core image performance still installs above; these
+  // progressive enhancers remain available on devices with enough headroom.
+  if (constrainedNetwork || constrainedDevice) return;
 
   if (!window.location.pathname.startsWith("/checkout/")) {
     const [
