@@ -100,6 +100,16 @@ export const clearCommerceClientState = ({ notify = true } = {}) => {
   return cleared;
 };
 
+export const resetCommerceSessionScope = () => {
+  if (typeof window === "undefined") return { scope: "guest", cleared: false };
+  const cleared = clearCommerceClientState({ notify: false });
+  safeSetLocalItem(COMMERCE_SCOPE_KEY, "guest");
+  safeSetLocalItem(COMMERCE_SCOPE_VERSION_KEY, COMMERCE_SCOPE_VERSION);
+  safeSetSessionItem(COMMERCE_SESSION_SCOPE_KEY, "guest");
+  notifyCommerceScopeChange("guest", cleared);
+  return { scope: "guest", cleared: cleared > 0 };
+};
+
 export const synchronizeCommerceScope = (user) => {
   const nextScope = user ? userScope(user) : "guest";
   if (!nextScope) {
