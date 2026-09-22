@@ -33,28 +33,16 @@ const formatEventLocation = (event) => {
 
 const ticketAvailabilityBadge = (event) => {
   switch (event?.ticket_availability_status) {
-    case "free_available":
-      return { bg: "success", label: "Gratuito" };
-    case "available":
-      return { bg: "primary", label: "Ingressos disponíveis" };
-    case "temporarily_reserved":
-      return { bg: "secondary", label: "Reservado no momento" };
-    case "sold_out":
-      return { bg: "secondary", label: "Esgotado" };
-    case "sales_ended":
-      return { bg: "secondary", label: "Vendas encerradas" };
-    case "tickets_pending":
-      return { bg: "warning", text: "dark", label: "Ingressos em breve" };
+    case "free_available": return { bg: "success", label: "Gratuito" };
+    case "available": return { bg: "primary", label: "Ingressos disponíveis" };
+    case "temporarily_reserved": return { bg: "secondary", label: "Reservado no momento" };
+    case "sold_out": return { bg: "secondary", label: "Esgotado" };
+    case "sales_ended": return { bg: "secondary", label: "Vendas encerradas" };
+    case "tickets_pending": return { bg: "warning", text: "dark", label: "Ingressos em breve" };
     default:
-      if (Number(event?.sellable_free_ticket_lots_count ?? event?.free_ticket_lots_count ?? 0) > 0) {
-        return { bg: "success", label: "Gratuito" };
-      }
-      if (Number(event?.sellable_ticket_lots_count ?? 0) > 0) {
-        return { bg: "primary", label: "Ingressos disponíveis" };
-      }
-      if (Number(event?.ticket_lots_count ?? 0) > 0) {
-        return { bg: "secondary", label: "Indisponível no momento" };
-      }
+      if (Number(event?.sellable_free_ticket_lots_count ?? event?.free_ticket_lots_count ?? 0) > 0) return { bg: "success", label: "Gratuito" };
+      if (Number(event?.sellable_ticket_lots_count ?? 0) > 0) return { bg: "primary", label: "Ingressos disponíveis" };
+      if (Number(event?.ticket_lots_count ?? 0) > 0) return { bg: "secondary", label: "Indisponível no momento" };
       return { bg: "warning", text: "dark", label: "Ingressos em breve" };
   }
 };
@@ -69,9 +57,7 @@ export default function EventPage() {
   const [error, setError] = useState("");
   const [locationBusy, setLocationBusy] = useState(false);
   const [draftSearch, setDraftSearch] = useState(searchParams.get("q") || "");
-  const [isMobileViewport, setIsMobileViewport] = useState(() =>
-    typeof window !== "undefined" && window.matchMedia("(max-width: 767.98px)").matches
-  );
+  const [isMobileViewport, setIsMobileViewport] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 767.98px)").matches);
 
   const filters = useMemo(() => paramsFromSearch(searchParams), [searchParams]);
   const recentCities = useMemo(() => readRecentCities(), [filters.city]);
@@ -84,12 +70,16 @@ export default function EventPage() {
     return () => media.removeEventListener?.("change", syncViewport);
   }, []);
 
-  useEffect(() => {
-    cutinappService.discoveryFacets().then(setFacets).catch(() => {});
-  }, []);
+  useEffect(() => { cutinappService.discoveryFacets().then(setFacets).catch(() => {}); }, []);
 
   useEffect(() => {
     const current = paramsFromSearch(searchParams);
+    if (current.city && (current.lat || current.lng || current.radius_km)) {
+      const next = new URLSearchParams(searchParams);
+      next.delete("lat"); next.delete("lng"); next.delete("radius_km");
+      setSearchParams(next, { replace: true });
+      return;
+    }
     const saved = readDiscoveryPreference();
     if (!current.city && saved.city && !searchParams.has("city")) {
       const next = new URLSearchParams(searchParams);
@@ -102,15 +92,13 @@ export default function EventPage() {
     let active = true;
     setLoading(true);
     setError("");
-    cutinappService.publicEvents({ ...current, available: current.available ?? 1, view: "compact", per_page: 18 })
+    cutinappService.publicEvents({ ...current, view: "compact", per_page: 18 })
       .then((response) => {
         if (!active) return;
         setEvents(response.events?.data || []);
         setPagination(response.events || null);
       })
-      .catch((err) => {
-        if (active) setError(err?.message || "Não foi possível buscar eventos agora.");
-      })
+      .catch((err) => { if (active) setError(err?.message || "Não foi possível buscar eventos agora."); })
       .finally(() => active && setLoading(false));
     return () => { active = false; };
   }, [searchParams, setSearchParams]);
@@ -128,46 +116,29 @@ export default function EventPage() {
     if (city) saveDiscoveryPreference({ city, uf: uf || "" });
   };
 
-  const submitSearch = (e) => {
-    e.preventDefault();
-    update({ q: draftSearch.trim() });
-  };
+  const submitSearch = (e) => { e.preventDefault(); update({ q: draftSearch.trim() }); };
 
   const useMyLocation = () => {
-    if (!navigator.geolocation) {
-      setError("Seu navegador não oferece localização. Você pode escolher a cidade manualmente.");
-      return;
-    }
+    if (!navigator.geolocation) { setError("Seu navegador não oferece localização. Você pode escolher a cidade manualmente."); return; }
     setLocationBusy(true);
     navigator.geolocation.getCurrentPosition(
-      ({ coords }) => {
-        update({ lat: coords.latitude.toFixed(6), lng: coords.longitude.toFixed(6), radius_km: 50, city: "", uf: "" });
-        setLocationBusy(false);
-      },
-      () => {
-        setError("Não foi possível acessar sua localização. Escolha uma cidade manualmente.");
-        setLocationBusy(false);
-      },
+      ({ coords }) => { update({ lat: coords.latitude.toFixed(6), lng: coords.longitude.toFixed(6), radius_km: 50, city: "", uf: "" }); setLocationBusy(false); },
+      () => { setError("Não foi possível acessar sua localização. Escolha uma cidade manualmente."); setLocationBusy(false); },
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
     );
   };
 
-  const clearFilters = () => {
-    setDraftSearch("");
-    setSearchParams(new URLSearchParams());
-  };
-
-  const sellableOnly = filters.available !== "0";
-
+  const clearFilters = () => { setDraftSearch(""); setSearchParams(new URLSearchParams()); };
+  const sellableOnly = filters.available === "1";
   const activeChips = [
     filters.city && { key: "city", label: `${filters.city}${filters.uf ? ` - ${filters.uf}` : ""}` },
     filters.period && { key: "period", label: periodLabel(filters.period) },
     filters.category && { key: "category", label: filters.category },
     filters.q && { key: "q", label: `“${filters.q}”` },
     filters.free && { key: "free", label: "Gratuitos" },
+    sellableOnly && { key: "available", label: "Só com ingressos" },
     filters.lat && { key: "lat", label: `Perto de mim · ${filters.radius_km || 50} km` },
   ].filter(Boolean);
-
   const activeFilterCount = activeChips.length + (filters.date ? 1 : 0) + (filters.sort && filters.sort !== "soonest" ? 1 : 0);
   const cityValue = filters.city ? `${filters.city}|${filters.uf || ""}` : "";
   const resultTotal = Number(pagination?.total ?? events.length);
@@ -177,121 +148,41 @@ export default function EventPage() {
       <NavlogComponent />
       {loading && <ProcessingIndicatorComponent label="Buscando eventos" />}
       <Container className="cut-page-container py-4 py-lg-5">
-        <div className="cut-page-heading">
-          <div>
-            <span className="cut-eyebrow">Descoberta</span>
-            <h1>{filters.city ? `Eventos em ${filters.city}` : "Encontre seu próximo evento"}</h1>
-            <p>Busque pela cidade, pelo dia, pelo artista ou pela produção. Os filtros ficam na URL para você compartilhar a descoberta.</p>
-          </div>
-          <Button variant="outline-light" onClick={() => navigate("/passes")}>
-            <i className="fa-solid fa-ticket me-2" />Minha carteira
-          </Button>
-        </div>
-
+        <div className="cut-page-heading"><div><span className="cut-eyebrow">Descoberta</span><h1>{filters.city ? `Eventos em ${filters.city}` : "Encontre seu próximo evento"}</h1><p>Busque pela cidade, pelo dia, pelo artista ou pela produção. Os filtros ficam na URL para você compartilhar a descoberta.</p></div><Button variant="outline-light" onClick={() => navigate("/passes")}><i className="fa-solid fa-ticket me-2" />Minha carteira</Button></div>
         {error && <Alert variant="danger">{error}</Alert>}
-
         <Card className="cut-discovery-shell mb-4"><Card.Body>
           <CollapsibleFilterPanel key={isMobileViewport ? "mobile-filters" : "desktop-filters"} title="Pesquisar e filtrar eventos" activeCount={activeFilterCount} defaultOpen={!isMobileViewport && activeFilterCount > 0}>
             <div className="cut-discovery-primary">
-              <Form.Select value={cityValue} onChange={(e) => {
-                const [city, uf] = e.target.value.split("|");
-                update({ city, uf, lat: "", lng: "", radius_km: "" });
-              }} aria-label="Cidade">
-                <option value="">Todas as cidades</option>
-                {facets.cities?.map((item) => <option key={`${item.city}-${item.uf}`} value={`${item.city}|${item.uf || ""}`}>{item.city}{item.uf ? ` - ${item.uf}` : ""} ({item.total})</option>)}
-              </Form.Select>
-              <Form.Select value={filters.period || ""} onChange={(e) => update({ period: e.target.value, date: "", from: "", to: "" })} aria-label="Período">
-                <option value="">Qualquer data</option>
-                {PERIOD_OPTIONS.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
-              </Form.Select>
+              <Form.Select value={cityValue} onChange={(e) => { const [city, uf] = e.target.value.split("|"); update({ city, uf, lat: "", lng: "", radius_km: "" }); }} aria-label="Cidade"><option value="">Todas as cidades</option>{facets.cities?.map((item) => <option key={`${item.city}-${item.uf}`} value={`${item.city}|${item.uf || ""}`}>{item.city}{item.uf ? ` - ${item.uf}` : ""} ({item.total})</option>)}</Form.Select>
+              <Form.Select value={filters.period || ""} onChange={(e) => update({ period: e.target.value, date: "", from: "", to: "" })} aria-label="Período"><option value="">Qualquer data</option>{PERIOD_OPTIONS.map(([key, label]) => <option key={key} value={key}>{label}</option>)}</Form.Select>
               <Button variant="outline-light" onClick={useMyLocation} disabled={locationBusy}><i className="fa-solid fa-location-crosshairs me-2" />{locationBusy ? "Localizando..." : "Perto de mim"}</Button>
             </div>
-
-            <form className="cut-search-bar" onSubmit={submitSearch}>
-              <i className="fa-solid fa-magnifying-glass" />
-              <Form.Control value={draftSearch} onChange={(e) => setDraftSearch(e.target.value)} placeholder="Evento, artista, produção, cidade ou local" aria-label="Buscar eventos" />
-              <Button type="submit">Buscar</Button>
-            </form>
-
+            <form className="cut-search-bar" onSubmit={submitSearch}><i className="fa-solid fa-magnifying-glass" /><Form.Control value={draftSearch} onChange={(e) => setDraftSearch(e.target.value)} placeholder="Evento, artista, produção, cidade ou local" aria-label="Buscar eventos" /><Button type="submit">Buscar</Button></form>
             <div className="cut-filter-shortcuts">
-              {[["today","Hoje"],["tomorrow","Amanhã"],["weekend","Fim de semana"],["saturday","Sábado"],["next7","7 dias"]].map(([key, label]) =>
-                <button type="button" key={key} className={filters.period === key ? "active" : ""} onClick={() => update({ period: filters.period === key ? "" : key, date: "", from: "", to: "" })}>{label}</button>
-              )}
+              {[["today","Hoje"],["tomorrow","Amanhã"],["weekend","Fim de semana"],["saturday","Sábado"],["next7","7 dias"]].map(([key, label]) => <button type="button" key={key} className={filters.period === key ? "active" : ""} onClick={() => update({ period: filters.period === key ? "" : key, date: "", from: "", to: "" })}>{label}</button>)}
               <button type="button" className={filters.free ? "active" : ""} onClick={() => update({ free: filters.free ? "" : 1 })}>Gratuitos</button>
-              <button type="button" className={sellableOnly ? "active" : ""} onClick={() => update({ available: sellableOnly ? "0" : "1" })}>Só com ingressos</button>
+              <button type="button" className={sellableOnly ? "active" : ""} onClick={() => update({ available: sellableOnly ? "" : "1" })}>Só com ingressos</button>
             </div>
-
             <div className="cut-discovery-secondary">
-              <Form.Select value={filters.category || ""} onChange={(e) => update({ category: e.target.value })} aria-label="Categoria do evento">
-                <option value="">Todas as categorias</option>
-                {facets.categories?.map((item) => <option key={item.category} value={item.category}>{item.category} ({item.total})</option>)}
-              </Form.Select>
+              <Form.Select value={filters.category || ""} onChange={(e) => update({ category: e.target.value })} aria-label="Categoria do evento"><option value="">Todas as categorias</option>{facets.categories?.map((item) => <option key={item.category} value={item.category}>{item.category} ({item.total})</option>)}</Form.Select>
               <Form.Control type="date" value={filters.date || ""} onChange={(e) => update({ date: e.target.value, period: e.target.value ? "" : filters.period, from: "", to: "" })} aria-label="Data do evento" />
-              <Form.Select value={filters.sort || "soonest"} onChange={(e) => update({ sort: e.target.value })} aria-label="Ordenar eventos">
-                <option value="soonest">Mais próximos</option><option value="newest">Novidades</option><option value="popular">Populares</option>
-              </Form.Select>
+              <Form.Select value={filters.sort || "soonest"} onChange={(e) => update({ sort: e.target.value })} aria-label="Ordenar eventos"><option value="soonest">Mais próximos</option><option value="newest">Novidades</option><option value="popular">Populares</option></Form.Select>
             </div>
           </CollapsibleFilterPanel>
-
           {recentCities.length > 0 && <div className="cut-recent-cities"><span>Recentes:</span>{recentCities.map((item) => <button type="button" key={`${item.city}-${item.uf}`} onClick={() => update({ city: item.city, uf: item.uf, lat: "", lng: "" })}>{item.city}</button>)}</div>}
           {activeChips.length > 0 && <div className="cut-active-filters">{activeChips.map((chip) => <button type="button" key={chip.key} onClick={() => chip.key === "lat" ? update({ lat: "", lng: "", radius_km: "" }) : update({ [chip.key]: "", ...(chip.key === "city" ? { uf: "" } : {}) })}>{chip.label} <span>×</span></button>)}<button type="button" className="cut-clear-filters" onClick={clearFilters}>Limpar filtros</button></div>}
         </Card.Body></Card>
-
         {!loading && events.length === 0 ? (
-          <Card className="cut-empty-state"><Card.Body>
-            <i className="fa-regular fa-calendar-xmark cut-empty-icon" />
-            <h2>{filters.city ? `Não encontramos eventos em ${filters.city}${filters.period ? ` para ${periodLabel(filters.period).toLowerCase()}` : ""}.` : "Nenhum evento encontrado com esses filtros."}</h2>
-            <p>Experimente ampliar o período, remover uma categoria ou explorar outras cidades.</p>
-            <div className="cut-card-actions justify-content-center">
-              <Button onClick={() => update({ period: "next30", date: "", from: "", to: "" })}>Ver próximos 30 dias</Button>
-              {filters.category && <Button variant="outline-light" onClick={() => update({ category: "" })}>Remover categoria</Button>}
-              <Button variant="outline-light" onClick={clearFilters}>Ver todos os eventos</Button>
-            </div>
-          </Card.Body></Card>
+          <Card className="cut-empty-state"><Card.Body><i className="fa-regular fa-calendar-xmark cut-empty-icon" /><h2>{filters.city ? `Não encontramos eventos em ${filters.city}${filters.period ? ` para ${periodLabel(filters.period).toLowerCase()}` : ""}.` : "Nenhum evento encontrado com esses filtros."}</h2><p>Experimente ampliar o período, remover uma categoria ou explorar outras cidades.</p><div className="cut-card-actions justify-content-center"><Button onClick={() => update({ period: "next30", date: "", from: "", to: "" })}>Ver próximos 30 dias</Button>{filters.category && <Button variant="outline-light" onClick={() => update({ category: "" })}>Remover categoria</Button>}<Button variant="outline-light" onClick={clearFilters}>Ver todos os eventos</Button></div></Card.Body></Card>
         ) : (
           <>
-            {!loading && (
-              <div className="cut-event-discovery-results" aria-live="polite">
-                <div className="cut-event-discovery-results__title">
-                  <strong>{resultTotal} {resultTotal === 1 ? "evento encontrado" : "eventos encontrados"}</strong>
-                  <span>{filters.city ? `Mostrando oportunidades em ${filters.city}` : "Explore os próximos eventos disponíveis na Cutinapp"}</span>
-                </div>
-                <span className="cut-event-discovery-results__hint"><i className="fa-solid fa-arrow-pointer" />Clique em um evento para ver detalhes e ingressos</span>
-              </div>
-            )}
-
+            {!loading && <div className="cut-event-discovery-results" aria-live="polite"><div className="cut-event-discovery-results__title"><strong>{resultTotal} {resultTotal === 1 ? "evento encontrado" : "eventos encontrados"}</strong><span>{filters.city ? `Mostrando oportunidades em ${filters.city}` : "Explore os próximos eventos disponíveis na Cutinapp"}</span></div><span className="cut-event-discovery-results__hint"><i className="fa-solid fa-arrow-pointer" />Clique em um evento para ver detalhes e ingressos</span></div>}
             <Row className="cut-event-discovery-grid">
-              {events.map((event) => {
-                const availabilityBadge = ticketAvailabilityBadge(event);
-                return <Col xs={12} md={6} xl={4} key={event.id}>
-                  <Card className="cut-event-card h-100" role="button" tabIndex={0} aria-label={`Abrir evento ${event.title}`} onMouseEnter={() => eventService.view(event.slug).catch(() => {})} onFocus={() => eventService.view(event.slug).catch(() => {})} onClick={() => navigate(`/event/${event.slug}`)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/event/${event.slug}`); } }}>
-                    <div className="cut-event-card__media">
-                      <EventArtwork image={event.image} title={event.title} alt={event.title} loading="lazy" decoding="async" fallbackClassName="cut-event-card__placeholder" />
-                      {event.category && <Badge bg="dark" className="cut-event-card__category">{event.category}</Badge>}
-                      <Badge bg={availabilityBadge.bg} text={availabilityBadge.text} className="cut-event-card__badge">{availabilityBadge.label}</Badge>
-                    </div>
-                    <Card.Body>
-                      <span className="cut-eyebrow">{event.production?.name || "Cutinapp"}</span>
-                      <h2>{event.title}</h2>
-                      <div className="cut-event-card__meta">
-                        <span><i className="fa-regular fa-calendar" />{formatDate(event.start_date)}</span>
-                        <span><i className="fa-solid fa-location-dot" />{formatEventLocation(event)}</span>
-                        {event.artists?.length > 0 && <span><i className="fa-solid fa-music" />{event.artists.slice(0, 3).map((a) => a.stage_name).join(" · ")}</span>}
-                        {event.distance_km != null && <span><i className="fa-solid fa-route" />{Number(event.distance_km).toFixed(1)} km de você</span>}
-                      </div>
-                    </Card.Body>
-                  </Card>
-                </Col>;
-              })}
+              {events.map((event) => { const availabilityBadge = ticketAvailabilityBadge(event); return <Col xs={12} md={6} xl={4} key={event.id}><Card className="cut-event-card h-100" role="button" tabIndex={0} aria-label={`Abrir evento ${event.title}`} onMouseEnter={() => eventService.view(event.slug).catch(() => {})} onFocus={() => eventService.view(event.slug).catch(() => {})} onClick={() => navigate(`/event/${event.slug}`)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/event/${event.slug}`); } }}><div className="cut-event-card__media"><EventArtwork image={event.image} title={event.title} alt={event.title} loading="lazy" decoding="async" fallbackClassName="cut-event-card__placeholder" />{event.category && <Badge bg="dark" className="cut-event-card__category">{event.category}</Badge>}<Badge bg={availabilityBadge.bg} text={availabilityBadge.text} className="cut-event-card__badge">{availabilityBadge.label}</Badge></div><Card.Body><span className="cut-eyebrow">{event.production?.name || "Cutinapp"}</span><h2>{event.title}</h2><div className="cut-event-card__meta"><span><i className="fa-regular fa-calendar" />{formatDate(event.start_date)}</span><span><i className="fa-solid fa-location-dot" />{formatEventLocation(event)}</span>{event.artists?.length > 0 && <span><i className="fa-solid fa-music" />{event.artists.slice(0, 3).map((a) => a.stage_name).join(" · ")}</span>}{event.distance_km != null && <span><i className="fa-solid fa-route" />{Number(event.distance_km).toFixed(1)} km de você</span>}</div></Card.Body></Card></Col>; })}
             </Row>
           </>
         )}
-
-        {pagination?.last_page > 1 && <div className="cut-pagination mt-4">
-          <Button variant="outline-light" disabled={pagination.current_page <= 1} onClick={() => update({ page: pagination.current_page - 1 })}>Anterior</Button>
-          <span>Página {pagination.current_page} de {pagination.last_page}</span>
-          <Button variant="outline-light" disabled={pagination.current_page >= pagination.last_page} onClick={() => update({ page: pagination.current_page + 1 })}>Próxima</Button>
-        </div>}
+        {pagination?.last_page > 1 && <div className="cut-pagination mt-4"><Button variant="outline-light" disabled={pagination.current_page <= 1} onClick={() => update({ page: pagination.current_page - 1 })}>Anterior</Button><span>Página {pagination.current_page} de {pagination.last_page}</span><Button variant="outline-light" disabled={pagination.current_page >= pagination.last_page} onClick={() => update({ page: pagination.current_page + 1 })}>Próxima</Button></div>}
       </Container>
     </div>
   );
