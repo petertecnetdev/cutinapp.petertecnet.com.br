@@ -134,6 +134,16 @@
 @media (max-width: 767.98px) {
   .cut-app-page {
     padding-bottom: env(safe-area-inset-bottom, 0px);
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  .cut-app-page :where(img, video, canvas, svg) {
+    max-width: 100%;
+  }
+
+  .cut-app-page :where(.row, [class*="carousel"], [class*="slider"]) {
+    min-width: 0;
   }
 
   .cut-undo-bar {
