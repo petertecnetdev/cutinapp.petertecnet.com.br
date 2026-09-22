@@ -76,6 +76,16 @@
     contain: paint;
   }
 
+  /* The global navbar remains visible across the primary mobile journey.
+     A solid surface avoids continuously sampling page content behind it while
+     the user scrolls event, production, feed and checkout screens. */
+  .cut-navbar {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    background: #060a14;
+    contain: paint;
+  }
+
   /* Footers are below the primary mobile journey and can be structurally rich.
      Skip their layout/paint until the user approaches them while reserving a
      stable learned size so long pages do less work during initial render. */
