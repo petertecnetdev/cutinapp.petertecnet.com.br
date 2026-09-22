@@ -1,0 +1,24 @@
+/* Functional mobile touch targets for the social feed.
+   Keep this layer small and explicit: it complements FeedPage.css without
+   changing component contracts or desktop density. */
+@media (max-width: 767.98px) {
+  .cut-feed-post__actions button,
+  .cut-feed-post__manage .dropdown-toggle,
+  .cut-feed-post__context button,
+  .cut-feed-event-cta .btn,
+  .cut-feed-composer__actions .btn {
+    min-height: 44px;
+  }
+
+  .cut-feed-post__actions button,
+  .cut-feed-post__manage .dropdown-toggle {
+    touch-action: manipulation;
+  }
+
+  .cut-feed-post__author,
+  .cut-feed-post__profile-link {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+}
