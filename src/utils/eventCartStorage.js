@@ -26,6 +26,11 @@ const positiveInteger = (value) => {
   return Math.floor(parsed);
 };
 
+const hasPurchasableSelection = (selection) => [
+  ...(Array.isArray(selection?.tickets) ? selection.tickets : []),
+  ...(Array.isArray(selection?.items) ? selection.items : []),
+].some((entry) => positiveInteger(entry?.id) && positiveInteger(entry?.quantity));
+
 const isExpired = (cart) => {
   const savedAt = Number(cart?.savedAt || 0);
   return savedAt > 0 && Date.now() - savedAt > CART_MAX_AGE_MS;
@@ -143,7 +148,10 @@ export const writeEventCart = (slug, selection) => {
   const key = keyFor(normalizedSlug);
   if (!key) return null;
 
-  if (!selection) {
+  // Treat an explicitly empty/zero-quantity selection as a real cart clear. Persisting
+  // an empty object leaves checkout recovery and cart badges looking active even though
+  // there is nothing purchasable, and can revive stale state in another tab.
+  if (!selection || !hasPurchasableSelection(selection)) {
     clearEventCart(normalizedSlug);
     return null;
   }
