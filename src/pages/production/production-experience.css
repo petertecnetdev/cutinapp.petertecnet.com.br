@@ -1561,3 +1561,84 @@
 .cut-production-producer-copy strong{max-width:220px;overflow:hidden;color:#fff;font-size:.86rem;text-overflow:ellipsis;white-space:nowrap}
 .cut-production-producer-link>i{margin-left:3px;color:#9ba6b5;font-size:.68rem}
 @media(max-width:767.98px){.cut-production-producer-link{margin-top:4px}.cut-production-producer-copy strong{max-width:58vw}}
+
+
+/* Production follow control v1 — immediate social state with Instagram-style unfollow action. */
+.cut-production-follow-button,
+.cut-production-follow-dropdown,
+.cut-production-follow-dropdown .dropdown-toggle{
+  width:100%;
+  min-width:0;
+}
+.cut-production-follow-button{
+  min-height:48px;
+  border:0!important;
+  border-radius:14px!important;
+  background:linear-gradient(105deg,#c03cff,#00b7ff)!important;
+  color:#fff!important;
+  font-weight:850!important;
+}
+.cut-production-follow-button:hover,
+.cut-production-follow-button:focus-visible{
+  filter:brightness(1.06);
+  color:#fff!important;
+}
+.cut-production-follow-dropdown .dropdown-toggle{
+  min-height:48px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border:1px solid #344456!important;
+  border-radius:14px!important;
+  background:#17212d!important;
+  color:#fff!important;
+  font-weight:850!important;
+}
+.cut-production-follow-dropdown .dropdown-toggle:hover,
+.cut-production-follow-dropdown .dropdown-toggle:focus-visible,
+.cut-production-follow-dropdown.show .dropdown-toggle{
+  border-color:#61758a!important;
+  background:#202c39!important;
+  color:#fff!important;
+}
+.cut-production-follow-dropdown .dropdown-menu{
+  min-width:220px;
+  margin-top:8px!important;
+  padding:6px;
+  border:1px solid #273646;
+  border-radius:14px;
+  background:#0b1118;
+  box-shadow:0 18px 42px rgba(0,0,0,.42);
+}
+.cut-production-follow-dropdown .dropdown-item{
+  padding:11px 12px;
+  border-radius:10px;
+  color:#f7f9fc;
+  font-weight:750;
+}
+.cut-production-follow-dropdown .dropdown-item:hover,
+.cut-production-follow-dropdown .dropdown-item:focus{
+  background:#151f2a;
+  color:#fff;
+}
+.cut-production-follow-dropdown .cut-production-unfollow-action{
+  color:#ff8794;
+}
+.cut-production-follow-dropdown .cut-production-unfollow-action:hover,
+.cut-production-follow-dropdown .cut-production-unfollow-action:focus{
+  background:#25151a;
+  color:#ff9ca6;
+}
+@media(max-width:767.98px){
+  .cut-production-follow-button,
+  .cut-production-follow-dropdown .dropdown-toggle{
+    min-height:46px!important;
+    font-size:.88rem!important;
+  }
+}
+@media(max-width:390px){
+  .cut-production-follow-button,
+  .cut-production-follow-dropdown .dropdown-toggle{
+    font-size:.8rem!important;
+  }
+}
