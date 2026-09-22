@@ -67,6 +67,15 @@
     contain: layout paint style;
   }
 
+  /* Checkout is section-heavy on mobile. Defer below-the-fold payment panels
+     while reserving their space, reducing initial layout/paint without hiding
+     controls once the user scrolls them into view. */
+  .cut-checkout-page .cut-panel {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 440px;
+    contain: layout paint style;
+  }
+
   /* Checkout keeps a sticky security header while the payment form scrolls.
      Avoid re-sampling the whole page behind that fixed surface on every frame. */
   .cut-checkout-topbar {
