@@ -141,6 +141,11 @@
     bottom: var(--cut-mobile-action-safe-bottom);
     width: calc(100vw - 24px);
   }
+
+  .cut-skeleton::after {
+    animation: none;
+    transform: none;
+  }
 }
 
 @media (prefers-contrast: more) {
