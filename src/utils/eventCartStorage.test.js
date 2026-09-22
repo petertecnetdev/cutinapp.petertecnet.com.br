@@ -129,7 +129,7 @@ describe("fulfilled checkout storage cleanup", () => {
     const slug = "evento-pendente";
     const paymentKey = `cutinapp_payment_${slug}`;
     const recoveryKey = `cutinapp_checkout_recovery_${slug}`;
-    window.sessionStorage.setItem(paymentKey, JSON.stringify({ order: { status: "pending", metadata: { fulfillment_status: "pending" } }));
+    window.sessionStorage.setItem(paymentKey, JSON.stringify({ order: { status: "pending", metadata: { fulfillment_status: "pending" } } }));
     window.localStorage.setItem(recoveryKey, JSON.stringify({ orderPublicId: "ord_pending", savedAt: Date.now() }));
 
     clearEventCart(slug);
