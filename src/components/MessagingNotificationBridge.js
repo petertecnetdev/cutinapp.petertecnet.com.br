@@ -16,10 +16,25 @@ export default function MessagingNotificationBridge() {
 
     let stopped = false;
     let timer = null;
-    const heartbeat = () => messagingService.heartbeat().catch(() => undefined);
+    const heartbeat = () => {
+      if (stopped || document.visibilityState === "hidden") return;
+      messagingService.heartbeat().catch(() => undefined);
+    };
+
+    const stopHeartbeatTimer = () => {
+      if (!timer) return;
+      window.clearInterval(timer);
+      timer = null;
+    };
+
+    const startHeartbeatTimer = () => {
+      if (stopped || timer || document.visibilityState === "hidden") return;
+      heartbeat();
+      timer = window.setInterval(heartbeat, HEARTBEAT_MS);
+    };
 
     const preparePush = async () => {
-      if (stopped) return;
+      if (stopped || document.visibilityState === "hidden") return;
       try {
         pushReadyRef.current = await ensureWebPushSubscription();
       } catch (_) {
@@ -29,8 +44,7 @@ export default function MessagingNotificationBridge() {
 
     const startBackgroundWork = () => {
       if (stopped) return;
-      heartbeat();
-      timer = window.setInterval(heartbeat, HEARTBEAT_MS);
+      startHeartbeatTimer();
       preparePush();
     };
     const idleHandle = window.requestIdleCallback
@@ -38,7 +52,16 @@ export default function MessagingNotificationBridge() {
       : window.setTimeout(startBackgroundWork, 600);
 
     const permissionChanged = () => preparePush();
+    const visibilityChanged = () => {
+      if (document.visibilityState === "hidden") {
+        stopHeartbeatTimer();
+        return;
+      }
+      startHeartbeatTimer();
+      if (!pushReadyRef.current) preparePush();
+    };
     window.addEventListener(PERMISSION_EVENT, permissionChanged);
+    document.addEventListener("visibilitychange", visibilityChanged);
 
     const unsubscribeRealtime = subscribeToUserNotifications(user.id, (notification) => {
       if (!notification || notification.type !== "direct_message") return;
@@ -56,8 +79,9 @@ export default function MessagingNotificationBridge() {
       stopped = true;
       if (window.cancelIdleCallback && typeof idleHandle === "number") window.cancelIdleCallback(idleHandle);
       else window.clearTimeout(idleHandle);
-      if (timer) window.clearInterval(timer);
+      stopHeartbeatTimer();
       window.removeEventListener(PERMISSION_EVENT, permissionChanged);
+      document.removeEventListener("visibilitychange", visibilityChanged);
       unsubscribeRealtime?.();
     };
   }, [user?.id]);
