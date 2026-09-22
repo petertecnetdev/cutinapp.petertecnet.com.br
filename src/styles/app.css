@@ -60,3 +60,17 @@
 
 /* 6. Performance must stay last so low-cost scroll/mobile overrides win. */
 @import "./performance.css";
+
+/* Home hero: mobile/tablet users never see the desktop visual frame, so avoid
+   continuously painting its oversized blurred glow and decorative beams. */
+@media (max-width: 991px) {
+  .cut-home .cut-home__glow,
+  .cut-home .cut-home__beam {
+    display: none;
+  }
+
+  .cut-home .cut-home__nav {
+    background: #050513;
+    backdrop-filter: none;
+  }
+}
