@@ -40,7 +40,7 @@ const capabilityCacheKey = (userId) => `cutinapp:navigation-capabilities:${userI
 const userAvatarUrl = (user) => {
   const value = user?.avatar || user?.photo || user?.picture || user?.profile_photo || user?.profile_photo_url;
   if (!value) return "";
-  return /^https?:/i.test(value) ? value : `${storageUrl}${String(value).replace(/^\\//, "")}`;
+  return /^https?:/i.test(value) ? value : `${storageUrl}${String(value).replace(/^\//, "")}`;
 };
 
 const userInitials = (user) => `${user?.first_name?.[0] || user?.name?.[0] || "C"}${user?.last_name?.[0] || ""}`.toUpperCase();
