@@ -82,13 +82,15 @@
 @media (max-width:767.98px) {
   .cut-feed-page { padding-left:14px!important; padding-right:14px!important; overflow-x:hidden; }
   .cut-feed-heading p { font-size:.9rem; }
+  .cut-feed-composer,
+  .cut-feed-social-card { box-shadow:none!important; }
   .cut-feed-social-card { border-radius:17px!important; }
   .cut-feed-social-card .card-body { padding:14px!important; }
   .cut-feed-event-copy { display:grid; gap:12px; }
   .cut-feed-event-cta { width:100%; }
   .cut-feed-event-cta .btn { flex:1; }
   .cut-feed-post__actions { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:2px; }
-  .cut-feed-post__actions button { width:100%; padding-inline:3px; gap:4px; font-size:.72rem; }
+  .cut-feed-post__actions button { width:100%; padding-inline:3px; gap:4px; font-size:.72rem; transition:none; }
   .cut-feed-post__actions button b { display:none; }
   .cut-feed-thread { margin-left:8px; padding-left:10px; }
 }
