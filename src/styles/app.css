@@ -73,4 +73,13 @@
     background: #050513;
     backdrop-filter: none;
   }
+
+  /* Production carousels can contain several rich event cards. Let Chromium
+     skip layout/paint for slides outside the viewport while reserving a stable
+     size, reducing scroll work and image-card paint pressure on Android. */
+  .cut-production-themed-page .cut-production-event-slide {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 360px;
+    contain: layout paint style;
+  }
 }
