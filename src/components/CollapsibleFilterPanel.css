@@ -47,6 +47,11 @@
   gap: 2px;
 }
 
+.cut-collapsible-filters__title strong,
+.cut-collapsible-filters__title small {
+  overflow-wrap: anywhere;
+}
+
 .cut-collapsible-filters__title strong {
   font-size: .88rem;
   font-weight: 880;
@@ -92,10 +97,15 @@
 }
 
 .cut-collapsible-filters__body {
+  min-width: 0;
   display: grid;
   gap: 14px;
   padding: 0 14px 14px;
   border-top: 1px solid rgba(255, 255, 255, .045);
+}
+
+.cut-collapsible-filters__body > * {
+  min-width: 0;
 }
 
 .cut-collapsible-filters__body > :first-child {
