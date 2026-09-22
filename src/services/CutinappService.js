@@ -606,21 +606,29 @@ const followSocialTarget = createIdempotentMutation({
   storagePrefix: "cutinapp_social_follow_attempt_",
   keyPrefix: "social-follow",
   requestKeyFor: (targetType, targetId) => `${normalizeSocialTargetType(targetType)}:${String(targetId)}`,
-  mutate: async ({ idempotencyKey }, targetType, targetId) => (await appApiClient.post(
-    "/social/follow",
-    { target_type: normalizeSocialTargetType(targetType), target_id: targetId },
-    { headers: { "Idempotency-Key": idempotencyKey } },
-  )).data,
+  mutate: async ({ idempotencyKey }, targetType, targetId) => {
+    const data = (await appApiClient.post(
+      "/social/follow",
+      { target_type: normalizeSocialTargetType(targetType), target_id: targetId },
+      { headers: { "Idempotency-Key": idempotencyKey } },
+    )).data;
+    invalidatePublicRequestCache();
+    return data;
+  },
 });
 
 const unfollowSocialTarget = createIdempotentMutation({
   storagePrefix: "cutinapp_social_unfollow_attempt_",
   keyPrefix: "social-unfollow",
   requestKeyFor: (targetType, targetId) => `${normalizeSocialTargetType(targetType)}:${String(targetId)}`,
-  mutate: async ({ idempotencyKey }, targetType, targetId) => (await appApiClient.delete(
-    "/social/follow",
-    { data: { target_type: normalizeSocialTargetType(targetType), target_id: targetId }, headers: { "Idempotency-Key": idempotencyKey } },
-  )).data,
+  mutate: async ({ idempotencyKey }, targetType, targetId) => {
+    const data = (await appApiClient.delete(
+      "/social/follow",
+      { data: { target_type: normalizeSocialTargetType(targetType), target_id: targetId }, headers: { "Idempotency-Key": idempotencyKey } },
+    )).data;
+    invalidatePublicRequestCache();
+    return data;
+  },
 });
 
 const rateEventMutation = createIdempotentMutation({
