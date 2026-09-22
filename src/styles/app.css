@@ -34,8 +34,8 @@
 @import "./navbar-fixed-top.css";
 
 /* 4. Feature presentation */
-@import "../pages/HomePage.css";
-@import "../pages/HomeDiscovery.css";
+/* HomePage/HomeDiscovery remain imported by HomePage so their CSS stays with
+   the lazy home route instead of increasing the critical CSS for every route. */
 @import "./logo-theme.css";
 /* Pointer/aurora/tilt effects are desktop-only. Keeping this import scoped
    prevents their expensive filters, transitions and backdrop rules from
