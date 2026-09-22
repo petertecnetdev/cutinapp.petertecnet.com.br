@@ -32,6 +32,7 @@ function OptimizedImage({
   const fallback = useMemo(() => initials(fallbackLabel || alt), [fallbackLabel, alt]);
   const hasImage = Boolean(src) && !failed;
   const aspectRatio = width && height ? `${width} / ${height}` : undefined;
+  const responsiveSizes = sizes || "(max-width: 575px) calc(100vw - 24px), (max-width: 991px) 92vw, 720px";
 
   if (!hasImage) {
     return (
@@ -56,7 +57,7 @@ function OptimizedImage({
       <img
         src={src}
         srcSet={srcSet}
-        sizes={sizes}
+        sizes={srcSet ? responsiveSizes : sizes}
         alt={alt || ""}
         width={width}
         height={height}
