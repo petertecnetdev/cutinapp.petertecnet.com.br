@@ -114,7 +114,8 @@ export const clearEventCart = (slug) => {
 };
 
 export const readEventCart = (slug) => {
-  const key = keyFor(slug);
+  const normalizedSlug = normalizeSlug(slug);
+  const key = keyFor(normalizedSlug);
   if (!key) return null;
 
   const sessionCart = safeGetSessionJson(key);
@@ -132,6 +133,14 @@ export const readEventCart = (slug) => {
   // in localStorage until it ages out so any still-open tab observes the deletion.
   if (cart?.cleared === true) {
     safeRemoveSessionItem(key);
+    return null;
+  }
+
+  // Old, malformed or partially written carts must never make checkout appear active.
+  // Canonicalize them through the normal clear path so every open tab observes the
+  // invalidation and draft recovery cannot revive an unpurchasable selection.
+  if (!hasPurchasableSelection(cart)) {
+    clearEventCart(normalizedSlug);
     return null;
   }
 
