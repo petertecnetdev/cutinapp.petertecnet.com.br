@@ -430,3 +430,232 @@
     min-height:150px;
   }
 }
+
+
+/* Event editor view parity and contrast.
+ * Create/edit intentionally reuse the public EventViewPage hierarchy, but the
+ * editable controls must remain unmistakable and readable on every theme. */
+.cut-event-inline-editor .cut-event-summary-card{
+  isolation:isolate;
+}
+
+.cut-event-inline-editor .cut-event-summary-card__content{
+  width:100%;
+  min-width:0;
+}
+
+.cut-event-inline-editor__title.form-control{
+  min-height:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  color:#f8f9fc!important;
+  box-shadow:none!important;
+  font-size:clamp(2rem,2.45vw,3.25rem)!important;
+  font-weight:900!important;
+  line-height:1.02!important;
+  letter-spacing:-.042em!important;
+}
+
+.cut-event-inline-editor__title.form-control:focus{
+  box-shadow:0 3px 0 #9b5cff!important;
+}
+
+.cut-event-inline-editor__title.form-control::placeholder{
+  color:#8f96a8!important;
+  opacity:1!important;
+}
+
+.cut-event-inline-editor__summaryMeta{
+  grid-template-columns:1fr!important;
+  gap:0!important;
+  margin-top:22px!important;
+  border-top:1px solid #2b3040!important;
+}
+
+.cut-event-inline-editor__summaryMeta>label{
+  display:grid!important;
+  grid-template-columns:22px minmax(0,1fr)!important;
+  align-items:start!important;
+  gap:12px!important;
+  margin:0!important;
+  padding:13px 0!important;
+  border-bottom:1px solid #252a38!important;
+  color:#f5f8fc!important;
+}
+
+.cut-event-inline-editor__summaryMeta>label>i{
+  width:22px!important;
+  margin-top:10px!important;
+  color:#aeb7c8!important;
+  text-align:center;
+}
+
+.cut-event-inline-editor__summaryMeta strong{
+  color:#f8f9fc!important;
+  font-size:.76rem!important;
+  font-weight:850!important;
+  letter-spacing:.02em!important;
+}
+
+.cut-event-inline-editor__summaryMeta .form-control,
+.cut-event-inline-editor .cut-event-details .form-control,
+.cut-event-inline-editor__mapEditor .form-control,
+.cut-event-inline-editor__mapEditor .form-select,
+.cut-event-inline-editor__productionControl .form-control,
+.cut-event-inline-editor__productionControl .form-select,
+.cut-event-inline-editor__publicField textarea.form-control{
+  border:1px solid #363d50!important;
+  background:#0d111b!important;
+  color:#f8f9fc!important;
+  opacity:1!important;
+  box-shadow:none!important;
+}
+
+.cut-event-inline-editor__summaryMeta .form-control::placeholder,
+.cut-event-inline-editor .cut-event-details .form-control::placeholder,
+.cut-event-inline-editor__mapEditor .form-control::placeholder,
+.cut-event-inline-editor__productionControl .form-control::placeholder,
+.cut-event-inline-editor__publicField textarea.form-control::placeholder{
+  color:#9199aa!important;
+  opacity:1!important;
+}
+
+.cut-event-inline-editor__summaryMeta .form-control:focus,
+.cut-event-inline-editor .cut-event-details .form-control:focus,
+.cut-event-inline-editor__mapEditor .form-control:focus,
+.cut-event-inline-editor__mapEditor .form-select:focus,
+.cut-event-inline-editor__productionControl .form-control:focus,
+.cut-event-inline-editor__productionControl .form-select:focus,
+.cut-event-inline-editor__publicField textarea.form-control:focus{
+  border-color:#9b5cff!important;
+  box-shadow:0 0 0 3px #2b1642!important;
+}
+
+.cut-event-inline-editor .cut-event-summary-card__actions{
+  display:flex!important;
+  flex-wrap:wrap!important;
+  align-items:center!important;
+  gap:9px!important;
+}
+
+.cut-event-inline-editor .cut-event-summary-card__actions>.btn,
+.cut-event-inline-editor .cut-event-summary-card__actions>a.btn{
+  width:auto!important;
+  min-width:148px!important;
+  min-height:44px!important;
+  flex:1 1 148px!important;
+  padding:10px 14px!important;
+  border-radius:13px!important;
+  font-size:.78rem!important;
+  font-weight:850!important;
+  line-height:1.15!important;
+  opacity:1!important;
+}
+
+.cut-event-inline-editor .cut-event-summary-card__actions>.btn i,
+.cut-event-inline-editor .cut-event-summary-card__actions>a.btn i{
+  margin-right:.5rem!important;
+  font-size:.88rem!important;
+}
+
+.cut-event-inline-editor .btn-outline-light{
+  border-color:#657086!important;
+  background:#151a25!important;
+  color:#f8f9fc!important;
+  opacity:1!important;
+}
+
+.cut-event-inline-editor .btn-outline-light:hover,
+.cut-event-inline-editor .btn-outline-light:focus-visible{
+  border-color:#9b5cff!important;
+  background:#202638!important;
+  color:#ffffff!important;
+}
+
+.cut-event-inline-editor .cut-event-inline-editor__primaryAction.btn,
+.cut-event-inline-editor__imageAction.btn{
+  border:1px solid #b07cff!important;
+  background:#7c3aed!important;
+  color:#ffffff!important;
+  opacity:1!important;
+  text-shadow:none!important;
+  font-weight:900!important;
+  box-shadow:0 10px 24px #160c29!important;
+}
+
+.cut-event-inline-editor .cut-event-inline-editor__primaryAction.btn:hover,
+.cut-event-inline-editor .cut-event-inline-editor__primaryAction.btn:focus-visible,
+.cut-event-inline-editor__imageAction.btn:hover,
+.cut-event-inline-editor__imageAction.btn:focus-visible{
+  border-color:#caa8ff!important;
+  background:#9157f2!important;
+  color:#ffffff!important;
+}
+
+.cut-event-inline-editor .cut-event-inline-editor__primaryAction.btn:focus-visible,
+.cut-event-inline-editor__imageAction.btn:focus-visible{
+  outline:3px solid #d7c0ff!important;
+  outline-offset:2px!important;
+}
+
+.cut-event-inline-editor .cut-event-inline-editor__primaryAction.btn:disabled{
+  border-color:#5b4b72!important;
+  background:#403452!important;
+  color:#d9d3e5!important;
+  opacity:1!important;
+  box-shadow:none!important;
+}
+
+.cut-event-inline-editor__imageAction.btn{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  min-width:170px!important;
+  min-height:46px!important;
+  padding:10px 16px!important;
+  border-radius:14px!important;
+  cursor:pointer!important;
+}
+
+.cut-event-inline-editor__imageAction.btn i{
+  color:#ffffff!important;
+}
+
+.cut-event-inline-editor__modebar{
+  border-color:#343b4e!important;
+  background:#0b0f18!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+}
+
+.cut-event-inline-editor__modepill,
+.cut-event-inline-editor__liveBadge{
+  border-color:#6f4a92!important;
+  background:#241631!important;
+  color:#efdfff!important;
+  opacity:1!important;
+}
+
+.cut-event-inline-editor__sidebarCard .cut-owner-actions .btn{
+  min-height:44px!important;
+  border-radius:12px!important;
+  padding:10px 13px!important;
+  font-weight:800!important;
+  opacity:1!important;
+}
+
+@media(max-width:575.98px){
+  .cut-event-inline-editor .cut-event-summary-card__actions>.btn,
+  .cut-event-inline-editor .cut-event-summary-card__actions>a.btn{
+    width:100%!important;
+    min-width:0!important;
+    flex:1 1 100%!important;
+  }
+
+  .cut-event-inline-editor__imageAction.btn{
+    min-width:0!important;
+    max-width:calc(100% - 18px)!important;
+  }
+}

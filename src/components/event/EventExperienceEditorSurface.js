@@ -49,7 +49,7 @@ export default function EventExperienceEditorSurface({
               <small>Edite cada informação exatamente no ponto em que ela aparece para o visitante.</small>
             </div>
             <div className="cut-event-inline-editor__modeActions">
-              <Button type="button" onClick={onSave} disabled={saving}>
+              <Button type="button" className="cut-event-inline-editor__primaryAction" onClick={onSave} disabled={saving}>
                 <i className="fa-solid fa-check me-2" />{saving ? "Salvando..." : primaryLabel}
               </Button>
             </div>
@@ -57,7 +57,7 @@ export default function EventExperienceEditorSurface({
 
           <div className={imagePreview ? "cut-event-banner-frame cut-event-inline-editor__artwork" : "cut-event-banner-placeholder cut-event-inline-editor__artwork"}>
             <EventArtwork image={imagePreview} title={title} alt={`Prévia da imagem de ${title}`} fallbackClassName="cut-event-banner-initials" />
-            <label className="cut-event-inline-editor__imageAction btn btn-light" htmlFor={`event-${mode}-image`}>
+            <label className="cut-event-inline-editor__imageAction btn" htmlFor={`event-${mode}-image`}>
               <i className="fa-regular fa-image me-2" />{imagePreview ? "Trocar imagem" : "Adicionar imagem"}
             </label>
             <Form.Control
@@ -126,7 +126,7 @@ export default function EventExperienceEditorSurface({
               <Button type="button" variant="outline-light" onClick={() => document.getElementById("event-editor-location")?.scrollIntoView({ behavior: "smooth", block: "start" })}>
                 <i className="fa-solid fa-location-dot me-2" />Localização
               </Button>
-              <Button type="button" variant="light" onClick={onSave} disabled={saving}>
+              <Button type="button" className="cut-event-inline-editor__primaryAction" onClick={onSave} disabled={saving}>
                 <i className="fa-solid fa-floppy-disk me-2" />{saving ? "Salvando..." : primaryLabel}
               </Button>
             </div>
@@ -229,7 +229,7 @@ export default function EventExperienceEditorSurface({
                 <p className="text-secondary">A coluna ocupa o mesmo lugar das ferramentas do produtor na página pública.</p>
 
                 <div className="cut-owner-actions mt-4">
-                  <Button type="button" onClick={onSave} disabled={saving}><i className="fa-solid fa-floppy-disk me-2" />{saving ? "Salvando..." : primaryLabel}</Button>
+                  <Button type="button" className="cut-event-inline-editor__primaryAction" onClick={onSave} disabled={saving}><i className="fa-solid fa-floppy-disk me-2" />{saving ? "Salvando..." : primaryLabel}</Button>
                   {secondaryActions}
                   <Button type="button" variant="outline-light" onClick={() => document.getElementById("event-editor-about")?.scrollIntoView({ behavior: "smooth", block: "start" })}>Editar informações</Button>
                   <Button type="button" variant="outline-light" onClick={() => document.getElementById("event-editor-location")?.scrollIntoView({ behavior: "smooth", block: "start" })}>Editar localização</Button>
