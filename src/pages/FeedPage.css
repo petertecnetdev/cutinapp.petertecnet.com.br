@@ -84,7 +84,12 @@
   .cut-feed-heading p { font-size:.9rem; }
   .cut-feed-composer,
   .cut-feed-social-card { box-shadow:none!important; }
-  .cut-feed-social-card { border-radius:17px!important; }
+  .cut-feed-social-card {
+    border-radius:17px!important;
+    content-visibility:auto;
+    contain:layout paint style;
+    contain-intrinsic-size:auto 420px;
+  }
   .cut-feed-social-card .card-body { padding:14px!important; }
   .cut-feed-event-copy { display:grid; gap:12px; }
   .cut-feed-event-cta { width:100%; }
