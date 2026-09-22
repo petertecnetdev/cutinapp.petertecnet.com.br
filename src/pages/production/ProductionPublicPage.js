@@ -1,5 +1,5 @@
 import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
-import { Alert, Button, Card, Container, Modal } from "react-bootstrap";
+import { Alert, Button, Card, Container, Dropdown, Modal } from "react-bootstrap";
 import { useNavigate, useParams } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import NavlogComponent from "../../components/NavlogComponent";
@@ -150,19 +150,51 @@ export default function ProductionPublicPage() {
     };
   }, [production?.id]);
 
-  const toggleFollow = async () => {
-    if (!user) return navigate("/login", { state: { from: `/production/${slug}/public` } });
+  const setFollowingState = useCallback((following) => {
+    setData((current) => {
+      if (!current?.production) return current;
+      const wasFollowing = Boolean(current.production.is_following);
+      if (wasFollowing === following) return current;
+
+      const followersCount = Number(current.production.followers_count || 0);
+      return {
+        ...current,
+        production: {
+          ...current.production,
+          is_following: following,
+          followers_count: Math.max(0, followersCount + (following ? 1 : -1)),
+        },
+      };
+    });
+  }, []);
+
+  const updateFollow = async (nextFollowing) => {
+    if (!user) {
+      navigate("/login", { state: { from: `/production/${slug}/public` } });
+      return;
+    }
+    if (busy || !data?.production?.id) return;
+
+    const previousFollowing = Boolean(data.production.is_following);
+    if (previousFollowing === nextFollowing) return;
+
+    setError("");
     setBusy(true);
+    setFollowingState(nextFollowing);
+
     try {
-      if (data.production.is_following) await cutinappService.unfollow("production", data.production.id);
-      else await cutinappService.follow("production", data.production.id);
-      await loadCore();
+      if (nextFollowing) await cutinappService.follow("production", data.production.id);
+      else await cutinappService.unfollow("production", data.production.id);
     } catch (err) {
-      setError(err?.message || "Não foi possível atualizar o acompanhamento.");
+      setFollowingState(previousFollowing);
+      setError(err?.response?.data?.message || err?.message || "Não foi possível atualizar o acompanhamento.");
     } finally {
       setBusy(false);
     }
   };
+
+  const followProduction = () => updateFollow(true);
+  const unfollowProduction = () => updateFollow(false);
 
   if (loading) {
     return <div className="cut-app-page"><NavlogComponent /><ProcessingIndicatorComponent label="Carregando produção" /></div>;
@@ -283,7 +315,33 @@ export default function ProductionPublicPage() {
               </button>}
 
               <div className="cut-card-actions mt-3 cut-production-public-primary-actions">
-                <Button onClick={toggleFollow} disabled={busy}>{production.is_following ? "Seguindo" : "Seguir"}</Button>
+                {production.is_following ? (
+                  <Dropdown className="cut-production-follow-dropdown" align="start">
+                    <Dropdown.Toggle
+                      variant="outline-light"
+                      disabled={busy}
+                      aria-label={`Você está seguindo ${production.name}. Abrir opções`}
+                    >
+                      <i className={`fa-solid ${busy ? "fa-spinner fa-spin" : "fa-user-check"} me-2`} />
+                      Seguindo
+                    </Dropdown.Toggle>
+                    <Dropdown.Menu>
+                      <Dropdown.Item
+                        className="cut-production-unfollow-action"
+                        onClick={unfollowProduction}
+                        disabled={busy}
+                      >
+                        <i className="fa-solid fa-user-minus me-2" />
+                        Deixar de seguir
+                      </Dropdown.Item>
+                    </Dropdown.Menu>
+                  </Dropdown>
+                ) : (
+                  <Button className="cut-production-follow-button" onClick={followProduction} disabled={busy}>
+                    <i className={`fa-solid ${busy ? "fa-spinner fa-spin" : "fa-user-plus"} me-2`} />
+                    {busy ? "Seguindo..." : "Seguir"}
+                  </Button>
+                )}
                 {sellableUpcoming.length > 0 && <Button variant="success" onClick={() => setTicketCartOpen(true)}><i className="fa-solid fa-ticket me-2" />Ingressos</Button>}
                 <Button variant="outline-light" onClick={shareNative}><i className="fa-solid fa-share-nodes me-2" />Compartilhar</Button>
                 <div className="cut-production-public-more">
