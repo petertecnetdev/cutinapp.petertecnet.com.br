@@ -239,6 +239,10 @@
     border-radius: 18px;
   }
 
+  .cut-app-page :where(.btn-primary, .cut-btn--primary) {
+    box-shadow: none;
+  }
+
   .cut-app-page :where(h1) {
     font-size: clamp(1.75rem, 8vw, 2.35rem);
     line-height: 1.04;
