@@ -24,6 +24,11 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(initialUser);
   const [loading, setLoading] = useState(() => Boolean(authService.getToken()) && !initialUser);
 
+  const resetCommerceSession = useCallback(() => {
+    clearCommerceClientState();
+    synchronizeCommerceScope(null);
+  }, []);
+
   const refreshUser = useCallback(async () => {
     if (!authService.getToken()) {
       synchronizeCommerceScope(null);
@@ -51,6 +56,7 @@ export function AuthProvider({ children }) {
     } catch (error) {
       if (error?.status === 401) {
         authService.clearToken();
+        resetCommerceSession();
         setUser(null);
         return null;
       }
@@ -58,7 +64,7 @@ export function AuthProvider({ children }) {
       // Temporary network/server failures must not destroy a still-valid session token.
       throw error;
     }
-  }, []);
+  }, [resetCommerceSession]);
 
   useEffect(() => {
     let active = true;
@@ -83,13 +89,14 @@ export function AuthProvider({ children }) {
 
     const handleAuthInvalidated = () => {
       authService.clearToken();
+      resetCommerceSession();
       setUser(null);
       setLoading(false);
     };
 
     window.addEventListener("petertecnet:auth-invalidated", handleAuthInvalidated);
     return () => window.removeEventListener("petertecnet:auth-invalidated", handleAuthInvalidated);
-  }, []);
+  }, [resetCommerceSession]);
 
   useEffect(() => {
     let active = true;
@@ -98,8 +105,7 @@ export function AuthProvider({ children }) {
       if (!active) return;
 
       if (!newToken) {
-        clearCommerceClientState();
-        synchronizeCommerceScope(null);
+        resetCommerceSession();
         setUser(null);
         setLoading(false);
         return;
@@ -121,7 +127,7 @@ export function AuthProvider({ children }) {
       active = false;
       unsubscribe();
     };
-  }, [refreshUser]);
+  }, [refreshUser, resetCommerceSession]);
 
   const login = useCallback(async (email, password) => {
     await authService.login(email, password);
@@ -155,9 +161,10 @@ export function AuthProvider({ children }) {
     try {
       await authService.logout();
     } finally {
+      resetCommerceSession();
       setUser(null);
     }
-  }, []);
+  }, [resetCommerceSession]);
 
   const value = useMemo(
     () => ({
