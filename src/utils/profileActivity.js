@@ -6,6 +6,8 @@ const eventTimestamp = (event) => {
   return Number.isFinite(timestamp) ? timestamp : null;
 };
 
+const explicitTrue = (value) => value === true || value === 1 || value === "1";
+
 /**
  * Builds profile memories only from event records the API already authorized
  * for the current viewer. This helper deliberately does not infer attendance
@@ -24,6 +26,36 @@ export const deriveEventMemories = (events, now = Date.now()) => {
     })
     .sort((left, right) => (eventTimestamp(right) || 0) - (eventTimestamp(left) || 0));
 };
+
+/**
+ * Normalizes post-event memory data without broadening permissions on the
+ * client. Missing review/publication flags are denied rather than inferred.
+ */
+export const normalizeEventMemory = (event) => {
+  if (!event?.id) return null;
+  const permissions = event.permissions || event.viewer_permissions || {};
+  const photos = asArray(event.photos).filter((photo) => photo?.url || photo?.path || typeof photo === "string");
+  const publications = asArray(event.publications ?? event.posts).filter((post) => post?.id);
+
+  return {
+    id: event.id,
+    slug: event.slug || null,
+    title: event.title || "Evento",
+    image: event.image || event.cover || event.flyer || null,
+    start_date: event.start_date || null,
+    end_date: event.end_date || null,
+    place: event.place || event.establishment || null,
+    photos,
+    publications,
+    rating: event.viewer_rating ?? event.rating ?? null,
+    can_review: explicitTrue(permissions.can_review ?? event.can_review),
+    can_publish: explicitTrue(permissions.can_publish ?? event.can_publish),
+  };
+};
+
+export const deriveMemoryTimeline = (events, now = Date.now()) => deriveEventMemories(events, now)
+  .map(normalizeEventMemory)
+  .filter(Boolean);
 
 /**
  * Returns a relative Top 1/5/10% label only when the backend supplied an
