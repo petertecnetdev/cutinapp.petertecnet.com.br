@@ -455,9 +455,9 @@ export default function ProductionPublicPage() {
 
       <ProductionTicketCartModal show={ticketCartOpen} onHide={() => setTicketCartOpen(false)} productionSlug={slug} />
 
-      <Modal show={showViewers} onHide={() => setShowViewers(false)} centered>
-        <Modal.Header closeButton><Modal.Title>Quem visualizou</Modal.Title></Modal.Header>
-        <Modal.Body>{analytics.viewers?.length ? <div className="cut-viewer-list">{analytics.viewers.map((viewer) => <div className="cut-viewer-row" key={viewer.id}><div className="cut-viewer-avatar">{viewer.avatar ? <img src={mediaUrl(viewer.avatar)} alt="" loading="lazy" decoding="async" /> : initials(viewer.name)}</div><div><strong>{viewer.name}</strong><small>{viewer.last_viewed_at ? `Última visita: ${fmt(viewer.last_viewed_at)}` : "Visitou a produção"}</small></div><span>{viewer.views_count} {viewer.views_count === 1 ? "visita" : "visitas"}</span></div>)}</div> : <p className="text-muted mb-0">As visualizações anônimas entram no total. Usuários identificados aparecem aqui quando acessarem a página.</p>}</Modal.Body>
+      <Modal show={showViewers} onHide={() => setShowViewers(false)} centered backdrop keyboard contentClassName="cut-viewers-modal">
+        <Modal.Header><Modal.Title>Quem visualizou</Modal.Title></Modal.Header>
+        <Modal.Body>{analytics.viewers?.length ? <div className="cut-viewer-list">{analytics.viewers.map((viewer) => <button type="button" className="cut-viewer-row cut-viewer-row--link" key={viewer.id} onClick={() => { setShowViewers(false); navigate(`/profile/${viewer.id}`); }} aria-label={`Abrir perfil de ${viewer.name}`}><div className="cut-viewer-avatar">{viewer.avatar ? <img src={mediaUrl(viewer.avatar)} alt="" loading="lazy" decoding="async" /> : initials(viewer.name)}</div><div><strong>{viewer.name}</strong><small>{viewer.last_viewed_at ? `Última visita: ${fmt(viewer.last_viewed_at)}` : "Visitou a produção"}</small></div><span>{viewer.views_count} {viewer.views_count === 1 ? "visita" : "visitas"}</span></button>)}</div> : <p className="text-muted mb-0">As visualizações anônimas entram no total. Usuários identificados aparecem aqui quando acessarem a página.</p>}</Modal.Body>
       </Modal>
     </div>
   );
