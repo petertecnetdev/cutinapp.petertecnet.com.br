@@ -39,6 +39,18 @@ describe("fulfilled checkout storage cleanup", () => {
     expect(JSON.parse(window.sessionStorage.getItem(cartKey))).toEqual(freshCart);
   });
 
+  test("prefers shared local cart when cross-tab writes have the same timestamp", () => {
+    const slug = "evento-multitab-mesmo-ms";
+    const cartKey = `cutinapp_checkout_${slug}`;
+    const sessionCart = { tickets: [{ id: 1, quantity: 3 }], items: [], savedAt: 2000 };
+    const sharedCart = { tickets: [{ id: 1, quantity: 1 }], items: [], savedAt: 2000 };
+    window.sessionStorage.setItem(cartKey, JSON.stringify(sessionCart));
+    window.localStorage.setItem(cartKey, JSON.stringify(sharedCart));
+
+    expect(readEventCart(slug)).toEqual(sharedCart);
+    expect(JSON.parse(window.sessionStorage.getItem(cartKey))).toEqual(sharedCart);
+  });
+
   test("recognizes only paid orders with completed fulfillment", () => {
     expect(isFulfilledCheckoutResult({ order: { status: "paid", metadata: { fulfillment_status: "completed" } } })).toBe(true);
     expect(isFulfilledCheckoutResult({ order: { status: "paid", metadata: { fulfillment_status: "pending" } } })).toBe(false);
