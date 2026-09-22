@@ -1,7 +1,7 @@
 /*
  * Cutinapp UX Quality System
  * Global readability, interaction and accessibility guardrails.
- * Keep this stylesheet last in index.js so legacy page CSS cannot silently
+ * Loaded near the end of the global cascade so legacy page CSS cannot silently
  * regress contrast, focus visibility, touch targets or disabled states.
  */
 
@@ -20,7 +20,7 @@
 }
 
 .cut-app-page :where(p, small, .form-text, .text-muted, .text-secondary):not(.badge):not(.btn) {
-  color: var(--cut-readable-muted) !important;
+  color: var(--cut-readable-muted);
 }
 
 .cut-app-page :where(.cut-eyebrow, .cut-kicker, .cut-meta, .cut-caption) {
@@ -36,19 +36,19 @@
 }
 
 .cut-app-page :where(.form-control, .form-select)::placeholder {
-  color: var(--cut-readable-faint) !important;
-  opacity: 1 !important;
+  color: var(--cut-readable-faint);
+  opacity: 1;
 }
 
 .cut-app-page :where(.form-control, .form-select, .btn, button, [role="button"], a):focus-visible {
-  outline: 2px solid rgba(230, 146, 247, .94) !important;
-  outline-offset: 3px !important;
-  box-shadow: var(--cut-focus-ring) !important;
+  outline: 2px solid rgba(230, 146, 247, .94);
+  outline-offset: 3px;
+  box-shadow: var(--cut-focus-ring);
 }
 
 .cut-app-page :where(.btn, button, .form-control, .form-select):disabled,
 .cut-app-page :where(.btn, button, .form-control, .form-select)[aria-disabled="true"] {
-  opacity: .62 !important;
+  opacity: .62;
 }
 
 .cut-app-page :where(.card, .cut-panel, [data-cut-surface="glass"]) {
@@ -157,7 +157,7 @@
   }
 
   .cut-app-page :where(.card, .cut-panel, [data-cut-surface="glass"]) {
-    border-color: rgba(255, 255, 255, .30) !important;
+    border-color: rgba(255, 255, 255, .30);
   }
 }
 
