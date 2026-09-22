@@ -76,6 +76,15 @@
     contain: layout paint style;
   }
 
+  /* Profile screens can accumulate tickets, posts and management sections.
+     Skip below-the-fold panel rendering until the user approaches it. */
+  .cut-profile-page .cut-panel,
+  .cut-profile-page .card {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 420px;
+    contain: layout paint style;
+  }
+
   /* Checkout keeps a sticky security header while the payment form scrolls.
      Avoid re-sampling the whole page behind that fixed surface on every frame. */
   .cut-checkout-topbar {
