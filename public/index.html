@@ -35,7 +35,8 @@
   <link rel="manifest" href="/manifest.json" />
   <link rel="icon" href="/images/logo.png" />
   <link rel="apple-touch-icon" href="/images/logo.png" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.26.25/dist/sweetalert2.min.css" />
+  <link rel="preload" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.26.25/dist/sweetalert2.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+  <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.26.25/dist/sweetalert2.min.css" /></noscript>
   <script defer fetchpriority="low" src="https://cdn.jsdelivr.net/npm/sweetalert2@11.26.25/dist/sweetalert2.all.min.js"></script>
   <script type="application/ld+json">
   {
