@@ -91,4 +91,17 @@
   :is(input, select, textarea) {
     font-size: 16px;
   }
+
+  /* Keep the final checkout actions clear of the PWA/browser home indicator
+     and of Cutinapp's persistent bottom navigation on short mobile viewports. */
+  .cut-checkout-page {
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .cut-checkout-primary,
+  .cut-payment-submit {
+    width: 100%;
+    min-height: 52px;
+    touch-action: manipulation;
+  }
 }
