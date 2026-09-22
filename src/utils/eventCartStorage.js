@@ -33,7 +33,10 @@ const newestCart = (sessionCart, persistentCart) => {
 
   const sessionSavedAt = Number(sessionCart?.savedAt || 0);
   const persistentSavedAt = Number(persistentCart?.savedAt || 0);
-  return persistentSavedAt > sessionSavedAt ? persistentCart : sessionCart;
+  // localStorage is the cross-tab source of truth. Prefer it on timestamp ties too:
+  // two writes can happen in the same millisecond while another tab still holds a
+  // different sessionStorage snapshot with the exact same savedAt value.
+  return persistentSavedAt >= sessionSavedAt ? persistentCart : sessionCart;
 };
 
 export const mergeEventCartTickets = (currentSelection = {}, additions = []) => {
