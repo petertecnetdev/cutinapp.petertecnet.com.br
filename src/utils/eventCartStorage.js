@@ -81,16 +81,16 @@ export const clearEventCart = (slug) => {
   const persistedPayment = safeGetSessionJson(paymentKey);
   const recovery = readCheckoutRecovery(normalizedSlug);
   safeRemoveSessionItem(key);
-  safeRemoveLocalItem(key);
 
-  // A fulfilled purchase is terminal: keep the success screen in React state, but do not
-  // leave it resumable in storage where it can compete with the participant's next purchase.
+  // Keep a short-lived shared tombstone instead of deleting localStorage outright.
+  // Otherwise another open tab can read its stale sessionStorage cart and mirror it
+  // back into localStorage, resurrecting items the participant already removed.
+  safeSetLocalJson(key, { cleared: true, savedAt: Date.now() });
+
   if (isFulfilledCheckoutResult(persistedPayment)) {
     safeRemoveSessionItem(paymentKey);
     clearCheckoutRecovery(normalizedSlug);
   } else if (!recovery?.orderPublicId) {
-    // A cart without an order is only a draft selection. When the user empties it,
-    // its recovery snapshot must disappear too or it can recreate removed items later.
     clearCheckoutRecovery(normalizedSlug);
   }
   try {
@@ -110,7 +110,15 @@ export const readEventCart = (slug) => {
 
   if (!cart) return null;
   if (isExpired(cart)) {
-    clearEventCart(slug);
+    safeRemoveSessionItem(key);
+    safeRemoveLocalItem(key);
+    return null;
+  }
+
+  // A shared clear marker must beat stale tab-scoped sessionStorage. Keep the marker
+  // in localStorage until it ages out so any still-open tab observes the deletion.
+  if (cart?.cleared === true) {
+    safeRemoveSessionItem(key);
     return null;
   }
 
@@ -135,8 +143,6 @@ export const writeEventCart = (slug, selection) => {
 
   const recovery = readCheckoutRecovery(slug);
   if (!recovery?.orderPublicId) {
-    // Keep the recovery snapshot in lockstep with the canonical cart. This prevents
-    // stale checkout data from restoring quantities the participant already removed.
     writeCheckoutRecovery(slug, {
       selection: cart,
       orderPublicId: null,
