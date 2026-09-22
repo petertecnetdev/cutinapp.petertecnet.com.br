@@ -85,6 +85,16 @@
     contain: layout paint style;
   }
 
+  /* Event view/editor screens are section-heavy on mobile (hero, details,
+     tickets, lineup and related content). Defer panels outside the viewport so
+     the primary event content becomes interactive with less layout/paint work. */
+  .cut-event-view-page .cut-panel,
+  .cut-event-editor-page .cut-panel {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 480px;
+    contain: layout paint style;
+  }
+
   /* Checkout keeps a sticky security header while the payment form scrolls.
      Avoid re-sampling the whole page behind that fixed surface on every frame. */
   .cut-checkout-topbar {
