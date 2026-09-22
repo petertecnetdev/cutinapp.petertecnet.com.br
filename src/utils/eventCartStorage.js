@@ -27,6 +27,15 @@ const isExpired = (cart) => {
   return savedAt > 0 && Date.now() - savedAt > CART_MAX_AGE_MS;
 };
 
+const newestCart = (sessionCart, persistentCart) => {
+  if (!sessionCart) return persistentCart;
+  if (!persistentCart) return sessionCart;
+
+  const sessionSavedAt = Number(sessionCart?.savedAt || 0);
+  const persistentSavedAt = Number(persistentCart?.savedAt || 0);
+  return persistentSavedAt > sessionSavedAt ? persistentCart : sessionCart;
+};
+
 export const mergeEventCartTickets = (currentSelection = {}, additions = []) => {
   const ticketMap = new Map();
   (Array.isArray(currentSelection?.tickets) ? currentSelection.tickets : []).forEach((ticket) => {
@@ -94,7 +103,7 @@ export const readEventCart = (slug) => {
   const key = keyFor(slug);
   const sessionCart = safeGetSessionJson(key);
   const persistentCart = safeGetLocalJson(key);
-  const cart = sessionCart || persistentCart;
+  const cart = newestCart(sessionCart, persistentCart);
 
   if (!cart) return null;
   if (isExpired(cart)) {
@@ -102,7 +111,11 @@ export const readEventCart = (slug) => {
     return null;
   }
 
-  if (!sessionCart && persistentCart) safeSetSessionJson(key, persistentCart);
+  // localStorage is shared by tabs while sessionStorage is tab-scoped. A cart changed
+  // in another tab must win over this tab's stale snapshot; mirror the winner back so
+  // subsequent reads and checkout submission use the same quantities.
+  if (cart === persistentCart && cart !== sessionCart) safeSetSessionJson(key, cart);
+  if (cart === sessionCart && cart !== persistentCart) safeSetLocalJson(key, cart);
   return cart;
 };
 
