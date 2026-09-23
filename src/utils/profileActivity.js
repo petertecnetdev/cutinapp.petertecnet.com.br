@@ -35,6 +35,10 @@ const visibleMemoryPlace = (event) => {
   const aliases = [event?.place, event?.establishment].filter((place) => place !== null && place !== undefined);
   return aliases.find((place) => typeof place !== "object" || viewerCanSee(place)) ?? null;
 };
+const visibleMemoryImage = (event) => {
+  const aliases = [event?.image, event?.cover, event?.flyer].filter((image) => image !== null && image !== undefined && image !== "");
+  return aliases.find((image) => typeof image !== "object" || viewerCanSee(image)) ?? null;
+};
 
 /**
  * Builds profile memories only from event records the API already authorized
@@ -61,10 +65,10 @@ export const deriveEventMemories = (events, now = Date.now()) => {
  * client. Missing review/publication flags are denied rather than inferred.
  * A generic event.rating is intentionally not treated as the viewer's review:
  * it can represent an aggregate score and would fabricate personal activity.
- * Nested place visibility is also enforced so a visible event cannot leak a
- * place/establishment that the API explicitly marked hidden for this viewer.
- * Place aliases are checked independently so a hidden `place` cannot mask an
- * authorized `establishment` returned by the same generic API payload.
+ * Nested place and artwork visibility is enforced so a visible event cannot
+ * leak resources that the API explicitly marked hidden for this viewer.
+ * Generic aliases are checked independently so a hidden preferred alias cannot
+ * mask an authorized fallback returned by the same API payload.
  * Permission containers are privacy-scoped too: a hidden viewer_permissions
  * object can never grant review or publication actions through the client.
  */
@@ -92,7 +96,7 @@ export const normalizeEventMemory = (event) => {
     id: event.id,
     slug: event.slug || null,
     title: event.title || "Evento",
-    image: event.image || event.cover || event.flyer || null,
+    image: visibleMemoryImage(event),
     start_date: eventStartValue(event),
     end_date: eventEndValue(event),
     place: visibleMemoryPlace(event),
