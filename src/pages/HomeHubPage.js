@@ -41,9 +41,24 @@ const uniqueBy = (items, keyFor) => {
 };
 
 const eventStartValue = (event) => event?.starts_at || event?.start_at || event?.start_date || event?.date || event?.scheduled_at || null;
+const eventDay = (event) => {
+  const date = parsePortableEventDate(eventStartValue(event));
+  if (!date) return null;
+  date.setHours(0, 0, 0, 0);
+  return date;
+};
+const todayStart = () => {
+  const date = new Date();
+  date.setHours(0, 0, 0, 0);
+  return date;
+};
 const isTodayEvent = (event) => {
   const date = parsePortableEventDate(eventStartValue(event));
   return date ? chronologicalBucketFor(date).key === "today" : false;
+};
+const isUpcomingEvent = (event) => {
+  const date = eventDay(event);
+  return date ? date.getTime() > todayStart().getTime() : false;
 };
 
 function DiscoveryRail({ eyebrow, title, description, to, toLabel, children, empty, railClassName }) {
@@ -102,7 +117,7 @@ export default function HomeHubPage() {
       setProductions(mergedProductions);
       setLoading(false);
 
-      const catalogEvents = eventList.filter((event) => event?.slug).slice(0, 12);
+      const catalogEvents = eventList.filter((event) => event?.slug && (isTodayEvent(event) || isUpcomingEvent(event))).slice(0, 12);
       if (!catalogEvents.length) { setItems([]); setItemsLoading(false); return; }
       let discoveredItems = [];
       const catalogBatchSize = 4;
@@ -129,7 +144,7 @@ export default function HomeHubPage() {
   }, []);
 
   const todayEvents = useMemo(() => events.filter(isTodayEvent), [events]);
-  const upcomingEvents = useMemo(() => events.filter((event) => !isTodayEvent(event)), [events]);
+  const upcomingEvents = useMemo(() => events.filter(isUpcomingEvent), [events]);
   const productionCountLabel = useMemo(() => productions.length === 1 ? "1 produção em destaque" : `${productions.length} produções em destaque`, [productions.length]);
   const empty = (icon, title, text) => <div className="cut-home-hub__empty"><i className={icon} /><strong>{title}</strong><p>{text}</p></div>;
 
