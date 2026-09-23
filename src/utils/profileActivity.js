@@ -7,18 +7,20 @@ const eventTimestamp = (event) => {
 };
 
 const explicitTrue = (value) => value === true || value === 1 || value === "1";
+const viewerCanSee = (value) => value?.visible !== false && value?.viewer_can_see !== false;
 
 /**
  * Builds profile memories only from event records the API already authorized
  * for the current viewer. This helper deliberately does not infer attendance
- * from interests, follows, proximity or public event discovery.
+ * from interests, follows, proximity or public event discovery. Explicit
+ * visibility denial always wins, even if the record was included in a payload.
  */
 export const deriveEventMemories = (events, now = Date.now()) => {
   const seen = new Set();
 
   return asArray(events)
     .filter((event) => {
-      if (!event?.id || seen.has(String(event.id))) return false;
+      if (!event?.id || !viewerCanSee(event) || seen.has(String(event.id))) return false;
       const timestamp = eventTimestamp(event);
       if (timestamp === null || timestamp > now) return false;
       seen.add(String(event.id));
@@ -32,10 +34,10 @@ export const deriveEventMemories = (events, now = Date.now()) => {
  * client. Missing review/publication flags are denied rather than inferred.
  */
 export const normalizeEventMemory = (event) => {
-  if (!event?.id) return null;
+  if (!event?.id || !viewerCanSee(event)) return null;
   const permissions = event.permissions || event.viewer_permissions || {};
   const photos = asArray(event.photos).filter((photo) => photo?.url || photo?.path || typeof photo === "string");
-  const publications = asArray(event.publications ?? event.posts).filter((post) => post?.id);
+  const publications = asArray(event.publications ?? event.posts).filter((post) => post?.id && viewerCanSee(post));
 
   return {
     id: event.id,
@@ -85,7 +87,7 @@ export const relativeVisitBadge = ({ rank, population, minimumPopulation = 100 }
  */
 export const normalizeVisitedPlaces = (places) => asArray(places)
   .map((place) => {
-    if (!place || place.visible === false || place.viewer_can_see === false) return null;
+    if (!place || !viewerCanSee(place)) return null;
     const rawVisits = place.visits_count ?? place.checkins_count;
     const visits = Number(rawVisits);
     if (!Number.isInteger(visits) || visits <= 0) return null;
