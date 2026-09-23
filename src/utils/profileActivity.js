@@ -31,9 +31,14 @@ const positiveInteger = (value) => {
   const number = Number(value);
   return Number.isInteger(number) && number > 0 ? number : null;
 };
+const usableMemoryPlace = (place) => {
+  if (typeof place === "string") return place.trim().length > 0;
+  if (!place || typeof place !== "object" || !viewerCanSee(place)) return false;
+  return Boolean(place.id || place.slug || place.name || place.title);
+};
 const visibleMemoryPlace = (event) => {
-  const aliases = [event?.place, event?.establishment].filter((place) => place !== null && place !== undefined);
-  return aliases.find((place) => typeof place !== "object" || viewerCanSee(place)) ?? null;
+  const aliases = [event?.place, event?.establishment];
+  return aliases.find(usableMemoryPlace) ?? null;
 };
 const usableMemoryImage = (image) => {
   if (typeof image === "string") return image.trim().length > 0;
