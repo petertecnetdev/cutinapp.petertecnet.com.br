@@ -21,7 +21,7 @@ const eventStableKey = (event) => {
   if (event?.slug) return `slug:${event.slug}`;
   if (event?.uuid) return `uuid:${event.uuid}`;
   if (event?.public_id) return `public:${event.public_id}`;
-  const fingerprint = [event?.title, eventStartValue(event), event?.venue || event?.place || event?.location, event?.city || event?.address?.city, event?.production, event?.establishment]
+  const fingerprint = [event?.title, eventStartValue(event), event?.venue || event?.place || event?.location, event?.city || event?.address?.city, event?.production, event?.establishment, event?.organization]
     .map(stableIdentityPart)
     .filter(Boolean)
     .join("|");
