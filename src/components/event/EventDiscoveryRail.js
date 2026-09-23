@@ -13,6 +13,12 @@ const eventStartValue = (event) => event?.starts_at
   || event?.scheduled_at
   || null;
 
+const eventStableKey = (event) => event?.id
+  || event?.slug
+  || [event?.title, eventStartValue(event), event?.venue, event?.city]
+    .map((value) => String(value || "").trim().toLowerCase())
+    .join("|");
+
 const eventDateMeta = (event) => {
   const date = parsePortableEventDate(eventStartValue(event));
   if (!date) return { label: "Data a confirmar", dateTime: null };
@@ -112,7 +118,7 @@ export default function EventDiscoveryRail({
             const dateMeta = eventDateMeta(event);
 
             return (
-              <article className="cut-event-discovery__card" key={event?.id || event?.slug || index}>
+              <article className="cut-event-discovery__card" key={eventStableKey(event)}>
                 <Link to={eventHref} className="cut-event-discovery__mainLink" aria-label={`Ver evento ${event?.title || "Cutinapp"}`}>
                   <div className="cut-event-discovery__media">
                     <EventArtwork
