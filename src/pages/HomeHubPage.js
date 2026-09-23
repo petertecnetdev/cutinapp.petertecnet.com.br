@@ -71,6 +71,11 @@ function DiscoveryRail({ eyebrow, title, description, to, toLabel, children, emp
     const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
     node.scrollBy({ left: direction * Math.max(280, Math.round(node.clientWidth * 0.82)), behavior: reduceMotion ? "auto" : "smooth" });
   };
+  const onRailKeyDown = (event) => {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+    event.preventDefault();
+    scroll(event.key === "ArrowLeft" ? -1 : 1);
+  };
 
   return (
     <section className="cut-home-hub__section">
@@ -81,7 +86,7 @@ function DiscoveryRail({ eyebrow, title, description, to, toLabel, children, emp
           {to && <Link to={to}>{toLabel || "Ver todos"} <i className="fa-solid fa-arrow-right" /></Link>}
         </div>
       </div>
-      {count ? <div className={["cut-home-hub__rail", railClassName].filter(Boolean).join(" ")} ref={railRef}>{children}</div> : empty}
+      {count ? <div className={["cut-home-hub__rail", railClassName].filter(Boolean).join(" ")} ref={railRef} tabIndex={0} onKeyDown={onRailKeyDown} aria-label={`${title}. Use as setas esquerda e direita para navegar.`}>{children}</div> : empty}
     </section>
   );
 }
