@@ -28,10 +28,10 @@ describe("profile activity evidence rules", () => {
     expect(memories.map((event) => event.id)).toEqual([2, 1]);
   });
 
-  test("memory actions default to denied and private publications stay hidden", () => {
+  test("memory actions default to denied and private media stay hidden", () => {
     const now = new Date("2026-09-22T12:00:00Z").getTime();
     const memories = deriveMemoryTimeline([
-      { id: 1, title: "Sem permissão", end_date: "2026-09-20T12:00:00Z", photos: [{ url: "/a.jpg" }, {}], posts: [{ id: 9 }, { id: 10, viewer_can_see: false }, { id: 11, viewer_can_see: "0" }, {}] },
+      { id: 1, title: "Sem permissão", end_date: "2026-09-20T12:00:00Z", photos: [{ url: "/a.jpg" }, { url: "/private.jpg", viewer_can_see: false }, { path: "/hidden.jpg", visible: "0" }, "/legacy.jpg", {}], posts: [{ id: 9 }, { id: 10, viewer_can_see: false }, { id: 11, viewer_can_see: "0" }, {}] },
       { id: 2, title: "Com permissão", end_date: "2026-09-21T12:00:00Z", viewer_permissions: { can_review: true, can_publish: 1 }, viewer_rating: 5 },
       { id: 3, title: "Memória privada", end_date: "2026-09-19T12:00:00Z", viewer_can_see: false, can_review: true },
     ], now);
@@ -39,7 +39,7 @@ describe("profile activity evidence rules", () => {
     expect(memories).toHaveLength(2);
     expect(memories[0]).toMatchObject({ id: 2, can_review: true, can_publish: true, rating: 5 });
     expect(memories[1]).toMatchObject({ id: 1, can_review: false, can_publish: false });
-    expect(memories[1].photos).toHaveLength(1);
+    expect(memories[1].photos).toEqual([{ url: "/a.jpg" }, "/legacy.jpg"]);
     expect(memories[1].publications).toHaveLength(1);
   });
 
