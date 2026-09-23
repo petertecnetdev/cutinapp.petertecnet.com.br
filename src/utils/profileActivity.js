@@ -27,6 +27,10 @@ const normalizePersonalRating = (value) => {
   const rating = Number(value);
   return Number.isFinite(rating) && rating >= 1 && rating <= 5 ? rating : null;
 };
+const positiveInteger = (value) => {
+  const number = Number(value);
+  return Number.isInteger(number) && number > 0 ? number : null;
+};
 
 /**
  * Builds profile memories only from event records the API already authorized
@@ -114,14 +118,14 @@ export const relativeVisitBadge = ({ rank, population, minimumPopulation = 100 }
  * Normalizes place activity without fabricating visits. A place is eligible
  * only when the API provides a positive integer visit/check-in count. Zero is
  * intentionally excluded: a followed/suggested place is not a visited place.
- * Explicit viewer visibility=false also wins over otherwise valid activity.
+ * When both aliases exist, a non-positive visits_count must not mask positive
+ * check-in evidence supplied by the API. Explicit viewer visibility=false wins.
  */
 export const normalizeVisitedPlaces = (places) => asArray(places)
   .map((place) => {
     if (!place || !viewerCanSee(place)) return null;
-    const rawVisits = place.visits_count ?? place.checkins_count;
-    const visits = Number(rawVisits);
-    if (!Number.isInteger(visits) || visits <= 0) return null;
+    const visits = positiveInteger(place.visits_count) ?? positiveInteger(place.checkins_count);
+    if (visits === null) return null;
 
     return {
       ...place,
