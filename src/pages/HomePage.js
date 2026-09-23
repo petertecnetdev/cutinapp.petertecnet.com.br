@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, Container } from "react-bootstrap";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import eventService from "../services/EventService";
 import cutinappService from "../services/CutinappService";
 import PeterTecnetSignature from "../components/PeterTecnetSignature";
+import ProcessingIndicatorComponent from "../components/ProcessingIndicatorComponent";
 import EventArtwork from "../components/event/EventArtwork";
 import { storageUrl } from "../config";
 import { readDiscoveryPreference, saveDiscoveryPreference } from "../utils/discoveryFilters";
@@ -98,6 +99,8 @@ const journey = [
 ];
 
 export default function HomePage() {
+  const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState("");
   const [events, setEvents] = useState([]);
   const [productions, setProductions] = useState([]);
   const [artists, setArtists] = useState([]);
@@ -219,6 +222,15 @@ export default function HomePage() {
       ? `/event?lat=${location.lat}&lng=${location.lng}&radius_km=80`
       : "/event";
 
+  const withBrowseParam = (key, value) =>
+    `${browseLink}${browseLink.includes("?") ? "&" : "?"}${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
+
+  const submitDiscoverySearch = (e) => {
+    e.preventDefault();
+    const query = searchQuery.trim();
+    navigate(query ? `/search?q=${encodeURIComponent(query)}` : browseLink);
+  };
+
   const featuredEvent = events[0] || null;
   const featuredProduction = productions[0] || null;
   const featuredArtists = artists.slice(0, 4);
@@ -261,6 +273,30 @@ export default function HomePage() {
                 A Cutinapp conecta quem procura o próximo rolê com quem cria a experiência.
                 Descubra eventos, acompanhe artistas, conheça produções e participe de uma rede feita para a cena acontecer.
               </p>
+
+              <form className="cut-home-discovery__searchCommand" onSubmit={submitDiscoverySearch} role="search">
+                <label htmlFor="cut-home-search">O que você quer encontrar?</label>
+                <div>
+                  <i className="fa-solid fa-magnifying-glass" aria-hidden="true" />
+                  <input
+                    id="cut-home-search"
+                    type="search"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Evento, artista, produção ou local"
+                    autoComplete="off"
+                  />
+                  <button type="submit">Pesquisar</button>
+                </div>
+              </form>
+
+              <div className="cut-home-discovery__heroQuickFilters" aria-label="Atalhos de descoberta">
+                <Link to={withBrowseParam("period", "today")}>Hoje</Link>
+                <Link to={withBrowseParam("period", "tomorrow")}>Amanhã</Link>
+                <Link to={withBrowseParam("period", "weekend")}>Fim de semana</Link>
+                <Link to={withBrowseParam("period", "next7")}>Próximos 7 dias</Link>
+                <Link to={withBrowseParam("available", "1")}>Com ingressos</Link>
+              </div>
 
               <div className="cut-home-discovery__brandActions">
                 <Button as={Link} to={browseLink} className="cut-home-discovery__primaryCta">
@@ -409,18 +445,21 @@ export default function HomePage() {
                 <small>SUA DESCOBERTA</small>
                 <span><i className="fa-solid fa-location-dot" /> {locationLabel}</span>
                 <Button size="sm" variant="outline-light" onClick={useMyLocation} disabled={locationBusy}>
-                  {locationBusy ? "Localizando..." : "Usar minha localização"}
+                  <i className="fa-solid fa-location-crosshairs me-2" />Usar minha localização
                 </Button>
+                {locationBusy && <ProcessingIndicatorComponent fullscreen={false} label="Obtendo localização" />}
                 {location && <button type="button" onClick={clearLocation}>Remover localização</button>}
               </div>
             </div>
 
             <div className="cut-home-discovery__quickLinks">
-              <Link to={`${browseLink}${browseLink.includes("?") ? "&" : "?"}period=today`}><i className="fa-regular fa-sun" /> Hoje</Link>
-              <Link to={`${browseLink}${browseLink.includes("?") ? "&" : "?"}period=weekend`}><i className="fa-regular fa-calendar" /> Fim de semana</Link>
-              <Link to={`${browseLink}${browseLink.includes("?") ? "&" : "?"}free=1`}><i className="fa-solid fa-gift" /> Grátis</Link>
-              <Link to="/artists"><i className="fa-solid fa-microphone-lines" /> Artistas</Link>
-              <Link to="/productions"><i className="fa-solid fa-users" /> Produções</Link>
+              <Link to={withBrowseParam("period", "today")}><i className="fa-regular fa-sun" /> Hoje</Link>
+              <Link to={withBrowseParam("period", "tomorrow")}><i className="fa-regular fa-calendar-plus" /> Amanhã</Link>
+              <Link to={withBrowseParam("period", "weekend")}><i className="fa-regular fa-calendar" /> Fim de semana</Link>
+              <Link to={withBrowseParam("period", "next7")}><i className="fa-solid fa-forward" /> 7 dias</Link>
+              <Link to={withBrowseParam("free", "1")}><i className="fa-solid fa-gift" /> Grátis</Link>
+              <Link to={withBrowseParam("available", "1")}><i className="fa-solid fa-ticket" /> Com ingressos</Link>
+              <Link to="/search"><i className="fa-solid fa-magnifying-glass" /> Pesquisa completa</Link>
               <Link to={browseLink}>Ver tudo <i className="fa-solid fa-arrow-right" /></Link>
             </div>
 
@@ -448,7 +487,7 @@ export default function HomePage() {
               <Link to={browseLink}>Ver todos <i className="fa-solid fa-arrow-right" /></Link>
             </div>
             {loading
-              ? <div className="cut-home-discovery__loading">Carregando eventos...</div>
+              ? <ProcessingIndicatorComponent fullscreen={false} label="Buscando eventos" />
               : events.length
                 ? (
                   <div className="cut-home-discovery__events">
@@ -495,7 +534,7 @@ export default function HomePage() {
 
               <div className="cut-home-discovery__artistMosaic">
                 {loading
-                  ? <div className="cut-home-discovery__loading">Carregando artistas...</div>
+                  ? <ProcessingIndicatorComponent fullscreen={false} label="Buscando artistas" />
                   : featuredArtists.length
                     ? featuredArtists.map((artist, index) => (
                       <Link key={artist.id} to={`/artist/${artist.slug}`} className={`cut-home-discovery__artistTile cut-home-discovery__artistTile--${index + 1}`}>
@@ -522,7 +561,7 @@ export default function HomePage() {
               <Link to="/productions">Ver produções <i className="fa-solid fa-arrow-right" /></Link>
             </div>
             {loading
-              ? <div className="cut-home-discovery__loading">Carregando produções...</div>
+              ? <ProcessingIndicatorComponent fullscreen={false} label="Buscando produções" />
               : productions.length
                 ? (
                   <div className="cut-home-discovery__profiles">
