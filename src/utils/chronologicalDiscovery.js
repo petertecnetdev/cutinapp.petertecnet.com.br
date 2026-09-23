@@ -1,14 +1,18 @@
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-const localDate = (value) => {
+export const parsePortableEventDate = (value) => {
   if (value === null || value === undefined || value === "") return null;
-  if (value instanceof Date) return new Date(value);
+  if (value instanceof Date) {
+    const copy = new Date(value);
+    return Number.isNaN(copy.getTime()) ? null : copy;
+  }
 
   if (typeof value === "string") {
-    const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    if (match) {
-      const [, year, month, day] = match;
-      return new Date(Number(year), Number(month) - 1, Number(day));
+    const dateOnly = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (dateOnly) {
+      const [, year, month, day] = dateOnly;
+      const date = new Date(Number(year), Number(month) - 1, Number(day));
+      return Number.isNaN(date.getTime()) ? null : date;
     }
 
     // APIs backed by SQL commonly return `YYYY-MM-DD HH:mm:ss`, sometimes with
@@ -19,7 +23,7 @@ const localDate = (value) => {
     if (sqlDateTime) {
       const [, year, month, day, hour, minute, second = "0", fraction = ""] = sqlDateTime;
       const millisecond = fraction ? Number(fraction.slice(0, 3).padEnd(3, "0")) : 0;
-      return new Date(
+      const date = new Date(
         Number(year),
         Number(month) - 1,
         Number(day),
@@ -28,15 +32,17 @@ const localDate = (value) => {
         Number(second),
         millisecond
       );
+      return Number.isNaN(date.getTime()) ? null : date;
     }
   }
 
-  return new Date(value);
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
 };
 
 const startOfDay = (value) => {
-  const date = localDate(value);
-  if (!date || Number.isNaN(date.getTime())) return null;
+  const date = parsePortableEventDate(value);
+  if (!date) return null;
   date.setHours(0, 0, 0, 0);
   return date;
 };
@@ -52,8 +58,7 @@ const localDateKey = (date) => [
 const eventDate = (event) => {
   const raw = event?.starts_at || event?.start_at || event?.start_date || event?.date || event?.scheduled_at;
   if (!raw) return null;
-  const date = localDate(raw);
-  return !date || Number.isNaN(date.getTime()) ? null : date;
+  return parsePortableEventDate(raw);
 };
 
 const dateTitle = (date) => new Intl.DateTimeFormat("pt-BR", {
