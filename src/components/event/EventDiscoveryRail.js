@@ -58,9 +58,9 @@ const eventDateMeta = (event) => {
 };
 
 const categoryLabels = (event) => {
-  const source = event?.categories || event?.category || event?.event_category || [];
-  const values = Array.isArray(source) ? source : [source];
-  return values
+  const sources = [event?.categories, event?.category, event?.event_category, event?.genres, event?.genre, event?.music_genre];
+  return sources
+    .flatMap((source) => (Array.isArray(source) ? source : source ? [source] : []))
     .map((value) => (typeof value === "string" ? value : value?.name || value?.title || value?.label))
     .map((value) => String(value || "").trim())
     .filter(Boolean)
@@ -118,7 +118,7 @@ export default function EventDiscoveryRail({ events, eyebrow, title, description
                   <div className="cut-event-discovery__body">
                     <h3>{event?.title || "Evento Cutinapp"}</h3>
                     <p><i className="fa-solid fa-location-dot" /> {event?.venue || event?.city || "Local a confirmar"}</p>
-                    {categories.length > 0 && <div className="cut-event-discovery__categories" aria-label="Categorias do evento">{categories.map((category) => <span key={category}>{category}</span>)}</div>}
+                    {categories.length > 0 && <div className="cut-event-discovery__categories" aria-label="Categorias e gêneros do evento">{categories.map((category) => <span key={category}>{category}</span>)}</div>}
                   </div>
                 </Link>
                 {production.name && <Link to={productionHref} className="cut-event-discovery__production" aria-label={`Ver produção ${production.name}`}><span className="cut-event-discovery__productionAvatar">{productionLogo ? <img src={productionLogo} alt="" loading="lazy" decoding="async" /> : initials(production.name)}</span><span className="cut-event-discovery__productionCopy"><small>Produção responsável</small><strong>{production.name}</strong></span><i className="fa-solid fa-chevron-right" /></Link>}
