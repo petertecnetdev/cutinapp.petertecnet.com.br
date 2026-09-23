@@ -7,12 +7,24 @@ import { parsePortableEventDate } from "../../utils/chronologicalDiscovery";
 import "./EventDiscoveryRail.css";
 
 const eventStartValue = (event) => event?.starts_at || event?.start_at || event?.start_date || event?.date || event?.scheduled_at || null;
+const stableIdentityPart = (value) => {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return String(value).trim().toLowerCase();
+  if (typeof value === "object") {
+    const scalar = value.id || value.uuid || value.slug || value.public_id || value.name || value.title || value.label || value.city || value.state || value.uf;
+    return stableIdentityPart(scalar);
+  }
+  return "";
+};
 const eventStableKey = (event) => {
   if (event?.id) return `id:${event.id}`;
   if (event?.slug) return `slug:${event.slug}`;
   if (event?.uuid) return `uuid:${event.uuid}`;
   if (event?.public_id) return `public:${event.public_id}`;
-  const fingerprint = [event?.title, eventStartValue(event), event?.venue, event?.city].map((value) => String(value || "").trim().toLowerCase()).filter(Boolean).join("|");
+  const fingerprint = [event?.title, eventStartValue(event), event?.venue || event?.place || event?.location, event?.city || event?.address?.city, event?.production, event?.establishment]
+    .map(stableIdentityPart)
+    .filter(Boolean)
+    .join("|");
   return `fallback:${fingerprint || "event"}`;
 };
 const uniqueEvents = (events, maxItems) => { const seen = new Set(); const result = []; for (const event of Array.isArray(events) ? events : []) { const key = eventStableKey(event); if (seen.has(key)) continue; seen.add(key); result.push(event); if (result.length >= maxItems) break; } return result; };
