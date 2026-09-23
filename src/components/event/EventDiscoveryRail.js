@@ -5,10 +5,33 @@ import EventArtwork from "./EventArtwork";
 import { storageUrl } from "../../config";
 import "./EventDiscoveryRail.css";
 
-const dateLabel = (value) => {
-  if (!value) return "Data a confirmar";
+const portableEventDate = (value) => {
+  if (!value) return null;
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+
+  if (typeof value === "string") {
+    const sqlDateTime = value.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,6}))?)?$/);
+    if (sqlDateTime) {
+      const [, year, month, day, hour, minute, second = "0", fraction = ""] = sqlDateTime;
+      const millisecond = fraction ? Number(fraction.slice(0, 3).padEnd(3, "0")) : 0;
+      const date = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), Number(second), millisecond);
+      return Number.isNaN(date.getTime()) ? null : date;
+    }
+
+    const dateOnly = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (dateOnly) {
+      const [, year, month, day] = dateOnly;
+      return new Date(Number(year), Number(month) - 1, Number(day));
+    }
+  }
+
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Data a confirmar";
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const dateLabel = (value) => {
+  const date = portableEventDate(value);
+  if (!date) return "Data a confirmar";
   return new Intl.DateTimeFormat("pt-BR", {
     weekday: "short",
     day: "2-digit",
@@ -17,6 +40,13 @@ const dateLabel = (value) => {
     minute: "2-digit",
   }).format(date);
 };
+
+const eventStartValue = (event) => event?.starts_at
+  || event?.start_at
+  || event?.start_date
+  || event?.date
+  || event?.scheduled_at
+  || null;
 
 const mediaUrl = (value) => {
   if (!value) return "";
@@ -111,7 +141,7 @@ export default function EventDiscoveryRail({
                       loading={index < 2 ? "eager" : "lazy"}
                       decoding="async"
                     />
-                    <span>{dateLabel(event?.start_date)}</span>
+                    <span>{dateLabel(eventStartValue(event))}</span>
                   </div>
 
                   <div className="cut-event-discovery__body">
