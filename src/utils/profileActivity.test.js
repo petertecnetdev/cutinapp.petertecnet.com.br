@@ -70,6 +70,20 @@ describe("profile activity evidence rules", () => {
     expect(memory.place).toEqual({ id: 2, name: "Visível" });
   });
 
+  test("memory place ignores whitespace-only identity and uses a real fallback", () => {
+    const now = new Date("2026-09-23T12:00:00Z").getTime();
+    const [memory] = deriveMemoryTimeline([
+      {
+        id: 21,
+        end_date: "2026-09-22T12:00:00Z",
+        place: { name: "   ", slug: " " },
+        establishment: { id: 2, name: "Lugar real" },
+      },
+    ], now);
+
+    expect(memory.place).toEqual({ id: 2, name: "Lugar real" });
+  });
+
   test("memory rating uses only valid visible viewer-specific review evidence", () => {
     const now = new Date("2026-09-23T12:00:00Z").getTime();
     const memories = deriveMemoryTimeline([
@@ -119,6 +133,7 @@ describe("profile activity evidence rules", () => {
       { id: 9, name: "I", visits_count: 6, visible: "0" },
       { id: 10, name: "J", visits_count: 0, checkins_count: 4 },
       { id: 11, name: "K", visits_count: "invalid", checkins_count: "2" },
+      { name: "   ", slug: " ", visits_count: 12, visit_rank: 1, visit_rank_population: 100 },
     ]);
 
     expect(places).toHaveLength(4);
