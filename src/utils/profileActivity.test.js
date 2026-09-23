@@ -28,6 +28,19 @@ describe("profile activity evidence rules", () => {
     expect(memories.map((event) => event.id)).toEqual([2, 1]);
   });
 
+  test("memories accept canonical event date aliases without losing timeline data", () => {
+    const now = new Date("2026-09-23T12:00:00Z").getTime();
+    const memories = deriveMemoryTimeline([
+      { id: 1, title: "Ends at", starts_at: "2026-09-20T20:00:00Z", ends_at: "2026-09-20T23:00:00Z" },
+      { id: 2, title: "Scheduled", scheduled_at: "2026-09-21T21:00:00Z" },
+      { id: 3, title: "Future", starts_at: "2026-09-25T21:00:00Z" },
+    ], now);
+
+    expect(memories.map((event) => event.id)).toEqual([2, 1]);
+    expect(memories[0]).toMatchObject({ start_date: "2026-09-21T21:00:00Z", end_date: null });
+    expect(memories[1]).toMatchObject({ start_date: "2026-09-20T20:00:00Z", end_date: "2026-09-20T23:00:00Z" });
+  });
+
   test("memory actions default to denied and private media stay hidden", () => {
     const now = new Date("2026-09-22T12:00:00Z").getTime();
     const memories = deriveMemoryTimeline([
