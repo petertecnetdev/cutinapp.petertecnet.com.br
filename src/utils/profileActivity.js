@@ -32,9 +32,8 @@ const positiveInteger = (value) => {
   return Number.isInteger(number) && number > 0 ? number : null;
 };
 const visibleMemoryPlace = (event) => {
-  const place = event?.place || event?.establishment || null;
-  if (!place || typeof place !== "object") return place;
-  return viewerCanSee(place) ? place : null;
+  const aliases = [event?.place, event?.establishment].filter((place) => place !== null && place !== undefined);
+  return aliases.find((place) => typeof place !== "object" || viewerCanSee(place)) ?? null;
 };
 
 /**
@@ -64,6 +63,8 @@ export const deriveEventMemories = (events, now = Date.now()) => {
  * it can represent an aggregate score and would fabricate personal activity.
  * Nested place visibility is also enforced so a visible event cannot leak a
  * place/establishment that the API explicitly marked hidden for this viewer.
+ * Place aliases are checked independently so a hidden `place` cannot mask an
+ * authorized `establishment` returned by the same generic API payload.
  */
 export const normalizeEventMemory = (event) => {
   if (!event?.id || !viewerCanSee(event)) return null;
