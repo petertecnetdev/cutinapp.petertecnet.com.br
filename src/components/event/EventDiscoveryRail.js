@@ -114,6 +114,10 @@ const initials = (value) => String(value || "C")
   .join("")
   .toUpperCase();
 
+const prefersReducedMotion = () => typeof window !== "undefined"
+  && typeof window.matchMedia === "function"
+  && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
 export default function EventDiscoveryRail({ events, eyebrow, title, description, allTo, allLabel, productionOverride, emptyTitle, emptyText, maxItems, className }) {
   const railRef = useRef(null);
   const visibleEvents = uniqueEvents(events, maxItems);
@@ -121,7 +125,10 @@ export default function EventDiscoveryRail({ events, eyebrow, title, description
   const scroll = (direction) => {
     const node = railRef.current;
     if (!node) return;
-    node.scrollBy({ left: direction * Math.max(280, Math.round(node.clientWidth * 0.82)), behavior: "smooth" });
+    node.scrollBy({
+      left: direction * Math.max(280, Math.round(node.clientWidth * 0.82)),
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
+    });
   };
 
   return (
