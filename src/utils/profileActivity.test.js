@@ -64,6 +64,7 @@ describe("profile activity evidence rules", () => {
       { id: 3, end_date: "2026-09-22T12:00:00Z", my_review: { rating: 3 }, rating: 5 },
       { id: 4, end_date: "2026-09-22T13:00:00Z", viewer_review: { rating: 2, viewer_can_see: false } },
       { id: 5, end_date: "2026-09-22T14:00:00Z", my_review: { rating: 1, visible: "0" } },
+      { id: 6, end_date: "2026-09-22T15:00:00Z", viewer_review: { rating: 1, viewer_can_see: false }, my_review: { rating: 5 } },
     ], now);
 
     expect(memories.find((memory) => memory.id === 1)?.rating).toBeNull();
@@ -71,6 +72,7 @@ describe("profile activity evidence rules", () => {
     expect(memories.find((memory) => memory.id === 3)?.rating).toBe(3);
     expect(memories.find((memory) => memory.id === 4)?.rating).toBeNull();
     expect(memories.find((memory) => memory.id === 5)?.rating).toBeNull();
+    expect(memories.find((memory) => memory.id === 6)?.rating).toBe(5);
   });
 
   test("relative badges require explicit rank and a sufficient population", () => {
