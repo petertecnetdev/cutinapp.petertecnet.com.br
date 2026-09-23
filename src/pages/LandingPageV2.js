@@ -23,6 +23,13 @@ const dateLabel = (value) => value
   : "Data a confirmar";
 
 const mediaUrl = (path) => path ? `${storageUrl}${String(path).replace(/^\//, "")}` : "";
+const ticketPriceLabel = (event) => {
+  const price = Number(event?.starting_price);
+  if (event?.ticket_availability_status === "free_available" || (Number.isFinite(price) && price === 0)) return "Grátis";
+  if (Number.isFinite(price) && price > 0) return `A partir de ${price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`;
+  if (event?.ticket_availability_status === "available") return "Ingressos disponíveis";
+  return "Ver ingressos";
+};
 const normalizeKey = (value) => String(value || "").trim().toLocaleLowerCase("pt-BR");
 const formatEventLocation = (event) => {
   const cityState = event?.city ? `${event.city}${event.uf ? ` - ${event.uf}` : ""}` : "";
@@ -560,6 +567,7 @@ export default function LandingPageV2() {
                       <h3>{event.title}</h3>
                       <p><i className="fa-solid fa-location-dot" /> {formatEventLocation(event)}</p>
                       {event.production?.name && <span>{event.production.name}</span>}
+                      <b className="cut-landing__eventPrice"><i className="fa-solid fa-ticket" /> {ticketPriceLabel(event)}</b>
                       <strong className="cut-landing__eventCta">Ver evento e ingressos <i className="fa-solid fa-arrow-right" /></strong>
                     </div>
                   </Link>
