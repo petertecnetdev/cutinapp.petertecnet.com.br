@@ -7,7 +7,8 @@ const eventTimestamp = (event) => {
 };
 
 const explicitTrue = (value) => value === true || value === 1 || value === "1";
-const viewerCanSee = (value) => value?.visible !== false && value?.viewer_can_see !== false;
+const explicitFalse = (value) => value === false || value === 0 || value === "0";
+const viewerCanSee = (value) => !explicitFalse(value?.visible) && !explicitFalse(value?.viewer_can_see);
 
 /**
  * Builds profile memories only from event records the API already authorized
