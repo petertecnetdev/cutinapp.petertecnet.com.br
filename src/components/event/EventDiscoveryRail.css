@@ -12,6 +12,7 @@
 .cut-event-discovery__controls button:hover{border-color:#65468a;background:#181329}
 .cut-event-discovery__actions>a:focus-visible,.cut-event-discovery__controls button:focus-visible,.cut-event-discovery__mainLink:focus-visible,.cut-event-discovery__production:focus-visible{outline:3px solid #b78cff;outline-offset:3px}
 .cut-event-discovery__rail{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(270px,320px);gap:14px;overflow-x:auto;overscroll-behavior-inline:contain;scroll-snap-type:inline mandatory;scroll-padding-inline:2px;padding:2px 2px 10px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.cut-event-discovery__rail:focus-visible{outline:3px solid #b78cff;outline-offset:4px;border-radius:22px}
 .cut-event-discovery__rail::-webkit-scrollbar{display:none}
 .cut-event-discovery__card{min-width:0;overflow:hidden;content-visibility:auto;contain-intrinsic-size:390px 320px;scroll-snap-align:start;border:1px solid #23232f;border-radius:22px;background:#0f0f19;color:#fff;text-decoration:none;box-shadow:0 12px 32px #050508;transition:transform .18s ease,border-color .18s ease}
 .cut-event-discovery__card:hover{color:#fff;transform:translateY(-3px);border-color:#5b3f7d}
