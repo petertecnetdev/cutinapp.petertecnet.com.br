@@ -21,7 +21,11 @@ const positiveInteger = (value) => {
   const number = Number(value);
   return Number.isInteger(number) && number > 0 ? number : null;
 };
-const usableIdentity = (value) => Boolean(value?.id || value?.slug || value?.name || value?.title);
+const usableIdentityValue = (value) => {
+  if (typeof value === "string") return value.trim().length > 0;
+  return value !== null && value !== undefined && value !== false;
+};
+const usableIdentity = (value) => [value?.id, value?.slug, value?.name, value?.title].some(usableIdentityValue);
 const usableMemoryPlace = (place) => {
   if (typeof place === "string") return place.trim().length > 0;
   return Boolean(place && typeof place === "object" && viewerCanSee(place) && usableIdentity(place));
