@@ -3,7 +3,7 @@ import PropTypes from "prop-types";
 import { Link } from "react-router-dom";
 import EventArtwork from "./EventArtwork";
 import { storageUrl } from "../../config";
-import { parsePortableEventDate } from "../../utils/chronologicalDiscovery";
+import { chronologicalBucketFor, parsePortableEventDate } from "../../utils/chronologicalDiscovery";
 import "./EventDiscoveryRail.css";
 
 const eventStartValue = (event) => event?.starts_at || event?.start_at || event?.start_date || event?.date || event?.scheduled_at || null;
@@ -43,7 +43,15 @@ const uniqueEvents = (events, maxItems) => {
   }
   return result;
 };
-const eventDateMeta = (event) => { const date = parsePortableEventDate(eventStartValue(event)); if (!date) return { label: "Data a confirmar", dateTime: null }; return { label: new Intl.DateTimeFormat("pt-BR", { weekday: "short", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(date), dateTime: date.toISOString() }; };
+const eventDateMeta = (event) => {
+  const date = parsePortableEventDate(eventStartValue(event));
+  if (!date) return { label: "Data a confirmar", dateTime: null };
+  const bucket = chronologicalBucketFor(date);
+  const clock = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" }).format(date);
+  const calendar = new Intl.DateTimeFormat("pt-BR", { weekday: "short", day: "2-digit", month: "short" }).format(date);
+  const relative = bucket.key === "today" || bucket.key === "tomorrow" ? bucket.title : bucket.key === "next-week" ? "Próxima semana" : calendar;
+  return { label: `${relative} · ${clock}`, dateTime: date.toISOString() };
+};
 const categoryLabels = (event) => [event?.categories, event?.category, event?.event_category, event?.genres, event?.genre, event?.music_genre].flatMap((source) => (Array.isArray(source) ? source : source ? [source] : [])).map((value) => (typeof value === "string" ? value : value?.name || value?.title || value?.label)).map((value) => String(value || "").trim()).filter(Boolean).filter((value, index, items) => items.indexOf(value) === index).slice(0, 2);
 const numericPrice = (value) => { if (typeof value === "number") return Number.isFinite(value) ? value : null; const raw = String(value ?? "").trim().replace(/[^\d,.-]/g, ""); if (!raw) return null; const comma = raw.lastIndexOf(","); const dot = raw.lastIndexOf("."); let normalized = raw; if (comma >= 0 && dot >= 0) { const decimal = comma > dot ? "," : "."; const grouping = decimal === "," ? /\./g : /,/g; normalized = raw.replace(grouping, "").replace(decimal, "."); } else if (comma >= 0) normalized = raw.replace(/\./g, "").replace(",", "."); else if ((raw.match(/\./g) || []).length > 1) normalized = raw.replace(/\./g, ""); const parsed = Number(normalized); return Number.isFinite(parsed) ? parsed : null; };
 const eventPriceLabel = (event) => { if (event?.is_free === true || event?.free === true) return "Grátis"; const raw = [event?.min_price, event?.price_from, event?.lowest_price, event?.ticket_price, event?.price].find((value) => value !== null && value !== undefined && value !== ""); if (raw === undefined) return null; const numeric = numericPrice(raw); if (numeric === null || numeric < 0) return null; if (numeric === 0) return "Grátis"; return `A partir de ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(numeric)}`; };
