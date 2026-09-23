@@ -445,8 +445,8 @@ export default function LandingPageV2() {
               </div>
               <CommerceTrustRail context="discovery" />
               <div className="cut-landing__heroActions">
-                <Button as={Link} to="/register" className="cut-landing__primary">Criar minha conta grátis <i className="fa-solid fa-arrow-right" /></Button>
-                <Link to={browseLink} className="cut-landing__secondary">Explorar eventos</Link>
+                <Button as={Link} to={browseLink} className="cut-landing__primary">Explorar eventos <i className="fa-solid fa-arrow-right" /></Button>
+                <Link to="/register" className="cut-landing__secondary">Criar conta grátis</Link>
               </div>
               <Link to="/for-producers" className="cut-landing__producerLink">
                 <i className="fa-solid fa-bolt" /> Sou produtor de eventos <span>→</span>
@@ -560,6 +560,7 @@ export default function LandingPageV2() {
                       <h3>{event.title}</h3>
                       <p><i className="fa-solid fa-location-dot" /> {formatEventLocation(event)}</p>
                       {event.production?.name && <span>{event.production.name}</span>}
+                      <strong className="cut-landing__eventCta">Ver evento e ingressos <i className="fa-solid fa-arrow-right" /></strong>
                     </div>
                   </Link>
                 ))}
@@ -765,7 +766,7 @@ export default function LandingPageV2() {
         </section>
       </main>
 
-      <div className="cut-landing__mobileCta" aria-label="Ação principal"><Button as={Link} to="/register">Criar conta grátis <i className="fa-solid fa-arrow-right" /></Button></div>
+      <div className="cut-landing__mobileCta" aria-label="Ação principal"><Button as={Link} to={browseLink}>Explorar eventos <i className="fa-solid fa-arrow-right" /></Button></div>
       <PeterTecnetSignature />
     </div>
   );
