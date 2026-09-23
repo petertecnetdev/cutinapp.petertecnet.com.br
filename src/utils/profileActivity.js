@@ -57,11 +57,13 @@ export const normalizeEventMemory = (event) => {
     return viewerCanSee(photo) && Boolean(photo?.url || photo?.path);
   });
   const publications = asArray(event.publications ?? event.posts).filter((post) => post?.id && viewerCanSee(post));
-  // Some API payloads can contain both aliases while applying visibility at
-  // the nested review level. Never let a hidden alias mask a visible one.
-  const viewerReview = [event.viewer_review, event.my_review]
-    .find((review) => review && viewerCanSee(review)) || null;
-  const viewerRating = event.viewer_rating ?? viewerReview?.rating ?? null;
+  const reviewAliases = [event.viewer_review, event.my_review].filter(Boolean);
+  // Nested visibility is authoritative. If the API supplied review objects,
+  // never let a parallel scalar viewer_rating bypass a hidden review.
+  const viewerReview = reviewAliases.find((review) => viewerCanSee(review)) || null;
+  const viewerRating = reviewAliases.length > 0
+    ? viewerReview?.rating ?? null
+    : event.viewer_rating ?? null;
 
   return {
     id: event.id,
