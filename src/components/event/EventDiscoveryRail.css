@@ -48,5 +48,7 @@
   .cut-event-discovery__rail{grid-auto-columns:minmax(238px,82vw);margin-right:calc(var(--bs-gutter-x,1.5rem) * -.5);padding-right:20px}
 }
 @media(prefers-reduced-motion:reduce){
-  .cut-event-discovery__card{transition:none}
+  .cut-event-discovery__card,.cut-event-discovery__controls button,.cut-event-discovery__production{transition:none}
+  .cut-event-discovery__card:hover{transform:none}
+  .cut-event-discovery__rail{scroll-behavior:auto}
 }
