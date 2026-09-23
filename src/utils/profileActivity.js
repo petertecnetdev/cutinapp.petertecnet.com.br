@@ -21,11 +21,13 @@ const positiveInteger = (value) => {
   const number = Number(value);
   return Number.isInteger(number) && number > 0 ? number : null;
 };
-const usableIdentityValue = (value) => {
-  if (typeof value === "string") return value.trim().length > 0;
-  return value !== null && value !== undefined && value !== false;
+const usableTextIdentity = (value) => typeof value === "string" && value.trim().length > 0;
+const usableEntityId = (value) => {
+  if (usableTextIdentity(value)) return true;
+  return typeof value === "number" && Number.isFinite(value) && value > 0;
 };
-const usableIdentity = (value) => [value?.id, value?.slug, value?.name, value?.title].some(usableIdentityValue);
+const usableIdentity = (value) => usableEntityId(value?.id)
+  || [value?.slug, value?.name, value?.title].some(usableTextIdentity);
 const usableMemoryPlace = (place) => {
   if (typeof place === "string") return place.trim().length > 0;
   return Boolean(place && typeof place === "object" && viewerCanSee(place) && usableIdentity(place));
