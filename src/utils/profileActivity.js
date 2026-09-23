@@ -22,6 +22,11 @@ const eventTimestamp = (event) => {
 const explicitTrue = (value) => value === true || value === 1 || value === "1";
 const explicitFalse = (value) => value === false || value === 0 || value === "0";
 const viewerCanSee = (value) => !explicitFalse(value?.visible) && !explicitFalse(value?.viewer_can_see);
+const normalizePersonalRating = (value) => {
+  if (value === null || value === undefined || value === "") return null;
+  const rating = Number(value);
+  return Number.isFinite(rating) && rating >= 1 && rating <= 5 ? rating : null;
+};
 
 /**
  * Builds profile memories only from event records the API already authorized
@@ -61,9 +66,9 @@ export const normalizeEventMemory = (event) => {
   // Nested visibility is authoritative. If the API supplied review objects,
   // never let a parallel scalar viewer_rating bypass a hidden review.
   const viewerReview = reviewAliases.find((review) => viewerCanSee(review)) || null;
-  const viewerRating = reviewAliases.length > 0
-    ? viewerReview?.rating ?? null
-    : event.viewer_rating ?? null;
+  const viewerRating = normalizePersonalRating(reviewAliases.length > 0
+    ? viewerReview?.rating
+    : event.viewer_rating);
 
   return {
     id: event.id,
