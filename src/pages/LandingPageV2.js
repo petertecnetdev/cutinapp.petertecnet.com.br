@@ -400,7 +400,7 @@ export default function LandingPageV2() {
           <nav aria-label="Navegação pública">
             <a href="#descobrir">Eventos</a>
             <a href="#como-funciona">Como funciona</a>
-            <a href="#produtores">Produtores</a>
+            <Link to="/for-producers">Para produtores</Link>
             <a href="#faq">FAQ</a>
             <Link to="/help">Ajuda</Link>
             <Link to="/login">Entrar</Link>
@@ -448,7 +448,7 @@ export default function LandingPageV2() {
                 <Button as={Link} to="/register" className="cut-landing__primary">Criar minha conta grátis <i className="fa-solid fa-arrow-right" /></Button>
                 <Link to={browseLink} className="cut-landing__secondary">Explorar eventos</Link>
               </div>
-              <Link to="/register" state={{ from: "/production/create" }} className="cut-landing__producerLink">
+              <Link to="/for-producers" className="cut-landing__producerLink">
                 <i className="fa-solid fa-bolt" /> Sou produtor de eventos <span>→</span>
               </Link>
               <div className="cut-landing__trustRow">
