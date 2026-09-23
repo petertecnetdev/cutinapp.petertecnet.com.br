@@ -1,7 +1,8 @@
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 const startOfDay = (value) => {
-  const date = value instanceof Date ? new Date(value) : new Date(value || Date.now());
+  if (value === null || value === undefined || value === "") return null;
+  const date = value instanceof Date ? new Date(value) : new Date(value);
   if (Number.isNaN(date.getTime())) return null;
   date.setHours(0, 0, 0, 0);
   return date;
@@ -37,7 +38,7 @@ export const groupEventsChronologically = (events = [], now = new Date()) => {
   const groups = new Map();
 
   [...events]
-    .sort((left, right) => (eventDate(left)?.getTime() || Number.MAX_SAFE_INTEGER) - (eventDate(right)?.getTime() || Number.MAX_SAFE_INTEGER))
+    .sort((left, right) => (eventDate(left)?.getTime() ?? Number.MAX_SAFE_INTEGER) - (eventDate(right)?.getTime() ?? Number.MAX_SAFE_INTEGER))
     .forEach((event) => {
       const date = eventDate(event);
       const bucket = chronologicalBucketFor(date, now);
