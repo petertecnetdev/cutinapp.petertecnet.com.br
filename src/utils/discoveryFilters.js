@@ -16,12 +16,16 @@ export const periodLabel = (value) => PERIOD_OPTIONS.find(([key]) => key === val
 
 export const readDiscoveryPreference = () => safeGetLocalJson("cutinapp.discovery", {});
 
+const cityKey = (value) => `${String(value?.city || "").trim().toLocaleLowerCase("pt-BR")}|${String(value?.uf || "").trim().toLocaleUpperCase("pt-BR")}`;
+
 export const saveDiscoveryPreference = (value) => {
   safeSetLocalJson("cutinapp.discovery", value);
   const storedRecent = safeGetLocalJson("cutinapp.recentCities", []);
   const recent = Array.isArray(storedRecent) ? storedRecent : [];
   if (value?.city) {
-    const next = [{ city: value.city, uf: value.uf || "" }, ...recent.filter((item) => item?.city !== value.city)].slice(0, 5);
+    const selected = { city: String(value.city).trim(), uf: String(value.uf || "").trim().toLocaleUpperCase("pt-BR") };
+    const selectedKey = cityKey(selected);
+    const next = [selected, ...recent.filter((item) => cityKey(item) !== selectedKey)].slice(0, 5);
     safeSetLocalJson("cutinapp.recentCities", next);
   }
 };
