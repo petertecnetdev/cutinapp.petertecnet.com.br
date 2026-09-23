@@ -606,3 +606,13 @@
     font-size: .68rem;
   }
 }
+
+
+.cut-event-faq{display:grid;gap:10px}
+.cut-event-faq details{overflow:hidden;border:1px solid rgba(148,163,184,.12);border-radius:15px;background:rgba(255,255,255,.02)}
+.cut-event-faq summary{position:relative;padding:15px 44px 15px 16px;cursor:pointer;list-style:none;color:var(--cut-text,#f8fafc);font-weight:850}
+.cut-event-faq summary::-webkit-details-marker{display:none}
+.cut-event-faq summary::after{content:"+";position:absolute;right:16px;top:50%;transform:translateY(-50%);color:#c084fc;font-size:1.1rem}
+.cut-event-faq details[open] summary::after{content:"−"}
+.cut-event-faq p{margin:0;padding:0 16px 15px;color:var(--cut-text-muted,#94a3b8);line-height:1.58}
+.cut-event-faq .btn{margin:0 16px 16px}

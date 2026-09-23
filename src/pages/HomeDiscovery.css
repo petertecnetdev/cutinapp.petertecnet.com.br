@@ -243,3 +243,31 @@
   .cut-home-discovery__ambient,.cut-home-discovery__signal i,.cut-home-discovery__brandCopy h1 em,.cut-home-discovery__sceneHalo,.cut-home-discovery__sceneCard,.cut-home-discovery__roleRail>div{animation:none!important}
   .cut-home-discovery__eventCard,.cut-home-discovery__artistTile,.cut-home-discovery__audienceCard{transition:none}
 }
+
+
+/* Competitive discovery command — keeps ticketing intent obvious without hiding the social ecosystem. */
+.cut-home-discovery__searchCommand{margin-top:26px;max-width:760px}
+.cut-home-discovery__searchCommand>label{display:block;margin-bottom:8px;color:#d9ccff;font-size:.72rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase}
+.cut-home-discovery__searchCommand>div{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;padding:8px 8px 8px 16px;border:1px solid rgba(209,188,255,.18);border-radius:18px;background:rgba(6,6,22,.76);box-shadow:0 18px 48px rgba(0,0,0,.24);backdrop-filter:blur(18px)}
+.cut-home-discovery__searchCommand i{color:#c98aff}
+.cut-home-discovery__searchCommand input{min-width:0;border:0;outline:0;background:transparent;color:#fff;font-size:1rem}
+.cut-home-discovery__searchCommand input::placeholder{color:#77738b}
+.cut-home-discovery__searchCommand button{min-height:44px;padding:0 18px;border:0;border-radius:12px;background:linear-gradient(135deg,#d946ef,#7c3aed);color:#fff;font-weight:900}
+.cut-home-discovery__searchCommand:focus-within>div{border-color:rgba(198,92,255,.55);box-shadow:0 0 0 3px rgba(198,92,255,.08),0 18px 48px rgba(0,0,0,.24)}
+.cut-home-discovery__heroQuickFilters{display:flex;flex-wrap:wrap;gap:8px;margin-top:11px}
+.cut-home-discovery__heroQuickFilters a{display:inline-flex;align-items:center;min-height:34px;padding:6px 11px;border:1px solid rgba(255,255,255,.09);border-radius:999px;background:rgba(255,255,255,.025);color:#aaa6ba;text-decoration:none;font-size:.72rem;font-weight:800;transition:.2s ease}
+.cut-home-discovery__heroQuickFilters a:hover,.cut-home-discovery__heroQuickFilters a:focus-visible{border-color:rgba(198,92,255,.38);background:rgba(198,92,255,.09);color:#fff;outline:none}
+.cut-home-discovery__locationBox .cut-processing{min-height:96px;padding:8px}
+.cut-home-discovery__locationBox .cut-processing__scene{width:62px;height:62px}
+.cut-home-discovery__locationBox .cut-processing__orb{width:46px;height:46px}
+.cut-home-discovery__locationBox .cut-processing__logo{width:32px;height:32px}
+.cut-home-discovery__locationBox .cut-processing__copy{min-height:auto}
+.cut-home-discovery__locationBox .cut-processing__progress{width:150px}
+
+@media(max-width:640px){
+  .cut-home-discovery__searchCommand>div{grid-template-columns:auto minmax(0,1fr);padding:12px 14px}
+  .cut-home-discovery__searchCommand button{grid-column:1/-1;width:100%}
+  .cut-home-discovery__heroQuickFilters{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+  .cut-home-discovery__heroQuickFilters::-webkit-scrollbar{display:none}
+  .cut-home-discovery__heroQuickFilters a{white-space:nowrap}
+}

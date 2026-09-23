@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, Container } from "react-bootstrap";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import PeterTecnetSignature from "../components/PeterTecnetSignature";
+import ProcessingIndicatorComponent from "../components/ProcessingIndicatorComponent";
+import CommerceTrustRail from "../components/CommerceTrustRail";
 import cutinappService from "../services/CutinappService";
 import eventService from "../services/EventService";
 import { storageUrl } from "../config";
@@ -21,6 +23,13 @@ const dateLabel = (value) => value
   : "Data a confirmar";
 
 const mediaUrl = (path) => path ? `${storageUrl}${String(path).replace(/^\//, "")}` : "";
+const ticketPriceLabel = (event) => {
+  const price = Number(event?.starting_price);
+  if (event?.ticket_availability_status === "free_available" || (Number.isFinite(price) && price === 0)) return "Grátis";
+  if (Number.isFinite(price) && price > 0) return `A partir de ${price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`;
+  if (event?.ticket_availability_status === "available") return "Ingressos disponíveis";
+  return "Ver ingressos";
+};
 const normalizeKey = (value) => String(value || "").trim().toLocaleLowerCase("pt-BR");
 const formatEventLocation = (event) => {
   const cityState = event?.city ? `${event.city}${event.uf ? ` - ${event.uf}` : ""}` : "";
@@ -220,6 +229,8 @@ function urgencyLabel(value) {
 }
 
 export default function LandingPageV2() {
+  const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState("");
   const [events, setEvents] = useState([]);
   const [productions, setProductions] = useState([]);
   const [artists, setArtists] = useState([]);
@@ -364,6 +375,11 @@ export default function LandingPageV2() {
       : "na Cutinapp";
 
   const browseLink = makeEventLink();
+  const submitDiscoverySearch = (event) => {
+    event.preventDefault();
+    const query = searchQuery.trim();
+    navigate(query ? `/search?q=${encodeURIComponent(query)}` : browseLink);
+  };
   const featuredEvent = events[0] || null;
   const featuredEventLink = featuredEvent?.slug ? `/event/${encodeURIComponent(featuredEvent.slug)}` : browseLink;
   const featuredProduction = productions[0] || null;
@@ -391,8 +407,9 @@ export default function LandingPageV2() {
           <nav aria-label="Navegação pública">
             <a href="#descobrir">Eventos</a>
             <a href="#como-funciona">Como funciona</a>
-            <a href="#produtores">Produtores</a>
+            <Link to="/for-producers">Para produtores</Link>
             <a href="#faq">FAQ</a>
+            <Link to="/help">Ajuda</Link>
             <Link to="/login">Entrar</Link>
             <Button as={Link} to="/register" className="cut-landing__navCta">Criar conta grátis</Button>
           </nav>
@@ -411,11 +428,34 @@ export default function LandingPageV2() {
                 Descubra eventos, acompanhe produções e artistas, compre seus ingressos e participe da cena.
                 Para quem produz, a Cutinapp conecta divulgação, público e operação no mesmo ecossistema.
               </p>
-              <div className="cut-landing__heroActions">
-                <Button as={Link} to="/register" className="cut-landing__primary">Criar minha conta grátis <i className="fa-solid fa-arrow-right" /></Button>
-                <Link to={browseLink} className="cut-landing__secondary">Explorar eventos</Link>
+              <form className="cut-landing__heroSearch" onSubmit={submitDiscoverySearch} role="search">
+                <label htmlFor="cut-landing-search">Encontre seu próximo evento</label>
+                <div>
+                  <i className="fa-solid fa-magnifying-glass" aria-hidden="true" />
+                  <input
+                    id="cut-landing-search"
+                    type="search"
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    placeholder="Evento, artista, produção ou local"
+                    autoComplete="off"
+                  />
+                  <button type="submit">Pesquisar</button>
+                </div>
+              </form>
+              <div className="cut-landing__heroSearchChips" aria-label="Filtros rápidos">
+                <Link to={makeEventLink({ period: "today" })}>Hoje</Link>
+                <Link to={makeEventLink({ period: "tomorrow" })}>Amanhã</Link>
+                <Link to={makeEventLink({ period: "weekend" })}>Fim de semana</Link>
+                <Link to={makeEventLink({ free: 1 })}>Grátis</Link>
+                <Link to={makeEventLink({ available: 1 })}>Com ingressos</Link>
               </div>
-              <Link to="/register" state={{ from: "/production/create" }} className="cut-landing__producerLink">
+              <CommerceTrustRail context="discovery" />
+              <div className="cut-landing__heroActions">
+                <Button as={Link} to={browseLink} className="cut-landing__primary">Explorar eventos <i className="fa-solid fa-arrow-right" /></Button>
+                <Link to="/register" className="cut-landing__secondary">Criar conta grátis</Link>
+              </div>
+              <Link to="/for-producers" className="cut-landing__producerLink">
                 <i className="fa-solid fa-bolt" /> Sou produtor de eventos <span>→</span>
               </Link>
               <div className="cut-landing__trustRow">
@@ -475,6 +515,7 @@ export default function LandingPageV2() {
         <section className="cut-landing__pulseBar" aria-label="Atalhos de descoberta">
           <Container>
             <Link to={makeEventLink({ period: "today" })}><i className="fa-regular fa-sun" /><span><small>AGORA</small>O que acontece hoje</span><b>→</b></Link>
+            <Link to={makeEventLink({ period: "tomorrow" })}><i className="fa-regular fa-calendar-plus" /><span><small>AMANHÃ</small>Planeje o próximo rolê</span><b>→</b></Link>
             <Link to={makeEventLink({ period: "weekend" })}><i className="fa-regular fa-calendar" /><span><small>PLANEJE</small>Seu fim de semana</span><b>→</b></Link>
             <Link to={makeEventLink({ sort: "popular" })}><i className="fa-solid fa-fire" /><span><small>EM ALTA</small>Eventos populares</span><b>→</b></Link>
             <Link to={makeEventLink({ available: 1 })}><i className="fa-solid fa-ticket" /><span><small>GARANTA</small>Com ingressos disponíveis</span><b>→</b></Link>
@@ -492,7 +533,8 @@ export default function LandingPageV2() {
               <div className="cut-landing__locationBox">
                 <small>SUA DESCOBERTA</small>
                 <strong><i className="fa-solid fa-location-dot" /> {locationLabel}</strong>
-                <Button variant="outline-light" onClick={useMyLocation} disabled={locationBusy}>{locationBusy ? "Localizando..." : "Usar minha localização"}</Button>
+                <Button variant="outline-light" onClick={useMyLocation} disabled={locationBusy}><i className="fa-solid fa-location-crosshairs me-2" />Usar minha localização</Button>
+                {locationBusy && <ProcessingIndicatorComponent fullscreen={false} label="Obtendo localização" />}
                 {location && <button type="button" onClick={clearLocation}>Remover localização</button>}
               </div>
             </div>
@@ -512,7 +554,7 @@ export default function LandingPageV2() {
               })}
             </div>}
 
-            {loading ? <div className="cut-landing__empty">Carregando a cena...</div> : events.length ? (
+            {loading ? <ProcessingIndicatorComponent fullscreen={false} label="Buscando eventos" /> : events.length ? (
               <div className="cut-landing__eventGrid">
                 {events.slice(0, 8).map((event) => (
                   <Link key={event.id} to={`/event/${event.slug}`} className="cut-landing__eventCard">
@@ -525,6 +567,8 @@ export default function LandingPageV2() {
                       <h3>{event.title}</h3>
                       <p><i className="fa-solid fa-location-dot" /> {formatEventLocation(event)}</p>
                       {event.production?.name && <span>{event.production.name}</span>}
+                      <b className="cut-landing__eventPrice"><i className="fa-solid fa-ticket" /> {ticketPriceLabel(event)}</b>
+                      <strong className="cut-landing__eventCta">Ver evento e ingressos <i className="fa-solid fa-arrow-right" /></strong>
                     </div>
                   </Link>
                 ))}
@@ -730,7 +774,7 @@ export default function LandingPageV2() {
         </section>
       </main>
 
-      <div className="cut-landing__mobileCta" aria-label="Ação principal"><Button as={Link} to="/register">Criar conta grátis <i className="fa-solid fa-arrow-right" /></Button></div>
+      <div className="cut-landing__mobileCta" aria-label="Ação principal"><Button as={Link} to={browseLink}>Explorar eventos <i className="fa-solid fa-arrow-right" /></Button></div>
       <PeterTecnetSignature />
     </div>
   );
