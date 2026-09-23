@@ -13,11 +13,17 @@ const eventStartValue = (event) => event?.starts_at
   || event?.scheduled_at
   || null;
 
-const eventStableKey = (event) => event?.id
-  || event?.slug
-  || [event?.title, eventStartValue(event), event?.venue, event?.city]
+const eventStableKey = (event, index) => {
+  if (event?.id) return `id:${event.id}`;
+  if (event?.slug) return `slug:${event.slug}`;
+
+  const fingerprint = [event?.title, eventStartValue(event), event?.venue, event?.city]
     .map((value) => String(value || "").trim().toLowerCase())
+    .filter(Boolean)
     .join("|");
+
+  return `fallback:${fingerprint || "event"}:${index}`;
+};
 
 const eventDateMeta = (event) => {
   const date = parsePortableEventDate(eventStartValue(event));
@@ -118,7 +124,7 @@ export default function EventDiscoveryRail({
             const dateMeta = eventDateMeta(event);
 
             return (
-              <article className="cut-event-discovery__card" key={eventStableKey(event)}>
+              <article className="cut-event-discovery__card" key={eventStableKey(event, index)}>
                 <Link to={eventHref} className="cut-event-discovery__mainLink" aria-label={`Ver evento ${event?.title || "Cutinapp"}`}>
                   <div className="cut-event-discovery__media">
                     <EventArtwork
