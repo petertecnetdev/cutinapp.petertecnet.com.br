@@ -1,7 +1,7 @@
 import { deriveEventMemories, deriveMemoryTimeline, normalizeVisitedPlaces, relativeVisitBadge } from "./profileActivity";
 
 describe("profile activity evidence rules", () => {
-  test("memories include only visible past event records and deduplicate ids", () => {
+  test("memories include only visible past event records and deduplicate valid ids", () => {
     const now = new Date("2026-09-22T12:00:00Z").getTime();
     const memories = deriveEventMemories([
       { id: 1, title: "Past", end_date: "2026-09-20T12:00:00Z" },
@@ -12,6 +12,9 @@ describe("profile activity evidence rules", () => {
       { id: 5, title: "Private numeric", end_date: "2026-09-17T12:00:00Z", viewer_can_see: 0 },
       { id: 6, title: "Hidden serialized", end_date: "2026-09-16T12:00:00Z", visible: "0" },
       { title: "Missing id", end_date: "2026-09-19T12:00:00Z" },
+      { id: {}, title: "Object id", end_date: "2026-09-19T12:00:00Z" },
+      { id: 0, title: "Zero id", end_date: "2026-09-19T12:00:00Z" },
+      { id: "   ", title: "Blank id", end_date: "2026-09-19T12:00:00Z" },
     ], now);
 
     expect(memories.map((event) => event.id)).toEqual([1]);
@@ -41,10 +44,10 @@ describe("profile activity evidence rules", () => {
     expect(memories[1]).toMatchObject({ start_date: "2026-09-20T20:00:00Z", end_date: "2026-09-20T23:00:00Z" });
   });
 
-  test("memory actions default to denied and private media stay hidden", () => {
+  test("memory actions default to denied and private or malformed records stay hidden", () => {
     const now = new Date("2026-09-22T12:00:00Z").getTime();
     const memories = deriveMemoryTimeline([
-      { id: 1, title: "Sem permissão", end_date: "2026-09-20T12:00:00Z", photos: [{ url: "/a.jpg" }, { url: "/private.jpg", viewer_can_see: false }, { path: "/hidden.jpg", visible: "0" }, "/legacy.jpg", {}], posts: [{ id: 9 }, { id: 10, viewer_can_see: false }, { id: 11, viewer_can_see: "0" }, {}] },
+      { id: 1, title: "Sem permissão", end_date: "2026-09-20T12:00:00Z", photos: [{ url: "/a.jpg" }, { url: "/private.jpg", viewer_can_see: false }, { path: "/hidden.jpg", visible: "0" }, "/legacy.jpg", {}], posts: [{ id: 9 }, { id: 10, viewer_can_see: false }, { id: 11, viewer_can_see: "0" }, { id: {} }, { id: 0 }, { id: " " }, {}] },
       { id: 2, title: "Com permissão", end_date: "2026-09-21T12:00:00Z", viewer_permissions: { can_review: true, can_publish: 1 }, viewer_rating: 5 },
       { id: 3, title: "Memória privada", end_date: "2026-09-19T12:00:00Z", viewer_can_see: false, can_review: true },
     ], now);
@@ -53,7 +56,7 @@ describe("profile activity evidence rules", () => {
     expect(memories[0]).toMatchObject({ id: 2, can_review: true, can_publish: true, rating: 5 });
     expect(memories[1]).toMatchObject({ id: 1, can_review: false, can_publish: false });
     expect(memories[1].photos).toEqual([{ url: "/a.jpg" }, "/legacy.jpg"]);
-    expect(memories[1].publications).toHaveLength(1);
+    expect(memories[1].publications).toEqual([{ id: 9 }]);
   });
 
   test("memory place falls back to a visible alias when the primary place is hidden", () => {
