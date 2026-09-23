@@ -38,3 +38,6 @@
   .cut-landing__heroSearchChips a{flex:0 0 auto}
   .cut-landing__heroCopy>.cut-commerce-trust{grid-template-columns:1fr}
 }
+
+.cut-landing__eventCta{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,.06);color:#d8c3ff;font-size:.68rem;font-weight:900}
+.cut-landing__eventCta i{font-size:.6rem}
