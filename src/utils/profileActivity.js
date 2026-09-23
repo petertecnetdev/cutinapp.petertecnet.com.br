@@ -79,17 +79,21 @@ export const relativeVisitBadge = ({ rank, population, minimumPopulation = 100 }
 
 /**
  * Normalizes place activity without fabricating visits. A place is eligible
- * only when the API provides a non-negative integer visit/check-in count.
+ * only when the API provides a positive integer visit/check-in count. Zero is
+ * intentionally excluded: a followed/suggested place is not a visited place.
+ * Explicit viewer visibility=false also wins over otherwise valid activity.
  */
 export const normalizeVisitedPlaces = (places) => asArray(places)
   .map((place) => {
-    const rawVisits = place?.visits_count ?? place?.checkins_count;
+    if (!place || place.visible === false || place.viewer_can_see === false) return null;
+    const rawVisits = place.visits_count ?? place.checkins_count;
     const visits = Number(rawVisits);
-    if (!Number.isInteger(visits) || visits < 0) return null;
+    if (!Number.isInteger(visits) || visits <= 0) return null;
 
     return {
       ...place,
       visits_count: visits,
+      is_following: explicitTrue(place.is_following ?? place.viewer_following),
       relative_badge: relativeVisitBadge({
         rank: place?.visit_rank,
         population: place?.visit_rank_population,
