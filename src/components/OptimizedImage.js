@@ -32,9 +32,9 @@ function OptimizedImage({
   ...props
 }) {
   const [loaded, setLoaded] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const [failedSrc, setFailedSrc] = useState(null);
   const fallback = useMemo(() => initials(fallbackLabel || alt), [fallbackLabel, alt]);
-  const hasImage = Boolean(src) && !failed;
+  const hasImage = Boolean(src) && failedSrc !== src;
   const aspectRatio = width && height ? `${width} / ${height}` : undefined;
   const reservedStyle = aspectRatio ? { ...style, aspectRatio } : style;
   const responsiveSizes = sizes || "(max-width: 575px) calc(100vw - 24px), (max-width: 991px) 92vw, 720px";
@@ -78,7 +78,7 @@ function OptimizedImage({
           onLoad?.(event);
         }}
         onError={(event) => {
-          setFailed(true);
+          setFailedSrc(src);
           onError?.(event);
         }}
         {...props}
