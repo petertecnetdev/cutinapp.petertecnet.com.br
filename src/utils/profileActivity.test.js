@@ -56,7 +56,7 @@ describe("profile activity evidence rules", () => {
     expect(memories[1].publications).toHaveLength(1);
   });
 
-  test("memory rating uses only visible viewer-specific review evidence", () => {
+  test("memory rating uses only valid visible viewer-specific review evidence", () => {
     const now = new Date("2026-09-23T12:00:00Z").getTime();
     const memories = deriveMemoryTimeline([
       { id: 1, end_date: "2026-09-20T12:00:00Z", rating: 4.8 },
@@ -66,6 +66,9 @@ describe("profile activity evidence rules", () => {
       { id: 5, end_date: "2026-09-22T14:00:00Z", my_review: { rating: 1, visible: "0" } },
       { id: 6, end_date: "2026-09-22T15:00:00Z", viewer_review: { rating: 1, viewer_can_see: false }, my_review: { rating: 5 } },
       { id: 7, end_date: "2026-09-22T16:00:00Z", viewer_review: { rating: 2, viewer_can_see: false }, viewer_rating: 2 },
+      { id: 8, end_date: "2026-09-22T17:00:00Z", viewer_rating: 6 },
+      { id: 9, end_date: "2026-09-22T18:00:00Z", viewer_review: { rating: "invalid" } },
+      { id: 10, end_date: "2026-09-22T19:00:00Z", viewer_rating: "4.5" },
     ], now);
 
     expect(memories.find((memory) => memory.id === 1)?.rating).toBeNull();
@@ -75,6 +78,9 @@ describe("profile activity evidence rules", () => {
     expect(memories.find((memory) => memory.id === 5)?.rating).toBeNull();
     expect(memories.find((memory) => memory.id === 6)?.rating).toBe(5);
     expect(memories.find((memory) => memory.id === 7)?.rating).toBeNull();
+    expect(memories.find((memory) => memory.id === 8)?.rating).toBeNull();
+    expect(memories.find((memory) => memory.id === 9)?.rating).toBeNull();
+    expect(memories.find((memory) => memory.id === 10)?.rating).toBe(4.5);
   });
 
   test("relative badges require explicit rank and a sufficient population", () => {
