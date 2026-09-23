@@ -28,6 +28,18 @@ describe("chronological discovery", () => {
     expect(groups.map((group) => group.events[0].id)).toEqual([1, 2]);
   });
 
+  it("normalizes SQL datetime values used by the API on mobile browsers", () => {
+    expect(chronologicalBucketFor("2026-09-22 23:30:00", now).title).toBe("Hoje");
+    expect(chronologicalBucketFor("2026-09-23 00:15:00", now).title).toBe("Amanhã");
+
+    const groups = groupEventsChronologically([
+      { id: 2, start_date: "2026-09-23 00:15:00" },
+      { id: 1, start_date: "2026-09-22 23:30:00" },
+    ], now);
+
+    expect(groups.map((group) => group.events[0].id)).toEqual([1, 2]);
+  });
+
   it("sorts events chronologically and keeps next week in one section", () => {
     const groups = groupEventsChronologically([
       { id: 4, starts_at: new Date(2026, 9, 1, 20, 0, 0) },
