@@ -18,7 +18,7 @@
 .cut-event-discovery__mainLink:hover{color:#fff}
 .cut-event-discovery__media{position:relative;aspect-ratio:16/10;overflow:hidden;background:#141421}
 .cut-event-discovery__media>img,.cut-event-discovery__media picture,.cut-event-discovery__media picture img{width:100%;height:100%;object-fit:cover}
-.cut-event-discovery__media>span{position:absolute;left:12px;bottom:12px;max-width:calc(100% - 24px);padding:7px 9px;border:1px solid #30303d;border-radius:10px;background:#080812;font-size:.7rem;font-weight:850}
+.cut-event-discovery__media>span,.cut-event-discovery__media>time{position:absolute;left:12px;bottom:12px;max-width:calc(100% - 24px);padding:7px 9px;border:1px solid #30303d;border-radius:10px;background:#080812;color:inherit;font-size:.7rem;font-style:normal;font-weight:850;text-decoration:none}
 .cut-event-discovery__body{padding:15px 15px 12px}
 .cut-event-discovery__body h3{margin:0;color:#fff;font-size:1rem;font-weight:900;line-height:1.25}
 .cut-event-discovery__body p{display:flex;align-items:center;gap:7px;margin:8px 0 0;color:#9b98a9;font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
