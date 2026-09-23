@@ -46,6 +46,8 @@ export const deriveEventMemories = (events, now = Date.now()) => {
 /**
  * Normalizes post-event memory data without broadening permissions on the
  * client. Missing review/publication flags are denied rather than inferred.
+ * A generic event.rating is intentionally not treated as the viewer's review:
+ * it can represent an aggregate score and would fabricate personal activity.
  */
 export const normalizeEventMemory = (event) => {
   if (!event?.id || !viewerCanSee(event)) return null;
@@ -55,6 +57,8 @@ export const normalizeEventMemory = (event) => {
     return viewerCanSee(photo) && Boolean(photo?.url || photo?.path);
   });
   const publications = asArray(event.publications ?? event.posts).filter((post) => post?.id && viewerCanSee(post));
+  const viewerReview = event.viewer_review || event.my_review || null;
+  const viewerRating = event.viewer_rating ?? viewerReview?.rating ?? null;
 
   return {
     id: event.id,
@@ -66,7 +70,7 @@ export const normalizeEventMemory = (event) => {
     place: event.place || event.establishment || null,
     photos,
     publications,
-    rating: event.viewer_rating ?? event.rating ?? null,
+    rating: viewerRating,
     can_review: explicitTrue(permissions.can_review ?? event.can_review),
     can_publish: explicitTrue(permissions.can_publish ?? event.can_publish),
   };
