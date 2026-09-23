@@ -28,6 +28,7 @@ function OptimizedImage({
   srcSet,
   onLoad,
   onError,
+  style,
   ...props
 }) {
   const [loaded, setLoaded] = useState(false);
@@ -35,6 +36,7 @@ function OptimizedImage({
   const fallback = useMemo(() => initials(fallbackLabel || alt), [fallbackLabel, alt]);
   const hasImage = Boolean(src) && !failed;
   const aspectRatio = width && height ? `${width} / ${height}` : undefined;
+  const reservedStyle = aspectRatio ? { ...style, aspectRatio } : style;
   const responsiveSizes = sizes || "(max-width: 575px) calc(100vw - 24px), (max-width: 991px) 92vw, 720px";
   const resolvedLoading = loading || (eager ? "eager" : "lazy");
   const resolvedFetchPriority = fetchPriority || (eager ? "high" : "low");
@@ -43,7 +45,7 @@ function OptimizedImage({
     return (
       <span
         className={`cut-optimized-image cut-optimized-image--fallback ${className}`.trim()}
-        style={{ aspectRatio }}
+        style={reservedStyle}
         role={alt ? "img" : undefined}
         aria-label={alt || undefined}
         {...props}
@@ -70,6 +72,7 @@ function OptimizedImage({
         decoding={decoding}
         fetchPriority={resolvedFetchPriority}
         draggable="false"
+        style={style}
         onLoad={(event) => {
           setLoaded(true);
           onLoad?.(event);
@@ -78,6 +81,7 @@ function OptimizedImage({
           setFailed(true);
           onError?.(event);
         }}
+        {...props}
       />
     </span>
   );
@@ -98,6 +102,7 @@ OptimizedImage.propTypes = {
   srcSet: PropTypes.string,
   onLoad: PropTypes.func,
   onError: PropTypes.func,
+  style: PropTypes.object,
 };
 
 export default memo(OptimizedImage);
