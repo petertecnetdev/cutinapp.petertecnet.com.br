@@ -13,16 +13,33 @@ const eventStartValue = (event) => event?.starts_at
   || event?.scheduled_at
   || null;
 
-const eventStableKey = (event, index) => {
+const eventStableKey = (event) => {
   if (event?.id) return `id:${event.id}`;
   if (event?.slug) return `slug:${event.slug}`;
+  if (event?.uuid) return `uuid:${event.uuid}`;
+  if (event?.public_id) return `public:${event.public_id}`;
 
   const fingerprint = [event?.title, eventStartValue(event), event?.venue, event?.city]
     .map((value) => String(value || "").trim().toLowerCase())
     .filter(Boolean)
     .join("|");
 
-  return `fallback:${fingerprint || "event"}:${index}`;
+  return `fallback:${fingerprint || "event"}`;
+};
+
+const uniqueEvents = (events, maxItems) => {
+  const seen = new Set();
+  const result = [];
+
+  for (const event of Array.isArray(events) ? events : []) {
+    const key = eventStableKey(event);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(event);
+    if (result.length >= maxItems) break;
+  }
+
+  return result;
 };
 
 const eventDateMeta = (event) => {
@@ -69,7 +86,7 @@ export default function EventDiscoveryRail({
   className,
 }) {
   const railRef = useRef(null);
-  const visibleEvents = (Array.isArray(events) ? events : []).slice(0, maxItems);
+  const visibleEvents = uniqueEvents(events, maxItems);
 
   const scroll = (direction) => {
     const node = railRef.current;
@@ -124,7 +141,7 @@ export default function EventDiscoveryRail({
             const dateMeta = eventDateMeta(event);
 
             return (
-              <article className="cut-event-discovery__card" key={eventStableKey(event, index)}>
+              <article className="cut-event-discovery__card" key={eventStableKey(event)}>
                 <Link to={eventHref} className="cut-event-discovery__mainLink" aria-label={`Ver evento ${event?.title || "Cutinapp"}`}>
                   <div className="cut-event-discovery__media">
                     <EventArtwork
