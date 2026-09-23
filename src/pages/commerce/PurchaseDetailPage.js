@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Badge, Button, Card, Col, Container, Row, Spinner } from "react-bootstrap";
+import { Alert, Badge, Button, Card, Col, Container, Row } from "react-bootstrap";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import QrCodeComponent from "../../components/QrCodeComponent";
+import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import commerceService from "../../services/CommerceService";
 import { writeCheckoutRecovery } from "../../utils/checkoutRecovery";
 import { checkoutSelectionFromOrder, isPendingPixRecoverable, latestPaymentFromOrder, latestPendingPaymentFromOrder, paymentMethodFromOrder } from "../../utils/orderRecovery";
@@ -250,8 +251,9 @@ export default function PurchaseDetailPage() {
         <div><span className="cut-commerce-kicker">Compra</span><h1>Pedido #{String(publicId).slice(0, 8).toUpperCase()}</h1><p>Detalhes do pagamento, itens e retirada.</p></div>
         <Button as={Link} to="/purchases" variant="outline-light">Voltar às compras</Button>
       </div>
-      {loading && <div className="text-center py-5"><Spinner animation="border" /></div>}
+      {loading && <ProcessingIndicatorComponent fullscreen={false} label="Carregando compra" />}
       {error && <Alert variant="danger">{error}</Alert>}
+      {(recoveringPix || downloading) && <ProcessingIndicatorComponent fullscreen={false} label={recoveringPix ? "Retomando pagamento" : "Gerando recibo"} />}
       {order && <>
         <Card className="cut-commerce-card mb-3"><Card.Body>
           <div className="cut-commerce-order-top">
@@ -275,6 +277,7 @@ export default function PurchaseDetailPage() {
             {canResumePix && <Button variant="success" onClick={resumePendingPix} disabled={recoveringPix} className="w-100 mb-2"><i className="fa-brands fa-pix me-2" />{recoveringPix ? "Retomando PIX..." : "Retomar pagamento PIX"}</Button>}
             <Button onClick={downloadReceipt} disabled={downloading} className="w-100"><i className="fa-regular fa-file-pdf me-2" />{downloading ? "Gerando recibo..." : "Baixar recibo em PDF"}</Button>
             {order.status === "paid" && (order.items || []).some((item) => item.type === "ticket") && <Button as={Link} to="/passes" variant="outline-light" className="w-100 mt-2">Abrir meus ingressos</Button>}
+            <Button as={Link} to={`/help?order=${encodeURIComponent(order.public_id || publicId)}&topic=refund`} variant="outline-light" className="w-100 mt-2"><i className="fa-regular fa-life-ring me-2" />Ajuda, cancelamento ou reembolso</Button>
           </Card.Body></Card></Col>
         </Row>
 
@@ -283,7 +286,7 @@ export default function PurchaseDetailPage() {
             <Col lg={5} className="text-center">
               <span className="cut-commerce-kicker">Retirada no evento</span>
               <h2 className="mt-2">QR Code dos seus itens</h2>
-              {credentialLoading && <div className="py-4"><Spinner animation="border" /></div>}
+              {credentialLoading && <ProcessingIndicatorComponent fullscreen={false} label="Carregando QR de retirada" />}
               {!credentialLoading && credential?.status === "redeemed" && <Alert variant="success" className="mt-3 mb-0">Itens retirados em {dateTime(credential.redeemed_at)}.</Alert>}
               {!credentialLoading && credential?.token && credential?.status !== "redeemed" && <div className="d-flex justify-content-center mt-3"><QrCodeComponent value={credential.token} size={240} subject="retirada" alt="QR Code para retirada dos itens comprados" /></div>}
             </Col>
