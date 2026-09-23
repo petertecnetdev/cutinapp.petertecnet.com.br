@@ -6,24 +6,27 @@ import { storageUrl } from "../../config";
 import { parsePortableEventDate } from "../../utils/chronologicalDiscovery";
 import "./EventDiscoveryRail.css";
 
-const dateLabel = (value) => {
-  const date = parsePortableEventDate(value);
-  if (!date) return "Data a confirmar";
-  return new Intl.DateTimeFormat("pt-BR", {
-    weekday: "short",
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-};
-
 const eventStartValue = (event) => event?.starts_at
   || event?.start_at
   || event?.start_date
   || event?.date
   || event?.scheduled_at
   || null;
+
+const eventDateMeta = (event) => {
+  const date = parsePortableEventDate(eventStartValue(event));
+  if (!date) return { label: "Data a confirmar", dateTime: null };
+  return {
+    label: new Intl.DateTimeFormat("pt-BR", {
+      weekday: "short",
+      day: "2-digit",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(date),
+    dateTime: date.toISOString(),
+  };
+};
 
 const mediaUrl = (value) => {
   if (!value) return "";
@@ -106,6 +109,7 @@ export default function EventDiscoveryRail({
             const productionLogo = mediaUrl(production.logo || production.photo || production.image);
             const productionHref = production.slug ? `/production/${production.slug}/public` : "/productions";
             const eventHref = event?.slug ? `/event/${event.slug}` : "/event";
+            const dateMeta = eventDateMeta(event);
 
             return (
               <article className="cut-event-discovery__card" key={event?.id || event?.slug || index}>
@@ -115,10 +119,13 @@ export default function EventDiscoveryRail({
                       image={event?.image}
                       title={event?.title}
                       alt={event?.title || "Evento Cutinapp"}
-                      loading={index < 2 ? "eager" : "lazy"}
+                      loading={index === 0 ? "eager" : "lazy"}
+                      fetchPriority={index === 0 ? "high" : "auto"}
                       decoding="async"
                     />
-                    <span>{dateLabel(eventStartValue(event))}</span>
+                    {dateMeta.dateTime
+                      ? <time dateTime={dateMeta.dateTime}>{dateMeta.label}</time>
+                      : <span>{dateMeta.label}</span>}
                   </div>
 
                   <div className="cut-event-discovery__body">
