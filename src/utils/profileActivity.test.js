@@ -9,6 +9,8 @@ describe("profile activity evidence rules", () => {
       { id: 2, title: "Future", end_date: "2026-09-25T12:00:00Z" },
       { id: 3, title: "Private", end_date: "2026-09-19T12:00:00Z", viewer_can_see: false },
       { id: 4, title: "Hidden", end_date: "2026-09-18T12:00:00Z", visible: false },
+      { id: 5, title: "Private numeric", end_date: "2026-09-17T12:00:00Z", viewer_can_see: 0 },
+      { id: 6, title: "Hidden serialized", end_date: "2026-09-16T12:00:00Z", visible: "0" },
       { title: "Missing id", end_date: "2026-09-19T12:00:00Z" },
     ], now);
 
@@ -18,7 +20,7 @@ describe("profile activity evidence rules", () => {
   test("memory actions default to denied and private publications stay hidden", () => {
     const now = new Date("2026-09-22T12:00:00Z").getTime();
     const memories = deriveMemoryTimeline([
-      { id: 1, title: "Sem permissão", end_date: "2026-09-20T12:00:00Z", photos: [{ url: "/a.jpg" }, {}], posts: [{ id: 9 }, { id: 10, viewer_can_see: false }, {}] },
+      { id: 1, title: "Sem permissão", end_date: "2026-09-20T12:00:00Z", photos: [{ url: "/a.jpg" }, {}], posts: [{ id: 9 }, { id: 10, viewer_can_see: false }, { id: 11, viewer_can_see: "0" }, {}] },
       { id: 2, title: "Com permissão", end_date: "2026-09-21T12:00:00Z", viewer_permissions: { can_review: true, can_publish: 1 }, viewer_rating: 5 },
       { id: 3, title: "Memória privada", end_date: "2026-09-19T12:00:00Z", viewer_can_see: false, can_review: true },
     ], now);
@@ -48,6 +50,8 @@ describe("profile activity evidence rules", () => {
       { id: 5, name: "E", visits_count: 0, is_following: true },
       { id: 6, name: "F", visits_count: 9, viewer_can_see: false },
       { id: 7, name: "G", visits_count: 8, visible: false },
+      { id: 8, name: "H", visits_count: 7, viewer_can_see: 0 },
+      { id: 9, name: "I", visits_count: 6, visible: "0" },
     ]);
 
     expect(places).toHaveLength(2);
