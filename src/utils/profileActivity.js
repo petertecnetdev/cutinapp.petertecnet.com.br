@@ -51,7 +51,7 @@ export const deriveEventMemories = (events, now = Date.now()) => {
   const seen = new Set();
   return asArray(events)
     .filter((event) => {
-      if (!event?.id || !viewerCanSee(event) || seen.has(String(event.id))) return false;
+      if (!usableEntityId(event?.id) || !viewerCanSee(event) || seen.has(String(event.id))) return false;
       const timestamp = eventTimestamp(event);
       if (timestamp === null || timestamp > now) return false;
       seen.add(String(event.id));
@@ -62,7 +62,7 @@ export const deriveEventMemories = (events, now = Date.now()) => {
 
 /** Normalizes post-event data without broadening API permissions on the client. */
 export const normalizeEventMemory = (event) => {
-  if (!event?.id || !viewerCanSee(event)) return null;
+  if (!usableEntityId(event?.id) || !viewerCanSee(event)) return null;
   const permissionCandidate = event.viewer_permissions ?? event.permissions ?? null;
   const permissions = permissionCandidate && viewerCanSee(permissionCandidate) ? permissionCandidate : {};
   const permissionsHidden = Boolean(permissionCandidate) && !viewerCanSee(permissionCandidate);
@@ -72,7 +72,7 @@ export const normalizeEventMemory = (event) => {
     return explicitTrue(event[key]);
   };
   const photos = asArray(event.photos).filter(usableMemoryPhoto);
-  const publications = asArray(event.publications ?? event.posts).filter((post) => post?.id && viewerCanSee(post));
+  const publications = asArray(event.publications ?? event.posts).filter((post) => usableEntityId(post?.id) && viewerCanSee(post));
   const reviewAliases = [event.viewer_review, event.my_review].filter(Boolean);
   const viewerReview = reviewAliases.find((review) => viewerCanSee(review)) || null;
   const viewerRating = normalizePersonalRating(reviewAliases.length > 0 ? viewerReview?.rating : event.viewer_rating);
