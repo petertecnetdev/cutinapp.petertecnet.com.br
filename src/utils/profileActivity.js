@@ -27,16 +27,17 @@ const usableMemoryPlace = (place) => {
   return Boolean(place && typeof place === "object" && viewerCanSee(place) && usableIdentity(place));
 };
 const visibleMemoryPlace = (event) => [event?.place, event?.establishment].find(usableMemoryPlace) ?? null;
+const usableImageReference = (value) => typeof value === "string" && value.trim().length > 0;
 const usableMemoryImage = (image) => {
-  if (typeof image === "string") return image.trim().length > 0;
+  if (typeof image === "string") return usableImageReference(image);
   if (!image || typeof image !== "object" || !viewerCanSee(image)) return false;
-  return Boolean(image.url || image.path || image.src);
+  return [image.url, image.path, image.src].some(usableImageReference);
 };
 const visibleMemoryImage = (event) => [event?.image, event?.cover, event?.flyer].find(usableMemoryImage) ?? null;
 const usableMemoryPhoto = (photo) => {
-  if (typeof photo === "string") return photo.trim().length > 0;
+  if (typeof photo === "string") return usableImageReference(photo);
   if (!photo || typeof photo !== "object" || !viewerCanSee(photo)) return false;
-  return Boolean(photo.url || photo.path || photo.src);
+  return [photo.url, photo.path, photo.src].some(usableImageReference);
 };
 
 /** Builds memories only from event records already authorized for this viewer. */
