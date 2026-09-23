@@ -48,9 +48,10 @@ const saoPauloDateKey = (offsetDays = 0) => {
 };
 
 const eventOffsetDateKey = (value, offsetDays) => {
-  const base = value ? new Date(value) : new Date();
-  if (Number.isNaN(base.getTime())) return saoPauloDateKey(offsetDays);
-  const target = new Date(base.getTime() + (Number(offsetDays || 0) * 86400000));
+  const eventDate = value ? new Date(value) : null;
+  const eventTime = eventDate && !Number.isNaN(eventDate.getTime()) ? eventDate.getTime() : 0;
+  const baseTime = Math.max(eventTime, Date.now());
+  const target = new Date(baseTime + (Number(offsetDays || 0) * 86400000));
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Sao_Paulo",
     year: "numeric",
