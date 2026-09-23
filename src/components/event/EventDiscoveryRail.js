@@ -20,9 +20,19 @@ const eventDateMeta = (event) => { const date = parsePortableEventDate(eventStar
 const categoryLabels = (event) => [event?.categories, event?.category, event?.event_category, event?.genres, event?.genre, event?.music_genre].flatMap((source) => (Array.isArray(source) ? source : source ? [source] : [])).map((value) => (typeof value === "string" ? value : value?.name || value?.title || value?.label)).map((value) => String(value || "").trim()).filter(Boolean).filter((value, index, items) => items.indexOf(value) === index).slice(0, 2);
 const numericPrice = (value) => { if (typeof value === "number") return Number.isFinite(value) ? value : null; const raw = String(value ?? "").trim().replace(/[^\d,.-]/g, ""); if (!raw) return null; const comma = raw.lastIndexOf(","); const dot = raw.lastIndexOf("."); let normalized = raw; if (comma >= 0 && dot >= 0) { const decimal = comma > dot ? "," : "."; const grouping = decimal === "," ? /\./g : /,/g; normalized = raw.replace(grouping, "").replace(decimal, "."); } else if (comma >= 0) normalized = raw.replace(/\./g, "").replace(",", "."); else if ((raw.match(/\./g) || []).length > 1) normalized = raw.replace(/\./g, ""); const parsed = Number(normalized); return Number.isFinite(parsed) ? parsed : null; };
 const eventPriceLabel = (event) => { if (event?.is_free === true || event?.free === true) return "Grátis"; const raw = [event?.min_price, event?.price_from, event?.lowest_price, event?.ticket_price, event?.price].find((value) => value !== null && value !== undefined && value !== ""); if (raw === undefined) return null; const numeric = numericPrice(raw); if (numeric === null || numeric < 0) return null; if (numeric === 0) return "Grátis"; return `A partir de ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(numeric)}`; };
+const locationPart = (value) => {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "string" || typeof value === "number") return String(value).trim();
+  if (typeof value === "object") return String(value.name || value.title || value.label || value.city || value.state || value.uf || "").trim();
+  return "";
+};
 const eventLocationLabel = (event) => {
-  const values = [event?.venue, event?.establishment?.name, event?.city, event?.state]
-    .map((value) => String(value || "").trim())
+  const venue = event?.venue || event?.place || event?.location;
+  const establishment = event?.establishment || event?.venue?.establishment;
+  const city = event?.city || event?.address?.city || event?.location?.city || event?.venue?.city;
+  const state = event?.state || event?.uf || event?.address?.state || event?.location?.state || event?.venue?.state;
+  const values = [venue, establishment, city, state]
+    .map(locationPart)
     .filter(Boolean)
     .filter((value, index, items) => items.findIndex((item) => item.toLocaleLowerCase("pt-BR") === value.toLocaleLowerCase("pt-BR")) === index);
   return values.slice(0, 3).join(" · ") || "Local a confirmar";
