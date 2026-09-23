@@ -35,16 +35,19 @@ describe("profile activity evidence rules", () => {
     expect(relativeVisitBadge({ population: 100 })).toBeNull();
   });
 
-  test("visited places never infer a visit count", () => {
+  test("visited places require positive visit evidence and respect visibility", () => {
     const places = normalizeVisitedPlaces([
-      { id: 1, name: "A", visits_count: 3, visit_rank: 3, visit_rank_population: 100 },
+      { id: 1, name: "A", visits_count: 3, visit_rank: 3, visit_rank_population: 100, is_following: true },
       { id: 2, name: "B" },
-      { id: 3, name: "C", checkins_count: 1 },
+      { id: 3, name: "C", checkins_count: 1, viewer_following: 1 },
       { id: 4, name: "D", visits_count: -1 },
+      { id: 5, name: "E", visits_count: 0, is_following: true },
+      { id: 6, name: "F", visits_count: 9, viewer_can_see: false },
+      { id: 7, name: "G", visits_count: 8, visible: false },
     ]);
 
     expect(places).toHaveLength(2);
-    expect(places[0]).toMatchObject({ id: 1, visits_count: 3, relative_badge: "Top 5%" });
-    expect(places[1]).toMatchObject({ id: 3, visits_count: 1, relative_badge: null });
+    expect(places[0]).toMatchObject({ id: 1, visits_count: 3, is_following: true, relative_badge: "Top 5%" });
+    expect(places[1]).toMatchObject({ id: 3, visits_count: 1, is_following: true, relative_badge: null });
   });
 });
