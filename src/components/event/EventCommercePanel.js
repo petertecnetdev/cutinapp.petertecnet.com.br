@@ -75,6 +75,7 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
   useEffect(() => {
     let active = true;
     setLoading(true);
+    setError("");
     commerceService.catalog(slug)
       .then((response) => {
         if (!active) return;
@@ -255,6 +256,14 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
   };
 
   if (loading) return <p className="text-secondary mb-0">Carregando opções de compra...</p>;
+  if (error && !(catalog.tickets || []).length && !(catalog.items || []).length) return <Alert variant="danger" className="mb-0" data-pt-swal-ignore="true">
+    <div className="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3">
+      <span>{error}</span>
+      <Button type="button" size="sm" variant="outline-light" onClick={() => loadCatalog(activeSlug)}>
+        <i className="fa-solid fa-rotate-right me-2" />Tentar novamente
+      </Button>
+    </div>
+  </Alert>;
   if (salesClosed) return <Alert variant="secondary" className="mt-4 mb-0"><strong>Vendas encerradas.</strong><span className="d-block mt-1">Ingressos e itens antecipados não podem mais ser adquiridos para esta edição.</span></Alert>;
   if (!(catalog.tickets || []).length && !(catalog.items || []).length && availableDates.length <= 1) return null;
 
@@ -267,7 +276,7 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
       </div>
     </div>
 
-    {error && <Alert variant="danger" className="mb-0">{error}</Alert>}
+    {error && <Alert variant="danger" className="mb-0" data-pt-swal-ignore="true">{error}</Alert>}
     {requiresPayment && !paymentConnected && <Alert variant="warning" className="mb-0">Pagamentos temporariamente indisponíveis para esta data.</Alert>}
 
     <div className="cut-ticket-shop__layout">
