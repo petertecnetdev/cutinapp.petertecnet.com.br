@@ -2,8 +2,19 @@ import { parsePortableEventDate } from "./chronologicalDiscovery";
 
 const asArray = (value) => Array.isArray(value) ? value : [];
 
+const eventEndValue = (event) => event?.end_date
+  || event?.ends_at
+  || event?.ended_at
+  || null;
+
+const eventStartValue = (event) => event?.start_date
+  || event?.starts_at
+  || event?.scheduled_at
+  || event?.date
+  || null;
+
 const eventTimestamp = (event) => {
-  const value = event?.end_date || event?.start_date;
+  const value = eventEndValue(event) || eventStartValue(event);
   const date = parsePortableEventDate(value);
   return date ? date.getTime() : null;
 };
@@ -50,8 +61,8 @@ export const normalizeEventMemory = (event) => {
     slug: event.slug || null,
     title: event.title || "Evento",
     image: event.image || event.cover || event.flyer || null,
-    start_date: event.start_date || null,
-    end_date: event.end_date || null,
+    start_date: eventStartValue(event),
+    end_date: eventEndValue(event),
     place: event.place || event.establishment || null,
     photos,
     publications,
