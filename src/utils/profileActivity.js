@@ -35,9 +35,14 @@ const visibleMemoryPlace = (event) => {
   const aliases = [event?.place, event?.establishment].filter((place) => place !== null && place !== undefined);
   return aliases.find((place) => typeof place !== "object" || viewerCanSee(place)) ?? null;
 };
+const usableMemoryImage = (image) => {
+  if (typeof image === "string") return image.trim().length > 0;
+  if (!image || typeof image !== "object" || !viewerCanSee(image)) return false;
+  return Boolean(image.url || image.path || image.src);
+};
 const visibleMemoryImage = (event) => {
-  const aliases = [event?.image, event?.cover, event?.flyer].filter((image) => image !== null && image !== undefined && image !== "");
-  return aliases.find((image) => typeof image !== "object" || viewerCanSee(image)) ?? null;
+  const aliases = [event?.image, event?.cover, event?.flyer];
+  return aliases.find(usableMemoryImage) ?? null;
 };
 
 /**
