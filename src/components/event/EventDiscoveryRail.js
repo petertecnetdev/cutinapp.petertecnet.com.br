@@ -68,6 +68,17 @@ const categoryLabels = (event) => {
     .slice(0, 2);
 };
 
+const eventPriceLabel = (event) => {
+  if (event?.is_free === true || event?.free === true) return "Grátis";
+  const candidates = [event?.min_price, event?.price_from, event?.lowest_price, event?.ticket_price, event?.price];
+  const raw = candidates.find((value) => value !== null && value !== undefined && value !== "");
+  if (raw === undefined) return null;
+  const numeric = Number(String(raw).replace(",", "."));
+  if (!Number.isFinite(numeric) || numeric < 0) return null;
+  if (numeric === 0) return "Grátis";
+  return `A partir de ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(numeric)}`;
+};
+
 const mediaUrl = (value) => {
   if (!value) return "";
   const image = String(value);
@@ -111,6 +122,7 @@ export default function EventDiscoveryRail({ events, eyebrow, title, description
             const eventHref = event?.slug ? `/event/${event.slug}` : "/event";
             const dateMeta = eventDateMeta(event);
             const categories = categoryLabels(event);
+            const priceLabel = eventPriceLabel(event);
             return (
               <article className="cut-event-discovery__card" key={eventStableKey(event)}>
                 <Link to={eventHref} className="cut-event-discovery__mainLink" aria-label={`Ver evento ${event?.title || "Cutinapp"}`}>
@@ -118,6 +130,7 @@ export default function EventDiscoveryRail({ events, eyebrow, title, description
                   <div className="cut-event-discovery__body">
                     <h3>{event?.title || "Evento Cutinapp"}</h3>
                     <p><i className="fa-solid fa-location-dot" /> {event?.venue || event?.city || "Local a confirmar"}</p>
+                    {priceLabel && <p aria-label={`Preço ${priceLabel}`}><i className="fa-solid fa-ticket" /> {priceLabel}</p>}
                     {categories.length > 0 && <div className="cut-event-discovery__categories" aria-label="Categorias e gêneros do evento">{categories.map((category) => <span key={category}>{category}</span>)}</div>}
                   </div>
                 </Link>
