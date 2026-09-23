@@ -53,7 +53,8 @@ function DiscoveryRail({ eyebrow, title, description, to, toLabel, children, emp
   const scroll = (direction) => {
     const node = railRef.current;
     if (!node) return;
-    node.scrollBy({ left: direction * Math.max(280, Math.round(node.clientWidth * 0.82)), behavior: "smooth" });
+    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+    node.scrollBy({ left: direction * Math.max(280, Math.round(node.clientWidth * 0.82)), behavior: reduceMotion ? "auto" : "smooth" });
   };
 
   return (
