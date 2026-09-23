@@ -141,6 +141,8 @@ export default function EventViewPage() {
   const [interested, setInterested] = useState(false);
   const [flyerOpen, setFlyerOpen] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+  const [loadError, setLoadError] = useState(null);
+  const [loadVersion, setLoadVersion] = useState(0);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [clock, setClock] = useState(() => Date.now());
@@ -153,21 +155,34 @@ export default function EventViewPage() {
   useEffect(() => {
     let active = true;
     setLoading(true);
+    setLoadError(null);
     setError("");
     setData(null);
     setArtists([]);
     setDescriptionExpanded(false);
 
     eventService.view(slug)
-      .then((response) => { if (active) setData(response); })
-      .catch((err) => { if (active) setError(err?.message || "Não foi possível carregar este evento."); })
+      .then((response) => {
+        if (!active) return;
+        setData(response);
+        setLoadError(null);
+      })
+      .catch((err) => {
+        if (!active) return;
+        setLoadError({
+          message: err?.message || "Não foi possível carregar este evento.",
+          status: Number(err?.status || 0) || null,
+          code: err?.code || null,
+          requestId: err?.requestId || null,
+        });
+      })
       .finally(() => { if (active) setLoading(false); });
 
     cutinappService.publicEventArtists(slug)
       .then((lineup) => { if (active) setArtists(lineup); })
       .catch(() => {});
     return () => { active = false; };
-  }, [slug]);
+  }, [slug, loadVersion]);
 
   const event = data?.event || null;
   const history = data?.history || null;
@@ -404,6 +419,10 @@ export default function EventViewPage() {
     }
   };
 
+  const retryEventLoad = () => {
+    setLoadVersion((current) => current + 1);
+  };
+
   const attendanceIssued = Number(ownerResults?.attendance?.issued || 0);
   const attendanceCheckedIn = Number(ownerResults?.attendance?.checked_in || 0);
   const attendanceRate = attendanceIssued > 0 ? Math.round((attendanceCheckedIn / attendanceIssued) * 100) : 0;
@@ -494,6 +513,23 @@ export default function EventViewPage() {
 
       <EventFlyerModal show={flyerOpen} onHide={() => setFlyerOpen(false)} event={event} flyerUrl={flyerUrl} />
     </>}
-    {!loading && !event && <Container className="cut-page-container py-5"><Alert variant="danger">{error || "Evento não encontrado ou não está publicado."}</Alert><Button variant="outline-light" onClick={() => navigate("/event")}>Voltar aos eventos</Button></Container>}
+    {!loading && !event && <Container className="cut-page-container py-5">
+      <Card className="cut-panel">
+        <Card.Body className="p-4 p-lg-5">
+          <span className="cut-eyebrow">Evento</span>
+          <h1 className="h3 mt-2">{loadError?.status === 404 ? "Evento não encontrado" : "Não foi possível carregar o evento"}</h1>
+          <p className="text-secondary mb-4">
+            {loadError?.status === 404
+              ? "Este evento não existe, foi removido ou ainda não está publicado."
+              : "A conexão oscilou durante o carregamento. Tente novamente sem sair desta página."}
+          </p>
+          <div className="d-flex flex-wrap gap-2">
+            {loadError?.status !== 404 && <Button onClick={retryEventLoad}><i className="fa-solid fa-rotate-right me-2" />Tentar novamente</Button>}
+            <Button variant="outline-light" onClick={() => navigate("/event")}>Voltar aos eventos</Button>
+          </div>
+          {loadError?.requestId && <small className="text-secondary d-block mt-3">Referência: {loadError.requestId}</small>}
+        </Card.Body>
+      </Card>
+    </Container>}
   </div>;
 }

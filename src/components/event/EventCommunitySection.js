@@ -35,6 +35,7 @@ export default function EventCommunitySection({ event, isOwner = false }) {
   const [replyTo, setReplyTo] = useState(null);
   const [replyBody, setReplyBody] = useState("");
   const [message, setMessage] = useState(null);
+  const [loadError, setLoadError] = useState("");
   const [reportOpen, setReportOpen] = useState(false);
   const [report, setReport] = useState({ reason: "", details: "" });
 
@@ -47,8 +48,10 @@ export default function EventCommunitySection({ event, isOwner = false }) {
 
   const load = useCallback(async (page = 1, append = false) => {
     append ? setMoreLoading(true) : setLoading(true);
+    setLoadError("");
     try {
       const response = await cutinappService.eventCommunity(event.slug, { page, per_page: 10 });
+      setLoadError("");
       setCommunity((current) => {
         if (!append || !current) return response;
         const oldPosts = current.posts?.data || [];
@@ -62,7 +65,7 @@ export default function EventCommunitySection({ event, isOwner = false }) {
         };
       });
     } catch (err) {
-      setMessage({ type: "danger", text: err?.message || "Não foi possível carregar a conversa deste evento." });
+      setLoadError(err?.message || "Não foi possível carregar a conversa deste evento.");
     } finally {
       setLoading(false);
       setMoreLoading(false);
@@ -155,6 +158,14 @@ export default function EventCommunitySection({ event, isOwner = false }) {
         <Button variant="outline-danger" className="cut-report-button" onClick={() => user ? setReportOpen(true) : login()}><i className="fa-regular fa-flag me-2" />Denunciar evento</Button>
       </div>
 
+      {loadError && <Alert variant="danger" data-pt-swal-ignore="true">
+        <div className="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3">
+          <span>{loadError}</span>
+          <Button type="button" size="sm" variant="outline-light" onClick={refresh} disabled={loading || moreLoading}>
+            <i className="fa-solid fa-rotate-right me-2" />Tentar novamente
+          </Button>
+        </div>
+      </Alert>}
       {message && <Alert variant={message.type} dismissible onClose={() => setMessage(null)}>{message.text}</Alert>}
 
       <div className="cut-rating-panel">
@@ -171,7 +182,7 @@ export default function EventCommunitySection({ event, isOwner = false }) {
         </div>
       </div>
 
-      {loading ? <div className="cut-community-loading"><span /><span /><span /></div> : posts.length === 0 ? <div className="cut-community-empty"><i className="fa-regular fa-comments" /><strong>A conversa ainda não começou</strong><span>Seja a primeira pessoa a publicar algo sobre este evento.</span></div> : <div className="cut-community-list">{posts.map((post) => <article className="cut-community-post" key={post.id}>
+      {loading ? <div className="cut-community-loading"><span /><span /><span /></div> : loadError && posts.length === 0 ? null : posts.length === 0 ? <div className="cut-community-empty"><i className="fa-regular fa-comments" /><strong>A conversa ainda não começou</strong><span>Seja a primeira pessoa a publicar algo sobre este evento.</span></div> : <div className="cut-community-list">{posts.map((post) => <article className="cut-community-post" key={post.id}>
         {avatarButton(post)}
         <div className="cut-community-post__content">
           <header><div>{nameButton(post)}{post.is_pinned ? <span className="cut-community-pin"><i className="fa-solid fa-thumbtack" /> Destaque</span> : null}</div><time>{fmt(post.created_at)}{post.edited_at ? " · editado" : ""}</time></header>
