@@ -59,29 +59,25 @@ describe("profile activity evidence rules", () => {
   test("memory place falls back to a visible alias when the primary place is hidden", () => {
     const now = new Date("2026-09-23T12:00:00Z").getTime();
     const [memory] = deriveMemoryTimeline([
-      {
-        id: 20,
-        end_date: "2026-09-22T12:00:00Z",
-        place: { id: 1, name: "Oculto", viewer_can_see: false },
-        establishment: { id: 2, name: "Visível" },
-      },
+      { id: 20, end_date: "2026-09-22T12:00:00Z", place: { id: 1, name: "Oculto", viewer_can_see: false }, establishment: { id: 2, name: "Visível" } },
     ], now);
-
     expect(memory.place).toEqual({ id: 2, name: "Visível" });
   });
 
   test("memory place ignores whitespace-only identity and uses a real fallback", () => {
     const now = new Date("2026-09-23T12:00:00Z").getTime();
     const [memory] = deriveMemoryTimeline([
-      {
-        id: 21,
-        end_date: "2026-09-22T12:00:00Z",
-        place: { name: "   ", slug: " " },
-        establishment: { id: 2, name: "Lugar real" },
-      },
+      { id: 21, end_date: "2026-09-22T12:00:00Z", place: { name: "   ", slug: " " }, establishment: { id: 2, name: "Lugar real" } },
     ], now);
-
     expect(memory.place).toEqual({ id: 2, name: "Lugar real" });
+  });
+
+  test("memory place rejects malformed ids instead of treating arbitrary values as identity", () => {
+    const now = new Date("2026-09-23T12:00:00Z").getTime();
+    const [memory] = deriveMemoryTimeline([
+      { id: 22, end_date: "2026-09-22T12:00:00Z", place: { id: {}, name: " " }, establishment: { id: "venue-2", name: "Lugar válido" } },
+    ], now);
+    expect(memory.place).toEqual({ id: "venue-2", name: "Lugar válido" });
   });
 
   test("memory rating uses only valid visible viewer-specific review evidence", () => {
@@ -98,7 +94,6 @@ describe("profile activity evidence rules", () => {
       { id: 9, end_date: "2026-09-22T18:00:00Z", viewer_review: { rating: "invalid" } },
       { id: 10, end_date: "2026-09-22T19:00:00Z", viewer_rating: "4.5" },
     ], now);
-
     expect(memories.find((memory) => memory.id === 1)?.rating).toBeNull();
     expect(memories.find((memory) => memory.id === 2)?.rating).toBe(4);
     expect(memories.find((memory) => memory.id === 3)?.rating).toBe(3);
@@ -134,8 +129,9 @@ describe("profile activity evidence rules", () => {
       { id: 10, name: "J", visits_count: 0, checkins_count: 4 },
       { id: 11, name: "K", visits_count: "invalid", checkins_count: "2" },
       { name: "   ", slug: " ", visits_count: 12, visit_rank: 1, visit_rank_population: 100 },
+      { id: {}, name: " ", visits_count: 20, visit_rank: 1, visit_rank_population: 100 },
+      { id: 0, name: " ", visits_count: 30, visit_rank: 1, visit_rank_population: 100 },
     ]);
-
     expect(places).toHaveLength(4);
     expect(places[0]).toMatchObject({ id: 10, visits_count: 4, relative_badge: null });
     expect(places[1]).toMatchObject({ id: 1, visits_count: 3, is_following: true, relative_badge: "Top 5%" });
