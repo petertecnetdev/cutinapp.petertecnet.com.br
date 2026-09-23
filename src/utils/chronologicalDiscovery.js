@@ -1,5 +1,15 @@
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+const localDateMatches = (date, year, month, day, hour = 0, minute = 0, second = 0) => (
+  !Number.isNaN(date.getTime())
+  && date.getFullYear() === Number(year)
+  && date.getMonth() === Number(month) - 1
+  && date.getDate() === Number(day)
+  && date.getHours() === Number(hour)
+  && date.getMinutes() === Number(minute)
+  && date.getSeconds() === Number(second)
+);
+
 export const parsePortableEventDate = (value) => {
   if (value === null || value === undefined || value === "") return null;
   if (value instanceof Date) {
@@ -12,13 +22,14 @@ export const parsePortableEventDate = (value) => {
     if (dateOnly) {
       const [, year, month, day] = dateOnly;
       const date = new Date(Number(year), Number(month) - 1, Number(day));
-      return Number.isNaN(date.getTime()) ? null : date;
+      return localDateMatches(date, year, month, day) ? date : null;
     }
 
     // APIs backed by SQL commonly return `YYYY-MM-DD HH:mm:ss`, sometimes with
     // fractional seconds. Those shapes are not portable ECMAScript date-time
     // strings and can become Invalid Date on mobile WebKit. Preserve the
-    // intended local wall-clock time explicitly.
+    // intended local wall-clock time explicitly and reject impossible calendar
+    // values instead of allowing Date to silently roll them into another day.
     const sqlDateTime = value.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,6}))?)?$/);
     if (sqlDateTime) {
       const [, year, month, day, hour, minute, second = "0", fraction = ""] = sqlDateTime;
@@ -32,7 +43,7 @@ export const parsePortableEventDate = (value) => {
         Number(second),
         millisecond
       );
-      return Number.isNaN(date.getTime()) ? null : date;
+      return localDateMatches(date, year, month, day, hour, minute, second) ? date : null;
     }
   }
 
