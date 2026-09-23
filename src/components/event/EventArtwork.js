@@ -25,6 +25,8 @@ export default function EventArtwork({
       className={`${className} ${!src ? fallbackClassName : ""}`.trim()}
       fallbackLabel={title || "Cutinapp"}
       eager={eager}
+      loading={loading}
+      fetchPriority={fetchPriority}
       style={fallbackStyle}
     />
   );

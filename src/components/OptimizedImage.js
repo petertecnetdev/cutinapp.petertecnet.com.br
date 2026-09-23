@@ -19,6 +19,9 @@ function OptimizedImage({
   width,
   height,
   eager = false,
+  loading,
+  fetchPriority,
+  decoding = "async",
   className = "",
   fallbackLabel = "Cutinapp",
   sizes,
@@ -33,6 +36,8 @@ function OptimizedImage({
   const hasImage = Boolean(src) && !failed;
   const aspectRatio = width && height ? `${width} / ${height}` : undefined;
   const responsiveSizes = sizes || "(max-width: 575px) calc(100vw - 24px), (max-width: 991px) 92vw, 720px";
+  const resolvedLoading = loading || (eager ? "eager" : "lazy");
+  const resolvedFetchPriority = fetchPriority || (eager ? "high" : "low");
 
   if (!hasImage) {
     return (
@@ -61,9 +66,9 @@ function OptimizedImage({
         alt={alt || ""}
         width={width}
         height={height}
-        loading={eager ? "eager" : "lazy"}
-        decoding="async"
-        fetchPriority={eager ? "high" : "low"}
+        loading={resolvedLoading}
+        decoding={decoding}
+        fetchPriority={resolvedFetchPriority}
         draggable="false"
         onLoad={(event) => {
           setLoaded(true);
@@ -84,6 +89,9 @@ OptimizedImage.propTypes = {
   width: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
   height: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
   eager: PropTypes.bool,
+  loading: PropTypes.oneOf(["eager", "lazy"]),
+  fetchPriority: PropTypes.oneOf(["high", "low", "auto"]),
+  decoding: PropTypes.oneOf(["async", "sync", "auto"]),
   className: PropTypes.string,
   fallbackLabel: PropTypes.string,
   sizes: PropTypes.string,
