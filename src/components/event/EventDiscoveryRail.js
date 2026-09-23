@@ -7,6 +7,10 @@ import { chronologicalBucketFor, parsePortableEventDate } from "../../utils/chro
 import "./EventDiscoveryRail.css";
 
 const eventStartValue = (event) => event?.starts_at || event?.start_at || event?.start_date || event?.date || event?.scheduled_at || null;
+const scalarIdentityPart = (value) => {
+  if (typeof value !== "string" && typeof value !== "number") return "";
+  return String(value).trim();
+};
 const stableIdentityPart = (value) => {
   if (value === null || value === undefined) return "";
   if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return String(value).trim().toLowerCase();
@@ -17,10 +21,14 @@ const stableIdentityPart = (value) => {
   return "";
 };
 const eventStableKey = (event) => {
-  if (event?.id) return `id:${event.id}`;
-  if (event?.slug) return `slug:${event.slug}`;
-  if (event?.uuid) return `uuid:${event.uuid}`;
-  if (event?.public_id) return `public:${event.public_id}`;
+  const id = scalarIdentityPart(event?.id);
+  const slug = scalarIdentityPart(event?.slug);
+  const uuid = scalarIdentityPart(event?.uuid);
+  const publicId = scalarIdentityPart(event?.public_id);
+  if (id) return `id:${id}`;
+  if (slug) return `slug:${slug}`;
+  if (uuid) return `uuid:${uuid}`;
+  if (publicId) return `public:${publicId}`;
   const fingerprint = [event?.title, eventStartValue(event), event?.venue || event?.place || event?.location, event?.city || event?.address?.city, event?.production, event?.establishment, event?.organization]
     .map(stableIdentityPart)
     .filter(Boolean)
@@ -87,7 +95,7 @@ export default function EventDiscoveryRail({ events, eyebrow, title, description
       <div className="cut-event-discovery__head"><div><span>{eyebrow}</span><h2>{title}</h2>{description && <p>{description}</p>}</div><div className="cut-event-discovery__actions">{visibleEvents.length > 1 && <div className="cut-event-discovery__controls" role="group" aria-label={`Navegar em ${title}`}><button type="button" onClick={() => scroll(-1)} aria-label="Ver anteriores"><i className="fa-solid fa-chevron-left" /></button><button type="button" onClick={() => scroll(1)} aria-label="Ver próximos"><i className="fa-solid fa-chevron-right" /></button></div>}{allTo && <Link to={allTo}>{allLabel} <i className="fa-solid fa-arrow-right" /></Link>}</div></div>
       {visibleEvents.length === 0 ? <div className="cut-event-discovery__empty"><i className="fa-regular fa-calendar" /><strong>{emptyTitle}</strong><p>{emptyText}</p></div> : (
         <div className="cut-event-discovery__rail" ref={railRef} role="list" tabIndex={0} onKeyDown={onRailKeyDown} aria-label={`${title}. Use as setas esquerda e direita para navegar.`}>
-          {visibleEvents.map((event) => { const production = event?.production || event?.establishment || event?.organization || productionOverride || {}; const productionLogo = mediaUrl(production.logo || production.photo || production.image); const productionHref = production.slug ? `/production/${production.slug}/public` : "/productions"; const eventHref = event?.slug ? `/event/${event.slug}` : "/event"; const dateMeta = eventDateMeta(event); const categories = categoryLabels(event); const priceLabel = eventPriceLabel(event); const locationLabel = eventLocationLabel(event); return (
+          {visibleEvents.map((event) => { const production = event?.production || event?.establishment || event?.organization || productionOverride || {}; const productionLogo = mediaUrl(production.logo || production.photo || production.image); const productionSlug = scalarIdentityPart(production.slug); const productionHref = productionSlug ? `/production/${encodeURIComponent(productionSlug)}/public` : "/productions"; const eventSlug = scalarIdentityPart(event?.slug); const eventHref = eventSlug ? `/event/${encodeURIComponent(eventSlug)}` : "/event"; const dateMeta = eventDateMeta(event); const categories = categoryLabels(event); const priceLabel = eventPriceLabel(event); const locationLabel = eventLocationLabel(event); return (
             <article className="cut-event-discovery__card" role="listitem" key={eventStableKey(event)}><Link to={eventHref} className="cut-event-discovery__mainLink" aria-label={`Ver evento ${event?.title || "Cutinapp"}`}><div className="cut-event-discovery__media"><EventArtwork image={event?.image} title={event?.title} alt={event?.title || "Evento Cutinapp"} loading="lazy" fetchPriority="low" decoding="async" />{dateMeta.dateTime ? <time dateTime={dateMeta.dateTime}>{dateMeta.label}</time> : <span>{dateMeta.label}</span>}</div><div className="cut-event-discovery__body"><h3>{event?.title || "Evento Cutinapp"}</h3><p title={locationLabel}><i className="fa-solid fa-location-dot" /> {locationLabel}</p>{priceLabel && <p aria-label={`Preço ${priceLabel}`}><i className="fa-solid fa-ticket" /> {priceLabel}</p>}{categories.length > 0 && <div className="cut-event-discovery__categories" aria-label="Categorias e gêneros do evento">{categories.map((category) => <span key={category}>{category}</span>)}</div>}</div></Link>{production.name && <Link to={productionHref} className="cut-event-discovery__production" aria-label={`Ver produção ${production.name}`}><span className="cut-event-discovery__productionAvatar">{productionLogo ? <img src={productionLogo} alt="" loading="lazy" decoding="async" /> : initials(production.name)}</span><span className="cut-event-discovery__productionCopy"><small>Produção responsável</small><strong>{production.name}</strong></span><i className="fa-solid fa-chevron-right" /></Link>}</article>
           ); })}
         </div>
