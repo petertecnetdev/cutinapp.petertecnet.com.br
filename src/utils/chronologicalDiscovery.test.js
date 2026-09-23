@@ -10,6 +10,11 @@ describe("chronological discovery", () => {
     expect(chronologicalBucketFor("2026-09-30T20:00:00-03:00", now).title).toBe("Próxima semana");
   });
 
+  it("uses the viewer local calendar date instead of UTC for section keys", () => {
+    const event = new Date(2026, 8, 25, 23, 30);
+    expect(chronologicalBucketFor(event, now).key).toBe("date:2026-09-25");
+  });
+
   it("sorts events chronologically and keeps next week in one section", () => {
     const groups = groupEventsChronologically([
       { id: 4, starts_at: "2026-10-01T20:00:00-03:00" },
