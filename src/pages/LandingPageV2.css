@@ -41,3 +41,6 @@
 
 .cut-landing__eventCta{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,.06);color:#d8c3ff;font-size:.68rem;font-weight:900}
 .cut-landing__eventCta i{font-size:.6rem}
+
+.cut-landing__eventPrice{display:flex;align-items:center;gap:7px;margin-top:9px;color:#f1e8ff;font-size:.72rem}
+.cut-landing__eventPrice i{color:#c76cff;font-size:.68rem}
