@@ -11,19 +11,22 @@ const localDate = (value) => {
       return new Date(Number(year), Number(month) - 1, Number(day));
     }
 
-    // APIs backed by SQL commonly return `YYYY-MM-DD HH:mm:ss`. That shape is
-    // not a portable ECMAScript date-time string and can become Invalid Date on
-    // mobile WebKit. Preserve the intended local wall-clock time explicitly.
-    const sqlDateTime = value.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/);
+    // APIs backed by SQL commonly return `YYYY-MM-DD HH:mm:ss`, sometimes with
+    // fractional seconds. Those shapes are not portable ECMAScript date-time
+    // strings and can become Invalid Date on mobile WebKit. Preserve the
+    // intended local wall-clock time explicitly.
+    const sqlDateTime = value.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,6}))?)?$/);
     if (sqlDateTime) {
-      const [, year, month, day, hour, minute, second = "0"] = sqlDateTime;
+      const [, year, month, day, hour, minute, second = "0", fraction = ""] = sqlDateTime;
+      const millisecond = fraction ? Number(fraction.slice(0, 3).padEnd(3, "0")) : 0;
       return new Date(
         Number(year),
         Number(month) - 1,
         Number(day),
         Number(hour),
         Number(minute),
-        Number(second)
+        Number(second),
+        millisecond
       );
     }
   }
