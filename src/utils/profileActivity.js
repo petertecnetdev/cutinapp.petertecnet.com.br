@@ -1,9 +1,11 @@
+import { parsePortableEventDate } from "./chronologicalDiscovery";
+
 const asArray = (value) => Array.isArray(value) ? value : [];
 
 const eventTimestamp = (event) => {
   const value = event?.end_date || event?.start_date;
-  const timestamp = value ? new Date(value).getTime() : Number.NaN;
-  return Number.isFinite(timestamp) ? timestamp : null;
+  const date = parsePortableEventDate(value);
+  return date ? date.getTime() : null;
 };
 
 const explicitTrue = (value) => value === true || value === 1 || value === "1";
