@@ -41,4 +41,17 @@ describe("profile memory artwork privacy", () => {
 
     expect(memory.image).toBe("/legacy-flyer.jpg");
   });
+
+  test("empty visible artwork object cannot mask a usable fallback", () => {
+    const [memory] = deriveMemoryTimeline([
+      {
+        id: 4,
+        end_date: "2026-09-22T12:00:00Z",
+        image: { viewer_can_see: true },
+        cover: { path: "/usable-cover.jpg", viewer_can_see: true },
+      },
+    ], now);
+
+    expect(memory.image).toMatchObject({ path: "/usable-cover.jpg" });
+  });
 });
