@@ -3,6 +3,8 @@ const { execFileSync } = require('child_process');
 const checks = [
   { label: 'hard reload', pattern: /(?:window\.)?location\.reload\s*\(/g, reason: 'Use state/cache invalidation or router navigation instead of a full reload.' },
   { label: 'native alert', pattern: /\b(?:window\.)?alert\s*\(/g, reason: 'Use the Cutinapp dialog/toast primitives.' },
+  { label: 'native confirm', pattern: /\b(?:window\.)?confirm\s*\(/g, reason: 'Use an accessible Cutinapp confirmation dialog instead of the blocking browser modal.' },
+  { label: 'native prompt', pattern: /\b(?:window\.)?prompt\s*\(/g, reason: 'Use a Cutinapp form/dialog primitive instead of the blocking browser prompt.' },
   { label: 'random React key', pattern: /key\s*=\s*\{[^}]*?(?:Math\.random|Date\.now|randomUUID)\s*\(/g, reason: 'Use a stable domain identifier for React keys.' },
 ];
 
