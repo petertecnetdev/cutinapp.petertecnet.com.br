@@ -31,6 +31,11 @@ const positiveInteger = (value) => {
   const number = Number(value);
   return Number.isInteger(number) && number > 0 ? number : null;
 };
+const visibleMemoryPlace = (event) => {
+  const place = event?.place || event?.establishment || null;
+  if (!place || typeof place !== "object") return place;
+  return viewerCanSee(place) ? place : null;
+};
 
 /**
  * Builds profile memories only from event records the API already authorized
@@ -57,6 +62,8 @@ export const deriveEventMemories = (events, now = Date.now()) => {
  * client. Missing review/publication flags are denied rather than inferred.
  * A generic event.rating is intentionally not treated as the viewer's review:
  * it can represent an aggregate score and would fabricate personal activity.
+ * Nested place visibility is also enforced so a visible event cannot leak a
+ * place/establishment that the API explicitly marked hidden for this viewer.
  */
 export const normalizeEventMemory = (event) => {
   if (!event?.id || !viewerCanSee(event)) return null;
@@ -81,7 +88,7 @@ export const normalizeEventMemory = (event) => {
     image: event.image || event.cover || event.flyer || null,
     start_date: eventStartValue(event),
     end_date: eventEndValue(event),
-    place: event.place || event.establishment || null,
+    place: visibleMemoryPlace(event),
     photos,
     publications,
     rating: viewerRating,
