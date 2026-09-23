@@ -103,10 +103,14 @@ describe("profile activity evidence rules", () => {
       { id: 7, name: "G", visits_count: 8, visible: false },
       { id: 8, name: "H", visits_count: 7, viewer_can_see: 0 },
       { id: 9, name: "I", visits_count: 6, visible: "0" },
+      { id: 10, name: "J", visits_count: 0, checkins_count: 4 },
+      { id: 11, name: "K", visits_count: "invalid", checkins_count: "2" },
     ]);
 
-    expect(places).toHaveLength(2);
-    expect(places[0]).toMatchObject({ id: 1, visits_count: 3, is_following: true, relative_badge: "Top 5%" });
-    expect(places[1]).toMatchObject({ id: 3, visits_count: 1, is_following: true, relative_badge: null });
+    expect(places).toHaveLength(4);
+    expect(places[0]).toMatchObject({ id: 10, visits_count: 4, relative_badge: null });
+    expect(places[1]).toMatchObject({ id: 1, visits_count: 3, is_following: true, relative_badge: "Top 5%" });
+    expect(places[2]).toMatchObject({ id: 11, visits_count: 2, relative_badge: null });
+    expect(places[3]).toMatchObject({ id: 3, visits_count: 1, is_following: true, relative_badge: null });
   });
 });
