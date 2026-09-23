@@ -24,6 +24,8 @@
 .cut-event-discovery__body{padding:15px 15px 12px}
 .cut-event-discovery__body h3{margin:0;color:#fff;font-size:1rem;font-weight:900;line-height:1.25}
 .cut-event-discovery__body p{display:flex;align-items:center;gap:7px;margin:8px 0 0;color:#9b98a9;font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cut-event-discovery__categories{display:flex;gap:6px;overflow:hidden;margin-top:10px}
+.cut-event-discovery__categories span{max-width:132px;overflow:hidden;padding:4px 7px;border:1px solid #30283d;border-radius:999px;background:#15121d;color:#c8b8da;font-size:.64rem;font-weight:800;line-height:1.2;white-space:nowrap;text-overflow:ellipsis}
 .cut-event-discovery__production{display:flex;align-items:center;gap:10px;margin:0 12px 12px;padding:10px;border:1px solid #2c2039;border-radius:14px;background:#151022;color:#fff;text-decoration:none;transition:background .18s ease,border-color .18s ease}
 .cut-event-discovery__production:hover{color:#fff;background:#1b132b;border-color:#53366f}
 .cut-event-discovery__productionAvatar{width:34px;height:34px;display:grid;place-items:center;flex:0 0 34px;overflow:hidden;border-radius:11px;background:#241837;color:#e3d1ff;font-size:.66rem;font-weight:950}
