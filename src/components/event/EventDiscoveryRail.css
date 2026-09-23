@@ -9,13 +9,11 @@
 .cut-event-discovery__actions>a{display:inline-flex;align-items:center;min-height:44px;gap:8px;color:#cfb0ff;font-size:.82rem;font-weight:850;text-decoration:none}
 .cut-event-discovery__controls{display:flex;gap:6px}
 .cut-event-discovery__controls button{width:44px;height:44px;border:1px solid #2b2b38;border-radius:12px;background:#10101d;color:#eee;transition:.18s ease}
-.cut-event-discovery__controls button:hover{border-color:#65468a;background:#181329}
 .cut-event-discovery__actions>a:focus-visible,.cut-event-discovery__controls button:focus-visible,.cut-event-discovery__mainLink:focus-visible,.cut-event-discovery__production:focus-visible{outline:3px solid #b78cff;outline-offset:3px}
 .cut-event-discovery__rail{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(270px,320px);gap:14px;overflow-x:auto;overscroll-behavior-inline:contain;scroll-snap-type:inline mandatory;scroll-padding-inline:2px;padding:2px 2px 10px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .cut-event-discovery__rail:focus-visible{outline:3px solid #b78cff;outline-offset:4px;border-radius:22px}
 .cut-event-discovery__rail::-webkit-scrollbar{display:none}
 .cut-event-discovery__card{min-width:0;overflow:hidden;content-visibility:auto;contain-intrinsic-size:390px 320px;scroll-snap-align:start;border:1px solid #23232f;border-radius:22px;background:#0f0f19;color:#fff;text-decoration:none;box-shadow:0 12px 32px #050508;transition:transform .18s ease,border-color .18s ease}
-.cut-event-discovery__card:hover{color:#fff;transform:translateY(-3px);border-color:#5b3f7d}
 .cut-event-discovery__card:focus-within{border-color:#74539a}
 .cut-event-discovery__mainLink{display:block;color:#fff;text-decoration:none}
 .cut-event-discovery__mainLink:hover{color:#fff}
@@ -28,7 +26,6 @@
 .cut-event-discovery__categories{display:flex;gap:6px;overflow:hidden;margin-top:10px}
 .cut-event-discovery__categories span{max-width:132px;overflow:hidden;padding:4px 7px;border:1px solid #30283d;border-radius:999px;background:#15121d;color:#c8b8da;font-size:.64rem;font-weight:800;line-height:1.2;white-space:nowrap;text-overflow:ellipsis}
 .cut-event-discovery__production{display:flex;align-items:center;gap:10px;margin:0 12px 12px;padding:10px;border:1px solid #2c2039;border-radius:14px;background:#151022;color:#fff;text-decoration:none;transition:background .18s ease,border-color .18s ease}
-.cut-event-discovery__production:hover{color:#fff;background:#1b132b;border-color:#53366f}
 .cut-event-discovery__productionAvatar{width:34px;height:34px;display:grid;place-items:center;flex:0 0 34px;overflow:hidden;border-radius:11px;background:#241837;color:#e3d1ff;font-size:.66rem;font-weight:950}
 .cut-event-discovery__productionAvatar img{width:100%;height:100%;object-fit:cover}
 .cut-event-discovery__productionCopy{min-width:0;display:flex;flex:1;flex-direction:column}
@@ -39,6 +36,11 @@
 .cut-event-discovery__empty i{color:#a46cff;font-size:1.35rem}
 .cut-event-discovery__empty strong{font-size:.95rem}
 .cut-event-discovery__empty p{max-width:520px;margin:0;color:#898596;font-size:.8rem}
+@media(hover:hover) and (pointer:fine){
+  .cut-event-discovery__controls button:hover{border-color:#65468a;background:#181329}
+  .cut-event-discovery__card:hover{color:#fff;transform:translateY(-3px);border-color:#5b3f7d}
+  .cut-event-discovery__production:hover{color:#fff;background:#1b132b;border-color:#53366f}
+}
 @media(max-width:767px){
   .cut-event-discovery{margin-top:32px}
   .cut-event-discovery.cut-production-agenda-section--priority{margin-top:0}
