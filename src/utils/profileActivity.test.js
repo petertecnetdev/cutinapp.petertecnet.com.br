@@ -56,6 +56,19 @@ describe("profile activity evidence rules", () => {
     expect(memories[1].publications).toHaveLength(1);
   });
 
+  test("memory rating uses only viewer-specific review evidence", () => {
+    const now = new Date("2026-09-23T12:00:00Z").getTime();
+    const memories = deriveMemoryTimeline([
+      { id: 1, end_date: "2026-09-20T12:00:00Z", rating: 4.8 },
+      { id: 2, end_date: "2026-09-21T12:00:00Z", viewer_review: { rating: 4 }, rating: 4.9 },
+      { id: 3, end_date: "2026-09-22T12:00:00Z", my_review: { rating: 3 }, rating: 5 },
+    ], now);
+
+    expect(memories.find((memory) => memory.id === 1)?.rating).toBeNull();
+    expect(memories.find((memory) => memory.id === 2)?.rating).toBe(4);
+    expect(memories.find((memory) => memory.id === 3)?.rating).toBe(3);
+  });
+
   test("relative badges require explicit rank and a sufficient population", () => {
     expect(relativeVisitBadge({ rank: 1, population: 100 })).toBe("Top 1%");
     expect(relativeVisitBadge({ rank: 5, population: 100 })).toBe("Top 5%");
