@@ -1,0 +1,27 @@
+.cut-support-page{min-height:100vh}
+.cut-support-hero{display:flex;align-items:flex-end;justify-content:space-between;gap:28px;margin-bottom:28px}
+.cut-support-hero h1{margin:8px 0 10px;font-size:clamp(2.2rem,5vw,4.2rem);font-weight:950;letter-spacing:-.055em}
+.cut-support-hero p{max-width:760px;margin:0;color:var(--cut-text-muted);line-height:1.65}
+.cut-support-hero__links{display:flex;flex-wrap:wrap;gap:8px}
+.cut-support-layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(300px,.65fr);gap:20px;align-items:start}
+.cut-support-side{display:grid;gap:16px}
+.cut-support-form{display:grid;gap:16px;margin-top:22px}
+.cut-support-form__grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.cut-support-context{display:flex;gap:10px;align-items:flex-start;padding:13px 14px;border:1px solid rgba(148,163,184,.14);border-radius:14px;background:rgba(255,255,255,.025)}
+.cut-support-context i{color:#c084fc;margin-top:3px}
+.cut-support-context span{display:flex;min-width:0;flex-direction:column;color:#94a3b8;font-size:.75rem;word-break:break-all}
+.cut-support-context strong{color:#e2e8f0}
+.cut-support-shortcuts,.cut-support-tickets{display:grid;gap:10px;margin-top:16px}
+.cut-support-shortcuts a{display:flex;gap:11px;padding:13px;border:1px solid rgba(148,163,184,.11);border-radius:14px;background:rgba(255,255,255,.02);color:inherit;text-decoration:none}
+.cut-support-shortcuts a:hover{border-color:rgba(192,132,252,.38);background:rgba(126,34,206,.08)}
+.cut-support-shortcuts i{width:28px;color:#d8b4fe;margin-top:3px;text-align:center}
+.cut-support-shortcuts span{display:flex;flex-direction:column;color:#94a3b8;font-size:.75rem}
+.cut-support-shortcuts strong{color:#f8fafc;font-size:.82rem}
+.cut-support-tickets article{padding:13px;border:1px solid rgba(148,163,184,.11);border-radius:14px;background:rgba(255,255,255,.02)}
+.cut-support-tickets article>div{display:flex;justify-content:space-between;gap:12px}
+.cut-support-tickets strong{font-size:.82rem}
+.cut-support-tickets span{color:#c4b5fd;font-size:.72rem}
+.cut-support-tickets small{display:block;margin-top:6px;color:#64748b}
+.cut-support-form .cut-processing,.cut-support-side .cut-processing{min-height:120px;padding:10px}
+@media(max-width:900px){.cut-support-hero{align-items:flex-start;flex-direction:column}.cut-support-layout{grid-template-columns:1fr}.cut-support-side{grid-template-columns:1fr 1fr}}
+@media(max-width:620px){.cut-support-form__grid,.cut-support-side{grid-template-columns:1fr}.cut-support-hero__links{width:100%}.cut-support-hero__links .btn{flex:1}}
