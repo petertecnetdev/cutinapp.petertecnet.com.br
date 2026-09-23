@@ -68,13 +68,33 @@ const categoryLabels = (event) => {
     .slice(0, 2);
 };
 
+const numericPrice = (value) => {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  const raw = String(value ?? "").trim().replace(/[^\d,.-]/g, "");
+  if (!raw) return null;
+  const comma = raw.lastIndexOf(",");
+  const dot = raw.lastIndexOf(".");
+  let normalized = raw;
+  if (comma >= 0 && dot >= 0) {
+    const decimal = comma > dot ? "," : ".";
+    const grouping = decimal === "," ? /\./g : /,/g;
+    normalized = raw.replace(grouping, "").replace(decimal, ".");
+  } else if (comma >= 0) {
+    normalized = raw.replace(/\./g, "").replace(",", ".");
+  } else if ((raw.match(/\./g) || []).length > 1) {
+    normalized = raw.replace(/\./g, "");
+  }
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
 const eventPriceLabel = (event) => {
   if (event?.is_free === true || event?.free === true) return "Grátis";
   const candidates = [event?.min_price, event?.price_from, event?.lowest_price, event?.ticket_price, event?.price];
   const raw = candidates.find((value) => value !== null && value !== undefined && value !== "");
   if (raw === undefined) return null;
-  const numeric = Number(String(raw).replace(",", "."));
-  if (!Number.isFinite(numeric) || numeric < 0) return null;
+  const numeric = numericPrice(raw);
+  if (numeric === null || numeric < 0) return null;
   if (numeric === 0) return "Grátis";
   return `A partir de ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(numeric)}`;
 };
