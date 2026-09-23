@@ -8,6 +8,14 @@ const startOfDay = (value) => {
   return date;
 };
 
+const calendarDayNumber = (date) => Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / DAY_MS;
+
+const localDateKey = (date) => [
+  date.getFullYear(),
+  String(date.getMonth() + 1).padStart(2, "0"),
+  String(date.getDate()).padStart(2, "0"),
+].join("-");
+
 const eventDate = (event) => {
   const raw = event?.starts_at || event?.start_at || event?.start_date || event?.date || event?.scheduled_at;
   if (!raw) return null;
@@ -26,12 +34,12 @@ export const chronologicalBucketFor = (value, now = new Date()) => {
   const today = startOfDay(now);
   if (!date || !today) return { key: "unknown", title: "Data a confirmar", order: Number.MAX_SAFE_INTEGER };
 
-  const diff = Math.round((date.getTime() - today.getTime()) / DAY_MS);
+  const diff = calendarDayNumber(date) - calendarDayNumber(today);
   if (diff === 0) return { key: "today", title: "Hoje", order: 0 };
   if (diff === 1) return { key: "tomorrow", title: "Amanhã", order: 1 };
-  if (diff >= 2 && diff <= 6) return { key: `date:${date.toISOString().slice(0, 10)}`, title: dateTitle(date), order: diff };
+  if (diff >= 2 && diff <= 6) return { key: `date:${localDateKey(date)}`, title: dateTitle(date), order: diff };
   if (diff >= 7 && diff <= 13) return { key: "next-week", title: "Próxima semana", order: 7 };
-  return { key: `date:${date.toISOString().slice(0, 10)}`, title: dateTitle(date), order: diff < 0 ? 10000 + Math.abs(diff) : diff };
+  return { key: `date:${localDateKey(date)}`, title: dateTitle(date), order: diff < 0 ? 10000 + Math.abs(diff) : diff };
 };
 
 export const groupEventsChronologically = (events = [], now = new Date()) => {
