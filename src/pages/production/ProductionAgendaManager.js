@@ -1,6 +1,6 @@
 import { showConfirmation } from "../../utils/sweetAlert";
 import React, { useEffect, useMemo, useState } from "react";
-import { Alert, Badge, Button, Card, Container, Form, Spinner } from "react-bootstrap";
+import { Alert, Badge, Button, Card, Container, Form, Modal, Spinner } from "react-bootstrap";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
@@ -8,6 +8,7 @@ import cutinappService from "../../services/CutinappService";
 import eventService from "../../services/EventService";
 import { storageUrl } from "../../config";
 import "./production-agenda.css";
+import "./production-agenda-weekly-picker.css";
 
 const DAYS = [
   { value: 1, label: "Segunda-feira", short: "SEG" },
@@ -18,6 +19,13 @@ const DAYS = [
   { value: 6, label: "Sábado", short: "SÁB" },
   { value: 0, label: "Domingo", short: "DOM" },
 ];
+
+const defaultStrategy = (schedule = null) => ({
+  generation_mode: schedule?.generation_mode === "delayed" ? "delayed" : "immediate",
+  generation_delay_days: Math.max(1, Math.min(6, Number(schedule?.generation_delay_days || 1))),
+  generation_weeks: Math.max(1, Math.min(52, Number(schedule?.generation_weeks || 1))),
+  interval_weeks: Math.max(1, Math.min(52, Number(schedule?.interval_weeks || 1))),
+});
 
 const imageUrl = (path) => {
   if (!path) return "";
@@ -40,9 +48,9 @@ const initials = (value = "") => String(value)
   .join("") || "EV";
 
 const formatEventDate = (value) => {
-  if (!value) return "";
+  if (!value) return "Data não informada";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
+  if (Number.isNaN(date.getTime())) return "Data não informada";
   return date.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
 };
 
@@ -71,6 +79,8 @@ export default function ProductionAgendaManager() {
   const [strategies, setStrategies] = useState({});
   const [availableEvents, setAvailableEvents] = useState([]);
   const [selections, setSelections] = useState({});
+  const [pickerDay, setPickerDay] = useState(null);
+  const [pickerSearch, setPickerSearch] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(location.state?.agendaMessage || "");
   const [togglingAgenda, setTogglingAgenda] = useState(false);
@@ -92,6 +102,14 @@ export default function ProductionAgendaManager() {
     () => DAYS.filter((day) => Boolean(scheduleByDay[day.value])).length,
     [scheduleByDay]
   );
+
+  const filteredEvents = useMemo(() => {
+    const query = pickerSearch.trim().toLocaleLowerCase("pt-BR");
+    if (!query) return availableEvents;
+    return availableEvents.filter((event) => [event.title, event.venue, event.city, event.uf]
+      .filter(Boolean)
+      .some((value) => String(value).toLocaleLowerCase("pt-BR").includes(query)));
+  }, [availableEvents, pickerSearch]);
 
   useEffect(() => {
     let active = true;
@@ -115,16 +133,8 @@ export default function ProductionAgendaManager() {
         loadedSchedules.forEach((schedule) => {
           const day = Number(schedule.day_of_week);
           const eventId = Number(schedule?.source_event_id || schedule?.source_event?.id || 0);
-          if (eventId > 0 && nextSelections[day] === undefined) {
-            nextSelections[day] = String(eventId);
-          }
-          if (nextStrategies[day] === undefined) {
-            nextStrategies[day] = {
-              generation_mode: schedule?.generation_mode === "delayed" ? "delayed" : "immediate",
-              generation_delay_days: Math.max(1, Math.min(6, Number(schedule?.generation_delay_days || 1))),
-              generation_weeks: Math.max(1, Math.min(52, Number(schedule?.generation_weeks || 1))),
-            };
-          }
+          if (eventId > 0 && nextSelections[day] === undefined) nextSelections[day] = String(eventId);
+          if (nextStrategies[day] === undefined) nextStrategies[day] = defaultStrategy(schedule);
         });
         setSelections(nextSelections);
         setStrategies(nextStrategies);
@@ -134,6 +144,33 @@ export default function ProductionAgendaManager() {
 
     return () => { active = false; };
   }, [productionId]);
+
+  const openPicker = (day) => {
+    setPickerSearch("");
+    setPickerDay(day);
+  };
+
+  const closePicker = () => {
+    setPickerDay(null);
+    setPickerSearch("");
+  };
+
+  const chooseEvent = (event) => {
+    if (!pickerDay || !event?.id) return;
+    setSelections((current) => ({ ...current, [pickerDay.value]: String(event.id) }));
+    closePicker();
+  };
+
+  const createEventForDay = (day = pickerDay) => {
+    if (!day) return;
+    navigate(`/event/create?productionId=${encodeURIComponent(String(productionId))}`, {
+      state: {
+        agendaReturnTo: `/production/${productionId}/agenda`,
+        agendaDay: day.value,
+        agendaDayLabel: day.label,
+      },
+    });
+  };
 
   const toggleAgenda = async () => {
     if (togglingAgenda) return;
@@ -162,17 +199,14 @@ export default function ProductionAgendaManager() {
     setError("");
     setSuccess("");
     try {
-      const strategy = strategies[day.value] || {
-        generation_mode: "delayed",
-        generation_delay_days: 1,
-        generation_weeks: 1,
-      };
+      const strategy = strategies[day.value] || defaultStrategy();
       const response = await eventService.createAgendaItem(productionId, {
         event_id: eventId,
         day_of_week: day.value,
         generation_mode: strategy.generation_mode,
         generation_delay_days: Number(strategy.generation_delay_days),
         generation_weeks: Number(strategy.generation_weeks),
+        interval_weeks: Number(strategy.interval_weeks),
         is_active: true,
       });
       const updated = response?.schedule;
@@ -182,13 +216,12 @@ export default function ProductionAgendaManager() {
           updated,
         ]);
         setSelections((current) => ({ ...current, [day.value]: String(eventId) }));
+        setStrategies((current) => ({ ...current, [day.value]: defaultStrategy(updated) }));
       }
       const created = Number(response?.generation?.created_count || 0);
-      setSuccess(
-        created > 0
-          ? `${day.label} configurada. ${created} ocorrência(s) foram criadas para preencher o horizonte atual.`
-          : response?.message || `${day.label} atualizada na agenda semanal.`
-      );
+      setSuccess(created > 0
+        ? `${day.label} configurada. ${created} nova(s) ocorrência(s) criada(s).`
+        : response?.message || `${day.label} atualizada na agenda semanal.`);
     } catch (err) {
       setError(apiError(err, "Não foi possível adicionar este evento à agenda semanal."));
     } finally {
@@ -217,6 +250,11 @@ export default function ProductionAgendaManager() {
         delete next[day.value];
         return next;
       });
+      setStrategies((current) => {
+        const next = { ...current };
+        delete next[day.value];
+        return next;
+      });
       setSuccess(response?.message || "Evento removido da agenda semanal.");
     } catch (err) {
       setError(apiError(err, "Não foi possível remover este evento da agenda."));
@@ -237,13 +275,13 @@ export default function ProductionAgendaManager() {
           <div>
             <span className="cut-eyebrow">Agenda da produção</span>
             <h1>Agenda semanal{production?.name ? ` · ${production.name}` : ""}</h1>
-            <p>Defina a programação fixa de segunda a domingo escolhendo eventos que já foram criados nesta produção.</p>
+            <p>Escolha um evento para cada dia e defina de quantas em quantas semanas uma nova edição deve ser criada.</p>
           </div>
           <div className="cut-agenda-page__heading-actions">
             <Button variant="outline-light" onClick={() => navigate("/production/mine")}>
               <i className="fa-solid fa-arrow-left me-2" />Minhas produções
             </Button>
-            <Button onClick={() => navigate("/event/create")}>
+            <Button onClick={() => navigate(`/event/create?productionId=${encodeURIComponent(String(productionId))}`)}>
               <i className="fa-solid fa-calendar-plus me-2" />Criar novo evento
             </Button>
           </div>
@@ -260,7 +298,7 @@ export default function ProductionAgendaManager() {
                 <h3>Agenda semanal</h3>
                 <Badge bg={agendaActive ? "success" : "secondary"}>{agendaActive ? "Ativa" : "Pausada"}</Badge>
               </div>
-              <p>{configuredDays} de 7 dia(s) configurado(s). Cada dia possui seu próprio evento e sua própria regra de geração.</p>
+              <p>{configuredDays} de 7 dias configurados. Cada dia pode ter um evento e um intervalo de repetição diferentes.</p>
             </div>
           </div>
           <div className="cut-agenda-control__actions">
@@ -283,20 +321,10 @@ export default function ProductionAgendaManager() {
         <div className="cut-agenda-help">
           <i className="fa-regular fa-lightbulb" />
           <div>
-            <strong>Sete eventos fixos independentes</strong>
-            <span>Segunda, terça, quarta e os demais dias podem usar eventos diferentes. Cada dia também pode ter quantidade de semanas e intervalo de geração diferentes.</span>
+            <strong>Uma programação diferente para cada dia</strong>
+            <span>Clique em um dia, escolha um evento já cadastrado ou crie um novo e defina a recorrência. Ex.: todo sábado, a cada 2 semanas ou a cada 4 semanas.</span>
           </div>
         </div>
-
-        {availableEvents.length === 0 && (
-          <Alert variant="info" className="cut-weekly-agenda-no-events">
-            <div>
-              <strong>Crie seu primeiro evento antes de montar a agenda.</strong>
-              <span>A agenda semanal usa somente eventos já cadastrados nesta produção.</span>
-            </div>
-            <Button size="sm" onClick={() => navigate("/event/create")}>Criar evento</Button>
-          </Alert>
-        )}
 
         <div className="cut-agenda-section-heading cut-agenda-list-heading">
           <div>
@@ -311,80 +339,79 @@ export default function ProductionAgendaManager() {
             const schedule = scheduleByDay[day.value] || null;
             const currentEvent = scheduleEvent(schedule);
             const selectedId = String(selections[day.value] || currentEvent?.id || "");
-            const hasCurrentInOptions = currentEvent?.id
-              && !availableEvents.some((event) => Number(event.id) === Number(currentEvent.id));
+            const selectedEvent = availableEvents.find((event) => String(event.id) === selectedId) || currentEvent || null;
             const busy = savingDay === day.value || removingDay === day.value;
-            const strategy = strategies[day.value] || {
-              generation_mode: schedule?.generation_mode === "delayed" ? "delayed" : "immediate",
-              generation_delay_days: Math.max(1, Math.min(6, Number(schedule?.generation_delay_days || 1))),
-              generation_weeks: Math.max(1, Math.min(52, Number(schedule?.generation_weeks || 1))),
-            };
+            const strategy = strategies[day.value] || defaultStrategy(schedule);
             const updateStrategy = (patch) => setStrategies((current) => ({
               ...current,
               [day.value]: { ...strategy, ...patch },
             }));
 
             return (
-              <Card key={day.value} className={`cut-weekly-agenda-day ${schedule ? "is-configured" : "is-empty"}`}>
+              <Card key={day.value} className={`cut-weekly-agenda-day cut-weekly-agenda-day--picker ${schedule ? "is-configured" : "is-empty"}`}>
                 <Card.Body>
-                  <div className="cut-weekly-agenda-day__header">
-                    <div className="cut-weekly-agenda-day__badge">
-                      <strong>{day.short}</strong>
-                      <span>{day.label}</span>
-                    </div>
-                    <Badge bg={schedule ? "success" : "secondary"}>{schedule ? "Configurado" : "Livre"}</Badge>
-                  </div>
-
-                  {currentEvent && (
-                    <div className="cut-weekly-agenda-current">
-                      <div className="cut-weekly-agenda-current__image">
-                        {currentEvent.image
-                          ? <img src={imageUrl(currentEvent.image)} alt="" />
-                          : <span>{initials(currentEvent.title)}</span>}
+                  <button type="button" className="cut-weekly-agenda-day__open" onClick={() => openPicker(day)} aria-label={`Escolher evento para ${day.label}`}>
+                    <div className="cut-weekly-agenda-day__header">
+                      <div className="cut-weekly-agenda-day__badge">
+                        <strong>{day.short}</strong>
+                        <span>{day.label}</span>
                       </div>
-                      <div className="cut-weekly-agenda-current__content">
-                        <span className="cut-weekly-agenda-current__eyebrow">Evento atual</span>
-                        <strong>{currentEvent.title}</strong>
-                        <small>
-                          {[formatEventDate(currentEvent.start_date), currentEvent.venue, currentEvent.city].filter(Boolean).join(" · ")
-                            || (currentEvent.legacy ? "Item antigo da agenda" : "Evento da produção")}
-                        </small>
-                      </div>
+                      <Badge bg={schedule ? "success" : selectedEvent ? "primary" : "secondary"}>
+                        {schedule ? "Configurado" : selectedEvent ? "Selecionado" : "Livre"}
+                      </Badge>
                     </div>
-                  )}
 
-                  <Form.Group className="cut-weekly-agenda-select">
-                    <Form.Label>{schedule ? "Trocar evento deste dia" : "Escolher evento para este dia"}</Form.Label>
-                    <Form.Select
-                      value={selectedId}
-                      disabled={availableEvents.length === 0 || busy}
-                      onChange={(event) => setSelections((current) => ({ ...current, [day.value]: event.target.value }))}
-                    >
-                      <option value="">Selecione um evento...</option>
-                      {hasCurrentInOptions && currentEvent?.id && (
-                        <option value={String(currentEvent.id)}>{currentEvent.title} (atual)</option>
-                      )}
-                      {availableEvents.map((event) => (
-                        <option key={event.id} value={String(event.id)}>
-                          {event.title}{formatEventDate(event.start_date) ? ` · ${formatEventDate(event.start_date)}` : ""}
-                        </option>
-                      ))}
-                    </Form.Select>
-                  </Form.Group>
+                    {selectedEvent ? (
+                      <div className="cut-weekly-agenda-current">
+                        <div className="cut-weekly-agenda-current__image">
+                          {selectedEvent.image
+                            ? <img src={imageUrl(selectedEvent.image)} alt="" loading="lazy" />
+                            : <span>{initials(selectedEvent.title)}</span>}
+                        </div>
+                        <div className="cut-weekly-agenda-current__content">
+                          <span className="cut-weekly-agenda-current__eyebrow">Evento deste dia</span>
+                          <strong>{selectedEvent.title}</strong>
+                          <small>{[formatEventDate(selectedEvent.start_date), selectedEvent.venue, selectedEvent.city].filter(Boolean).join(" · ")}</small>
+                        </div>
+                        <i className="fa-solid fa-chevron-right cut-weekly-agenda-current__chevron" />
+                      </div>
+                    ) : (
+                      <div className="cut-weekly-agenda-empty-choice">
+                        <span className="cut-weekly-agenda-empty-choice__icon"><i className="fa-solid fa-plus" /></span>
+                        <span><strong>Escolher evento</strong><small>Abra a lista de eventos desta produção</small></span>
+                      </div>
+                    )}
+                  </button>
 
-                  <div className="cut-weekly-agenda-strategy">
+                  <Button type="button" variant="outline-light" className="cut-weekly-agenda-pick-button" onClick={() => openPicker(day)} disabled={busy}>
+                    <i className="fa-regular fa-images me-2" />{selectedEvent ? "Trocar evento" : "Escolher evento"}
+                  </Button>
+
+                  <div className="cut-weekly-agenda-strategy cut-weekly-agenda-strategy--recurrence">
                     <Form.Group>
-                      <Form.Label>Semanas para este dia</Form.Label>
+                      <Form.Label>Repetir a cada</Form.Label>
+                      <Form.Select
+                        value={strategy.interval_weeks}
+                        disabled={busy}
+                        onChange={(event) => updateStrategy({ interval_weeks: Math.max(1, Math.min(52, Number(event.target.value) || 1)) })}
+                      >
+                        {[1,2,3,4,6,8,12,16,26,52].map((weeks) => (
+                          <option key={weeks} value={weeks}>{weeks === 1 ? "Toda semana" : `${weeks} semanas`}</option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+
+                    <Form.Group>
+                      <Form.Label>Ocorrências futuras</Form.Label>
                       <Form.Control
                         type="number"
                         min={1}
                         max={52}
                         value={strategy.generation_weeks}
                         disabled={busy}
-                        onChange={(event) => updateStrategy({
-                          generation_weeks: Math.max(1, Math.min(52, Number(event.target.value) || 1)),
-                        })}
+                        onChange={(event) => updateStrategy({ generation_weeks: Math.max(1, Math.min(52, Number(event.target.value) || 1)) })}
                       />
+                      <Form.Text>Quantas edições manter preparadas.</Form.Text>
                     </Form.Group>
 
                     <Form.Group>
@@ -394,14 +421,14 @@ export default function ProductionAgendaManager() {
                         disabled={busy}
                         onChange={(event) => updateStrategy({ generation_mode: event.target.value })}
                       >
-                        <option value="immediate">Criar semanas de uma vez</option>
-                        <option value="delayed">Criar depois que o dia passar</option>
+                        <option value="immediate">Criar antecipadamente</option>
+                        <option value="delayed">Criar após o evento anterior</option>
                       </Form.Select>
                     </Form.Group>
 
                     {strategy.generation_mode === "delayed" && (
                       <Form.Group>
-                        <Form.Label>Esperar depois do dia</Form.Label>
+                        <Form.Label>Esperar após o evento</Form.Label>
                         <Form.Select
                           value={strategy.generation_delay_days}
                           disabled={busy}
@@ -416,35 +443,20 @@ export default function ProductionAgendaManager() {
                   </div>
 
                   <div className="cut-weekly-agenda-day__actions">
-                    <Button
-                      size="sm"
-                      disabled={!selectedId || busy}
-                      onClick={() => saveDay(day)}
-                    >
+                    <Button size="sm" disabled={!selectedId || busy} onClick={() => saveDay(day)}>
                       {savingDay === day.value
                         ? <><Spinner size="sm" className="me-2" />Salvando...</>
-                        : <><i className="fa-solid fa-check me-2" />{schedule ? "Salvar alteração" : "Adicionar à agenda"}</>}
+                        : <><i className="fa-solid fa-check me-2" />{schedule ? "Salvar alterações" : "Adicionar à agenda"}</>}
                     </Button>
 
-                    {currentEvent?.id && (
-                      <Button
-                        size="sm"
-                        variant="outline-light"
-                        onClick={() => navigate(`/event/edit/${currentEvent.id}`)}
-                        disabled={busy}
-                      >
+                    {selectedEvent?.id && (
+                      <Button size="sm" variant="outline-light" onClick={() => navigate(`/event/edit/${selectedEvent.id}`)} disabled={busy}>
                         <i className="fa-regular fa-pen-to-square me-2" />Editar evento
                       </Button>
                     )}
 
                     {schedule && (
-                      <Button
-                        size="sm"
-                        variant="outline-danger"
-                        onClick={() => removeDay(day, schedule)}
-                        disabled={busy}
-                        aria-label={`Remover evento de ${day.label}`}
-                      >
+                      <Button size="sm" variant="outline-danger" onClick={() => removeDay(day, schedule)} disabled={busy} aria-label={`Remover evento de ${day.label}`}>
                         {removingDay === day.value ? <Spinner size="sm" /> : <i className="fa-regular fa-trash-can" />}
                       </Button>
                     )}
@@ -455,6 +467,61 @@ export default function ProductionAgendaManager() {
           })}
         </div>
       </Container>
+
+      <Modal show={Boolean(pickerDay)} onHide={closePicker} centered size="lg" contentClassName="cut-agenda-picker-modal" backdropClassName="cut-agenda-picker-backdrop">
+        <Modal.Body>
+          <div className="cut-agenda-picker__head">
+            <div>
+              <span className="cut-eyebrow">{pickerDay?.label}</span>
+              <h2>Escolher evento</h2>
+              <p>O evento selecionado será o modelo usado para criar as próximas edições deste dia.</p>
+            </div>
+            <Button variant="outline-light" className="cut-agenda-picker__close" onClick={closePicker} aria-label="Fechar seletor">
+              <i className="fa-solid fa-xmark" />
+            </Button>
+          </div>
+
+          <div className="cut-agenda-picker__toolbar">
+            <div className="cut-agenda-picker__search">
+              <i className="fa-solid fa-magnifying-glass" />
+              <Form.Control value={pickerSearch} onChange={(event) => setPickerSearch(event.target.value)} placeholder="Buscar por nome, local ou cidade" autoFocus />
+            </div>
+            <Button onClick={() => createEventForDay()}>
+              <i className="fa-solid fa-plus me-2" />Criar novo evento
+            </Button>
+          </div>
+
+          {filteredEvents.length > 0 ? (
+            <div className="cut-agenda-picker__events" role="listbox" aria-label={`Eventos para ${pickerDay?.label || "o dia"}`}>
+              {filteredEvents.map((event) => {
+                const selected = String(selections[pickerDay?.value] || "") === String(event.id);
+                return (
+                  <button key={event.id} type="button" className={`cut-agenda-picker-event ${selected ? "is-selected" : ""}`} onClick={() => chooseEvent(event)} role="option" aria-selected={selected}>
+                    <span className="cut-agenda-picker-event__cover">
+                      {event.image ? <img src={imageUrl(event.image)} alt="" loading="lazy" /> : <span>{initials(event.title)}</span>}
+                    </span>
+                    <span className="cut-agenda-picker-event__body">
+                      <strong>{event.title}</strong>
+                      <span><i className="fa-regular fa-calendar" />{formatEventDate(event.start_date)}</span>
+                      {(event.venue || event.city) && <span><i className="fa-solid fa-location-dot" />{[event.venue, event.city].filter(Boolean).join(" · ")}</span>}
+                    </span>
+                    <span className="cut-agenda-picker-event__select">
+                      <i className={selected ? "fa-solid fa-circle-check" : "fa-regular fa-circle"} />
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="cut-agenda-picker__empty">
+              <i className="fa-regular fa-calendar-plus" />
+              <strong>{availableEvents.length ? "Nenhum evento encontrado" : "Ainda não há eventos nesta produção"}</strong>
+              <span>{availableEvents.length ? "Tente outro termo de busca." : "Crie o primeiro evento e depois vincule-o a este dia da semana."}</span>
+              <Button onClick={() => createEventForDay()}>Criar novo evento</Button>
+            </div>
+          )}
+        </Modal.Body>
+      </Modal>
     </div>
   );
 }

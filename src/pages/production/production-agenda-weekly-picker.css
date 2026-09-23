@@ -1,0 +1,298 @@
+.cut-weekly-agenda-day--picker .card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.cut-weekly-agenda-day__open {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.cut-weekly-agenda-day__open:focus-visible,
+.cut-agenda-picker-event:focus-visible {
+  outline: 2px solid rgba(102, 126, 234, .95);
+  outline-offset: 4px;
+}
+
+.cut-weekly-agenda-current {
+  position: relative;
+}
+
+.cut-weekly-agenda-current__chevron {
+  margin-left: auto;
+  opacity: .55;
+}
+
+.cut-weekly-agenda-empty-choice {
+  display: flex;
+  align-items: center;
+  gap: .9rem;
+  min-height: 86px;
+  margin-top: .85rem;
+  padding: 1rem;
+  border: 1px dashed rgba(255,255,255,.2);
+  border-radius: 18px;
+  background: rgba(255,255,255,.035);
+  transition: border-color .18s ease, background .18s ease, transform .18s ease;
+}
+
+.cut-weekly-agenda-day__open:hover .cut-weekly-agenda-empty-choice {
+  border-color: rgba(105, 132, 255, .72);
+  background: rgba(105, 132, 255, .09);
+  transform: translateY(-1px);
+}
+
+.cut-weekly-agenda-empty-choice__icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 42px;
+  border-radius: 14px;
+  background: rgba(105, 132, 255, .14);
+  color: #b9c4ff;
+}
+
+.cut-weekly-agenda-empty-choice > span:last-child {
+  display: grid;
+  gap: .15rem;
+}
+
+.cut-weekly-agenda-empty-choice small {
+  color: rgba(255,255,255,.58);
+}
+
+.cut-weekly-agenda-pick-button {
+  width: 100%;
+}
+
+.cut-weekly-agenda-strategy--recurrence {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.cut-weekly-agenda-strategy--recurrence .form-text {
+  color: rgba(255,255,255,.48);
+  font-size: .75rem;
+}
+
+.cut-agenda-picker-backdrop {
+  backdrop-filter: blur(10px);
+}
+
+.cut-agenda-picker-modal {
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 24px;
+  background: rgba(15, 17, 25, .98);
+  color: #fff;
+  box-shadow: 0 28px 90px rgba(0,0,0,.48);
+  overflow: hidden;
+}
+
+.cut-agenda-picker-modal .modal-body {
+  padding: 1.35rem;
+}
+
+.cut-agenda-picker__head,
+.cut-agenda-picker__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.cut-agenda-picker__head h2 {
+  margin: .2rem 0 .25rem;
+  font-size: clamp(1.45rem, 3vw, 2rem);
+}
+
+.cut-agenda-picker__head p {
+  margin: 0;
+  color: rgba(255,255,255,.62);
+}
+
+.cut-agenda-picker__close {
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  flex: 0 0 42px;
+  border-radius: 50%;
+}
+
+.cut-agenda-picker__toolbar {
+  margin-top: 1.25rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+
+.cut-agenda-picker__search {
+  position: relative;
+  flex: 1;
+}
+
+.cut-agenda-picker__search > i {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  z-index: 2;
+  transform: translateY(-50%);
+  color: rgba(255,255,255,.48);
+}
+
+.cut-agenda-picker__search .form-control {
+  min-height: 46px;
+  padding-left: 2.75rem;
+  border-radius: 14px;
+}
+
+.cut-agenda-picker__events {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .75rem;
+  max-height: min(58vh, 620px);
+  margin-top: 1rem;
+  padding: .1rem .2rem .35rem 0;
+  overflow: auto;
+}
+
+.cut-agenda-picker-event {
+  display: grid;
+  grid-template-columns: 86px minmax(0, 1fr) 28px;
+  align-items: center;
+  gap: .85rem;
+  min-width: 0;
+  padding: .65rem;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 17px;
+  background: rgba(255,255,255,.035);
+  color: #fff;
+  text-align: left;
+  transition: transform .16s ease, border-color .16s ease, background .16s ease;
+}
+
+.cut-agenda-picker-event:hover {
+  transform: translateY(-2px);
+  border-color: rgba(105,132,255,.6);
+  background: rgba(105,132,255,.08);
+}
+
+.cut-agenda-picker-event.is-selected {
+  border-color: rgba(105,132,255,.88);
+  background: rgba(105,132,255,.14);
+}
+
+.cut-agenda-picker-event__cover {
+  width: 86px;
+  aspect-ratio: 4 / 5;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 13px;
+  background: linear-gradient(145deg, rgba(105,132,255,.24), rgba(154,90,255,.13));
+  color: rgba(255,255,255,.8);
+  font-weight: 800;
+}
+
+.cut-agenda-picker-event__cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cut-agenda-picker-event__body {
+  min-width: 0;
+  display: grid;
+  gap: .35rem;
+}
+
+.cut-agenda-picker-event__body strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cut-agenda-picker-event__body span {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  min-width: 0;
+  color: rgba(255,255,255,.58);
+  font-size: .8rem;
+}
+
+.cut-agenda-picker-event__body span i {
+  width: 14px;
+  color: rgba(184,195,255,.82);
+}
+
+.cut-agenda-picker-event__select {
+  color: #aebaff;
+  font-size: 1.15rem;
+}
+
+.cut-agenda-picker__empty {
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .55rem;
+  margin-top: 1rem;
+  padding: 2rem;
+  border: 1px dashed rgba(255,255,255,.14);
+  border-radius: 18px;
+  color: rgba(255,255,255,.65);
+  text-align: center;
+}
+
+.cut-agenda-picker__empty > i {
+  margin-bottom: .35rem;
+  font-size: 2rem;
+  color: #aebaff;
+}
+
+.cut-agenda-picker__empty strong {
+  color: #fff;
+  font-size: 1.05rem;
+}
+
+.cut-agenda-picker__empty .btn {
+  margin-top: .7rem;
+}
+
+@media (max-width: 767.98px) {
+  .cut-weekly-agenda-strategy--recurrence,
+  .cut-agenda-picker__events {
+    grid-template-columns: 1fr;
+  }
+
+  .cut-agenda-picker-modal {
+    margin: .5rem;
+    border-radius: 20px;
+  }
+
+  .cut-agenda-picker-modal .modal-body {
+    padding: 1rem;
+  }
+
+  .cut-agenda-picker__toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .cut-agenda-picker__toolbar .btn {
+    width: 100%;
+  }
+
+  .cut-agenda-picker-event {
+    grid-template-columns: 72px minmax(0, 1fr) 24px;
+  }
+
+  .cut-agenda-picker-event__cover {
+    width: 72px;
+  }
+}
