@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Alert, Button, Card, Container, Dropdown, Form, Modal, ProgressBar } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
@@ -8,17 +8,11 @@ import eventBulkService from "../../services/EventBulkService";
 import cutinappService from "../../services/CutinappService";
 import { sellableTicketCount } from "../../utils/eventSalesReadiness";
 import ProducerEventCard from "../../components/event/ProducerEventCard";
-import EventCommandCenter, { EventAttentionCenter } from "../../components/event/EventCommandCenter";
+import EventCommandCenter from "../../components/event/EventCommandCenter";
 import {
   EVENT_MANAGER_PINS_KEY,
   EVENT_MANAGER_PREFERENCES_KEY,
-  compareSmartRanks,
-  eventHealth,
   eventOperationalMetrics,
-  eventPerformance,
-  eventTemporalGroup,
-  moneyBR,
-  smartEventRank,
 } from "../../utils/eventManagerInsights";
 import "./EventManagePage.css";
 import "./EventManagePageSorting.css";
@@ -26,6 +20,65 @@ import "./EventCommandCenter.css";
 
 const collator = new Intl.Collator("pt-BR", { numeric: true, sensitivity: "base" });
 const EVENT_MANAGER_SESSION_KEY = "cutinapp.eventManager.session.v1";
+const EVENT_PAGE_SIZE = 12;
+
+const TIME_FILTERS = [
+  { key: "all", label: "Todos" },
+  { key: "today", label: "Hoje" },
+  { key: "7d", label: "7 dias" },
+  { key: "30d", label: "30 dias" },
+  { key: "90d", label: "90 dias" },
+  { key: "past", label: "Encerrados" },
+];
+
+const eventStartTimestamp = (event) => {
+  const timestamp = new Date(event?.start_date || "").getTime();
+  return Number.isFinite(timestamp) ? timestamp : null;
+};
+
+const eventEndTimestamp = (event) => {
+  const timestamp = new Date(event?.end_date || event?.start_date || "").getTime();
+  return Number.isFinite(timestamp) ? timestamp : null;
+};
+
+const matchesTimeFilter = (event, filter, now = new Date()) => {
+  if (filter === "all") return true;
+
+  const start = eventStartTimestamp(event);
+  const end = eventEndTimestamp(event);
+  if (filter === "past") return end !== null && end < now.getTime();
+  if (start === null) return false;
+
+  const dayStart = new Date(now);
+  dayStart.setHours(0, 0, 0, 0);
+  const nextDay = new Date(dayStart);
+  nextDay.setDate(nextDay.getDate() + 1);
+
+  if (filter === "today") return start >= dayStart.getTime() && start < nextDay.getTime();
+
+  const days = Number.parseInt(filter, 10);
+  if (!Number.isFinite(days)) return true;
+  const limit = new Date(dayStart);
+  limit.setDate(limit.getDate() + days);
+  return start >= dayStart.getTime() && start < limit.getTime();
+};
+
+const compareEventDateProximity = (left, right, now = Date.now()) => {
+  const leftTime = eventStartTimestamp(left);
+  const rightTime = eventStartTimestamp(right);
+
+  if (leftTime === null && rightTime === null) return collator.compare(String(left?.title || ""), String(right?.title || ""));
+  if (leftTime === null) return 1;
+  if (rightTime === null) return -1;
+
+  const leftUpcoming = leftTime >= now;
+  const rightUpcoming = rightTime >= now;
+  if (leftUpcoming !== rightUpcoming) return leftUpcoming ? -1 : 1;
+
+  const result = leftUpcoming ? leftTime - rightTime : rightTime - leftTime;
+  if (result !== 0) return result;
+  return collator.compare(String(left?.title || ""), String(right?.title || ""));
+};
 
 const WEEK_DAYS = [
   { value: 1, label: "Segunda-feira" },
@@ -35,21 +88,6 @@ const WEEK_DAYS = [
   { value: 5, label: "Sexta-feira" },
   { value: 6, label: "Sábado" },
   { value: 0, label: "Domingo" },
-];
-
-const SORT_COLUMNS = [
-  { key: "smart", label: "Prioridade" },
-  { key: "event", label: "Evento" },
-  { key: "production", label: "Produção" },
-  { key: "date", label: "Data" },
-  { key: "location", label: "Local" },
-  { key: "status", label: "Status" },
-  { key: "tickets", label: "Ingressos" },
-  { key: "revenue", label: "Faturamento" },
-  { key: "sales", label: "Vendas" },
-  { key: "health", label: "Saúde" },
-  { key: "readiness", label: "Preparação" },
-  { key: "nextAction", label: "Próxima ação" },
 ];
 
 const formatDate = (value) => value
@@ -69,8 +107,6 @@ const toDateInput = (value) => {
   const pad = (number) => String(number).padStart(2, "0");
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 };
-
-const eventLocation = (event) => event?.venue || event?.address || event?.city || "Não informado";
 
 const suggestedDuplicateDate = (event) => {
   const source = new Date(event?.start_date);
@@ -267,54 +303,6 @@ const getStatus = (event) => {
   return { key: "draft", label: "Rascunho", variant: "secondary" };
 };
 
-const sortValue = (event, key) => {
-  const readiness = getSalesReadiness(event);
-  switch (key) {
-    case "event":
-      return String(event?.title || "");
-    case "production":
-      return String(event?.production?.name || "");
-    case "date": {
-      const timestamp = new Date(event?.start_date || "").getTime();
-      return Number.isNaN(timestamp) ? null : timestamp;
-    }
-    case "location":
-      return eventLocation(event);
-    case "status":
-      return getStatus(event).label;
-    case "tickets":
-      return Number(event?.tickets_count || 0);
-    case "revenue":
-      return eventOperationalMetrics(event).grossSales;
-    case "sales":
-      return eventOperationalMetrics(event).ticketsSold;
-    case "health":
-      return eventHealth(event).score;
-    case "readiness":
-      return Number(readiness.completed || 0);
-    case "nextAction":
-      return String(event?.is_cancelled ? "Evento cancelado" : readiness.title || "");
-    default:
-      return "";
-  }
-};
-
-const compareSortValues = (left, right, direction) => {
-  const leftMissing = left === null || left === undefined || left === "";
-  const rightMissing = right === null || right === undefined || right === "";
-
-  if (leftMissing && rightMissing) return 0;
-  if (leftMissing) return 1;
-  if (rightMissing) return -1;
-
-  const multiplier = direction === "desc" ? -1 : 1;
-  if (typeof left === "number" && typeof right === "number") {
-    return (left - right) * multiplier;
-  }
-
-  return collator.compare(String(left), String(right)) * multiplier;
-};
-
 export default function EventManagePage() {
   const navigate = useNavigate();
   const [events, setEvents] = useState([]);
@@ -337,7 +325,6 @@ export default function EventManagePage() {
   const [publishedEvent, setPublishedEvent] = useState(null);
   const [copiedEventId, setCopiedEventId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [productionFilter, setProductionFilter] = useState("all");
   const [establishmentFilter, setEstablishmentFilter] = useState("all");
@@ -349,13 +336,13 @@ export default function EventManagePage() {
   const [artistFilter, setArtistFilter] = useState("all");
   const [salesFilter, setSalesFilter] = useState("all");
   const [inventoryFilter, setInventoryFilter] = useState("all");
+  const [timeFilter, setTimeFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
   const [viewMode, setViewMode] = useState("compact");
   const [groupByPeriod, setGroupByPeriod] = useState(true);
   const [sortConfig, setSortConfig] = useState({ key: "smart", direction: "asc" });
   const [pinnedEventIds, setPinnedEventIds] = useState([]);
   const [quickEvent, setQuickEvent] = useState(null);
-  const [displayLimit, setDisplayLimit] = useState(24);
-  const searchInputRef = useRef(null);
   const [bulkMoveOpen, setBulkMoveOpen] = useState(false);
   const [bulkTargetProductionId, setBulkTargetProductionId] = useState("");
   const [bulkActionError, setBulkActionError] = useState("");
@@ -396,11 +383,6 @@ export default function EventManagePage() {
     window.addEventListener("cutinapp:event-series-created", handleSeriesCreated);
     return () => window.removeEventListener("cutinapp:event-series-created", handleSeriesCreated);
   }, []);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => setDebouncedSearchTerm(searchTerm), 180);
-    return () => window.clearTimeout(timer);
-  }, [searchTerm]);
 
   useEffect(() => {
     const existingIds = new Set(events.map((event) => Number(event.id)));
@@ -491,10 +473,6 @@ export default function EventManagePage() {
   }, [searchTerm, statusFilter, productionFilter, establishmentFilter, cityFilter, periodFilter, dateFrom, dateTo, performanceFilter, artistFilter, salesFilter, inventoryFilter]);
 
   useEffect(() => {
-    setDisplayLimit(24);
-  }, [debouncedSearchTerm, statusFilter, productionFilter, establishmentFilter, cityFilter, periodFilter, dateFrom, dateTo, performanceFilter, artistFilter, salesFilter, inventoryFilter, sortConfig, groupByPeriod]);
-
-  useEffect(() => {
     const restore = Number(window.sessionStorage.getItem("cutinapp.eventManager.scrollY") || 0);
     if (restore > 0) window.requestAnimationFrame(() => window.scrollTo({ top: restore, behavior: "auto" }));
     const persist = () => window.sessionStorage.setItem("cutinapp.eventManager.scrollY", String(window.scrollY || 0));
@@ -511,7 +489,7 @@ export default function EventManagePage() {
       const typing = ["input", "textarea", "select"].includes(tag) || event.target?.isContentEditable;
       if (event.key === "/" && !typing) {
         event.preventDefault();
-        searchInputRef.current?.focus();
+        navigate("/search");
         return;
       }
       if (event.key.toLowerCase() === "n" && !typing && !event.ctrlKey && !event.metaKey && !event.altKey) {
@@ -808,48 +786,6 @@ export default function EventManagePage() {
     }
   };
 
-  const stats = useMemo(() => ({
-    total: events.length,
-    published: events.filter((event) => getStatus(event).key === "published").length,
-    draft: events.filter((event) => getStatus(event).key === "draft").length,
-    ended: events.filter((event) => getStatus(event).key === "past").length,
-    attention: events.filter((event) => !event.is_cancelled && !event.has_ended && (getSalesReadiness(event).completed < 3 || eventPerformance(event).rank <= 3)).length,
-    cancelled: events.filter((event) => getStatus(event).key === "cancelled").length,
-  }), [events]);
-
-  const applySummaryFilter = (status = "all", period = "all") => {
-    // Os cards do resumo representam totais globais. Ao clicar neles,
-    // removemos filtros ocultos/persistidos para que a lista corresponda
-    // exatamente ao número exibido no card (ex.: 3 publicados => 3 itens).
-    setSearchTerm("");
-    setStatusFilter(status);
-    setProductionFilter("all");
-    setEstablishmentFilter("all");
-    setCityFilter("all");
-    setPeriodFilter(period);
-    setDateFrom("");
-    setDateTo("");
-    setPerformanceFilter("all");
-    setArtistFilter("all");
-    setSalesFilter("all");
-    setInventoryFilter("all");
-  };
-
-  const clearFilters = () => {
-    setSearchTerm("");
-    setStatusFilter("all");
-    setProductionFilter("all");
-    setEstablishmentFilter("all");
-    setCityFilter("all");
-    setPeriodFilter("all");
-    setDateFrom("");
-    setDateTo("");
-    setPerformanceFilter("all");
-    setArtistFilter("all");
-    setSalesFilter("all");
-    setInventoryFilter("all");
-  };
-
   const filterOptions = useMemo(() => {
     const productionMap = new Map();
     const artistMap = new Map();
@@ -874,25 +810,6 @@ export default function EventManagePage() {
     };
   }, [events]);
 
-  const portfolioMetrics = useMemo(() => events.reduce((summary, event) => {
-    const metrics = eventOperationalMetrics(event);
-    const upcoming = !event.is_cancelled && !event.has_ended && new Date(event.end_date || event.start_date || 0).getTime() >= Date.now();
-    summary.grossSales += metrics.grossSales;
-    summary.salesToday += metrics.grossSalesToday;
-    summary.ticketsSold += metrics.ticketsSold;
-    summary.ticketsRemaining += metrics.ticketsRemaining;
-    summary.pendingOrders += metrics.pendingOrders;
-    if (upcoming) summary.upcomingGrossSales += metrics.grossSales;
-    return summary;
-  }, {
-    grossSales: 0,
-    upcomingGrossSales: 0,
-    salesToday: 0,
-    ticketsSold: 0,
-    ticketsRemaining: 0,
-    pendingOrders: 0,
-  }), [events]);
-
   const bulkCandidates = useMemo(
     () => events.filter(isBulkPublishable),
     [events],
@@ -903,118 +820,26 @@ export default function EventManagePage() {
     [events],
   );
 
-  const visibleEvents = useMemo(() => {
-    const normalizedSearch = debouncedSearchTerm.trim().toLocaleLowerCase("pt-BR");
-    const pinned = new Set(pinnedEventIds.map(Number));
+  const visibleEvents = useMemo(() => (
+    [...events]
+      .filter((event) => matchesTimeFilter(event, timeFilter))
+      .sort((left, right) => compareEventDateProximity(left, right))
+  ), [events, timeFilter]);
 
-    const filtered = events.filter((event) => {
-      const status = getStatus(event);
-      const readiness = getSalesReadiness(event);
-      const performance = eventPerformance(event);
-      const temporal = eventTemporalGroup(event);
-      const productionId = String(event?.production?.id || event?.production_id || "");
-      const metrics = eventOperationalMetrics(event);
-      const artistIds = (Array.isArray(event?.artists) ? event.artists : []).map((artist) => String(artist.id));
-      const matchesStatus = statusFilter === "all"
-        || status.key === statusFilter
-        || (statusFilter === "attention" && !event.is_cancelled && (readiness.completed < 3 || performance.rank <= 3));
-      const matchesProduction = productionFilter === "all" || productionId === String(productionFilter);
-      const eventEstablishment = String(event?.establishment_name || event?.venue || "").trim();
-      const matchesEstablishment = establishmentFilter === "all" || eventEstablishment === establishmentFilter;
-      const matchesCity = cityFilter === "all" || String(event?.city || "") === cityFilter;
-      const matchesPeriod = periodFilter === "all" || temporal.key === periodFilter;
-      const eventStart = new Date(event?.start_date || "");
-      const fromDate = dateFrom ? new Date(`${dateFrom}T00:00:00`) : null;
-      const toDate = dateTo ? new Date(`${dateTo}T23:59:59`) : null;
-      const matchesDateFrom = !fromDate || (Number.isFinite(eventStart.getTime()) && eventStart >= fromDate);
-      const matchesDateTo = !toDate || (Number.isFinite(eventStart.getTime()) && eventStart <= toDate);
-      const matchesPerformance = performanceFilter === "all" || performance.key === performanceFilter;
-      const matchesArtist = artistFilter === "all" || artistIds.includes(String(artistFilter));
-      const matchesSales = salesFilter === "all"
-        || (salesFilter === "with_sales" && metrics.ticketsSold > 0)
-        || (salesFilter === "no_sales" && metrics.ticketsSold === 0);
-      const matchesInventory = inventoryFilter === "all"
-        || (inventoryFilter === "available" && metrics.ticketsRemaining > 0)
-        || (inventoryFilter === "sold_out" && metrics.ticketCapacity > 0 && metrics.ticketsRemaining === 0);
-      const searchableDate = Number.isFinite(eventStart.getTime())
-        ? new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" }).format(eventStart)
-        : "";
+  const totalPages = Math.max(1, Math.ceil(visibleEvents.length / EVENT_PAGE_SIZE));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const renderedEvents = useMemo(() => {
+    const offset = (safeCurrentPage - 1) * EVENT_PAGE_SIZE;
+    return visibleEvents.slice(offset, offset + EVENT_PAGE_SIZE);
+  }, [visibleEvents, safeCurrentPage]);
 
-      if (!matchesStatus || !matchesProduction || !matchesEstablishment || !matchesCity || !matchesPeriod || !matchesDateFrom || !matchesDateTo || !matchesPerformance || !matchesArtist || !matchesSales || !matchesInventory) return false;
-      if (!normalizedSearch) return true;
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [timeFilter]);
 
-      return [
-        event.title,
-        event.production?.name,
-        eventLocation(event),
-        event.city,
-        event.uf,
-        status.label,
-        readiness.title,
-        performance.label,
-        searchableDate,
-        formatDate(event.start_date),
-        ...(Array.isArray(event?.artists) ? event.artists.map((artist) => artist?.stage_name) : []),
-      ]
-        .filter(Boolean)
-        .some((value) => String(value).toLocaleLowerCase("pt-BR").includes(normalizedSearch));
-    });
-
-    return [...filtered].sort((a, b) => {
-      if (sortConfig.key === "smart") {
-        const result = compareSmartRanks(
-          smartEventRank(a, pinned.has(Number(a.id))),
-          smartEventRank(b, pinned.has(Number(b.id))),
-        );
-        return sortConfig.direction === "desc" ? -result : result;
-      }
-
-      const result = compareSortValues(
-        sortValue(a, sortConfig.key),
-        sortValue(b, sortConfig.key),
-        sortConfig.direction,
-      );
-
-      if (result !== 0) return result;
-      return collator.compare(String(a?.title || ""), String(b?.title || ""));
-    });
-  }, [
-    events,
-    debouncedSearchTerm,
-    statusFilter,
-    productionFilter,
-    establishmentFilter,
-    cityFilter,
-    periodFilter,
-    dateFrom,
-    dateTo,
-    performanceFilter,
-    artistFilter,
-    salesFilter,
-    inventoryFilter,
-    sortConfig,
-    pinnedEventIds,
-  ]);
-
-  const renderedEvents = useMemo(
-    () => visibleEvents.slice(0, displayLimit),
-    [visibleEvents, displayLimit],
-  );
-
-  const renderedGroups = useMemo(() => {
-    if (!groupByPeriod) return [{ key: "all", label: "Eventos", events: renderedEvents }];
-    const groups = new Map();
-    const pinned = new Set(pinnedEventIds.map(Number));
-    renderedEvents.forEach((event) => {
-      const group = pinned.has(Number(event.id))
-        ? { key: "pinned", label: "Fixados", order: -10 }
-        : eventTemporalGroup(event);
-      const current = groups.get(group.key) || { ...group, events: [] };
-      current.events.push(event);
-      groups.set(group.key, current);
-    });
-    return [...groups.values()].sort((a, b) => a.order - b.order);
-  }, [renderedEvents, groupByPeriod, pinnedEventIds]);
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
 
   const selectedEventIdSet = useMemo(
     () => new Set(selectedEventIds.map((id) => Number(id))),
@@ -1293,18 +1118,6 @@ export default function EventManagePage() {
     if (readiness.route) navigate(readiness.route);
   };
 
-  const handleSort = (key) => {
-    setSortConfig((current) => ({
-      key,
-      direction: current.key === key && current.direction === "asc" ? "desc" : "asc",
-    }));
-  };
-
-  const sortIcon = (key) => {
-    if (sortConfig.key !== key) return "fa-solid fa-sort";
-    return sortConfig.direction === "asc" ? "fa-solid fa-arrow-up" : "fa-solid fa-arrow-down";
-  };
-
   const duplicating = String(busyId).startsWith("duplicate-");
   const deletingOne = /^delete-\d+$/.test(String(busyId));
   const deletingAll = busyId === "delete-all";
@@ -1430,127 +1243,25 @@ export default function EventManagePage() {
           </Card>
         ) : (
           <>
-            <section className="cut-event-manager-summary" aria-label="Filtrar por situação">
-              <button type="button" className={statusFilter === "all" && periodFilter === "all" ? "is-active" : ""} onClick={() => applySummaryFilter("all")}>
-                <i className="fa-solid fa-layer-group" /><span>Todos</span><strong>{stats.total}</strong>
-              </button>
-              <button type="button" className={statusFilter === "attention" ? "is-active is-priority" : "is-priority"} onClick={() => applySummaryFilter("attention")}>
-                <i className="fa-solid fa-bolt" /><span>Precisa de ação</span><strong>{stats.attention}</strong>
-              </button>
-              <button type="button" className={statusFilter === "published" ? "is-active" : ""} onClick={() => applySummaryFilter("published")}>
-                <i className="fa-solid fa-circle-check" /><span>Publicados</span><strong>{stats.published}</strong>
-              </button>
-              <button type="button" className={statusFilter === "draft" ? "is-active" : ""} onClick={() => applySummaryFilter("draft")}>
-                <i className="fa-solid fa-pen-ruler" /><span>Rascunhos</span><strong>{stats.draft}</strong>
-              </button>
-              {stats.ended > 0 && <button type="button" className={periodFilter === "past" ? "is-active" : ""} onClick={() => applySummaryFilter("all", "past")}><i className="fa-solid fa-clock-rotate-left" /><span>Encerrados</span><strong>{stats.ended}</strong></button>}
-              {stats.cancelled > 0 && <button type="button" className={statusFilter === "cancelled" ? "is-active" : ""} onClick={() => applySummaryFilter("cancelled")}><i className="fa-solid fa-ban" /><span>Cancelados</span><strong>{stats.cancelled}</strong></button>}
+            <section className="cut-event-timebar" aria-label="Filtrar eventos por tempo">
+              <div className="cut-event-timebar__filters">
+                <span className="cut-event-timebar__label"><i className="fa-regular fa-clock" />Período</span>
+                {TIME_FILTERS.map((filter) => (
+                  <button
+                    type="button"
+                    key={filter.key}
+                    className={timeFilter === filter.key ? "is-active" : ""}
+                    onClick={() => setTimeFilter(filter.key)}
+                    aria-pressed={timeFilter === filter.key}
+                  >
+                    {filter.label}
+                  </button>
+                ))}
+              </div>
+              <Button type="button" variant="outline-light" className="cut-event-timebar__search" onClick={() => navigate("/search")}>
+                <i className="fa-solid fa-magnifying-glass me-2" />Pesquisar
+              </Button>
             </section>
-
-            <details className="cut-event-commerce-summary">
-              <summary>
-                <span><i className="fa-solid fa-chart-line" />Resumo comercial</span>
-                <small>{moneyBR(portfolioMetrics.upcomingGrossSales)} em próximos eventos · {portfolioMetrics.ticketsSold.toLocaleString("pt-BR")} ingresso(s) vendidos</small>
-              </summary>
-              <section className="cut-event-portfolio-metrics" aria-label="Resumo comercial dos eventos">
-                <div><span><i className="fa-solid fa-chart-line" />Faturamento próximos eventos</span><strong>{moneyBR(portfolioMetrics.upcomingGrossSales)}</strong></div>
-                <div><span><i className="fa-solid fa-bolt" />Vendas hoje</span><strong>{moneyBR(portfolioMetrics.salesToday)}</strong></div>
-                <div><span><i className="fa-solid fa-ticket" />Ingressos vendidos</span><strong>{portfolioMetrics.ticketsSold.toLocaleString("pt-BR")}</strong></div>
-                <div><span><i className="fa-solid fa-layer-group" />Ingressos restantes</span><strong>{portfolioMetrics.ticketsRemaining.toLocaleString("pt-BR")}</strong></div>
-                {portfolioMetrics.pendingOrders > 0 && <div className="is-warning"><span><i className="fa-regular fa-clock" />Checkouts pendentes</span><strong>{portfolioMetrics.pendingOrders}</strong></div>}
-              </section>
-            </details>
-
-            <EventAttentionCenter
-              events={events}
-              onOpen={setQuickEvent}
-              onResolve={(event, alert) => {
-                if (alert?.route) navigate(alert.route);
-                else if (alert?.mode === "whatsapp") shareWhatsApp(event);
-                else if (alert?.mode === "publish") publication(event);
-                else setQuickEvent(event);
-              }}
-            />
-
-            <section className="cut-event-manager-toolbar">
-              <div className="cut-event-manager-search">
-                <i className="fa-solid fa-magnifying-glass" aria-hidden="true" />
-                <Form.Control
-                  ref={searchInputRef}
-                  type="search"
-                  placeholder="Buscar evento, artista, produção, cidade ou local · atalho /"
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  aria-label="Buscar meus eventos"
-                />
-              </div>
-
-              <div className="cut-event-manager-toolbar__right">
-                <Dropdown align="end">
-                  <Dropdown.Toggle variant="outline-light" className="cut-event-toolbar-control">
-                    <i className="fa-solid fa-arrow-down-wide-short me-2" />
-                    {SORT_COLUMNS.find((item) => item.key === sortConfig.key)?.label || "Prioridade"}
-                  </Dropdown.Toggle>
-                  <Dropdown.Menu className="cut-event-toolbar-menu">
-                    {SORT_COLUMNS.map((column) => <Dropdown.Item key={column.key} active={sortConfig.key === column.key} onClick={() => handleSort(column.key)}>
-                      {column.label}{sortConfig.key === column.key && <i className={`${sortIcon(column.key)} ms-auto`} />}
-                    </Dropdown.Item>)}
-                  </Dropdown.Menu>
-                </Dropdown>
-                <Dropdown align="end">
-                  <Dropdown.Toggle variant="outline-light" className="cut-event-toolbar-control">
-                    <i className="fa-solid fa-eye me-2" />
-                    {viewMode === "compact" ? "Lista" : viewMode === "visual" ? "Grade" : viewMode === "calendar" ? "Calendário" : "Linha do tempo"}
-                  </Dropdown.Toggle>
-                  <Dropdown.Menu className="cut-event-toolbar-menu">
-                    <Dropdown.Item active={viewMode === "compact"} onClick={() => setViewMode("compact")}><i className="fa-solid fa-list" />Lista operacional</Dropdown.Item>
-                    <Dropdown.Item active={viewMode === "visual"} onClick={() => setViewMode("visual")}><i className="fa-solid fa-table-cells-large" />Grade visual</Dropdown.Item>
-                    <Dropdown.Item active={viewMode === "calendar"} onClick={() => setViewMode("calendar")}><i className="fa-regular fa-calendar-days" />Calendário</Dropdown.Item>
-                    <Dropdown.Item active={viewMode === "timeline"} onClick={() => setViewMode("timeline")}><i className="fa-solid fa-timeline" />Linha do tempo</Dropdown.Item>
-                  </Dropdown.Menu>
-                </Dropdown>
-                <button type="button" className={`cut-event-group-toggle${groupByPeriod ? " is-active" : ""}`} onClick={() => setGroupByPeriod((current) => !current)} title="Agrupar por período">
-                  <i className="fa-solid fa-layer-group" />
-                </button>
-                {(searchTerm || statusFilter !== "all" || productionFilter !== "all" || establishmentFilter !== "all" || cityFilter !== "all" || periodFilter !== "all" || dateFrom || dateTo || performanceFilter !== "all" || artistFilter !== "all" || salesFilter !== "all" || inventoryFilter !== "all") && (
-                  <Button variant="outline-light" onClick={clearFilters}>
-                    <i className="fa-solid fa-filter-circle-xmark me-2" />Limpar
-                  </Button>
-                )}
-              </div>
-            </section>
-
-            <details className="cut-event-advanced-filters">
-              <summary><span><i className="fa-solid fa-sliders" />Filtros</span><small>Produção, artista, cidade, vendas, estoque, período e desempenho</small></summary>
-              <div className="cut-event-advanced-filters__grid">
-                <Form.Group><Form.Label>Status</Form.Label><Form.Select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="all">Todos os status</option><option value="attention">Precisa de ação</option><option value="published">Publicado</option><option value="draft">Rascunho</option><option value="ongoing">Em andamento</option><option value="past">Encerrado</option><option value="cancelled">Cancelado</option></Form.Select></Form.Group>
-                <Form.Group><Form.Label>Produção</Form.Label><Form.Select value={productionFilter} onChange={(event) => setProductionFilter(event.target.value)}><option value="all">Todas as produções</option>{filterOptions.productions.map((production) => <option key={production.id} value={production.id}>{production.name}</option>)}</Form.Select></Form.Group>
-                <Form.Group><Form.Label>Artista</Form.Label><Form.Select value={artistFilter} onChange={(event) => setArtistFilter(event.target.value)}><option value="all">Todos os artistas</option>{filterOptions.artists.map((artist) => <option key={artist.id} value={artist.id}>{artist.name}</option>)}</Form.Select></Form.Group>
-                <Form.Group><Form.Label>Estabelecimento / local</Form.Label><Form.Select value={establishmentFilter} onChange={(event) => setEstablishmentFilter(event.target.value)}><option value="all">Todos os locais</option>{filterOptions.establishments.map((name) => <option key={name} value={name}>{name}</option>)}</Form.Select></Form.Group>
-                <Form.Group><Form.Label>Cidade</Form.Label><Form.Select value={cityFilter} onChange={(event) => setCityFilter(event.target.value)}><option value="all">Todas as cidades</option>{filterOptions.cities.map((city) => <option key={city} value={city}>{city}</option>)}</Form.Select></Form.Group>
-                <Form.Group><Form.Label>Vendas</Form.Label><Form.Select value={salesFilter} onChange={(event) => setSalesFilter(event.target.value)}><option value="all">Com ou sem vendas</option><option value="with_sales">Com vendas</option><option value="no_sales">Sem vendas</option></Form.Select></Form.Group>
-                <Form.Group><Form.Label>Ingressos</Form.Label><Form.Select value={inventoryFilter} onChange={(event) => setInventoryFilter(event.target.value)}><option value="all">Qualquer estoque</option><option value="available">Disponíveis</option><option value="sold_out">Esgotados</option></Form.Select></Form.Group>
-                <Form.Group><Form.Label>Período</Form.Label><Form.Select value={periodFilter} onChange={(event) => setPeriodFilter(event.target.value)}><option value="all">Qualquer período</option><option value="today">Hoje</option><option value="tomorrow">Amanhã</option><option value="week">Próximos 7 dias</option><option value="upcoming">Próximos</option><option value="past">Encerrados</option><option value="cancelled">Cancelados</option></Form.Select></Form.Group>
-                <Form.Group><Form.Label>De</Form.Label><Form.Control type="date" value={dateFrom} max={dateTo || undefined} onChange={(event) => setDateFrom(event.target.value)} /></Form.Group>
-                <Form.Group><Form.Label>Até</Form.Label><Form.Control type="date" value={dateTo} min={dateFrom || undefined} onChange={(event) => setDateTo(event.target.value)} /></Form.Group>
-                <Form.Group><Form.Label>Performance</Form.Label><Form.Select value={performanceFilter} onChange={(event) => setPerformanceFilter(event.target.value)}><option value="all">Qualquer desempenho</option><option value="strong">Vendendo bem</option><option value="selling">Com vendas</option><option value="almost_sold_out">Quase esgotado</option><option value="sold_out">Esgotado</option><option value="no_sales">Sem vendas</option><option value="low_conversion">Baixa conversão</option><option value="critical">Crítico</option><option value="draft">Não publicado</option></Form.Select></Form.Group>
-              </div>
-            </details>
-
-            {(statusFilter !== "all" || productionFilter !== "all" || artistFilter !== "all" || establishmentFilter !== "all" || cityFilter !== "all" || periodFilter !== "all" || dateFrom || dateTo || performanceFilter !== "all" || salesFilter !== "all" || inventoryFilter !== "all") && (
-              <div className="cut-event-active-filters" aria-label="Filtros ativos">
-                {statusFilter !== "all" && <button type="button" onClick={() => setStatusFilter("all")}>Status: {statusFilter === "attention" ? "Precisa de ação" : statusFilter === "published" ? "Publicado" : statusFilter === "draft" ? "Rascunho" : statusFilter === "ongoing" ? "Em andamento" : statusFilter === "past" ? "Encerrado" : "Cancelado"}<i className="fa-solid fa-xmark" /></button>}
-                {productionFilter !== "all" && <button type="button" onClick={() => setProductionFilter("all")}>Produção: {filterOptions.productions.find((item) => String(item.id) === String(productionFilter))?.name || productionFilter}<i className="fa-solid fa-xmark" /></button>}
-                {artistFilter !== "all" && <button type="button" onClick={() => setArtistFilter("all")}>Artista: {filterOptions.artists.find((item) => String(item.id) === String(artistFilter))?.name || artistFilter}<i className="fa-solid fa-xmark" /></button>}
-                {establishmentFilter !== "all" && <button type="button" onClick={() => setEstablishmentFilter("all")}>Local: {establishmentFilter}<i className="fa-solid fa-xmark" /></button>}
-                {cityFilter !== "all" && <button type="button" onClick={() => setCityFilter("all")}>{cityFilter}<i className="fa-solid fa-xmark" /></button>}
-                {periodFilter !== "all" && <button type="button" onClick={() => setPeriodFilter("all")}>Período: {periodFilter}<i className="fa-solid fa-xmark" /></button>}
-                {salesFilter !== "all" && <button type="button" onClick={() => setSalesFilter("all")}>{salesFilter === "with_sales" ? "Com vendas" : "Sem vendas"}<i className="fa-solid fa-xmark" /></button>}
-                {inventoryFilter !== "all" && <button type="button" onClick={() => setInventoryFilter("all")}>{inventoryFilter === "available" ? "Ingressos disponíveis" : "Esgotados"}<i className="fa-solid fa-xmark" /></button>}
-                {performanceFilter !== "all" && <button type="button" onClick={() => setPerformanceFilter("all")}>Desempenho: {performanceFilter}<i className="fa-solid fa-xmark" /></button>}
-                {(dateFrom || dateTo) && <button type="button" onClick={() => { setDateFrom(""); setDateTo(""); }}>Data: {dateFrom || "…"} → {dateTo || "…"}<i className="fa-solid fa-xmark" /></button>}
-              </div>
-            )}
 
             {bulkActionError && <Alert variant="warning" className="cut-event-bulk-feedback">{bulkActionError}</Alert>}
 
@@ -1592,61 +1303,60 @@ export default function EventManagePage() {
 
             {visibleEvents.length === 0 ? (
               <div className="cut-event-manager-no-results">
-                <i className="fa-solid fa-filter-circle-xmark" />
-                <strong>Nenhum evento encontrado</strong>
-                <span>Ajuste a busca ou remova o filtro para ver seus eventos.</span>
-                <Button size="sm" variant="outline-light" onClick={clearFilters}>Limpar filtros</Button>
+                <i className="fa-regular fa-calendar-xmark" />
+                <strong>Nenhum evento neste período</strong>
+                <span>Escolha outro período para ver seus eventos.</span>
+                <Button size="sm" variant="outline-light" onClick={() => setTimeFilter("all")}>Mostrar todos</Button>
               </div>
             ) : (
-              <>
-                <section className={`cut-producer-event-groups is-${viewMode}`} aria-label="Gerenciamento de eventos">
-                  <div className="cut-event-list-context">
-                    <span><strong>{visibleEvents.length}</strong> evento(s) encontrado(s)</span>
-                    <small>Ordenação: {SORT_COLUMNS.find((item) => item.key === sortConfig.key)?.label || "Prioridade"}</small>
+              <section className="cut-producer-event-groups is-compact" aria-label="Gerenciamento de eventos">
+                <div className="cut-event-list-context">
+                  <span><strong>{visibleEvents.length}</strong> evento(s)</span>
+                  <small>Mais próximos primeiro</small>
+                </div>
+                <div className="cut-producer-event-list-head" aria-hidden="true">
+                  <span></span><span></span><span>Evento</span><span>Artistas</span><span>Status</span><span>Vendas</span><span>Pendências</span><span>Ações</span>
+                </div>
+                <div className="cut-producer-event-list">
+                  {renderedEvents.map((event) => {
+                    const readiness = getSalesReadiness(event);
+                    const status = getStatus(event);
+                    return <ProducerEventCard
+                      key={event.id}
+                      event={event}
+                      readiness={readiness}
+                      status={status}
+                      selected={selectedEventIdSet.has(Number(event.id))}
+                      pinned={pinnedEventIds.includes(Number(event.id))}
+                      viewMode="compact"
+                      disabled={isEventBusy(event.id) || bulkBusy}
+                      actions={renderActions(event)}
+                      onToggleSelected={toggleEventSelection}
+                      onTogglePin={togglePinnedEvent}
+                      onQuickView={setQuickEvent}
+                      onEdit={(item) => navigate(`/event/edit/${item.id}`)}
+                      onPrimaryAction={runPrimaryAction}
+                      onDuplicate={openDuplicate}
+                      onArtistOpen={(artist) => artist?.slug && navigate(`/artist/${artist.slug}`)}
+                    />;
+                  })}
+                </div>
+                <footer className="cut-event-pagination" aria-label="Paginação dos eventos">
+                  <span>
+                    Página <strong>{safeCurrentPage}</strong> de <strong>{totalPages}</strong>
+                    {" · "}
+                    {((safeCurrentPage - 1) * EVENT_PAGE_SIZE) + 1}–{Math.min(safeCurrentPage * EVENT_PAGE_SIZE, visibleEvents.length)} de {visibleEvents.length}
+                  </span>
+                  <div className="cut-event-pagination__actions">
+                    <Button variant="outline-light" size="sm" onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} disabled={safeCurrentPage <= 1}>
+                      <i className="fa-solid fa-chevron-left me-2" />Anterior
+                    </Button>
+                    <Button variant="outline-light" size="sm" onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))} disabled={safeCurrentPage >= totalPages}>
+                      Próxima<i className="fa-solid fa-chevron-right ms-2" />
+                    </Button>
                   </div>
-                  {viewMode === "compact" && <div className="cut-producer-event-list-head" aria-hidden="true">
-                    <span></span><span></span><span>Evento</span><span>Artistas</span><span>Status</span><span>Vendas</span><span>Pendências</span><span>Ações</span>
-                  </div>}
-                  {renderedGroups.map((group) => (
-                    <div className="cut-producer-event-group" key={group.key}>
-                      <header className="cut-producer-event-group__heading">
-                        <div><span>{group.label}</span><strong>{group.events.length}</strong></div>
-                        {group.key !== "all" && <small>Organizado automaticamente pela data do evento</small>}
-                      </header>
-                      <div className="cut-producer-event-list">
-                        {group.events.map((event) => {
-                          const readiness = getSalesReadiness(event);
-                          const status = getStatus(event);
-                          return <ProducerEventCard
-                            key={event.id}
-                            event={event}
-                            readiness={readiness}
-                            status={status}
-                            selected={selectedEventIdSet.has(Number(event.id))}
-                            pinned={pinnedEventIds.includes(Number(event.id))}
-                            viewMode={viewMode}
-                            disabled={isEventBusy(event.id) || bulkBusy}
-                            actions={renderActions(event)}
-                            onToggleSelected={toggleEventSelection}
-                            onTogglePin={togglePinnedEvent}
-                            onQuickView={setQuickEvent}
-                            onEdit={(item) => navigate(`/event/edit/${item.id}`)}
-                            onPrimaryAction={runPrimaryAction}
-                            onDuplicate={openDuplicate}
-                            onArtistOpen={(artist) => artist?.slug && navigate(`/artist/${artist.slug}`)}
-                          />;
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                  <footer className="cut-event-incremental-footer">
-                    <span>Exibindo <strong>{renderedEvents.length}</strong> de <strong>{visibleEvents.length}</strong> evento(s) filtrado(s) · {events.length} no total</span>
-                    {renderedEvents.length < visibleEvents.length && (
-                      <Button variant="outline-light" onClick={() => setDisplayLimit((current) => Math.min(current + 24, visibleEvents.length))}><i className="fa-solid fa-chevron-down me-2" />Carregar mais 24</Button>
-                    )}
-                  </footer>
-                </section>
-              </>
+                </footer>
+              </section>
             )}
           </>
         )}
