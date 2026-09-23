@@ -27,7 +27,22 @@ const eventStableKey = (event) => {
     .join("|");
   return `fallback:${fingerprint || "event"}`;
 };
-const uniqueEvents = (events, maxItems) => { const seen = new Set(); const result = []; for (const event of Array.isArray(events) ? events : []) { const key = eventStableKey(event); if (seen.has(key)) continue; seen.add(key); result.push(event); if (result.length >= maxItems) break; } return result; };
+const eventTimestamp = (event) => parsePortableEventDate(eventStartValue(event))?.getTime() ?? Number.POSITIVE_INFINITY;
+const uniqueEvents = (events, maxItems) => {
+  const seen = new Set();
+  const result = [];
+  const ordered = (Array.isArray(events) ? events : [])
+    .map((event, sourceIndex) => ({ event, sourceIndex, timestamp: eventTimestamp(event) }))
+    .sort((a, b) => (a.timestamp - b.timestamp) || (a.sourceIndex - b.sourceIndex));
+  for (const { event } of ordered) {
+    const key = eventStableKey(event);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(event);
+    if (result.length >= maxItems) break;
+  }
+  return result;
+};
 const eventDateMeta = (event) => { const date = parsePortableEventDate(eventStartValue(event)); if (!date) return { label: "Data a confirmar", dateTime: null }; return { label: new Intl.DateTimeFormat("pt-BR", { weekday: "short", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(date), dateTime: date.toISOString() }; };
 const categoryLabels = (event) => [event?.categories, event?.category, event?.event_category, event?.genres, event?.genre, event?.music_genre].flatMap((source) => (Array.isArray(source) ? source : source ? [source] : [])).map((value) => (typeof value === "string" ? value : value?.name || value?.title || value?.label)).map((value) => String(value || "").trim()).filter(Boolean).filter((value, index, items) => items.indexOf(value) === index).slice(0, 2);
 const numericPrice = (value) => { if (typeof value === "number") return Number.isFinite(value) ? value : null; const raw = String(value ?? "").trim().replace(/[^\d,.-]/g, ""); if (!raw) return null; const comma = raw.lastIndexOf(","); const dot = raw.lastIndexOf("."); let normalized = raw; if (comma >= 0 && dot >= 0) { const decimal = comma > dot ? "," : "."; const grouping = decimal === "," ? /\./g : /,/g; normalized = raw.replace(grouping, "").replace(decimal, "."); } else if (comma >= 0) normalized = raw.replace(/\./g, "").replace(",", "."); else if ((raw.match(/\./g) || []).length > 1) normalized = raw.replace(/\./g, ""); const parsed = Number(normalized); return Number.isFinite(parsed) ? parsed : null; };
