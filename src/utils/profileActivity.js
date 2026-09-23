@@ -57,8 +57,10 @@ export const normalizeEventMemory = (event) => {
     return viewerCanSee(photo) && Boolean(photo?.url || photo?.path);
   });
   const publications = asArray(event.publications ?? event.posts).filter((post) => post?.id && viewerCanSee(post));
-  const reviewCandidate = event.viewer_review || event.my_review || null;
-  const viewerReview = reviewCandidate && viewerCanSee(reviewCandidate) ? reviewCandidate : null;
+  // Some API payloads can contain both aliases while applying visibility at
+  // the nested review level. Never let a hidden alias mask a visible one.
+  const viewerReview = [event.viewer_review, event.my_review]
+    .find((review) => review && viewerCanSee(review)) || null;
   const viewerRating = event.viewer_rating ?? viewerReview?.rating ?? null;
 
   return {
