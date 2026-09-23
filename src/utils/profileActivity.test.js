@@ -17,6 +17,17 @@ describe("profile activity evidence rules", () => {
     expect(memories.map((event) => event.id)).toEqual([1]);
   });
 
+  test("memories accept portable SQL datetimes used by the API", () => {
+    const now = new Date(2026, 8, 22, 12, 0, 0).getTime();
+    const memories = deriveEventMemories([
+      { id: 1, title: "SQL", end_date: "2026-09-20 22:30:00" },
+      { id: 2, title: "SQL fractional", end_date: "2026-09-21 23:15:00.123456" },
+      { id: 3, title: "Future SQL", end_date: "2026-09-25 12:00:00" },
+    ], now);
+
+    expect(memories.map((event) => event.id)).toEqual([2, 1]);
+  });
+
   test("memory actions default to denied and private publications stay hidden", () => {
     const now = new Date("2026-09-22T12:00:00Z").getTime();
     const memories = deriveMemoryTimeline([
