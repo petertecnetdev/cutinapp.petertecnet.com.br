@@ -40,6 +40,18 @@ describe("chronological discovery", () => {
     expect(groups.map((group) => group.events[0].id)).toEqual([1, 2]);
   });
 
+  it("normalizes SQL datetime values with fractional seconds", () => {
+    expect(chronologicalBucketFor("2026-09-22 23:59:59.999999", now).title).toBe("Hoje");
+    expect(chronologicalBucketFor("2026-09-23 00:00:00.001", now).title).toBe("Amanhã");
+
+    const groups = groupEventsChronologically([
+      { id: 2, starts_at: "2026-09-23 00:00:00.001000" },
+      { id: 1, starts_at: "2026-09-22 23:59:59.999999" },
+    ], now);
+
+    expect(groups.map((group) => group.events[0].id)).toEqual([1, 2]);
+  });
+
   it("sorts events chronologically and keeps next week in one section", () => {
     const groups = groupEventsChronologically([
       { id: 4, starts_at: new Date(2026, 9, 1, 20, 0, 0) },
