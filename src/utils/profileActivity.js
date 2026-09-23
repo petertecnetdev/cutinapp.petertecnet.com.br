@@ -54,6 +54,11 @@ export const normalizeEventMemory = (event) => {
   const permissionCandidate = event.viewer_permissions ?? event.permissions ?? null;
   const permissions = permissionCandidate && viewerCanSee(permissionCandidate) ? permissionCandidate : {};
   const permissionsHidden = Boolean(permissionCandidate) && !viewerCanSee(permissionCandidate);
+  const scopedPermission = (key) => {
+    if (permissionsHidden) return false;
+    if (permissionCandidate) return explicitTrue(permissions[key]);
+    return explicitTrue(event[key]);
+  };
   const photos = asArray(event.photos).filter((photo) => {
     if (typeof photo === "string") return Boolean(photo);
     return viewerCanSee(photo) && Boolean(photo?.url || photo?.path);
@@ -74,8 +79,8 @@ export const normalizeEventMemory = (event) => {
     photos,
     publications,
     rating: viewerRating,
-    can_review: !permissionsHidden && explicitTrue(permissions.can_review ?? event.can_review),
-    can_publish: !permissionsHidden && explicitTrue(permissions.can_publish ?? event.can_publish),
+    can_review: scopedPermission("can_review"),
+    can_publish: scopedPermission("can_publish"),
   };
 };
 
