@@ -15,6 +15,19 @@ describe("chronological discovery", () => {
     expect(chronologicalBucketFor(event, now).key).toBe("date:2026-09-25");
   });
 
+  it("treats date-only API values as local calendar days", () => {
+    expect(chronologicalBucketFor("2026-09-22", now).title).toBe("Hoje");
+    expect(chronologicalBucketFor("2026-09-23", now).title).toBe("Amanhã");
+
+    const groups = groupEventsChronologically([
+      { id: 2, start_date: "2026-09-23" },
+      { id: 1, start_date: "2026-09-22" },
+    ], now);
+
+    expect(groups.map((group) => group.title)).toEqual(["Hoje", "Amanhã"]);
+    expect(groups.map((group) => group.events[0].id)).toEqual([1, 2]);
+  });
+
   it("sorts events chronologically and keeps next week in one section", () => {
     const groups = groupEventsChronologically([
       { id: 4, starts_at: "2026-10-01T20:00:00-03:00" },
