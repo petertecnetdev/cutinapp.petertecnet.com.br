@@ -39,7 +39,10 @@ export const deriveEventMemories = (events, now = Date.now()) => {
 export const normalizeEventMemory = (event) => {
   if (!event?.id || !viewerCanSee(event)) return null;
   const permissions = event.permissions || event.viewer_permissions || {};
-  const photos = asArray(event.photos).filter((photo) => photo?.url || photo?.path || typeof photo === "string");
+  const photos = asArray(event.photos).filter((photo) => {
+    if (typeof photo === "string") return Boolean(photo);
+    return viewerCanSee(photo) && Boolean(photo?.url || photo?.path);
+  });
   const publications = asArray(event.publications ?? event.posts).filter((post) => post?.id && viewerCanSee(post));
 
   return {
