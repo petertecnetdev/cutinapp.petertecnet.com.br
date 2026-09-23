@@ -65,10 +65,16 @@ export const deriveEventMemories = (events, now = Date.now()) => {
  * place/establishment that the API explicitly marked hidden for this viewer.
  * Place aliases are checked independently so a hidden `place` cannot mask an
  * authorized `establishment` returned by the same generic API payload.
+ * Permission containers are privacy-scoped too: a hidden viewer_permissions
+ * object can never grant review or publication actions through the client.
  */
 export const normalizeEventMemory = (event) => {
   if (!event?.id || !viewerCanSee(event)) return null;
-  const permissions = event.permissions || event.viewer_permissions || {};
+  const permissionCandidate = event.viewer_permissions ?? event.permissions ?? null;
+  const permissions = permissionCandidate && viewerCanSee(permissionCandidate)
+    ? permissionCandidate
+    : {};
+  const permissionsHidden = Boolean(permissionCandidate) && !viewerCanSee(permissionCandidate);
   const photos = asArray(event.photos).filter((photo) => {
     if (typeof photo === "string") return Boolean(photo);
     return viewerCanSee(photo) && Boolean(photo?.url || photo?.path);
@@ -93,8 +99,8 @@ export const normalizeEventMemory = (event) => {
     photos,
     publications,
     rating: viewerRating,
-    can_review: explicitTrue(permissions.can_review ?? event.can_review),
-    can_publish: explicitTrue(permissions.can_publish ?? event.can_publish),
+    can_review: !permissionsHidden && explicitTrue(permissions.can_review ?? event.can_review),
+    can_publish: !permissionsHidden && explicitTrue(permissions.can_publish ?? event.can_publish),
   };
 };
 
