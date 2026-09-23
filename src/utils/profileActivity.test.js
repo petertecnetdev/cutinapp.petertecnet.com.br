@@ -56,6 +56,20 @@ describe("profile activity evidence rules", () => {
     expect(memories[1].publications).toHaveLength(1);
   });
 
+  test("memory place falls back to a visible alias when the primary place is hidden", () => {
+    const now = new Date("2026-09-23T12:00:00Z").getTime();
+    const [memory] = deriveMemoryTimeline([
+      {
+        id: 20,
+        end_date: "2026-09-22T12:00:00Z",
+        place: { id: 1, name: "Oculto", viewer_can_see: false },
+        establishment: { id: 2, name: "Visível" },
+      },
+    ], now);
+
+    expect(memory.place).toEqual({ id: 2, name: "Visível" });
+  });
+
   test("memory rating uses only valid visible viewer-specific review evidence", () => {
     const now = new Date("2026-09-23T12:00:00Z").getTime();
     const memories = deriveMemoryTimeline([
