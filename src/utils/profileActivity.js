@@ -33,6 +33,11 @@ const usableMemoryImage = (image) => {
   return Boolean(image.url || image.path || image.src);
 };
 const visibleMemoryImage = (event) => [event?.image, event?.cover, event?.flyer].find(usableMemoryImage) ?? null;
+const usableMemoryPhoto = (photo) => {
+  if (typeof photo === "string") return photo.trim().length > 0;
+  if (!photo || typeof photo !== "object" || !viewerCanSee(photo)) return false;
+  return Boolean(photo.url || photo.path || photo.src);
+};
 
 /** Builds memories only from event records already authorized for this viewer. */
 export const deriveEventMemories = (events, now = Date.now()) => {
@@ -59,10 +64,7 @@ export const normalizeEventMemory = (event) => {
     if (permissionCandidate) return explicitTrue(permissions[key]);
     return explicitTrue(event[key]);
   };
-  const photos = asArray(event.photos).filter((photo) => {
-    if (typeof photo === "string") return Boolean(photo);
-    return viewerCanSee(photo) && Boolean(photo?.url || photo?.path);
-  });
+  const photos = asArray(event.photos).filter(usableMemoryPhoto);
   const publications = asArray(event.publications ?? event.posts).filter((post) => post?.id && viewerCanSee(post));
   const reviewAliases = [event.viewer_review, event.my_review].filter(Boolean);
   const viewerReview = reviewAliases.find((review) => viewerCanSee(review)) || null;
