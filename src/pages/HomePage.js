@@ -5,6 +5,7 @@ import eventService from "../services/EventService";
 import cutinappService from "../services/CutinappService";
 import PeterTecnetSignature from "../components/PeterTecnetSignature";
 import ProcessingIndicatorComponent from "../components/ProcessingIndicatorComponent";
+import CommerceTrustRail from "../components/CommerceTrustRail";
 import EventArtwork from "../components/event/EventArtwork";
 import { storageUrl } from "../config";
 import { readDiscoveryPreference, saveDiscoveryPreference } from "../utils/discoveryFilters";
@@ -297,6 +298,8 @@ export default function HomePage() {
                 <Link to={withBrowseParam("period", "next7")}>Próximos 7 dias</Link>
                 <Link to={withBrowseParam("available", "1")}>Com ingressos</Link>
               </div>
+
+              <CommerceTrustRail context="discovery" />
 
               <div className="cut-home-discovery__brandActions">
                 <Button as={Link} to={browseLink} className="cut-home-discovery__primaryCta">
