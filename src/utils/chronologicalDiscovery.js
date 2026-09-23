@@ -1,9 +1,23 @@
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-const startOfDay = (value) => {
+const localDate = (value) => {
   if (value === null || value === undefined || value === "") return null;
-  const date = value instanceof Date ? new Date(value) : new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
+  if (value instanceof Date) return new Date(value);
+
+  if (typeof value === "string") {
+    const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (match) {
+      const [, year, month, day] = match;
+      return new Date(Number(year), Number(month) - 1, Number(day));
+    }
+  }
+
+  return new Date(value);
+};
+
+const startOfDay = (value) => {
+  const date = localDate(value);
+  if (!date || Number.isNaN(date.getTime())) return null;
   date.setHours(0, 0, 0, 0);
   return date;
 };
@@ -19,8 +33,8 @@ const localDateKey = (date) => [
 const eventDate = (event) => {
   const raw = event?.starts_at || event?.start_at || event?.start_date || event?.date || event?.scheduled_at;
   if (!raw) return null;
-  const date = new Date(raw);
-  return Number.isNaN(date.getTime()) ? null : date;
+  const date = localDate(raw);
+  return !date || Number.isNaN(date.getTime()) ? null : date;
 };
 
 const dateTitle = (date) => new Intl.DateTimeFormat("pt-BR", {
