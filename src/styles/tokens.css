@@ -124,10 +124,10 @@
   --cut-font-sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --cut-font-display: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --cut-font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  --cut-text-xs: .72rem;
-  --cut-text-sm: .82rem;
-  --cut-text-base: .94rem;
-  --cut-text-md: 1rem;
+  --cut-text-xs: .78rem;
+  --cut-text-sm: .88rem;
+  --cut-text-base: 1rem;
+  --cut-text-md: 1.0625rem;
   --cut-text-lg: 1.125rem;
   --cut-text-xl: 1.35rem;
   --cut-text-2xl: 1.7rem;
