@@ -1,4 +1,5 @@
 import { safeGetLocalJson, safeRemoveLocalItem, safeSetLocalJson } from "./safeStorage";
+import { isCommerceScopeTransitionPending } from "./commerceSessionScope";
 
 const CHECKOUT_RECOVERY_PREFIX = "cutinapp_checkout_recovery_";
 export const CHECKOUT_RECOVERY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -51,7 +52,7 @@ export const isCheckoutPaymentSnapshotResumable = (paymentSnapshot, recovery) =>
 export const clearCheckoutRecovery = (slug) => {
   const normalizedSlug = normalizeSlug(slug);
   const key = storageKey(normalizedSlug);
-  if (!key) return false;
+  if (!key || isCommerceScopeTransitionPending()) return false;
   const removed = safeRemoveLocalItem(key);
   if (removed) notifyCheckoutRecoveryChange(normalizedSlug);
   return removed;
@@ -60,7 +61,7 @@ export const clearCheckoutRecovery = (slug) => {
 export const readCheckoutRecovery = (slug, now = Date.now()) => {
   const normalizedSlug = normalizeSlug(slug);
   const key = storageKey(normalizedSlug);
-  if (!key) return null;
+  if (!key || isCommerceScopeTransitionPending()) return null;
   const value = safeGetLocalJson(key);
   if (!value || typeof value !== "object") return null;
 
@@ -85,7 +86,7 @@ export const readCheckoutRecovery = (slug, now = Date.now()) => {
 export const writeCheckoutRecovery = (slug, { selection, orderPublicId, couponCode, paymentMethod } = {}, now = Date.now()) => {
   const normalizedSlug = normalizeSlug(slug);
   const key = storageKey(normalizedSlug);
-  if (!key) return false;
+  if (!key || isCommerceScopeTransitionPending()) return false;
   const normalizedSelection = normalizeSelection(selection);
   const normalizedOrderPublicId = typeof orderPublicId === "string" ? orderPublicId.trim() : "";
   const normalizedCouponCode = normalizeCouponCode(couponCode);
