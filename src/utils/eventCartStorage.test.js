@@ -24,6 +24,19 @@ describe("fulfilled checkout storage cleanup", () => {
     expect(result.itemCount).toBe(7);
   });
 
+  test("never reduces an existing ticket quantity when availability shrinks during an add", () => {
+    const result = mergeEventCartTickets({
+      tickets: [{ id: 1, quantity: 5 }],
+      items: [],
+    }, [
+      { id: 1, quantity: 1, maxQuantity: 3 },
+    ]);
+
+    expect(result.selection.tickets).toEqual([{ id: 1, quantity: 5 }]);
+    expect(result.addedQuantity).toBe(0);
+    expect(result.itemCount).toBe(5);
+  });
+
   test("prefers a newer local cart and repairs a stale tab session snapshot", () => {
     const slug = "evento-multitab";
     const cartKey = `cutinapp_checkout_${slug}`;
@@ -84,7 +97,7 @@ describe("fulfilled checkout storage cleanup", () => {
     const recoveryKey = `cutinapp_checkout_recovery_${slug}`;
     window.sessionStorage.setItem(cartKey, JSON.stringify({ tickets: [{ id: 1, quantity: 1 }] }));
     window.localStorage.setItem(cartKey, JSON.stringify({ tickets: [{ id: 1, quantity: 1 }] }));
-    window.sessionStorage.setItem(paymentKey, JSON.stringify({ order: { status: "paid", metadata: { fulfillment_status: "completed" } } }));
+    window.sessionStorage.setItem(paymentKey, JSON.stringify({ order: { status: "paid", metadata: { fulfillment_status: "completed" } }));
     window.localStorage.setItem(recoveryKey, JSON.stringify({ orderPublicId: "ord_123", savedAt: Date.now() }));
 
     clearEventCart(slug);
@@ -132,7 +145,7 @@ describe("fulfilled checkout storage cleanup", () => {
     const slug = "evento-pendente";
     const paymentKey = `cutinapp_payment_${slug}`;
     const recoveryKey = `cutinapp_checkout_recovery_${slug}`;
-    window.sessionStorage.setItem(paymentKey, JSON.stringify({ order: { status: "pending", metadata: { fulfillment_status: "pending" } } }));
+    window.sessionStorage.setItem(paymentKey, JSON.stringify({ order: { status: "pending", metadata: { fulfillment_status: "pending" } }));
     window.localStorage.setItem(recoveryKey, JSON.stringify({ orderPublicId: "ord_pending", savedAt: Date.now() }));
 
     clearEventCart(slug);
