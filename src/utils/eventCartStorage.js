@@ -7,6 +7,7 @@ import {
   safeSetSessionJson,
 } from "./safeStorage";
 import { clearCheckoutRecovery, readCheckoutRecovery, writeCheckoutRecovery } from "./checkoutRecovery";
+import { isCommerceScopeTransitionPending } from "./commerceSessionScope";
 
 const CART_PREFIX = "cutinapp_checkout_";
 const CART_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000;
@@ -34,14 +35,9 @@ const hasPurchasableSelection = (selection) => [
 
 const isExpired = (cart) => {
   const savedAt = Number(cart?.savedAt || 0);
-  // Persistence is only trustworthy when it carries a valid creation/update time.
-  // Legacy, partially written or manipulated carts without one must not survive
-  // indefinitely and later reappear in another checkout/session.
   if (!Number.isFinite(savedAt) || savedAt <= 0) return true;
 
   const age = Date.now() - savedAt;
-  // A corrupt or manipulated future timestamp must not turn a browser cart into a
-  // practically permanent checkout. Keep a small tolerance for ordinary clock skew.
   return age > CART_MAX_AGE_MS || age < -CART_MAX_FUTURE_SKEW_MS;
 };
 
@@ -51,9 +47,6 @@ const newestCart = (sessionCart, persistentCart) => {
 
   const sessionSavedAt = Number(sessionCart?.savedAt || 0);
   const persistentSavedAt = Number(persistentCart?.savedAt || 0);
-  // localStorage is the cross-tab source of truth. Prefer it on timestamp ties too:
-  // two writes can happen in the same millisecond while another tab still holds a
-  // different sessionStorage snapshot with the exact same savedAt value.
   return persistentSavedAt >= sessionSavedAt ? persistentCart : sessionCart;
 };
 
@@ -73,9 +66,6 @@ export const mergeEventCartTickets = (currentSelection = {}, additions = []) => 
 
     const currentQuantity = positiveInteger(ticketMap.get(id)?.quantity);
     const requestedMax = positiveInteger(ticket?.maxQuantity);
-    // Availability can shrink between the initial event load and a later add-to-cart
-    // action. An add operation must never silently reduce a quantity already selected;
-    // checkout validation can still reject quantities that are no longer available.
     const maxQuantity = requestedMax
       ? Math.max(currentQuantity, requestedMax)
       : currentQuantity + requested;
@@ -106,10 +96,6 @@ export const clearEventCart = (slug) => {
   const persistedPayment = safeGetSessionJson(paymentKey);
   const recovery = readCheckoutRecovery(normalizedSlug);
   safeRemoveSessionItem(key);
-
-  // Keep a short-lived shared tombstone instead of deleting localStorage outright.
-  // Otherwise another open tab can read its stale sessionStorage cart and mirror it
-  // back into localStorage, resurrecting items the participant already removed.
   safeSetLocalJson(key, { cleared: true, savedAt: Date.now() });
 
   if (isFulfilledCheckoutResult(persistedPayment)) {
@@ -132,6 +118,11 @@ export const readEventCart = (slug) => {
   const key = keyFor(normalizedSlug);
   if (!key) return null;
 
+  // A local commerce scope without a matching tab scope means authentication is
+  // currently unresolved (new tab/token refresh/account switch). Never expose the
+  // previous identity's persisted cart during that window.
+  if (isCommerceScopeTransitionPending()) return null;
+
   const sessionCart = safeGetSessionJson(key);
   const persistentCart = safeGetLocalJson(key);
   const cart = newestCart(sessionCart, persistentCart);
@@ -143,24 +134,16 @@ export const readEventCart = (slug) => {
     return null;
   }
 
-  // A shared clear marker must beat stale tab-scoped sessionStorage. Keep the marker
-  // in localStorage until it ages out so any still-open tab observes the deletion.
   if (cart?.cleared === true) {
     safeRemoveSessionItem(key);
     return null;
   }
 
-  // Old, malformed or partially written carts must never make checkout appear active.
-  // Canonicalize them through the normal clear path so every open tab observes the
-  // invalidation and draft recovery cannot revive an unpurchasable selection.
   if (!hasPurchasableSelection(cart)) {
     clearEventCart(normalizedSlug);
     return null;
   }
 
-  // localStorage is shared by tabs while sessionStorage is tab-scoped. A cart changed
-  // in another tab must win over this tab's stale snapshot; mirror the winner back so
-  // subsequent reads and checkout submission use the same quantities.
   if (cart === persistentCart && cart !== sessionCart) safeSetSessionJson(key, cart);
   if (cart === sessionCart && cart !== persistentCart) safeSetLocalJson(key, cart);
   return cart;
@@ -171,9 +154,10 @@ export const writeEventCart = (slug, selection) => {
   const key = keyFor(normalizedSlug);
   if (!key) return null;
 
-  // Treat an explicitly empty/zero-quantity selection as a real cart clear. Persisting
-  // an empty object leaves checkout recovery and cart badges looking active even though
-  // there is nothing purchasable, and can revive stale state in another tab.
+  // Do not let UI actions that race with auth resolution overwrite commerce state
+  // owned by the previously resolved participant.
+  if (isCommerceScopeTransitionPending()) return null;
+
   if (!selection || !hasPurchasableSelection(selection)) {
     clearEventCart(normalizedSlug);
     return null;
