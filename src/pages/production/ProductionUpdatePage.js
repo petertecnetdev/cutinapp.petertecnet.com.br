@@ -46,14 +46,6 @@ const initials = (name) => String(name || "P")
   .join("")
   .toUpperCase();
 
-const fmt = (value) => value
-  ? new Intl.DateTimeFormat("pt-BR", {
-      dateStyle: "medium",
-      timeStyle: "short",
-      timeZone: "America/Sao_Paulo",
-    }).format(new Date(value))
-  : "Data a definir";
-
 export default function ProductionUpdatePage() {
   const { id } = useParams();
   const navigate = useNavigate();
