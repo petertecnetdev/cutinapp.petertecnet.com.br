@@ -24,17 +24,57 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  freshness:
+    name: Reject stale validated release
+    runs-on: ubuntu-latest
+    outputs:
+      deploy: ${{ steps.guard.outputs.deploy }}
+      sha: ${{ steps.guard.outputs.sha }}
+    steps:
+      - name: Confirm validated SHA is still main HEAD
+        id: guard
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          VALIDATED_SHA: ${{ github.event.workflow_run.head_sha }}
+          MANUAL_SHA: ${{ inputs.deploy_sha }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            sha="${MANUAL_SHA:-}"
+            if [[ -z "$sha" ]]; then
+              sha="$(git ls-remote "https://github.com/${REPOSITORY}.git" refs/heads/main | awk '{print $1}')"
+            fi
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+            echo "sha=$sha" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          current="$(git ls-remote "https://github.com/${REPOSITORY}.git" refs/heads/main | awk '{print $1}')"
+          if [[ "$VALIDATED_SHA" != "$current" ]]; then
+            echo "Validated SHA $VALIDATED_SHA is stale; current main is $current. A newer validation/deploy will handle it."
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            echo "sha=$VALIDATED_SHA" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "deploy=true" >> "$GITHUB_OUTPUT"
+          echo "sha=$VALIDATED_SHA" >> "$GITHUB_OUTPUT"
+
   deploy:
     name: Deploy validated Cutinapp
+    needs: freshness
     if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
+      needs.freshness.outputs.deploy == 'true' &&
+      (github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main'))
     uses: petertecnetdev/petertecnet.com.br/.github/workflows/reusable-vps-deploy.yml@main
     with:
       deploy_path: /var/www/cutinapp.petertecnet.com.br
       deploy_type: frontend
       deploy_branch: main
-      deploy_sha: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.deploy_sha || '' }}
+      deploy_sha: ${{ needs.freshness.outputs.sha }}
       health_url: https://cutinapp.petertecnet.com.br/
     secrets:
       VPS_HOST: ${{ secrets.VPS_HOST }}
