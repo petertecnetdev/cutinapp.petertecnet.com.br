@@ -797,3 +797,11 @@
     animation-iteration-count:1!important;
   }
 }
+
+.cut-production-themed-page__hero--public .cut-production-public-hero-copy>p:not(.cut-production-public-location){
+  display:-webkit-box;
+  max-width:760px;
+  overflow:hidden;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:3;
+}
