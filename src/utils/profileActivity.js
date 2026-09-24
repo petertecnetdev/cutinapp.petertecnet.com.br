@@ -86,7 +86,7 @@ export const normalizeEventMemory = (event) => {
   return {
     id: event.id,
     slug: event.slug || null,
-    title: event.title || "Evento",
+    title: usableTextIdentity(event.title) ? event.title.trim() : "Evento",
     image: visibleMemoryImage(event),
     start_date: eventStartValue(event),
     end_date: eventEndValue(event),
