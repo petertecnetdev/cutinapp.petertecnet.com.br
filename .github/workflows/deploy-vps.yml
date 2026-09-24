@@ -1,16 +1,53 @@
 name: Deploy VPS
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: cutinapp-production
+  cancel-in-progress: true
+
 jobs:
+  validate:
+    name: Validate release candidate
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Reject legacy product API paths in runtime services
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -RIn '/cutinapp/' src/services; then
+            echo 'Runtime services must consume /api/v1/apps/{application} through AppApiClient.' >&2
+            exit 1
+          fi
+      - run: npm run lint:overlays
+      - run: npm run lint:dialogs
+      - run: npm run lint:react-stability
+      - run: npm run lint:ux-regressions
+      - run: CI=true npm test -- --watchAll=false
+      - run: npm run build
+      - run: npm run perf:budget
+
   deploy:
+    name: Deploy validated Cutinapp
+    needs: validate
     # Zero-downtime central deploy: build off-path, publish assets first, switch index last.
-    # Frontend releases are built from main in an isolated worktree; live source work is preserved.
-    # Shared health verification handles release-sha.txt cache/fallback safely after atomic activation.
+    # The reusable workflow builds the exact triggering commit on the runner and performs
+    # public health verification after atomic activation.
     uses: petertecnetdev/petertecnet.com.br/.github/workflows/reusable-vps-deploy.yml@main
     with:
       deploy_path: /var/www/cutinapp.petertecnet.com.br
