@@ -28,10 +28,12 @@ export default function ProducerOnboardingPage() {
   const [productionId, setProductionId] = useState(requestedId);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let active = true;
     setLoading(true);
+    setError("");
     onboardingService.mine()
       .then((rows) => {
         if (!active) return;
@@ -43,7 +45,7 @@ export default function ProducerOnboardingPage() {
       .catch((err) => active && setError(err?.message || "Não foi possível carregar seu onboarding."))
       .finally(() => active && setLoading(false));
     return () => { active = false; };
-  }, [requestedId]);
+  }, [requestedId, reloadKey]);
 
   const onboarding = items.find((row) => String(row.organization?.id) === String(productionId)) || null;
 
@@ -61,10 +63,15 @@ export default function ProducerOnboardingPage() {
         </Badge>}
       </div>
 
-      {error && <Alert variant="danger">{error}</Alert>}
+      {error && <Alert variant="danger" className="d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <span>{error}</span>
+        <Button variant="outline-danger" size="sm" onClick={() => setReloadKey((value) => value + 1)} disabled={loading}>
+          Tentar novamente
+        </Button>
+      </Alert>}
       {loading && <div className="py-5"><ProcessingIndicatorComponent fullscreen={false} label="Carregando configuração da produção" /></div>}
 
-      {!loading && items.length === 0 && <Card className="cut-empty-state"><Card.Body>
+      {!loading && !error && items.length === 0 && <Card className="cut-empty-state"><Card.Body>
         <h2>Nenhuma produção encontrada</h2>
         <p>Quando uma produção for vinculada à sua conta, o acompanhamento aparecerá aqui.</p>
       </Card.Body></Card>}
