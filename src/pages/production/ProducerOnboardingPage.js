@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Alert, Badge, Button, Card, Col, Container, Form, ProgressBar, Row, Spinner } from "react-bootstrap";
+import { Alert, Badge, Button, Card, Col, Container, Form, ProgressBar, Row } from "react-bootstrap";
 import { useLocation, useNavigate } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
+import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import onboardingService from "../../services/OnboardingService";
 
 const stepMeta = [
@@ -61,7 +62,7 @@ export default function ProducerOnboardingPage() {
       </div>
 
       {error && <Alert variant="danger">{error}</Alert>}
-      {loading && <div className="text-center py-5"><Spinner animation="border" /><p className="mt-2">Carregando configuração...</p></div>}
+      {loading && <div className="py-5"><ProcessingIndicatorComponent fullscreen={false} label="Carregando configuração da produção" /></div>}
 
       {!loading && items.length === 0 && <Card className="cut-empty-state"><Card.Body>
         <h2>Nenhuma produção encontrada</h2>
