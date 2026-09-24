@@ -64,7 +64,12 @@ export const mergeEventCartTickets = (currentSelection = {}, additions = []) => 
 
     const currentQuantity = positiveInteger(ticketMap.get(id)?.quantity);
     const requestedMax = positiveInteger(ticket?.maxQuantity);
-    const maxQuantity = requestedMax || (currentQuantity + requested);
+    // Availability can shrink between the initial event load and a later add-to-cart
+    // action. An add operation must never silently reduce a quantity already selected;
+    // checkout validation can still reject quantities that are no longer available.
+    const maxQuantity = requestedMax
+      ? Math.max(currentQuantity, requestedMax)
+      : currentQuantity + requested;
     const nextQuantity = Math.min(maxQuantity, currentQuantity + requested);
     addedQuantity += Math.max(0, nextQuantity - currentQuantity);
     if (nextQuantity > 0) ticketMap.set(id, { id, quantity: nextQuantity });
