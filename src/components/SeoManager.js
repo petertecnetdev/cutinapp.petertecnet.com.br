@@ -80,8 +80,35 @@ const discoverySeo = (path) => {
   };
 };
 
+const PRODUCER_SEO = {
+  title: "Venda ingressos e gerencie eventos online | Cutinapp para produtores",
+  description: "Crie eventos, venda ingressos, acompanhe participantes, faça check-in por QR Code e gerencie sua produção em um só fluxo na Cutinapp.",
+  jsonLd: {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: "Cutinapp para produtores de eventos",
+    description: "Plataforma para criar, publicar, vender ingressos e operar eventos com check-in por QR Code.",
+    url: `${SITE_URL}/for-producers`,
+    isPartOf: {
+      "@type": "WebSite",
+      name: "Cutinapp",
+      url: SITE_URL,
+    },
+    about: {
+      "@type": "Service",
+      name: "Plataforma para produtores de eventos",
+      provider: {
+        "@type": "Organization",
+        name: "Peter Tecnet",
+      },
+      areaServed: "BR",
+    },
+  },
+};
+
 const PUBLIC_ROUTES = [
   { test: (path) => path === "/", resolve: () => ({ title: DEFAULT_TITLE, description: DEFAULT_DESCRIPTION }) },
+  { test: (path) => path === "/for-producers", resolve: () => PRODUCER_SEO },
   { test: (path) => path === "/event", resolve: () => ({ title: "Eventos | Cutinapp", description: "Encontre eventos e experiências disponíveis na Cutinapp." }) },
   { test: (path) => path.startsWith("/eventos"), resolve: discoverySeo },
   { test: (path) => /^\/event\/[A-Za-z0-9-]+$/.test(path), resolve: publicEventFallbackSeo },
@@ -129,6 +156,7 @@ export default function SeoManager() {
       image: `${SITE_URL}/images/logo.png`,
       type: "website",
       robots: indexable ? "index, follow, max-image-preview:large" : "noindex, nofollow",
+      jsonLd: resolved.jsonLd,
     };
   }, [path]);
 
