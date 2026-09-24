@@ -13,13 +13,18 @@ const normalizedBooleanText = (value) => typeof value === "string" ? value.trim(
 const explicitTrue = (value) => value === true || value === 1 || normalizedBooleanText(value) === "1" || normalizedBooleanText(value) === "true";
 const explicitFalse = (value) => value === false || value === 0 || normalizedBooleanText(value) === "0" || normalizedBooleanText(value) === "false";
 const viewerCanSee = (value) => !explicitFalse(value?.visible) && !explicitFalse(value?.viewer_can_see);
+const numericEvidence = (value) => {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value !== "string" || value.trim() === "") return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+};
 const normalizePersonalRating = (value) => {
-  if (value === null || value === undefined || value === "") return null;
-  const rating = Number(value);
-  return Number.isFinite(rating) && rating >= 1 && rating <= 5 ? rating : null;
+  const rating = numericEvidence(value);
+  return rating !== null && rating >= 1 && rating <= 5 ? rating : null;
 };
 const positiveInteger = (value) => {
-  const number = Number(value);
+  const number = numericEvidence(value);
   return Number.isInteger(number) && number > 0 ? number : null;
 };
 const usableTextIdentity = (value) => typeof value === "string" && value.trim().length > 0;
@@ -100,9 +105,9 @@ export const deriveMemoryTimeline = (events, now = Date.now()) => deriveEventMem
 
 /** Relative badges are shown only from explicit backend rank/population evidence. */
 export const relativeVisitBadge = ({ rank, population, minimumPopulation = 100 } = {}) => {
-  const safeRank = Number(rank);
-  const safePopulation = Number(population);
-  const safeMinimum = Math.max(1, Number(minimumPopulation) || 100);
+  const safeRank = numericEvidence(rank);
+  const safePopulation = numericEvidence(population);
+  const safeMinimum = Math.max(1, numericEvidence(minimumPopulation) ?? 100);
   if (!Number.isInteger(safeRank) || !Number.isInteger(safePopulation)) return null;
   if (safeRank < 1 || safePopulation < safeMinimum || safeRank > safePopulation) return null;
   const percentile = safeRank / safePopulation;
