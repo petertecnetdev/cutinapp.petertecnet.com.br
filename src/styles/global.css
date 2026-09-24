@@ -35,7 +35,7 @@ h1 { font-size: var(--cut-text-3xl); line-height: 1.06; }
 h2 { font-size: clamp(1.55rem,2.6vw,2.15rem); line-height: 1.12; }
 h3 { font-size: 1.16rem; line-height: 1.22; }
 p { color: var(--cut-text-muted); }
-small { color: var(--cut-text-soft); }
+small { color: var(--cut-text-soft); font-size: var(--cut-text-sm); line-height: 1.45; }
 strong,b { color: var(--cut-text-strong); }
 code,pre { font-family: var(--cut-font-mono); }
 hr { border-color: var(--cut-divider); opacity: 1; }
@@ -69,9 +69,9 @@ textarea.form-control { min-height: 116px; resize: vertical; }
 .form-control.is-invalid,.form-select.is-invalid { border-color: rgba(255,102,135,.64) !important; background-image: none !important; }
 .form-control.is-invalid:focus,.form-select.is-invalid:focus { box-shadow: 0 0 0 4px rgba(255,102,135,.11) !important; }
 .form-control.is-valid,.form-select.is-valid { border-color: rgba(78,231,178,.54) !important; background-image: none !important; }
-.invalid-feedback { margin-top: 6px; color: #ff9fb3; font-size: .78rem; }
+.invalid-feedback { margin-top: 6px; color: #ff9fb3; font-size: .82rem; }
 .valid-feedback { color: #8ef0cb; }
-.form-text { color: var(--cut-text-soft) !important; font-size: .77rem; line-height: 1.5; }
+.form-text { color: var(--cut-text-soft) !important; font-size: .82rem; line-height: 1.5; }
 .form-check-input { width: 1.1rem; height: 1.1rem; }
 .form-check-input:checked { border-color: var(--cut-primary) !important; background: var(--cut-gradient-brand) !important; }
 .form-check-input:focus { box-shadow: var(--cut-shadow-focus) !important; }
@@ -104,7 +104,7 @@ textarea.form-control { min-height: 116px; resize: vertical; }
 .btn-outline-danger:hover { background: var(--cut-danger-soft) !important; }
 .btn-success { border-color: transparent !important; background: linear-gradient(135deg,#62edbf,#38c996) !important; color: #04140e !important; }
 .btn-info { border-color: transparent !important; background: linear-gradient(135deg,#2b62f4,#06affa) !important; color: #fff !important; }
-.btn-sm { min-height: 36px; border-radius: var(--cut-radius-sm); padding: .48rem .74rem; font-size: .78rem; }
+.btn-sm { min-height: 36px; border-radius: var(--cut-radius-sm); padding: .48rem .74rem; font-size: .84rem; }
 .btn-lg { min-height: 52px; border-radius: 16px; padding: .85rem 1.2rem; font-size: .96rem; }
 
 .alert { border-width: 1px; border-radius: var(--cut-radius-lg); padding: 14px 16px; background-image: none; box-shadow: none; }
@@ -112,7 +112,7 @@ textarea.form-control { min-height: 116px; resize: vertical; }
 .alert-success { border-color: rgba(78,231,178,.22); background: var(--cut-success-soft); color: #cff9e9; }
 .alert-warning { border-color: rgba(255,202,106,.24); background: var(--cut-warning-soft); color: #ffe9bb; }
 .alert-info { border-color: rgba(6,175,250,.28); background: var(--cut-info-soft); color: #d8f5ff; }
-.badge { border-radius: var(--cut-radius-pill); padding: .48em .72em; font-weight: var(--cut-weight-bold); letter-spacing: .02em; }
+.badge { border-radius: var(--cut-radius-pill); padding: .48em .72em; font-size: .76rem; line-height: 1.15; font-weight: var(--cut-weight-bold); letter-spacing: .02em; }
 .bg-primary { background: var(--cut-gradient-brand) !important; }
 .text-primary { color: var(--cut-brand-300) !important; }
 .border-primary { border-color: rgba(184,71,250,.48) !important; }
@@ -131,7 +131,7 @@ textarea.form-control { min-height: 116px; resize: vertical; }
 
 .table { --bs-table-bg: transparent; --bs-table-color: var(--cut-text); --bs-table-border-color: var(--cut-divider); margin-bottom: 0; }
 .table > :not(caption) > * > * { padding: .9rem .85rem; }
-.table thead th { color: var(--cut-text-soft); font-size: .72rem; font-weight: var(--cut-weight-black); letter-spacing: .08em; text-transform: uppercase; }
+.table thead th { color: var(--cut-text-soft); font-size: .78rem; font-weight: var(--cut-weight-black); letter-spacing: .075em; text-transform: uppercase; }
 .table tbody tr { transition: background var(--cut-duration-fast) ease; }
 .table tbody tr:hover { --bs-table-accent-bg: rgba(184,71,250,.055); }
 .text-secondary,.text-muted { color: var(--cut-text-muted) !important; }
