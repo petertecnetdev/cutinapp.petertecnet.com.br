@@ -7,6 +7,27 @@ const getBrowserStorage = (name) => {
   }
 };
 
+const COMMERCE_SCOPE_KEY = "cutinapp_commerce_scope_v1";
+const COMMERCE_SESSION_SCOPE_KEY = "cutinapp_commerce_session_scope_v1";
+const PROTECTED_COMMERCE_SESSION_PREFIXES = ["cutinapp_payment_"];
+
+const isProtectedCommerceSessionKey = (key) => PROTECTED_COMMERCE_SESSION_PREFIXES
+  .some((prefix) => String(key || "").startsWith(prefix));
+
+const isCommerceSessionTransitionPending = (key) => {
+  if (!isProtectedCommerceSessionKey(key)) return false;
+  const localStorage = getBrowserStorage("localStorage");
+  const sessionStorage = getBrowserStorage("sessionStorage");
+  if (!localStorage || !sessionStorage) return false;
+  try {
+    const localScope = localStorage.getItem(COMMERCE_SCOPE_KEY);
+    if (!localScope) return false;
+    return sessionStorage.getItem(COMMERCE_SESSION_SCOPE_KEY) !== localScope;
+  } catch (_) {
+    return true;
+  }
+};
+
 export const safeReadLocalItem = (key) => {
   const storage = getBrowserStorage("localStorage");
   if (!storage) return { available: false, value: null };
@@ -65,7 +86,7 @@ export const safeRemoveLocalItem = (key) => {
 
 export const safeGetSessionItem = (key) => {
   const storage = getBrowserStorage("sessionStorage");
-  if (!storage) return null;
+  if (!storage || isCommerceSessionTransitionPending(key)) return null;
   try {
     return storage.getItem(key);
   } catch (_) {
@@ -86,7 +107,7 @@ export const safeGetSessionJson = (key) => {
 
 export const safeSetSessionItem = (key, value) => {
   const storage = getBrowserStorage("sessionStorage");
-  if (!storage) return false;
+  if (!storage || isCommerceSessionTransitionPending(key)) return false;
   try {
     storage.setItem(key, String(value));
     return true;
@@ -97,7 +118,7 @@ export const safeSetSessionItem = (key, value) => {
 
 export const safeSetSessionJson = (key, value) => {
   const storage = getBrowserStorage("sessionStorage");
-  if (!storage) return false;
+  if (!storage || isCommerceSessionTransitionPending(key)) return false;
   try {
     storage.setItem(key, JSON.stringify(value));
     return true;
@@ -108,7 +129,7 @@ export const safeSetSessionJson = (key, value) => {
 
 export const safeRemoveSessionItem = (key) => {
   const storage = getBrowserStorage("sessionStorage");
-  if (!storage) return false;
+  if (!storage || isCommerceSessionTransitionPending(key)) return false;
   try {
     storage.removeItem(key);
     return true;
