@@ -126,7 +126,7 @@ export default function EventExperienceEditorSurface({
               <Button type="button" variant="outline-light" className="cut-event-inline-editor__summaryAction" onClick={() => document.getElementById("event-editor-location")?.scrollIntoView({ behavior: "smooth", block: "start" })}>
                 <i className="fa-solid fa-location-dot me-2" />Localização
               </Button>
-              <Button type="button" className="cut-event-inline-editor__primaryAction" onClick={onSave} disabled={saving}>
+              <Button type="button" className="cut-event-inline-editor__primaryAction cut-event-inline-editor__summaryAction" onClick={onSave} disabled={saving}>
                 <i className="fa-solid fa-floppy-disk me-2" />{saving ? "Salvando..." : primaryLabel}
               </Button>
             </div>
