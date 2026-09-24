@@ -5,8 +5,12 @@ const app = (role, roles = []) => ({ slug: "cutinapp", pivot: { status: "active"
 
 describe("capability based navigation", () => {
   test("participant account items stay out of the desktop common navigation", () => {
-    expect(commonNavigation.map((entry) => entry.id)).toEqual(["events", "feed", "messages", "productions", "artists", "blog"]);
+    expect(commonNavigation.map((entry) => entry.id)).toEqual(["events", "search", "feed", "messages", "productions", "artists", "blog"]);
     expect(accountNavigation.map((entry) => entry.id)).toEqual(expect.arrayContaining(["profile", "passes", "purchases", "notifications", "account-settings"]));
+  });
+
+  test("global search remains a primary generic destination", () => {
+    expect(commonNavigation.find((entry) => entry.id === "search")).toMatchObject({ label: "Buscar", to: "/search" });
   });
 
   test("roles are cumulative instead of exclusive", () => {
