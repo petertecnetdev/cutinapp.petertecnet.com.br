@@ -34,7 +34,10 @@ const hasPurchasableSelection = (selection) => [
 
 const isExpired = (cart) => {
   const savedAt = Number(cart?.savedAt || 0);
-  if (savedAt <= 0) return false;
+  // Persistence is only trustworthy when it carries a valid creation/update time.
+  // Legacy, partially written or manipulated carts without one must not survive
+  // indefinitely and later reappear in another checkout/session.
+  if (!Number.isFinite(savedAt) || savedAt <= 0) return true;
 
   const age = Date.now() - savedAt;
   // A corrupt or manipulated future timestamp must not turn a browser cart into a
