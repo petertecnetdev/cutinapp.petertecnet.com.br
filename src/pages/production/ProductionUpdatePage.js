@@ -3,7 +3,8 @@ import { Alert, Button, Card, Col, Container, Form, Row } from "react-bootstrap"
 import { useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
-import EventArtwork from "../../components/event/EventArtwork";
+import EventDiscoveryRail from "../../components/event/EventDiscoveryRail";
+import ProductionNextEventHero from "../../components/production/ProductionNextEventHero";
 import { FormattedText, FormattedTextEditor } from "../../components/editor/FormattedText";
 import LocationFields from "../../components/location/LocationFields";
 import ProductionGallery from "../../components/production/ProductionGallery";
@@ -12,6 +13,8 @@ import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
 import "./production-experience.css";
 import "./production-inline-editor.css";
+import "./production-view-evolution.css";
+import "./production-editor-evolution.css";
 
 const media = (path) => !path ? "" : /^https?:\/\//i.test(path) ? path : `${storageUrl}${String(path).replace(/^\/?storage\//, "").replace(/^\//, "")}`;
 const firstError = (errors, field) => Array.isArray(errors?.[field]) ? errors[field][0] || "" : typeof errors?.[field] === "string" ? errors[field] : "";
@@ -77,6 +80,10 @@ export default function ProductionUpdatePage() {
   const lastBlurFlushAt = useRef(0);
 
   useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }, [id]);
+
+  useEffect(() => {
     let active = true;
     setLoading(true);
 
@@ -134,6 +141,21 @@ export default function ProductionUpdatePage() {
   const cnpjDigits = String(form?.cnpj || "").replace(/\D/g, "");
   const cnpjInvalid = submitted && cnpjDigits !== "" && cnpjDigits.length !== 14;
   const canSave = useMemo(() => Boolean(form?.name?.trim()) && !saving, [form, saving]);
+  const upcomingEvents = useMemo(() => {
+    const threshold = Date.now() - (3 * 60 * 60 * 1000);
+    return [...events]
+      .filter((event) => {
+        const time = new Date(event?.start_date || event?.starts_at || event?.start_at || 0).getTime();
+        return !Number.isFinite(time) || time >= threshold;
+      })
+      .sort((a, b) => {
+        const aTime = new Date(a?.start_date || a?.starts_at || a?.start_at || 0).getTime();
+        const bTime = new Date(b?.start_date || b?.starts_at || b?.start_at || 0).getTime();
+        return (Number.isFinite(aTime) ? aTime : Number.MAX_SAFE_INTEGER)
+          - (Number.isFinite(bTime) ? bTime : Number.MAX_SAFE_INTEGER);
+      });
+  }, [events]);
+  const nextEvent = upcomingEvents[0] || null;
 
   const persistProduction = async (nextForm, { includeFiles = false, silent = false } = {}) => {
     if (!nextForm || !productionIsValid(nextForm)) return false;
@@ -321,6 +343,7 @@ export default function ProductionUpdatePage() {
   const pageStyle = pageBackground ? { "--cut-production-page-bg": `url(${JSON.stringify(pageBackground)})` } : undefined;
   const heroStyle = bgPreview ? {
     "--cut-production-editor-hero-image": `url(${JSON.stringify(bgPreview)})`,
+    "--cut-production-public-hero-image": `url(${JSON.stringify(bgPreview)})`,
   } : undefined;
   const mapEmbedUrl = mapQuery ? `https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed` : "";
   const pendingImages = Boolean(logo || background);
@@ -335,7 +358,7 @@ export default function ProductionUpdatePage() {
       <NavlogComponent />
       {saving && pendingImages && <ProcessingIndicatorComponent label="Salvando imagens da produção" />}
 
-      <section className="cut-profile-hero cut-production-themed-page__hero cut-production-inline-editor__hero" style={heroStyle}>
+      <section className="cut-profile-hero cut-production-themed-page__hero cut-production-themed-page__hero--public cut-production-inline-editor__hero" style={heroStyle}>
         <input
           id="production-inline-cover"
           className="visually-hidden"
@@ -403,7 +426,7 @@ export default function ProductionUpdatePage() {
               <div className="cut-social-stats">
                 <span>{productionMeta?.followers_count || 0} seguidores</span>
                 <span><i className="fa-regular fa-eye" /> {analytics.total_views || 0} visualizações</span>
-                <span>{events.length} próximos eventos</span>
+                <span>{upcomingEvents.length} próximos eventos</span>
               </div>
 
               <div className="cut-card-actions mt-3 cut-production-inline-editor__heroActions">
@@ -516,38 +539,27 @@ export default function ProductionUpdatePage() {
           </Card>
         </div>
 
-        <section className="cut-production-section cut-production-agenda-section">
-          <div className="cut-production-section-head cut-production-agenda-head">
-            <div>
-              <span className="cut-eyebrow">Agenda</span>
-              <h2>Próximos eventos</h2>
-              <p className="cut-production-agenda-copy">Esta área permanece igual à página pública para você visualizar o resultado enquanto edita a produção.</p>
-            </div>
-            <Button type="button" variant="outline-light" onClick={() => navigate("/event/manage")}><i className="fa-regular fa-calendar-days me-2" />Gerenciar eventos</Button>
-          </div>
+        <ProductionNextEventHero
+          event={nextEvent}
+          production={productionMeta || form}
+          allTo={publicSlug ? `/agenda/${publicSlug}` : "/event/manage"}
+          emptyTitle="Nenhum próximo evento publicado"
+          emptyText="Quando você publicar uma nova data, ela aparecerá aqui com o mesmo destaque da página pública."
+        />
 
-          {events.length === 0 ? (
-            <Card className="cut-empty-state"><Card.Body><p>Nenhum evento cadastrado nesta produção ainda.</p></Card.Body></Card>
-          ) : (
-            <div className="cut-production-events-carousel">
-              {events.slice(0, 12).map((event) => (
-                <article className="cut-production-event-slide" key={event.id}>
-                  <div className="cut-production-event-slide__media">
-                    <EventArtwork image={event.image} title={event.title} alt={event.title} loading="lazy" decoding="async" fallbackClassName="cut-production-event-slide__fallback" />
-                  </div>
-                  <div className="cut-production-event-slide__body">
-                    <span className="cut-eyebrow">{event.category || "Evento"}</span>
-                    <h3>{event.title}</h3>
-                    <div className="cut-production-event-meta">
-                      <p><i className="fa-regular fa-clock" />{fmt(event.start_date)}</p>
-                      <p><i className="fa-solid fa-location-dot" />{event.venue || event.city || "Local a definir"}</p>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
+        <EventDiscoveryRail
+          className="cut-production-section cut-production-agenda-section cut-production-agenda-section--priority"
+          events={upcomingEvents}
+          productionOverride={productionMeta || form}
+          eyebrow="Agenda"
+          title="Próximos eventos"
+          description="A mesma visualização usada na página pública, em ordem de data."
+          allTo="/event/manage"
+          allLabel="Gerenciar eventos"
+          emptyTitle="Nenhum próximo evento anunciado"
+          emptyText="Crie ou publique um evento para ele aparecer nesta área."
+          maxItems={12}
+        />
 
         <section className="cut-production-inline-editor__galleryEntry" aria-label="Gerenciamento da galeria">
           <div>
@@ -600,12 +612,8 @@ export default function ProductionUpdatePage() {
             </div>
             <Suspense
               fallback={
-                <div className="cut-production-inline-editor__galleryLoading" role="status">
-                  <i className="fa-solid fa-circle-notch fa-spin" />
-                  <div>
-                    <strong>Abrindo gerenciador da galeria</strong>
-                    <span>Carregando somente as ferramentas necessárias para manter a edição rápida.</span>
-                  </div>
+                <div className="cut-production-inline-editor__galleryLoading">
+                  <ProcessingIndicatorComponent fullscreen={false} label="Abrindo gerenciador da galeria" />
                 </div>
               }
             >

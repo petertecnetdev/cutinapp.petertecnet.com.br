@@ -3,12 +3,15 @@ import { Alert, Button, Card, Col, Container, Form, Modal, Row } from "react-boo
 import { useNavigate } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
+import ProductionNextEventHero from "../../components/production/ProductionNextEventHero";
 import LocationFields from "../../components/location/LocationFields";
 import { FormattedTextEditor } from "../../components/editor/FormattedText";
 import cutinappService from "../../services/CutinappService";
 import { runBestEffort } from "../../utils/bestEffort";
 import "./production-experience.css";
 import "./production-inline-editor.css";
+import "./production-view-evolution.css";
+import "./production-editor-evolution.css";
 
 const initialForm = {
   name: "",
@@ -64,6 +67,10 @@ export default function ProductionCreatePage() {
   const [submitted, setSubmitted] = useState(false);
   const [logoPreview, setLogoPreview] = useState("");
   const [backgroundPreview, setBackgroundPreview] = useState("");
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }, []);
 
   useEffect(() => () => {
     if (logoPreview?.startsWith("blob:")) URL.revokeObjectURL(logoPreview);
@@ -227,7 +234,10 @@ export default function ProductionCreatePage() {
   const displayName = form.name.trim() || "Sua produção";
   const pageBackground = backgroundPreview || logoPreview;
   const pageStyle = pageBackground ? { "--cut-production-page-bg": `url(${JSON.stringify(pageBackground)})` } : undefined;
-  const heroStyle = backgroundPreview ? { "--cut-production-editor-hero-image": `url(${JSON.stringify(backgroundPreview)})` } : undefined;
+  const heroStyle = backgroundPreview ? {
+    "--cut-production-editor-hero-image": `url(${JSON.stringify(backgroundPreview)})`,
+    "--cut-production-public-hero-image": `url(${JSON.stringify(backgroundPreview)})`,
+  } : undefined;
   const mapQuery = form.location_public
     ? (form.formatted_address || [form.address, form.address_number, form.neighborhood, form.city, form.uf].filter(Boolean).join(", "))
     : "";
@@ -250,7 +260,7 @@ export default function ProductionCreatePage() {
       </Modal>
 
       <Form onSubmit={submit} noValidate>
-        <section className="cut-profile-hero cut-production-themed-page__hero cut-production-inline-editor__hero" style={heroStyle}>
+        <section className="cut-profile-hero cut-production-themed-page__hero cut-production-themed-page__hero--public cut-production-inline-editor__hero" style={heroStyle}>
           <input id="production-create-cover" className="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp" data-pt-image-enhancer="off" data-media-library="off" aria-label="Selecionar capa da produção" onChange={(event) => chooseImage("background", event)} />
           <input id="production-create-logo" className="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp" data-pt-image-enhancer="off" data-media-library="off" aria-label="Selecionar logo da produção" onChange={(event) => chooseImage("logo", event)} />
 
@@ -360,12 +370,12 @@ export default function ProductionCreatePage() {
             </Card>
           </div>
 
-          <section className="cut-production-section cut-production-agenda-section">
-            <div className="cut-production-section-head cut-production-agenda-head">
-              <div><span className="cut-eyebrow">Agenda</span><h2>Próximos eventos</h2><p className="cut-production-agenda-copy">Depois de criar a produção, os eventos cadastrados aparecerão nesta mesma posição.</p></div>
-            </div>
-            <Card className="cut-empty-state"><Card.Body><div className="cut-production-agenda-empty-icon"><i className="fa-regular fa-calendar-plus" /></div><h3>Seu primeiro evento entra aqui</h3><p>Ao finalizar a produção, você seguirá direto para a criação do evento.</p></Card.Body></Card>
-          </section>
+          <ProductionNextEventHero
+            event={null}
+            production={{ name: displayName, city: form.city, uf: form.uf }}
+            emptyTitle="Seu primeiro evento entra aqui"
+            emptyText="Ao criar a produção, você seguirá direto para o primeiro evento. Depois disso, esta área exibirá a próxima experiência exatamente como na página pública."
+          />
 
           <section className="cut-production-inline-editor__galleryEntry" aria-label="Prévia da galeria">
             <div><span className="cut-eyebrow">Galeria da produção</span><strong>Fotos do espaço e experiências</strong><small>Depois de criar a produção, você poderá adicionar, organizar e destacar fotos exatamente nesta área.</small></div>
