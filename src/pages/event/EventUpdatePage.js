@@ -418,14 +418,39 @@ export default function EventUpdatePage() {
         </Card.Body>
       </Card>
 
+      <Card className="cut-panel mt-4" id="event-editor-tickets">
+        <Card.Body className="p-4 p-lg-5">
+          <div className="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+            <div>
+              <span className="cut-eyebrow">Ingressos</span>
+              <h2 className="cut-section-title mt-2 mb-2">Ingressos e lotes</h2>
+              <p className="text-secondary mb-0">
+                Cadastre os tipos de ingresso, lotes, preços, quantidades e períodos de venda deste evento.
+              </p>
+            </div>
+            <div className="cev2-actions">
+              <Button type="button" onClick={() => navigate(`/ticket/create?eventId=${id}`)}>
+                <i className="fa-solid fa-ticket me-2" />
+                Cadastrar ingresso
+              </Button>
+              <Button type="button" variant="outline-light" onClick={() => navigate(`/event/${id}/participants`)}>
+                <i className="fa-solid fa-users me-2" />
+                Participantes
+              </Button>
+            </div>
+          </div>
+          <div className="mt-4">
+            <EventMetrics event={eventData || {}} />
+          </div>
+        </Card.Body>
+      </Card>
+
       <details className="cut-event-inline-editor__advanced">
         <summary><span><i className="fa-solid fa-gear me-2" />Ferramentas avançadas do evento</span><i className="fa-solid fa-chevron-down" /></summary>
         <div>
           <div className="cev2-tabs-inner mb-4">
             {SECTIONS.filter(([key]) => !["info","media","overview"].includes(key)).map(([key,label,icon]) => <button key={key} type="button" className={`cev2-tab ${section === key ? "is-active" : ""}`} onClick={() => scrollSection(key)}><i className={`${icon} me-2`} />{label}</button>)}
           </div>
-
-          <section id="event-editor-tickets" className="cev2-card"><span className="cev2-eyebrow">Ingressos</span><h2>Lotes e acesso</h2><EventMetrics event={eventData || {}} /><div className="cev2-actions mt-3"><Button onClick={() => navigate(`/ticket/create?eventId=${id}`)}>Criar lote</Button><Button variant="outline-light" onClick={() => navigate(`/event/${id}/participants`)}>Participantes</Button></div></section>
 
           <section id="event-editor-products" className="cev2-card"><EventProductSalesManager eventId={id} eventData={eventData} onSuccess={setSuccess} onError={setError} /></section>
 
