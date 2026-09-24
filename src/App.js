@@ -126,7 +126,9 @@ function AppRoutes() {
   if (loading) return <ProcessingIndicatorComponent label="Preparando Cutinapp" />;
 
   const currentRoute = () => `${location.pathname}${location.search}${location.hash}`;
-  const canUseDeferredVerificationSession = () => authService.isEmailVerificationDeferredForCurrentSession();
+  const isAdministrativeImpersonation = authService.isAdministrativeImpersonation();
+  const canUseDeferredVerificationSession = () =>
+    isAdministrativeImpersonation || authService.isEmailVerificationDeferredForCurrentSession();
 
   const protectedRoute = (element) => {
     if (!user) return <Navigate to="/login" state={{ from: currentRoute() }} replace />;
@@ -148,6 +150,7 @@ function AppRoutes() {
 
   const verifyRoute = (element) => {
     if (!user) return <Navigate to="/login" replace />;
+    if (isAdministrativeImpersonation) return <Navigate to="/dashboard" replace />;
     return !user.email_verified_at ? element : <Navigate to="/dashboard" replace />;
   };
 
