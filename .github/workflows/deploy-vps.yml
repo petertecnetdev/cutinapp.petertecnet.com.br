@@ -1,15 +1,19 @@
 name: Deploy VPS
 
-# CUTINAPP AUTONOMOUS REVENUE SPRINT policy:
-# production deployment remains an explicit owner action while agents validate and
-# push code through Git. Do not re-enable push/workflow_run deployment without the
-# owner's explicit instruction.
+# Owner-authorized autonomous production delivery for the CUTINAPP AUTONOMOUS REVENUE SPRINT.
+# Policy source: petertecnetdev/petertecnet.com.br/agents/cutinapp-launch/README.md
+# GitHub Actions deploy is allowed only after Validate Cutinapp succeeds on main.
 on:
+  workflow_run:
+    workflows:
+      - Validate Cutinapp
+    types:
+      - completed
   workflow_dispatch:
     inputs:
       deploy_sha:
-        description: Exact validated Cutinapp commit SHA to deploy
-        required: true
+        description: Optional exact validated Cutinapp commit SHA to deploy manually
+        required: false
         type: string
 
 permissions:
@@ -17,17 +21,20 @@ permissions:
 
 concurrency:
   group: cutinapp-production
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   deploy:
-    name: Deploy explicitly selected Cutinapp SHA
+    name: Deploy validated Cutinapp
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
     uses: petertecnetdev/petertecnet.com.br/.github/workflows/reusable-vps-deploy.yml@main
     with:
       deploy_path: /var/www/cutinapp.petertecnet.com.br
       deploy_type: frontend
       deploy_branch: main
-      deploy_sha: ${{ inputs.deploy_sha }}
+      deploy_sha: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.deploy_sha || '' }}
       health_url: https://cutinapp.petertecnet.com.br/
     secrets:
       VPS_HOST: ${{ secrets.VPS_HOST }}
