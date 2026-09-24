@@ -474,16 +474,20 @@ export default function EventViewPage() {
               </div>
               {event.production?.name && <button className="cut-inline-profile-link mt-3" onClick={() => navigate(`/production/${event.production.slug}/public`)}>Por {event.production.name} <i className="fa-solid fa-arrow-up-right-from-square" /></button>}
             </div>
-            <div className="cut-card-actions cut-event-summary-card__actions">
-              {showPersistentBuyCta && <Button as="a" href="#ingressos" size="lg" variant="success" className="fw-bold" aria-label={`Montar carrinho para ${event.title}`} onClick={() => trackTicketIntent("summary")}><i className="fa-solid fa-cart-shopping me-2" />Ingressos e itens</Button>}
-              {canManageEvent && <Button variant="light" onClick={() => navigate(`/event/edit/${event.id}`)} aria-label={`Editar ${event.title}`} title="Editar evento"><i className="fa-solid fa-pen-to-square me-2" />Editar evento</Button>}
-              <Button variant="outline-light" onClick={share} aria-label={`Compartilhar ${event.title}`}><i className="fa-solid fa-share-nodes me-2" />Compartilhar</Button>
-              <Button variant="outline-light" onClick={() => navigate(similarEventsLink)}><i className="fa-solid fa-compass me-2" />Eventos semelhantes</Button>
-              {flyerUrl && <Button variant="outline-light" onClick={() => setFlyerOpen(true)}><i className="fa-regular fa-image me-2" />Ver imagem</Button>}
-              {canMarkInterested && <Button variant={interested ? "info" : "outline-light"} onClick={() => setEngagement("interested")} disabled={socialBusy || engagementLoading}><i className="fa-regular fa-star me-2" />Tenho interesse</Button>}
-              <Button variant={favorite ? "danger" : "outline-light"} onClick={() => setEngagement("favorite")} disabled={socialBusy || engagementLoading}><i className={`${favorite ? "fa-solid" : "fa-regular"} fa-heart me-2`} />{favorite ? "Salvo" : "Salvar"}</Button>
-              <Button variant="outline-light" href="#comunidade"><i className="fa-regular fa-comments me-2" />Conversa</Button>
-              {googleMapsHref && <Button variant="outline-light" as="a" href={googleMapsHref} target="_blank" rel="noopener noreferrer"><i className="fa-solid fa-location-arrow me-2" />Maps</Button>}
+            <div className="cut-event-summary-card__actions">
+              <div className="cut-event-summary-card__primary-actions">
+                {showPersistentBuyCta && <Button as="a" href="#ingressos" size="lg" variant="success" className="cut-event-action cut-event-action--tickets" aria-label={`Montar carrinho para ${event.title}`} onClick={() => trackTicketIntent("summary")}><span className="cut-event-action__icon"><i className="fa-solid fa-ticket" /></span><span>Ingressos e itens</span><i className="fa-solid fa-arrow-right cut-event-action__arrow" /></Button>}
+                {canMarkInterested && <Button variant="outline-light" className={`cut-event-action cut-event-action--interest ${interested ? "is-active" : ""}`} onClick={() => setEngagement("interested")} disabled={socialBusy || engagementLoading}><span className="cut-event-action__icon"><i className={interested ? "fa-solid fa-star" : "fa-regular fa-star"} /></span><span>{interested ? "Tenho interesse" : "Tenho interesse"}</span></Button>}
+              </div>
+              <div className="cut-event-quick-actions" aria-label="Ações do evento">
+                <Button variant="outline-light" className="cut-event-quick-action" onClick={share} aria-label={`Compartilhar ${event.title}`} title="Compartilhar"><i className="fa-solid fa-share-nodes" /><span>Compartilhar</span></Button>
+                <Button variant="outline-light" className="cut-event-quick-action" onClick={() => navigate(similarEventsLink)} title="Eventos semelhantes"><i className="fa-solid fa-compass" /><span>Explorar</span></Button>
+                {flyerUrl && <Button variant="outline-light" className="cut-event-quick-action" onClick={() => setFlyerOpen(true)} title="Ver imagem"><i className="fa-regular fa-image" /><span>Imagem</span></Button>}
+                <Button variant="outline-light" className={`cut-event-quick-action ${favorite ? "is-active is-favorite" : ""}`} onClick={() => setEngagement("favorite")} disabled={socialBusy || engagementLoading} title={favorite ? "Remover dos salvos" : "Salvar evento"}><i className={`${favorite ? "fa-solid" : "fa-regular"} fa-heart`} /><span>{favorite ? "Salvo" : "Salvar"}</span></Button>
+                <Button variant="outline-light" className="cut-event-quick-action" href="#comunidade" title="Conversa"><i className="fa-regular fa-comments" /><span>Conversa</span></Button>
+                {googleMapsHref && <Button variant="outline-light" className="cut-event-quick-action" as="a" href={googleMapsHref} target="_blank" rel="noopener noreferrer" title="Abrir no mapa"><i className="fa-solid fa-location-arrow" /><span>Mapa</span></Button>}
+              </div>
+              {canManageEvent && <Button variant="light" className="cut-event-manage-action" onClick={() => navigate(`/event/edit/${event.id}`)} aria-label={`Editar ${event.title}`} title="Editar evento"><i className="fa-solid fa-pen-to-square" />Editar evento</Button>}
             </div>
           </div>
           <CommerceTrustRail context="event" />
