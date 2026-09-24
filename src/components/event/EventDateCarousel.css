@@ -1,0 +1,110 @@
+.cut-event-date-carousel {
+  width: 100%;
+  margin: 0 0 1.75rem;
+  overflow: hidden;
+}
+
+.cut-event-date-carousel__track {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-behavior: smooth;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  touch-action: pan-x;
+  padding: 0.25rem 0.15rem 0.55rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+.cut-event-date-carousel__track::-webkit-scrollbar {
+  display: none;
+}
+
+.cut-event-date-carousel__day {
+  flex: 0 0 76px;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  border: 1px solid rgba(159, 105, 255, 0.34);
+  background: rgba(12, 15, 40, 0.72);
+  color: rgba(255, 255, 255, 0.88);
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  scroll-snap-align: start;
+  cursor: pointer;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, box-shadow 180ms ease, color 180ms ease;
+  backdrop-filter: blur(12px);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.cut-event-date-carousel__day:hover {
+  transform: translateY(-2px);
+  border-color: rgba(190, 93, 255, 0.8);
+  background: rgba(33, 27, 73, 0.9);
+}
+
+.cut-event-date-carousel__day:focus-visible {
+  outline: 3px solid rgba(70, 201, 255, 0.78);
+  outline-offset: 3px;
+}
+
+.cut-event-date-carousel__day.is-active {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.54);
+  background: linear-gradient(145deg, #c640ff 0%, #744cff 48%, #00a8ff 100%);
+  box-shadow: 0 12px 30px rgba(119, 65, 255, 0.34), 0 0 22px rgba(29, 180, 255, 0.2);
+  transform: translateY(-2px) scale(1.03);
+}
+
+.cut-event-date-carousel__weekday {
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.08em;
+}
+
+.cut-event-date-carousel__date {
+  font-size: 0.94rem;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.cut-event-date-carousel__loading {
+  min-height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 767.98px) {
+  .cut-event-date-carousel {
+    margin-bottom: 1.3rem;
+  }
+
+  .cut-event-date-carousel__track {
+    gap: 0.65rem;
+    padding-right: 1rem;
+  }
+
+  .cut-event-date-carousel__day {
+    flex-basis: 68px;
+    width: 68px;
+    height: 68px;
+  }
+
+  .cut-event-date-carousel__weekday {
+    font-size: 0.64rem;
+  }
+
+  .cut-event-date-carousel__date {
+    font-size: 0.86rem;
+  }
+}
