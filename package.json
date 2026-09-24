@@ -12,7 +12,8 @@
     "lint:overlays": "node scripts/check-overlay-policy.js",
     "lint:dialogs": "node scripts/check-dialog-policy.js",
     "lint:react-stability": "node scripts/check-react-stability.js",
-    "lint:ux-regressions": "node scripts/check-ux-regressions.js"
+    "lint:ux-regressions": "node scripts/check-ux-regressions.js",
+    "lint:production-view": "node scripts/check-production-view-regression.js"
   },
   "keywords": [],
   "author": "Peter Tecnet",

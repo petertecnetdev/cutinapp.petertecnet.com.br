@@ -6,12 +6,14 @@ import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import ProductionTicketCartModal from "../../components/event/ProductionTicketCartModal";
 import EventDiscoveryRail from "../../components/event/EventDiscoveryRail";
+import ProductionNextEventHero from "../../components/production/ProductionNextEventHero";
 import { FormattedText } from "../../components/editor/FormattedText";
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
 import { safeExternalHref } from "../../utils/safeUrl";
 import { subscribeGalleryUpdates } from "../../utils/gallerySync";
 import "./production-experience.css";
+import "./production-view-evolution.css";
 import "../../components/WhatsAppFloatingButton.css";
 
 const ProductionCommunitySection = React.lazy(() => import("../../components/production/ProductionCommunitySection"));
@@ -54,6 +56,10 @@ export default function ProductionPublicPage() {
   const photosSectionRef = useRef(null);
   const aboutSectionRef = useRef(null);
   const postsSectionRef = useRef(null);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }, [slug]);
 
   const loadCore = useCallback(async () => {
     const response = await cutinappService.publicProduction(slug);
@@ -197,7 +203,7 @@ export default function ProductionPublicPage() {
   const unfollowProduction = () => updateFollow(false);
 
   if (loading) {
-    return <div className="cut-app-page"><NavlogComponent /><ProcessingIndicatorComponent label="Carregando produção" /></div>;
+    return <div className="cut-app-page"><NavlogComponent /><ProcessingIndicatorComponent label="Abrindo produção" /></div>;
   }
 
   if (!data || !production) {
@@ -233,6 +239,11 @@ export default function ProductionPublicPage() {
   const whatsappShareHref = `https://wa.me/?text=${encodeURIComponent(whatsappShareMessage)}`;
   const descriptionText = String(production.description || "");
   const longDescription = descriptionText.replace(/<[^>]*>/g, "").length > 420;
+  const phoneDigits = String(production.phone || "").replace(/\D/g, "");
+  const normalizedPhone = phoneDigits ? (phoneDigits.startsWith("55") ? phoneDigits : `55${phoneDigits}`) : "";
+  const phoneHref = normalizedPhone ? `tel:+${normalizedPhone}` : "";
+  const whatsappContactHref = normalizedPhone ? `https://wa.me/${normalizedPhone}` : "";
+  const nextEvent = upcoming[0] || null;
 
   const goToTab = (key) => {
     setActiveTab(key);
@@ -378,6 +389,14 @@ export default function ProductionPublicPage() {
           <div><i className="fa-regular fa-heart" /><strong>{production.likes_count || 0}</strong><span>Curtidas</span></div>
         </div>
 
+        <ProductionNextEventHero
+          event={nextEvent}
+          production={production}
+          allTo={`/agenda/${slug}`}
+          emptyTitle="Novas datas em breve"
+          emptyText="Acompanhe esta produção para receber as próximas experiências assim que forem publicadas."
+        />
+
         <div ref={eventsSectionRef} className="cut-production-tab-anchor" />
         <EventDiscoveryRail
           className="cut-production-section cut-production-agenda-section cut-production-agenda-section--priority"
@@ -404,6 +423,8 @@ export default function ProductionPublicPage() {
               </div>
               {longDescription && <Button variant="link" className="cut-production-description-toggle" onClick={() => setDescriptionExpanded((value) => !value)}>{descriptionExpanded ? "Mostrar menos" : "Ver mais"}</Button>}
               <div className="cut-production-public-social">
+                {phoneHref && <Button as="a" href={phoneHref} variant="outline-light"><i className="fa-solid fa-phone me-2" />Ligar</Button>}
+                {whatsappContactHref && <Button as="a" href={whatsappContactHref} target="_blank" rel="noopener noreferrer" variant="outline-light"><i className="fa-brands fa-whatsapp me-2" />WhatsApp</Button>}
                 {instagramHref && <Button as="a" href={instagramHref} target="_blank" rel="noopener noreferrer" variant="outline-light"><i className="fa-brands fa-instagram me-2" />Instagram</Button>}
                 {websiteHref && <Button as="a" href={websiteHref} target="_blank" rel="noopener noreferrer" variant="outline-light"><i className="fa-solid fa-globe me-2" />Site</Button>}
                 <Button variant="outline-light" onClick={copyLink}><i className="fa-regular fa-copy me-2" />{copied ? "Link copiado" : "Copiar link"}</Button>
@@ -430,25 +451,31 @@ export default function ProductionPublicPage() {
         </div>
 
         <div ref={photosSectionRef} className="cut-production-tab-anchor" />
-        <React.Suspense fallback={<div className="cut-production-section cut-production-skeleton-block" aria-hidden="true" />}>
-          <ProductionGallery
-            media={media}
-            albums={galleryAlbums}
-            productionName={production.name}
-            productionType={production.type}
-            isOwner={isOwner}
-            canReport={Boolean(user)}
-            onManage={() => navigate(`/production/edit/${production.id}#production-editor-gallery`)}
-            onReport={(mediaId, payload) => cutinappService.reportProductionMedia(slug, mediaId, payload)}
-          />
-        </React.Suspense>
+        {secondaryLoading ? (
+          <div className="cut-production-section cut-production-async-indicator">
+            <ProcessingIndicatorComponent fullscreen={false} label="Preparando fotos e informações" />
+          </div>
+        ) : (
+          <React.Suspense fallback={<div className="cut-production-section cut-production-async-indicator"><ProcessingIndicatorComponent fullscreen={false} label="Preparando galeria" /></div>}>
+            <ProductionGallery
+              media={media}
+              albums={galleryAlbums}
+              productionName={production.name}
+              productionType={production.type}
+              isOwner={isOwner}
+              canReport={Boolean(user)}
+              onManage={() => navigate(`/production/edit/${production.id}#production-editor-gallery`)}
+              onReport={(mediaId, payload) => cutinappService.reportProductionMedia(slug, mediaId, payload)}
+            />
+          </React.Suspense>
+        )}
 
         {artists.length > 0 && <section className="cut-production-section"><div className="cut-production-section-head"><div><span className="cut-eyebrow">Conexões</span><h2>Artistas relacionados</h2></div></div><div className="cut-artist-strip">{artists.map((artist) => <button key={artist.id} onClick={() => navigate(`/artist/${artist.slug}`)}><span>{artist.stage_name?.slice(0, 2).toUpperCase()}</span><strong>{artist.stage_name}</strong></button>)}</div></section>}
 
         {past.length > 0 && <section className="cut-production-section"><Card className="cut-panel"><Card.Body className="p-4"><span className="cut-eyebrow">Histórico</span><h2 className="cut-section-title">Eventos anteriores</h2>{past.slice(0, 8).map((event) => <button key={event.id} className="cut-history-link" onClick={() => navigate(`/event/${event.slug}`)}><strong>{event.title}</strong><span>{fmt(event.start_date)}</span></button>)}</Card.Body></Card></section>}
 
         <div ref={postsSectionRef} className="cut-production-tab-anchor" />
-        {!secondaryLoading && <React.Suspense fallback={<div className="cut-production-section cut-production-skeleton-block" aria-hidden="true" />}><ProductionCommunitySection production={production} isOwner={isOwner} /></React.Suspense>}
+        {!secondaryLoading && <React.Suspense fallback={<div className="cut-production-section cut-production-async-indicator"><ProcessingIndicatorComponent fullscreen={false} label="Preparando publicações" /></div>}><ProductionCommunitySection production={production} isOwner={isOwner} /></React.Suspense>}
       </Container>
 
       <a className="cut-whatsapp-fab" href={whatsappShareHref} target="_blank" rel="noopener noreferrer" aria-label="Compartilhar produção no WhatsApp" title="Compartilhar produção no WhatsApp"><i className="fa-brands fa-whatsapp" aria-hidden="true" /><span>Compartilhar</span></a>
