@@ -53,6 +53,7 @@
 @import "../pages/checkout/Coupon.css";
 @import "./cart-menu-safe-layer.css";
 @import "./event-view-premium-hero.css";
+@import "./event-view-desktop-balance.css";
 @import "./overlay-layout-system.css";
 
 /* 5. System polish without translucent/glass layers. */
