@@ -32,6 +32,38 @@ describe("safeStorage", () => {
     expect(safeGetSessionJson("completion")).toEqual({ token: "abc" });
   });
 
+  test("hides and protects payment snapshots while commerce identity is unresolved", () => {
+    window.localStorage.setItem("cutinapp_commerce_scope_v1", "user:41");
+    window.sessionStorage.setItem("cutinapp_commerce_session_scope_v1", "user:41");
+    expect(safeSetSessionJson("cutinapp_payment_evento", { order: { public_id: "owner-order" } })).toBe(true);
+    const persisted = window.sessionStorage.getItem("cutinapp_payment_evento");
+
+    window.sessionStorage.removeItem("cutinapp_commerce_session_scope_v1");
+
+    expect(safeGetSessionJson("cutinapp_payment_evento")).toBeNull();
+    expect(safeSetSessionJson("cutinapp_payment_evento", { order: { public_id: "racing-order" } })).toBe(false);
+    expect(safeRemoveSessionItem("cutinapp_payment_evento")).toBe(false);
+    expect(window.sessionStorage.getItem("cutinapp_payment_evento")).toBe(persisted);
+  });
+
+  test("restores payment snapshot access only when the tab resolves the same commerce scope", () => {
+    window.localStorage.setItem("cutinapp_commerce_scope_v1", "user:41");
+    window.sessionStorage.setItem("cutinapp_commerce_session_scope_v1", "user:41");
+    expect(safeSetSessionJson("cutinapp_payment_evento", { order: { public_id: "owner-order" } })).toBe(true);
+
+    window.sessionStorage.setItem("cutinapp_commerce_session_scope_v1", "user:99");
+    expect(safeGetSessionJson("cutinapp_payment_evento")).toBeNull();
+
+    window.sessionStorage.setItem("cutinapp_commerce_session_scope_v1", "user:41");
+    expect(safeGetSessionJson("cutinapp_payment_evento")).toEqual({ order: { public_id: "owner-order" } });
+  });
+
+  test("keeps unrelated session keys available during commerce identity resolution", () => {
+    window.localStorage.setItem("cutinapp_commerce_scope_v1", "user:41");
+    expect(safeSetSessionItem("return_to", "/passes")).toBe(true);
+    expect(safeGetSessionItem("return_to")).toBe("/passes");
+  });
+
   test("returns safe fallbacks when sessionStorage reads are blocked", () => {
     jest.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
       throw new DOMException("Blocked", "SecurityError");
