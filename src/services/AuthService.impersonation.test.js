@@ -1,3 +1,11 @@
+jest.mock("./ApiClient", () => ({
+  __esModule: true,
+  default: {
+    get: jest.fn(),
+    post: jest.fn(),
+  },
+}));
+
 import authService from "./AuthService";
 import { clearAuthToken, setAuthToken } from "../utils/authTokenStorage";
 
