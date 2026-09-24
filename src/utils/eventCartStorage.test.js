@@ -101,7 +101,7 @@ describe("fulfilled checkout storage cleanup", () => {
 
   test("keeps pending payment recovery intact when only the cart is cleared", () => {
     const slug = "evento-pendente"; const paymentKey = `cutinapp_payment_${slug}`; const recoveryKey = `cutinapp_checkout_recovery_${slug}`;
-    window.sessionStorage.setItem(paymentKey, JSON.stringify({ order: { status: "pending", metadata: { fulfillment_status: "pending" } }));
+    window.sessionStorage.setItem(paymentKey, JSON.stringify({ order: { status: "pending", metadata: { fulfillment_status: "pending" } } }));
     window.localStorage.setItem(recoveryKey, JSON.stringify({ orderPublicId: "ord_pending", savedAt: Date.now() }));
     clearEventCart(slug); expect(window.sessionStorage.getItem(paymentKey)).not.toBeNull(); expect(window.localStorage.getItem(recoveryKey)).not.toBeNull();
   });
