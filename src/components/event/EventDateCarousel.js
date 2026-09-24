@@ -6,6 +6,8 @@ import "./EventDateCarousel.css";
 
 const SAO_PAULO_TIMEZONE = "America/Sao_Paulo";
 const WEEKDAYS = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
+const MAX_DATE_DISCOVERY_PAGES = 4;
+const TARGET_DISCOVERY_DATES = 14;
 
 const localDateKey = (value) => {
   if (!value) return null;
@@ -70,9 +72,12 @@ export default function EventDateCarousel({ city = "", uf = "", selectedDate = "
             if (key) uniqueDates.add(key);
           });
 
-          lastPage = Math.max(1, Number(eventPage?.last_page || 1));
+          lastPage = Math.min(
+            MAX_DATE_DISCOVERY_PAGES,
+            Math.max(1, Number(eventPage?.last_page || 1)),
+          );
           page += 1;
-        } while (page <= lastPage);
+        } while (page <= lastPage && uniqueDates.size < TARGET_DISCOVERY_DATES);
 
         if (active) setDates(Array.from(uniqueDates).sort());
       } catch (_) {
