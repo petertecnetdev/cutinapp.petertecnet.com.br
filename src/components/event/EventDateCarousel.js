@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import PropTypes from "prop-types";
 import ProcessingIndicatorComponent from "../ProcessingIndicatorComponent";
 import cutinappService from "../../services/CutinappService";
 import "./EventDateCarousel.css";
@@ -124,3 +125,17 @@ export default function EventDateCarousel({ city = "", uf = "", selectedDate = "
     </div>
   );
 }
+
+EventDateCarousel.propTypes = {
+  city: PropTypes.string,
+  uf: PropTypes.string,
+  selectedDate: PropTypes.string,
+  onSelect: PropTypes.func,
+};
+
+EventDateCarousel.defaultProps = {
+  city: "",
+  uf: "",
+  selectedDate: "",
+  onSelect: undefined,
+};
