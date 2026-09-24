@@ -347,22 +347,44 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
           </div>
         </>}
       </div>
-    </div>
 
-    {selectedQuantity > 0 && <div className="d-grid gap-2">
-      <Button
-        type="button"
-        variant="success"
-        size="lg"
-        onClick={continueToCheckout}
-        disabled={!checkoutAvailable}
-        aria-label={`${user ? "Continuar para checkout" : "Entrar e continuar"} com ${selectedQuantity} item${selectedQuantity === 1 ? "" : "s"}, total ${money(total)}`}
-      >
-        <i className={`fa-solid ${user ? "fa-arrow-right" : "fa-right-to-bracket"} me-2`} aria-hidden="true" />
-        {user ? `Continuar para checkout · ${money(total)}` : `Entrar e continuar · ${money(total)}`}
-      </Button>
-      <small className="text-secondary text-center">Preço e disponibilidade serão revalidados antes de qualquer cobrança.</small>
-    </div>}
+      <aside className="cut-ticket-shop__summary" aria-label="Resumo da compra">
+        <div className="cut-ticket-shop__summary-head">
+          <small>Resumo da compra</small>
+        </div>
+
+        {selectedEntries.length > 0 ? <div className="cut-ticket-shop__summary-items">
+          {selectedEntries.map(({ kind, item, quantity }) => <div className="cut-ticket-shop__summary-item" key={`summary-${kind}-${item.id}`}>
+            <div>
+              <strong>{item.name}</strong>
+              <span>{quantity} × {money(item.price)}</span>
+            </div>
+            <b>{money(Number(item.price || 0) * quantity)}</b>
+          </div>)}
+        </div> : <div className="cut-ticket-shop__summary-empty">Escolha seus ingressos usando os botões + e −.</div>}
+
+        <div className="cut-ticket-shop__summary-footer">
+          <div className="cut-ticket-shop__summary-line cut-ticket-shop__summary-line--total">
+            <span>Total</span>
+            <strong>{money(total)}</strong>
+          </div>
+          <button
+            type="button"
+            className="cut-ticket-shop__checkout-btn"
+            onClick={continueToCheckout}
+            disabled={selectedQuantity <= 0 || !checkoutAvailable}
+            aria-label={`${user ? "Continuar para checkout" : "Entrar e continuar"} com ${selectedQuantity} item${selectedQuantity === 1 ? "" : "s"}, total ${money(total)}`}
+          >
+            {user ? "Comprar ingressos" : "Entrar e comprar"}
+            <i className={`fa-solid ${user ? "fa-arrow-right" : "fa-right-to-bracket"} ms-2`} aria-hidden="true" />
+          </button>
+          <p className="cut-ticket-shop__summary-note">Preço e disponibilidade serão revalidados antes de qualquer cobrança.</p>
+          <p className="cut-ticket-shop__summary-note">
+            Ao prosseguir para a compra, você concorda com a <a href="https://fastix.com.br/purchase" target="_blank" rel="noopener noreferrer" className="text-decoration-underline">Política de Compra</a> e os <a href="https://fastix.com.br/terms" target="_blank" rel="noopener noreferrer" className="text-decoration-underline">Termos de Uso</a> da FasTix.
+          </p>
+        </div>
+      </aside>
+    </div>
 
     {selectedQuantity > 0 && <small className="d-block text-success text-center"><i className="fa-solid fa-clock-rotate-left me-1" />Sua seleção fica salva neste navegador e será revalidada ao retornar.</small>}
     <div className="cut-ticket-shop__trust"><i className="fa-solid fa-shield-halved" /><span>Um único pedido. Ingressos gratuitos entram normalmente com valor R$ 0,00; pedidos com valor usam o pagamento disponível. Cada ingresso recebe QR de entrada e check-in normal.</span></div>
