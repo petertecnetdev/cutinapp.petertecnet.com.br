@@ -46,7 +46,7 @@ export default function EventExperienceEditorSurface({
               <span className="cut-event-inline-editor__modepill">
                 <i className={mode === "create" ? "fa-solid fa-plus" : "fa-regular fa-pen-to-square"} /> {modeLabel}
               </span>
-              <small>Edite cada informação exatamente no ponto em que ela aparece para o visitante.</small>
+              <small>Edite a prévia pública do evento e salve quando terminar.</small>
             </div>
             <div className="cut-event-inline-editor__modeActions">
               <Button type="button" className="cut-event-inline-editor__primaryAction" onClick={onSave} disabled={saving}>
@@ -120,10 +120,10 @@ export default function EventExperienceEditorSurface({
             </div>
 
             <div className="cut-card-actions cut-event-summary-card__actions">
-              <Button type="button" variant="outline-light" onClick={() => document.getElementById("event-editor-about")?.scrollIntoView({ behavior: "smooth", block: "start" })}>
+              <Button type="button" variant="outline-light" className="cut-event-inline-editor__summaryAction" onClick={() => document.getElementById("event-editor-about")?.scrollIntoView({ behavior: "smooth", block: "start" })}>
                 <i className="fa-regular fa-pen-to-square me-2" />Sobre o evento
               </Button>
-              <Button type="button" variant="outline-light" onClick={() => document.getElementById("event-editor-location")?.scrollIntoView({ behavior: "smooth", block: "start" })}>
+              <Button type="button" variant="outline-light" className="cut-event-inline-editor__summaryAction" onClick={() => document.getElementById("event-editor-location")?.scrollIntoView({ behavior: "smooth", block: "start" })}>
                 <i className="fa-solid fa-location-dot me-2" />Localização
               </Button>
               <Button type="button" className="cut-event-inline-editor__primaryAction" onClick={onSave} disabled={saving}>
