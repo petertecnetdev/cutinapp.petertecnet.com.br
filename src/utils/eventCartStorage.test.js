@@ -76,6 +76,22 @@ describe("fulfilled checkout storage cleanup", () => {
     expect(JSON.parse(window.localStorage.getItem(cartKey))).toEqual({ cleared: true, savedAt: now });
   });
 
+  test("expires a cart with an implausible future timestamp instead of keeping it indefinitely", () => {
+    const slug = "evento-futuro-invalido";
+    const cartKey = `cutinapp_checkout_${slug}`;
+    const futureCart = {
+      tickets: [{ id: 3, quantity: 1 }],
+      items: [],
+      savedAt: Date.now() + (10 * 60 * 1000),
+    };
+    window.sessionStorage.setItem(cartKey, JSON.stringify(futureCart));
+    window.localStorage.setItem(cartKey, JSON.stringify(futureCart));
+
+    expect(readEventCart(slug)).toBeNull();
+    expect(window.sessionStorage.getItem(cartKey)).toBeNull();
+    expect(window.localStorage.getItem(cartKey)).toBeNull();
+  });
+
   test("normalizes event identity across cart and checkout recovery", () => {
     writeEventCart("  evento-normalizado  ", { tickets: [{ id: 4, quantity: 1 }], items: [] });
 
