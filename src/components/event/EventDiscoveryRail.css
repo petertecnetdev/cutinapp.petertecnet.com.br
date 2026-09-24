@@ -48,7 +48,7 @@
   .cut-event-discovery__head p{display:none}
   .cut-event-discovery__controls{display:none}
   .cut-event-discovery__actions>a{font-size:.75rem}
-  .cut-event-discovery__rail{grid-auto-columns:clamp(228px,72vw,280px);margin-right:calc(var(--bs-gutter-x,1.5rem) * -.5);padding-right:20px}
+  .cut-event-discovery__rail{grid-auto-columns:clamp(220px,68vw,270px);margin-right:calc(var(--bs-gutter-x,1.5rem) * -.5);padding-right:20px}
 }
 @media(prefers-reduced-motion:reduce){
   .cut-event-discovery__card,.cut-event-discovery__controls button,.cut-event-discovery__production{transition:none}
