@@ -41,4 +41,24 @@ describe("profile activity serialized privacy flags", () => {
     expect(places).toHaveLength(1);
     expect(places[0]).toMatchObject({ id: 3, visits_count: 2, is_following: true });
   });
+
+  test("boolean and object values never become visit or rating metrics", () => {
+    const now = new Date("2026-09-23T12:00:00Z").getTime();
+    const memories = deriveMemoryTimeline([
+      { id: 10, end_date: "2026-09-22T12:00:00Z", viewer_rating: true },
+      { id: 11, end_date: "2026-09-22T13:00:00Z", viewer_rating: { value: 5 } },
+      { id: 12, end_date: "2026-09-22T14:00:00Z", viewer_rating: "4" },
+    ], now);
+    const places = normalizeVisitedPlaces([
+      { id: 20, name: "Boolean visit", visits_count: true },
+      { id: 21, name: "Object visit", visits_count: { value: 3 } },
+      { id: 22, name: "Numeric string", visits_count: "2" },
+    ]);
+
+    expect(memories.find((memory) => memory.id === 10)?.rating).toBeNull();
+    expect(memories.find((memory) => memory.id === 11)?.rating).toBeNull();
+    expect(memories.find((memory) => memory.id === 12)?.rating).toBe(4);
+    expect(places).toHaveLength(1);
+    expect(places[0]).toMatchObject({ id: 22, visits_count: 2 });
+  });
 });
