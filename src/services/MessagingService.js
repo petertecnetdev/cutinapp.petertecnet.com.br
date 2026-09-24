@@ -57,8 +57,26 @@ const archiveConversationIdempotently = createIdempotentMutation({
   ).data,
 });
 
+let conversationListSequence = 0;
+let latestConversationListRequest = null;
+
+const loadLatestConversations = async (params = {}) => {
+  const requestSequence = ++conversationListSequence;
+  const request = appApiClient.get("/messaging/conversations", { params }).then(({ data }) => data);
+  latestConversationListRequest = request;
+  const response = await request;
+
+  // Search debounce and polling can overlap. Older callers must observe the
+  // newest request instead of committing a stale list after the query changed.
+  if (requestSequence !== conversationListSequence && latestConversationListRequest) {
+    return latestConversationListRequest;
+  }
+
+  return response;
+};
+
 const messagingService = {
-  conversations: async (params = {}) => (await appApiClient.get("/messaging/conversations", { params })).data,
+  conversations: loadLatestConversations,
   searchPeople: async (query) => (await appApiClient.get("/messaging/people", { params: { q: query } })).data,
   openDirect: (userId) => {
     const request = openDirectIdempotently(userId);
