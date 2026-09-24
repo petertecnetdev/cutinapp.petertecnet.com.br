@@ -706,3 +706,69 @@
     max-width:calc(100% - 18px)!important;
   }
 }
+
+
+/* Editor-only hero layout guard.
+ * The public event page uses display:contents on desktop so the summary and
+ * flyer can occupy separate grid columns. The editor has an extra toolbar,
+ * therefore it must receive an explicit grid position instead of falling into
+ * the narrow outer gutter. */
+@media (min-width: 1200px) {
+  .cut-event-inline-editor.cut-event-view-page .cut-event-inline-editor__modebar {
+    grid-column: 2 / 5 !important;
+    grid-row: 1 !important;
+    justify-self: stretch !important;
+    align-self: end !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 26px 0 0 !important;
+    padding: 12px 14px 12px 16px !important;
+    border-radius: 16px !important;
+    z-index: 6;
+  }
+
+  .cut-event-inline-editor.cut-event-view-page .cut-event-summary-card,
+  .cut-event-inline-editor.cut-event-view-page .cut-event-banner-frame,
+  .cut-event-inline-editor.cut-event-view-page .cut-event-banner-placeholder {
+    margin-top: 26px !important;
+  }
+
+  .cut-event-inline-editor.cut-event-view-page .cut-event-inline-editor__modebar > div:first-child {
+    min-width: 0;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .cut-event-inline-editor.cut-event-view-page .cut-event-inline-editor__modebar small {
+    white-space: normal;
+    overflow-wrap: normal;
+    word-break: normal;
+  }
+}
+
+/* Keep editor actions as readable actions. Public event-view CSS intentionally
+ * reduces tertiary public actions to icon buttons; that behavior must not leak
+ * into the editing interface. */
+.cut-event-inline-editor.cut-event-view-page .cut-event-summary-card .cut-event-summary-card__actions > button.btn.cut-event-inline-editor__summaryAction[type="button"] {
+  width: auto !important;
+  min-width: 132px !important;
+  min-height: 44px !important;
+  flex: 1 1 132px !important;
+  padding: 10px 14px !important;
+  border-radius: 13px !important;
+  font-size: .78rem !important;
+  font-weight: 850 !important;
+  line-height: 1.15 !important;
+}
+
+.cut-event-inline-editor.cut-event-view-page .cut-event-summary-card .cut-event-summary-card__actions > button.btn.cut-event-inline-editor__summaryAction[type="button"] i {
+  margin-right: .5rem !important;
+  font-size: .88rem !important;
+}
+
+@media (max-width: 575.98px) {
+  .cut-event-inline-editor.cut-event-view-page .cut-event-summary-card .cut-event-summary-card__actions > button.btn.cut-event-inline-editor__summaryAction[type="button"] {
+    width: 100% !important;
+    min-width: 0 !important;
+    flex-basis: 100% !important;
+  }
+}
