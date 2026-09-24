@@ -10,6 +10,7 @@ import { clearCheckoutRecovery, readCheckoutRecovery, writeCheckoutRecovery } fr
 
 const CART_PREFIX = "cutinapp_checkout_";
 const CART_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000;
+const CART_MAX_FUTURE_SKEW_MS = 5 * 60 * 1000;
 const PAYMENT_PREFIX = "cutinapp_payment_";
 const normalizeSlug = (slug) => String(slug || "").trim();
 const keyFor = (slug) => {
@@ -33,7 +34,12 @@ const hasPurchasableSelection = (selection) => [
 
 const isExpired = (cart) => {
   const savedAt = Number(cart?.savedAt || 0);
-  return savedAt > 0 && Date.now() - savedAt > CART_MAX_AGE_MS;
+  if (savedAt <= 0) return false;
+
+  const age = Date.now() - savedAt;
+  // A corrupt or manipulated future timestamp must not turn a browser cart into a
+  // practically permanent checkout. Keep a small tolerance for ordinary clock skew.
+  return age > CART_MAX_AGE_MS || age < -CART_MAX_FUTURE_SKEW_MS;
 };
 
 const newestCart = (sessionCart, persistentCart) => {
