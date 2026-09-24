@@ -1,0 +1,65 @@
+/* Desktop balance fix for the public event page.
+ * The premium hero uses display: contents so the artwork and summary can share
+ * the page grid. CommerceTrustRail must therefore be positioned explicitly;
+ * otherwise it becomes an auto-placed grid child and collapses into the first
+ * narrow column, producing the broken stacked cards seen on wide screens.
+ */
+
+@media (min-width: 1200px) {
+  .cut-event-view-page {
+    align-items: start;
+  }
+
+  /* Keep both hero columns aligned by the same top edge. */
+  .cut-event-view-page .cut-event-summary-card,
+  .cut-event-view-page .cut-event-banner-frame,
+  .cut-event-view-page .cut-event-banner-placeholder {
+    align-self: start !important;
+    margin-top: 44px !important;
+  }
+
+  /* The trust rail belongs below the complete hero, not inside the left gutter. */
+  .cut-event-view-page > .cut-event-summary-strip > .cut-page-container > .cut-commerce-trust {
+    grid-column: 2 / 5 !important;
+    grid-row: 3 !important;
+    align-self: start !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 0 34px !important;
+  }
+
+  .cut-event-view-page > .cut-event-summary-strip > .cut-page-container > .cut-commerce-trust.cut-commerce-trust--event {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 14px !important;
+  }
+
+  .cut-event-view-page > .cut-event-summary-strip > .cut-page-container > .cut-commerce-trust .cut-commerce-trust__item {
+    min-width: 0 !important;
+    min-height: 104px;
+    padding: 18px !important;
+  }
+
+  .cut-event-view-page > .cut-event-summary-strip > .cut-page-container > .cut-commerce-trust .cut-commerce-trust__item strong,
+  .cut-event-view-page > .cut-event-summary-strip > .cut-page-container > .cut-commerce-trust .cut-commerce-trust__item small {
+    overflow-wrap: normal;
+    word-break: normal;
+    hyphens: none;
+  }
+
+  /* Main event content starts only after the trust rail. */
+  .cut-event-view-page > .cut-page-container.py-4,
+  .cut-event-view-page > .cut-page-container.py-lg-5 {
+    grid-row: 4 !important;
+  }
+}
+
+@media (min-width: 1200px) and (max-width: 1399.98px) {
+  .cut-event-view-page {
+    grid-template-columns:
+      minmax(24px, 1fr)
+      minmax(460px, 560px)
+      clamp(24px, 2.5vw, 40px)
+      minmax(390px, 500px)
+      minmax(24px, 1fr) !important;
+  }
+}
