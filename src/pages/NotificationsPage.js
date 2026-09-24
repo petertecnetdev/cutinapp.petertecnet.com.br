@@ -3,6 +3,7 @@ import { Alert, Button, Card, Container } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import NavlogComponent from "../components/NavlogComponent";
 import NotificationPermissionControl from "../components/NotificationPermissionControl";
+import ProcessingIndicatorComponent from "../components/ProcessingIndicatorComponent";
 import cutinappService from "../services/CutinappService";
 import { safeNavigationTarget } from "../utils/safeUrl";
 import { notificationTelemetryAttrs } from "../utils/notificationTelemetry";
@@ -123,6 +124,6 @@ export default function NotificationsPage() {
     <NotificationPermissionControl />
     {error && <Alert variant="danger">{error}</Alert>}
     {loading ? <div className="cut-notification-list" aria-busy="true">{NOTIFICATION_SKELETON_KEYS.map((key) => <div className="cut-notification-skeleton" key={key} />)}</div> : items.length === 0 ? <Card className="cut-empty-state"><Card.Body><i className="fa-solid fa-earth-americas cut-empty-icon" /><h2>Nenhuma notificação ainda</h2><p>Quando houver novidades dos eventos em que você confirmou presença, elas aparecerão aqui.</p><Button onClick={() => navigate("/event")}>Descobrir eventos</Button></Card.Body></Card> : <div className="cut-notification-list">{items.map((item) => { const ctaLabel = recoveryCtaLabel(item); return <button type="button" key={item.id} {...notificationTelemetryAttrs(item, "notifications_page")} className={`cut-notification-item ${item.read_at ? "" : "is-unread"}`} onClick={() => openItem(item)}><span className="cut-notification-item__icon"><i className={notificationIcon(item.type)} /></span><span className="cut-notification-item__content"><strong>{item.title}</strong><span>{item.message || "Há uma novidade para você na Cutinapp."}</span>{ctaLabel && <span className="badge rounded-pill text-bg-info mt-1 align-self-start"><i className="fa-solid fa-arrow-right me-1" />{ctaLabel}</span>}<time>{fmt(item.created_at)}</time></span>{!item.read_at && <span className="cut-notification-item__dot" aria-label="Não lida" />}<i className="fa-solid fa-chevron-right" /></button>; })}</div>}
-    {page < lastPage && <div className="cut-load-more"><Button variant="outline-light" disabled={moreLoading} onClick={() => load(page + 1)}>{moreLoading ? "Carregando..." : "Carregar mais"}</Button></div>}
+    {page < lastPage && <div className="cut-load-more"><Button variant="outline-light" disabled={moreLoading} onClick={() => load(page + 1)}>{moreLoading ? <ProcessingIndicatorComponent fullscreen={false} label="Carregando mais notificações" /> : "Carregar mais"}</Button></div>}
   </Container></div>;
 }
