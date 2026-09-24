@@ -85,6 +85,12 @@ export const isCommerceScopeReady = () => {
     && sessionScope === localScope;
 };
 
+// When a browser already has an owned commerce scope but the current tab has not
+// resolved its auth identity yet, persisted checkout data must stay invisible. This
+// closes the account-switch/new-tab window without blocking the first legacy migration.
+export const isCommerceScopeTransitionPending = () => Boolean(safeGetLocalItem(COMMERCE_SCOPE_KEY))
+  && !isCommerceScopeReady();
+
 export const clearCommerceClientState = ({ notify = true } = {}) => {
   if (typeof window === "undefined") return 0;
   let localStorage = null;
