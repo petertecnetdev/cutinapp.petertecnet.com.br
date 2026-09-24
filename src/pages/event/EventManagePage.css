@@ -1597,3 +1597,139 @@
   }
   .cut-event-pagination__actions .btn{width:100%}
 }
+
+
+/* Readability pass — keep operational density without sub-12px text.
+   This layer intentionally comes last so the producer event manager remains
+   readable on common desktop and notebook resolutions. */
+.cut-event-manager-page .cut-event-manager-hero p {
+  font-size: .9rem;
+  line-height: 1.5;
+}
+
+.cut-event-manager-page .cut-event-manager-summary button {
+  font-size: .78rem;
+}
+
+.cut-event-manager-page .cut-event-manager-summary button strong {
+  font-size: .72rem;
+}
+
+.cut-event-manager-page .cut-event-commerce-summary > summary span {
+  font-size: .78rem;
+}
+
+.cut-event-manager-page .cut-event-commerce-summary > summary small,
+.cut-event-manager-page .cut-event-active-filters button,
+.cut-event-manager-page .cut-event-list-context {
+  font-size: .72rem;
+  line-height: 1.4;
+}
+
+.cut-event-manager-page .cut-producer-event-list-head {
+  font-size: .68rem;
+  letter-spacing: .055em;
+}
+
+.cut-event-manager-page .cut-producer-event-group__heading div span,
+.cut-event-manager-page .cut-producer-event-group__heading div strong {
+  font-size: .72rem;
+}
+
+.cut-event-manager-page .cut-producer-event-card.is-compact-table .cut-producer-event-card__title {
+  font-size: .9rem;
+  line-height: 1.28;
+}
+
+.cut-event-manager-page .cut-producer-event-card.is-compact-table .cut-producer-event-card__meta span {
+  font-size: .7rem;
+  line-height: 1.4;
+}
+
+.cut-event-manager-page .cut-event-artist-chip__copy b {
+  font-size: .68rem;
+  line-height: 1.3;
+}
+
+.cut-event-manager-page .cut-event-artist-chip__copy small {
+  font-size: .62rem;
+  line-height: 1.3;
+}
+
+.cut-event-manager-page .cut-event-artists-more,
+.cut-event-manager-page .cut-event-artists-empty {
+  font-size: .68rem;
+}
+
+.cut-event-manager-page .cut-producer-event-card__status .badge {
+  font-size: .68rem;
+}
+
+.cut-event-manager-page .cut-producer-event-card__status .cut-event-performance {
+  font-size: .64rem;
+  line-height: 1.3;
+}
+
+.cut-event-manager-page .cut-producer-event-card__sales strong {
+  font-size: .74rem;
+}
+
+.cut-event-manager-page .cut-producer-event-card__sales span {
+  font-size: .72rem;
+}
+
+.cut-event-manager-page .cut-producer-event-card__sales small {
+  font-size: .64rem;
+  line-height: 1.35;
+}
+
+.cut-event-manager-page .cut-producer-event-card__issues strong {
+  font-size: .68rem;
+  line-height: 1.3;
+}
+
+.cut-event-manager-page .cut-producer-event-card__issues span {
+  font-size: .62rem;
+  line-height: 1.35;
+}
+
+.cut-event-manager-page .cut-producer-event-card__issues .btn {
+  font-size: .68rem;
+}
+
+.cut-event-manager-page .cut-producer-event-card.is-compact-table .cut-producer-event-card__quick-actions > .btn,
+.cut-event-manager-page .cut-producer-event-card.is-compact-table .cut-producer-event-card__quick-actions > .cut-event-admin-actions .dropdown-toggle {
+  font-size: .7rem;
+}
+
+.cut-event-manager-page .cut-event-timebar__label {
+  font-size: .74rem;
+}
+
+.cut-event-manager-page .cut-event-timebar__filters button,
+.cut-event-manager-page .cut-event-timebar__search {
+  font-size: .78rem !important;
+}
+
+.cut-event-manager-page .cut-event-pagination {
+  font-size: .74rem;
+}
+
+@media (max-width: 767.98px) {
+  .cut-event-manager-page .cut-producer-event-card.is-compact-table .cut-producer-event-card__title {
+    font-size: .94rem;
+  }
+
+  .cut-event-manager-page .cut-producer-event-card.is-compact-table .cut-producer-event-card__meta span,
+  .cut-event-manager-page .cut-producer-event-card__sales strong,
+  .cut-event-manager-page .cut-producer-event-card__sales span,
+  .cut-event-manager-page .cut-producer-event-card__issues strong {
+    font-size: .74rem;
+  }
+
+  .cut-event-manager-page .cut-producer-event-card__sales small,
+  .cut-event-manager-page .cut-producer-event-card__issues span,
+  .cut-event-manager-page .cut-event-artists-empty {
+    font-size: .68rem;
+  }
+}
