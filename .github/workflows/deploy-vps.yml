@@ -1,9 +1,11 @@
 name: Deploy VPS
 
 on:
-  push:
-    branches:
-      - main
+  workflow_run:
+    workflows:
+      - Validate Cutinapp
+    types:
+      - completed
   workflow_dispatch:
 
 permissions:
@@ -14,45 +16,19 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  validate:
-    name: Validate release candidate
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-      - name: Install dependencies
-        run: npm ci
-      - name: Reject legacy product API paths in runtime services
-        shell: bash
-        run: |
-          set -euo pipefail
-          if grep -RIn '/cutinapp/' src/services; then
-            echo 'Runtime services must consume /api/v1/apps/{application} through AppApiClient.' >&2
-            exit 1
-          fi
-      - run: npm run lint:overlays
-      - run: npm run lint:dialogs
-      - run: npm run lint:react-stability
-      - run: npm run lint:ux-regressions
-      - run: CI=true npm test -- --watchAll=false
-      - run: npm run build
-      - run: npm run perf:budget
-
   deploy:
     name: Deploy validated Cutinapp
-    needs: validate
-    # Zero-downtime central deploy: build off-path, publish assets first, switch index last.
-    # The reusable workflow builds the exact triggering commit on the runner and performs
-    # public health verification after atomic activation.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
+    # The Validate Cutinapp workflow is the release gate. This job builds and deploys
+    # exactly the SHA that passed that gate, so newer unvalidated commits cannot slip in.
     uses: petertecnetdev/petertecnet.com.br/.github/workflows/reusable-vps-deploy.yml@main
     with:
       deploy_path: /var/www/cutinapp.petertecnet.com.br
       deploy_type: frontend
       deploy_branch: main
+      deploy_sha: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || '' }}
       health_url: https://cutinapp.petertecnet.com.br/
     secrets:
       VPS_HOST: ${{ secrets.VPS_HOST }}
