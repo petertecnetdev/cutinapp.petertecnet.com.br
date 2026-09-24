@@ -80,7 +80,7 @@ describe("fulfilled checkout storage cleanup", () => {
   test("clears terminal payment and recovery when the fulfilled cart is cleared", () => {
     const slug = "evento-finalizado"; const cartKey = `cutinapp_checkout_${slug}`; const paymentKey = `cutinapp_payment_${slug}`; const recoveryKey = `cutinapp_checkout_recovery_${slug}`;
     window.sessionStorage.setItem(cartKey, JSON.stringify({ tickets: [{ id: 1, quantity: 1 }] })); window.localStorage.setItem(cartKey, JSON.stringify({ tickets: [{ id: 1, quantity: 1 }] }));
-    window.sessionStorage.setItem(paymentKey, JSON.stringify({ order: { status: "paid", metadata: { fulfillment_status: "completed" } })); window.localStorage.setItem(recoveryKey, JSON.stringify({ orderPublicId: "ord_123", savedAt: Date.now() }));
+    window.sessionStorage.setItem(paymentKey, JSON.stringify({ order: { status: "paid", metadata: { fulfillment_status: "completed" } } })); window.localStorage.setItem(recoveryKey, JSON.stringify({ orderPublicId: "ord_123", savedAt: Date.now() }));
     clearEventCart(slug);
     expect(window.sessionStorage.getItem(cartKey)).toBeNull(); expect(JSON.parse(window.localStorage.getItem(cartKey))?.cleared).toBe(true);
     expect(window.sessionStorage.getItem(paymentKey)).toBeNull(); expect(window.localStorage.getItem(recoveryKey)).toBeNull();
