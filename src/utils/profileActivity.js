@@ -9,8 +9,9 @@ const eventTimestamp = (event) => {
   return date ? date.getTime() : null;
 };
 
-const explicitTrue = (value) => value === true || value === 1 || value === "1";
-const explicitFalse = (value) => value === false || value === 0 || value === "0";
+const normalizedBooleanText = (value) => typeof value === "string" ? value.trim().toLowerCase() : null;
+const explicitTrue = (value) => value === true || value === 1 || normalizedBooleanText(value) === "1" || normalizedBooleanText(value) === "true";
+const explicitFalse = (value) => value === false || value === 0 || normalizedBooleanText(value) === "0" || normalizedBooleanText(value) === "false";
 const viewerCanSee = (value) => !explicitFalse(value?.visible) && !explicitFalse(value?.viewer_can_see);
 const normalizePersonalRating = (value) => {
   if (value === null || value === undefined || value === "") return null;
