@@ -17,6 +17,24 @@ const extractToken = (payload = {}) =>
   payload.access_token ??
   (typeof payload.token === "string" ? payload.token : null);
 
+const decodeJwtPayload = (token) => {
+  try {
+    const encodedPayload = String(token || "").split(".")[1];
+    if (!encodedPayload) return null;
+
+    const normalized = encodedPayload.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
+    return JSON.parse(window.atob(padded));
+  } catch {
+    return null;
+  }
+};
+
+const isAdministrativeImpersonationToken = (token) => {
+  const payload = decodeJwtPayload(token);
+  return payload?.impersonated === true && Boolean(payload?.impersonation_session_id);
+};
+
 const authService = {
   getToken: getAuthToken,
   setToken: (token) => {
@@ -131,6 +149,11 @@ const authService = {
     const token = authService.getToken();
     if (!token) return false;
     return safeGetLocalItem(EMAIL_VERIFICATION_DEFERRED_TOKEN_KEY) === token;
+  },
+
+  isAdministrativeImpersonation: () => {
+    const token = authService.getToken();
+    return isAdministrativeImpersonationToken(token);
   },
 
   changePassword: async (currentPassword, newPassword, confirmPassword) => {
