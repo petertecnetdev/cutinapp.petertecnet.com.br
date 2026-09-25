@@ -1,5 +1,7 @@
 name: Deploy VPS
 
+# Producer onboarding release refresh: identity selfie + manual Pix readiness.
+
 # Owner-authorized autonomous production delivery for the CUTINAPP AUTONOMOUS REVENUE SPRINT.
 # Policy source: petertecnetdev/petertecnet.com.br/agents/cutinapp-launch/README.md
 # GitHub Actions deploy is allowed only after Validate Cutinapp succeeds on main.
