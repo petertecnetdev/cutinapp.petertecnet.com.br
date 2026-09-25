@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import PropTypes from "prop-types";
 import { Button, Card, Col, Container, Form, Row } from "react-bootstrap";
 import EventArtwork from "./EventArtwork";
@@ -7,6 +7,11 @@ import "./EventExperienceEditorSurface.css";
 const buildMapEmbedUrl = (form) => {
   const query = [form?.venue, form?.address, form?.city, form?.uf].filter(Boolean).join(", ");
   return query ? `https://www.google.com/maps?q=${encodeURIComponent(query)}&output=embed` : "";
+};
+
+const validDate = (value) => {
+  const date = new Date(value || "");
+  return Number.isNaN(date.getTime()) ? null : date;
 };
 
 export default function EventExperienceEditorSurface({
@@ -26,6 +31,7 @@ export default function EventExperienceEditorSurface({
   secondaryActions = null,
   children = null,
 }) {
+  const [validationRequested, setValidationRequested] = useState(false);
   const mapEmbedUrl = useMemo(() => buildMapEmbedUrl(form), [form]);
   const title = form?.title?.trim() || "Nome do evento";
   const modeLabel = mode === "create" ? "Criando evento" : "Editando evento";
@@ -36,6 +42,64 @@ export default function EventExperienceEditorSurface({
     if (Array.isArray(value)) return value[0] || "";
     return typeof value === "string" ? value : "";
   };
+
+  const readinessRows = useMemo(() => {
+    const startDate = validDate(form?.start_date);
+    const endDate = validDate(form?.end_date);
+    const startOk = Boolean(startDate)
+      && (mode !== "create" || startDate.getTime() >= Date.now() + 5 * 60 * 1000)
+      && !fieldError("start_date");
+    const endOk = Boolean(endDate)
+      && Boolean(startDate)
+      && endDate.getTime() > startDate.getTime()
+      && !fieldError("end_date");
+    const capacityValue = String(form?.max_attendees ?? "").trim();
+
+    const rows = [
+      { key: "production_id", label: "Produção responsável", issueLabel: "Produção responsável", ok: Boolean(form?.production_id) && !fieldError("production_id") },
+      { key: "title", label: "Nome", issueLabel: "Nome do evento (mínimo 2 caracteres)", ok: String(form?.title || "").trim().length >= 2 && !fieldError("title") },
+      { key: "description", label: "Descrição", issueLabel: "Descrição", ok: Boolean(String(form?.description || "").trim()) && !fieldError("description") },
+      { key: "address", label: "Endereço", issueLabel: "Endereço do evento", ok: Boolean(String(form?.address || "").trim()) && !fieldError("address") },
+      { key: "city", label: "Cidade", issueLabel: "Cidade", ok: Boolean(String(form?.city || "").trim()) && !fieldError("city") },
+      { key: "uf", label: "UF", issueLabel: "UF (2 letras)", ok: String(form?.uf || "").trim().length === 2 && !fieldError("uf") },
+      { key: "start_date", label: "Início", issueLabel: "Início (horário futuro)", ok: startOk },
+      { key: "end_date", label: "Término", issueLabel: "Término (depois do início)", ok: endOk },
+    ];
+
+    if (capacityValue !== "") {
+      rows.push({
+        key: "max_attendees",
+        label: "Capacidade",
+        issueLabel: "Capacidade (mínimo 1)",
+        ok: Number.isFinite(Number(capacityValue)) && Number(capacityValue) >= 1 && !fieldError("max_attendees"),
+      });
+    }
+
+    return rows;
+  // errors are intentionally part of readiness because API validation must remain visible on retry.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [errors, form, mode]);
+
+  const incompleteRows = readinessRows.filter((row) => !row.ok);
+  const handleSave = () => {
+    if (mode === "create" && incompleteRows.length > 0) {
+      setValidationRequested(true);
+      window.setTimeout(() => {
+        document.getElementById("event-editor-validation")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 0);
+      return;
+    }
+    onSave();
+  };
+
+  const validationSummary = validationRequested && mode === "create" && incompleteRows.length > 0 ? (
+    <div id="event-editor-validation" className="cut-form-message cut-form-message--error mt-3" role="alert" aria-live="assertive">
+      <strong>Falta revisar {incompleteRows.length === 1 ? "1 campo" : `${incompleteRows.length} campos`}:</strong>
+      <ul className="mb-0 mt-2 ps-3">
+        {incompleteRows.map((row) => <li key={row.key}>{row.issueLabel}</li>)}
+      </ul>
+    </div>
+  ) : null;
 
   return (
     <div className="cut-event-inline-editor cut-event-view-page">
@@ -49,11 +113,12 @@ export default function EventExperienceEditorSurface({
               <small>Edite a prévia pública do evento e salve quando terminar.</small>
             </div>
             <div className="cut-event-inline-editor__modeActions">
-              <Button type="button" className="cut-event-inline-editor__primaryAction" onClick={onSave} disabled={saving}>
+              <Button type="button" className="cut-event-inline-editor__primaryAction" onClick={handleSave} disabled={saving}>
                 <i className="fa-solid fa-check me-2" />{saving ? "Salvando..." : primaryLabel}
               </Button>
             </div>
           </div>
+          {validationSummary}
 
           <div className={imagePreview ? "cut-event-banner-frame cut-event-inline-editor__artwork" : "cut-event-banner-placeholder cut-event-inline-editor__artwork"}>
             <EventArtwork image={imagePreview} title={title} alt={`Prévia da imagem de ${title}`} fallbackClassName="cut-event-banner-initials" />
@@ -126,7 +191,7 @@ export default function EventExperienceEditorSurface({
               <Button type="button" variant="outline-light" className="cut-event-inline-editor__summaryAction" onClick={() => document.getElementById("event-editor-location")?.scrollIntoView({ behavior: "smooth", block: "start" })}>
                 <i className="fa-solid fa-location-dot me-2" />Localização
               </Button>
-              <Button type="button" className="cut-event-inline-editor__primaryAction cut-event-inline-editor__summaryAction" onClick={onSave} disabled={saving}>
+              <Button type="button" className="cut-event-inline-editor__primaryAction cut-event-inline-editor__summaryAction" onClick={handleSave} disabled={saving}>
                 <i className="fa-solid fa-floppy-disk me-2" />{saving ? "Salvando..." : primaryLabel}
               </Button>
             </div>
@@ -229,18 +294,28 @@ export default function EventExperienceEditorSurface({
                 <p className="text-secondary">A coluna ocupa o mesmo lugar das ferramentas do produtor na página pública.</p>
 
                 <div className="cut-owner-actions mt-4">
-                  <Button type="button" className="cut-event-inline-editor__primaryAction" onClick={onSave} disabled={saving}><i className="fa-solid fa-floppy-disk me-2" />{saving ? "Salvando..." : primaryLabel}</Button>
+                  <Button type="button" className="cut-event-inline-editor__primaryAction" onClick={handleSave} disabled={saving}><i className="fa-solid fa-floppy-disk me-2" />{saving ? "Salvando..." : primaryLabel}</Button>
                   {secondaryActions}
                   <Button type="button" variant="outline-light" onClick={() => document.getElementById("event-editor-about")?.scrollIntoView({ behavior: "smooth", block: "start" })}>Editar informações</Button>
                   <Button type="button" variant="outline-light" onClick={() => document.getElementById("event-editor-location")?.scrollIntoView({ behavior: "smooth", block: "start" })}>Editar localização</Button>
                 </div>
 
+                {mode === "create" && incompleteRows.length > 0 && (
+                  <div className="cut-form-message cut-form-message--error mt-4" aria-live="polite">
+                    <strong>Antes de publicar, revise:</strong>
+                    <div className="mt-1">{incompleteRows.map((row) => row.issueLabel).join(" · ")}</div>
+                  </div>
+                )}
+                {mode === "create" && incompleteRows.length === 0 && (
+                  <div className="cut-form-message cut-form-message--success mt-4"><strong>Campos obrigatórios completos.</strong></div>
+                )}
+
                 <div className="cut-event-inline-editor__readiness">
-                  <span className={form?.title?.trim() ? "is-ok" : ""}><i className="fa-solid fa-circle-check" /> Nome</span>
-                  <span className={imagePreview ? "is-ok" : ""}><i className="fa-solid fa-circle-check" /> Imagem</span>
-                  <span className={form?.description?.trim() ? "is-ok" : ""}><i className="fa-solid fa-circle-check" /> Descrição</span>
-                  <span className={form?.start_date && form?.end_date ? "is-ok" : ""}><i className="fa-solid fa-circle-check" /> Data</span>
-                  <span className={form?.address?.trim() ? "is-ok" : ""}><i className="fa-solid fa-circle-check" /> Local</span>
+                  {readinessRows.map((row) => (
+                    <span key={row.key} className={row.ok ? "is-ok" : ""}>
+                      <i className="fa-solid fa-circle-check" /> {row.label}
+                    </span>
+                  ))}
                 </div>
               </Card.Body>
             </Card>
@@ -253,10 +328,10 @@ export default function EventExperienceEditorSurface({
   );
 }
 
-
 EventExperienceEditorSurface.propTypes = {
   mode: PropTypes.oneOf(["create", "edit"]),
   form: PropTypes.shape({
+    production_id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     title: PropTypes.string,
     description: PropTypes.string,
     venue: PropTypes.string,
@@ -266,6 +341,7 @@ EventExperienceEditorSurface.propTypes = {
     uf: PropTypes.string,
     start_date: PropTypes.string,
     end_date: PropTypes.string,
+    max_attendees: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   }).isRequired,
   imagePreview: PropTypes.string,
   onChange: PropTypes.func.isRequired,
