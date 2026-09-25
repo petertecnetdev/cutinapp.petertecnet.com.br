@@ -102,7 +102,7 @@ const PRODUCER_SEO = {
         "@type": "Organization",
         name: "Peter Tecnet",
       },
-      areaServed: "BR",
+      areaServed: "Worldwide",
     },
   },
 };
