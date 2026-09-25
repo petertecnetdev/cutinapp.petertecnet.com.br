@@ -37,7 +37,7 @@ const initialForm = {
 };
 
 const normalizeCnpj = (value) => String(value || "").replace(/\D/g, "");
-const normalizeText = (value) => String(value || "").trim().toLocaleLowerCase("pt-BR").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+const normalizeText = (value) => String(value || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 const cityId = (city) => city?.ibge_code ?? city?.city_id ?? city?.id ?? city?.code ?? "";
 const cityName = (city) => city?.name ?? city?.city ?? city?.nome ?? "";
 const cityUf = (city) => city?.uf ?? city?.state_code ?? city?.state?.uf ?? "";
@@ -104,10 +104,10 @@ export default function ProductionCreatePage() {
 
     const cities = await cutinappService.locationCities(currentForm.uf || "", currentForm.city.trim());
     const cityQuery = normalizeText(currentForm.city);
-    const ufQuery = String(currentForm.uf || "").trim().toUpperCase();
+    const regionQuery = String(currentForm.uf || "").trim().toUpperCase();
     const matches = (Array.isArray(cities) ? cities : []).filter((candidate) => {
       if (!cityId(candidate) || normalizeText(cityName(candidate)) !== cityQuery) return false;
-      return !ufQuery || String(cityUf(candidate) || "").toUpperCase() === ufQuery;
+      return !regionQuery || String(cityUf(candidate) || "").toUpperCase() === regionQuery;
     });
 
     const selected = matches.length === 1 ? matches[0] : null;
@@ -152,17 +152,9 @@ export default function ProductionCreatePage() {
         try {
           resolvedForm = await resolveTypedCity(form);
         } catch (_) {
-          throw Object.assign(new Error("Não foi possível consultar a cidade informada. Tente novamente ou selecione a cidade pela lista."), {
-            errors: { city: ["Não conseguimos validar a cidade neste momento."] },
-          });
+          // Brazilian city enrichment is optional. A manual international location must not block activation.
+          resolvedForm = form;
         }
-      }
-
-      if ((resolvedForm.city || resolvedForm.uf) && !resolvedForm.city_id) {
-        setShowOptionalDetails(true);
-        throw Object.assign(new Error("Não conseguimos confirmar a cidade. Selecione a opção correta na lista de cidades para continuar."), {
-          errors: { city: ["Selecione uma cidade válida da lista oficial."] },
-        });
       }
 
       const payload = new FormData();
@@ -201,15 +193,18 @@ export default function ProductionCreatePage() {
       );
 
       const usedQuickPath = !showOptionalDetails;
+      const locationResolution = resolvedForm.city_id ? "catalog" : resolvedForm.city ? "manual" : "not_provided";
       trackProducerActivation("producer_production_created", { ...production, id, name: production?.name || resolvedForm.name }, {
         activation_stage: "production_created",
         next_step: "event_create",
         onboarding_path: usedQuickPath ? "quick" : "detailed",
+        location_resolution: locationResolution,
       });
       if (usedQuickPath) {
         trackProducerActivation("producer_quick_production_created", { ...production, id, name: production?.name || resolvedForm.name }, {
           activation_stage: "production_created",
           next_step: "event_create",
+          location_resolution: locationResolution,
         });
       }
 
@@ -301,9 +296,9 @@ export default function ProductionCreatePage() {
                 {(nameError || fieldMessage("name")) && <div className="cut-production-inline-editor__fieldError">{fieldMessage("name") || "Informe um nome com pelo menos 2 caracteres."}</div>}
 
                 <div className="cut-production-inline-editor__locationLine">
-                  <Form.Control name="city" value={form.city} onChange={change} placeholder="Cidade" aria-label="Cidade" />
+                  <Form.Control name="city" value={form.city} onChange={change} placeholder="Cidade" aria-label="Cidade" autoComplete="address-level2" />
                   <span>-</span>
-                  <Form.Control name="uf" value={form.uf} onChange={change} placeholder="UF" aria-label="Estado" maxLength={2} />
+                  <Form.Control name="uf" value={form.uf} onChange={change} placeholder="Estado / região" aria-label="Estado, província ou região" autoComplete="address-level1" maxLength={100} />
                 </div>
 
                 <div className="cut-social-stats">
@@ -332,8 +327,8 @@ export default function ProductionCreatePage() {
                 <Row className="g-3">
                   <Col md={6}><Form.Group><Form.Label>Nome fantasia</Form.Label><Form.Control name="fantasy" value={form.fantasy} onChange={change} /></Form.Group></Col>
                   <Col md={3}><Form.Group><Form.Label>Tipo</Form.Label><Form.Select name="type" value={form.type} onChange={change}><option value="independent">Produção independente</option><option value="fixed">Espaço fixo / casa própria</option></Form.Select></Form.Group></Col>
-                  <Col md={3}><Form.Group><Form.Label>CNPJ</Form.Label><Form.Control name="cnpj" value={form.cnpj} onChange={change} inputMode="numeric" isInvalid={cnpjInvalid} /><Form.Control.Feedback type="invalid">Informe 14 dígitos ou deixe vazio.</Form.Control.Feedback></Form.Group></Col>
-                  <Col md={4}><Form.Group><Form.Label>Telefone</Form.Label><Form.Control name="phone" value={form.phone} onChange={change} inputMode="tel" /></Form.Group></Col>
+                  <Col md={3}><Form.Group><Form.Label>CNPJ (Brasil, opcional)</Form.Label><Form.Control name="cnpj" value={form.cnpj} onChange={change} inputMode="numeric" isInvalid={cnpjInvalid} /><Form.Control.Feedback type="invalid">Informe 14 dígitos ou deixe este campo vazio.</Form.Control.Feedback></Form.Group></Col>
+                  <Col md={4}><Form.Group><Form.Label>Telefone</Form.Label><Form.Control name="phone" value={form.phone} onChange={change} inputMode="tel" autoComplete="tel" /></Form.Group></Col>
                   <Col md={4}><Form.Group><Form.Label>Instagram</Form.Label><Form.Control name="instagram_url" value={form.instagram_url} onChange={change} placeholder="https://instagram.com/..." /></Form.Group></Col>
                   <Col md={4}><Form.Group><Form.Label>Site</Form.Label><Form.Control name="website_url" value={form.website_url} onChange={change} placeholder="https://..." /></Form.Group></Col>
                 </Row>
