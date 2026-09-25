@@ -34,17 +34,18 @@ const eventStatus = (event) => {
 
 const physicalLocation = (event) => {
   const street = [event?.address, event?.address_number].filter(Boolean).join(", ");
+  const address = {
+    "@type": "PostalAddress",
+    streetAddress: event?.formatted_address || street || event?.address || undefined,
+    addressLocality: event?.city || undefined,
+    addressRegion: event?.uf || event?.state || undefined,
+    postalCode: event?.cep || event?.postal_code || undefined,
+    addressCountry: event?.country || event?.country_code || undefined,
+  };
   const place = {
     "@type": "Place",
     name: event?.venue || event?.establishment_name || street || event?.city || "Local do evento",
-    address: {
-      "@type": "PostalAddress",
-      streetAddress: event?.formatted_address || street || event?.address || undefined,
-      addressLocality: event?.city || undefined,
-      addressRegion: event?.uf || event?.state || undefined,
-      postalCode: event?.cep || undefined,
-      addressCountry: event?.country || "BR",
-    },
+    address,
   };
 
   if (event?.latitude !== null && event?.latitude !== undefined && event?.longitude !== null && event?.longitude !== undefined) {
@@ -104,19 +105,26 @@ const eventPerformers = (event, artists = []) => {
     }));
 };
 
+const eventCurrency = (event, ticket) => String(
+  ticket?.currency || event?.currency || event?.currency_code || ""
+).trim().toUpperCase();
+
 const eventOffers = (event, tickets = []) => {
   const canonical = `${SITE_URL}/event/${encodeURIComponent(event?.slug || "")}`;
   return (Array.isArray(tickets) ? tickets : [])
     .filter((ticket) => ticket && ticket.price !== undefined && ticket.price !== null)
-    .map((ticket) => ({
-      "@type": "Offer",
-      name: ticket.name || ticket.type || "Ingresso",
-      price: Number(ticket.price || 0).toFixed(2),
-      priceCurrency: "BRL",
-      url: `${canonical}#ingressos`,
-      availability: ticket.available === false ? schema("SoldOut") : schema("InStock"),
-      validThrough: ticket.limit_date || event?.start_date || undefined,
-    }));
+    .map((ticket) => {
+      const currency = eventCurrency(event, ticket);
+      return {
+        "@type": "Offer",
+        name: ticket.name || ticket.type || "Ingresso",
+        price: Number(ticket.price || 0).toFixed(2),
+        priceCurrency: currency || undefined,
+        url: `${canonical}#ingressos`,
+        availability: ticket.available === false ? schema("SoldOut") : schema("InStock"),
+        validThrough: ticket.limit_date || event?.start_date || undefined,
+      };
+    });
 };
 
 export const buildEventSeo = (event, { tickets = [], artists = [] } = {}) => {
@@ -124,7 +132,7 @@ export const buildEventSeo = (event, { tickets = [], artists = [] } = {}) => {
 
   const canonical = `${SITE_URL}/event/${encodeURIComponent(event.slug)}`;
   const image = absoluteAssetUrl(event.image) || `${SITE_URL}/images/logo.png`;
-  const locationLabel = [event.city, event.uf].filter(Boolean).join(" - ");
+  const locationLabel = [event.city, event.uf || event.state, event.country].filter(Boolean).join(" - ");
   const title = `${event.title || "Evento"}${locationLabel ? ` em ${locationLabel}` : ""} | Cutinapp`;
   const description = truncate(
     event.description || `Confira data, local, atrações e ingressos para ${event.title || "este evento"} na Cutinapp.`
