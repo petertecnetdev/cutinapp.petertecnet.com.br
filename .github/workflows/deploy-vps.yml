@@ -83,3 +83,66 @@ jobs:
       VPS_PORT: ${{ secrets.VPS_PORT }}
       VPS_USER: ${{ secrets.VPS_USER }}
       VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+
+  diagnose-release-serving:
+    name: Diagnose release serving identity
+    needs: [freshness, deploy]
+    if: ${{ always() && needs.freshness.outputs.deploy == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Compare filesystem, local nginx and public HTTPS release identities
+        shell: bash
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          EXPECTED_SHA: ${{ needs.freshness.outputs.sha }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${VPS_HOST:-}" || -z "${VPS_USER:-}" || -z "${VPS_SSH_KEY:-}" ]]; then
+            echo "::notice::Release-serving diagnosis skipped because VPS credentials are unavailable."
+            exit 0
+          fi
+
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$VPS_SSH_KEY" > "$HOME/.ssh/id_ed25519"
+          chmod 600 "$HOME/.ssh/id_ed25519"
+          : > "$HOME/.ssh/known_hosts"
+
+          port="${VPS_PORT:-22}"
+          ssh_opts=(-o StrictHostKeyChecking=accept-new -o UserKnownHostsFile="$HOME/.ssh/known_hosts" -o ConnectTimeout=20)
+          probe="release=${EXPECTED_SHA}&diag=${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+
+          filesystem_sha="$(ssh "${ssh_opts[@]}" -p "$port" "$VPS_USER@$VPS_HOST" \
+            "cat /var/www/cutinapp.petertecnet.com.br/build/release-sha.txt 2>/dev/null || true")"
+          local_http_sha="$(ssh "${ssh_opts[@]}" -p "$port" "$VPS_USER@$VPS_HOST" \
+            "curl -fsSL --max-time 15 -H 'Host: cutinapp.petertecnet.com.br' -H 'Cache-Control: no-cache, no-store, max-age=0' 'http://127.0.0.1/release-sha.txt?$probe' 2>/dev/null || true")"
+          public_https_sha="$(curl -fsSL --max-time 20 --retry 3 --retry-all-errors \
+            -H 'Accept: text/plain' -H 'Cache-Control: no-cache, no-store, max-age=0' \
+            "https://cutinapp.petertecnet.com.br/release-sha.txt?$probe" 2>/dev/null || true)"
+
+          echo "Expected release SHA:   $EXPECTED_SHA"
+          echo "Filesystem release SHA: ${filesystem_sha:-unavailable}"
+          echo "Local nginx release SHA: ${local_http_sha:-unavailable}"
+          echo "Public HTTPS release SHA: ${public_https_sha:-unavailable}"
+
+          if [[ "$filesystem_sha" == "$EXPECTED_SHA" && "$local_http_sha" != "$EXPECTED_SHA" ]]; then
+            echo "::error::Diagnosis: filesystem is correct but local nginx serves another release. Inspect nginx root/vhost routing."
+            exit 1
+          fi
+          if [[ "$filesystem_sha" == "$EXPECTED_SHA" && "$local_http_sha" == "$EXPECTED_SHA" && "$public_https_sha" != "$EXPECTED_SHA" ]]; then
+            echo "::error::Diagnosis: VPS filesystem and local nginx are correct but public HTTPS serves another release. Inspect DNS/proxy/origin routing."
+            exit 1
+          fi
+          if [[ "$filesystem_sha" != "$EXPECTED_SHA" ]]; then
+            echo "::error::Diagnosis: activated filesystem does not contain the expected validated release. Inspect activation or post-deploy mutation."
+            exit 1
+          fi
+          if [[ "$public_https_sha" == "$EXPECTED_SHA" ]]; then
+            echo "Release identity is consistent through public HTTPS."
+            exit 0
+          fi
+
+          echo "::error::Diagnosis inconclusive; one or more probes were unavailable or returned unexpected content."
+          exit 1
