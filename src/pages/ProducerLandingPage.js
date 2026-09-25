@@ -32,7 +32,7 @@ export default function ProducerLandingPage() {
           <Link to="/event">Ver eventos</Link>
           <Link to="/help">Ajuda</Link>
           <Link to="/login">Entrar</Link>
-          <Button as={Link} to="/register" state={{ from: "/event/create", acquisitionSource: "producer_landing" }}>Criar meu evento</Button>
+          <Button as={Link} to="/register" state={{ from: "/event/create", acquisitionSource: "producer_landing" }}>Iniciar trial grátis</Button>
         </nav>
       </Container>
     </header>
@@ -41,13 +41,14 @@ export default function ProducerLandingPage() {
       <section className="cut-producer-landing__hero">
         <Container className="cut-producer-landing__heroGrid">
           <div>
-            <span className="cut-eyebrow">Operação de eventos, sem ficar espalhada</span>
+            <span className="cut-eyebrow">30 dias para operar antes de decidir</span>
             <h1>Publique, venda e opere seu evento <em>em um fluxo só.</em></h1>
-            <p>A Cutinapp conecta descoberta pública, ingressos, itens, line-up, participantes, check-in, financeiro e recorrência sem obrigar o produtor a montar a operação em ferramentas desconectadas.</p>
+            <p>A Cutinapp é uma plataforma por assinatura para produtores. No trial inicial de 30 dias, você pode cadastrar sua produção, preparar eventos e incorporar o fluxo à operação antes de decidir pela assinatura.</p>
             <div className="cut-producer-landing__actions">
-              <Button as={Link} to="/register" state={{ from: "/event/create", acquisitionSource: "producer_landing" }} size="lg">Criar meu primeiro evento <i className="fa-solid fa-arrow-right ms-2" /></Button>
+              <Button as={Link} to="/register" state={{ from: "/event/create", acquisitionSource: "producer_landing" }} size="lg">Iniciar meu trial <i className="fa-solid fa-arrow-right ms-2" /></Button>
               <Link to="/login">Já tenho conta</Link>
             </div>
+            <p><small>A assinatura da Cutinapp é separada das taxas inevitáveis do meio de pagamento. Planos e condições aplicáveis são apresentados no fluxo da conta.</small></p>
             <CommerceTrustRail context="event" />
           </div>
           <div className="cut-producer-landing__command">
@@ -59,7 +60,7 @@ export default function ProducerLandingPage() {
 
       <section className="cut-producer-landing__section">
         <Container>
-          <div className="cut-producer-landing__heading"><span className="cut-eyebrow">Do cadastro ao pós-evento</span><h2>Ferramentas que acompanham a operação real.</h2><p>Comece pelo essencial e use os recursos avançados conforme a produção cresce.</p></div>
+          <div className="cut-producer-landing__heading"><span className="cut-eyebrow">Do trial ao uso real</span><h2>Use o primeiro mês para colocar a operação para funcionar.</h2><p>O objetivo do trial não é apenas conhecer telas: é cadastrar sua produção, publicar seu primeiro evento, operar participantes e perceber se a Cutinapp merece continuar na sua rotina.</p></div>
           <div className="cut-producer-landing__grid">{capabilities.map(([icon,title,description]) => <article key={title}><i className={icon} /><h3>{title}</h3><p>{description}</p></article>)}</div>
         </Container>
       </section>
@@ -73,8 +74,8 @@ export default function ProducerLandingPage() {
 
       <section className="cut-producer-landing__cta">
         <Container>
-          <div><span className="cut-eyebrow">Comece pelo evento</span><h2>Você não precisa configurar tudo antes de publicar sua primeira estrutura.</h2><p>Crie a conta, cadastre sua produção e avance pelo fluxo guiado. As configurações de operação aparecem quando passam a ser necessárias.</p></div>
-          <Button as={Link} to="/register" state={{ from: "/event/create", acquisitionSource: "producer_landing_bottom" }} size="lg">Começar agora</Button>
+          <div><span className="cut-eyebrow">Comece pelo uso real</span><h2>Seu trial deve chegar ao primeiro evento, não parar no cadastro.</h2><p>Crie a conta, cadastre sua produção e avance pelo fluxo guiado. Você tem 30 dias iniciais para experimentar a operação antes da etapa de assinatura.</p></div>
+          <Button as={Link} to="/register" state={{ from: "/event/create", acquisitionSource: "producer_landing_bottom" }} size="lg">Iniciar trial grátis</Button>
         </Container>
       </section>
     </main>
