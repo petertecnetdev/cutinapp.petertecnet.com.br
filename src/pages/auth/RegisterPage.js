@@ -1,4 +1,4 @@
-import React, { useContext, useMemo, useState } from "react";
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Button, Form } from "react-bootstrap";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import AuthPageShell from "../../components/auth/AuthPageShell";
@@ -9,18 +9,21 @@ import authService from "../../services/AuthService";
 export default function RegisterPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useContext(AuthContext);
+  const { login, loginGoogle } = useContext(AuthContext);
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState("");
+  const googleButtonRef = useRef(null);
+  const googleClientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 
   const passwordOk = useMemo(
     () => password.length >= 8 && /[a-z]/.test(password) && /[A-Z]/.test(password) && /\d/.test(password) && /[^A-Za-z0-9]/.test(password),
     [password]
   );
-  const canSubmit = firstName.trim().length >= 2 && /\S+@\S+\.\S+/.test(email) && passwordOk && !loading;
+  const canSubmit = firstName.trim().length >= 2 && /\S+@\S+\.\S+/.test(email) && passwordOk && !loading && !googleLoading;
   const queryReturnTo = useMemo(() => {
     const params = new URLSearchParams(location.search);
     const target = String(params.get("from") || "");
@@ -37,6 +40,85 @@ export default function RegisterPage() {
     if (returnTo.startsWith("/event")) return "Depois de confirmar seu e-mail, você volta para o evento que estava explorando.";
     return "Crie sua conta e continue sua experiência dentro da Cutinapp.";
   }, [returnTo]);
+
+  const finishGoogleSignup = useCallback((response) => {
+    if (!response?.success) {
+      setError(response?.message || "Não foi possível criar sua conta com Google.");
+      return;
+    }
+    navigate(returnTo, {
+      replace: true,
+      state: location.state?.artistClaim ? { artistClaim: location.state.artistClaim } : undefined,
+    });
+  }, [location.state, navigate, returnTo]);
+
+  const waitForGoogle = useCallback(async () => {
+    if (window.google?.accounts?.id) return window.google;
+
+    const existing = document.querySelector('script[data-google-identity="true"]');
+    if (!existing) {
+      const script = document.createElement("script");
+      script.src = "https://accounts.google.com/gsi/client";
+      script.async = true;
+      script.defer = true;
+      script.dataset.googleIdentity = "true";
+      document.head.appendChild(script);
+    }
+
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      if (window.google?.accounts?.id) return window.google;
+      await new Promise((resolve) => window.setTimeout(resolve, 50));
+    }
+
+    throw new Error("Não foi possível carregar o cadastro com Google.");
+  }, []);
+
+  useEffect(() => {
+    if (!googleClientId || !googleButtonRef.current) return undefined;
+    let cancelled = false;
+
+    const initializeGoogle = async () => {
+      try {
+        const google = await waitForGoogle();
+        if (cancelled || !googleButtonRef.current) return;
+
+        google.accounts.id.initialize({
+          client_id: googleClientId,
+          callback: async ({ credential }) => {
+            if (!credential) {
+              setError("O Google não retornou uma credencial válida.");
+              return;
+            }
+
+            setGoogleLoading(true);
+            setError("");
+            try {
+              const response = await loginGoogle(credential);
+              if (!cancelled) finishGoogleSignup(response);
+            } catch (err) {
+              if (!cancelled) setError(err?.message || "Não foi possível criar sua conta com Google.");
+            } finally {
+              if (!cancelled) setGoogleLoading(false);
+            }
+          },
+        });
+
+        google.accounts.id.renderButton(googleButtonRef.current, {
+          theme: "filled_black",
+          size: "large",
+          shape: "pill",
+          text: "signup_with",
+          width: 600,
+          logo_alignment: "left",
+        });
+      } catch (err) {
+        if (!cancelled) setError(err?.message || "Cadastro com Google indisponível no momento.");
+      }
+    };
+
+    initializeGoogle();
+    return () => { cancelled = true; };
+  }, [finishGoogleSignup, googleClientId, loginGoogle, waitForGoogle]);
 
   const submit = async (event) => {
     event.preventDefault();
@@ -61,9 +143,9 @@ export default function RegisterPage() {
   return (
     <AuthPageShell
       title="Crie sua conta grátis"
-      subtitle="Comece com nome, e-mail e uma senha. Sem formulário longo."
+      subtitle="Use sua conta Google ou comece com nome, e-mail e senha."
     >
-      {loading && <ProcessingIndicatorComponent label="Criando sua conta" />}
+      {(loading || googleLoading) && <ProcessingIndicatorComponent label={googleLoading ? "Entrando com Google" : "Criando sua conta"} />}
       <Form onSubmit={submit} className="cut-auth-form">
         {error && <div className="cut-form-message cut-form-message--error">{error}</div>}
         <div className="cut-form-message cut-form-message--success">{contextMessage}</div>
@@ -73,6 +155,16 @@ export default function RegisterPage() {
           </div>
         )}
 
+        {googleClientId && (
+          <>
+            <div className="auth-google-block">
+              <p>cadastre-se com</p>
+              <div className="auth-google-button" ref={googleButtonRef} />
+            </div>
+            <div className="auth-divider"><span>ou use e-mail</span></div>
+          </>
+        )}
+
         <Form.Group>
           <Form.Label>Nome</Form.Label>
           <Form.Control
@@ -80,7 +172,7 @@ export default function RegisterPage() {
             onChange={(e) => setFirstName(e.target.value)}
             placeholder="Como podemos chamar você?"
             autoComplete="given-name"
-            autoFocus
+            autoFocus={!googleClientId}
           />
         </Form.Group>
 
