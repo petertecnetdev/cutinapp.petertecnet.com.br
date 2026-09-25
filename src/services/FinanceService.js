@@ -4,16 +4,18 @@ import { createIdempotentMutation, createMutationRequestKey } from "../utils/ide
 const uploadIdentityDocumentIdempotently = createIdempotentMutation({
   storagePrefix: "cutinapp_finance_identity_document_attempt_",
   keyPrefix: "finance-identity-document",
-  requestKeyFor: (organizationId, front, back = null) => createMutationRequestKey({
+  requestKeyFor: (organizationId, front, back = null, selfieWithDocument = null) => createMutationRequestKey({
     organization_id: String(organizationId),
     front,
     back,
+    selfie_with_document: selfieWithDocument,
     consent: "1",
   }),
-  mutate: async ({ idempotencyKey }, organizationId, front, back = null) => {
+  mutate: async ({ idempotencyKey }, organizationId, front, back = null, selfieWithDocument = null) => {
     const body = new FormData();
     body.append("front", front);
     if (back) body.append("back", back);
+    if (selfieWithDocument) body.append("selfie_with_document", selfieWithDocument);
     body.append("consent", "1");
 
     return (
