@@ -7,6 +7,7 @@ const appRoot = path.resolve(__dirname, '..');
 const liveBuildPath = path.join(appRoot, 'build');
 const productionRoot = '/var/www/cutinapp.petertecnet.com.br';
 const externallyManagedBuildPath = process.env.BUILD_PATH;
+const allowDirectProductionBuild = process.env.CUTINAPP_ALLOW_DIRECT_PRODUCTION_BUILD === '1';
 const buildLockPath = path.join(os.tmpdir(), 'cutinapp-frontend-build.lock');
 const lockWaitMs = Number(process.env.CUTINAPP_BUILD_LOCK_WAIT_MS || 30 * 60 * 1000);
 const staleLockMs = Number(process.env.CUTINAPP_BUILD_LOCK_STALE_MS || 60 * 60 * 1000);
@@ -24,6 +25,18 @@ function runCommand(command, args, env = process.env) { const result = spawnSync
 function runReactBuild(buildPath) { const command = process.platform === 'win32' ? 'react-scripts.cmd' : 'react-scripts'; const env = { ...process.env, GENERATE_SOURCEMAP: 'false', INLINE_RUNTIME_CHUNK: 'false', IMAGE_INLINE_SIZE_LIMIT: '4096' }; if (buildPath) env.BUILD_PATH = buildPath; runCommand(command, ['build'], env); return buildPath || liveBuildPath; }
 function generateSeoSnapshots(buildPath) { runCommand(process.execPath, [path.join(appRoot, 'scripts/generate-seo-snapshots.mjs'), buildPath], { ...process.env, CUTINAPP_BUILD_DIR: buildPath }); }
 function publishWithoutDowntime(stagingPath) { const stagedIndex = path.join(stagingPath, 'index.html'); if (!fs.existsSync(stagedIndex)) throw new Error('Production build completed without index.html. Refusing to publish.'); fs.mkdirSync(liveBuildPath, { recursive: true }); for (const entry of fs.readdirSync(stagingPath)) { if (entry === 'index.html') continue; fs.cpSync(path.join(stagingPath, entry), path.join(liveBuildPath, entry), { recursive: true, force: true }); } const temporaryIndex = path.join(liveBuildPath, `.index.html.${process.pid}.tmp`); fs.copyFileSync(stagedIndex, temporaryIndex); fs.renameSync(temporaryIndex, path.join(liveBuildPath, 'index.html')); }
+
+// Production is owned by the validated GitHub Actions release pipeline. A local
+// `npm run build` inside the live checkout used to copy files directly into
+// /var/www/.../build while leaving release-sha.txt untouched, making the public
+// application differ from the SHA that passed CI. Refuse that path by default.
+// The explicit escape hatch exists only for an operator-controlled emergency;
+// normal production delivery must use the versioned deploy workflow.
+if (appRoot === productionRoot && !externallyManagedBuildPath && !allowDirectProductionBuild) {
+  console.error('Refusing direct Cutinapp production build: the live release is managed by GitHub Actions.');
+  console.error('Use the validated Deploy VPS workflow. For an operator-controlled emergency only, set CUTINAPP_ALLOW_DIRECT_PRODUCTION_BUILD=1.');
+  process.exit(33);
+}
 
 lowerBuildCpuPriority();
 const releaseBuildLock = acquireBuildLock();
