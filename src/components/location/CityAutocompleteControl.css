@@ -1,0 +1,22 @@
+.cut-city-autocomplete .cut-autocomplete-menu {
+  background: var(--pt-surface, #0b1020) !important;
+  border-color: color-mix(in srgb, var(--pt-primary, #9e4aff) 36%, transparent) !important;
+  color: var(--pt-text, #f8f7ff) !important;
+  opacity: 1 !important;
+}
+
+.cut-city-autocomplete .cut-autocomplete-menu button {
+  color: var(--pt-text, #f8f7ff) !important;
+  background: transparent !important;
+  opacity: 1 !important;
+}
+
+.cut-city-autocomplete .cut-autocomplete-menu button:hover,
+.cut-city-autocomplete .cut-autocomplete-menu button:focus-visible {
+  background: color-mix(in srgb, var(--pt-primary, #9e4aff) 20%, transparent) !important;
+}
+
+.cut-city-autocomplete .cut-autocomplete-menu small {
+  color: var(--pt-text-soft, #b7bfd8) !important;
+  opacity: 1 !important;
+}

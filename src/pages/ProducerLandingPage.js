@@ -2,7 +2,6 @@ import React from "react";
 import { Button, Container } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import CommerceTrustRail from "../components/CommerceTrustRail";
-import PeterTecnetSignature from "../components/PeterTecnetSignature";
 import "./ProducerLandingPage.css";
 
 const capabilities = [
@@ -79,6 +78,5 @@ export default function ProducerLandingPage() {
         </Container>
       </section>
     </main>
-    <PeterTecnetSignature />
   </div>;
 }
