@@ -111,12 +111,12 @@ export default function ProducerOnboardingPage() {
           {onboarding.sales_ready ? <Alert variant="success" className="mb-3">
             <strong>Produção pronta para vender.</strong> Contrato e recebimentos estão válidos. Revise o primeiro evento, configure os ingressos e publique.
           </Alert> : <Alert variant="warning" className="mb-3">
-            A produção pode ser preparada normalmente, mas eventos com ingressos pagos permanecem bloqueados para publicação até contrato e recebimentos estarem concluídos.
+            Você pode criar e preparar seus eventos agora. Para publicar eventos com ingressos pagos e receber vendas, conclua contrato e recebimentos antes da publicação.
           </Alert>}
           <div className="d-flex flex-wrap gap-2">
             {onboarding.initial_event?.id && <Button onClick={() => navigate(`/event/edit/${onboarding.initial_event.id}`)}>Revisar primeiro evento</Button>}
             <Button variant="outline-light" onClick={() => navigate("/event/manage")}>Meus eventos</Button>
-            {onboarding.agreement_signed && <Button variant="outline-light" onClick={() => navigate(`/event/create?productionId=${onboarding.organization.id}`)}>Criar próximo evento</Button>}
+            <Button variant="outline-light" onClick={() => navigate(`/event/create?productionId=${onboarding.organization.id}`)}>Criar evento</Button>
           </div>
         </Card.Body></Card>
       </>}
