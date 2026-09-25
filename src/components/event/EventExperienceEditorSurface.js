@@ -43,42 +43,35 @@ export default function EventExperienceEditorSurface({
     return typeof value === "string" ? value : "";
   };
 
-  const readinessRows = useMemo(() => {
-    const startDate = validDate(form?.start_date);
-    const endDate = validDate(form?.end_date);
-    const startOk = Boolean(startDate)
-      && (mode !== "create" || startDate.getTime() >= Date.now() + 5 * 60 * 1000)
-      && !fieldError("start_date");
-    const endOk = Boolean(endDate)
-      && Boolean(startDate)
-      && endDate.getTime() > startDate.getTime()
-      && !fieldError("end_date");
-    const capacityValue = String(form?.max_attendees ?? "").trim();
+  const startDate = validDate(form?.start_date);
+  const endDate = validDate(form?.end_date);
+  const startOk = Boolean(startDate)
+    && (mode !== "create" || startDate.getTime() >= Date.now() + 5 * 60 * 1000)
+    && !fieldError("start_date");
+  const endOk = Boolean(endDate)
+    && Boolean(startDate)
+    && endDate.getTime() > startDate.getTime()
+    && !fieldError("end_date");
+  const capacityValue = String(form?.max_attendees ?? "").trim();
+  const readinessRows = [
+    { key: "production_id", label: "Produção responsável", issueLabel: "Produção responsável", ok: Boolean(form?.production_id) && !fieldError("production_id") },
+    { key: "title", label: "Nome", issueLabel: "Nome do evento (mínimo 2 caracteres)", ok: String(form?.title || "").trim().length >= 2 && !fieldError("title") },
+    { key: "description", label: "Descrição", issueLabel: "Descrição", ok: Boolean(String(form?.description || "").trim()) && !fieldError("description") },
+    { key: "address", label: "Endereço", issueLabel: "Endereço do evento", ok: Boolean(String(form?.address || "").trim()) && !fieldError("address") },
+    { key: "city", label: "Cidade", issueLabel: "Cidade", ok: Boolean(String(form?.city || "").trim()) && !fieldError("city") },
+    { key: "uf", label: "UF", issueLabel: "UF (2 letras)", ok: String(form?.uf || "").trim().length === 2 && !fieldError("uf") },
+    { key: "start_date", label: "Início", issueLabel: "Início (horário futuro)", ok: startOk },
+    { key: "end_date", label: "Término", issueLabel: "Término (depois do início)", ok: endOk },
+  ];
 
-    const rows = [
-      { key: "production_id", label: "Produção responsável", issueLabel: "Produção responsável", ok: Boolean(form?.production_id) && !fieldError("production_id") },
-      { key: "title", label: "Nome", issueLabel: "Nome do evento (mínimo 2 caracteres)", ok: String(form?.title || "").trim().length >= 2 && !fieldError("title") },
-      { key: "description", label: "Descrição", issueLabel: "Descrição", ok: Boolean(String(form?.description || "").trim()) && !fieldError("description") },
-      { key: "address", label: "Endereço", issueLabel: "Endereço do evento", ok: Boolean(String(form?.address || "").trim()) && !fieldError("address") },
-      { key: "city", label: "Cidade", issueLabel: "Cidade", ok: Boolean(String(form?.city || "").trim()) && !fieldError("city") },
-      { key: "uf", label: "UF", issueLabel: "UF (2 letras)", ok: String(form?.uf || "").trim().length === 2 && !fieldError("uf") },
-      { key: "start_date", label: "Início", issueLabel: "Início (horário futuro)", ok: startOk },
-      { key: "end_date", label: "Término", issueLabel: "Término (depois do início)", ok: endOk },
-    ];
-
-    if (capacityValue !== "") {
-      rows.push({
-        key: "max_attendees",
-        label: "Capacidade",
-        issueLabel: "Capacidade (mínimo 1)",
-        ok: Number.isFinite(Number(capacityValue)) && Number(capacityValue) >= 1 && !fieldError("max_attendees"),
-      });
-    }
-
-    return rows;
-  // errors are intentionally part of readiness because API validation must remain visible on retry.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [errors, form, mode]);
+  if (capacityValue !== "") {
+    readinessRows.push({
+      key: "max_attendees",
+      label: "Capacidade",
+      issueLabel: "Capacidade (mínimo 1)",
+      ok: Number.isFinite(Number(capacityValue)) && Number(capacityValue) >= 1 && !fieldError("max_attendees"),
+    });
+  }
 
   const incompleteRows = readinessRows.filter((row) => !row.ok);
   const handleSave = () => {
