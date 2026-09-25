@@ -100,6 +100,7 @@ export default function ProductionFinancePage() {
   const [identityForm, setIdentityForm] = useState({ legal_name: "", document_number: "", birthdate: "" });
   const [frontDocument, setFrontDocument] = useState(null);
   const [backDocument, setBackDocument] = useState(null);
+  const [selfieDocument, setSelfieDocument] = useState(null);
   const [pixType, setPixType] = useState("CPF");
   const [pixKey, setPixKey] = useState("");
   const [payoutAmount, setPayoutAmount] = useState("");
@@ -163,6 +164,8 @@ export default function ProductionFinancePage() {
   const livenessRequired = identity?.liveness_required !== false;
   const identityVerified = Boolean(identity?.ready_for_pix);
   const documentUploaded = Boolean(verification?.document_front_uploaded);
+  const selfieRequired = identity?.selfie_document_required !== false;
+  const selfieUploaded = !selfieRequired || Boolean(verification?.selfie_document_uploaded);
   const livenessVerified = verification?.liveness_status === "passed" && verification?.face_match_status === "passed";
   const pixVerified = Boolean(destination?.verified_at && ["active", "cooling"].includes(destination?.status));
   const available = Number(balance.available || 0);
@@ -171,7 +174,7 @@ export default function ProductionFinancePage() {
     if (focus !== "activation" || loading || !productionId) return undefined;
     const targetId = !beneficiary
       ? "producer-finance-identity"
-      : !documentUploaded
+      : !documentUploaded || !selfieUploaded
         ? "producer-finance-document"
         : livenessRequired && !livenessVerified
           ? "producer-finance-liveness"
@@ -182,7 +185,7 @@ export default function ProductionFinancePage() {
       document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 160);
     return () => window.clearTimeout(timer);
-  }, [focus, loading, productionId, beneficiary, documentUploaded, livenessRequired, livenessVerified, pixVerified]);
+  }, [focus, loading, productionId, beneficiary, documentUploaded, selfieUploaded, livenessRequired, livenessVerified, pixVerified]);
   const grossRevenue = Number(revenueFunnel?.gross_revenue || 0);
   const platformRevenue = Number(revenueFunnel?.platform_revenue || 0);
   const processorFees = Number(revenueFunnel?.processor_fees || 0);
@@ -308,7 +311,16 @@ export default function ProductionFinancePage() {
 
   const uploadDocuments = () => {
     if (!frontDocument) { setError("Envie uma foto da frente do documento com foto."); return; }
-    run(() => financeService.uploadDocument(productionId, frontDocument, backDocument), "Documento enviado.");
+    if (selfieRequired && !selfieDocument) { setError("Envie uma foto sua segurando o documento ao lado do rosto."); return; }
+    run(
+      () => financeService.uploadDocument(productionId, frontDocument, backDocument, selfieDocument),
+      "Documentos de identidade enviados."
+    ).then((result) => {
+      if (!result) return;
+      setFrontDocument(null);
+      setBackDocument(null);
+      setSelfieDocument(null);
+    });
   };
 
   const startLiveness = async () => {
@@ -391,6 +403,7 @@ export default function ProductionFinancePage() {
             <p className="text-secondary">Isso é feito uma vez. Depois de aprovado, você usa apenas sua chave Pix para receber.</p>
             <StatusLine ok={Boolean(beneficiary)} title="Dados do titular" detail={beneficiary?.document_masked || "Usaremos os dados da sua conta."} />
             <StatusLine ok={documentUploaded} title="Documento com foto" detail={verification?.document_status === "face_confirmed" ? "Documento confirmado pela biometria facial." : "RG, CNH ou outro documento oficial com foto."} />
+            {selfieRequired && <StatusLine ok={selfieUploaded} title="Foto segurando o documento" detail={selfieUploaded ? "Foto de confirmação recebida." : "Segure o documento ao lado do rosto, com rosto e documento visíveis."} />}
             {livenessRequired && <StatusLine ok={livenessVerified} title="Reconhecimento facial e prova de vida" detail={livenessVerified ? "Identidade facial confirmada." : "Evita uso de foto, vídeo ou identidade de terceiros."} />}
             <StatusLine ok={pixVerified} title="Chave Pix" detail={destination ? `${destination.pix_key_masked} • ${destination.holder_name || "titular verificado"}` : "Pode ser de qualquer instituição participante do Pix."} />
             {destination?.status === "cooling" && <Alert variant="warning" className="mt-3 mb-0">A chave foi alterada recentemente. As vendas continuam ativas, mas novos repasses ficam protegidos até {dateTime(destination.cooling_until)}.</Alert>}
@@ -641,17 +654,21 @@ export default function ProductionFinancePage() {
           <Button className="mt-3" onClick={saveIdentity} disabled={working}>Confirmar dados</Button>
         </Card.Body></Card>}
 
-        {beneficiary && !documentUploaded && <Card id="producer-finance-document" className="cut-production-card mt-4"><Card.Body className="p-4">
-          <span className="cut-eyebrow">Etapa 2</span><h2 className="mt-2">Documento com foto</h2>
-          <p className="text-secondary">Envie fotos nítidas. Os arquivos ficam privados e são usados para a verificação de identidade.</p>
-          <Row className="g-3"><Col md={6}><Form.Group><Form.Label>Frente do documento</Form.Label><Form.Control type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setFrontDocument(e.target.files?.[0] || null)} /></Form.Group></Col><Col md={6}><Form.Group><Form.Label>Verso, se houver</Form.Label><Form.Control type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setBackDocument(e.target.files?.[0] || null)} /></Form.Group></Col></Row>
+        {beneficiary && (!documentUploaded || !selfieUploaded) && <Card id="producer-finance-document" className="cut-production-card mt-4"><Card.Body className="p-4">
+          <span className="cut-eyebrow">Etapa 2</span><h2 className="mt-2">Documento e confirmação visual</h2>
+          <p className="text-secondary">Envie imagens nítidas. Os arquivos ficam privados e são usados somente para confirmar sua identidade e proteger os recebimentos.</p>
+          <Row className="g-3">
+            <Col md={selfieRequired ? 4 : 6}><Form.Group><Form.Label>Frente do documento</Form.Label><Form.Control type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setFrontDocument(e.target.files?.[0] || null)} /></Form.Group></Col>
+            <Col md={selfieRequired ? 4 : 6}><Form.Group><Form.Label>Verso, se houver</Form.Label><Form.Control type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setBackDocument(e.target.files?.[0] || null)} /></Form.Group></Col>
+            {selfieRequired && <Col md={4}><Form.Group><Form.Label>Você segurando o documento</Form.Label><Form.Control type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setSelfieDocument(e.target.files?.[0] || null)} /><Form.Text>Rosto e documento devem aparecer juntos e sem cortes.</Form.Text></Form.Group></Col>}
+          </Row>
           <Form.Text className="d-block mt-3 text-secondary">Ao enviar, você autoriza o tratamento dos dados estritamente para verificação de identidade, prevenção a fraude e segurança dos recebimentos.</Form.Text>
-          <Button className="mt-3" onClick={uploadDocuments} disabled={working || !frontDocument}>Enviar documento</Button>
+          <Button className="mt-3" onClick={uploadDocuments} disabled={working || !frontDocument || (selfieRequired && !selfieDocument)}>Enviar verificação documental</Button>
         </Card.Body></Card>}
 
-        {livenessRequired && documentUploaded && !identityVerified && !liveness && <Card id="producer-finance-liveness" className="cut-production-card mt-4"><Card.Body className="p-4">
+        {livenessRequired && documentUploaded && selfieUploaded && !identityVerified && !liveness && <Card id="producer-finance-liveness" className="cut-production-card mt-4"><Card.Body className="p-4">
           <span className="cut-eyebrow">Etapa 3</span><h2 className="mt-2">Prova de vida</h2>
-          <p className="text-secondary">A câmera fará uma verificação rápida de presença real e comparará o rosto com o documento enviado.</p>
+          <p className="text-secondary">A câmera fará uma verificação rápida de presença real e comparará seu rosto com o documento e a confirmação visual enviados.</p>
           <Button onClick={startLiveness} disabled={working}>Iniciar reconhecimento facial</Button>
         </Card.Body></Card>}
 
