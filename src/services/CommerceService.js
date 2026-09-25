@@ -1,1 +1,218 @@
-PLACEHOLDER
+import appApiClient from "./AppApiClient";
+import { isNetworkFailure } from "../utils/networkStatus";
+import { safeGetLocalJson, safeGetSessionJson, safeRemoveLocalItem, safeRemoveSessionItem, safeSetLocalJson, safeSetSessionJson } from "../utils/safeStorage";
+import { trackTelemetry } from "../utils/telemetry";
+import { shouldKeepCheckoutAttempt } from "../utils/checkoutRetryPolicy";
+import { clearPaymentRecoveryAttribution, readPaymentRecoveryAttribution } from "../utils/paymentRecoveryAttribution";
+import { createIdempotentMutation, createMutationRequestKey } from "../utils/idempotencyAttempts";
+import { isBrowserOffline, waitForOnline } from "../utils/checkoutConnectivity";
+import { trackSearchConversion } from "../utils/searchAttribution";
+
+const pendingCheckouts = new Map();
+const fallbackAttempts = new Map();
+const catalogCache = new Map();
+const CHECKOUT_ATTEMPT_PREFIX = "cutinapp_checkout_attempt_";
+const PRESERVED_ORDER_PREFIX = "cutinapp_checkout_preserved_order_";
+const PRESERVED_ORDER_TTL_MS = 2 * 60 * 60 * 1000;
+const CATALOG_CACHE_TTL_MS = 15000;
+const AUTO_RETRY_CHECKOUT_STATUSES = new Set([502, 503, 504]);
+const DEFAULT_CHECKOUT_RETRY_DELAY_MS = 350;
+const MAX_CHECKOUT_RETRY_DELAY_MS = 1500;
+const MAX_IDEMPOTENCY_PROCESSING_RETRY_DELAY_MS = 5000;
+const MAX_IDEMPOTENCY_PROCESSING_RETRIES = 3;
+const MAX_TRANSIENT_CHECKOUT_RETRIES = 2;
+const OFFLINE_CHECKOUT_RETRY_WAIT_MS = 8000;
+
+const checkoutRequestKey = (payload = {}) => JSON.stringify({
+  event_id: Number(payload.event_id || 0),
+  payment_method: String(payload.payment_method || ""),
+  payment_method_id: String(payload.payment_method_id || ""),
+  issuer_id: String(payload.issuer_id || ""),
+  installments: Number(payload.installments || 0),
+  payer_email: String(payload.payer_email || "").trim().toLowerCase(),
+  payer_identification_type: String(payload.payer_identification_type || ""),
+  payer_identification_number: String(payload.payer_identification_number || "").replace(/\D+/g, ""),
+  coupon_code: String(payload.coupon_code || "").trim().toUpperCase(),
+  tickets: (Array.isArray(payload.tickets) ? payload.tickets : []).map((item) => ({ id: Number(item?.id || 0), quantity: Number(item?.quantity || 0) })),
+  items: (Array.isArray(payload.items) ? payload.items : []).map((item) => ({ id: Number(item?.id || 0), quantity: Number(item?.quantity || 0) })),
+});
+
+const requestKeyHash = (value) => {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) { hash ^= value.charCodeAt(index); hash = Math.imul(hash, 16777619); }
+  return (hash >>> 0).toString(16).padStart(8, "0");
+};
+
+const createIdempotencyKey = () => {
+  if (typeof globalThis.crypto?.randomUUID === "function") return globalThis.crypto.randomUUID();
+  return `checkout-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 14)}`;
+};
+
+const storageFor = (requestKey) => `${CHECKOUT_ATTEMPT_PREFIX}${requestKeyHash(requestKey)}`;
+const preservedOrderStorageFor = (requestKey) => `${PRESERVED_ORDER_PREFIX}${requestKeyHash(requestKey)}`;
+const readAttemptState = (requestKey) => {
+  const stored = safeGetSessionJson(storageFor(requestKey));
+  return stored?.requestKey === requestKey ? stored : null;
+};
+const readDurablePreservedOrder = (requestKey, now = Date.now()) => {
+  const storageKey = preservedOrderStorageFor(requestKey);
+  const stored = safeGetLocalJson(storageKey);
+  const savedAt = Number(stored?.savedAt || 0);
+  const orderPublicId = stored?.requestKey === requestKey ? String(stored?.orderPublicId || "").trim() : "";
+  if (!orderPublicId || !savedAt || savedAt > now + 5 * 60 * 1000 || now - savedAt > PRESERVED_ORDER_TTL_MS) {
+    safeRemoveLocalItem(storageKey);
+    return null;
+  }
+  return orderPublicId;
+};
+const readAttempt = (requestKey) => readAttemptState(requestKey)?.idempotencyKey || fallbackAttempts.get(requestKey) || null;
+const readPreservedOrder = (requestKey) => String(readAttemptState(requestKey)?.orderPublicId || "").trim() || readDurablePreservedOrder(requestKey) || null;
+const saveAttempt = (requestKey, idempotencyKey, orderPublicId = null) => {
+  fallbackAttempts.set(requestKey, idempotencyKey);
+  safeSetSessionJson(storageFor(requestKey), { requestKey, idempotencyKey, orderPublicId: orderPublicId || readPreservedOrder(requestKey) || null });
+};
+const savePreservedOrder = (requestKey, idempotencyKey, orderPublicId) => {
+  const normalizedOrderPublicId = String(orderPublicId || "").trim() || null;
+  saveAttempt(requestKey, idempotencyKey, normalizedOrderPublicId);
+  if (normalizedOrderPublicId) safeSetLocalJson(preservedOrderStorageFor(requestKey), { requestKey, orderPublicId: normalizedOrderPublicId, savedAt: Date.now() });
+};
+const clearAttempt = (requestKey) => { fallbackAttempts.delete(requestKey); safeRemoveSessionItem(storageFor(requestKey)); safeRemoveLocalItem(preservedOrderStorageFor(requestKey)); };
+const idempotencyKeyFor = (requestKey) => { const existing = readAttempt(requestKey); if (existing) return existing; const created = createIdempotencyKey(); saveAttempt(requestKey, created); return created; };
+const responseHeader = (error, name) => {
+  const headers = error?.response?.headers || error?.headers || {};
+  const normalizedName = String(name || "").toLowerCase();
+  if (typeof headers?.get === "function") return headers.get(name) ?? headers.get(normalizedName);
+  const key = Object.keys(headers).find((candidate) => String(candidate).toLowerCase() === normalizedName);
+  return key ? headers[key] : undefined;
+};
+const isIdempotencyProcessing = (error) => {
+  const status = Number(error?.status || error?.response?.status || 0);
+  return status === 409 && String(responseHeader(error, "idempotency-status") || "").toLowerCase() === "processing";
+};
+const hasPreservedPaymentOrder = (error) => error?.data?.retryable === true && Boolean(String(error?.data?.order_public_id || "").trim());
+const shouldPreservePaymentOrderAfterRetryFailure = (error) => {
+  const status = Number(error?.status || error?.response?.status || 0);
+  return error?.data?.retryable === true || isNetworkFailure(error) || status === 429 || AUTO_RETRY_CHECKOUT_STATUSES.has(status);
+};
+const shouldAutoRetryCheckout = (error) => { const status = Number(error?.status || error?.response?.status || 0); return !hasPreservedPaymentOrder(error) && (isNetworkFailure(error) || isIdempotencyProcessing(error) || AUTO_RETRY_CHECKOUT_STATUSES.has(status)); };
+const checkoutRetryDelay = (error) => {
+  const retryAfter = Number(responseHeader(error, "retry-after") || 0);
+  if (Number.isFinite(retryAfter) && retryAfter > 0) {
+    const maxDelay = isIdempotencyProcessing(error) ? MAX_IDEMPOTENCY_PROCESSING_RETRY_DELAY_MS : MAX_CHECKOUT_RETRY_DELAY_MS;
+    return Math.min(Math.round(retryAfter * 1000), maxDelay);
+  }
+  return isIdempotencyProcessing(error) ? 2000 : DEFAULT_CHECKOUT_RETRY_DELAY_MS;
+};
+const wait = (milliseconds) => new Promise((resolve) => { window.setTimeout(resolve, milliseconds); });
+const waitForCheckoutRetry = async (error) => {
+  const retryDelayMs = checkoutRetryDelay(error);
+  if (!isNetworkFailure(error) || !isBrowserOffline()) { await wait(retryDelayMs); return { retryDelayMs, waitedForConnectivity: false, connectivityRestored: null }; }
+  const startedAt = Date.now(); const connectivity = await waitForOnline({ timeoutMs: OFFLINE_CHECKOUT_RETRY_WAIT_MS });
+  return { retryDelayMs: Math.max(0, Date.now() - startedAt), waitedForConnectivity: connectivity.waited, connectivityRestored: connectivity.restored };
+};
+
+const retryOrderPaymentRequest = (publicId, paymentMethod = "pix", extra = {}) => appApiClient.post(`/commerce/orders/${String(publicId || "").trim()}/payment/retry`, { payment_method: paymentMethod, ...extra });
+const checkout = (payload) => {
+  const requestKey = checkoutRequestKey(payload); const pending = pendingCheckouts.get(requestKey); if (pending) return pending;
+  const idempotencyKey = idempotencyKeyFor(requestKey);
+  const requestedPaymentMethod = String(payload?.payment_method || "").toLowerCase();
+  const preservedOrderPublicId = ["pix", "card", "boleto"].includes(requestedPaymentMethod) ? readPreservedOrder(requestKey) : null;
+  const resumePreservedOrder = async (publicId, source) => {
+    const orderPublicId = String(publicId || "").trim();
+    savePreservedOrder(requestKey, idempotencyKey, orderPublicId);
+    trackTelemetry("pix_initialization_recovery_started", { target: String(payload?.event_id || "checkout"), metadata: { order_public_id: orderPublicId, source } });
+    try {
+      const response = await retryOrderPaymentRequest(orderPublicId, requestedPaymentMethod, { payer_cpf_cnpj: payload?.payer_cpf_cnpj, payer_email: payload?.payer_email });
+      trackTelemetry("pix_initialization_resumed", { target: String(payload?.event_id || "checkout"), metadata: { order_public_id: orderPublicId, source } });
+      return response;
+    } catch (error) {
+      const retryable = shouldPreservePaymentOrderAfterRetryFailure(error);
+      if (retryable) error.data = { ...(error?.data || {}), retryable: true, order_public_id: orderPublicId };
+      else clearAttempt(requestKey);
+      trackTelemetry("pix_initialization_resume_failed", { target: String(payload?.event_id || "checkout"), metadata: { order_public_id: orderPublicId, source, status: Number(error?.status || error?.response?.status || 0), retryable } });
+      throw error;
+    }
+  };
+  const postCheckout = (attempt = 0) => appApiClient.post("/commerce/checkout", payload, { headers: { "Idempotency-Key": idempotencyKey } }).catch(async (error) => {
+    const processing = isIdempotencyProcessing(error);
+    const retryLimit = processing ? MAX_IDEMPOTENCY_PROCESSING_RETRIES : MAX_TRANSIENT_CHECKOUT_RETRIES;
+    if (attempt < retryLimit && shouldAutoRetryCheckout(error)) {
+      const retryPlan = await waitForCheckoutRetry(error); const retryAllowed = retryPlan.connectivityRestored !== false;
+      trackTelemetry("checkout_transient_retry", { label: retryAllowed ? "Checkout repetido automaticamente após falha transitória" : "Checkout aguardou conexão, mas permaneceu offline", target: String(payload?.event_id || "checkout"), metadata: { payment_method: String(payload?.payment_method || "unknown"), status: Number(error?.status || error?.response?.status || 0), retry_attempt: retryAllowed ? attempt + 1 : attempt, retry_delay_ms: retryPlan.retryDelayMs, waited_for_connectivity: retryPlan.waitedForConnectivity, connectivity_restored: retryPlan.connectivityRestored, retry_skipped_offline: !retryAllowed, idempotency_processing: processing } });
+      if (!retryAllowed) throw error; return postCheckout(attempt + 1);
+    }
+    throw error;
+  });
+  const startCheckout = () => {
+    if (preservedOrderPublicId) return resumePreservedOrder(preservedOrderPublicId, "session");
+    return postCheckout().catch((error) => {
+      if (["pix", "card", "boleto"].includes(requestedPaymentMethod) && hasPreservedPaymentOrder(error)) {
+        return resumePreservedOrder(error.data.order_public_id, "checkout");
+      }
+      throw error;
+    });
+  };
+  const request = startCheckout().then(async (response) => { clearAttempt(requestKey); const data = response.data; const order = data?.order; const status = String(order?.status || data?.payment?.status || "").toLowerCase(); if (["paid","approved","completed"].includes(status)) await trackSearchConversion("ticket_purchase", payload?.event_id).catch(() => false); return data; }).catch((error) => { if (!hasPreservedPaymentOrder(error) && !shouldKeepCheckoutAttempt(error)) clearAttempt(requestKey); throw error; }).finally(() => { if (pendingCheckouts.get(requestKey) === request) pendingCheckouts.delete(requestKey); });
+  pendingCheckouts.set(requestKey, request); return request;
+};
+
+const catalog = (slug, { force = false } = {}) => {
+  const key = String(slug || "").trim(); const now = Date.now(); if (force) catalogCache.delete(key); const cached = catalogCache.get(key);
+  if (cached?.data && cached.expiresAt > now) return Promise.resolve(cached.data); if (cached?.request) return cached.request;
+  const request = appApiClient.get(`/events/public/${key}/commerce`).then((response) => { const data = response.data; catalogCache.set(key, { data, expiresAt: Date.now() + CATALOG_CACHE_TTL_MS }); return data; }).catch((error) => { catalogCache.delete(key); throw error; });
+  catalogCache.set(key, { request }); return request;
+};
+const invalidateCatalogCache = () => catalogCache.clear();
+
+const redeemEventItemsIdempotently = createIdempotentMutation({ storagePrefix: "cutinapp_commerce_item_redemption_attempt_", keyPrefix: "item-redemption", requestKeyFor: (token, eventId) => createMutationRequestKey({ token: String(token || "").trim(), event_id: Number(eventId) }), mutate: async ({ idempotencyKey }, token, eventId) => (await appApiClient.post("/commerce/item-redemptions/redeem", { token: String(token || "").trim(), event_id: Number(eventId) }, { headers: { "Idempotency-Key": idempotencyKey } })).data });
+const createEventItem = createIdempotentMutation({ storagePrefix: "cutinapp_event_item_create_attempt_", keyPrefix: "event-item-create", requestKeyFor: (eventId, payload = {}) => `${Number(eventId)}:${createMutationRequestKey(payload)}`, mutate: async ({ idempotencyKey }, eventId, payload = {}) => (await appApiClient.post(`/events/${Number(eventId)}/items`, payload, { headers: { "Idempotency-Key": idempotencyKey } })).data });
+const updateEventItemIdempotently = createIdempotentMutation({ storagePrefix: "cutinapp_event_item_update_attempt_", keyPrefix: "event-item-update", requestKeyFor: (eventId, itemId, payload = {}) => `${Number(eventId)}:${Number(itemId)}:${createMutationRequestKey(payload)}`, mutate: async ({ idempotencyKey }, eventId, itemId, payload = {}) => (await appApiClient.patch(`/events/${Number(eventId)}/items/${Number(itemId)}`, payload, { headers: { "Idempotency-Key": idempotencyKey } })).data });
+const deleteEventItemIdempotently = createIdempotentMutation({ storagePrefix: "cutinapp_event_item_delete_attempt_", keyPrefix: "event-item-delete", requestKeyFor: (eventId, itemId) => `${Number(eventId)}:${Number(itemId)}`, mutate: async ({ idempotencyKey }, eventId, itemId) => (await appApiClient.delete(`/events/${Number(eventId)}/items/${Number(itemId)}`, { headers: { "Idempotency-Key": idempotencyKey } })).data });
+const requestPayoutIdempotently = createIdempotentMutation({ storagePrefix: "cutinapp_commerce_payout_request_attempt_", keyPrefix: "payout-request", requestKeyFor: (organizationId, amount) => `${Number(organizationId)}:${createMutationRequestKey({ amount: Number(amount) })}`, mutate: async ({ idempotencyKey }, organizationId, amount) => (await appApiClient.post(`/organizations/${Number(organizationId)}/payouts`, { amount }, { headers: { "Idempotency-Key": idempotencyKey } })).data });
+const cancelPayoutIdempotently = createIdempotentMutation({ storagePrefix: "cutinapp_commerce_payout_cancel_attempt_", keyPrefix: "payout-cancel", requestKeyFor: (organizationId, payoutId) => `${Number(organizationId)}:${Number(payoutId)}`, mutate: async ({ idempotencyKey }, organizationId, payoutId) => (await appApiClient.post(`/organizations/${Number(organizationId)}/payouts/${Number(payoutId)}/cancel`, undefined, { headers: { "Idempotency-Key": idempotencyKey } })).data });
+const recoverPendingCheckoutIdempotently = createIdempotentMutation({ storagePrefix: "cutinapp_commerce_checkout_recovery_attempt_", keyPrefix: "checkout-recovery", requestKeyFor: (orderId) => String(Number(orderId)), mutate: async ({ idempotencyKey }, orderId) => (await appApiClient.post("/commerce/checkout/pending/recover", { order_id: Number(orderId) }, { headers: { "Idempotency-Key": idempotencyKey } })).data });
+const syncPaymentIdempotently = createIdempotentMutation({ storagePrefix: "cutinapp_commerce_payment_sync_attempt_", keyPrefix: "payment-sync", requestKeyFor: (publicId) => String(publicId || "").trim(), mutate: async ({ idempotencyKey }, publicId) => (await appApiClient.post(`/commerce/orders/${String(publicId || "").trim()}/sync-payment`, undefined, { headers: { "Idempotency-Key": idempotencyKey } })).data.order });
+const createCouponIdempotently = createIdempotentMutation({ storagePrefix: "cutinapp_commerce_coupon_create_attempt_", keyPrefix: "coupon-create", requestKeyFor: (organizationId, payload = {}) => `${Number(organizationId)}:${createMutationRequestKey(payload)}`, mutate: async ({ idempotencyKey }, organizationId, payload = {}) => (await appApiClient.post(`/organizations/${Number(organizationId)}/coupons`, payload, { headers: { "Idempotency-Key": idempotencyKey } })).data.coupon });
+const updateCouponIdempotently = createIdempotentMutation({ storagePrefix: "cutinapp_commerce_coupon_update_attempt_", keyPrefix: "coupon-update", requestKeyFor: (organizationId, couponId, payload = {}) => `${Number(organizationId)}:${Number(couponId)}:${createMutationRequestKey(payload)}`, mutate: async ({ idempotencyKey }, organizationId, couponId, payload = {}) => (await appApiClient.patch(`/organizations/${Number(organizationId)}/coupons/${Number(couponId)}`, payload, { headers: { "Idempotency-Key": idempotencyKey } })).data.coupon });
+const disableCouponIdempotently = createIdempotentMutation({ storagePrefix: "cutinapp_commerce_coupon_disable_attempt_", keyPrefix: "coupon-disable", requestKeyFor: (organizationId, couponId) => `${Number(organizationId)}:${Number(couponId)}`, mutate: async ({ idempotencyKey }, organizationId, couponId) => (await appApiClient.delete(`/organizations/${Number(organizationId)}/coupons/${Number(couponId)}`, { headers: { "Idempotency-Key": idempotencyKey } })).data });
+const syncPayment = async (publicId) => {
+  const order = await syncPaymentIdempotently(publicId); const recoveryAttribution = readPaymentRecoveryAttribution(order?.public_id || publicId);
+  if (order?.status === "paid" && recoveryAttribution) { trackTelemetry("checkout_recovery_paid", { label: "PIX recuperado convertido em pagamento", target: String(order?.event?.slug || order?.event_id || "checkout"), metadata: { event_id: Number(order?.event?.id || order?.event_id || 0), order_public_id: order?.public_id || publicId, recovered_gmv: Number(order?.total || recoveryAttribution.amount || 0), payment_method: String(order?.payment_method || "pix").toLowerCase(), recovery_started_at: new Date(recoveryAttribution.startedAt).toISOString(), outcome: "success" } }); clearPaymentRecoveryAttribution(order?.public_id || publicId); }
+  if (String(order?.status || "").toLowerCase() === "paid") await trackSearchConversion("ticket_purchase", Number(order?.event?.id || order?.event_id || 0)).catch(() => false);
+  return order;
+};
+
+const commerceService = {
+  catalog,
+  checkout,
+  validateCoupon: async (payload = {}) => (await appApiClient.post("/commerce/coupons/validate", payload)).data.coupon,
+  producerCoupons: async (organizationId) => (await appApiClient.get(`/organizations/${Number(organizationId)}/coupons`)).data.coupons,
+  createCoupon: (organizationId, payload = {}) => createCouponIdempotently(organizationId, payload),
+  updateCoupon: (organizationId, couponId, payload = {}) => updateCouponIdempotently(organizationId, couponId, payload),
+  disableCoupon: (organizationId, couponId) => disableCouponIdempotently(organizationId, couponId),
+  pendingCheckout: async () => (await appApiClient.get("/commerce/checkout/pending")).data,
+  recoverPendingCheckout: (orderId) => recoverPendingCheckoutIdempotently(orderId),
+  myOrders: async (params = {}) => (await appApiClient.get("/commerce/orders/mine", { params })).data,
+  order: async (publicId) => (await appApiClient.get(`/commerce/orders/${publicId}`)).data.order,
+  retryOrderPayment: async (publicId, paymentMethod = "pix") => (await retryOrderPaymentRequest(publicId, paymentMethod)).data,
+  syncPayment,
+  pickupCredential: async (publicId) => (await appApiClient.get(`/commerce/orders/${publicId}/pickup-credential`)).data.credential,
+  redeemEventItems: (token, eventId) => redeemEventItemsIdempotently(token, eventId),
+  purchases: async (params = {}) => (await appApiClient.get("/commerce/purchases", { params })).data,
+  purchase: async (publicId) => (await appApiClient.get(`/commerce/purchases/${publicId}`)).data.order,
+  receipt: async (publicId) => (await appApiClient.get(`/commerce/purchases/${publicId}/receipt`)).data.receipt,
+  receiptPdf: async (publicId) => (await appApiClient.get(`/commerce/purchases/${publicId}/receipt.pdf`, { responseType: "blob" })).data,
+  producerSales: async (organizationId, params = {}) => (await appApiClient.get(`/organizations/${organizationId}/sales`, { params })).data,
+  producerSale: async (organizationId, publicId) => (await appApiClient.get(`/organizations/${organizationId}/sales/${publicId}`)).data.order,
+  saveEventItem: async (eventId, payload, itemId = null) => { const data = itemId ? await updateEventItemIdempotently(eventId, itemId, payload) : await createEventItem(eventId, payload); invalidateCatalogCache(); return data; },
+  deleteEventItem: async (eventId, itemId) => { const data = await deleteEventItemIdempotently(eventId, itemId); invalidateCatalogCache(); return data; },
+  paymentAccount: async (organizationId) => (await appApiClient.get(`/organizations/${organizationId}/payment-account`)).data.account,
+  connectMercadoPago: async (organizationId) => (await appApiClient.get(`/organizations/${organizationId}/payment-provider/connect`)).data,
+  financialSummary: async (organizationId) => (await appApiClient.get(`/organizations/${organizationId}/financial-summary`)).data,
+  revenueFunnel: async (organizationId, days = 30) => { const boundedDays = Math.min(Math.max(Number(days) || 30, 1), 365); try { return (await appApiClient.get(`/organizations/${organizationId}/revenue-funnel`, { params: { days: boundedDays } })).data; } catch (error) { trackTelemetry("producer_revenue_analytics_unavailable", { label: "Métricas financeiras temporariamente indisponíveis", target: String(organizationId || ""), metadata: { days: boundedDays, status: Number(error?.status || error?.response?.status || 0) || null, network_failure: isNetworkFailure(error) } }); return null; } },
+  payoutSummary: async (organizationId) => (await appApiClient.get(`/organizations/${organizationId}/payouts`)).data,
+  requestPayout: (organizationId, amount) => requestPayoutIdempotently(organizationId, amount),
+  cancelPayout: (organizationId, payoutId) => cancelPayoutIdempotently(organizationId, payoutId),
+};
+
+export default commerceService;
