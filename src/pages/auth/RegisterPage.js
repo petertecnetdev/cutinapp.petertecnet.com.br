@@ -5,6 +5,7 @@ import AuthPageShell from "../../components/auth/AuthPageShell";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import { AuthContext } from "../../context/AuthContext";
 import authService from "../../services/AuthService";
+import { trackTelemetry } from "../../utils/telemetry";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -30,6 +31,22 @@ export default function RegisterPage() {
     return target.startsWith("/") && !target.startsWith("//") ? target : "";
   }, [location.search]);
   const returnTo = location.state?.from || queryReturnTo || "/dashboard";
+  const acquisitionSource = useMemo(() => {
+    const source = String(location.state?.acquisitionSource || "").trim();
+    return /^[a-z0-9_-]{1,80}$/i.test(source) ? source : "";
+  }, [location.state]);
+  const continuationState = useMemo(() => ({
+    ...(location.state?.artistClaim ? { artistClaim: location.state.artistClaim } : {}),
+    ...(acquisitionSource ? { acquisitionSource } : {}),
+  }), [acquisitionSource, location.state]);
+
+  useEffect(() => {
+    if (!acquisitionSource) return;
+    trackTelemetry("producer_signup_viewed", {
+      target: returnTo,
+      metadata: { acquisition_source: acquisitionSource },
+    });
+  }, [acquisitionSource, returnTo]);
 
   const contextMessage = useMemo(() => {
     if (returnTo.startsWith("/event/create")) return "Depois de confirmar seu e-mail, você continua direto para criar seu primeiro evento. Se ainda não tiver produção, pode criar o nome dela ali mesmo e seguir para o primeiro lote.";
@@ -46,11 +63,17 @@ export default function RegisterPage() {
       setError(response?.message || "Não foi possível criar sua conta com Google.");
       return;
     }
+    if (acquisitionSource) {
+      trackTelemetry("producer_signup_completed", {
+        target: returnTo,
+        metadata: { acquisition_source: acquisitionSource, signup_method: "google" },
+      });
+    }
     navigate(returnTo, {
       replace: true,
-      state: location.state?.artistClaim ? { artistClaim: location.state.artistClaim } : undefined,
+      state: Object.keys(continuationState).length ? continuationState : undefined,
     });
-  }, [location.state, navigate, returnTo]);
+  }, [acquisitionSource, continuationState, navigate, returnTo]);
 
   const waitForGoogle = useCallback(async () => {
     if (window.google?.accounts?.id) return window.google;
@@ -129,9 +152,15 @@ export default function RegisterPage() {
       const normalizedEmail = email.trim().toLowerCase();
       await authService.register({ first_name: firstName.trim(), email: normalizedEmail, password });
       await login(normalizedEmail, password);
+      if (acquisitionSource) {
+        trackTelemetry("producer_signup_completed", {
+          target: returnTo,
+          metadata: { acquisition_source: acquisitionSource, signup_method: "email" },
+        });
+      }
       navigate("/email-verify", {
         replace: true,
-        state: { from: returnTo, artistClaim: location.state?.artistClaim || null },
+        state: { from: returnTo, ...continuationState },
       });
     } catch (err) {
       setError(err?.message || "Não foi possível criar sua conta.");
@@ -204,7 +233,7 @@ export default function RegisterPage() {
         </Button>
         <div className="cut-auth-inline-links">
           <span>Já possui conta?</span>
-          <Link to="/login" state={{ from: returnTo }}>Entrar</Link>
+          <Link to="/login" state={{ from: returnTo, ...(acquisitionSource ? { acquisitionSource } : {}) }}>Entrar</Link>
         </div>
       </Form>
     </AuthPageShell>
