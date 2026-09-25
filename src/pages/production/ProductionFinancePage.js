@@ -167,7 +167,8 @@ export default function ProductionFinancePage() {
   const selfieRequired = identity?.selfie_document_required !== false;
   const selfieUploaded = !selfieRequired || Boolean(verification?.selfie_document_uploaded);
   const livenessVerified = verification?.liveness_status === "passed" && verification?.face_match_status === "passed";
-  const pixVerified = Boolean(destination?.verified_at && ["active", "cooling"].includes(destination?.status));
+  const pixVerified = Boolean(destination && ["active", "cooling"].includes(destination?.status));
+  const manualPayout = finance?.payout_provider === "manual_pix";
   const available = Number(balance.available || 0);
   // producer-finance-focus-scroll: take the producer directly to the first unresolved receiving step.
   useEffect(() => {
@@ -405,7 +406,7 @@ export default function ProductionFinancePage() {
             <StatusLine ok={documentUploaded} title="Documento com foto" detail={verification?.document_status === "face_confirmed" ? "Documento confirmado pela biometria facial." : "RG, CNH ou outro documento oficial com foto."} />
             {selfieRequired && <StatusLine ok={selfieUploaded} title="Foto segurando o documento" detail={selfieUploaded ? "Foto de confirmação recebida." : "Segure o documento ao lado do rosto, com rosto e documento visíveis."} />}
             {livenessRequired && <StatusLine ok={livenessVerified} title="Reconhecimento facial e prova de vida" detail={livenessVerified ? "Identidade facial confirmada." : "Evita uso de foto, vídeo ou identidade de terceiros."} />}
-            <StatusLine ok={pixVerified} title="Chave Pix" detail={destination ? `${destination.pix_key_masked} • ${destination.holder_name || "titular verificado"}` : "Pode ser de qualquer instituição participante do Pix."} />
+            <StatusLine ok={pixVerified} title="Chave Pix" detail={destination ? `${destination.pix_key_masked} • ${manualPayout ? "destino cadastrado" : (destination.holder_name || "titular verificado")}` : "Pode ser de qualquer instituição participante do Pix."} />
             {destination?.status === "cooling" && <Alert variant="warning" className="mt-3 mb-0">A chave foi alterada recentemente. As vendas continuam ativas, mas novos repasses ficam protegidos até {dateTime(destination.cooling_until)}.</Alert>}
           </Card.Body></Card></Col>
 
@@ -693,11 +694,11 @@ export default function ProductionFinancePage() {
 
         {identityVerified && <Card id="producer-finance-pix" className="cut-production-card mt-4"><Card.Body className="p-4">
           <span className="cut-eyebrow">{livenessRequired ? "Etapa 4" : "Etapa 3"}</span><h2 className="mt-2">Sua chave Pix</h2>
-          {destination && <Alert variant={destination.status === "active" ? "success" : "warning"}>Destino atual: <strong>{destination.pix_key_masked}</strong> — {destination.holder_name}. A chave foi consultada e vinculada ao CPF verificado.</Alert>}
+          {destination && <Alert variant={destination.status === "active" ? "success" : "warning"}>Destino atual: <strong>{destination.pix_key_masked}</strong>{destination.holder_name ? ` — ${destination.holder_name}` : ""}. {manualPayout ? "A chave foi cadastrada para conferência e repasse Pix." : "A chave foi consultada e vinculada ao documento verificado."}</Alert>}
           <Row className="g-3 align-items-end">
             <Col md={3}><Form.Group><Form.Label>Tipo</Form.Label><Form.Select value={pixType} onChange={(e) => setPixType(e.target.value)}><option value="CPF">CPF</option><option value="CNPJ">CNPJ</option><option value="EMAIL">E-mail</option><option value="PHONE">Telefone</option><option value="EVP">Chave aleatória</option></Form.Select></Form.Group></Col>
             <Col md={6}><Form.Group><Form.Label>Chave Pix</Form.Label><Form.Control value={pixKey} onChange={(e) => setPixKey(e.target.value)} placeholder="Informe sua chave Pix" /></Form.Group></Col>
-            <Col md={3}><Button className="w-100" onClick={savePix} disabled={working || !pixKey.trim()}>{destination ? "Alterar chave" : "Verificar chave"}</Button></Col>
+            <Col md={3}><Button className="w-100" onClick={savePix} disabled={working || !pixKey.trim()}>{destination ? "Alterar chave" : (manualPayout ? "Cadastrar chave" : "Verificar chave")}</Button></Col>
           </Row>
           {destination && <Form.Text className="d-block mt-3 text-secondary">Trocas de chave recebem uma trava temporária de segurança para impedir que uma conta invadida desvie seus valores.</Form.Text>}
         </Card.Body></Card>}
