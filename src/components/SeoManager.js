@@ -81,13 +81,13 @@ const discoverySeo = (path) => {
 };
 
 const PRODUCER_SEO = {
-  title: "Venda ingressos e gerencie eventos online | Cutinapp para produtores",
-  description: "Crie eventos, venda ingressos, acompanhe participantes, faça check-in por QR Code e gerencie sua produção em um só fluxo na Cutinapp.",
+  title: "Plataforma para produtores de eventos | 30 dias grátis | Cutinapp",
+  description: "Comece com 30 dias grátis para criar, publicar e operar eventos, vender ingressos e fazer check-in por QR Code na Cutinapp. Assinatura para produtores após o trial.",
   jsonLd: {
     "@context": "https://schema.org",
     "@type": "WebPage",
     name: "Cutinapp para produtores de eventos",
-    description: "Plataforma para criar, publicar, vender ingressos e operar eventos com check-in por QR Code.",
+    description: "Plataforma por assinatura para produtores criarem, publicarem e operarem eventos. O período inicial de avaliação é de 30 dias.",
     url: `${SITE_URL}/for-producers`,
     isPartOf: {
       "@type": "WebSite",
@@ -97,6 +97,7 @@ const PRODUCER_SEO = {
     about: {
       "@type": "Service",
       name: "Plataforma para produtores de eventos",
+      description: "Criação e publicação de eventos, venda de ingressos, gestão de participantes e check-in por QR Code.",
       provider: {
         "@type": "Organization",
         name: "Peter Tecnet",
