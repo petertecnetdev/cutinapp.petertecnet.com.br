@@ -11,7 +11,19 @@ import { storageUrl } from "../config";
 import { chronologicalBucketFor, parsePortableEventDate } from "../utils/chronologicalDiscovery";
 import "./HomeHubPage.css";
 
-const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const formatMoney = (value, currency) => {
+  const amount = Number(value || 0);
+  const locale = typeof navigator !== "undefined" && navigator.language ? navigator.language : undefined;
+  const normalizedCurrency = typeof currency === "string" ? currency.trim().toUpperCase() : "";
+  if (/^[A-Z]{3}$/.test(normalizedCurrency)) {
+    try {
+      return new Intl.NumberFormat(locale, { style: "currency", currency: normalizedCurrency }).format(amount);
+    } catch (_) {
+      // Invalid/unsupported currency metadata must not silently become a country-specific fallback.
+    }
+  }
+  return new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(amount);
+};
 
 const mediaUrl = (value) => {
   if (!value) return "";
@@ -186,7 +198,8 @@ export default function HomeHubPage() {
               const event = item.__event || {};
               const production = item.__production || {};
               const image = mediaUrl(item.image || item.image_url || item.photo || item.cover);
-              return <Link to={event.slug ? `/event/${event.slug}/catalogo` : "/event"} className="cut-home-hub__itemCard" key={`${event.id || event.slug}-${item.id}`}><div className="cut-home-hub__itemMedia">{image ? <img src={image} alt={item.name || "Item"} loading="lazy" decoding="async" /> : <span className="cut-home-hub__itemInitials" aria-hidden="true">{initials(item.name || "Item")}</span>}<strong>{money.format(Number(item.price || 0))}</strong></div><div className="cut-home-hub__itemBody"><h3>{item.name || "Item da produção"}</h3>{production.name && <p>{production.name}</p>}<small>{event.title || "Disponível em evento Cutinapp"}</small></div></Link>;
+              const currency = item.currency || item.currency_code || event.currency || event.currency_code || production.currency || production.currency_code;
+              return <Link to={event.slug ? `/event/${event.slug}/catalogo` : "/event"} className="cut-home-hub__itemCard" key={`${event.id || event.slug}-${item.id}`}><div className="cut-home-hub__itemMedia">{image ? <img src={image} alt={item.name || "Item"} loading="lazy" decoding="async" /> : <span className="cut-home-hub__itemInitials" aria-hidden="true">{initials(item.name || "Item")}</span>}<strong>{formatMoney(item.price, currency)}</strong></div><div className="cut-home-hub__itemBody"><h3>{item.name || "Item da produção"}</h3>{production.name && <p>{production.name}</p>}<small>{event.title || "Disponível em evento Cutinapp"}</small></div></Link>;
             })}
           </DiscoveryRail>
         )}
