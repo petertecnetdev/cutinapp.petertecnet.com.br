@@ -8,9 +8,13 @@ import onboardingService from "../../services/OnboardingService";
 const stepMeta = [
   ["account", "Conta criada", "Seu acesso está vinculado à Cutinapp."],
   ["organization", "Produção cadastrada", "Os dados básicos da sua produção já estão configurados."],
-  ["initial_event", "Primeiro evento preparado", "Use este evento como referência para as próximas edições."],
-  ["agreement", "Contrato assinado", "Obrigatório para publicar eventos com ingressos pagos."],
-  ["payout", "Recebimentos e Pix ativados", "Obrigatório para receber os valores das vendas."],
+  ["initial_event", "Eventos iniciais preparados", "Revise os eventos preparados e mantenha a agenda diretamente pela Cutinapp."],
+  ["agreement", "Termos assinados", "Leia e assine pessoalmente o termo vigente da Cutinapp."],
+  ["identity", "Dados de identidade", "Confirme seus dados civis para proteger os recebimentos."],
+  ["document", "Documento com foto", "Envie um documento oficial com foto."],
+  ["selfie_document", "Foto segurando o documento", "Envie uma foto sua segurando o documento ao lado do rosto."],
+  ["liveness", "Prova de vida", "Conclua a validação facial quando ela for exigida."],
+  ["payout", "Recebimentos e Pix ativados", "Cadastre e valide a chave Pix que receberá os valores."],
 ];
 
 const statusLabel = {
@@ -101,8 +105,8 @@ export default function ProducerOnboardingPage() {
                 <Badge bg={done ? "success" : "secondary"}>{done ? "Concluída" : "Pendente"}</Badge>
               </div>
               <p className="text-secondary mb-0">{detail}</p>
-              {!done && key === "agreement" && <Button className="mt-3" onClick={() => navigate(`/producer/contracts?productionId=${onboarding.organization.id}`)}>Assinar contrato</Button>}
-              {!done && key === "payout" && <Button className="mt-3" onClick={() => navigate(`/producer/finance?production=${onboarding.organization.id}&focus=activation`)}>Configurar recebimentos</Button>}
+              {!done && key === "agreement" && <Button className="mt-3" onClick={() => navigate(`/producer/contracts?productionId=${onboarding.organization.id}`)}>Ler e assinar termos</Button>}
+              {!done && ["identity", "document", "selfie_document", "liveness", "payout"].includes(key) && <Button className="mt-3" onClick={() => navigate(`/producer/finance?production=${onboarding.organization.id}&focus=activation`)}>Concluir verificação</Button>}
             </Card.Body></Card></Col>;
           })}
         </Row>
@@ -111,7 +115,7 @@ export default function ProducerOnboardingPage() {
           {onboarding.sales_ready ? <Alert variant="success" className="mb-3">
             <strong>Produção pronta para vender.</strong> Contrato e recebimentos estão válidos. Revise o primeiro evento, configure os ingressos e publique.
           </Alert> : <Alert variant="warning" className="mb-3">
-            Você pode criar e preparar seus eventos agora. Para publicar eventos com ingressos pagos e receber vendas, conclua contrato e recebimentos antes da publicação.
+            Você pode criar e preparar seus eventos agora. Para assumir a operação financeira, conclua pessoalmente termos, identidade, documento, foto segurando o documento, prova de vida quando exigida e chave Pix.
           </Alert>}
           <div className="d-flex flex-wrap gap-2">
             {onboarding.initial_event?.id && <Button onClick={() => navigate(`/event/edit/${onboarding.initial_event.id}`)}>Revisar primeiro evento</Button>}
