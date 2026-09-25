@@ -2,6 +2,7 @@ import React, { useEffect, useId, useRef, useState } from "react";
 import PropTypes from "prop-types";
 import { Form, Spinner } from "react-bootstrap";
 import cutinappService from "../../services/CutinappService";
+import "./CityAutocompleteControl.css";
 
 const cityId = (city) => city?.ibge_code ?? city?.city_id ?? city?.id ?? city?.code ?? "";
 const cityName = (city) => city?.name ?? city?.city ?? city?.nome ?? "";
@@ -68,7 +69,7 @@ export default function CityAutocompleteControl({
   };
 
   return (
-    <div className="position-relative">
+    <div className="position-relative cut-city-autocomplete">
       <Form.Control
         name="event-city-lookup"
         value={value || ""}
