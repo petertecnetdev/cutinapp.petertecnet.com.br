@@ -120,7 +120,7 @@ export default function BlogPage() {
           <button type="button" onClick={() => setQuery("artistas")}><i className="fa-solid fa-music" /><span><strong>Artistas</strong><small>Agenda e descoberta</small></span></button>
         </nav>
 
-        {error && <Alert variant="danger">{error}</Alert>
+        {error && <Alert variant="danger">{error}</Alert>}
         {loading && <div className="cut-blog-loading"><ProcessingIndicatorComponent fullscreen={false} label="Carregando conteúdo" /></div>}
 
         {!loading && filtered.length === 0 && <div className="cut-blog-empty">
