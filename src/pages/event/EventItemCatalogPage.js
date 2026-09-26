@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useMemo, useState } from "react";
 import { Alert, Button, Container, Spinner } from "react-bootstrap";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import { AuthContext } from "../../context/AuthContext";
 import commerceService from "../../services/CommerceService";
@@ -200,9 +200,9 @@ export default function EventItemCatalogPage() {
             const soldOut = max <= 0;
             const image = resolveImageUrl(item?.image || item?.image_url || item?.photo || item?.cover);
             return <article className={`cut-event-catalog-card${quantity > 0 ? " is-selected" : ""}${soldOut ? " is-sold-out" : ""}`} key={item.id}>
-              <div className="cut-event-catalog-card__media">{image ? <img src={image} alt={item.name || "Item do evento"} /> : <i className="fa-solid fa-box-open" aria-hidden="true" />}</div>
+              <Link to={`/event/${encodeURIComponent(slug)}/item/${encodeURIComponent(item.slug || item.id)}`} className="cut-event-catalog-card__media" aria-label={`Ver ${item.name} no evento ${event.title}`}>{image ? <img src={image} alt="" /> : <i className="fa-solid fa-box-open" aria-hidden="true" />}</Link>
               <div className="cut-event-catalog-card__body">
-                <div className="cut-event-catalog-card__copy"><strong>{item.name}</strong>{item.description && <p>{item.description}</p>}<span>{money(item.price)}</span><small>{soldOut ? "Esgotado" : `${max} disponível${max === 1 ? "" : "is"} para este pedido`}</small></div>
+                <div className="cut-event-catalog-card__copy"><strong><Link to={`/event/${encodeURIComponent(slug)}/item/${encodeURIComponent(item.slug || item.id)}`}>{item.name}</Link></strong>{item.description && <p>{item.description}</p>}<span>{money(item.price)}</span><small>{soldOut ? "Esgotado" : `${max} disponível${max === 1 ? "" : "is"} para este pedido`}</small></div>
                 <div className="cut-event-catalog-stepper" role="group" aria-label={`Quantidade de ${item.name}`}>
                   <button type="button" onClick={() => setQuantity(item, quantity - 1)} disabled={quantity <= 0} aria-label={`Remover uma unidade de ${item.name}`}><i className="fa-solid fa-minus" /></button>
                   <output aria-live="polite">{quantity}</output>
