@@ -1,7 +1,8 @@
 import React, { useContext, useEffect, useMemo, useState } from "react";
-import { Alert, Button, Container, Spinner } from "react-bootstrap";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { Alert, Button, Container } from "react-bootstrap";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
+import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import { AuthContext } from "../../context/AuthContext";
 import commerceService from "../../services/CommerceService";
 import { storageUrl } from "../../config";
@@ -161,7 +162,7 @@ export default function EventItemCatalogPage() {
     navigate(checkoutPath, { state: { checkout, from: `${location.pathname}${location.search}` } });
   };
 
-  if (loading) return <div className="cut-app-page cut-event-item-catalog-page"><NavlogComponent /><Container className="cut-page-container py-5"><div className="cut-event-catalog-loading"><Spinner animation="border" size="sm" /><span>Carregando catálogo…</span></div></Container></div>;
+  if (loading) return <div className="cut-app-page cut-event-item-catalog-page"><NavlogComponent /><Container className="cut-page-container py-5"><ProcessingIndicatorComponent fullscreen={false} label="Abrindo catálogo" /></Container></div>;
 
   return <div className="cut-app-page cut-event-item-catalog-page">
     <NavlogComponent />
@@ -199,10 +200,11 @@ export default function EventItemCatalogPage() {
             const max = maxFor(item);
             const soldOut = max <= 0;
             const image = resolveImageUrl(item?.image || item?.image_url || item?.photo || item?.cover);
+            const detailHref = `/event/${encodeURIComponent(slug)}/item/${item.id}`;
             return <article className={`cut-event-catalog-card${quantity > 0 ? " is-selected" : ""}${soldOut ? " is-sold-out" : ""}`} key={item.id}>
-              <div className="cut-event-catalog-card__media">{image ? <img src={image} alt={item.name || "Item do evento"} /> : <i className="fa-solid fa-box-open" aria-hidden="true" />}</div>
+              <Link to={detailHref} className="cut-event-catalog-card__media" aria-label={`Ver detalhes de ${item.name}`}>{image ? <img src={image} alt={item.name || "Item do evento"} loading="lazy" decoding="async" /> : <i className="fa-solid fa-box-open" aria-hidden="true" />}</Link>
               <div className="cut-event-catalog-card__body">
-                <div className="cut-event-catalog-card__copy"><strong>{item.name}</strong>{item.description && <p>{item.description}</p>}<span>{money(item.price)}</span><small>{soldOut ? "Esgotado" : `${max} disponível${max === 1 ? "" : "is"} para este pedido`}</small></div>
+                <div className="cut-event-catalog-card__copy"><strong><Link to={detailHref}>{item.name}</Link></strong>{item.description && <p>{item.description}</p>}<span>{money(item.price)}</span><small>{soldOut ? "Esgotado" : `${max} disponível${max === 1 ? "" : "is"} para este pedido`}</small><Link to={detailHref} className="cut-event-catalog-card__detail">Ver detalhes <i className="fa-solid fa-arrow-right" /></Link></div>
                 <div className="cut-event-catalog-stepper" role="group" aria-label={`Quantidade de ${item.name}`}>
                   <button type="button" onClick={() => setQuantity(item, quantity - 1)} disabled={quantity <= 0} aria-label={`Remover uma unidade de ${item.name}`}><i className="fa-solid fa-minus" /></button>
                   <output aria-live="polite">{quantity}</output>
