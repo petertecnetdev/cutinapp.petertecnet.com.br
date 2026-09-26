@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Badge, Button, Container, Form, Modal, Spinner } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
-import EventArtwork from "../../components/event/EventArtwork";
+import EventPosterThumbnail from "../../components/event/EventPosterThumbnail";
 import appApiClient from "../../services/AppApiClient";
 import applicationAdminEventService from "../../services/ApplicationAdminEventService";
 import "./ApplicationAdminEventsPage.css";
@@ -238,7 +238,7 @@ export default function ApplicationAdminEventsPage() {
             </div>
             <button type="button" className="cut-admin-event-row__main" onClick={() => navigate(`/event/edit/${event.id}`)} aria-label={`Editar ${event.title || "evento"}`}>
               <div className="cut-admin-event-row__media">
-                <EventArtwork image={event.image} title={event.title} alt="" loading="lazy" decoding="async" />
+                <EventPosterThumbnail image={event.image} title={event.title} alt="" className="cut-admin-event-row__poster" loading="lazy" />
               </div>
               <div className="cut-admin-event-row__content">
                 <div className="cut-admin-event-row__title-line">
