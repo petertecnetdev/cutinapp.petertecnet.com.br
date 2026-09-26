@@ -3,7 +3,7 @@ import { Alert, Badge, Button, Card, Col, Container, Row } from "react-bootstrap
 import { useNavigate, useSearchParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
-import EventArtwork from "../../components/event/EventArtwork";
+import EventPosterThumbnail from "../../components/event/EventPosterThumbnail";
 import EventDateCarousel from "../../components/event/EventDateCarousel";
 import eventService from "../../services/EventService";
 import cutinappService from "../../services/CutinappService";
@@ -198,7 +198,7 @@ export default function EventPage() {
               {events.map((event) => {
                 const availabilityBadge = ticketAvailabilityBadge(event);
                 return (
-                  <Col xs={12} md={6} xl={4} key={event.id}>
+                  <Col xs={12} sm={6} md={4} lg={3} xxl={2} key={event.id}>
                     <Card
                       className="cut-event-card h-100"
                       role="button"
@@ -215,11 +215,10 @@ export default function EventPage() {
                       }}
                     >
                       <div className="cut-event-card__media">
-                        <EventArtwork image={event.image} title={event.title} alt={event.title} loading="lazy" decoding="async" fallbackClassName="cut-event-card__placeholder" />
-                        {event.category && <Badge bg="dark" className="cut-event-card__category">{event.category}</Badge>}
-                        <Badge bg={availabilityBadge.bg} text={availabilityBadge.text} className="cut-event-card__badge">{availabilityBadge.label}</Badge>
+                        <EventPosterThumbnail image={event.image} title={event.title} alt={event.title} className="cut-event-card__poster" loading="lazy" />
                       </div>
                       <Card.Body>
+                        <div className="cut-event-card__badges">{event.category && <Badge bg="dark">{event.category}</Badge>}<Badge bg={availabilityBadge.bg} text={availabilityBadge.text}>{availabilityBadge.label}</Badge></div>
                         <span className="cut-eyebrow">{event.production?.name || "Cutinapp"}</span>
                         <h2>{event.title}</h2>
                         <div className="cut-event-card__meta">
