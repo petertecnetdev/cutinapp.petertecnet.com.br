@@ -135,6 +135,32 @@ jobs:
           fi
           if [[ "$filesystem_sha" == "$EXPECTED_SHA" && "$local_http_sha" == "$EXPECTED_SHA" && "$public_https_sha" != "$EXPECTED_SHA" ]]; then
             echo "::error::Diagnosis: VPS filesystem and local nginx are correct but public HTTPS serves another release. Inspect DNS/proxy/origin routing."
+            echo "::group::Sanitized cloudflared connector diagnostics"
+            ssh "${ssh_opts[@]}" -p "$port" "$VPS_USER@$VPS_HOST" 'bash -se' <<'REMOTE_DIAG'
+            set +e
+            echo "cloudflared_version:"
+            cloudflared --version 2>/dev/null || true
+            echo "cloudflared_state:"
+            sudo -n systemctl is-active cloudflared 2>/dev/null || systemctl is-active cloudflared 2>/dev/null || true
+            echo "local_connector_log:"
+            (sudo -n journalctl -u cloudflared -n 240 --no-pager 2>/dev/null || journalctl -u cloudflared -n 240 --no-pager 2>/dev/null) \
+              | grep -E 'Connector ID|Starting tunnel|Registered tunnel connection|Updated to new configuration|Connection [0-9]+ registered' \
+              | tail -80 || true
+            echo "local_ingress_config:"
+            for cfg in /etc/cloudflared/config.yml /etc/cloudflared/config.yaml /usr/local/etc/cloudflared/config.yml /root/.cloudflared/config.yml; do
+              if sudo -n test -f "$cfg" 2>/dev/null || test -f "$cfg" 2>/dev/null; then
+                echo "config=$cfg"
+                (sudo -n cat "$cfg" 2>/dev/null || cat "$cfg" 2>/dev/null) \
+                  | sed -E 's#(credentials-file:).*#\\1 REDACTED#; s#(--token[ =]+)[^ ]+#\\1REDACTED#g' \
+                  | grep -E '^(tunnel:|ingress:|[[:space:]]*-[[:space:]]*hostname:|[[:space:]]*service:|[[:space:]]*originRequest:|[[:space:]]*noTLSVerify:)' || true
+              fi
+            done
+            echo "tunnel_connectors:"
+            timeout 25 cloudflared tunnel info bc276f38-4fc5-4256-85c4-5f5c5b699b90 2>&1 \
+              | sed -E 's/(token[=: ]+)[A-Za-z0-9._-]+/\\1REDACTED/Ig' \
+              | head -120 || true
+            REMOTE_DIAG
+            echo "::endgroup::"
             exit 1
           fi
           if [[ "$filesystem_sha" != "$EXPECTED_SHA" ]]; then
