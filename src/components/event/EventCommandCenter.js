@@ -3,7 +3,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Badge, Offcanvas, ProgressBar } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import QRCode from "qrcode";
-import { storageUrl } from "../../config";
 import EventPosterThumbnail from "./EventPosterThumbnail";
 import {
   EventAgendaDays,
@@ -25,21 +24,6 @@ const TABS = [
   { key: "operate", label: "Operar", icon: "fa-solid fa-bolt" },
   { key: "analyze", label: "Analisar", icon: "fa-solid fa-chart-pie" },
 ];
-
-const imageUrl = (path) => {
-  if (!path) return "";
-  const value = String(path);
-  if (/^https?:\/\//i.test(value)) return value;
-  return `${storageUrl}${value.replace(/^\//, "")}`;
-};
-
-const initials = (value) => String(value || "EV")
-  .trim()
-  .split(/\s+/)
-  .filter(Boolean)
-  .slice(0, 2)
-  .map((part) => part.charAt(0).toUpperCase())
-  .join("") || "EV";
 
 const writeClipboard = async (text) => {
   if (navigator.clipboard?.writeText) return navigator.clipboard.writeText(text);
