@@ -11,7 +11,7 @@ import cutinappService from "../../services/CutinappService";
 import creativeService from "../../services/CreativeService";
 import { storageUrl } from "../../config";
 import { showImportantAlert, showProducerAgreementRequired } from "../../utils/sweetAlert";
-import { EVENT_POSTER_HINT, validateEventPosterFile } from "../../utils/eventPoster";
+import { EVENT_POSTER_HINT, normalizeEventPosterFile, validateEventPosterFile } from "../../utils/eventPoster";
 
 const pad = (value) => String(value).padStart(2, "0");
 const toLocalInput = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
@@ -759,7 +759,7 @@ export default function EventCreatePage() {
           const generatedFile = await dataUriToImageFile(dataUri, form.title);
           const validation = await validateEventPosterFile(generatedFile);
           if (!validation.ok) throw new Error(validation.message || "A arte criada automaticamente não passou na validação.");
-          effectiveImage = generatedFile;
+          effectiveImage = await normalizeEventPosterFile(generatedFile, { mode: "fill" });
           try {
             window.PeterTecnetTelemetry?.track?.("event_cover_auto_generated", {
               label: form.title,
