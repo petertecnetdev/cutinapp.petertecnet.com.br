@@ -5,12 +5,13 @@ import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import CityAutocompleteControl from "../../components/location/CityAutocompleteControl";
 import EventExperienceEditorSurface from "../../components/event/EventExperienceEditorSurface";
+import EventPosterEditor from "../../components/event/EventPosterEditor";
 import eventService from "../../services/EventService";
 import cutinappService from "../../services/CutinappService";
 import creativeService from "../../services/CreativeService";
 import { storageUrl } from "../../config";
 import { showImportantAlert, showProducerAgreementRequired } from "../../utils/sweetAlert";
-import { EVENT_POSTER_HINT, validateEventPosterFile } from "../../utils/eventPoster";
+import { EVENT_POSTER_HINT, normalizeEventPosterFile, validateEventPosterFile } from "../../utils/eventPoster";
 
 const pad = (value) => String(value).padStart(2, "0");
 const toLocalInput = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
@@ -145,6 +146,7 @@ export default function EventCreatePage() {
   const [loadingProductionItems, setLoadingProductionItems] = useState(false);
   const [itemLoadError, setItemLoadError] = useState("");
   const [preview, setPreview] = useState("");
+  const [posterEditorFile, setPosterEditorFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [loadingProductions, setLoadingProductions] = useState(true);
   const [quickProductionName, setQuickProductionName] = useState("");
@@ -539,12 +541,12 @@ export default function EventCreatePage() {
 
   const chooseImage = async (event) => {
     const file = event.target.files?.[0] || null;
+    event.target.value = "";
     if (!file) return;
 
     const validation = await validateEventPosterFile(file);
     if (!validation.ok) {
       setFieldErrors((current) => ({ ...current, image: [validation.message] }));
-      event.target.value = "";
       return;
     }
 
@@ -554,9 +556,23 @@ export default function EventCreatePage() {
       delete next.image;
       return next;
     });
-    if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
+    setPosterEditorFile(file);
+  };
+
+  const applyPosterImage = async (file) => {
+    if (!(file instanceof File)) return;
     setForm((current) => ({ ...current, image: file }));
-    setPreview(URL.createObjectURL(file));
+    setPreview((current) => {
+      if (current?.startsWith("blob:")) URL.revokeObjectURL(current);
+      return URL.createObjectURL(file);
+    });
+    setFieldErrors((current) => {
+      if (!current.image) return current;
+      const next = { ...current };
+      delete next.image;
+      return next;
+    });
+    setPosterEditorFile(null);
   };
 
   useEffect(() => {
@@ -568,17 +584,7 @@ export default function EventCreatePage() {
         setFieldErrors((current) => ({ ...current, image: [validation.message] }));
         return;
       }
-      setForm((current) => ({ ...current, image: file }));
-      setFieldErrors((current) => {
-        if (!current.image) return current;
-        const next = { ...current };
-        delete next.image;
-        return next;
-      });
-      setPreview((current) => {
-        if (current?.startsWith("blob:")) URL.revokeObjectURL(current);
-        return URL.createObjectURL(file);
-      });
+      setPosterEditorFile(file);
     };
     window.addEventListener("cutinapp:event-cover-selected", handleGeneratedCover);
     return () => window.removeEventListener("cutinapp:event-cover-selected", handleGeneratedCover);
@@ -753,7 +759,7 @@ export default function EventCreatePage() {
           const generatedFile = await dataUriToImageFile(dataUri, form.title);
           const validation = await validateEventPosterFile(generatedFile);
           if (!validation.ok) throw new Error(validation.message || "A arte criada automaticamente não passou na validação.");
-          effectiveImage = generatedFile;
+          effectiveImage = await normalizeEventPosterFile(generatedFile, { mode: "fill" });
           try {
             window.PeterTecnetTelemetry?.track?.("event_cover_auto_generated", {
               label: form.title,
@@ -815,6 +821,12 @@ export default function EventCreatePage() {
     <div className="cut-app-page">
       <NavlogComponent />
       {(loading || loadingProductions || reusingEvent) && <ProcessingIndicatorComponent label={reusingEvent ? "Criando nova edição" : loading ? "Criando evento" : "Carregando produções"} />}
+      <EventPosterEditor
+        show={Boolean(posterEditorFile)}
+        file={posterEditorFile}
+        onCancel={() => setPosterEditorFile(null)}
+        onApply={applyPosterImage}
+      />
 
       {!loadingProductions && productions.length === 0 ? (
         <Container className="cut-page-container py-4 py-lg-5">

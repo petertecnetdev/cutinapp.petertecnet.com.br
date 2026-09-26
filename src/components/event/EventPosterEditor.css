@@ -1,0 +1,228 @@
+.cut-event-poster-editor.modal-dialog {
+  max-width: 1120px;
+}
+
+.cut-event-poster-editor .modal-content {
+  border: 1px solid #34343A !important;
+  background: #0B0B0D !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 28px 90px #000000 !important;
+}
+
+.cut-event-poster-editor .modal-header,
+.cut-event-poster-editor .modal-footer {
+  border-color: #242428 !important;
+  background: #0B0B0D !important;
+}
+
+.cut-event-poster-editor .modal-header {
+  align-items: flex-start;
+}
+
+.cut-event-poster-editor .modal-title {
+  margin-top: 3px;
+  color: #FFFFFF;
+}
+
+.cut-event-poster-editor .modal-header small {
+  display: block;
+  margin-top: 5px;
+  color: #BEBEC5;
+}
+
+.cut-event-poster-editor__eyebrow {
+  color: #FF5252;
+  font-size: .72rem;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.cut-event-poster-editor__layout {
+  display: grid;
+  grid-template-columns: minmax(300px, 1fr) minmax(300px, .8fr);
+  gap: 22px;
+}
+
+.cut-event-poster-editor__stage {
+  min-width: 0;
+}
+
+.cut-event-poster-editor__canvasShell {
+  position: relative;
+  width: min(100%, 480px);
+  margin: 0 auto;
+  overflow: hidden;
+  border: 1px solid #34343A;
+  border-radius: 18px;
+  background: #050505;
+  box-shadow: 0 18px 48px #000000;
+}
+
+.cut-event-poster-editor__canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  background: #050505;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.cut-event-poster-editor__canvas:active {
+  cursor: grabbing;
+}
+
+.cut-event-poster-editor__loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 10px;
+  background: #050505;
+  color: #D7D7DC;
+}
+
+.cut-event-poster-editor__size {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+  color: #BEBEC5;
+  font-size: .8rem;
+  text-align: center;
+}
+
+.cut-event-poster-editor__size i {
+  color: #FF2020;
+}
+
+.cut-event-poster-editor__controls {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+
+.cut-event-poster-editor__controls section {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid #2B2B30;
+  border-radius: 14px;
+  background: #141417;
+}
+
+.cut-event-poster-editor__controls section > strong,
+.cut-event-poster-editor__controls .form-label {
+  margin: 0;
+  color: #FFFFFF;
+  font-size: .82rem;
+  font-weight: 850;
+}
+
+.cut-event-poster-editor__controls section > small {
+  color: #A8A8B0;
+  line-height: 1.4;
+}
+
+.cut-event-poster-editor__buttonGrid,
+.cut-event-poster-editor__presetGrid {
+  display: grid;
+  gap: 8px;
+}
+
+.cut-event-poster-editor__buttonGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.cut-event-poster-editor__presetGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.cut-event-poster-editor__controls .btn-primary {
+  border-color: #D80000 !important;
+  background: #D80000 !important;
+  color: #FFFFFF !important;
+}
+
+.cut-event-poster-editor__controls .btn-outline-light,
+.cut-event-poster-editor .modal-footer .btn-outline-light {
+  border-color: #4A4A52 !important;
+  background: #141417 !important;
+  color: #FFFFFF !important;
+}
+
+.cut-event-poster-editor__controls .btn-outline-light:hover,
+.cut-event-poster-editor__controls .btn-outline-light:focus-visible,
+.cut-event-poster-editor .modal-footer .btn-outline-light:hover,
+.cut-event-poster-editor .modal-footer .btn-outline-light:focus-visible {
+  border-color: #980000 !important;
+  background: #210707 !important;
+}
+
+.cut-event-poster-editor__adjustments .form-range {
+  margin-bottom: 4px;
+}
+
+.cut-event-poster-editor__adjustments .form-range::-webkit-slider-thumb {
+  background: #FF2020;
+}
+
+.cut-event-poster-editor__adjustments .form-range::-moz-range-thumb {
+  background: #FF2020;
+  border: 0;
+}
+
+.cut-event-poster-editor__error {
+  padding: 12px 14px;
+  border: 1px solid #980000;
+  border-radius: 12px;
+  background: #210707;
+  color: #FFFFFF;
+  font-size: .84rem;
+  font-weight: 700;
+}
+
+@media (max-width: 991.98px) {
+  .cut-event-poster-editor__layout {
+    grid-template-columns: 1fr;
+  }
+
+  .cut-event-poster-editor__canvasShell {
+    width: min(100%, 390px);
+  }
+}
+
+@media (max-width: 575.98px) {
+  .cut-event-poster-editor .modal-body {
+    padding: 12px;
+  }
+
+  .cut-event-poster-editor__layout {
+    gap: 14px;
+  }
+
+  .cut-event-poster-editor__canvasShell {
+    width: min(100%, 320px);
+    border-radius: 14px;
+  }
+
+  .cut-event-poster-editor__presetGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cut-event-poster-editor__buttonGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .cut-event-poster-editor .modal-footer {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .cut-event-poster-editor .modal-footer .btn {
+    width: 100%;
+  }
+}
