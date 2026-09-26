@@ -64,6 +64,10 @@
 /* 7. Official Cutinapp identity MUST win the cascade: black / graphite / electric red. */
 @import "./logo-theme.css";
 
+/* 8. Interaction safety is intentionally the final layer. Visual themes must
+   never make an expanded hamburger drawer invisible or untouchable. */
+@import "./navbar-interaction-fix.css";
+
 /* Home hero: mobile/tablet users never see the desktop visual frame, so avoid
    continuously painting its oversized blurred glow and decorative beams. */
 @media (max-width: 991px) {
