@@ -71,7 +71,7 @@
   }
 
   .cut-home .cut-home__nav {
-    background: #050513;
+    background: var(--cut-bg);
     backdrop-filter: none;
   }
 
