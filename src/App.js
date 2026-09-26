@@ -22,6 +22,7 @@ const EventFlyerAssistant = lazy(() => import("./components/EventFlyerAssistant"
 const EventSeriesLauncher = lazy(() => import("./components/EventSeriesLauncher"));
 const GlobalImageInputEnhancer = lazy(() => import("./components/GlobalImageInputEnhancer"));
 const GlobalAiDescriptionEnhancer = lazy(() => import("./components/GlobalAiDescriptionEnhancer"));
+const GlobalFlyerDateGuard = lazy(() => import("./components/GlobalFlyerDateGuard"));
 const MediaLibraryInputEnhancer = lazy(() => import("./components/MediaLibraryInputEnhancer"));
 const LandingPage = lazyWithPreload(() => import("./pages/LandingPageV2"));
 const HomeHubPage = lazyWithPreload(() => import("./pages/HomeHubPage"));
@@ -179,6 +180,7 @@ function AppRoutes() {
       <Suspense fallback={null}>
         <GlobalImageInputEnhancer />
         <GlobalAiDescriptionEnhancer />
+        <GlobalFlyerDateGuard />
         <MediaLibraryInputEnhancer />
       </Suspense>
     )}
