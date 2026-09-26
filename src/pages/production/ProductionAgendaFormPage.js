@@ -305,6 +305,9 @@ export default function ProductionAgendaFormPage() {
           </EditorSection>
 
           <EditorSection id="agenda-editor-media" eyebrow="Divulgação da view" title="Contato, imagem e visibilidade" hint="A imagem padrão será reutilizada nas ocorrências e a visibilidade define quem poderá encontrá-las.">
+            <Alert variant="info" className="mb-4">
+              <strong>Flyer para agenda recorrente:</strong> use somente o dia da semana, como “Toda sexta”. Não coloque dia e mês fixos, porque esta imagem será vinculada a semanas e datas diferentes. Depois de selecionar a arte, use “Revisar data do flyer”.
+            </Alert>
             <Row className="g-3">
               <Col md={6}><Form.Group><Form.Label>E-mail de contato</Form.Label><Form.Control type="email" name="contact_email" value={form.contact_email} onChange={change} /></Form.Group></Col>
               <Col md={6}><Form.Group><Form.Label>Telefone de contato</Form.Label><Form.Control name="contact_phone" value={form.contact_phone} onChange={change} /></Form.Group></Col>

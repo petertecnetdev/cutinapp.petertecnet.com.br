@@ -1397,6 +1397,7 @@ export default function EventManagePage() {
           <Modal.Title>Adicionar à agenda semanal</Modal.Title>
         </Modal.Header>
         <Modal.Body>
+          <Alert variant="info"><strong>Antes de reutilizar o flyer:</strong> prefira mostrar somente o dia da semana. Datas fixas podem ficar erradas nas próximas ocorrências; revise a arte no editor do evento.</Alert>
           <Alert variant="info">
             <strong>{eventToAgenda?.title}</strong> ficará fixo somente no dia selecionado. Cada dia da semana pode ter um evento diferente e uma regra de geração própria.
           </Alert>
