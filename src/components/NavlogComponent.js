@@ -26,6 +26,8 @@ import NotificationPermissionControl from "./NotificationPermissionControl";
 const CAPABILITY_CACHE_TTL = 5 * 60 * 1000;
 const NAV_RUNTIME_CACHE_TTL = 45 * 1000;
 const navigationRuntimeCache = new Map();
+const PRIMARY_NAVIGATION_ORDER = ["feed", "search", "events", "messages", "productions", "artists", "blog"];
+const primaryNavigation = [...commonNavigation].sort((a, b) => PRIMARY_NAVIGATION_ORDER.indexOf(a.id) - PRIMARY_NAVIGATION_ORDER.indexOf(b.id));
 
 const runtimeCacheFor = (userId) => navigationRuntimeCache.get(String(userId || "")) || {};
 const writeRuntimeCache = (userId, patch) => {
@@ -133,7 +135,11 @@ export default function NavlogComponent() {
   useEffect(() => {
     if (typeof document === "undefined") return undefined;
     document.body.classList.toggle("cut-has-mobile-bottom-nav", Boolean(user));
-    return () => document.body.classList.remove("cut-has-mobile-bottom-nav");
+    document.body.classList.toggle("cut-has-desktop-sidebar", Boolean(user));
+    return () => {
+      document.body.classList.remove("cut-has-mobile-bottom-nav");
+      document.body.classList.remove("cut-has-desktop-sidebar");
+    };
   }, [user]);
 
   useEffect(() => {
@@ -356,8 +362,7 @@ export default function NavlogComponent() {
             <div className="cut-navbar__drawer-heading"><strong>Navegação</strong><small>{actorMenus.length ? `${actorMenus.length} área${actorMenus.length > 1 ? "s" : ""} de trabalho disponível${actorMenus.length > 1 ? "is" : ""}` : "Sua experiência Cutinapp"}</small></div>
 
             <Nav className="cut-navbar__links mx-auto" aria-label="Navegação principal">
-              <Nav.Link as={Link} to="/search" aria-current={active("/search") ? "page" : undefined} className={`cut-navbar__primary-link cut-navbar__search-link ${active("/search") ? "active" : ""}`} onClick={() => { closeMenu(); trackTelemetry("navigation_item_selected", { id: "global-search", route: "/search", source: "global_search_page" }); }}><i className="fa-solid fa-magnifying-glass" /><span>Buscar</span></Nav.Link>
-              {commonNavigation.map((entry) => <Nav.Link key={entry.id} as={Link} to={entry.to} aria-current={active(entry.to) ? "page" : undefined} onClick={() => recordUsage(entry, "common_primary")} className={`cut-navbar__primary-link ${active(entry.to) ? "active" : ""}`}><i className={entry.icon} /><span>{entry.label}</span></Nav.Link>)}
+              {primaryNavigation.map((entry) => <Nav.Link key={entry.id} as={Link} to={entry.to} aria-current={active(entry.to) ? "page" : undefined} onClick={() => recordUsage(entry, "common_primary")} className={`cut-navbar__primary-link ${active(entry.to) ? "active" : ""}`}><i className={entry.icon} /><span>{entry.label}</span></Nav.Link>)}
 
               {actorMenus.map((area) => <NavDropdown key={area.id} title={<span className="cut-actor-menu__title"><i className={area.icon} /><span>{area.label}</span>{area.id === "producer" && productions.length > 0 && <span className="cut-actor-menu__badge">{productions.length}</span>}</span>} id={`cut-actor-${area.id}`} className={`cut-actor-menu ${area.items.some((entry) => active(entry.to)) ? "active" : ""}`}>
                 <div className="cut-actor-menu__heading"><i className={area.icon} /><span><strong>{area.label}</strong><small>{area.description}</small></span></div>
