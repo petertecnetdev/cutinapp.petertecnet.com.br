@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Alert, Badge, Button, Card, Col, Container, Row } from "react-bootstrap";
 import { Link, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
-import EventArtwork from "../../components/event/EventArtwork";
+import EventPosterThumbnail from "../../components/event/EventPosterThumbnail";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import SeoHead, { SITE_URL } from "../../components/SeoHead";
 import eventService from "../../services/EventService";
@@ -263,10 +263,10 @@ export default function EventDiscoverySeoPage() {
       {events.length > 0 && <section aria-labelledby="event-results" className="mb-5">
         <div className="cut-section-heading"><div><span className="cut-eyebrow">Programação</span><h2 id="event-results">{events.length} evento{events.length === 1 ? "" : "s"} encontrado{events.length === 1 ? "" : "s"}</h2></div></div>
         <Row className="g-4">
-          {events.map((event) => <Col key={event.id || event.slug} md={6} xl={4}>
+          {events.map((event) => <Col key={event.id || event.slug} xs={12} sm={6} md={4} lg={3} xxl={2}>
             <Card className="cut-panel h-100 overflow-hidden">
-              <EventArtwork image={event.image} title={event.title} alt={`Flyer de ${event.title}`} className="card-img-top" style={{ aspectRatio: "16 / 9", objectFit: "cover" }} fallbackClassName="cut-event-seo-card-initials" fallbackStyle={{ aspectRatio: "16 / 9", display: "grid", placeItems: "center", fontSize: "2.6rem", fontWeight: 900 }} />
-              <Card.Body className="p-4 d-flex flex-column">
+              <EventPosterThumbnail image={event.image} title={event.title} alt={`Flyer de ${event.title}`} className="cut-event-seo-card-poster" loading="lazy" />
+              <Card.Body className="p-3 d-flex flex-column">
                 <div className="d-flex flex-wrap gap-2 mb-2">{event.category && <Badge bg="dark">{event.category}</Badge>}{event.city && <Badge bg="secondary">{event.city}{event.uf ? ` - ${event.uf}` : ""}</Badge>}</div>
                 <h3 className="h5">{event.title}</h3>
                 <p className="text-secondary mb-2"><i className="fa-regular fa-calendar me-2" />{eventDate(event.start_date)}</p>
