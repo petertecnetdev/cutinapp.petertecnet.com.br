@@ -1,114 +1,133 @@
-/* Cutinapp visual identity — final theme layer.
-   Palette follows the official logo: magenta/violet -> electric blue -> cyan. */
+/*
+ * CUTINAPP — OFFICIAL VISUAL IDENTITY
+ * Source of truth: current Cutinapp logo.
+ * Palette: absolute black, graphite/metal, white/silver and electric/crimson red.
+ * This file is imported last by app.css and intentionally wins the visual cascade.
+ */
 
+:root {
+  --cut-logo-black: #000000;
+  --cut-logo-black-soft: #050505;
+  --cut-logo-graphite: #0B0B0D;
+  --cut-logo-graphite-2: #141417;
+  --cut-logo-graphite-3: #202024;
+  --cut-logo-metal: #34343A;
+  --cut-logo-silver: #D7D7DC;
+  --cut-logo-white: #FFFFFF;
+  --cut-logo-red-deep: #650000;
+  --cut-logo-red-dark: #980000;
+  --cut-logo-red: #D80000;
+  --cut-logo-red-hot: #FF2020;
+  --cut-logo-red-light: #FF5252;
+  --cut-logo-shadow: 0 18px 52px #000000;
+  --cut-logo-glow: 0 0 0 1px #650000, 0 0 24px #3D0000;
+  --cut-logo-glow-strong: 0 0 0 1px #D80000, 0 0 32px #650000;
+}
+
+html,
+body,
+#root {
+  background: #050505 !important;
+  color: var(--cut-text) !important;
+}
+
+body::before {
+  background:
+    radial-gradient(circle at 50% -18%, #250000 0%, #0B0B0D 28%, #050505 56%, #020202 100%) !important;
+}
+
+body::after {
+  display: none !important;
+}
+
+.cut-app-page,
+.cut-dashboard,
+.cut-home,
+.cut-auth-shell,
+.cut-discovery-shell,
+.cut-production-themed-page {
+  background: #050505 !important;
+  color: var(--cut-text) !important;
+}
+
+.cut-app-page::after,
+.cut-dashboard::after,
+.cut-home::after,
+.cut-auth-shell::after {
+  display: none !important;
+}
+
+/* Navigation */
 .cut-navbar,
-.cut-home__nav {
-  background: rgba(5,5,19,.84) !important;
-  border-color: rgba(184,71,250,.14) !important;
-  box-shadow: 0 10px 34px rgba(0,0,0,.26), 0 1px 0 rgba(6,175,250,.04) !important;
+.cut-home__nav,
+.navbar.cut-navbar {
+  background: #080809 !important;
+  border-color: #2A0A0A !important;
+  box-shadow: 0 10px 34px #000000, inset 0 -1px #650000 !important;
+  backdrop-filter: none !important;
+}
+
+.cut-navbar::after,
+.cut-home__nav::after {
+  content: "" !important;
+  position: absolute !important;
+  left: 8% !important;
+  right: 8% !important;
+  bottom: -1px !important;
+  height: 1px !important;
+  background: linear-gradient(90deg, #080809, #650000, #FF2020, #650000, #080809) !important;
+  filter: none !important;
 }
 
 .cut-navbar__brand > img,
 .cut-home__brand img,
 .cut-dashboard__heroMark img,
 .cut-auth-shell__logo img,
-.cut-auth-shell__brandMark img {
-  filter: drop-shadow(0 10px 24px rgba(184,71,250,.22)) drop-shadow(0 0 18px rgba(6,175,250,.10)) !important;
+.cut-auth-shell__brandMark img,
+.cut-processing__logo {
+  filter: drop-shadow(0 0 10px #650000) drop-shadow(0 0 22px #3D0000) !important;
+}
+
+.cut-navbar__links .nav-link,
+.cut-navbar__links .dropdown-toggle,
+.cut-mobile-nav a,
+.cut-mobile-nav button {
+  color: #D7D7DC !important;
+}
+
+.cut-navbar__links i,
+.cut-navbar__links .nav-link.active,
+.cut-navbar__links .nav-link:hover,
+.cut-navbar__links .dropdown-toggle:hover,
+.cut-navbar__links .show > .dropdown-toggle,
+.cut-mobile-nav a.active,
+.cut-mobile-nav button.active {
+  color: #FFFFFF !important;
 }
 
 .cut-navbar__links .nav-link.active,
-.cut-navbar__avatar,
-.cut-dashboard__heroMark,
-.cut-home__visualLogo,
-.cut-empty-icon,
-.cut-dashboard__card > i,
-.cut-home__featureGrid i {
-  border-color: rgba(184,71,250,.24) !important;
-  background: linear-gradient(145deg, rgba(184,71,250,.14), rgba(43,98,244,.10) 58%, rgba(6,175,250,.08)) !important;
+.cut-navbar__links .nav-link:hover,
+.cut-navbar__links .dropdown-toggle:hover,
+.cut-navbar__links .show > .dropdown-toggle {
+  background: #210707 !important;
+  border-color: #650000 !important;
+  box-shadow: inset 0 0 0 1px #650000 !important;
 }
 
-.cut-panel::before,
-.cut-dashboard__hero::after,
-.cut-auth-shell__card::before,
-.cut-home__hero::after {
-  background: linear-gradient(90deg, transparent, rgba(229,108,255,.40), rgba(113,65,247,.46), rgba(6,175,250,.36), transparent) !important;
+.cut-navbar__links .nav-link::after,
+.cut-navbar__links .dropdown-toggle::after {
+  background: #FF2020 !important;
+  box-shadow: 0 0 12px #650000 !important;
 }
 
-.cut-info-box,
-.cut-upload-placeholder {
-  border-color: rgba(184,71,250,.18) !important;
-  background: linear-gradient(135deg, rgba(184,71,250,.075), rgba(113,65,247,.055) 55%, rgba(6,175,250,.035)) !important;
-}
-
-.cut-search-bar,
-.cut-dashboard__stats article,
-.cut-auth-shell__card,
-.cut-autocomplete-menu {
-  background-color: rgba(13,13,36,.90) !important;
-}
-
-.cut-auth-shell__bg {
-  background:
-    radial-gradient(circle at 14% 18%, rgba(184,71,250,.22), transparent 38%),
-    radial-gradient(circle at 84% 14%, rgba(43,98,244,.19), transparent 37%),
-    radial-gradient(circle at 74% 88%, rgba(6,175,250,.08), transparent 36%),
-    linear-gradient(155deg,#03030d 0%,#0b0922 50%,#03030d 100%) !important;
-}
-
-.cut-auth-shell__heroCard {
-  background: linear-gradient(160deg, rgba(25,20,60,.82), rgba(8,8,28,.72)) !important;
-}
-.cut-auth-shell__heroCard::before {
-  background: radial-gradient(circle at 25% 12%, rgba(229,108,255,.16), transparent 42%) !important;
-}
-.cut-auth-shell__card {
-  border-color: rgba(184,71,250,.24) !important;
-  background: linear-gradient(180deg, rgba(16,14,46,.90), rgba(6,6,21,.97)) !important;
-}
-.cut-auth-shell__pill span {
-  background: var(--cut-gradient-brand) !important;
-  box-shadow: 0 0 18px rgba(184,71,250,.65), 0 0 30px rgba(6,175,250,.20) !important;
-}
-
-.cut-home__hero::before {
-  background:
-    radial-gradient(circle at 15% 18%, rgba(184,71,250,.22), transparent 32%),
-    radial-gradient(circle at 76% 18%, rgba(43,98,244,.17), transparent 34%),
-    radial-gradient(circle at 66% 74%, rgba(6,175,250,.07), transparent 30%) !important;
-}
-.cut-home__glow {
-  background: linear-gradient(135deg,#e56cff,#7141f7 58%,#06affa) !important;
-  opacity: .18 !important;
-}
-.cut-home__copy h1 em {
-  background: var(--cut-gradient-brand-horizontal) !important;
-  -webkit-background-clip: text !important;
-  background-clip: text !important;
-  color: transparent !important;
-}
-.cut-home__visualCard {
-  background: linear-gradient(150deg, rgba(28,23,68,.92), rgba(8,8,28,.88)) !important;
-  border-color: rgba(184,71,250,.18) !important;
-}
-.cut-home__visualCard::before {
-  background: radial-gradient(circle at 78% 12%,rgba(184,71,250,.21),transparent 28%), radial-gradient(circle at 14% 86%,rgba(6,175,250,.13),transparent 30%) !important;
-}
-
-.cut-dashboard__hero::before {
-  background: linear-gradient(135deg,#b847fa,#7141f7 55%,#2b62f4) !important;
-  opacity: .16 !important;
-}
-.cut-dashboard__heroMark {
-  background: linear-gradient(145deg, rgba(184,71,250,.13), rgba(43,98,244,.08), rgba(6,175,250,.05)) !important;
-}
-.cut-dashboard__stats article {
-  border-color: rgba(209,188,255,.12) !important;
-  background: linear-gradient(150deg, rgba(20,18,48,.94), rgba(9,9,29,.94)) !important;
-}
-
+/* Main surfaces */
+.card,
+.modal-content,
+.offcanvas,
+.dropdown-menu,
+.list-group-item,
 .cut-panel,
 .cut-empty-state,
-.cut-discovery-shell,
 .cut-wallet-toolbar,
 .cut-artist-card,
 .cut-feed-card,
@@ -118,228 +137,67 @@
 .cut-pass-card,
 .cut-dashboard__card,
 .cut-home__eventCard,
-.cut-home__featureGrid article {
-  border-color: rgba(209,188,255,.13) !important;
-  background: var(--cut-gradient-surface) !important;
-}
-
-.cut-panel:hover,
-.cut-artist-card:hover,
-.cut-feed-card:hover,
-.cut-event-mini:hover,
-.cut-production-card:hover,
-.cut-event-card:hover,
-.cut-pass-card:hover,
-.cut-dashboard__card:hover,
-.cut-home__eventCard:hover {
-  border-color: rgba(184,71,250,.36) !important;
-  box-shadow: 0 22px 58px rgba(0,0,0,.34), 0 0 32px rgba(113,65,247,.08) !important;
-}
-
-.cut-eyebrow,
-.cut-home__eyebrow,
-.cut-dashboard__stats a,
-.cut-dashboard__card > b,
-.cut-upload-placeholder i,
-.cut-search-bar > i,
-.cut-location-spinner,
-.cut-auth-inline-links a,
-.cut-navbar__links i,
-.cut-home__proof i,
-.cut-home__eventCard span {
-  color: var(--cut-brand-300) !important;
-}
-
-.cut-status-badge--free {
-  border-color: rgba(184,71,250,.30) !important;
-  background: rgba(184,71,250,.13) !important;
-  color: #edc8ff !important;
-}
-.cut-status-badge--used {
-  border-color: rgba(6,175,250,.28) !important;
-  background: rgba(6,175,250,.11) !important;
-  color: #ccefff !important;
-}
-
-.cut-filter-shortcuts button:hover,
-.cut-filter-shortcuts button.active,
-.cut-active-filters button:hover,
-.cut-recent-cities button:hover,
-.cut-icon-button:hover,
-.cut-navbar__links .nav-link:hover,
-.cut-navbar__links .nav-link.active,
-.cut-navbar__links .dropdown-toggle:hover,
-.cut-navbar__links .show > .dropdown-toggle {
-  border-color: rgba(184,71,250,.30) !important;
-  background: linear-gradient(135deg, rgba(184,71,250,.13), rgba(43,98,244,.08)) !important;
-}
-
-.cut-primary-action,
-.cut-dashboard__primary,
-.cut-home__primary,
-.cut-home__cta,
-.btn-primary {
-  background: var(--cut-gradient-brand) !important;
-  color: #fff !important;
-  border-color: transparent !important;
-  box-shadow: var(--cut-shadow-brand) !important;
-}
-.cut-primary-action:hover,
-.cut-dashboard__primary:hover,
-.cut-home__primary:hover,
-.cut-home__cta:hover,
-.btn-primary:hover {
-  box-shadow: var(--cut-shadow-brand-strong) !important;
-  filter: brightness(1.08) saturate(1.08);
-}
-
-/* Bootstrap color utilities used by legacy pages */
-.bg-primary,
-.badge.bg-primary { background: var(--cut-gradient-brand) !important; color: #fff !important; }
-.bg-info,
-.badge.bg-info { background: linear-gradient(135deg,#2b62f4,#06affa) !important; color: #fff !important; }
-.text-primary { color: #d58aff !important; }
-.text-info { color: #62dfff !important; }
-.border-primary { border-color: rgba(184,71,250,.46) !important; }
-.border-info { border-color: rgba(6,175,250,.42) !important; }
-.badge.bg-secondary { background: rgba(113,65,247,.18) !important; color: #ded3ff !important; border: 1px solid rgba(113,65,247,.28); }
-
-/* =========================================================
-   CUTINAPP FUTURE INTERFACE
-   Dynamic, cinematic and technology-driven visual layer.
-   ========================================================= */
-
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -3;
-  pointer-events: none;
-  background:
-    radial-gradient(circle at 18% 8%, rgba(229,108,255,.10), transparent 26%),
-    radial-gradient(circle at 82% 14%, rgba(43,98,244,.12), transparent 28%),
-    radial-gradient(circle at 52% 92%, rgba(6,175,250,.07), transparent 34%),
-    #03030d;
-}
-
-body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 99999;
-  pointer-events: none;
-  opacity: .18;
-  mix-blend-mode: soft-light;
-  background-image:
-    linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px);
-  background-size: 54px 54px;
-  -webkit-mask-image: radial-gradient(circle at 50% 35%, black 0%, transparent 78%);
-  mask-image: radial-gradient(circle at 50% 35%, black 0%, transparent 78%);
-}
-
-.cut-app-page,
-.cut-dashboard,
-.cut-home,
-.cut-auth-shell {
-  position: relative;
-  isolation: isolate;
-}
-
-.cut-app-page::after,
-.cut-dashboard::after,
-.cut-home::after,
-.cut-auth-shell::after {
-  content: "";
-  position: fixed;
-  inset: -30%;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    radial-gradient(circle at 25% 30%, rgba(184,71,250,.07), transparent 22%),
-    radial-gradient(circle at 72% 42%, rgba(43,98,244,.06), transparent 24%),
-    radial-gradient(circle at 52% 78%, rgba(6,175,250,.045), transparent 22%);
-  filter: blur(30px);
-  animation: cutAmbientDrift 18s ease-in-out infinite alternate;
-}
-
-.cut-navbar,
-.cut-home__nav {
-  background: linear-gradient(180deg, rgba(8,7,27,.90), rgba(5,5,19,.72)) !important;
-  box-shadow:
-    0 12px 42px rgba(0,0,0,.32),
-    inset 0 -1px rgba(229,108,255,.04),
-    0 0 34px rgba(43,98,244,.035) !important;
-}
-
-.cut-navbar::after,
-.cut-home__nav::after {
-  content: "";
-  position: absolute;
-  left: 12%;
-  right: 12%;
-  bottom: -1px;
-  height: 1px;
-  pointer-events: none;
-  background: linear-gradient(90deg, transparent, #e56cff 18%, #7141f7 48%, #2b62f4 72%, #06affa 88%, transparent);
-  opacity: .45;
-  filter: blur(.2px);
-  animation: cutNavPulse 5s ease-in-out infinite;
-}
-
-.cut-navbar__brand > img,
-.cut-home__brand img,
-.cut-auth-shell__logo img,
-.cut-auth-shell__brandMark img,
-.cut-dashboard__heroMark img {
-  animation: cutLogoFloat 5.5s ease-in-out infinite;
-  will-change: transform, filter;
-}
-
-.cut-navbar__links .nav-link,
-.cut-navbar__links .dropdown-toggle,
-.cut-filter-shortcuts button,
-.cut-recent-cities button,
-.cut-icon-button {
-  position: relative;
-  overflow: hidden;
-}
-
-.cut-navbar__links .nav-link::after,
-.cut-navbar__links .dropdown-toggle::after {
-  content: "";
-  position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: 5px;
-  height: 1px;
-  transform: scaleX(0);
-  transform-origin: center;
-  background: linear-gradient(90deg, #e56cff, #7141f7, #06affa);
-  box-shadow: 0 0 12px rgba(184,71,250,.65);
-  transition: transform 220ms ease;
-}
-.cut-navbar__links .nav-link:hover::after,
-.cut-navbar__links .nav-link.active::after,
-.cut-navbar__links .dropdown-toggle:hover::after {
-  transform: scaleX(1);
-}
-
-.cut-home__hero,
-.cut-dashboard__hero,
-.cut-auth-shell__heroCard,
-.cut-auth-shell__card {
-  isolation: isolate;
-}
-
-.cut-home__hero::before {
-  animation: cutHeroAura 12s ease-in-out infinite alternate;
-}
-
-.cut-home__visualCard,
-.cut-dashboard__hero,
-.cut-auth-shell__heroCard,
+.cut-home__featureGrid article,
+.cut-search-bar,
+.cut-dashboard__stats article,
 .cut-auth-shell__card,
+.cut-auth-shell__heroCard,
+.cut-autocomplete-menu,
+.cut-info-box,
+.cut-upload-placeholder {
+  background: #0B0B0D !important;
+  border-color: #2B2B30 !important;
+  color: var(--cut-text) !important;
+  box-shadow: var(--cut-logo-shadow) !important;
+  backdrop-filter: none !important;
+}
+
+.card-header,
+.card-footer,
+.modal-header,
+.modal-footer,
+.dropdown-divider {
+  background: #0B0B0D !important;
+  border-color: #242428 !important;
+}
+
+.cut-panel::before,
+.cut-dashboard__hero::after,
+.cut-auth-shell__card::before,
+.cut-home__hero::after {
+  background: linear-gradient(90deg, #0B0B0D, #650000, #FF2020, #650000, #0B0B0D) !important;
+}
+
+.cut-dashboard__hero,
+.cut-home__visualCard {
+  background: linear-gradient(145deg, #050505 0%, #0B0B0D 55%, #160303 100%) !important;
+  border-color: #3A0A0A !important;
+  box-shadow: 0 24px 72px #000000, inset 0 0 0 1px #210707 !important;
+}
+
+.cut-dashboard__hero::before,
+.cut-home__hero::before,
+.cut-home__visualCard::before,
+.cut-auth-shell__bg {
+  background: radial-gradient(circle at 50% 18%, #330000 0%, #0B0B0D 34%, #050505 66%, #020202 100%) !important;
+}
+
+.cut-home__glow {
+  background: #650000 !important;
+  opacity: 1 !important;
+}
+
+.cut-dashboard__heroMark,
+.cut-home__visualLogo,
+.cut-empty-icon,
+.cut-navbar__avatar {
+  background: #111113 !important;
+  border-color: #650000 !important;
+  color: #FF2020 !important;
+  box-shadow: var(--cut-logo-glow) !important;
+}
+
+/* Cards: metallic black with the red edge from the logo */
 .cut-panel,
 .cut-dashboard__card,
 .cut-home__eventCard,
@@ -348,10 +206,24 @@ body::after {
 .cut-production-card,
 .cut-pass-card,
 .cut-artist-card,
-.cut-feed-card {
-  position: relative;
-  transform-style: preserve-3d;
-  backface-visibility: hidden;
+.cut-feed-card,
+.cut-event-mini {
+  border: 1px solid #2B2B30 !important;
+  background: linear-gradient(160deg, #141417 0%, #0B0B0D 56%, #080809 100%) !important;
+}
+
+.cut-panel:hover,
+.cut-dashboard__card:hover,
+.cut-home__eventCard:hover,
+.cut-home__featureGrid article:hover,
+.cut-event-card:hover,
+.cut-production-card:hover,
+.cut-pass-card:hover,
+.cut-artist-card:hover,
+.cut-feed-card:hover,
+.cut-event-mini:hover {
+  border-color: #980000 !important;
+  box-shadow: 0 22px 58px #000000, 0 0 0 1px #650000, 0 0 26px #3D0000 !important;
 }
 
 .cut-home__visualCard::after,
@@ -365,293 +237,227 @@ body::after {
 .cut-pass-card::after,
 .cut-artist-card::after,
 .cut-feed-card::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  border-radius: inherit;
-  background: linear-gradient(115deg, transparent 22%, rgba(255,255,255,.045) 38%, rgba(229,108,255,.075) 48%, rgba(6,175,250,.055) 55%, transparent 68%);
-  transform: translateX(-125%);
-  opacity: 0;
+  background: linear-gradient(115deg, transparent 25%, #2A0A0A 44%, #650000 50%, #2A0A0A 56%, transparent 75%) !important;
 }
 
-.cut-panel:hover::after,
-.cut-dashboard__card:hover::after,
-.cut-home__eventCard:hover::after,
-.cut-home__featureGrid article:hover::before,
-.cut-event-card:hover::after,
-.cut-production-card:hover::after,
-.cut-pass-card:hover::after,
-.cut-artist-card:hover::after,
-.cut-feed-card:hover::after {
-  opacity: 1;
-  animation: cutCardScan 900ms cubic-bezier(.2,.8,.2,1) both;
-}
-
-.cut-dashboard__card,
-.cut-home__eventCard,
-.cut-home__featureGrid article,
-.cut-event-card,
-.cut-production-card,
-.cut-pass-card,
-.cut-artist-card,
-.cut-feed-card,
-.cut-panel {
-  transition:
-    transform 280ms cubic-bezier(.16,1,.3,1),
-    border-color 220ms ease,
-    box-shadow 280ms ease,
-    background-color 220ms ease !important;
-}
-
-.cut-dashboard__card:hover,
-.cut-home__eventCard:hover,
-.cut-home__featureGrid article:hover,
-.cut-event-card:hover,
-.cut-production-card:hover,
-.cut-pass-card:hover,
-.cut-artist-card:hover,
-.cut-feed-card:hover,
-.cut-panel:hover {
-  transform: translateY(-6px) scale(1.008);
-  box-shadow:
-    0 26px 70px rgba(0,0,0,.40),
-    0 0 0 1px rgba(184,71,250,.08),
-    0 0 42px rgba(113,65,247,.09),
-    0 0 72px rgba(6,175,250,.025) !important;
-}
-
-.cut-home__eventMedia,
-.cut-upload-placeholder,
-.cut-dashboard__heroMark,
-.cut-home__visualLogo,
-.cut-empty-icon {
-  position: relative;
-  overflow: hidden;
-}
-
-.cut-dashboard__heroMark::after,
-.cut-home__visualLogo::after,
-.cut-empty-icon::after {
-  content: "";
-  position: absolute;
-  inset: -45%;
-  background: conic-gradient(from 0deg, transparent 0 30%, rgba(229,108,255,.20), rgba(43,98,244,.16), rgba(6,175,250,.18), transparent 68% 100%);
-  animation: cutOrbitalSpin 10s linear infinite;
-  pointer-events: none;
-}
-
-.cut-dashboard__heroMark img,
-.cut-home__visualLogo img,
-.cut-empty-icon > * {
-  position: relative;
-  z-index: 1;
-}
-
-.cut-home__copy h1,
-.cut-dashboard__hero h1,
-.cut-page-heading h1 {
-  text-shadow: 0 12px 34px rgba(0,0,0,.28);
-}
-
-.cut-home__copy h1 em {
-  background-size: 220% 100% !important;
-  animation: cutGradientFlow 7s ease-in-out infinite;
-  filter: drop-shadow(0 0 20px rgba(184,71,250,.12));
-}
-
+/* Typography and brand accents */
+a,
 .cut-eyebrow,
-.cut-home__eyebrow {
-  text-shadow: 0 0 18px rgba(184,71,250,.30);
+.cut-home__eyebrow,
+.cut-dashboard__stats a,
+.cut-dashboard__card > b,
+.cut-upload-placeholder i,
+.cut-search-bar > i,
+.cut-location-spinner,
+.cut-auth-inline-links a,
+.cut-navbar__links i,
+.cut-home__proof i,
+.cut-home__eventCard span,
+.text-primary {
+  color: #FF5252 !important;
 }
 
+a:hover,
+.cut-auth-inline-links a:hover {
+  color: #FFFFFF !important;
+}
+
+.cut-home__copy h1 em,
+.cut-gradient-text {
+  background: linear-gradient(90deg, #FFFFFF 0%, #FF7777 32%, #FF2020 62%, #980000 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
+}
+
+/* Buttons */
+.btn-primary,
 .cut-primary-action,
 .cut-dashboard__primary,
 .cut-home__primary,
-.cut-home__cta,
-.btn-primary {
-  position: relative;
-  overflow: hidden;
-  background-size: 180% 180% !important;
-  animation: cutButtonGradient 7s ease infinite;
-  transform: translateZ(0);
+.cut-home__cta {
+  background: linear-gradient(180deg, #FF2020 0%, #D80000 48%, #980000 100%) !important;
+  border-color: #FF2020 !important;
+  color: #FFFFFF !important;
+  box-shadow: var(--cut-logo-glow) !important;
 }
 
-.cut-primary-action::after,
-.cut-dashboard__primary::after,
-.cut-home__primary::after,
-.cut-home__cta::after,
-.btn-primary::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(110deg, transparent 24%, rgba(255,255,255,.26) 48%, transparent 72%);
-  transform: translateX(-140%);
-  transition: transform 550ms ease;
-}
-.cut-primary-action:hover::after,
-.cut-dashboard__primary:hover::after,
-.cut-home__primary:hover::after,
-.cut-home__cta:hover::after,
-.btn-primary:hover::after {
-  transform: translateX(140%);
+.btn-primary:hover,
+.btn-primary:focus,
+.cut-primary-action:hover,
+.cut-dashboard__primary:hover,
+.cut-home__primary:hover,
+.cut-home__cta:hover {
+  background: linear-gradient(180deg, #FF5252 0%, #FF2020 42%, #B00000 100%) !important;
+  border-color: #FF5252 !important;
+  color: #FFFFFF !important;
+  box-shadow: var(--cut-logo-glow-strong) !important;
+  filter: none !important;
 }
 
+.btn-outline-primary,
+.border-primary {
+  border-color: #980000 !important;
+  color: #FF5252 !important;
+}
+
+.btn-outline-primary:hover,
+.btn-outline-primary:focus {
+  background: #210707 !important;
+  border-color: #FF2020 !important;
+  color: #FFFFFF !important;
+}
+
+.btn-secondary,
+.badge.bg-secondary {
+  background: #202024 !important;
+  border-color: #34343A !important;
+  color: #FFFFFF !important;
+}
+
+/* Bootstrap bridge: never let the old blue/cyan identity return */
+.bg-primary,
+.badge.bg-primary {
+  background: #D80000 !important;
+  color: #FFFFFF !important;
+}
+
+.bg-info,
+.badge.bg-info {
+  background: #202024 !important;
+  color: #FFFFFF !important;
+}
+
+.text-info {
+  color: #D7D7DC !important;
+}
+
+.border-info {
+  border-color: #48484F !important;
+}
+
+/* Forms */
 .form-control,
 .form-select,
-.cut-search-bar,
-.dropdown-menu,
-.modal-content {
-  backdrop-filter: blur(18px) saturate(135%);
+.form-check-input,
+.input-group-text,
+.cut-control {
+  background-color: #0B0B0D !important;
+  border-color: #2B2B30 !important;
+  color: #F5F5F7 !important;
+  box-shadow: none !important;
+}
+
+.form-control:hover:not(:disabled),
+.form-select:hover:not(:disabled) {
+  background-color: #141417 !important;
+  border-color: #650000 !important;
 }
 
 .form-control:focus,
 .form-select:focus,
-.cut-search-bar:focus-within {
-  border-color: rgba(184,71,250,.50) !important;
-  box-shadow:
-    0 0 0 3px rgba(184,71,250,.10),
-    0 0 24px rgba(43,98,244,.08) !important;
+.form-check-input:focus {
+  background-color: #141417 !important;
+  border-color: #FF2020 !important;
+  box-shadow: 0 0 0 3px #3D0000 !important;
 }
 
-.cut-dashboard__stats article strong,
-.cut-status-badge,
-.badge {
-  font-variant-numeric: tabular-nums;
+.form-check-input:checked {
+  background-color: #D80000 !important;
+  border-color: #FF2020 !important;
 }
 
-.cut-dashboard__stats article:hover strong {
-  background: linear-gradient(90deg,#fff,#e8c4ff,#9ee9ff);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+.form-control::placeholder {
+  color: #68686F !important;
 }
 
-.cut-home__proof span,
-.cut-status-badge,
-.badge,
-.cut-filter-shortcuts button,
-.cut-active-filters > span,
-.cut-recent-cities button {
-  backdrop-filter: blur(12px);
+/* Status/badges stay readable but inside the official palette */
+.cut-status-badge--free,
+.cut-status-badge--used {
+  border-color: #650000 !important;
+  background: #210707 !important;
+  color: #FF7777 !important;
 }
 
-.cut-live-badge::before,
-.cut-feature-badge::before {
-  content: "";
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: currentColor;
-  box-shadow: 0 0 0 0 currentColor;
-  animation: cutLivePulse 2s infinite;
+/* Modals, dropdowns and overlays */
+.modal-backdrop,
+.offcanvas-backdrop {
+  background: #000000 !important;
 }
 
-.cut-home__steps b,
-.cut-info-box,
-.cut-list-row,
-.cut-skeleton-card {
-  backdrop-filter: blur(14px);
+.dropdown-item {
+  color: #D7D7DC !important;
 }
 
-.cut-home__steps b:hover,
-.cut-info-box:hover,
-.cut-list-row:hover {
-  border-color: rgba(184,71,250,.24);
-  background: linear-gradient(145deg, rgba(184,71,250,.055), rgba(43,98,244,.035));
+.dropdown-item:hover,
+.dropdown-item:focus,
+.dropdown-item.active {
+  background: #210707 !important;
+  color: #FFFFFF !important;
 }
 
-.cut-skeleton::after {
-  background: linear-gradient(90deg, transparent, rgba(229,108,255,.08), rgba(6,175,250,.09), transparent) !important;
+.nav-tabs,
+.nav-pills {
+  border-color: #2B2B30 !important;
 }
 
-@keyframes cutAmbientDrift {
-  0% { transform: translate3d(-1.5%,-1%,0) scale(1); }
-  50% { transform: translate3d(1.5%,1%,0) scale(1.03); }
-  100% { transform: translate3d(-.5%,2%,0) scale(1.01); }
+.nav-tabs .nav-link.active,
+.nav-pills .nav-link.active {
+  background: #210707 !important;
+  border-color: #650000 !important;
+  color: #FFFFFF !important;
 }
 
-@keyframes cutHeroAura {
-  0% { transform: scale(1) translate3d(0,0,0); opacity: .86; }
-  100% { transform: scale(1.08) translate3d(1.5%,-1%,0); opacity: 1; }
+/* Loading / progress elements */
+.progress {
+  background: #202024 !important;
 }
 
-@keyframes cutGradientFlow {
-  0%,100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+.progress-bar {
+  background: linear-gradient(90deg, #980000, #FF2020) !important;
 }
 
-@keyframes cutButtonGradient {
-  0%,100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+/* Selection/focus */
+::selection {
+  background: #650000 !important;
+  color: #FFFFFF !important;
 }
 
-@keyframes cutLogoFloat {
-  0%,100% { transform: translateY(0) scale(1); }
-  50% { transform: translateY(-3px) scale(1.018); }
+:focus-visible {
+  outline-color: #FF2020 !important;
 }
 
-@keyframes cutNavPulse {
-  0%,100% { opacity: .28; transform: scaleX(.82); }
-  50% { opacity: .72; transform: scaleX(1); }
+/* No legacy violet/cyan decorative layer may leak through */
+.cut-dashboard__heroMark::after,
+.cut-home__visualLogo::after,
+.cut-empty-icon::after {
+  background: conic-gradient(from 0deg, #0B0B0D 0 32%, #650000 40%, #FF2020 50%, #650000 60%, #0B0B0D 68% 100%) !important;
 }
 
-@keyframes cutCardScan {
-  0% { transform: translateX(-125%); }
-  100% { transform: translateX(125%); }
-}
-
-@keyframes cutOrbitalSpin {
-  to { transform: rotate(360deg); }
-}
-
-@keyframes cutLivePulse {
-  0% { box-shadow: 0 0 0 0 currentColor; opacity: 1; }
-  70% { box-shadow: 0 0 0 7px transparent; opacity: .72; }
-  100% { box-shadow: 0 0 0 0 transparent; opacity: 1; }
-}
-
-@media (max-width: 640px) {
+@media (max-width: 991px) {
   .cut-navbar,
-  .cut-home__nav { backdrop-filter: blur(18px) saturate(140%); }
+  .cut-home__nav {
+    background: #080809 !important;
+  }
 
-  .cut-dashboard__card:hover,
-  .cut-home__eventCard:hover,
-  .cut-home__featureGrid article:hover,
-  .cut-event-card:hover,
-  .cut-production-card:hover,
-  .cut-pass-card:hover,
-  .cut-artist-card:hover,
-  .cut-feed-card:hover,
-  .cut-panel:hover {
-    transform: translateY(-3px);
+  .cut-panel,
+  .cut-dashboard__card,
+  .cut-home__eventCard,
+  .cut-event-card,
+  .cut-production-card,
+  .cut-pass-card,
+  .cut-artist-card,
+  .cut-feed-card {
+    box-shadow: 0 12px 30px #000000 !important;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cut-app-page::after,
-  .cut-dashboard::after,
-  .cut-home::after,
-  .cut-auth-shell::after,
-  .cut-navbar::after,
-  .cut-home__nav::after,
   .cut-navbar__brand > img,
   .cut-home__brand img,
   .cut-auth-shell__logo img,
   .cut-auth-shell__brandMark img,
-  .cut-dashboard__heroMark img,
-  .cut-dashboard__heroMark::after,
-  .cut-home__visualLogo::after,
-  .cut-empty-icon::after,
-  .cut-home__copy h1 em,
-  .cut-primary-action,
-  .cut-dashboard__primary,
-  .cut-home__primary,
-  .cut-home__cta,
-  .btn-primary,
-  .cut-live-badge::before,
-  .cut-feature-badge::before {
+  .cut-dashboard__heroMark img {
     animation: none !important;
   }
 }
