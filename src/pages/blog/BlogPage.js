@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import PropTypes from "prop-types";
-import { Alert, Container, Form, InputGroup, Spinner } from "react-bootstrap";
+import { Alert, Container, Form, InputGroup } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
+import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import BlogDiscoveryCarousels from "../../components/blog/BlogDiscoveryCarousels";
 import blogService from "../../services/BlogService";
 import { storageUrl } from "../../config";
@@ -120,7 +121,7 @@ export default function BlogPage() {
         </nav>
 
         {error && <Alert variant="danger">{error}</Alert>
-        {loading && <div className="cut-blog-loading"><Spinner /><p>Carregando conteúdos...</p></div>}
+        {loading && <div className="cut-blog-loading"><ProcessingIndicatorComponent fullscreen={false} label="Carregando conteúdo" /></div>}
 
         {!loading && filtered.length === 0 && <div className="cut-blog-empty">
           <span><i className="fa-regular fa-newspaper" /></span>
