@@ -4,8 +4,14 @@ import { safeExternalHref } from "../../utils/safeUrl";
 import "./FormattedText.css";
 
 const INLINE_PATTERN = /(\*\*[^*\n]+\*\*|\*[^*\n]+\*|`[^`\n]+`|\[[^\]\n]+\]\([^)\n]+\))/g;
+const STYLE_PATTERN = /\{\{(color|size|font):([a-z-]+)\}\}([\s\S]*?)\{\{\/\1\}\}/g;
+const ALLOWED_STYLES = {
+  color: new Set(["default", "wine", "red", "gold", "white", "gray"]),
+  size: new Set(["sm", "md", "lg", "xl"]),
+  font: new Set(["sans", "serif", "display"]),
+};
 
-const renderInline = (value, keyPrefix = "inline") => String(value || "")
+const renderBasicInline = (value, keyPrefix = "inline") => String(value || "")
   .split(INLINE_PATTERN)
   .filter((part) => part !== "")
   .map((part, index) => {
@@ -33,16 +39,45 @@ const renderInline = (value, keyPrefix = "inline") => String(value || "")
     return <React.Fragment key={key}>{part}</React.Fragment>;
   });
 
-const paragraph = (lines, key) => (
-  <p key={key}>
-    {lines.map((line, index) => (
+const renderInline = (value, keyPrefix = "inline") => {
+  const source = String(value || "");
+  const result = [];
+  let cursor = 0;
+  let match;
+  STYLE_PATTERN.lastIndex = 0;
+  while ((match = STYLE_PATTERN.exec(source)) !== null) {
+    if (match.index > cursor) result.push(...renderBasicInline(source.slice(cursor, match.index), `${keyPrefix}-plain-${cursor}`));
+    const [, type, option, content] = match;
+    if (ALLOWED_STYLES[type]?.has(option)) {
+      result.push(<span key={`${keyPrefix}-style-${match.index}`} className={`cut-text-${type}--${option}`}>{renderBasicInline(content, `${keyPrefix}-styled-${match.index}`)}</span>);
+    } else {
+      result.push(...renderBasicInline(content, `${keyPrefix}-unsafe-${match.index}`));
+    }
+    cursor = STYLE_PATTERN.lastIndex;
+  }
+  if (cursor < source.length) result.push(...renderBasicInline(source.slice(cursor), `${keyPrefix}-plain-${cursor}`));
+  return result;
+};
+
+const extractAlignment = (line) => {
+  const match = String(line || "").match(/^\{\{align:(left|center|right|justify)\}\}\s*/);
+  return { alignment: match?.[1] || "", text: match ? line.slice(match[0].length) : line };
+};
+
+const paragraph = (lines, key) => {
+  const first = extractAlignment(lines[0] || "");
+  const normalizedLines = [first.text, ...lines.slice(1).map((line) => extractAlignment(line).text)];
+  return (
+  <p key={key} className={first.alignment ? `cut-text-align--${first.alignment}` : ""}>
+    {normalizedLines.map((line, index) => (
       <React.Fragment key={`${key}-${index}`}>
         {index > 0 && <br />}
         {renderInline(line, `${key}-line-${index}`)}
       </React.Fragment>
     ))}
   </p>
-);
+  );
+};
 
 export function FormattedText({ value, className = "", emptyText = "" }) {
   const blocks = useMemo(() => {
@@ -178,6 +213,7 @@ export function FormattedTextEditor({
   maxLength = 10000,
   rows = 8,
   ariaLabel = "Editor de texto formatado",
+  name = "description",
 }) {
   const textareaRef = useRef(null);
   const [mode, setMode] = useState("write");
@@ -265,11 +301,23 @@ export function FormattedTextEditor({
   };
 
   const clearFormatting = () => transformLines((lines) => lines.map((line) => line
+    .replace(/^\{\{align:(?:left|center|right|justify)\}\}\s*/, "")
+    .replace(/\{\{(?:color|size|font):[a-z-]+\}\}([\s\S]*?)\{\{\/(?:color|size|font)\}\}/g, "$1")
     .replace(/^(?:###?\s+|>\s+|[-*]\s+|\d+\.\s+)/, "")
     .replace(/\*\*([^*]+)\*\*/g, "$1")
     .replace(/\*([^*]+)\*/g, "$1")
     .replace(/`([^`]+)`/g, "$1")
     .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")));
+
+  const styleSelection = (type, option) => {
+    if (!ALLOWED_STYLES[type]?.has(option) || option === "default" || option === "md" || option === "sans") return;
+    wrapSelection(`{{${type}:${option}}}`, `{{/${type}}}`);
+  };
+
+  const alignLines = (alignment) => transformLines((lines) => lines.map((line) => {
+    const clean = line.replace(/^\{\{align:(?:left|center|right|justify)\}\}\s*/, "");
+    return alignment === "left" || !clean.trim() ? clean : `{{align:${alignment}}} ${clean}`;
+  }));
 
   const applyTool = (tool) => {
     if (mode !== "write") setMode("write");
@@ -309,6 +357,18 @@ export function FormattedTextEditor({
               <i className={tool.icon} aria-hidden="true" />
             </button>
           ))}
+          <select aria-label="Cor do texto" defaultValue="default" onChange={(event) => { styleSelection("color", event.target.value); event.target.value = "default"; }}>
+            <option value="default">Cor</option><option value="wine">Vinho</option><option value="red">Vermelho</option><option value="gold">Dourado</option><option value="gray">Cinza</option><option value="white">Branco</option>
+          </select>
+          <select aria-label="Tamanho do texto" defaultValue="md" onChange={(event) => { styleSelection("size", event.target.value); event.target.value = "md"; }}>
+            <option value="md">Tamanho</option><option value="sm">Pequeno</option><option value="lg">Grande</option><option value="xl">Destaque</option>
+          </select>
+          <select aria-label="Fonte do texto" defaultValue="sans" onChange={(event) => { styleSelection("font", event.target.value); event.target.value = "sans"; }}>
+            <option value="sans">Fonte</option><option value="serif">Editorial</option><option value="display">Display</option>
+          </select>
+          <select aria-label="Alinhamento" defaultValue="left" onChange={(event) => alignLines(event.target.value)}>
+            <option value="left">Esquerda</option><option value="center">Centro</option><option value="right">Direita</option><option value="justify">Justificar</option>
+          </select>
         </div>
         <div className="cut-formatted-editor__modes" aria-label="Modo do editor">
           <button type="button" className={mode === "write" ? "is-active" : ""} onClick={() => setMode("write")}>Escrever</button>
@@ -319,6 +379,8 @@ export function FormattedTextEditor({
       {mode === "write" ? (
         <textarea
           ref={textareaRef}
+          name={name}
+          data-ai-description="on"
           className="form-control cut-formatted-editor__input"
           value={text}
           onChange={(event) => onChange(maxLength ? event.target.value.slice(0, maxLength) : event.target.value)}
@@ -349,6 +411,7 @@ FormattedTextEditor.propTypes = {
   maxLength: PropTypes.number,
   rows: PropTypes.number,
   ariaLabel: PropTypes.string,
+  name: PropTypes.string,
 };
 
 export default FormattedTextEditor;
