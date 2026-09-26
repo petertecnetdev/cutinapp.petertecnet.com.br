@@ -13,6 +13,15 @@ const sanitizeContext = (context) => Object.entries(context || {})
     return result;
   }, {});
 
+const sanitizeMedia = (media) => (Array.isArray(media) ? media : [])
+  .slice(0, 1)
+  .map((item) => {
+    const dataUrl = cleanString(item?.dataUrl || item?.data_url, 7500000);
+    if (!/^data:image\/(?:png|jpe?g|webp);base64,/i.test(dataUrl)) return null;
+    return { kind: cleanString(item?.kind || "flyer", 30), data_url: dataUrl };
+  })
+  .filter(Boolean);
+
 const extractDescription = (response) => {
   const data = response?.data?.data || response?.data || {};
   const description = cleanString(
@@ -32,6 +41,8 @@ class AiContentService {
     locale = "pt-BR",
     tone = "profissional, natural, convidativo e objetivo",
     action = "improve",
+    media = [],
+    useAttachedMedia = false,
   } = {}) {
     const payload = {
       entity_type: cleanString(entityType, 50).replace(/[^a-zA-Z0-9_-]+/g, "-") || "generic",
@@ -41,6 +52,8 @@ class AiContentService {
       locale: cleanString(locale, 10) || "pt-BR",
       tone: cleanString(tone, 220),
       action: ["improve", "rewrite", "enrich"].includes(action) ? action : "improve",
+      media: sanitizeMedia(media),
+      use_attached_media: Boolean(useAttachedMedia),
     };
 
     let primaryError;

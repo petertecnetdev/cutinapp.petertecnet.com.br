@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import PropTypes from "prop-types";
 import { Button, Card, Col, Container, Form, Row } from "react-bootstrap";
 import EventArtwork from "./EventArtwork";
+import { FormattedTextEditor } from "../editor/FormattedText";
 import "./EventExperienceEditorSurface.css";
 
 const buildMapEmbedUrl = (form) => {
@@ -202,16 +203,15 @@ export default function EventExperienceEditorSurface({
 
                 <Form.Group className="mb-4 cut-event-inline-editor__publicField">
                   <Form.Label>Descrição exibida ao público</Form.Label>
-                  <Form.Control
-                    as="textarea"
-                    rows={7}
-                    name="description"
+                  <FormattedTextEditor
                     value={form?.description || ""}
-                    onChange={onChange}
+                    onChange={(description) => onChange({ target: { name: "description", value: description } })}
                     placeholder="Conte ao público o que torna este evento especial."
-                    isInvalid={Boolean(fieldError("description"))}
+                    rows={9}
+                    maxLength={10000}
+                    ariaLabel="Descrição formatada do evento"
                   />
-                  {fieldError("description") && <Form.Control.Feedback type="invalid">{fieldError("description")}</Form.Control.Feedback>}
+                  {fieldError("description") && <div className="invalid-feedback d-block">{fieldError("description")}</div>}
                 </Form.Group>
 
                 <div className="cut-event-details">

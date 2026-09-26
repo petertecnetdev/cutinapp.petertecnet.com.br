@@ -6,6 +6,7 @@ const DESCRIPTION_HINT = /(^|[_\-\s])(description|descricao|descrição)([_\-\s]
 const SENSITIVE_HINT = /(password|senha|token|secret|segredo|cpf|cnpj|document|documento|email|e-mail|phone|telefone|celular|whatsapp|pix|bank|banco|account|conta|card|cartao|cartão|cvv|security|auth)/i;
 const TITLE_NAMES = ["title", "name", "event_name", "production_name", "product_name", "item_name", "service_name"];
 const MAX_CONTEXT_FIELDS = 24;
+const MAX_INLINE_MEDIA_BYTES = 5 * 1024 * 1024;
 
 const textHint = (textarea) => [
   textarea.name,
@@ -79,11 +80,15 @@ const findTitle = (form, textarea) => {
   return String(heading?.textContent || "").trim().slice(0, 200);
 };
 
-const collectContext = (form, textarea) => {
-  if (!form) return {};
+const editorScope = (textarea) => textarea.closest(
+  "form, .cut-event-inline-editor, .cut-production-inline-editor, main, [role='main']",
+) || document;
+
+const collectContext = (scope, textarea) => {
+  if (!scope) return {};
 
   const context = {};
-  const fields = Array.from(form.querySelectorAll("input[name], select[name], textarea[name]"));
+  const fields = Array.from(scope.querySelectorAll("input[name], select[name], textarea[name]"));
 
   for (const field of fields) {
     if (Object.keys(context).length >= MAX_CONTEXT_FIELDS) break;
@@ -101,6 +106,27 @@ const collectContext = (form, textarea) => {
   }
 
   return context;
+};
+
+const fileAsDataUrl = (file) => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = () => resolve(String(reader.result || ""));
+  reader.onerror = () => reject(new Error("Não foi possível ler a arte anexada."));
+  reader.readAsDataURL(file);
+});
+
+const collectMedia = async (scope) => {
+  const input = Array.from(scope?.querySelectorAll?.('input[type="file"]') || [])
+    .find((candidate) => candidate.files?.[0]?.type?.startsWith("image/"));
+  const file = input?.files?.[0];
+  if (!file) return [];
+  if (file.size > MAX_INLINE_MEDIA_BYTES) {
+    throw new Error("A arte excede 5 MB. Salve a imagem primeiro ou envie uma versão menor.");
+  }
+  if (!/^image\/(?:png|jpe?g|webp)$/i.test(file.type)) {
+    throw new Error("Use uma arte JPG, PNG ou WebP para gerar a descrição.");
+  }
+  return [{ kind: "flyer", dataUrl: await fileAsDataUrl(file) }];
 };
 
 const setReactCompatibleValue = (textarea, value) => {
@@ -239,10 +265,10 @@ const createAssistant = (textarea) => {
     event?.stopPropagation?.();
     if (container.dataset.loading === "true" || textarea.disabled || textarea.readOnly) return;
 
-    const form = textarea.closest("form");
-    const title = findTitle(form, textarea);
+    const scope = editorScope(textarea);
+    const title = findTitle(scope, textarea);
     const currentDescription = String(textarea.value || "").trim();
-    const context = collectContext(form, textarea);
+    const context = collectContext(scope, textarea);
     const entityType = inferEntityType();
     const entityId = inferEntityId(entityType);
     if (entityId) context.entityId = entityId;
@@ -270,12 +296,16 @@ const createAssistant = (textarea) => {
     });
 
     try {
+      const media = await collectMedia(scope);
       const result = await aiContentService.generateDescription({
         entityType,
         title,
         currentDescription,
         context,
         action,
+        locale: navigator.language || document.documentElement.lang || "pt-BR",
+        media,
+        useAttachedMedia: media.length > 0 || Boolean(entityId),
       });
 
       setReactCompatibleValue(textarea, result.description);
@@ -287,7 +317,16 @@ const createAssistant = (textarea) => {
         rewrite: "Nova versão criada sem repetir o texto anterior.",
         enrich: "Descrição enriquecida com os dados confirmados do evento.",
       };
-      setStatus(successMessages[action] || successMessages.improve, "success");
+      const mediaStatus = result?.meta?.media_status;
+      const hasMediaConflicts = Array.isArray(result?.meta?.media_conflicts) && result.meta.media_conflicts.length > 0;
+      const mediaMessage = hasMediaConflicts
+        ? " A arte diverge de campos preenchidos; os dados conflitantes não foram usados. Revise antes de publicar."
+        : mediaStatus === "used"
+          ? " A arte anexada também foi analisada; confira datas, valores e regras antes de publicar."
+        : mediaStatus === "unavailable"
+          ? " A arte não pôde ser lida; o texto usou apenas os campos preenchidos."
+          : "";
+      setStatus((successMessages[action] || successMessages.improve) + mediaMessage, "success");
 
       telemetry("ai_description_generation_succeeded", {
         entity_type: entityType,
@@ -295,6 +334,8 @@ const createAssistant = (textarea) => {
         output_length: result.description.length,
         model: result?.meta?.model || null,
         prompt_version: result?.meta?.prompt_version || null,
+        media_status: mediaStatus || "not_requested",
+        media_conflicts: result?.meta?.media_conflicts?.length || 0,
       });
     } catch (error) {
       const message = String(error?.message || "Não foi possível gerar a descrição agora.");

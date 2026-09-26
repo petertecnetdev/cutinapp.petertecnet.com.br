@@ -5,6 +5,13 @@ const schema = (name) => `https://schema.org/${name}`;
 
 const stripText = (value = "") => String(value)
   .replace(/<[^>]*>/g, " ")
+  .replace(/\{\{(?:color|size|font):[a-z-]+\}\}([\s\S]*?)\{\{\/(?:color|size|font)\}\}/g, "$1")
+  .replace(/\{\{align:(?:left|center|right|justify)\}\}/g, " ")
+  .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+  .replace(/\*\*(.*?)\*\*/g, "$1")
+  .replace(/__(.*?)__/g, "$1")
+  .replace(/\*([^*]+)\*/g, "$1")
+  .replace(/^[#>*-]+\s*/gm, "")
   .replace(/\s+/g, " ")
   .trim();
 
