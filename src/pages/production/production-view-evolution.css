@@ -485,7 +485,7 @@
   width:100%;
   display:grid!important;
   grid-auto-flow:column;
-  grid-auto-columns:minmax(270px,330px);
+  grid-auto-columns:minmax(215px,245px);
   gap:14px;
   overflow-x:auto;
   overscroll-behavior-inline:contain;
@@ -509,64 +509,13 @@
 
 .cut-production-event-slide__media{
   position:relative;
-  display:grid;
-  place-items:center;
-  aspect-ratio:4/5;
-  height:auto!important;
-  padding:12px;
   overflow:hidden;
   background:#070708;
-  isolation:isolate;
 }
 
-.cut-production-event-slide__artworkBg{
-  position:absolute!important;
-  inset:-30px!important;
-  z-index:0!important;
-  width:calc(100% + 60px)!important;
-  height:calc(100% + 60px)!important;
-  border:0!important;
-  border-radius:0!important;
-  filter:blur(30px) saturate(1.35) brightness(.48);
-  transform:scale(1.08);
-}
-
-.cut-production-event-slide__artworkBg img{
-  width:100%!important;
-  height:100%!important;
-  object-fit:cover!important;
-}
-
-.cut-production-event-slide__artworkBg.cut-optimized-image--fallback{
-  display:none!important;
-}
-
-.cut-production-event-slide__artworkMain{
-  position:relative!important;
-  z-index:1!important;
-  width:100%!important;
-  height:100%!important;
-  border:1px solid #3A3A44;
-  border-radius:15px;
-  background:#050506;
-  box-shadow:0 18px 40px #020203;
-}
-
-.cut-production-event-slide__artworkMain img{
-  width:100%!important;
-  height:100%!important;
-  object-fit:contain!important;
-  background:#050506;
-}
-
-.cut-production-agenda-section .cut-production-event-slide__media::after{
-  display:none;
-}
-
-.cut-production-agenda-section .cut-production-event-slide:hover .cut-production-event-slide__media .cut-production-event-slide__artworkMain img,
-.cut-production-agenda-section .cut-production-event-slide.is-active .cut-production-event-slide__media .cut-production-event-slide__artworkMain img{
-  transform:none;
-  filter:none;
+.cut-production-event-slide__poster{
+  --cut-event-poster-ratio:4 / 5;
+  --cut-event-poster-padding:5px;
 }
 
 .cut-production-event-slide__body{
@@ -777,7 +726,7 @@
   }
 
   .cut-production-events-carousel{
-    grid-auto-columns:clamp(230px,76vw,290px);
+    grid-auto-columns:clamp(205px,62vw,232px);
     margin-right:calc(var(--cut-production-safe-inline) * -1);
     padding-right:var(--cut-production-safe-inline);
   }
