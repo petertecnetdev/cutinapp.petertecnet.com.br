@@ -1,6 +1,6 @@
 import appApiClient from "./AppApiClient";
 import { createIdempotentMutation, createMutationRequestKey } from "../utils/idempotencyAttempts";
-import { cachedPublicGet } from "../utils/publicRequestCache";
+import { cachedPublicGet, invalidatePublicRequestCache } from "../utils/publicRequestCache";
 
 const CUTINAPP_TIME_ZONE = "America/Sao_Paulo";
 const HOME_DISCOVERY_KEYS = new Set(["lat", "lng", "radius_km", "city", "uf", "per_page", "sort"]);
@@ -430,8 +430,16 @@ const eventService = {
   show: async (eventId) => (await appApiClient.get(`/events/${eventId}/manage`)).data.event,
   myEvents: fetchAllMyEvents,
   myEventsPage: fetchMyEventsPage,
-  destroy: (eventId) => deleteEvent(eventId),
-  unpublish: (eventId) => unpublishEvent(eventId),
+  destroy: async (eventId) => {
+    const response = await deleteEvent(eventId);
+    invalidatePublicRequestCache("/events/public/");
+    return response;
+  },
+  unpublish: async (eventId) => {
+    const response = await unpublishEvent(eventId);
+    invalidatePublicRequestCache("/events/public/");
+    return response;
+  },
   duplicate: (eventId, date) => duplicateEvent(eventId, { date }),
   series: (eventId, payload) => createEventSeries(eventId, payload),
 
