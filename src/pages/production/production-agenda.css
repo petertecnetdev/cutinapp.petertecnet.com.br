@@ -610,10 +610,14 @@
   letter-spacing: 0.04em;
 }
 
-.cut-weekly-agenda-current__image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.cut-weekly-agenda-current__poster{
+  width:100%;
+  height:100%;
+  aspect-ratio:auto;
+  --cut-event-poster-padding:2px;
+}
+.cut-weekly-agenda-current__poster .cut-event-poster-thumb__main img{
+  object-fit:contain!important;
 }
 
 .cut-weekly-agenda-current__content {
