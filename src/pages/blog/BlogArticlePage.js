@@ -108,7 +108,8 @@ function parseArticle(content) {
 function InlineText({ text }) {
   const parts = String(text || "").split(/(\*\*[^*]+\*\*|\[[^\]]+\]\((?:\/|https?:\/\/)[^)]+\))/g);
   return <>{parts.map((part, index) => {
-    if (/^\*\*[^*]+\*\*$/.test(part)) return <strong key={index}>{part.slice(2, -2)}</strong>;
+    const key = `${part}-${index}`;
+    if (/^\*\*[^*]+\*\*$/.test(part)) return <strong key={key}>{part.slice(2, -2)}</strong>;
 
     const link = part.match(/^\[([^\]]+)\]\(((?:\/|https?:\/\/)[^)]+)\)$/);
     if (link) {
