@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button, Container } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
 import eventService from "../services/EventService";
@@ -102,6 +102,13 @@ const journey = [
 
 export default function HomePage() {
   const navigate = useNavigate();
+  const productionRailRef = useRef(null);
+  const scrollProductionRail = (direction) => {
+    const node = productionRailRef.current;
+    if (!node) return;
+    const reduced = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+    node.scrollBy({ left: direction * Math.max(260, Math.round(node.clientWidth * 0.78)), behavior: reduced ? "auto" : "smooth" });
+  };
   const [searchQuery, setSearchQuery] = useState("");
   const [events, setEvents] = useState([]);
   const [productions, setProductions] = useState([]);
@@ -507,7 +514,8 @@ export default function HomePage() {
                           {event.production?.name && <span>{event.production.name}</span>}
                         </div>
                       </Link>
-                    ))}
+                      );
+                    })}
                   </div>
                 )
                 : <div className="cut-home-discovery__empty">Nenhum evento público disponível agora.</div>}
@@ -561,15 +569,20 @@ export default function HomePage() {
           <Container>
             <div className="cut-home-discovery__sectionHead">
               <div><span>Quem movimenta a cena</span><h2>Produções para acompanhar</h2></div>
-              <Link to="/productions">Ver produções <i className="fa-solid fa-arrow-right" /></Link>
+              <div className="cut-home-discovery__sectionActions">
+                {productions.length > 1 && <div className="cut-home-discovery__railControls" role="group" aria-label="Navegar pelas produções"><button type="button" onClick={() => scrollProductionRail(-1)} aria-label="Ver produções anteriores"><i className="fa-solid fa-chevron-left" /></button><button type="button" onClick={() => scrollProductionRail(1)} aria-label="Ver próximas produções"><i className="fa-solid fa-chevron-right" /></button></div>}
+                <Link to="/productions">Ver produções <i className="fa-solid fa-arrow-right" /></Link>
+              </div>
             </div>
             {loading
               ? <ProcessingIndicatorComponent fullscreen={false} label="Buscando produções" />
               : productions.length
                 ? (
-                  <div className="cut-home-discovery__profiles">
-                    {productions.map((production) => (
-                      <Link key={production.id} to={`/production/${production.slug}/public`} className="cut-home-discovery__profileCard">
+                  <div className="cut-home-discovery__profiles" ref={productionRailRef} role="list" aria-label="Produções para acompanhar">
+                    {productions.map((production) => {
+                      const productionArtwork = mediaUrl(production.background || production.logo);
+                      return (
+                      <Link key={production.id} to={`/production/${production.slug}/public`} className="cut-home-discovery__profileCard" role="listitem" style={productionArtwork ? { "--cut-production-card-cover": `url(${JSON.stringify(productionArtwork)})` } : undefined}>
                         <div className="cut-home-discovery__profileAvatar">
                           {production.logo
                             ? <img src={mediaUrl(production.logo)} alt={production.name} loading="lazy" />
@@ -579,7 +592,8 @@ export default function HomePage() {
                         <p>{production.city ? `${production.city}${production.uf ? ` · ${production.uf}` : ""}` : "Produção Cutinapp"}</p>
                         <small>{production.upcoming_events_count || 0} evento(s)</small>
                       </Link>
-                    ))}
+                      );
+                    })}
                   </div>
                 )
                 : <div className="cut-home-discovery__empty">As produções públicas vão aparecer aqui.</div>}

@@ -162,6 +162,14 @@ const catalog = (slug, { force = false } = {}) => {
   const request = appApiClient.get(`/events/public/${key}/commerce`).then((response) => { const data = response.data; catalogCache.set(key, { data, expiresAt: Date.now() + CATALOG_CACHE_TTL_MS }); return data; }).catch((error) => { catalogCache.delete(key); throw error; });
   catalogCache.set(key, { request }); return request;
 };
+const itemDetail = async (slug, itemId) => {
+  const eventSlug = encodeURIComponent(String(slug || "").trim());
+  const normalizedItemId = Number(itemId);
+  if (!eventSlug || !Number.isFinite(normalizedItemId) || normalizedItemId <= 0) {
+    throw new Error("Item inválido.");
+  }
+  return (await appApiClient.get(`/events/public/${eventSlug}/items/${normalizedItemId}`)).data;
+};
 const invalidateCatalogCache = () => catalogCache.clear();
 
 const redeemEventItemsIdempotently = createIdempotentMutation({ storagePrefix: "cutinapp_commerce_item_redemption_attempt_", keyPrefix: "item-redemption", requestKeyFor: (token, eventId) => createMutationRequestKey({ token: String(token || "").trim(), event_id: Number(eventId) }), mutate: async ({ idempotencyKey }, token, eventId) => (await appApiClient.post("/commerce/item-redemptions/redeem", { token: String(token || "").trim(), event_id: Number(eventId) }, { headers: { "Idempotency-Key": idempotencyKey } })).data });
@@ -184,6 +192,7 @@ const syncPayment = async (publicId) => {
 
 const commerceService = {
   catalog,
+  itemDetail,
   checkout,
   validateCoupon: async (payload = {}) => (await appApiClient.post("/commerce/coupons/validate", payload)).data.coupon,
   producerCoupons: async (organizationId) => (await appApiClient.get(`/organizations/${Number(organizationId)}/coupons`)).data.coupons,

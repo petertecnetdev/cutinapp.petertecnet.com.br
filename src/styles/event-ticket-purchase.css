@@ -76,6 +76,25 @@
   font-size: .74rem;
 }
 
+
+.cut-ticket-shop__item-detail {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: max-content;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #ff7373;
+  font-size: .72rem;
+  font-weight: 850;
+  text-align: left;
+}
+
+.cut-ticket-shop__item-detail:hover { color: #fff; }
+.cut-ticket-shop__item-detail:focus-visible { outline: 3px solid #ff2020; outline-offset: 3px; border-radius: 4px; }
+
 .cut-ticket-kicker,
 .cut-eyebrow {
   color: #c45cff;
