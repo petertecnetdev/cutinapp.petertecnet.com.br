@@ -239,10 +239,15 @@ export default function ProductionPublicPage() {
   const whatsappShareHref = `https://wa.me/?text=${encodeURIComponent(whatsappShareMessage)}`;
   const descriptionText = String(production.description || "");
   const longDescription = descriptionText.replace(/<[^>]*>/g, "").length > 420;
-  const phoneDigits = String(production.phone || "").replace(/\D/g, "");
-  const normalizedPhone = phoneDigits ? (phoneDigits.startsWith("55") ? phoneDigits : `55${phoneDigits}`) : "";
-  const phoneHref = normalizedPhone ? `tel:+${normalizedPhone}` : "";
-  const whatsappContactHref = normalizedPhone ? `https://wa.me/${normalizedPhone}` : "";
+  const rawPhone = String(production.phone || "").trim();
+  const phoneDigits = rawPhone.replace(/\D/g, "");
+  const explicitInternationalPhone = /^\+\s*\d/.test(rawPhone) || /^00\d/.test(rawPhone);
+  const countryDialCode = String(production.phone_country_code || production.dialing_code || "").replace(/\D/g, "");
+  const internationalDigits = explicitInternationalPhone
+    ? (rawPhone.startsWith("00") ? phoneDigits.slice(2) : phoneDigits)
+    : countryDialCode && phoneDigits ? `${countryDialCode}${phoneDigits}` : "";
+  const phoneHref = phoneDigits ? `tel:${internationalDigits ? `+${internationalDigits}` : phoneDigits}` : "";
+  const whatsappContactHref = internationalDigits ? `https://wa.me/${internationalDigits}` : "";
   const nextEvent = upcoming[0] || null;
 
   const goToTab = (key) => {
