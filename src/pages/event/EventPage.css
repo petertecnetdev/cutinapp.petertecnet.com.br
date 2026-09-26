@@ -150,8 +150,8 @@
 }
 
 .cut-event-discovery-grid {
-  --bs-gutter-x: 18px;
-  --bs-gutter-y: 18px;
+  --bs-gutter-x: 12px;
+  --bs-gutter-y: 12px;
 }
 
 .cut-event-discovery-page .cut-event-card {
@@ -176,58 +176,52 @@
 }
 
 .cut-event-discovery-page .cut-event-card__media {
-  aspect-ratio: 2 / 3;
-  background: linear-gradient(145deg, #10142f, #070918);
+  overflow:hidden;
+  background:#070708;
 }
 
-.cut-event-discovery-page .cut-event-card__media::after {
-  background: linear-gradient(180deg, transparent 42%, rgba(3, 4, 16, .7));
+.cut-event-discovery-page .cut-event-card__poster{
+  --cut-event-poster-ratio:4 / 5;
+  --cut-event-poster-padding:5px;
 }
 
-.cut-event-discovery-page .cut-event-card__media img {
-  object-fit: contain;
-  object-position: center;
+.cut-event-discovery-page .cut-event-card__badges{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:5px;
+  margin-bottom:8px;
 }
 
-.cut-event-discovery-page .cut-event-card__category,
-.cut-event-discovery-page .cut-event-card__badge {
-  top: 10px;
-  border-radius: 999px;
-  padding: 6px 9px;
-  font-size: .63rem;
-  font-weight: 900;
-  letter-spacing: .02em;
-}
-
-.cut-event-discovery-page .cut-event-card__category {
-  left: 10px;
-}
-
-.cut-event-discovery-page .cut-event-card__badge {
-  right: 10px;
+.cut-event-discovery-page .cut-event-card__badges .badge{
+  border-radius:999px;
+  padding:5px 7px;
+  font-size:.58rem;
+  font-weight:900;
+  letter-spacing:.01em;
 }
 
 .cut-event-discovery-page .cut-event-card .card-body {
   display: flex;
   flex-direction: column;
-  min-height: 205px;
-  padding: 17px 18px 18px !important;
+  min-height: 166px;
+  padding: 12px 12px 13px !important;
 }
 
 .cut-event-discovery-page .cut-event-card .cut-eyebrow {
   overflow: hidden;
-  margin-bottom: 6px;
+  margin-bottom: 5px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .cut-event-discovery-page .cut-event-card h2 {
   display: -webkit-box;
-  min-height: 2.55em;
+  min-height: 2.45em;
   overflow: hidden;
-  margin: 0 0 12px;
+  margin: 0 0 9px;
   color: var(--cut-text-strong);
-  font-size: 1.08rem;
+  font-size: .92rem;
   line-height: 1.27;
   font-weight: 930;
   letter-spacing: -.025em;
@@ -237,10 +231,10 @@
 
 .cut-event-discovery-page .cut-event-card__meta {
   display: grid;
-  gap: 8px;
+  gap: 6px;
   margin-top: auto;
   color: var(--cut-text-muted);
-  font-size: .74rem;
+  font-size: .68rem;
 }
 
 .cut-event-discovery-page .cut-event-card__meta span {
