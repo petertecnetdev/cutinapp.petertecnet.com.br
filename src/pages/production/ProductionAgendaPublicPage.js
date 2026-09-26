@@ -4,6 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import EventArtwork from "../../components/event/EventArtwork";
+import EventPosterThumbnail from "../../components/event/EventPosterThumbnail";
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
 import "./production-agenda-public.css";
@@ -324,7 +325,7 @@ export default function ProductionAgendaPublicPage() {
                       <>
                         <div className="cut-public-weekly__event">
                           <div className="cut-public-weekly__event-media">
-                            <EventArtwork image={event.image} title={event.title} alt={event.title} loading="lazy" decoding="async" />
+                            <EventPosterThumbnail image={event.image} title={event.title} alt={event.title} className="cut-public-weekly__event-poster" loading="lazy" />
                           </div>
                           <div className="cut-public-weekly__event-copy">
                             <h3>{event.title}</h3>
@@ -351,7 +352,7 @@ export default function ProductionAgendaPublicPage() {
           {nextEvent && (
             <section className="cut-public-agenda-next" aria-label="Próximo evento">
               <div className="cut-public-agenda-next__media">
-                <EventArtwork image={nextEvent.image} title={nextEvent.title} alt={nextEvent.title} fallbackClassName="cut-public-agenda-event__fallback" />
+                <EventPosterThumbnail image={nextEvent.image} title={nextEvent.title} alt={nextEvent.title} className="cut-public-agenda-next__poster" loading="eager" fetchPriority="high" />
               </div>
               <div className="cut-public-agenda-next__body">
                 <span className="cut-eyebrow">Próximo evento</span>
@@ -393,7 +394,7 @@ export default function ProductionAgendaPublicPage() {
                   return (
                   <article className="cut-public-agenda-event" key={event.id}>
                     <div className="cut-public-agenda-event__media">
-                      <EventArtwork image={event.image} title={event.title} alt={event.title} loading="lazy" decoding="async" fallbackClassName="cut-public-agenda-event__fallback" />
+                      <EventPosterThumbnail image={event.image} title={event.title} alt={event.title} className="cut-public-agenda-event__poster" loading="lazy" />
                     </div>
                     <div className="cut-public-agenda-event__body">
                       <div className="cut-public-agenda-event__date">
