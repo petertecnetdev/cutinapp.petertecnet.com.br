@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import PropTypes from "prop-types";
-import { Alert, Container, Spinner } from "react-bootstrap";
+import { Alert, Container } from "react-bootstrap";
 import { Link, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
+import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import BlogDiscoveryCarousels from "../../components/blog/BlogDiscoveryCarousels";
 import blogService from "../../services/BlogService";
 import { storageUrl } from "../../config";
@@ -286,7 +287,7 @@ export default function BlogArticlePage() {
       <Container className="cut-page-container cut-blog-article-shell">
         <Link to="/blog" className="cut-blog-back"><i className="fa-solid fa-arrow-left" /> Voltar ao blog</Link>
         {error && <Alert variant="danger" className="mt-4">{error}</Alert>}
-        {loading && <div className="cut-blog-loading"><Spinner /><p>Carregando conteúdo...</p></div>}
+        {loading && <div className="cut-blog-loading"><ProcessingIndicatorComponent fullscreen={false} label="Carregando conteúdo" /></div>}
 
         {entry && <>
           <article className="cut-blog-article">
