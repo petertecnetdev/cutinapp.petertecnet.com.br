@@ -155,7 +155,23 @@
 .cut-home-discovery__profileCard{padding:18px;border:1px solid rgba(255,255,255,.07);border-radius:20px;background:#121120;color:#fff;text-align:center;text-decoration:none}
 .cut-home-discovery__profileCard:hover{transform:translateY(-4px);border-color:rgba(177,76,255,.34);color:#fff}
 .cut-home-discovery__profileAvatar{width:74px;height:74px;margin:0 auto 12px;display:grid;place-items:center;border-radius:22px;background:linear-gradient(145deg,#31174a,#14152a);overflow:hidden;color:#fff;font-weight:950}.cut-home-discovery__profileAvatar img{width:100%;height:100%;object-fit:cover}
-.cut-home-discovery__profileCard h3{margin:0;font-size:.96rem;font-weight:900}.cut-home-discovery__profileCard p{margin:6px 0;color:#8e8a9f;font-size:.74rem}.cut-home-discovery__profileCard small{color:#b45fff;font-weight:800}
+.cut-home-discovery__profileCard h3{margin:0;font-size:.96rem;font-weight:900}.cut-home-discovery__profileCard p{margin:6px 0;color:#8e8a9f;font-size:.74rem}.cut-home-discovery__profileCard small{color:#ff7373;font-weight:800}
+
+.cut-home-discovery__sectionActions{display:flex;align-items:center;gap:12px}
+.cut-home-discovery__railControls{display:flex;gap:6px}
+.cut-home-discovery__railControls button{width:42px;height:42px;border:1px solid #30303a;border-radius:12px;background:#0b0b0d;color:#eee}
+.cut-home-discovery__railControls button:focus-visible,.cut-home-discovery__profiles:focus-visible{outline:3px solid #ff2020;outline-offset:3px}
+.cut-home-discovery__profiles{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(190px,220px);grid-template-columns:none!important;align-items:stretch;gap:12px;overflow-x:auto;overscroll-behavior-inline:contain;scroll-snap-type:inline mandatory;padding:4px 2px 14px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.cut-home-discovery__profiles::-webkit-scrollbar{display:none}
+.cut-home-discovery__profileCard{--cut-production-card-cover:none;position:relative;isolation:isolate;display:flex;min-height:265px;flex-direction:column;justify-content:flex-end;overflow:hidden;scroll-snap-align:start;padding:18px;border:1px solid #30303a;border-radius:22px;background:#0a0a0c;color:#fff;text-align:left;text-decoration:none;box-shadow:0 18px 42px #030304}
+.cut-home-discovery__profileCard::before{content:"";position:absolute;inset:-28px;z-index:-3;background-image:var(--cut-production-card-cover);background-size:cover;background-position:center;filter:blur(28px) saturate(1.45);transform:scale(1.16)}
+.cut-home-discovery__profileCard::after{content:"";position:absolute;inset:0;z-index:-2;background:linear-gradient(180deg,rgba(5,5,7,.2),rgba(5,5,7,.88) 58%,#09090b 100%)}
+.cut-home-discovery__profileCard:hover{transform:translateY(-4px);border-color:#a61a1a;color:#fff}
+.cut-home-discovery__profileAvatar{width:68px;height:68px;margin:0 0 14px;display:grid;place-items:center;border:2px solid rgba(255,255,255,.86);border-radius:20px;background:#141417;overflow:hidden;color:#ff7777;font-weight:950;box-shadow:0 12px 26px rgba(0,0,0,.28)}
+.cut-home-discovery__profileAvatar img{width:100%;height:100%;object-fit:cover}
+.cut-home-discovery__profileCard h3{display:-webkit-box;min-height:2.35em;margin:0;overflow:hidden;font-size:1rem;font-weight:950;line-height:1.18;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+.cut-home-discovery__profileCard p{min-height:1.2em;margin:7px 0 9px;overflow:hidden;color:#aaa6af;font-size:.74rem;white-space:nowrap;text-overflow:ellipsis}
+.cut-home-discovery__profileCard small{margin-top:auto;color:#ff7373;font-size:.7rem;font-weight:850}
 
 .cut-home-discovery__faqSection{background:#070713}
 .cut-home-discovery__faqGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
@@ -232,7 +248,7 @@
   .cut-home-discovery__artistSpotlightCopy h2{font-size:2.85rem}
   .cut-home-discovery__artistMosaic{gap:9px}
   .cut-home-discovery__artistTile{min-height:210px;padding:10px;border-radius:18px}.cut-home-discovery__artistTile>div{height:110px;border-radius:14px}.cut-home-discovery__artistTile--1,.cut-home-discovery__artistTile--4{transform:none}.cut-home-discovery__artistTile--1:hover,.cut-home-discovery__artistTile--4:hover{transform:translateY(-4px)}
-  .cut-home-discovery__profiles{display:flex;overflow-x:auto;scrollbar-width:none}.cut-home-discovery__profiles::-webkit-scrollbar{display:none}.cut-home-discovery__profileCard{flex:0 0 160px}
+  .cut-home-discovery__profiles{grid-auto-columns:minmax(174px,72vw)}.cut-home-discovery__profileCard{min-height:245px}.cut-home-discovery__railControls{display:none}.cut-home-discovery__sectionActions{gap:8px}
   .cut-home-discovery__sectionHead{align-items:flex-start}
   .cut-home-discovery__faqGrid{grid-template-columns:1fr}
   .cut-home-discovery__finalActions{width:100%;display:grid}.cut-home-discovery__finalActions .btn,.cut-home-discovery__finalActions>a{width:100%;justify-content:center}
