@@ -113,11 +113,11 @@ function InlineText({ text }) {
     const link = part.match(/^\[([^\]]+)\]\(((?:\/|https?:\/\/)[^)]+)\)$/);
     if (link) {
       const [, label, href] = link;
-      if (href.startsWith("/")) return <Link key={index} to={href}>{label}</Link>;
-      return <a key={index} href={href} target="_blank" rel="noreferrer">{label}</a>;
+      if (href.startsWith("/")) return <Link key={key} to={href}>{label}</Link>;
+      return <a key={key} href={href} target="_blank" rel="noreferrer">{label}</a>;
     }
 
-    return <React.Fragment key={index}>{part}</React.Fragment>;
+    return <React.Fragment key={key}>{part}</React.Fragment>;
   })}</>;
 }
 
