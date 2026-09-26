@@ -4,6 +4,7 @@ import { Badge, Offcanvas, ProgressBar } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import QRCode from "qrcode";
 import { storageUrl } from "../../config";
+import EventPosterThumbnail from "./EventPosterThumbnail";
 import {
   EventAgendaDays,
   EventHealthBadge,
@@ -303,7 +304,7 @@ export default function EventCommandCenter({
       <Offcanvas.Body>
         <section className="cut-event-command-hero">
           <div className="cut-event-command-hero__cover">
-            {event.image ? <img src={imageUrl(event.image)} alt="" /> : <span>{initials(event.title)}</span>}
+            <EventPosterThumbnail image={event.image} title={event.title} alt="" className="cut-event-command-hero__poster" loading="lazy" />
           </div>
           <div className="cut-event-command-hero__copy">
             <div className="cut-event-command-hero__badges">
