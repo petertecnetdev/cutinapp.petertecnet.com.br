@@ -36,13 +36,13 @@ function assertStaticAssetIntegrity(buildPath) {
       for (const match of refs) {
         const relativeAsset = match[1].replace(/^\/+/, '');
         const assetPath = path.join(buildPath, relativeAsset);
-        if (!fs.existsSync(assetPath)) missing.push(\`${path.relative(buildPath, fullPath)} -> ${match[1]}\`);
+        if (!fs.existsSync(assetPath)) missing.push(`${path.relative(buildPath, fullPath)} -> ${match[1]}`);
       }
     }
   };
   walk(buildPath);
   if (missing.length) {
-    throw new Error(\`Refusing to publish Cutinapp: ${missing.length} HTML snapshot asset reference(s) do not exist in this build. First mismatches:\\n${missing.slice(0, 12).join('\\n')}\`);
+    throw new Error(`Refusing to publish Cutinapp: ${missing.length} HTML snapshot asset reference(s) do not exist in this build. First mismatches:\\n${missing.slice(0, 12).join('\\n')}`);
   }
 }
 function publishWithoutDowntime(stagingPath) { const stagedIndex = path.join(stagingPath, 'index.html'); if (!fs.existsSync(stagedIndex)) throw new Error('Production build completed without index.html. Refusing to publish.'); fs.mkdirSync(liveBuildPath, { recursive: true }); for (const entry of fs.readdirSync(stagingPath)) { if (entry === 'index.html') continue; fs.cpSync(path.join(stagingPath, entry), path.join(liveBuildPath, entry), { recursive: true, force: true }); } const temporaryIndex = path.join(liveBuildPath, `.index.html.${process.pid}.tmp`); fs.copyFileSync(stagedIndex, temporaryIndex); fs.renameSync(temporaryIndex, path.join(liveBuildPath, 'index.html')); }
