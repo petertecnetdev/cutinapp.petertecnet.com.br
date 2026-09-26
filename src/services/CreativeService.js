@@ -107,6 +107,44 @@ const generateEventFlyerBackgroundIdempotently = createIdempotentMutation({
 });
 
 const creativeService = {
+  reviewFlyerDate: async ({ imageDataUrl, expectedStartAt, timezone, locale, recurring, dayOfWeek }) => (
+    await appApiClient.post("/ai/content/flyer-date-review", {
+      image_data_url: imageDataUrl,
+      expected_start_at: expectedStartAt || undefined,
+      timezone: timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+      locale: locale || navigator.language || "en",
+      recurring: Boolean(recurring),
+      day_of_week: Number.isInteger(Number(dayOfWeek)) ? Number(dayOfWeek) : undefined,
+    }, { timeout: 50000 })
+  ).data,
+
+  correctFlyerDate: ({ imageDataUrl, action, expectedDate, timezone, locale, subject = "Event flyer" }) => (
+    postCreativeImage({
+      purpose: "flyer_date_correction",
+      subject: String(subject || "Event flyer").slice(0, 180),
+      date_action: action === "replace" ? "replace" : "remove",
+      expected_date: action === "replace" ? expectedDate : undefined,
+      timezone: timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+      locale: locale || navigator.language || "en",
+      reference_images: [imageDataUrl],
+    }, createMutationRequestKey({ purpose: "flyer_date_correction", action, expectedDate, imageDataUrl: imageDataUrl.slice(-160) }))
+  ),
+
+  queueFlyerDateAudit: async ({ entityType, entityId, timezone, locale, recurring, dayOfWeek }) => (
+    await appApiClient.post("/ai/content/flyer-date-audits", {
+      entity_type: entityType,
+      entity_id: Number(entityId),
+      timezone: timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+      locale: locale || navigator.language || "en",
+      recurring: Boolean(recurring),
+      day_of_week: Number.isInteger(Number(dayOfWeek)) ? Number(dayOfWeek) : undefined,
+    })
+  ).data,
+
+  recordFlyerDateReview: async (auditId, action) => (
+    await appApiClient.patch(`/ai/content/flyer-date-audits/${Number(auditId)}/review`, { action })
+  ).data,
+
   generateEventFlyerBackground: (input) => (
     generateEventFlyerBackgroundIdempotently(normalizeFlyerPayload({
       ...input,
