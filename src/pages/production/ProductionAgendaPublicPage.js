@@ -3,7 +3,6 @@ import { Alert, Badge, Button, Container } from "react-bootstrap";
 import { useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
-import EventArtwork from "../../components/event/EventArtwork";
 import EventPosterThumbnail from "../../components/event/EventPosterThumbnail";
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
