@@ -1,102 +1,77 @@
 :root {
   color-scheme: dark;
 
-  /* Cutinapp brand — extracted from the neon logo */
-  --cut-brand-50: #f7f1ff;
-  --cut-brand-100: #eee2ff;
-  --cut-brand-200: #ddc2ff;
-  --cut-brand-300: #e692f7;
-  --cut-brand-400: #c85cff;
-  --cut-brand-500: #b847fa;
-  --cut-brand-600: #8f42fa;
-  --cut-brand-700: #7141f7;
-  --cut-brand-800: #5138dc;
-  --cut-brand-900: #312e88;
+  /* Cutinapp Visual System 2026-09-26: black / graphite / electric red. */
+  --cut-bg: #050505;
+  --cut-bg-deep: #020202;
+  --cut-bg-soft: #080809;
+  --cut-surface: #0B0B0D;
+  --cut-surface-1: #0B0B0D;
+  --cut-surface-2: #141417;
+  --cut-surface-3: #1D1D21;
+  --cut-surface-4: #26262B;
+  --cut-graphite: #26262B;
+  --cut-graphite-hi: #3B3B42;
 
-  --cut-blue-300: #68b8ff;
-  --cut-blue-400: #2f8dff;
-  --cut-blue-500: #2b62f4;
-  --cut-blue-600: #244be0;
-  --cut-cyan-300: #62dfff;
-  --cut-cyan-400: #06c8ff;
-  --cut-cyan-500: #06affa;
-  --cut-pink-300: #f0a4ff;
-  --cut-pink-400: #e56cff;
-  --cut-pink-500: #d83cff;
+  --cut-red: #E00000;
+  --cut-red-hot: #FF1717;
+  --cut-red-hi: #FF4545;
+  --cut-primary: var(--cut-red);
+  --cut-primary-hover: var(--cut-red-hot);
+  --cut-primary-strong: #B90000;
+  --cut-secondary: var(--cut-graphite-hi);
+  --cut-accent: var(--cut-red-hot);
 
-  /* Semantic aliases */
-  --cut-primary: var(--cut-brand-500);
-  --cut-primary-hover: var(--cut-pink-300);
-  --cut-primary-strong: var(--cut-brand-700);
-  --cut-secondary: var(--cut-blue-500);
-  --cut-accent: var(--cut-cyan-500);
-  --cut-danger: #ff6687;
-  --cut-danger-strong: #f04772;
-  --cut-success: #4ee7b2;
-  --cut-warning: #ffca6a;
-  --cut-info: var(--cut-cyan-300);
+  --cut-text: #F5F5F7;
+  --cut-text-strong: #FFFFFF;
+  --cut-text-muted: #A8A8B0;
+  --cut-text-soft: #85858D;
+  --cut-text-faint: #68686F;
+  --cut-text-on-primary: #FFFFFF;
+  --cut-muted: var(--cut-text-muted);
+  --cut-soft: var(--cut-text-soft);
 
-  /* Backgrounds and surfaces */
-  --cut-bg: #050513;
-  --cut-bg-deep: #02020b;
-  --cut-bg-soft: #09091d;
-  --cut-surface-1: #0d0d24;
-  --cut-surface-2: #12122d;
-  --cut-surface-3: #18183a;
-  --cut-surface-4: #20204a;
-  --cut-surface-glass: rgba(13, 13, 36, .76);
-  --cut-surface-glass-strong: rgba(7, 7, 24, .93);
-  --cut-surface-hover: rgba(184, 71, 250, .08);
-  --cut-surface-active: rgba(113, 65, 247, .15);
+  --cut-border: #2B2B30;
+  --cut-border-soft: #202024;
+  --cut-border-strong: #48484F;
+  --cut-border-focus: var(--cut-red-hot);
+  --cut-divider: #242428;
 
-  /* Text */
-  --cut-text: #f4f2ff;
-  --cut-text-strong: #ffffff;
-  --cut-text-muted: #b8b4d2;
-  --cut-text-soft: #8d89aa;
-  --cut-text-faint: #696582;
-  --cut-text-on-primary: #ffffff;
+  /* Semantic colors remain distinct for meaning; never rely on color alone. */
+  --cut-danger: #FF4545;
+  --cut-danger-strong: #E00000;
+  --cut-success: #43D17D;
+  --cut-warning: #F4B942;
+  --cut-info: #8DB9E8;
+  --cut-primary-soft: #210707;
+  --cut-secondary-soft: #1A1A1E;
+  --cut-accent-soft: #260606;
+  --cut-danger-soft: #260808;
+  --cut-success-soft: #092016;
+  --cut-warning-soft: #211A08;
+  --cut-info-soft: #0C1824;
+  --cut-surface-hover: #18181C;
+  --cut-surface-active: #211010;
 
-  /* Borders */
-  --cut-border: rgba(209, 188, 255, .13);
-  --cut-border-soft: rgba(209, 188, 255, .08);
-  --cut-border-strong: rgba(184, 71, 250, .42);
-  --cut-border-focus: rgba(184, 71, 250, .72);
-  --cut-divider: rgba(209, 188, 255, .075);
+  /* Legacy gradient names intentionally resolve to solid brand surfaces. */
+  --cut-gradient-brand: var(--cut-red);
+  --cut-gradient-brand-horizontal: var(--cut-red);
+  --cut-gradient-brand-soft: var(--cut-surface-2);
+  --cut-gradient-surface: var(--cut-surface-2);
+  --cut-gradient-surface-hover: var(--cut-surface-3);
+  --cut-gradient-night: var(--cut-bg);
+  --cut-gradient-hero: var(--cut-bg-deep);
 
-  /* Semantic surfaces */
-  --cut-primary-soft: rgba(184, 71, 250, .13);
-  --cut-secondary-soft: rgba(43, 98, 244, .13);
-  --cut-accent-soft: rgba(6, 175, 250, .12);
-  --cut-danger-soft: rgba(255, 102, 135, .11);
-  --cut-success-soft: rgba(78, 231, 178, .11);
-  --cut-warning-soft: rgba(255, 202, 106, .11);
-  --cut-info-soft: rgba(98, 223, 255, .11);
+  --cut-shadow-xs: 0 1px 2px #000000;
+  --cut-shadow-sm: 0 8px 24px #000000;
+  --cut-shadow-md: 0 16px 42px #000000;
+  --cut-shadow-lg: 0 24px 72px #000000;
+  --cut-shadow-xl: 0 32px 96px #000000;
+  --cut-shadow-brand: 0 0 0 1px #5A1010, 0 0 20px #390000;
+  --cut-shadow-brand-strong: 0 0 0 1px var(--cut-red), 0 0 28px #520000;
+  --cut-shadow-focus: 0 0 0 3px #5A1010;
+  --cut-shadow: var(--cut-shadow-lg);
 
-  /* Signature gradients from the logo: pink → violet → blue → cyan */
-  --cut-gradient-brand: linear-gradient(135deg, #e56cff 0%, #b847fa 28%, #7141f7 55%, #2b62f4 78%, #06affa 100%);
-  --cut-gradient-brand-horizontal: linear-gradient(90deg, #e56cff 0%, #b847fa 25%, #7141f7 50%, #2b62f4 75%, #06affa 100%);
-  --cut-gradient-brand-soft: linear-gradient(135deg, rgba(229,108,255,.16), rgba(113,65,247,.12) 52%, rgba(6,175,250,.10));
-  --cut-gradient-surface: linear-gradient(150deg, rgba(24,24,58,.97), rgba(9,9,29,.98));
-  --cut-gradient-surface-hover: linear-gradient(150deg, rgba(31,27,74,.99), rgba(11,10,34,.99));
-  --cut-gradient-night:
-    radial-gradient(circle at 16% 7%, rgba(184,71,250,.17), transparent 30%),
-    radial-gradient(circle at 88% 10%, rgba(43,98,244,.15), transparent 34%),
-    radial-gradient(circle at 76% 82%, rgba(6,175,250,.08), transparent 34%),
-    linear-gradient(160deg, #070616 0%, #0a0820 45%, #04040f 100%);
-  --cut-gradient-hero: linear-gradient(180deg, rgba(4,4,15,.08), rgba(4,4,15,.94));
-
-  /* Shadows / neon glows */
-  --cut-shadow-xs: 0 1px 2px rgba(0,0,0,.22);
-  --cut-shadow-sm: 0 10px 30px rgba(0,0,0,.24);
-  --cut-shadow-md: 0 18px 54px rgba(0,0,0,.32);
-  --cut-shadow-lg: 0 30px 92px rgba(0,0,0,.42);
-  --cut-shadow-xl: 0 44px 130px rgba(0,0,0,.52);
-  --cut-shadow-brand: 0 16px 44px rgba(113,65,247,.28), 0 0 28px rgba(6,175,250,.08);
-  --cut-shadow-brand-strong: 0 20px 60px rgba(184,71,250,.30), 0 0 42px rgba(43,98,244,.16);
-  --cut-shadow-focus: 0 0 0 4px rgba(184,71,250,.15);
-
-  /* Radii */
   --cut-radius-xs: 8px;
   --cut-radius-sm: 11px;
   --cut-radius-md: 14px;
@@ -105,7 +80,6 @@
   --cut-radius-2xl: 30px;
   --cut-radius-pill: 999px;
 
-  /* Spacing */
   --cut-space-1: 4px;
   --cut-space-2: 8px;
   --cut-space-3: 12px;
@@ -120,7 +94,6 @@
   --cut-space-20: 80px;
   --cut-space-24: 96px;
 
-  /* Typography */
   --cut-font-sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --cut-font-display: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --cut-font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
@@ -141,7 +114,6 @@
   --cut-weight-bold: 800;
   --cut-weight-black: 900;
 
-  /* Layout */
   --cut-container-sm: 760px;
   --cut-container-md: 980px;
   --cut-container-lg: 1180px;
@@ -149,14 +121,12 @@
   --cut-navbar-height: 74px;
   --cut-touch-target: 44px;
 
-  /* Motion */
   --cut-duration-fast: 120ms;
   --cut-duration-normal: 180ms;
   --cut-duration-slow: 280ms;
   --cut-ease-standard: cubic-bezier(.2,.8,.2,1);
   --cut-ease-enter: cubic-bezier(.16,1,.3,1);
 
-  /* Layers */
   --cut-z-base: 1;
   --cut-z-sticky: 900;
   --cut-z-dropdown: 1000;
@@ -165,39 +135,55 @@
   --cut-z-modal: 1055;
   --cut-z-toast: 1080;
 
-  /* Bootstrap theme bridge */
-  --bs-primary: #b847fa;
-  --bs-primary-rgb: 184,71,250;
-  --bs-secondary: #7141f7;
-  --bs-secondary-rgb: 113,65,247;
-  --bs-info: #06affa;
-  --bs-info-rgb: 6,175,250;
+  /* Bootstrap bridge prevents the framework's default blue from resurfacing. */
+  --bs-primary: #E00000;
+  --bs-primary-rgb: 224,0,0;
+  --bs-secondary: #3B3B42;
+  --bs-secondary-rgb: 59,59,66;
+  --bs-info: #8DB9E8;
+  --bs-info-rgb: 141,185,232;
   --bs-body-bg: var(--cut-bg);
-  --bs-body-bg-rgb: 5,5,19;
+  --bs-body-bg-rgb: 5,5,5;
   --bs-body-color: var(--cut-text);
-  --bs-body-color-rgb: 244,242,255;
+  --bs-body-color-rgb: 245,245,247;
   --bs-emphasis-color: var(--cut-text-strong);
   --bs-emphasis-color-rgb: 255,255,255;
   --bs-secondary-color: var(--cut-text-muted);
-  --bs-secondary-color-rgb: 184,180,210;
+  --bs-secondary-color-rgb: 168,168,176;
   --bs-tertiary-color: var(--cut-text-soft);
-  --bs-tertiary-color-rgb: 141,137,170;
+  --bs-tertiary-color-rgb: 133,133,141;
   --bs-secondary-bg: var(--cut-surface-2);
-  --bs-secondary-bg-rgb: 18,18,45;
+  --bs-secondary-bg-rgb: 20,20,23;
   --bs-tertiary-bg: var(--cut-surface-1);
-  --bs-tertiary-bg-rgb: 13,13,36;
+  --bs-tertiary-bg-rgb: 11,11,13;
   --bs-heading-color: var(--cut-text-strong);
   --bs-border-color: var(--cut-border);
-  --bs-border-color-translucent: rgba(209,188,255,.13);
-  --bs-link-color: var(--cut-brand-300);
-  --bs-link-color-rgb: 230,146,247;
-  --bs-link-hover-color: var(--cut-cyan-300);
-  --bs-link-hover-color-rgb: 98,223,255;
+  --bs-border-color-translucent: #2B2B30;
+  --bs-link-color: var(--cut-red-hi);
+  --bs-link-color-rgb: 255,69,69;
+  --bs-link-hover-color: #FFFFFF;
+  --bs-link-hover-color-rgb: 255,255,255;
 
-  /* Legacy aliases */
+  /* Compatibility aliases for legacy CSS while the sweep removes old names. */
   --cut-bg-2: var(--cut-bg-soft);
-  --cut-surface: var(--cut-surface-1);
-  --cut-muted: var(--cut-text-muted);
-  --cut-soft: var(--cut-text-soft);
-  --cut-shadow: var(--cut-shadow-lg);
+  --cut-brand-50: #FFF1F1;
+  --cut-brand-100: #FFDADA;
+  --cut-brand-200: #FFB0B0;
+  --cut-brand-300: var(--cut-red-hi);
+  --cut-brand-400: #FF2B2B;
+  --cut-brand-500: var(--cut-red-hot);
+  --cut-brand-600: var(--cut-red);
+  --cut-brand-700: #C40000;
+  --cut-brand-800: #9D0000;
+  --cut-brand-900: #720000;
+  --cut-blue-300: var(--cut-text-muted);
+  --cut-blue-400: var(--cut-graphite-hi);
+  --cut-blue-500: var(--cut-graphite);
+  --cut-blue-600: var(--cut-surface-4);
+  --cut-cyan-300: var(--cut-text-muted);
+  --cut-cyan-400: var(--cut-graphite-hi);
+  --cut-cyan-500: var(--cut-graphite);
+  --cut-pink-300: var(--cut-red-hi);
+  --cut-pink-400: var(--cut-red-hot);
+  --cut-pink-500: var(--cut-red);
 }
