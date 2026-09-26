@@ -7,7 +7,6 @@ import { checkoutQuantityLimit, resolveCheckoutQuantity } from "../../utils/chec
 import { reconcileStoredSelection } from "../../utils/checkoutSelectionRecovery";
 import { clearEventCart, readEventCart, writeEventCart } from "../../utils/eventCartStorage";
 import { safeRemoveSessionItem } from "../../utils/safeStorage";
-import "../../styles/event-ticket-purchase.css";
 
 const money = (value) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
 const dateLabel = (value) => {
@@ -338,6 +337,7 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
                   <span>{quantity > 0 ? `${quantity} × ${money(item.price)} · ${money(subtotal)}` : money(item.price)}</span>
                   {item.description && <small>{item.description}</small>}
                   <small>{stockLabel(item, soldOut, checkoutQuantityLimit("item"))}</small>
+                  <button type="button" className="cut-ticket-shop__item-detail" onClick={() => navigate(`/event/${encodeURIComponent(activeSlug)}/item/${item.id}`)}>Ver detalhes do item <i className="fa-solid fa-arrow-right" /></button>
                 </div>
                 {soldOut
                   ? <span className="cut-ticket-shop__sold-badge">{item.expired ? "Encerrado" : "Esgotado"}</span>

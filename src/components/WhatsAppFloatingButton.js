@@ -1,7 +1,6 @@
 import React from "react";
 import PropTypes from "prop-types";
 import { normalizeBrazilianWhatsappPhone } from "../utils/whatsappUrl";
-import "./WhatsAppFloatingButton.css";
 
 export default function WhatsAppFloatingButton({ phone, message, label = "Falar no WhatsApp" }) {
   const normalizedPhone = normalizeBrazilianWhatsappPhone(phone);
