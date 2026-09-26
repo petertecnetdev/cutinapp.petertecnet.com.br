@@ -30,7 +30,11 @@ function generateSeoSnapshots(buildPath) {
 
   if (!result.error && result.status === 0) return true;
 
-  const required = process.env.CUTINAPP_SEO_SNAPSHOTS_REQUIRED === '1';
+  // Snapshot SEO depends on the public API and has its own refresh workflow.
+  // A transient API/CDN failure must not block an otherwise validated frontend
+  // release in CI. Operators can still require snapshots in a controlled local
+  // build by setting CUTINAPP_SEO_SNAPSHOTS_REQUIRED=1 outside CI.
+  const required = process.env.CI !== 'true' && process.env.CUTINAPP_SEO_SNAPSHOTS_REQUIRED === '1';
   const reason = result.error?.message || `exit code ${result.status ?? 'unknown'}`;
 
   if (required) {
