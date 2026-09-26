@@ -23,7 +23,24 @@ function assertBuildHeadroom() { if (typeof fs.statfsSync !== 'function') return
 function lowerBuildCpuPriority() { if (process.platform === 'win32' || typeof os.setPriority !== 'function') return; try { os.setPriority(0, 15); } catch (_) {} }
 function runCommand(command, args, env = process.env) { const result = spawnSync(command, args, { cwd: appRoot, env, stdio: 'inherit' }); if (result.error) throw result.error; if (result.status !== 0) process.exit(result.status ?? 1); }
 function runReactBuild(buildPath) { const command = process.platform === 'win32' ? 'react-scripts.cmd' : 'react-scripts'; const env = { ...process.env, GENERATE_SOURCEMAP: 'false', INLINE_RUNTIME_CHUNK: 'false', IMAGE_INLINE_SIZE_LIMIT: '4096' }; if (buildPath) env.BUILD_PATH = buildPath; runCommand(command, ['build'], env); return buildPath || liveBuildPath; }
-function generateSeoSnapshots(buildPath) { runCommand(process.execPath, [path.join(appRoot, 'scripts/generate-seo-snapshots.mjs'), buildPath], { ...process.env, CUTINAPP_BUILD_DIR: buildPath }); }
+function generateSeoSnapshots(buildPath) {
+  const env = { ...process.env, CUTINAPP_BUILD_DIR: buildPath };
+  const script = path.join(appRoot, 'scripts/generate-seo-snapshots.mjs');
+  const result = spawnSync(process.execPath, [script, buildPath], { cwd: appRoot, env, stdio: 'inherit' });
+
+  if (!result.error && result.status === 0) return true;
+
+  const required = process.env.CUTINAPP_SEO_SNAPSHOTS_REQUIRED === '1';
+  const reason = result.error?.message || `exit code ${result.status ?? 'unknown'}`;
+
+  if (required) {
+    if (result.error) throw result.error;
+    throw new Error(`SEO snapshot generation failed (${reason}).`);
+  }
+
+  console.warn(`SEO snapshot generation unavailable (${reason}); continuing with the validated SPA build. Refresh SEO Index can regenerate snapshots after the API recovers.`);
+  return false;
+}
 function assertStaticAssetIntegrity(buildPath) {
   const missing = [];
   const walk = (directory) => {
