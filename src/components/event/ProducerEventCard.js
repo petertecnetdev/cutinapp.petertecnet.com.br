@@ -140,7 +140,7 @@ function ProducerEventCard({
     return <article className={[
       "cut-producer-event-card",
       "is-compact",
-      "is-compact-table",
+      "is-readable-card",
       needsAttention ? "is-attention" : "",
       selected ? "is-selected" : "",
       pinned ? "is-pinned" : "",
@@ -304,3 +304,4 @@ const sameProducerEventCard = (previous, next) => (
 );
 
 export default React.memo(ProducerEventCard, sameProducerEventCard);
+
