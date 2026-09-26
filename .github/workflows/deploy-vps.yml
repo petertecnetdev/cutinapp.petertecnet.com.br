@@ -23,7 +23,9 @@ permissions:
 
 concurrency:
   group: cutinapp-production
-  cancel-in-progress: true
+  # Runs obsoletos aguardam o freshness guard em vez de cancelar um deploy
+  # validado que já está construindo ou publicando a release correta.
+  cancel-in-progress: false
 
 jobs:
   freshness:
