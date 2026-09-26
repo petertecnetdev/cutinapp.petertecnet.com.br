@@ -178,6 +178,7 @@ export function FormattedTextEditor({
   maxLength = 10000,
   rows = 8,
   ariaLabel = "Editor de texto formatado",
+  name = "description",
 }) {
   const textareaRef = useRef(null);
   const [mode, setMode] = useState("write");
@@ -319,6 +320,7 @@ export function FormattedTextEditor({
       {mode === "write" ? (
         <textarea
           ref={textareaRef}
+          name={name}
           className="form-control cut-formatted-editor__input"
           value={text}
           onChange={(event) => onChange(maxLength ? event.target.value.slice(0, maxLength) : event.target.value)}
@@ -349,6 +351,7 @@ FormattedTextEditor.propTypes = {
   maxLength: PropTypes.number,
   rows: PropTypes.number,
   ariaLabel: PropTypes.string,
+  name: PropTypes.string,
 };
 
 export default FormattedTextEditor;
