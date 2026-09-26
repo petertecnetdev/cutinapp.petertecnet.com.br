@@ -4,7 +4,6 @@ import { Link } from "react-router-dom";
 import EventPosterThumbnail from "./EventPosterThumbnail";
 import { storageUrl } from "../../config";
 import { chronologicalBucketFor, parsePortableEventDate } from "../../utils/chronologicalDiscovery";
-import "./EventDiscoveryRail.css";
 
 const eventStartValue = (event) => event?.starts_at || event?.start_at || event?.start_date || event?.date || event?.scheduled_at || null;
 const scalarIdentityPart = (value) => {
