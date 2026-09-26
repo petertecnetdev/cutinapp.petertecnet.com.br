@@ -17,6 +17,7 @@ import {
 import "./EventManagePage.css";
 import "./EventManagePageSorting.css";
 import "./EventCommandCenter.css";
+import "./EventManageReadability.css";
 
 const collator = new Intl.Collator("pt-BR", { numeric: true, sensitivity: "base" });
 const EVENT_MANAGER_SESSION_KEY = "cutinapp.eventManager.session.v1";
@@ -1190,7 +1191,7 @@ export default function EventManagePage() {
     : 0;
 
   return (
-    <div className="cut-app-page cut-event-manager-page">
+    <div className="cut-app-page cut-event-manager-page cut-event-manager-readable">
       <NavlogComponent />
       {bulkBusy && <ProcessingIndicatorComponent label={processingLabel} />}
 
@@ -1313,9 +1314,6 @@ export default function EventManagePage() {
                 <div className="cut-event-list-context">
                   <span><strong>{visibleEvents.length}</strong> evento(s)</span>
                   <small>Mais próximos primeiro</small>
-                </div>
-                <div className="cut-producer-event-list-head" aria-hidden="true">
-                  <span></span><span></span><span>Evento</span><span>Artistas</span><span>Status</span><span>Vendas</span><span>Pendências</span><span>Ações</span>
                 </div>
                 <div className="cut-producer-event-list">
                   {renderedEvents.map((event) => {
