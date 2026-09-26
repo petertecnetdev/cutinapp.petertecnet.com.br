@@ -6,6 +6,7 @@ import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorCo
 import CommerceTrustRail from "../../components/CommerceTrustRail";
 import WhatsAppFloatingButton from "../../components/WhatsAppFloatingButton";
 import EventCommunitySection from "../../components/event/EventCommunitySection";
+import EventDiscoveryRail from "../../components/event/EventDiscoveryRail";
 import EventCommercePanel from "../../components/event/EventCommercePanel";
 import EventFlyerModal from "../../components/event/EventFlyerModal";
 import EventArtwork from "../../components/event/EventArtwork";
@@ -150,6 +151,7 @@ export default function EventViewPage() {
   const { user } = useContext(AuthContext);
   const [data, setData] = useState(null);
   const [artists, setArtists] = useState([]);
+  const [relatedEvents, setRelatedEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [artistClaimingId, setArtistClaimingId] = useState(null);
   const [socialBusy, setSocialBusy] = useState(false);
@@ -244,6 +246,48 @@ export default function EventViewPage() {
     params.set("sort", "soonest");
     return `/event?${params.toString()}`;
   }, [event]);
+
+  useEffect(() => {
+    if (!event?.id) {
+      setRelatedEvents([]);
+      return undefined;
+    }
+
+    let active = true;
+    const scopedParams = { per_page: 10, sort: "soonest" };
+    if (event.city) scopedParams.city = event.city;
+    if (event.uf) scopedParams.uf = event.uf;
+    if (event.category) scopedParams.category = event.category;
+
+    const withoutCurrent = (items) => (Array.isArray(items) ? items : [])
+      .filter((item) => Number(item?.id) !== Number(event.id) && item?.slug !== event.slug);
+
+    eventService.list(scopedParams)
+      .then(async (items) => {
+        if (!active) return;
+        let next = withoutCurrent(items);
+        if (next.length < 6) {
+          try {
+            const fallback = await eventService.list({ per_page: 12, sort: "soonest" });
+            if (!active) return;
+            const seen = new Set(next.map((item) => String(item?.id || item?.slug || "")));
+            for (const item of withoutCurrent(fallback)) {
+              const key = String(item?.id || item?.slug || "");
+              if (!key || seen.has(key)) continue;
+              seen.add(key);
+              next.push(item);
+              if (next.length >= 8) break;
+            }
+          } catch (_) {
+            // O recorte local continua útil mesmo se o fallback global falhar.
+          }
+        }
+        if (active) setRelatedEvents(next.slice(0, 8));
+      })
+      .catch(() => active && setRelatedEvents([]));
+
+    return () => { active = false; };
+  }, [event?.id, event?.slug, event?.city, event?.uf, event?.category]);
 
   useEffect(() => {
     if (!event?.id) return;
@@ -531,6 +575,17 @@ export default function EventViewPage() {
         {!isOwner && <Card className="cut-panel mt-4 mb-4"><Card.Body className="p-4 p-lg-5"><div className="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4"><div><span className="cut-eyebrow">Você também produz eventos?</span><h2 className="cut-section-title mt-2 mb-2">Crie seu primeiro evento na Cutinapp</h2><p className="text-secondary mb-0">Comece pelo evento. Se ainda não tiver uma produção, você cria o nome dela no mesmo fluxo e segue direto para o primeiro lote e a publicação.</p></div><Button size="lg" onClick={startProducerActivation} className="flex-shrink-0"><i className="fa-solid fa-bolt me-2" />{user ? "Criar meu evento" : "Começar como produtor"}</Button></div></Card.Body></Card>}
 
         <EventCommunitySection event={event} isOwner={isOwner} />
+
+        {relatedEvents.length > 0 && <EventDiscoveryRail
+          events={relatedEvents}
+          eyebrow="Continue descobrindo"
+          title="Outros eventos"
+          description="Veja outras experiências publicadas na Cutinapp sem sair do fluxo de descoberta."
+          allTo={similarEventsLink}
+          allLabel="Ver todos"
+          maxItems={8}
+          className="cut-event-view-related-events"
+        />}
       </Container>
 
       {showPersistentBuyCta && <a className="cut-event-buy-cta-fixed" href="#ingressos" aria-label={`Comprar ingresso para ${event.title}`} onClick={() => trackTicketIntent("mobile_fixed")}>
