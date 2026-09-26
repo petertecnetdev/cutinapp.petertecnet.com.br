@@ -1,0 +1,10 @@
+.cut-item-detail__hero{position:relative;isolation:isolate;overflow:hidden;background:#151222;color:#fff;text-align:center;min-height:520px}
+.cut-item-detail__background{position:absolute;inset:-50px;z-index:-2;background-position:center;background-size:cover;filter:blur(36px);transform:scale(1.12);opacity:.55}
+.cut-item-detail__hero::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(12,10,22,.68),rgba(12,10,22,.9))}
+.cut-item-detail__foreground{padding-top:3rem;padding-bottom:3rem;position:relative}
+.cut-item-detail__breadcrumbs{display:flex;justify-content:center;flex-wrap:wrap;gap:.65rem;margin-bottom:2rem}
+.cut-item-detail__breadcrumbs a{color:#fff;text-decoration:underline}
+.cut-item-detail__image,.cut-item-detail__placeholder{width:min(100%,320px);height:260px;object-fit:contain;margin:0 auto 1.5rem;border-radius:16px}
+.cut-item-detail__placeholder{display:grid;place-items:center;background:#423a56;font-size:6rem}
+.cut-item-detail__price{display:block;font-size:1.5rem;margin:.8rem 0}
+.cut-item-detail__relations a{font-weight:600}
