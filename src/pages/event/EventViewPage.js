@@ -19,6 +19,7 @@ import { storageUrl } from "../../config";
 import { isPeterTecnetRoot } from "../../utils/applicationRoles";
 import { buildEventShareUrl } from "../../utils/eventShareUrl";
 import { safeExternalHref } from "../../utils/safeUrl";
+import { showConfirmation, showImportantAlert } from "../../utils/sweetAlert";
 import { trackTelemetry } from "../../utils/telemetry";
 
 const EVENT_DESCRIPTION_PREVIEW_LENGTH = 240;
@@ -170,6 +171,7 @@ export default function EventViewPage() {
   const [ownerResultsError, setOwnerResultsError] = useState("");
   const [duplicateDate, setDuplicateDate] = useState("");
   const [duplicating, setDuplicating] = useState(false);
+  const [lifecycleAction, setLifecycleAction] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -208,7 +210,8 @@ export default function EventViewPage() {
   const tickets = useMemo(() => (data?.tickets || []).filter((ticket) => Number(ticket.price) === 0), [data]);
   const claimableArtists = useMemo(() => artists.filter((artist) => !artist.claimed_at), [artists]);
   const isOwner = Boolean(event?.production?.user_id && Number(event.production.user_id) === Number(user?.id));
-  const canManageEvent = isOwner || isPeterTecnetRoot(user);
+  const isRootAdmin = isPeterTecnetRoot(user);
+  const canManageEvent = isOwner || isRootAdmin;
   const productionId = Number(event?.production_id || event?.production?.id || 0);
   const mapEmbedUrl = useMemo(() => buildMapEmbedUrl(event), [event]);
   const googleMapsHref = useMemo(() => safeExternalHref(event?.google_maps_url), [event?.google_maps_url]);
@@ -490,6 +493,102 @@ export default function EventViewPage() {
     }
   };
 
+  const deactivateEvent = async () => {
+    if (!event?.id || !isRootAdmin) return;
+
+    const confirmed = await showConfirmation({
+      title: "Desativar este evento?",
+      text: `"${event.title}" deixará de aparecer na descoberta e não aceitará novas vendas. Ingressos, pedidos, participantes e histórico já existentes serão preservados.`,
+      icon: "warning",
+      confirmButtonText: "Desativar evento",
+      cancelButtonText: "Manter ativo",
+      allowOutsideClick: false,
+    });
+    if (!confirmed) return;
+
+    setLifecycleAction("unpublish");
+    setError("");
+    setSuccess("");
+
+    try {
+      const response = await eventService.unpublish(event.id);
+      setData((current) => current ? {
+        ...current,
+        event: {
+          ...current.event,
+          ...(response?.event || {}),
+          is_published: false,
+        },
+      } : current);
+      setSuccess(response?.message || "Evento desativado. O histórico foi preservado.");
+
+      trackTelemetry("event_admin_lifecycle_changed", {
+        label: "Evento desativado por administração",
+        target: String(event.id),
+        metadata: {
+          event_id: Number(event.id),
+          operation: "unpublish",
+          source: "public_event",
+          root_admin: true,
+          production_owner: isOwner,
+        },
+      });
+    } catch (err) {
+      setError(err?.message || "Não foi possível desativar este evento.");
+    } finally {
+      setLifecycleAction("");
+    }
+  };
+
+  const deleteEventPermanently = async () => {
+    if (!event?.id || !isRootAdmin) return;
+
+    const confirmed = await showConfirmation({
+      title: "Excluir permanentemente?",
+      text: `"${event.title}" será removido definitivamente da Cutinapp. Esta ação não pode ser desfeita. Se houver ingressos já emitidos, a API bloqueará a exclusão para preservar o histórico e você poderá apenas desativar o evento.`,
+      icon: "warning",
+      confirmButtonText: "Excluir permanentemente",
+      cancelButtonText: "Cancelar",
+      allowOutsideClick: false,
+    });
+    if (!confirmed) return;
+
+    const eventId = Number(event.id);
+    const eventTitle = event.title;
+    setLifecycleAction("delete");
+    setError("");
+    setSuccess("");
+
+    try {
+      const response = await eventService.destroy(eventId);
+
+      trackTelemetry("event_admin_lifecycle_changed", {
+        label: "Evento excluído permanentemente por administração",
+        target: String(eventId),
+        metadata: {
+          event_id: eventId,
+          operation: "delete_permanently",
+          source: "public_event",
+          root_admin: true,
+          production_owner: isOwner,
+        },
+      });
+
+      await showImportantAlert({
+        title: "Evento excluído",
+        text: response?.message || `${eventTitle} foi excluído permanentemente.`,
+        icon: "success",
+        confirmButtonText: "Continuar",
+        allowOutsideClick: false,
+      });
+      navigate("/event", { replace: true });
+    } catch (err) {
+      setError(err?.message || "Não foi possível excluir este evento.");
+    } finally {
+      setLifecycleAction("");
+    }
+  };
+
   const retryEventLoad = () => {
     setLoadVersion((current) => current + 1);
   };
@@ -497,8 +596,18 @@ export default function EventViewPage() {
   const attendanceIssued = Number(ownerResults?.attendance?.issued || 0);
   const attendanceCheckedIn = Number(ownerResults?.attendance?.checked_in || 0);
   const attendanceRate = attendanceIssued > 0 ? Math.round((attendanceCheckedIn / attendanceIssued) * 100) : 0;
+  const processingLabel = lifecycleAction === "delete"
+    ? "Excluindo evento"
+    : lifecycleAction === "unpublish"
+      ? "Desativando evento"
+      : artistClaimingId
+        ? "Enviando reivindicação"
+        : duplicating
+          ? "Criando próxima edição"
+          : "Carregando evento";
+  const isProcessing = Boolean(loading || artistClaimingId || duplicating || lifecycleAction);
 
-  return <div className={`cut-app-page cut-event-view-page ${showPersistentBuyCta ? "cut-event-view-page--buyable" : ""}`}><NavlogComponent />{(loading || artistClaimingId || duplicating) && <ProcessingIndicatorComponent label={artistClaimingId ? "Enviando reivindicação" : duplicating ? "Criando próxima edição" : "Carregando evento"} />}
+  return <div className={`cut-app-page cut-event-view-page ${showPersistentBuyCta ? "cut-event-view-page--buyable" : ""}`}><NavlogComponent />{isProcessing && <ProcessingIndicatorComponent label={processingLabel} />}
     {!loading && event && <>
       <section className="cut-event-banner-stage" aria-label={`Imagem do evento ${event.title}`}>
         <Container className="cut-page-container">
@@ -564,15 +673,39 @@ export default function EventViewPage() {
 
         </section>}
 
-        <Row className="g-4"><Col lg={isOwner ? 8 : 12}>
+        <Row className="g-4"><Col lg={canManageEvent ? 8 : 12}>
           <Card className="cut-panel mb-4"><Card.Body className="p-4 p-lg-5"><span className="cut-eyebrow">Sobre o evento</span><h2 className="cut-section-title mt-2">Informações</h2>{eventDescription && <div className="mb-4"><FormattedText className="cut-body-copy mb-2" value={visibleDescription} />{hasLongDescription && <Button variant="link" className="p-0 text-decoration-none" onClick={() => setDescriptionExpanded((current) => !current)} aria-expanded={descriptionExpanded}><i className={`fa-solid ${descriptionExpanded ? "fa-chevron-up" : "fa-chevron-down"} me-2`} aria-hidden="true" />{descriptionExpanded ? "Recolher descrição" : "Ver descrição completa"}</Button>}</div>}<div className="cut-event-details"><div><i className="fa-regular fa-calendar" /><span><strong>Início</strong>{formatDate(event.start_date)}</span></div><div><i className="fa-regular fa-clock" /><span><strong>Término</strong>{formatDate(event.end_date)}</span></div><div><i className="fa-solid fa-location-dot" /><span><strong>Local</strong>{event.venue || event.address}</span></div>{event.city && <div><i className="fa-solid fa-map" /><span><strong>Cidade</strong>{event.city}{event.uf ? ` - ${event.uf}` : ""}</span></div>}</div></Card.Body></Card>
           <Card className="cut-panel mb-4"><Card.Body className="p-4 p-lg-5"><span className="cut-eyebrow">Dúvidas rápidas</span><h2 className="cut-section-title mt-2">Antes de participar</h2><div className="cut-event-faq mt-4"><details><summary>Como comprar ingresso?</summary><p>Use a área “Ingressos e itens” desta página. Você escolhe as quantidades e revisa o total antes de seguir para o pagamento.</p></details><details><summary>Quando o ingresso fica disponível?</summary><p>Quando o pedido é confirmado e a emissão termina, o ingresso aparece na sua carteira da Cutinapp. Se a confirmação demorar, o mesmo pedido pode ser retomado com segurança.</p></details><details><summary>Onde acontece?</summary><p>{[event.venue, event.address, event.city && `${event.city}${event.uf ? ` - ${event.uf}` : ""}`].filter(Boolean).join(" · ") || "O local ainda está sendo confirmado pela produção."}</p></details><details><summary>Preciso de ajuda com compra ou ingresso?</summary><p>Abra a Central de Ajuda para registrar o problema com o contexto da sua navegação.</p><Button size="sm" variant="outline-light" onClick={() => navigate("/help")}>Abrir Central de Ajuda</Button></details></div></Card.Body></Card>
           {event.production?.name && <Card className="cut-panel mb-4"><Card.Body className="p-4"><span className="cut-eyebrow">Responsável</span><div className="cut-production-inline"><div><h2>{event.production.name}</h2><p>Veja os próximos eventos e acompanhe esta produção.</p></div><div className="d-flex flex-wrap gap-2">{showPersistentBuyCta && <Button as="a" href="#ingressos" variant="success" onClick={() => trackTicketIntent("production_card")}><i className="fa-solid fa-cart-shopping me-2" />Comprar ingressos e itens</Button>}<Button variant="outline-light" onClick={() => navigate(`/production/${event.production.slug}/public`)}>Ver página da produção</Button></div></div></Card.Body></Card>}
           {mapEmbedUrl && <Card className="cut-panel"><Card.Body className="p-0 overflow-hidden"><iframe title={`Mapa de ${event.title}`} src={mapEmbedUrl} width="100%" height="360" style={{ border: 0, display: "block" }} loading="lazy" referrerPolicy="no-referrer-when-downgrade" allowFullScreen /></Card.Body></Card>}
         </Col>
-        {isOwner && <Col lg={4}><Card className="cut-panel"><Card.Body className="p-4"><span className="cut-eyebrow">Gestão</span><h2 className="cut-section-title mt-2">Ferramentas do evento</h2><div className="cut-owner-actions mt-4"><Button variant="outline-light" onClick={() => navigate(`/event/edit/${event.id}`)}><i className="fa-solid fa-pen-to-square me-2" />Editar evento</Button><Button variant="outline-light" onClick={() => navigate(`/event/${event.id}/lineup`)}>Line-up</Button><Button variant="outline-light" onClick={() => navigate(`/event/${event.id}/artist-claims`)}>Reivindicações</Button>{!isPastEvent && <Button variant="outline-light" onClick={() => navigate(`/checkin?eventId=${event.id}`)}>Portaria</Button>}{!isPastEvent && <Button variant="outline-light" onClick={() => navigate(`/ticket/create?eventId=${event.id}`)}>Criar cortesia</Button>}</div></Card.Body></Card></Col>}</Row>
+        {canManageEvent && <Col lg={4}><Card className="cut-panel"><Card.Body className="p-4">
+          <div className="d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <span className="cut-eyebrow">Gestão</span>
+            {isRootAdmin && <Badge bg="danger">Peter Tecnet Root</Badge>}
+          </div>
+          <h2 className="cut-section-title mt-2">Ferramentas do evento</h2>
+          <div className="cut-owner-actions mt-4">
+            <Button variant="outline-light" onClick={() => navigate(`/event/edit/${event.id}`)}><i className="fa-solid fa-pen-to-square me-2" />Editar evento</Button>
+            <Button variant="outline-light" onClick={() => navigate(`/event/${event.id}/lineup`)}>Line-up</Button>
+            <Button variant="outline-light" onClick={() => navigate(`/event/${event.id}/artist-claims`)}>Reivindicações</Button>
+            {!isPastEvent && <Button variant="outline-light" onClick={() => navigate(`/checkin?eventId=${event.id}`)}>Portaria</Button>}
+            {!isPastEvent && <Button variant="outline-light" onClick={() => navigate(`/ticket/create?eventId=${event.id}`)}>Criar cortesia</Button>}
+          </div>
+          {isRootAdmin && <div className="border-top border-secondary mt-4 pt-4">
+            <span className="cut-eyebrow">Controle administrativo</span>
+            <p className="text-secondary small mt-2 mb-3">Estas ações usam privilégios globais da Peter Tecnet e funcionam mesmo quando o evento pertence a outra produção.</p>
+            <div className="d-grid gap-2">
+              {event.is_published
+                ? <Button variant="outline-warning" onClick={deactivateEvent} disabled={Boolean(lifecycleAction)}><i className="fa-solid fa-eye-slash me-2" />Desativar evento</Button>
+                : <div className="d-flex align-items-center justify-content-between gap-2 rounded border border-secondary px-3 py-2"><span className="small text-secondary">Publicação</span><Badge bg="secondary">Desativado</Badge></div>}
+              <Button variant="outline-danger" onClick={deleteEventPermanently} disabled={Boolean(lifecycleAction)}><i className="fa-solid fa-trash-can me-2" />Excluir permanentemente</Button>
+            </div>
+            <small className="text-secondary d-block mt-3">Eventos com ingressos emitidos são protegidos contra exclusão definitiva; nesses casos, desative o evento para preservar o histórico.</small>
+          </div>}
+        </Card.Body></Card></Col>}</Row>
 
-        {!isOwner && <Card className="cut-panel mt-4 mb-4"><Card.Body className="p-4 p-lg-5"><div className="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4"><div><span className="cut-eyebrow">Você também produz eventos?</span><h2 className="cut-section-title mt-2 mb-2">Crie seu primeiro evento na Cutinapp</h2><p className="text-secondary mb-0">Comece pelo evento. Se ainda não tiver uma produção, você cria o nome dela no mesmo fluxo e segue direto para o primeiro lote e a publicação.</p></div><Button size="lg" onClick={startProducerActivation} className="flex-shrink-0"><i className="fa-solid fa-bolt me-2" />{user ? "Criar meu evento" : "Começar como produtor"}</Button></div></Card.Body></Card>}
+        {!canManageEvent && <Card className="cut-panel mt-4 mb-4"><Card.Body className="p-4 p-lg-5"><div className="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4"><div><span className="cut-eyebrow">Você também produz eventos?</span><h2 className="cut-section-title mt-2 mb-2">Crie seu primeiro evento na Cutinapp</h2><p className="text-secondary mb-0">Comece pelo evento. Se ainda não tiver uma produção, você cria o nome dela no mesmo fluxo e segue direto para o primeiro lote e a publicação.</p></div><Button size="lg" onClick={startProducerActivation} className="flex-shrink-0"><i className="fa-solid fa-bolt me-2" />{user ? "Criar meu evento" : "Começar como produtor"}</Button></div></Card.Body></Card>}
 
         <EventCommunitySection event={event} isOwner={isOwner} />
 
