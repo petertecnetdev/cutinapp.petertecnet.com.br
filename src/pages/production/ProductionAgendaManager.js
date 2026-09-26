@@ -7,7 +7,6 @@ import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorCo
 import EventPosterThumbnail from "../../components/event/EventPosterThumbnail";
 import cutinappService from "../../services/CutinappService";
 import eventService from "../../services/EventService";
-import { storageUrl } from "../../config";
 import "./production-agenda.css";
 import "./production-agenda-weekly-picker.css";
 
@@ -28,25 +27,11 @@ const defaultStrategy = (schedule = null) => ({
   interval_weeks: Math.max(1, Math.min(52, Number(schedule?.interval_weeks || 1))),
 });
 
-const imageUrl = (path) => {
-  if (!path) return "";
-  if (/^https?:\/\//i.test(path)) return path;
-  return `${storageUrl}${String(path).replace(/^\/?storage\//, "").replace(/^\//, "")}`;
-};
-
 const apiError = (error, fallback) => {
   const errors = error?.response?.data?.errors;
   const validation = errors && Object.values(errors).flat().find(Boolean);
   return validation || error?.response?.data?.message || error?.response?.data?.error || error?.message || fallback;
 };
-
-const initials = (value = "") => String(value)
-  .trim()
-  .split(/\s+/)
-  .filter(Boolean)
-  .slice(0, 2)
-  .map((part) => part[0]?.toUpperCase())
-  .join("") || "EV";
 
 const formatEventDate = (value) => {
   if (!value) return "Data não informada";
