@@ -197,10 +197,14 @@
   font-weight: 800;
 }
 
-.cut-agenda-picker-event__cover img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.cut-agenda-picker-event__poster{
+  width:100%;
+  height:100%;
+  aspect-ratio:auto;
+  --cut-event-poster-padding:2px;
+}
+.cut-agenda-picker-event__poster .cut-event-poster-thumb__main img{
+  object-fit:contain!important;
 }
 
 .cut-agenda-picker-event__body {
