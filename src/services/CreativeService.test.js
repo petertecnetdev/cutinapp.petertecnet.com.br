@@ -101,6 +101,51 @@ describe("CreativeService flyer generation idempotency", () => {
     expect(appApiClient.get).toHaveBeenCalledWith("/creative/presets", { timeout: 30000 });
   });
 
+  test("reviews flyer dates with dynamic locale and timezone", async () => {
+    appApiClient.post.mockResolvedValueOnce({ data: { analysis: { status: "mismatch" } } });
+
+    await creativeService.reviewFlyerDate({
+      imageDataUrl: "data:image/jpeg;base64,abc",
+      expectedStartAt: "2026-09-27T20:00:00-03:00",
+      timezone: "America/Sao_Paulo",
+      locale: "pt-BR",
+      recurring: false,
+    });
+
+    expect(appApiClient.post).toHaveBeenCalledWith("/ai/content/flyer-date-review", expect.objectContaining({
+      expected_start_at: "2026-09-27T20:00:00-03:00",
+      timezone: "America/Sao_Paulo",
+      locale: "pt-BR",
+      recurring: false,
+    }), { timeout: 50000 });
+  });
+
+  test("requests a correction preview without overwriting the original", async () => {
+    appApiClient.post.mockResolvedValueOnce({ data: { image: { data_uri: "data:image/webp;base64,corrected" } } });
+
+    await creativeService.correctFlyerDate({
+      imageDataUrl: "data:image/jpeg;base64,original",
+      action: "replace",
+      expectedDate: "2026-09-27",
+      timezone: "America/Sao_Paulo",
+      locale: "pt-BR",
+      subject: "Festival",
+    });
+
+    expect(appApiClient.post.mock.calls[0][1]).toMatchObject({
+      purpose: "flyer_date_correction",
+      date_action: "replace",
+      expected_date: "2026-09-27",
+      reference_images: ["data:image/jpeg;base64,original"],
+    });
+  });
+
+  test("queues an idempotent stored-entity audit contract", async () => {
+    appApiClient.post.mockResolvedValueOnce({ data: { audit: { id: 17, status: "queued" } } });
+    await creativeService.queueFlyerDateAudit({ entityType: "event", entityId: 42, timezone: "Europe/Lisbon", locale: "pt-PT", recurring: false });
+    expect(appApiClient.post).toHaveBeenCalledWith("/ai/content/flyer-date-audits", expect.objectContaining({ entity_type: "event", entity_id: 42, timezone: "Europe/Lisbon", locale: "pt-PT" }));
+  });
+
   test("retries an uncertain network failure with the same idempotency key", async () => {
     appApiClient.post
       .mockRejectedValueOnce({ code: "ERR_NETWORK", message: "Network Error" })
