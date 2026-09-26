@@ -10,20 +10,23 @@
 .cut-event-discovery__controls{display:flex;gap:6px}
 .cut-event-discovery__controls button{width:44px;height:44px;border:1px solid #2b2b38;border-radius:12px;background:#0B0B0D;color:#eee;transition:.18s ease}
 .cut-event-discovery__actions>a:focus-visible,.cut-event-discovery__controls button:focus-visible,.cut-event-discovery__mainLink:focus-visible,.cut-event-discovery__production:focus-visible{outline:3px solid #FF2020;outline-offset:3px}
-.cut-event-discovery__rail{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(270px,320px);gap:14px;overflow-x:auto;overscroll-behavior-inline:contain;scroll-snap-type:inline mandatory;scroll-padding-inline:2px;padding:2px 2px 10px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.cut-event-discovery__rail{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(290px,340px);gap:16px;overflow-x:auto;overscroll-behavior-inline:contain;scroll-snap-type:inline mandatory;scroll-padding-inline:2px;padding:4px 2px 14px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .cut-event-discovery__rail:focus-visible{outline:3px solid #FF2020;outline-offset:4px;border-radius:22px}
 .cut-event-discovery__rail::-webkit-scrollbar{display:none}
-.cut-event-discovery__card{min-width:0;overflow:hidden;content-visibility:auto;contain-intrinsic-size:500px 320px;scroll-snap-align:start;border:1px solid #23232f;border-radius:22px;background:#0B0B0D;color:#fff;text-decoration:none;box-shadow:0 12px 32px #050508;transition:transform .18s ease,border-color .18s ease}
+.cut-event-discovery__card{min-width:0;overflow:hidden;content-visibility:auto;contain-intrinsic-size:560px 340px;scroll-snap-align:start;border:1px solid #30303A;border-radius:24px;background:#080809;color:#fff;text-decoration:none;box-shadow:0 18px 44px #030304;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
 .cut-event-discovery__card:focus-within{border-color:#980000}
 .cut-event-discovery__mainLink{display:block;color:#fff;text-decoration:none}
 .cut-event-discovery__mainLink:hover{color:#fff}
-.cut-event-discovery__media{position:relative;display:grid;place-items:center;aspect-ratio:4/5;padding:10px;overflow:hidden;background:radial-gradient(circle at 50% 36%,#2A0808 0,#121216 48%,#080809 100%);isolation:isolate}
-.cut-event-discovery__media>.cut-optimized-image{width:100%;height:100%;border:1px solid #2B2B35;border-radius:16px;background:#09090C;box-shadow:0 14px 34px #050508}
-.cut-event-discovery__media>.cut-optimized-image img{width:100%;height:100%;object-fit:contain;background:#09090C}
-.cut-event-discovery__media>.cut-optimized-image--fallback{display:grid;place-items:center;color:#FF7777;font-size:2rem}
-.cut-event-discovery__media>span:not(.cut-optimized-image),.cut-event-discovery__media>time{position:absolute;z-index:3;left:18px;bottom:18px;max-width:calc(100% - 36px);padding:8px 10px;border:1px solid #3B3B47;border-radius:11px;background:#080812;color:inherit;font-size:.74rem;font-style:normal;font-weight:900;text-decoration:none;box-shadow:0 6px 18px #050508}
-.cut-event-discovery__body{padding:15px 15px 12px}
-.cut-event-discovery__body h3{display:-webkit-box;min-height:2.5em;margin:0;overflow:hidden;color:#fff;font-size:1.08rem;font-weight:900;line-height:1.25;letter-spacing:-.012em;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+.cut-event-discovery__media{position:relative;display:grid;place-items:center;aspect-ratio:4/5;padding:12px;overflow:hidden;background:#070708;isolation:isolate}
+.cut-event-discovery__artworkBg{position:absolute!important;inset:-30px!important;z-index:0!important;width:calc(100% + 60px)!important;height:calc(100% + 60px)!important;border:0!important;border-radius:0!important;filter:blur(30px) saturate(1.35) brightness(.48);transform:scale(1.08)}
+.cut-event-discovery__artworkBg img{width:100%!important;height:100%!important;object-fit:cover!important}
+.cut-event-discovery__artworkBg.cut-optimized-image--fallback{display:none!important}
+.cut-event-discovery__artworkMain{position:relative!important;z-index:1!important;width:100%!important;height:100%!important;border:1px solid #3A3A44;border-radius:16px;background:#050506;box-shadow:0 18px 40px #020203}
+.cut-event-discovery__artworkMain img{width:100%!important;height:100%!important;object-fit:contain!important;background:#050506}
+.cut-event-discovery__artworkMain.cut-optimized-image--fallback{display:grid;place-items:center;color:#FF7777;font-size:2rem}
+.cut-event-discovery__body{padding:16px 16px 13px}
+.cut-event-discovery__date{display:inline-flex;align-items:center;min-height:28px;padding:5px 9px;border:1px solid #4A1717;border-radius:999px;background:#180606;color:#FF8A8A;font-size:.72rem;font-style:normal;font-weight:900;letter-spacing:.01em}
+.cut-event-discovery__body h3{display:-webkit-box;min-height:2.5em;margin:10px 0 0;overflow:hidden;color:#fff;font-size:1.12rem;font-weight:950;line-height:1.22;letter-spacing:-.016em;-webkit-box-orient:vertical;-webkit-line-clamp:2}
 .cut-event-discovery__body p{display:flex;align-items:center;gap:7px;margin:8px 0 0;color:#B2AFBC;font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cut-event-discovery__body p i{flex:0 0 auto}
 .cut-event-discovery__body p span{min-width:0;overflow:hidden;text-overflow:ellipsis}
@@ -42,7 +45,7 @@
 .cut-event-discovery__empty p{max-width:520px;margin:0;color:#898596;font-size:.8rem}
 @media(hover:hover) and (pointer:fine){
   .cut-event-discovery__controls button:hover{border-color:#980000;background:#210707}
-  .cut-event-discovery__card:hover{color:#fff;transform:translateY(-3px);border-color:#980000}
+  .cut-event-discovery__card:hover{color:#fff;transform:translateY(-4px);border-color:#C11B1B;box-shadow:0 24px 54px #020203}
   .cut-event-discovery__production:hover{color:#fff;background:#210707;border-color:#650000}
 }
 @media(max-width:767px){
@@ -52,7 +55,7 @@
   .cut-event-discovery__head p{display:none}
   .cut-event-discovery__controls{display:none}
   .cut-event-discovery__actions>a{font-size:.75rem}
-  .cut-event-discovery__rail{grid-auto-columns:clamp(235px,74vw,290px);margin-right:calc(var(--bs-gutter-x,1.5rem) * -.5);padding-right:20px}
+  .cut-event-discovery__rail{grid-auto-columns:clamp(250px,78vw,305px);margin-right:calc(var(--bs-gutter-x,1.5rem) * -.5);padding-right:20px}
 }
 @media(prefers-reduced-motion:reduce){
   .cut-event-discovery__card,.cut-event-discovery__controls button,.cut-event-discovery__production{transition:none}
