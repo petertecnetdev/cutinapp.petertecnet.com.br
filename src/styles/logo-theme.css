@@ -462,3 +462,168 @@ a:hover,
     animation: none !important;
   }
 }
+
+
+/* 2026-09-26 — strict identity lock.
+   The current logo is the only color reference: black, graphite, silver/white,
+   deep crimson and electric red. This block intentionally neutralizes legacy
+   purple, blue, cyan, teal, green and amber presentation colors that may still
+   exist in feature-level styles. Semantic meaning must also be carried by
+   labels/icons, not by an off-brand hue. */
+.cut-capability-nav {
+  --cut-nav-accent: #D80000 !important;
+  --cut-nav-accent2: #FF5252 !important;
+  --cut-nav-surface: #080809 !important;
+}
+
+.cut-capability-nav .nav-link,
+.cut-capability-nav .dropdown-toggle,
+.cut-capability-nav .dropdown-item,
+.cut-navbar__mobile-account,
+.cut-mobile-bottom-nav a,
+.cut-mobile-bottom-nav button {
+  color: #D7D7DC !important;
+}
+
+.cut-capability-nav .nav-link:hover,
+.cut-capability-nav .nav-link.active,
+.cut-capability-nav .nav-link[aria-current="page"],
+.cut-capability-nav .dropdown-toggle:hover,
+.cut-capability-nav .show > .dropdown-toggle,
+.cut-capability-nav .dropdown-item:hover,
+.cut-capability-nav .dropdown-item:focus,
+.cut-capability-nav .dropdown-item[aria-current="page"],
+.cut-mobile-bottom-nav a.active,
+.cut-mobile-bottom-nav button.active {
+  background: #210707 !important;
+  color: #FFFFFF !important;
+  border-color: #650000 !important;
+  box-shadow: inset 0 0 0 1px #650000 !important;
+}
+
+.cut-actor-menu__badge,
+.cut-account-inline-badge,
+.badge.bg-success,
+.badge.bg-warning,
+.badge.bg-danger,
+.badge.bg-info,
+.badge.bg-primary {
+  background: linear-gradient(180deg, #FF2020 0%, #D80000 52%, #980000 100%) !important;
+  border-color: #650000 !important;
+  color: #FFFFFF !important;
+}
+
+.cut-actor-menu__heading > i,
+.cut-navbar__avatar,
+.cut-nav-notification-toggle,
+.cut-location-spinner,
+.spinner-border,
+.spinner-grow {
+  color: #FF2020 !important;
+  border-color: #650000 !important;
+}
+
+.cut-production-switcher select,
+.cut-capability-nav .dropdown-menu,
+.cut-mobile-bottom-nav,
+.cut-navbar__mobile-account {
+  background: #080809 !important;
+  border-color: #2B2B30 !important;
+  box-shadow: 0 18px 50px #000000 !important;
+  backdrop-filter: none !important;
+}
+
+.btn-info,
+.btn-success,
+.btn-warning,
+.btn-danger {
+  background: #141417 !important;
+  border-color: #650000 !important;
+  color: #FFFFFF !important;
+  box-shadow: none !important;
+}
+
+.btn-info:hover,
+.btn-success:hover,
+.btn-warning:hover,
+.btn-danger:hover,
+.btn-info:focus,
+.btn-success:focus,
+.btn-warning:focus,
+.btn-danger:focus {
+  background: #210707 !important;
+  border-color: #FF2020 !important;
+  color: #FFFFFF !important;
+}
+
+.text-success,
+.text-warning,
+.text-danger {
+  color: #FF5252 !important;
+}
+
+.border-success,
+.border-warning,
+.border-danger {
+  border-color: #650000 !important;
+}
+
+.alert,
+.toast,
+.accordion-item,
+.accordion-button,
+.table,
+.table > :not(caption) > * > *,
+.pagination .page-link,
+.page-item .page-link {
+  background-color: #0B0B0D !important;
+  border-color: #2B2B30 !important;
+  color: #D7D7DC !important;
+}
+
+.accordion-button:not(.collapsed),
+.pagination .page-item.active .page-link,
+.page-link:hover,
+.page-link:focus {
+  background: #210707 !important;
+  border-color: #650000 !important;
+  color: #FFFFFF !important;
+  box-shadow: none !important;
+}
+
+.cut-processing--fullscreen {
+  background: radial-gradient(circle at 50% 28%, #250000 0%, #0B0B0D 32%, #050505 64%, #020202 100%) !important;
+}
+
+.cut-processing--fullscreen::before,
+.cut-processing--fullscreen::after {
+  background: #250000 !important;
+}
+
+.cut-processing__panel {
+  border-color: #34343A !important;
+  background: linear-gradient(160deg, #141417 0%, #0B0B0D 60%, #050505 100%) !important;
+  box-shadow: 0 24px 70px #000000, inset 0 1px #650000 !important;
+}
+
+.cut-processing__orbit,
+.cut-processing__orb::before,
+.cut-processing__orb::after {
+  border-color: #980000 !important;
+}
+
+.cut-processing__orbit::after,
+.cut-processing__beat span,
+.cut-processing__progress-runner {
+  background: #D80000 !important;
+  box-shadow: 0 0 16px #650000 !important;
+}
+
+.cut-processing__progress {
+  background: #202024 !important;
+}
+
+.cut-processing__spark {
+  background: #FFFFFF !important;
+  box-shadow: 0 0 12px #D80000 !important;
+}
