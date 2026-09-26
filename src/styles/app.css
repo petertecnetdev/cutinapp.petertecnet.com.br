@@ -36,7 +36,6 @@
 /* 4. Feature presentation */
 /* HomePage/HomeDiscovery remain imported by HomePage so their CSS stays with
    the lazy home route instead of increasing the critical CSS for every route. */
-@import "./logo-theme.css";
 /* Pointer/aurora/tilt effects are desktop-only. Keeping this import scoped
    prevents their expensive filters, transitions and backdrop rules from
    entering the mobile cascade while preserving the desktop presentation. */
@@ -61,6 +60,9 @@
 
 /* 6. Performance must stay last so low-cost scroll/mobile overrides win. */
 @import "./performance.css";
+
+/* 7. Official Cutinapp identity MUST win the cascade: black / graphite / electric red. */
+@import "./logo-theme.css";
 
 /* Home hero: mobile/tablet users never see the desktop visual frame, so avoid
    continuously painting its oversized blurred glow and decorative beams. */
