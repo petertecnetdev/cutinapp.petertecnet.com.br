@@ -167,22 +167,24 @@ function ProducerEventCard({
           </button>
         </div>
         <div className="cut-producer-event-card__meta">
+          <span className="cut-event-date"><i className="fa-regular fa-calendar" />{formatDate(event.start_date)}</span>
           <span><i className="fa-solid fa-building" />{event.production?.name || "Produção não informada"}</span>
-          <span><i className="fa-regular fa-calendar" />{formatDate(event.start_date)}</span>
           <span><i className="fa-solid fa-location-dot" />{event.venue || event.address || event.city || "Local não informado"}</span>
         </div>
       </div>
 
-      <div className="cut-producer-event-card__artists" data-label="Artistas">
+      {Array.isArray(event.artists) && event.artists.length > 0 && <div className="cut-producer-event-card__artists" data-label="Artistas">
+        <small className="cut-event-field-label">Artistas</small>
         <ArtistsInline event={event} onOpen={onArtistOpen} compact />
-      </div>
+      </div>}
 
       <div className="cut-producer-event-card__status" data-label="Status">
+        <small className="cut-event-field-label">Status</small>
         <Badge bg={status.variant}>{status.label}</Badge>
-        <EventPerformanceBadge event={event} />
       </div>
 
       <div className="cut-producer-event-card__sales" data-label="Vendas">
+        <small className="cut-event-field-label">Ingressos e vendas</small>
         <strong>{metrics.ticketsSold.toLocaleString("pt-BR")} vendidos</strong>
         <span>{moneyBR(metrics.grossSales)}</span>
         <small>{metrics.ticketsRemaining.toLocaleString("pt-BR")} restante(s)</small>
@@ -200,9 +202,8 @@ function ProducerEventCard({
       </div>
 
       <div className="cut-producer-event-card__quick-actions" data-label="Ações">
-        <Button variant="outline-light" size="sm" onClick={() => onQuickView?.(event)} title="Central do Evento" aria-label="Abrir central do evento"><i className="fa-solid fa-gauge-high" /></Button>
-        <Button variant="outline-light" size="sm" onClick={() => onEdit?.(event)} title="Editar" aria-label="Editar evento"><i className="fa-solid fa-pen" /></Button>
-        <Button variant="outline-light" size="sm" onClick={() => onDuplicate?.(event)} title="Duplicar +7 dias" aria-label="Duplicar evento"><i className="fa-regular fa-copy" /></Button>
+        <Button variant="outline-light" size="sm" onClick={() => onQuickView?.(event)} title="Central do Evento" aria-label={`Abrir central de ${event.title}`}><i className="fa-solid fa-gauge-high" /><span>Ver evento</span></Button>
+        <Button variant="outline-light" size="sm" onClick={() => onEdit?.(event)} title="Editar" aria-label={`Editar ${event.title}`} disabled={disabled}><i className="fa-solid fa-pen" /><span>Editar</span></Button>
         {actions}
       </div>
     </article>;
