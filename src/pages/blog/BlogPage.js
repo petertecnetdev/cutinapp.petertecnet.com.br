@@ -111,7 +111,15 @@ export default function BlogPage() {
       </section>
 
       <Container className="cut-page-container cut-blog-main-content">
-        {error && <Alert variant="danger">{error}</Alert>}
+        <nav className="cut-blog-audience-nav" aria-label="Explorar conteúdos por público">
+          <button type="button" onClick={() => setQuery("")}><i className="fa-solid fa-compass" /><span><strong>Todos</strong><small>Descoberta e experiências</small></span></button>
+          <button type="button" onClick={() => setQuery("ingressos")}><i className="fa-solid fa-ticket" /><span><strong>Participantes</strong><small>Eventos e ingressos</small></span></button>
+          <button type="button" onClick={() => setQuery("produtores")}><i className="fa-solid fa-bolt" /><span><strong>Produtores</strong><small>Venda e divulgação</small></span></button>
+          <button type="button" onClick={() => setQuery("promoter")}><i className="fa-solid fa-bullhorn" /><span><strong>Promoters</strong><small>Alcance e conversão</small></span></button>
+          <button type="button" onClick={() => setQuery("artistas")}><i className="fa-solid fa-music" /><span><strong>Artistas</strong><small>Agenda e descoberta</small></span></button>
+        </nav>
+
+        {error && <Alert variant="danger">{error}</Alert>
         {loading && <div className="cut-blog-loading"><Spinner /><p>Carregando conteúdos...</p></div>}
 
         {!loading && filtered.length === 0 && <div className="cut-blog-empty">
@@ -136,10 +144,35 @@ export default function BlogPage() {
           </Link>
         </section>}
 
+        {filtered.length > 1 && <section className="cut-blog-library" aria-labelledby="cut-blog-library-title">
+          <div className="cut-blog-section-label"><span>Biblioteca Cutinapp</span><i /></div>
+          <div className="cut-blog-library-heading">
+            <div>
+              <h2 id="cut-blog-library-title">Conteúdos para descobrir, produzir e movimentar eventos</h2>
+              <p>Artigos conectados ao que realmente existe na plataforma: eventos, produções, artistas, ingressos e itens.</p>
+            </div>
+            <Link to="/event" className="cut-blog-library-cta">Explorar eventos <i className="fa-solid fa-arrow-right" /></Link>
+          </div>
+          <div className="cut-blog-library-grid">
+            {filtered.slice(1).map((entry) => <Link to={`/blog/${entry.slug}`} className="cut-blog-library-card" key={entry.id || entry.slug}>
+              <div className="cut-blog-library-media"><BlogCover entry={entry} /></div>
+              <div className="cut-blog-library-body">
+                <div className="cut-blog-featured-meta">
+                  <span>{entry.category || "Cutinapp"}</span>
+                  {entry.published_at && <time>{formatDate(entry.published_at)}</time>}
+                </div>
+                <h3>{entry.title}</h3>
+                {entry.excerpt && <p>{entry.excerpt}</p>}
+                <strong>Ler e continuar descobrindo <i className="fa-solid fa-arrow-right" /></strong>
+              </div>
+            </Link>)}
+          </div>
+        </section>}
+
         {featured && <BlogDiscoveryCarousels
           currentSlug={featured.slug}
           blogEntries={filtered}
-          showBlogs={filtered.length > 1}
+          showBlogs={false}
         />}
       </Container>
     </main>
