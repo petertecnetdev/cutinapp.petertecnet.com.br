@@ -143,11 +143,6 @@ export const renderEventPosterCanvas = (canvas, image, options = {}) => {
       filter: buildFilter({ background: true }),
     });
 
-    ctx.save();
-    ctx.fillStyle = "#0B0B0D";
-    ctx.globalAlpha = 0.26;
-    ctx.fillRect(0, 0, width, height);
-    ctx.restore();
   }
 
   drawImage(ctx, image, {
