@@ -95,10 +95,7 @@ export default function EventExperienceEditorSurface({
   ) : null;
 
   return (
-    <div
-      className={`cut-event-inline-editor cut-event-view-page ${imagePreview ? "cut-event-view-page--flyer-background" : ""}`}
-      style={imagePreview ? { "--cut-event-flyer-bg": `url("${imagePreview}")` } : undefined}
-    >
+    <div className="cut-event-inline-editor cut-event-view-page">
       <section className="cut-event-banner-stage cut-event-inline-editor__banner" aria-label={`Prévia da imagem de ${title}`}>
         <Container className="cut-page-container">
           <div className="cut-event-inline-editor__modebar">
