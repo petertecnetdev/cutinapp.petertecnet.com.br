@@ -1,11 +1,11 @@
 import { resolveNavigationCapabilities } from "./capabilityResolver";
-import { accountNavigation, actorMenusFor, commonNavigation, contextualNavigation, quickActionsFor, rankQuickActions } from "./navigationRegistry";
+import { accountNavigation, actorMenusFor, commonNavigation, primaryNavigation, exploreNavigation, creationActionsFor, adminActionsFor, contextualNavigation, quickActionsFor, rankQuickActions } from "./navigationRegistry";
 
 const app = (role, roles = []) => ({ slug: "cutinapp", pivot: { status: "active", role, metadata: JSON.stringify({ roles }) } });
 
 describe("capability based navigation", () => {
   test("participant account items stay out of the desktop common navigation", () => {
-    expect(commonNavigation.map((entry) => entry.id)).toEqual(["events", "search", "feed", "messages", "productions", "artists", "blog"]);
+    expect(commonNavigation.map((entry) => entry.id)).toEqual(["search", "events", "feed", "messages", "productions", "artists", "blog"]);
     expect(accountNavigation.map((entry) => entry.id)).toEqual(expect.arrayContaining(["profile", "passes", "purchases", "notifications", "account-settings"]));
   });
 
@@ -48,6 +48,9 @@ describe("capability based navigation", () => {
     expect(actions.some((entry) => entry.id === "quick-create-event")).toBe(true);
     expect(actions.some((entry) => entry.id === "quick-artist")).toBe(true);
     expect(rankQuickActions(actions, { "quick-artist": 8 })[0].id).toBe("quick-artist");
-    expect(commonNavigation[0].id).toBe("events");
+    expect(primaryNavigation.map((entry) => entry.id)).toEqual(["home", "search", "events", "feed", "messages", "productions"]);
+    expect(exploreNavigation.map((entry) => entry.id)).toEqual(["artists", "blog"]);
+    expect(creationActionsFor(capabilities).some((entry) => entry.to === "/production/create")).toBe(true);
+    expect(adminActionsFor(capabilities)).toEqual([]);
   });
 });

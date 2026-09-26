@@ -15,10 +15,11 @@ import {
   PRODUCTION_STORAGE_KEY,
   accountNavigation,
   actorMenusFor,
-  commonNavigation,
+  primaryNavigation,
+  exploreNavigation,
+  creationActionsFor,
+  adminActionsFor,
   contextualNavigation,
-  quickActionsFor,
-  rankQuickActions,
   readNavigationUsage,
 } from "../navigation/navigationRegistry";
 import NotificationPermissionControl from "./NotificationPermissionControl";
@@ -97,6 +98,7 @@ export default function NavlogComponent() {
   const userId = user?.id;
   const initialRuntimeCache = runtimeCacheFor(userId);
   const [open, setOpen] = useState(false);
+  const [activeDropdown, setActiveDropdown] = useState(null);
   const [productions, setProductions] = useState(() => initialRuntimeCache.productions || []);
   const [selectedProduction, setSelectedProduction] = useState(() => readStored(PRODUCTION_STORAGE_KEY) || "");
   const [capabilityEvidence, setCapabilityEvidence] = useState(() => readCapabilityEvidence(userId));
@@ -108,9 +110,9 @@ export default function NavlogComponent() {
   const capabilities = useMemo(() => resolveNavigationCapabilities(user, capabilityEvidence), [user, capabilityEvidence]);
   const actorMenus = useMemo(() => actorMenusFor(capabilities), [capabilities]);
   const contextual = useMemo(() => contextualNavigation(location.pathname, capabilities), [location.pathname, capabilities]);
-  const quickActions = useMemo(() => rankQuickActions(quickActionsFor(capabilities), usage), [capabilities, usage]);
   const active = (to) => to === "/" ? location.pathname === "/" : location.pathname === to || location.pathname.startsWith(`${to}/`);
-  const closeMenu = () => setOpen(false);
+  const closeMenu = () => { setOpen(false); setActiveDropdown(null); };
+  const dropdown = (id) => ({ show: activeDropdown === id, onToggle: (next) => setActiveDropdown(next ? id : null) });
 
   useEffect(() => {
     setCapabilityEvidence(readCapabilityEvidence(userId));
@@ -128,7 +130,8 @@ export default function NavlogComponent() {
     if (cached.pendingArtistInvitations !== undefined) setPendingArtistInvitations(Number(cached.pendingArtistInvitations || 0));
   }, [userId]);
 
-  useEffect(() => { setOpen(false); }, [location.pathname, location.search, location.hash]);
+  useEffect(() => { closeMenu(); }, [location.pathname, location.search, location.hash]);
+  useEffect(() => { const onKeyDown = (event) => { if (event.key === "Escape") setActiveDropdown(null); }; window.addEventListener("keydown", onKeyDown); return () => window.removeEventListener("keydown", onKeyDown); }, []);
 
   useEffect(() => {
     if (typeof document === "undefined") return undefined;
@@ -356,32 +359,30 @@ export default function NavlogComponent() {
             <div className="cut-navbar__drawer-heading"><strong>Navegação</strong><small>{actorMenus.length ? `${actorMenus.length} área${actorMenus.length > 1 ? "s" : ""} de trabalho disponível${actorMenus.length > 1 ? "is" : ""}` : "Sua experiência Cutinapp"}</small></div>
 
             <Nav className="cut-navbar__links mx-auto" aria-label="Navegação principal">
-              <Nav.Link as={Link} to="/search" aria-current={active("/search") ? "page" : undefined} className={`cut-navbar__primary-link cut-navbar__search-link ${active("/search") ? "active" : ""}`} onClick={() => { closeMenu(); trackTelemetry("navigation_item_selected", { id: "global-search", route: "/search", source: "global_search_page" }); }}><i className="fa-solid fa-magnifying-glass" /><span>Buscar</span></Nav.Link>
-              {commonNavigation.map((entry) => <Nav.Link key={entry.id} as={Link} to={entry.to} aria-current={active(entry.to) ? "page" : undefined} onClick={() => recordUsage(entry, "common_primary")} className={`cut-navbar__primary-link ${active(entry.to) ? "active" : ""}`}><i className={entry.icon} /><span>{entry.label}</span></Nav.Link>)}
-
-              {actorMenus.map((area) => <NavDropdown key={area.id} title={<span className="cut-actor-menu__title"><i className={area.icon} /><span>{area.label}</span>{area.id === "producer" && productions.length > 0 && <span className="cut-actor-menu__badge">{productions.length}</span>}</span>} id={`cut-actor-${area.id}`} className={`cut-actor-menu ${area.items.some((entry) => active(entry.to)) ? "active" : ""}`}>
-                <div className="cut-actor-menu__heading"><i className={area.icon} /><span><strong>{area.label}</strong><small>{area.description}</small></span></div>
-                {area.items.map((entry) => <NavDropdown.Item key={entry.id} as={Link} to={entry.to} aria-current={active(entry.to) ? "page" : undefined} onClick={() => recordUsage(entry, `actor_${area.id}`)}><i className={`${entry.icon} me-2`} />{entry.label}</NavDropdown.Item>)}
-                {area.id === "producer" && productions.length > 0 && <><NavDropdown.Divider /><div className="cut-production-switcher"><label htmlFor="cut-production-context">Produção em foco</label><select id="cut-production-context" value={selectedProduction} onChange={(event) => { const id = event.target.value; setSelectedProduction(id); store(PRODUCTION_STORAGE_KEY, id); trackTelemetry("navigation_production_context_changed", { production_id: id || null }); if (id) navigate(`/production/${id}`); }}><option value="">Selecionar produção</option>{productions.map((entry) => <option key={entry.id} value={entry.id}>{entry.name || `Produção #${entry.id}`}</option>)}</select>{selectedProductionObject && <small>Em foco: {selectedProductionObject.name}</small>}</div></>}
-              </NavDropdown>)}
-
-              {contextual && <NavDropdown title={<span><i className="fa-solid fa-location-crosshairs" /> Contexto</span>} id="cut-context-menu" className="cut-context-menu"><div className="cut-navbar__context-box"><div className="cut-navbar__context-title">{contextual.label}</div>{contextual.items.map((entry) => <NavDropdown.Item key={entry.id} as={Link} to={entry.to} onClick={() => recordUsage(entry, "contextual")}><i className={`${entry.icon} me-2`} />{entry.label}</NavDropdown.Item>)}</div></NavDropdown>}
-
-              {quickActions.length > 0 && <NavDropdown title={<span><i className="fa-solid fa-plus" /> Ações</span>} id="cut-quick-menu" className="cut-navbar__quick-toggle"><div className="cut-navbar__quick-menu"><div className="cut-quick-heading">Ações rápidas</div>{quickActions.slice(0, 6).map((entry) => <NavDropdown.Item key={entry.id} as="button" onClick={() => go(entry, "quick_actions")}><i className={`${entry.icon} me-2`} />{entry.label}</NavDropdown.Item>)}</div></NavDropdown>}
-
-              <Nav.Link as={Link} to="/artist/invitations" className={`cut-navbar__primary-link ${active("/artist/invitations") ? "active" : ""}`} onClick={closeMenu} aria-label={pendingArtistInvitations ? `${pendingArtistInvitations} convites artísticos aguardando resposta` : "Convites artísticos"}>
-                <span className="cut-nav-notification-toggle"><i className="fa-solid fa-id-card-clip" />{pendingArtistInvitations > 0 && <span className="cut-nav-notification__badge">{pendingArtistInvitations > 99 ? "99+" : pendingArtistInvitations}</span>}</span>
-                <span>Convites</span>
-              </Nav.Link>
-
-              <NavDropdown align="end" title={<span className="cut-nav-notification-toggle" aria-label={unreadNotifications ? `${unreadNotifications} notificações não lidas` : "Notificações"}><i className={unreadNotifications > 0 ? "fa-solid fa-bell" : "fa-regular fa-bell"} />{unreadNotifications > 0 && <span className="cut-nav-notification__badge">{unreadNotifications > 99 ? "99+" : unreadNotifications}</span>}</span>} id="cut-notifications-menu" className="cut-nav-notification-menu">
-                <div className="cut-notification-popover"><div className="cut-notification-popover__head"><strong>Notificações</strong>{unreadNotifications > 0 && <span>{unreadNotifications} nova{unreadNotifications === 1 ? "" : "s"}</span>}</div><NotificationPermissionControl compact /><div className="cut-notification-popover__list">{notificationPreview.length === 0 ? <div className="cut-notification-popover__empty"><i className="fa-regular fa-bell" /><span>Nenhuma novidade por aqui.</span></div> : notificationPreview.map((entry) => <button type="button" key={entry.id} {...notificationTelemetryAttrs(entry, "navbar_popover")} className={`cut-notification-popover__item ${entry.read_at ? "" : "is-unread"}`} onClick={() => openNotification(entry)}><span className="cut-notification-popover__icon"><i className={notificationIcon(entry.type)} /></span><span className="cut-notification-popover__copy"><strong>{entry.title || "Nova atividade"}</strong><small>{entry.message || "Há uma novidade para você na Cutinapp."}</small><time>{notificationTime(entry.created_at)}</time></span>{!entry.read_at && <span className="cut-notification-popover__dot" />}</button>)}</div><button type="button" className="cut-notification-popover__footer" onClick={() => navigate("/notifications")}>Ver todas</button></div>
+              {primaryNavigation.map((entry) => <Nav.Link key={entry.id} as={Link} to={entry.to} aria-label={entry.label} aria-current={active(entry.to) ? "page" : undefined} onClick={() => { recordUsage(entry, "primary"); closeMenu(); }} className={`cut-navbar__primary-link cut-navbar__destination-${entry.id} ${active(entry.to) ? "active" : ""}`}><i className={entry.icon} aria-hidden="true" /><span>{entry.label}</span></Nav.Link>)}
+              <NavDropdown {...dropdown("explore")} title={<span><i className="fa-solid fa-compass" aria-hidden="true" /><span>Mais</span></span>} id="cut-explore-menu" className="cut-navbar__more-menu">
+                {primaryNavigation.filter((entry) => ["messages", "productions"].includes(entry.id)).map((entry) => <NavDropdown.Item key={entry.id} className="cut-navbar__compact-destination" as={Link} to={entry.to} onClick={closeMenu}><i className={`${entry.icon} me-2`} />{entry.label}</NavDropdown.Item>)}
+                {exploreNavigation.map((entry) => <NavDropdown.Item key={entry.id} as={Link} to={entry.to} onClick={() => recordUsage(entry, "explore")}><i className={`${entry.icon} me-2`} aria-hidden="true" />{entry.label}</NavDropdown.Item>)}
+                {pendingArtistInvitations > 0 && <NavDropdown.Item as={Link} to="/artist/invitations">Convites <span className="cut-account-inline-badge">{pendingArtistInvitations > 99 ? "99+" : pendingArtistInvitations}</span></NavDropdown.Item>}
               </NavDropdown>
             </Nav>
-
+            <div className="cut-navbar__tools">
+              {creationActionsFor(capabilities).length > 0 && <NavDropdown {...dropdown("create")} align="end" title={<span><i className="fa-solid fa-plus" aria-hidden="true" /><span>Criar</span></span>} id="cut-quick-menu" className="cut-navbar__quick-toggle" aria-label="Criar"><div className="cut-navbar__quick-menu"><div className="cut-quick-heading">Criar</div>{creationActionsFor(capabilities).map((entry) => <NavDropdown.Item key={entry.id} as="button" onClick={() => go(entry, "creation")}><i className={`${entry.icon} me-2`} />{entry.label}</NavDropdown.Item>)}</div></NavDropdown>}
+              <NavDropdown {...dropdown("notifications")} align="end" title={<span className="cut-nav-notification-toggle" aria-label={unreadNotifications ? `${unreadNotifications} notificações não lidas` : "Notificações"}><i className={unreadNotifications > 0 ? "fa-solid fa-bell" : "fa-regular fa-bell"} />{unreadNotifications > 0 && <span className="cut-nav-notification__badge">{unreadNotifications > 99 ? "99+" : unreadNotifications}</span>}</span>} id="cut-notifications-menu" className="cut-nav-notification-menu">
+                <div className="cut-notification-popover"><div className="cut-notification-popover__head"><strong>Notificações</strong>{unreadNotifications > 0 && <span>{unreadNotifications} nova{unreadNotifications === 1 ? "" : "s"}</span>}</div><NotificationPermissionControl compact /><div className="cut-notification-popover__list">{notificationPreview.length === 0 ? <div className="cut-notification-popover__empty"><i className="fa-regular fa-bell" /><span>Nenhuma novidade por aqui.</span></div> : notificationPreview.map((entry) => <button type="button" key={entry.id} {...notificationTelemetryAttrs(entry, "navbar_popover")} className={`cut-notification-popover__item ${entry.read_at ? "" : "is-unread"}`} onClick={() => { setActiveDropdown(null); openNotification(entry); }}><span className="cut-notification-popover__icon"><i className={notificationIcon(entry.type)} /></span><span className="cut-notification-popover__copy"><strong>{entry.title || "Nova atividade"}</strong><small>{entry.message || "Há uma novidade para você na Cutinapp."}</small><time>{notificationTime(entry.created_at)}</time></span>{!entry.read_at && <span className="cut-notification-popover__dot" />}</button>)}</div><button type="button" className="cut-notification-popover__footer" onClick={() => { setActiveDropdown(null); navigate("/notifications"); }}>Ver todas</button></div>
+              </NavDropdown>
+            </div>
             <Nav className="cut-navbar__account">
-              <NavDropdown align="end" title={<span className="cut-navbar__user"><span className="cut-navbar__avatar">{userAvatar ? <img src={userAvatar} alt="" /> : userFallbackInitials}</span><span><strong>{user.first_name || user.name || "Minha conta"}</strong><small>{user.email}</small></span></span>} id="cut-account-menu">
-                <div className="cut-account-menu__heading"><strong>Minha conta</strong><small>Itens pessoais disponíveis para todo usuário</small></div>
+              <NavDropdown {...dropdown("account")} align="end" title={<span className="cut-navbar__user"><span className="cut-navbar__avatar">{userAvatar ? <img src={userAvatar} alt="" /> : userFallbackInitials}</span><span><strong>{user.first_name || user.name || "Minha conta"}</strong></span></span>} id="cut-account-menu">
+                <div className="cut-account-menu__heading"><strong>Minha conta</strong><small>{user.email}</small></div>
+                <NavDropdown.Item as={Link} to="/feed" onClick={closeMenu}><i className="fa-solid fa-user me-2" />Modo participante</NavDropdown.Item>
+                {actorMenus.filter((area) => area.id !== "admin").map((area) => <NavDropdown.Item key={area.id} as={Link} to={area.items[0]?.to || "/profile"} onClick={closeMenu}><i className={`${area.icon} me-2`} />Modo {area.label.toLowerCase()}</NavDropdown.Item>)}
+                {actorMenus.filter((area) => area.id !== "admin").flatMap((area) => area.items).filter((entry) => !["/event", "/feed", "/artists"].includes(entry.to)).map((entry) => <NavDropdown.Item key={entry.id} as={Link} to={entry.to} onClick={closeMenu}><i className={`${entry.icon} me-2`} />{entry.label}</NavDropdown.Item>)}
+                {actorMenus.length > 0 && <NavDropdown.Divider />}
+                {contextual?.items.map((entry) => <NavDropdown.Item key={entry.id} as={Link} to={entry.to} onClick={closeMenu}>{entry.label}</NavDropdown.Item>)}
+                {productions.length > 0 && <div className="cut-production-switcher"><label htmlFor="cut-production-context">Produção em foco</label><select id="cut-production-context" value={selectedProduction} onChange={(event) => { const id = event.target.value; setSelectedProduction(id); store(PRODUCTION_STORAGE_KEY, id); setActiveDropdown(null); if (id) navigate(`/production/${id}`); }}><option value="">Selecionar produção</option>{productions.map((entry) => <option key={entry.id} value={entry.id}>{entry.name || `Produção #${entry.id}`}</option>)}</select>{selectedProductionObject && <small>Em foco: {selectedProductionObject.name}</small>}</div>}
+                {pendingArtistInvitations > 0 && <NavDropdown.Item as={Link} to="/artist/invitations" onClick={closeMenu}>Convites ({pendingArtistInvitations})</NavDropdown.Item>}
+                {adminActionsFor(capabilities).length > 0 && <><NavDropdown.Divider /><div className="cut-account-menu__heading"><strong>Administração</strong></div>{adminActionsFor(capabilities).map((entry) => <NavDropdown.Item key={entry.id} as={Link} to={entry.to} onClick={closeMenu}><i className={`${entry.icon} me-2`} />{entry.label}</NavDropdown.Item>)}</>}
                 {accountNavigation.map((entry) => <NavDropdown.Item key={entry.id} as={Link} to={entry.to} aria-current={active(entry.to) ? "page" : undefined} onClick={() => recordUsage(entry, "account")}><i className={`${entry.icon} me-2`} />{entry.label}{entry.id === "notifications" && unreadNotifications > 0 && <span className="cut-account-inline-badge">{unreadNotifications > 99 ? "99+" : unreadNotifications}</span>}</NavDropdown.Item>)}
                 <NavDropdown.Divider />
                 <NavDropdown.Item as="button" onClick={signOut}><i className="fa-solid fa-arrow-right-from-bracket me-2" />Sair</NavDropdown.Item>
