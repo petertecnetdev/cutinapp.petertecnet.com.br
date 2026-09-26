@@ -173,10 +173,14 @@
   font-size:1.25rem;
   font-weight:950
 }
-.cut-event-command-hero__cover img{
+.cut-event-command-hero__poster{
   width:100%;
   height:100%;
-  object-fit:cover
+  aspect-ratio:auto;
+  --cut-event-poster-padding:3px
+}
+.cut-event-command-hero__poster .cut-event-poster-thumb__main img{
+  object-fit:contain!important
 }
 .cut-event-command-hero__copy{
   min-width:0;
