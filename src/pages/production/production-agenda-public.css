@@ -576,8 +576,12 @@
   }
 
   .cut-public-weekly__event-media {
-    width: 64px;
-    height: 64px;
-    flex-basis: 64px;
+    width: 58px;
+    height: auto;
+    flex-basis: 58px;
+  }
+
+  .cut-public-weekly__event-poster{
+    width:58px;
   }
 }
