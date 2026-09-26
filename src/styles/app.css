@@ -64,6 +64,9 @@
 /* 7. Official Cutinapp identity MUST win the cascade: black / graphite / electric red. */
 @import "./logo-theme.css";
 
+/* 8. Authenticated desktop shell: Instagram-inspired vertical navigation. */
+@import "./instagram-desktop-sidebar.css";
+
 /* Home hero: mobile/tablet users never see the desktop visual frame, so avoid
    continuously painting its oversized blurred glow and decorative beams. */
 @media (max-width: 991px) {
