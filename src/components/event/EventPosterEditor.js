@@ -216,7 +216,10 @@ export default function EventPosterEditor({
                   <i className="fa-solid fa-rotate-right" /> Girar 90°
                 </Button>
                 <Button type="button" variant="outline-light" onClick={() => patch({ flipX: !options.flipX })}>
-                  <i className="fa-solid fa-left-right" /> Espelhar
+                  <i className="fa-solid fa-left-right" /> Espelhar H
+                </Button>
+                <Button type="button" variant="outline-light" onClick={() => patch({ flipY: !options.flipY })}>
+                  <i className="fa-solid fa-up-down" /> Espelhar V
                 </Button>
               </div>
             </section>
