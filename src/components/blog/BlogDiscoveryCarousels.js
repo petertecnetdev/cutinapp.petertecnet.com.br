@@ -6,6 +6,7 @@ import cutinappService from "../../services/CutinappService";
 import eventService from "../../services/EventService";
 import { storageUrl } from "../../config";
 import { getImageFallbackInitials } from "../../utils/imageFallback";
+import EventPosterThumbnail from "../event/EventPosterThumbnail";
 
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const eventDate = new Intl.DateTimeFormat("pt-BR", {
@@ -219,11 +220,11 @@ export default function BlogDiscoveryCarousels({ currentSlug = "", blogEntries =
       action={<Link className="cut-blog-carousel-link" to="/event">Ver eventos</Link>}
     >
       {events.map((event) => <Link to={`/event/${event.slug}`} className="cut-blog-slide cut-blog-slide--event" key={`event-${event.id || event.slug}`}>
-        <div className="cut-blog-slide-media">
-          <Media src={mediaUrl(event.image)} alt={event.title} icon="fa-regular fa-calendar" />
-          {event.category && <span>{event.category}</span>}
+        <div className="cut-blog-slide-media cut-blog-slide-media--event">
+          <EventPosterThumbnail image={event.image} title={event.title} alt={event.title} className="cut-blog-event-poster" loading="lazy" />
         </div>
         <div className="cut-blog-slide-body">
+          {event.category && <span className="cut-blog-event-category">{event.category}</span>}
           <h3>{event.title}</h3>
           <p className="cut-blog-slide-meta"><i className="fa-regular fa-calendar" /> {event.start_date ? eventDate.format(new Date(event.start_date)) : "Data a definir"}</p>
           <p className="cut-blog-slide-meta"><i className="fa-solid fa-location-dot" /> {event.venue || event.city || "Local a definir"}</p>
