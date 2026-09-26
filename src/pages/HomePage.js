@@ -7,6 +7,7 @@ import PeterTecnetSignature from "../components/PeterTecnetSignature";
 import ProcessingIndicatorComponent from "../components/ProcessingIndicatorComponent";
 import CommerceTrustRail from "../components/CommerceTrustRail";
 import EventArtwork from "../components/event/EventArtwork";
+import EventPosterThumbnail from "../components/event/EventPosterThumbnail";
 import { storageUrl } from "../config";
 import { readDiscoveryPreference, saveDiscoveryPreference } from "../utils/discoveryFilters";
 import "./HomePage.css";
@@ -497,11 +498,10 @@ export default function HomePage() {
                     {events.map((event) => (
                       <Link key={event.id} to={`/event/${event.slug}`} className="cut-home-discovery__eventCard">
                         <div className="cut-home-discovery__eventImage">
-                          <EventArtwork image={event.image} title={event.title} alt={event.title} loading="lazy" decoding="async" />
-                          {event.free_ticket_lots_count > 0 && <b>GRÁTIS</b>}
+                          <EventPosterThumbnail image={event.image} title={event.title} alt={event.title} className="cut-home-discovery__eventPoster" loading="lazy" />
                         </div>
                         <div className="cut-home-discovery__eventInfo">
-                          <small>{dateLabel(event.start_date)}</small>
+                          <div className="cut-home-discovery__eventChips">{event.free_ticket_lots_count > 0 && <b>GRÁTIS</b>}<small>{dateLabel(event.start_date)}</small></div>
                           <h3>{event.title}</h3>
                           <p><i className="fa-solid fa-location-dot" /> {formatEventLocation(event)}</p>
                           {event.production?.name && <span>{event.production.name}</span>}
