@@ -1,7 +1,11 @@
 import { canNavigate } from "./capabilityResolver";
 export const PRODUCTION_STORAGE_KEY="cutinapp:navigation-production"; export const NAV_USAGE_STORAGE_KEY="cutinapp:navigation-usage";
 const item=(id,label,icon,to,extras={})=>({id,label,icon,to,...extras});
-export const commonNavigation=[item("events","Eventos","fa-regular fa-calendar-days","/event"),item("search","Buscar","fa-solid fa-magnifying-glass","/search"),item("feed","Feed","fa-solid fa-bolt","/feed"),item("messages","Mensagens","fa-regular fa-paper-plane","/messages"),item("productions","Produções","fa-solid fa-building","/productions"),item("artists","Artistas","fa-solid fa-music","/artists"),item("blog","Blog","fa-solid fa-newspaper","/blog")];
+export const primaryNavigation=[item("home","Início","fa-solid fa-house","/"),item("search","Buscar","fa-solid fa-magnifying-glass","/search"),item("events","Eventos","fa-regular fa-calendar-days","/event"),item("feed","Feed","fa-solid fa-bolt","/feed"),item("messages","Mensagens","fa-regular fa-paper-plane","/messages"),item("productions","Produções","fa-solid fa-building","/productions")];
+export const exploreNavigation=[item("artists","Artistas","fa-solid fa-music","/artists"),item("blog","Blog","fa-regular fa-newspaper","/blog")];
+export const commonNavigation=[...primaryNavigation.filter((entry)=>entry.id!=="home"),...exploreNavigation];
+export const creationActionsFor=(capabilities)=>[...quickActionsFor(capabilities).filter((entry)=>/create|criar|publicar/i.test(`${entry.id} ${entry.label}`)),...(canNavigate(capabilities,"production.manage")?[item("quick-create-production","Criar produção","fa-solid fa-building-circle-check","/production/create")]:[])];
+export const adminActionsFor=(capabilities)=>actorMenusFor(capabilities).find((area)=>area.id==="admin")?.items||[];
 export const accountNavigation=[item("profile","Meu perfil","fa-regular fa-user","/profile"),item("passes","Meus ingressos","fa-solid fa-ticket","/passes"),item("purchases","Minhas compras","fa-solid fa-receipt","/purchases"),item("notifications","Notificações","fa-regular fa-bell","/notifications"),item("dashboard","Meu painel","fa-solid fa-gauge-high","/dashboard"),item("account-settings","Editar conta","fa-solid fa-gear","/user/edit"),item("password","Alterar senha","fa-solid fa-key","/password")];
 export const actorNavigation=[
 {id:"producer",label:"Produção",icon:"fa-solid fa-briefcase",requirement:"producer",description:"Gestão, receita e operação",groups:[

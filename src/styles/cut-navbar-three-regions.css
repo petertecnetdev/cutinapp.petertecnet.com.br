@@ -1,0 +1,41 @@
+/* Desktop navigation: fixed brand, centered destinations, compact actions. */
+@media (min-width: 992px) {
+  .cut-capability-nav.cut-navbar { height: 72px !important; min-height: 72px !important; background: #080809 !important; }
+  .cut-capability-nav .cut-navbar__inner { width: min(1360px, calc(100% - 48px)) !important; max-width: 1360px !important; min-height: 72px !important; height: 72px; gap: 16px !important; flex-wrap: nowrap !important; }
+  .cut-capability-nav .cut-navbar__brand { width: 184px; flex: 0 0 184px; margin: 0 !important; }
+  .cut-capability-nav .cut-navbar__brand small { display: none !important; }
+  .cut-capability-nav .navbar-collapse { display: grid !important; grid-template-columns: minmax(0, 1fr) auto auto auto !important; gap: 12px !important; align-items: center; height: 72px; }
+  .cut-capability-nav .cut-navbar__links { justify-content: center !important; align-items: center; gap: 4px !important; flex-wrap: nowrap !important; overflow: visible !important; }
+  .cut-capability-nav .cut-navbar__links .nav-link,
+  .cut-capability-nav .cut-navbar__links .dropdown-toggle,
+  .cut-capability-nav .cut-navbar__tools .dropdown-toggle,
+  .cut-capability-nav .cut-navbar__account .dropdown-toggle { display: inline-flex !important; align-items: center; justify-content: center; gap: 8px; height: 44px; min-height: 44px !important; padding: 0 10px !important; font-size: .875rem !important; font-weight: 500; white-space: nowrap; color: #d7d7dc !important; border-radius: 9px; }
+  .cut-capability-nav .cut-navbar__links i,
+  .cut-capability-nav .cut-navbar__tools i { color: inherit !important; font-size: 17px; width: 19px; text-align: center; }
+  .cut-capability-nav .cut-navbar__links .nav-link.active { color: #ff3636 !important; background: #1a1010 !important; box-shadow: inset 0 -2px #d80000 !important; }
+  .cut-capability-nav :is(.nav-link,.dropdown-toggle):hover { color: #ff3636 !important; background: #191112 !important; }
+  .cut-capability-nav :is(.nav-link,.dropdown-toggle):focus-visible { outline: 2px solid #ff3636 !important; outline-offset: 2px; }
+  .cut-capability-nav .cut-navbar__tools { display: flex; align-items: center; gap: 5px; }
+  .cut-capability-nav .cut-nav-notification-toggle { position: relative; display: inline-flex; align-items: center; }
+  .cut-capability-nav .cut-nav-notification__badge { position: absolute; top: -7px; right: -11px; min-width: 17px; height: 17px; padding: 0 3px; font-size: 10px; line-height: 17px; border-radius: 9px; text-align: center; background: #d80000; color: #fff; }
+  .cut-capability-nav .cut-navbar__user { max-width: 132px !important; display: inline-flex !important; align-items: center; gap: 6px; }
+  .cut-capability-nav .cut-navbar__user > span:last-child { display: inline-block !important; max-width: 75px; overflow: hidden; text-overflow: ellipsis; }
+  .cut-capability-nav .cut-navbar__ecosystem-slot { border-left: 1px solid #34343a; padding-left: 9px; margin-left: 2px; }
+  .cut-capability-nav .dropdown-menu { min-width: 240px; max-height: calc(100vh - 88px); overflow-y: auto; margin-top: 7px !important; }
+  .cut-capability-nav .cut-navbar__links .dropdown-menu { left: 0 !important; right: auto !important; }
+  .cut-capability-nav .cut-navbar__tools .dropdown-menu,
+  .cut-capability-nav .cut-navbar__account .dropdown-menu { right: 0 !important; left: auto !important; }
+  .cut-capability-nav .cut-navbar__brand > img { filter: none !important; }
+}
+@media (min-width: 992px) and (max-width: 1279px) {
+  .cut-capability-nav .cut-navbar__brand { width: 140px; flex-basis: 140px; }
+  .cut-capability-nav .cut-navbar__brand > div { display: none; }
+  .cut-capability-nav .cut-navbar__destination-messages,
+  .cut-capability-nav .cut-navbar__destination-productions { display: none !important; }
+  .cut-capability-nav .cut-navbar__user > span:last-child { display: none !important; }
+}
+@media (max-width: 991.98px) {
+  .cut-capability-nav .cut-navbar__tools { display: flex; gap: 8px; padding: 8px 12px; }
+}
+
+@media (min-width: 1280px) { .cut-navbar__compact-destination { display: none !important; } }
