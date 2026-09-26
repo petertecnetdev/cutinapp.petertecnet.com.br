@@ -85,6 +85,23 @@ const createEventSeries = createIdempotentEventPost({
   pathFor: (eventId) => `/events/${eventId}/series`,
 });
 
+const unpublishEvent = createIdempotentEventPost({
+  storagePrefix: "cutinapp_event_unpublish_attempt_",
+  keyPrefix: "event-unpublish",
+  pathFor: (eventId) => `/events/${eventId}/unpublish`,
+});
+
+const deleteEvent = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_delete_attempt_",
+  keyPrefix: "event-delete",
+  requestKeyFor: (eventId) => String(Number(eventId)),
+  mutate: async ({ idempotencyKey }, eventId) => (
+    await appApiClient.delete(`/events/${Number(eventId)}`, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    })
+  ).data,
+});
+
 const createAgendaItem = createIdempotentMutation({
   storagePrefix: "cutinapp_event_agenda_create_attempt_",
   keyPrefix: "event-agenda",
@@ -413,7 +430,8 @@ const eventService = {
   show: async (eventId) => (await appApiClient.get(`/events/${eventId}/manage`)).data.event,
   myEvents: fetchAllMyEvents,
   myEventsPage: fetchMyEventsPage,
-  destroy: async (eventId) => (await appApiClient.delete(`/events/${Number(eventId)}`)).data,
+  destroy: (eventId) => deleteEvent(eventId),
+  unpublish: (eventId) => unpublishEvent(eventId),
   duplicate: (eventId, date) => duplicateEvent(eventId, { date }),
   series: (eventId, payload) => createEventSeries(eventId, payload),
 
