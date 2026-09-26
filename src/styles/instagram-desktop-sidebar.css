@@ -1,0 +1,400 @@
+/*
+ * Instagram-inspired desktop navigation shell for authenticated Cutinapp.
+ *
+ * Layout only: official colors continue to come from logo-theme.css.
+ * Desktop >= 1280px uses the full rail; 992-1279px collapses to icon-only.
+ * Mobile keeps the existing topbar + bottom navigation.
+ */
+
+@media (min-width: 992px) {
+  :root {
+    --cut-desktop-sidebar-width: 248px;
+    --cut-desktop-sidebar-compact-width: 84px;
+  }
+
+  body.cut-has-desktop-sidebar {
+    padding-top: 0 !important;
+    padding-left: var(--cut-desktop-sidebar-width) !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav {
+    position: fixed !important;
+    inset: 0 auto 0 0 !important;
+    width: var(--cut-desktop-sidebar-width) !important;
+    max-width: var(--cut-desktop-sidebar-width) !important;
+    height: 100dvh !important;
+    min-height: 100vh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: block !important;
+    border-right: 1px solid #2A0A0A !important;
+    border-bottom: 0 !important;
+    box-shadow: 12px 0 34px #000000, inset -1px 0 #650000 !important;
+    overflow: visible !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav::after {
+    left: auto !important;
+    right: -1px !important;
+    top: 7% !important;
+    bottom: 7% !important;
+    width: 1px !important;
+    height: auto !important;
+    background: linear-gradient(180deg, #080809, #650000, #FF2020, #650000, #080809) !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-navbar__inner {
+    width: 100% !important;
+    max-width: none !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 18px 12px 14px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-navbar__brand {
+    width: 100% !important;
+    min-height: 58px !important;
+    margin: 0 !important;
+    padding: 7px 10px !important;
+    flex: 0 0 auto !important;
+    gap: 12px !important;
+    border-radius: 12px;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-navbar__brand > img {
+    width: 44px !important;
+    height: 44px !important;
+    flex: 0 0 44px !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-navbar__brand strong {
+    font-size: 1rem !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-navbar__brand small {
+    display: block !important;
+    margin-top: 4px !important;
+    font-size: .58rem !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .navbar-toggler {
+    display: none !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .navbar-collapse {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    flex: 1 1 auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+    overflow: visible !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-navbar__mobile-account,
+  body.cut-has-desktop-sidebar .cut-navbar__drawer-heading {
+    display: none !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-navbar__links {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 4px 0 10px !important;
+    flex: 1 1 auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    gap: 4px !important;
+    overflow-x: visible !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-navbar__links::-webkit-scrollbar {
+    display: none;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-navbar__links > .nav-link,
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-navbar__links > .nav-item,
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-navbar__links > .dropdown {
+    width: 100% !important;
+    flex: 0 0 auto !important;
+    margin: 0 !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-navbar__links .nav-link,
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-navbar__links .dropdown-toggle {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 48px !important;
+    margin: 0 !important;
+    padding: 0 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 14px !important;
+    border-radius: 10px !important;
+    font-size: .9rem !important;
+    font-weight: 760 !important;
+    line-height: 1 !important;
+    text-align: left !important;
+    white-space: nowrap !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-navbar__links .nav-link > i,
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-navbar__links .dropdown-toggle i {
+    width: 28px !important;
+    min-width: 28px !important;
+    display: inline-flex !important;
+    justify-content: center !important;
+    font-size: 1.18rem !important;
+    line-height: 1 !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-navbar__links .dropdown-toggle::after {
+    display: none !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-actor-menu__title {
+    width: 100% !important;
+    min-width: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 14px !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-actor-menu__title > span:not(.cut-actor-menu__badge) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-actor-menu__badge {
+    margin-left: auto !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-navbar__links .nav-link.active,
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-navbar__links .nav-item.active > .dropdown-toggle {
+    position: relative;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-navbar__links .nav-link.active::before,
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-navbar__links .nav-item.active > .dropdown-toggle::before {
+    content: "";
+    position: absolute;
+    left: 2px;
+    top: 11px;
+    bottom: 11px;
+    width: 3px;
+    border-radius: 999px;
+    background: #FF2020;
+    box-shadow: 0 0 12px #650000;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-navbar__links .dropdown {
+    position: relative !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .dropdown-menu {
+    position: absolute !important;
+    inset: 0 auto auto calc(100% + 10px) !important;
+    transform: none !important;
+    margin: 0 !important;
+    min-width: 290px !important;
+    max-width: min(390px, calc(100vw - var(--cut-desktop-sidebar-width) - 32px)) !important;
+    max-height: min(78vh, 680px) !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    border-radius: 14px !important;
+    z-index: 2200 !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-nav-notification-menu > .dropdown-menu {
+    width: min(390px, calc(100vw - var(--cut-desktop-sidebar-width) - 32px)) !important;
+    min-width: min(390px, calc(100vw - var(--cut-desktop-sidebar-width) - 32px)) !important;
+    max-height: min(80vh, 700px) !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-nav-notification-menu > .dropdown-toggle {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    padding: 0 12px !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-nav-notification-toggle {
+    width: 28px !important;
+    height: 32px !important;
+    flex: 0 0 28px !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-navbar__account {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 10px 0 0 !important;
+    flex: 0 0 auto !important;
+    border-top: 1px solid #202024;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-navbar__account > .dropdown {
+    width: 100% !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-navbar__account .dropdown-toggle {
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 52px !important;
+    margin: 0 !important;
+    padding: 6px 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    border-radius: 12px !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-navbar__account .dropdown-toggle::after {
+    display: none !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-navbar__user {
+    width: 100% !important;
+    min-width: 0 !important;
+    grid-template-columns: none !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-navbar__user > span:last-child {
+    display: flex !important;
+    max-width: 158px !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-navbar__avatar {
+    width: 40px !important;
+    height: 40px !important;
+    flex: 0 0 40px !important;
+    border-radius: 50% !important;
+    overflow: hidden !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-navbar__avatar img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-navbar__ecosystem-slot {
+    width: 100% !important;
+    min-height: 48px !important;
+    margin: 0 !important;
+    padding: 4px 8px 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-mobile-bottom-nav {
+    display: none !important;
+  }
+}
+
+@media (min-width: 992px) and (max-width: 1279.98px) {
+  body.cut-has-desktop-sidebar {
+    padding-left: var(--cut-desktop-sidebar-compact-width) !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav {
+    width: var(--cut-desktop-sidebar-compact-width) !important;
+    max-width: var(--cut-desktop-sidebar-compact-width) !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-navbar__inner {
+    padding-inline: 8px !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-navbar__brand {
+    justify-content: center !important;
+    padding-inline: 0 !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-navbar__brand > div {
+    display: none !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-navbar__links .nav-link,
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-navbar__links .dropdown-toggle {
+    justify-content: center !important;
+    gap: 0 !important;
+    padding-inline: 0 !important;
+    font-size: 0 !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-navbar__links .nav-link > span:not(.cut-nav-notification-toggle),
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-actor-menu__title > span:not(.cut-actor-menu__badge) {
+    display: none !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-actor-menu__title {
+    width: auto !important;
+    justify-content: center !important;
+    gap: 0 !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-actor-menu__badge {
+    position: absolute !important;
+    top: 4px !important;
+    right: 4px !important;
+    min-width: 16px !important;
+    height: 16px !important;
+    margin: 0 !important;
+    padding: 0 4px !important;
+    font-size: .52rem !important;
+    line-height: 16px !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-navbar__account .dropdown-toggle {
+    justify-content: center !important;
+    padding-inline: 0 !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-navbar__user {
+    width: auto !important;
+    justify-content: center !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-navbar__user > span:last-child {
+    display: none !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-navbar__ecosystem-slot {
+    justify-content: center !important;
+    padding-inline: 0 !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .dropdown-menu {
+    max-width: min(390px, calc(100vw - var(--cut-desktop-sidebar-compact-width) - 28px)) !important;
+  }
+
+  body.cut-has-desktop-sidebar .cut-capability-nav .cut-nav-notification-menu > .dropdown-menu {
+    width: min(390px, calc(100vw - var(--cut-desktop-sidebar-compact-width) - 28px)) !important;
+    min-width: min(360px, calc(100vw - var(--cut-desktop-sidebar-compact-width) - 28px)) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.cut-has-desktop-sidebar {
+    transition: none !important;
+  }
+}
