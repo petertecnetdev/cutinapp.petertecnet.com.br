@@ -3,7 +3,6 @@ import { Alert, Button, Card, Container, Modal } from "react-bootstrap";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
-import EventArtwork from "../../components/event/EventArtwork";
 import EventPosterThumbnail from "../../components/event/EventPosterThumbnail";
 import ProductionNextEventHero from "../../components/production/ProductionNextEventHero";
 const ProductionCommunitySection = React.lazy(() => import("../../components/production/ProductionCommunitySection"));
