@@ -1,0 +1,45 @@
+/* Critical navbar interaction guard.
+ * Keep this layer after the visual identity stylesheet so cosmetic rules can
+ * never make an expanded React-Bootstrap menu invisible or untouchable.
+ */
+@media (max-width: 991.98px) {
+  .cut-navbar .navbar-toggler {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    position: relative !important;
+    z-index: 2147483647 !important;
+    pointer-events: auto !important;
+    touch-action: manipulation !important;
+    cursor: pointer !important;
+  }
+
+  .cut-navbar .navbar-collapse.show,
+  .cut-navbar .navbar-collapse.collapsing {
+    display: flex !important;
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    overflow-y: auto !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    transform: translate3d(0, 0, 0) !important;
+    background: #080809 !important;
+    z-index: 2147483646 !important;
+  }
+
+  .cut-navbar .navbar-collapse:not(.show):not(.collapsing) {
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+
+  .cut-navbar .navbar-collapse.show :is(a, button, select, input, .dropdown-toggle, .dropdown-item),
+  .cut-navbar .navbar-collapse.collapsing :is(a, button, select, input, .dropdown-toggle, .dropdown-item) {
+    pointer-events: auto !important;
+  }
+}
