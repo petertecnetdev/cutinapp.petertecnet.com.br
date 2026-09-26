@@ -592,7 +592,8 @@ export default function HomePage() {
                         <p>{production.city ? `${production.city}${production.uf ? ` · ${production.uf}` : ""}` : "Produção Cutinapp"}</p>
                         <small>{production.upcoming_events_count || 0} evento(s)</small>
                       </Link>
-                    ))}
+                      );
+                    })}
                   </div>
                 )
                 : <div className="cut-home-discovery__empty">As produções públicas vão aparecer aqui.</div>}
