@@ -13,12 +13,12 @@
   --cut-graphite: #26262B;
   --cut-graphite-hi: #3B3B42;
 
-  --cut-red: #E00000;
-  --cut-red-hot: #FF1717;
-  --cut-red-hi: #FF4545;
+  --cut-red: #D80000;
+  --cut-red-hot: #FF2020;
+  --cut-red-hi: #FF5252;
   --cut-primary: var(--cut-red);
   --cut-primary-hover: var(--cut-red-hot);
-  --cut-primary-strong: #B90000;
+  --cut-primary-strong: #980000;
   --cut-secondary: var(--cut-graphite-hi);
   --cut-accent: var(--cut-red-hot);
 
@@ -42,14 +42,14 @@
   --cut-danger-strong: #E00000;
   --cut-success: #43D17D;
   --cut-warning: #F4B942;
-  --cut-info: #8DB9E8;
+  --cut-info: #D7D7DC;
   --cut-primary-soft: #210707;
   --cut-secondary-soft: #1A1A1E;
   --cut-accent-soft: #260606;
   --cut-danger-soft: #260808;
   --cut-success-soft: #092016;
   --cut-warning-soft: #211A08;
-  --cut-info-soft: #0C1824;
+  --cut-info-soft: #171719;
   --cut-surface-hover: #18181C;
   --cut-surface-active: #211010;
 
@@ -136,12 +136,12 @@
   --cut-z-toast: 1080;
 
   /* Bootstrap bridge prevents the framework's default blue from resurfacing. */
-  --bs-primary: #E00000;
-  --bs-primary-rgb: 224,0,0;
+  --bs-primary: #D80000;
+  --bs-primary-rgb: 216,0,0;
   --bs-secondary: #3B3B42;
   --bs-secondary-rgb: 59,59,66;
-  --bs-info: #8DB9E8;
-  --bs-info-rgb: 141,185,232;
+  --bs-info: #D7D7DC;
+  --bs-info-rgb: 215,215,220;
   --bs-body-bg: var(--cut-bg);
   --bs-body-bg-rgb: 5,5,5;
   --bs-body-color: var(--cut-text);
