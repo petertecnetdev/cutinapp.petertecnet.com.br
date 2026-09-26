@@ -1934,3 +1934,16 @@ th[aria-sort="descending"] .cut-event-sort-head i{color:var(--cut-primary)}
   opacity:0;
   pointer-events:none
 }
+
+
+/* Unified event flyer thumbnail: keep the complete poster visible in manager cards. */
+.cut-producer-event-card__media .cut-producer-event-card__poster{
+  width:100%;
+  height:100%;
+  aspect-ratio:auto;
+  --cut-event-poster-padding:3px;
+}
+.cut-producer-event-card__media .cut-producer-event-card__poster .cut-event-poster-thumb__main img{
+  object-fit:contain!important;
+  object-position:center!important;
+}
