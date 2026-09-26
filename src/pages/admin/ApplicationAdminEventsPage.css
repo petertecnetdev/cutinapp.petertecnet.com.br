@@ -147,8 +147,8 @@
 
 .cut-admin-event-row__media {
   display: grid;
-  width: 92px;
-  height: 72px;
+  width: 72px;
+  height: 82px;
   place-items: center;
   overflow: hidden;
   border-radius: 13px;
@@ -157,10 +157,14 @@
   font-size: 1.4rem;
 }
 
-.cut-admin-event-row__media img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.cut-admin-event-row__poster{
+  width:100%;
+  height:100%;
+  aspect-ratio:auto;
+  --cut-event-poster-padding:3px;
+}
+.cut-admin-event-row__poster .cut-event-poster-thumb__main img{
+  object-fit:contain!important;
 }
 
 .cut-admin-event-row__content {
@@ -330,8 +334,8 @@
   }
 
   .cut-admin-event-row__media {
-    width: 72px;
-    height: 58px;
+    width: 64px;
+    height: 72px;
     border-radius: 11px;
   }
 
@@ -372,7 +376,7 @@
   }
 
   .cut-admin-event-row__media {
-    width: 62px;
-    height: 54px;
+    width: 58px;
+    height: 66px;
   }
 }
