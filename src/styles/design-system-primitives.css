@@ -1,6 +1,7 @@
 /* Cutinapp Design System primitives.
- * Shared contracts for points 81–100: controls, icons, surfaces and states.
- * Prefer these primitives over page-specific copies.
+ * Shared contracts for controls, icons, surfaces and states.
+ * Visual System 2026-09-26: solid black/graphite surfaces, electric-red focus,
+ * no glassmorphism or opacity-based component states.
  */
 :root {
   --cut-control-height-sm: 36px;
@@ -61,12 +62,18 @@
 }
 .cut-app-page .btn:active:not(:disabled) { transform: scale(.98); }
 .cut-app-page .btn:disabled,
-.cut-app-page .btn[aria-disabled="true"] { cursor: not-allowed; opacity: .58; }
+.cut-app-page .btn[aria-disabled="true"] {
+  cursor: not-allowed;
+  background: var(--cut-surface-3);
+  border-color: var(--cut-border);
+  color: var(--cut-text-faint);
+  box-shadow: none;
+}
 
 .cut-surface {
   border: 1px solid var(--cut-border);
   border-radius: var(--cut-radius-xl);
-  background: var(--cut-gradient-surface);
+  background: var(--cut-surface-2);
   box-shadow: var(--cut-shadow-md);
 }
 .cut-surface--interactive {
@@ -83,8 +90,8 @@
 }
 
 .cut-state-loading { cursor: progress; }
-.cut-state-error { border-color: rgba(255, 102, 135, .28) !important; }
-.cut-state-success { border-color: rgba(78, 231, 178, .26) !important; }
+.cut-state-error { border-color: var(--cut-danger) !important; }
+.cut-state-success { border-color: var(--cut-success) !important; }
 
 @media (prefers-reduced-motion: reduce) {
   .cut-app-page *,
