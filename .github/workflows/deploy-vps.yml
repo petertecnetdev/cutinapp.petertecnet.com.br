@@ -119,7 +119,7 @@ jobs:
           filesystem_sha="$(ssh "${ssh_opts[@]}" -p "$port" "$VPS_USER@$VPS_HOST" \
             "cat /var/www/cutinapp.petertecnet.com.br/build/release-sha.txt 2>/dev/null || true")"
           local_http_sha="$(ssh "${ssh_opts[@]}" -p "$port" "$VPS_USER@$VPS_HOST" \
-            "curl -fsSL --max-time 15 -H 'Host: cutinapp.petertecnet.com.br' -H 'Cache-Control: no-cache, no-store, max-age=0' 'http://127.0.0.1/release-sha.txt?$probe' 2>/dev/null || true")"
+            "curl -kfsSL --max-time 15 --resolve 'cutinapp.petertecnet.com.br:443:127.0.0.1' -H 'Accept: text/plain' -H 'Cache-Control: no-cache, no-store, max-age=0' 'https://cutinapp.petertecnet.com.br/release-sha.txt?$probe' 2>/dev/null || true")"
           public_https_sha="$(curl -fsSL --max-time 20 --retry 3 --retry-all-errors \
             -H 'Accept: text/plain' -H 'Cache-Control: no-cache, no-store, max-age=0' \
             "https://cutinapp.petertecnet.com.br/release-sha.txt?$probe" 2>/dev/null || true)"
