@@ -7,7 +7,6 @@ import { checkoutQuantityLimit, resolveCheckoutQuantity } from "../../utils/chec
 import { reconcileStoredSelection } from "../../utils/checkoutSelectionRecovery";
 import { clearEventCart, readEventCart, writeEventCart } from "../../utils/eventCartStorage";
 import { safeRemoveSessionItem } from "../../utils/safeStorage";
-import "../../styles/event-ticket-purchase.css";
 
 const money = (value) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
 const dateLabel = (value) => {
