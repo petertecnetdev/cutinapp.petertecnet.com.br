@@ -4,6 +4,7 @@ import { Alert, Badge, Button, Card, Container, Form, Modal, Spinner } from "rea
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
+import EventPosterThumbnail from "../../components/event/EventPosterThumbnail";
 import cutinappService from "../../services/CutinappService";
 import eventService from "../../services/EventService";
 import { storageUrl } from "../../config";
@@ -364,9 +365,7 @@ export default function ProductionAgendaManager() {
                     {selectedEvent ? (
                       <div className="cut-weekly-agenda-current">
                         <div className="cut-weekly-agenda-current__image">
-                          {selectedEvent.image
-                            ? <img src={imageUrl(selectedEvent.image)} alt="" loading="lazy" />
-                            : <span>{initials(selectedEvent.title)}</span>}
+                          <EventPosterThumbnail image={selectedEvent.image} title={selectedEvent.title} alt="" className="cut-weekly-agenda-current__poster" loading="lazy" />
                         </div>
                         <div className="cut-weekly-agenda-current__content">
                           <span className="cut-weekly-agenda-current__eyebrow">Evento deste dia</span>
@@ -498,7 +497,7 @@ export default function ProductionAgendaManager() {
                 return (
                   <button key={event.id} type="button" className={`cut-agenda-picker-event ${selected ? "is-selected" : ""}`} onClick={() => chooseEvent(event)} role="option" aria-selected={selected}>
                     <span className="cut-agenda-picker-event__cover">
-                      {event.image ? <img src={imageUrl(event.image)} alt="" loading="lazy" /> : <span>{initials(event.title)}</span>}
+                      <EventPosterThumbnail image={event.image} title={event.title} alt="" className="cut-agenda-picker-event__poster" loading="lazy" />
                     </span>
                     <span className="cut-agenda-picker-event__body">
                       <strong>{event.title}</strong>
