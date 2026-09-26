@@ -6,6 +6,7 @@ import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorCo
 import { EventMetrics } from "../../components/event/EventManagerEnhancements";
 import EventProductSalesManager from "../../components/event/EventProductSalesManager";
 import EventExperienceEditorSurface from "../../components/event/EventExperienceEditorSurface";
+import EventPosterEditor from "../../components/event/EventPosterEditor";
 import useAutoSave from "../../hooks/useAutoSave";
 import eventService from "../../services/EventService";
 import cutinappService from "../../services/CutinappService";
@@ -69,6 +70,7 @@ export default function EventUpdatePage() {
   const [form, setForm] = useState(null);
   const [image, setImage] = useState(null);
   const [preview, setPreview] = useState("");
+  const [posterEditorFile, setPosterEditorFile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -148,13 +150,8 @@ export default function EventUpdatePage() {
         setError(validation.message);
         return;
       }
-      setImage(file);
-      setPreview((current) => {
-        if (current?.startsWith("blob:")) URL.revokeObjectURL(current);
-        return URL.createObjectURL(file);
-      });
+      setPosterEditorFile(file);
       setSection("media");
-      setSuccess("Arte selecionada. Salve para aplicá-la ao evento.");
     };
     window.addEventListener("cutinapp:event-cover-selected", onGeneratedCover);
     return () => window.removeEventListener("cutinapp:event-cover-selected", onGeneratedCover);
@@ -244,19 +241,28 @@ export default function EventUpdatePage() {
 
   const chooseImage = async (event) => {
     const file = event.target.files?.[0] || null;
+    event.target.value = "";
     if (!file) return;
     const validation = await validateEventPosterFile(file);
     if (!validation.ok) {
       setError(validation.message);
-      event.target.value = "";
       return;
     }
+    setError("");
+    setPosterEditorFile(file);
+  };
+
+  const applyPosterImage = async (file) => {
+    if (!(file instanceof File)) return;
     setError("");
     setImage(file);
     setPreview((current) => {
       if (current?.startsWith("blob:")) URL.revokeObjectURL(current);
       return URL.createObjectURL(file);
     });
+    setPosterEditorFile(null);
+    setSection("media");
+    setSuccess("Arte ajustada. Salve o evento para aplicar a nova imagem.");
   };
 
   const saveNow = async () => {
@@ -372,6 +378,12 @@ export default function EventUpdatePage() {
   }}>
     <NavlogComponent />
     {(publishing || (saving && image)) && <ProcessingIndicatorComponent label={publishing ? "Atualizando publicação" : "Salvando evento"} />}
+    <EventPosterEditor
+      show={Boolean(posterEditorFile)}
+      file={posterEditorFile}
+      onCancel={() => setPosterEditorFile(null)}
+      onApply={applyPosterImage}
+    />
 
     <EventExperienceEditorSurface
       mode="edit"
