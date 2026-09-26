@@ -24,6 +24,27 @@ function lowerBuildCpuPriority() { if (process.platform === 'win32' || typeof os
 function runCommand(command, args, env = process.env) { const result = spawnSync(command, args, { cwd: appRoot, env, stdio: 'inherit' }); if (result.error) throw result.error; if (result.status !== 0) process.exit(result.status ?? 1); }
 function runReactBuild(buildPath) { const command = process.platform === 'win32' ? 'react-scripts.cmd' : 'react-scripts'; const env = { ...process.env, GENERATE_SOURCEMAP: 'false', INLINE_RUNTIME_CHUNK: 'false', IMAGE_INLINE_SIZE_LIMIT: '4096' }; if (buildPath) env.BUILD_PATH = buildPath; runCommand(command, ['build'], env); return buildPath || liveBuildPath; }
 function generateSeoSnapshots(buildPath) { runCommand(process.execPath, [path.join(appRoot, 'scripts/generate-seo-snapshots.mjs'), buildPath], { ...process.env, CUTINAPP_BUILD_DIR: buildPath }); }
+function assertStaticAssetIntegrity(buildPath) {
+  const missing = [];
+  const walk = (directory) => {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const fullPath = path.join(directory, entry.name);
+      if (entry.isDirectory()) { walk(fullPath); continue; }
+      if (!entry.isFile() || !entry.name.endsWith('.html')) continue;
+      const html = fs.readFileSync(fullPath, 'utf8');
+      const refs = html.matchAll(/(?:src|href)=["'](\/static\/[^"']+\.(?:js|css))["']/g);
+      for (const match of refs) {
+        const relativeAsset = match[1].replace(/^\/+/, '');
+        const assetPath = path.join(buildPath, relativeAsset);
+        if (!fs.existsSync(assetPath)) missing.push(\`${path.relative(buildPath, fullPath)} -> ${match[1]}\`);
+      }
+    }
+  };
+  walk(buildPath);
+  if (missing.length) {
+    throw new Error(\`Refusing to publish Cutinapp: ${missing.length} HTML snapshot asset reference(s) do not exist in this build. First mismatches:\\n${missing.slice(0, 12).join('\\n')}\`);
+  }
+}
 function publishWithoutDowntime(stagingPath) { const stagedIndex = path.join(stagingPath, 'index.html'); if (!fs.existsSync(stagedIndex)) throw new Error('Production build completed without index.html. Refusing to publish.'); fs.mkdirSync(liveBuildPath, { recursive: true }); for (const entry of fs.readdirSync(stagingPath)) { if (entry === 'index.html') continue; fs.cpSync(path.join(stagingPath, entry), path.join(liveBuildPath, entry), { recursive: true, force: true }); } const temporaryIndex = path.join(liveBuildPath, `.index.html.${process.pid}.tmp`); fs.copyFileSync(stagedIndex, temporaryIndex); fs.renameSync(temporaryIndex, path.join(liveBuildPath, 'index.html')); }
 
 // Production is owned by the validated GitHub Actions release pipeline. A local
@@ -45,9 +66,10 @@ try {
   if (appRoot !== productionRoot || externallyManagedBuildPath) {
     const output = runReactBuild(externallyManagedBuildPath);
     generateSeoSnapshots(output);
+    assertStaticAssetIntegrity(output);
   } else {
     const stagingPath = fs.mkdtempSync(path.join(os.tmpdir(), 'cutinapp-build-'));
-    try { runReactBuild(stagingPath); generateSeoSnapshots(stagingPath); publishWithoutDowntime(stagingPath); console.log('Published Cutinapp build with crawlable SEO snapshots.'); }
+    try { runReactBuild(stagingPath); generateSeoSnapshots(stagingPath); assertStaticAssetIntegrity(stagingPath); publishWithoutDowntime(stagingPath); console.log('Published Cutinapp build with crawlable SEO snapshots.'); }
     finally { fs.rmSync(stagingPath, { recursive: true, force: true }); }
   }
 } finally { releaseBuildLock(); }
