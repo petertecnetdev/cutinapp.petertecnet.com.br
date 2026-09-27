@@ -1,0 +1,75 @@
+{
+  "workstream": "W06",
+  "mission": "Midia, flyers, capas, galerias e editor de imagens da Cutinapp.",
+  "status": "CLAIMED",
+  "updated_at": "2026-09-27T13:45:00-03:00",
+  "baseline_main_sha": "d7d52435a40591e38088e6ff04f587ffee81ee6a",
+  "coordination": {
+    "master_read": true,
+    "workstreams_read": ["W01"],
+    "note": "W01 esta IMPLEMENTING Event/Production views. W06 nao altera EventViewPage nesta rodada para evitar conflito; problemas de flyer foram deduplicados e ficam sob W06 apenas nos componentes de midia compartilhados.",
+    "recent_shared_commit": "d7d52435a40591e38088e6ff04f587ffee81ee6a"
+  },
+  "points": [
+    {
+      "id": "W06-001",
+      "priority": "P1",
+      "status": "CONFIRMED",
+      "title": "Preservar flyer vertical completo nas views de Evento",
+      "impact": "Evita cortar data, artistas, patrocinadores e informacoes comerciais do flyer 2:3.",
+      "files": ["src/components/event/EventArtwork.js", "src/components/OptimizedImage.css"],
+      "evidence": "OptimizedImage aplica object-fit: cover globalmente; EventArtwork nao define politica contain/2:3 propria. Alterar CSS global pertence ao W04, portanto a correcao deve ser local/reutilizavel em EventArtwork sem tocar o primitive compartilhado."
+    },
+    {
+      "id": "W06-002",
+      "priority": "P1",
+      "status": "CONFIRMED",
+      "title": "Remover opacity decorativa do carregamento de imagem compartilhado",
+      "impact": "A identidade visual proibe opacity decorativa; o primitive atual usa opacity 0.045 e fade por opacity.",
+      "files": ["src/components/OptimizedImage.css"],
+      "evidence": "Confirmado na main; ownership do primitive compartilhado pertence ao W04.",
+      "request_for": "W04"
+    },
+    {
+      "id": "W06-003",
+      "priority": "P2",
+      "status": "PENDING",
+      "title": "Auditar pipeline de upload para dimensoes, orientacao, compressao e WebP/AVIF",
+      "impact": "Reduz imagens gigantes, tempo de carregamento e falhas de orientacao sem degradar flyers.",
+      "files": [],
+      "evidence": "Pendente mapear uploader/editor e capacidades reais da API antes de qualquer alteracao."
+    },
+    {
+      "id": "W06-004",
+      "priority": "P2",
+      "status": "PENDING",
+      "title": "Auditar previews, galerias, capas e avatars por aspect ratio sem cortes destrutivos",
+      "impact": "Mantem midia reconhecivel e responsiva em todas as entidades.",
+      "files": [],
+      "evidence": "Fila de descoberta aberta; nao marcar VERIFIED sem validacao visual."
+    }
+  ],
+  "requests_for": [
+    {
+      "worker": "W04",
+      "point": "W06-002",
+      "request": "Revisar OptimizedImage.css compartilhado para remover opacity/transparencia decorativa preservando placeholder, loading perceptivel, acessibilidade e performance."
+    }
+  ],
+  "implementation": {
+    "files_changed": ["agents/cutinapp-visual/workstreams/W06.json"],
+    "functional_changes": [],
+    "reason_no_functional_edit": "O maior P1 toca apresentacao do Evento enquanto W01 esta IMPLEMENTING essa superficie, e o primitive global OptimizedImage pertence ao W04. Para nao sobrescrever trabalho concorrente, W06 registrou ownership, evidencia e request_for antes da implementacao.",
+    "validation": [
+      "main HEAD e commits recentes relidos",
+      "MASTER.json lido sem escrita",
+      "W01.json lido e conflito de ownership identificado",
+      "EventArtwork.js e OptimizedImage.js/css inspecionados na main"
+    ]
+  },
+  "next": [
+    "Implementar W06-001 em EventArtwork assim que nao conflitar com W01, mantendo flyer 2:3 completo e sem alterar primitive W04.",
+    "Mapear uploader/editor e descobrir suporte real a crop, zoom, rotacao, compressao e formatos modernos.",
+    "Validar visualmente desktop/mobile antes de marcar qualquer ponto VERIFIED."
+  ]
+}
