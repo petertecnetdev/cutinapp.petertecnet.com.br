@@ -41,7 +41,10 @@ export const safeInternalRoute = (value, fallback = "/search") => {
     !candidate.startsWith("/")
     || candidate.startsWith("//")
     || candidate.includes("\\")
-    || /[\u0000-\u001F\u007F]/.test(candidate)
+    || Array.from(candidate).some((character) => {
+      const code = character.charCodeAt(0);
+      return code <= 31 || code === 127;
+    })
   ) {
     return safeFallback;
   }
