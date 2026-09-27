@@ -11,10 +11,20 @@ import { storageUrl } from "../../config";
 import { trackTelemetry } from "../../utils/telemetry";
 import "./EventItemViewPage.css";
 
-const money = (value) => new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
-}).format(Number(value || 0));
+const resolveLocale = (...sources) => sources.find((value) => typeof value === "string" && value.trim()) || undefined;
+const resolveCurrency = (...sources) => {
+  const value = sources.find((candidate) => typeof candidate === "string" && /^[A-Za-z]{3}$/.test(candidate.trim()));
+  return value ? value.trim().toUpperCase() : null;
+};
+const money = (value, currency, locale) => {
+  const amount = Number(value || 0);
+  if (!currency) return new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
+  try {
+    return new Intl.NumberFormat(locale, { style: "currency", currency }).format(amount);
+  } catch {
+    return `${currency} ${new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)}`;
+  }
+};
 
 const mediaUrl = (value) => {
   if (!value) return "";
@@ -69,6 +79,8 @@ export default function EventItemViewPage() {
   const production = payload?.production || event?.production || null;
   const image = useMemo(() => mediaUrl(item?.image_url || item?.image), [item]);
   const price = effectivePrice(item);
+  const currency = resolveCurrency(item?.currency, event?.currency, production?.currency, payload?.currency);
+  const locale = resolveLocale(item?.locale, event?.locale, production?.locale, payload?.locale);
   const remaining = Number(item?.remaining ?? item?.quantity ?? 0);
   const available = item?.available !== false && !event?.sales_closed && remaining > 0;
   const registeredEvents = payload?.registered_events || [];
@@ -86,13 +98,13 @@ export default function EventItemViewPage() {
     image: image || undefined,
     sku: item.sku || undefined,
     brand: production?.name ? { "@type": "Brand", name: production.name } : undefined,
-    offers: {
+    offers: currency ? {
       "@type": "Offer",
-      priceCurrency: "BRL",
+      priceCurrency: currency,
       price: Number(price || 0).toFixed(2),
       availability: available ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
       url: `https://cutinapp.petertecnet.com.br/event/${encodeURIComponent(slug)}/item/${item.id}`,
-    },
+    } : undefined,
   } : null;
 
   if (loading) {
@@ -166,9 +178,10 @@ export default function EventItemViewPage() {
 
                 <div className="cut-item-view__priceBlock">
                   {item.promotion_enabled && Number(item.promotion_price) >= 0 && Number(item.price) > price && (
-                    <del>{money(item.price)}</del>
+                    <del>{money(item.price, currency, locale)}</del>
                   )}
-                  <strong>{money(price)}</strong>
+                  <strong>{money(price, currency, locale)}</strong>
+                  {!currency && <small>Moeda informada no fluxo de compra</small>}
                   <span className={available ? "is-available" : "is-unavailable"}>
                     <i className={`fa-solid ${available ? "fa-circle-check" : "fa-circle-xmark"}`} />
                     {available ? `${remaining} disponível${remaining === 1 ? "" : "is"} neste evento` : "Indisponível neste evento"}
