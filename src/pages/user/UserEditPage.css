@@ -89,3 +89,50 @@
   .cut-account-cover__content { padding: 18px; }
   .cut-account-avatar { width: 124px; height: 124px; border-radius: 28px; font-size: 1.8rem; }
 }
+
+
+.cut-profile-cover-picker {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--cut-border-strong);
+  border-radius: 20px;
+  background: var(--cut-surface);
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.cut-profile-cover-picker:hover,
+.cut-profile-cover-picker:focus-visible {
+  border-color: var(--cut-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cut-primary) 22%, transparent);
+  outline: none;
+}
+.cut-profile-cover-picker:disabled {
+  cursor: wait;
+}
+.cut-profile-cover-picker .cut-upload-preview,
+.cut-profile-cover-picker .cut-upload-placeholder {
+  width: 100%;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+}
+.cut-profile-cover-picker__action {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 9px 12px;
+  border: 1px solid rgba(255,255,255,.22);
+  border-radius: 999px;
+  background: rgba(3,9,16,.88);
+  color: #fff;
+  font-weight: 850;
+  box-shadow: 0 10px 28px rgba(0,0,0,.28);
+}
