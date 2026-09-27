@@ -1,0 +1,69 @@
+{
+  "workstream": "W10",
+  "mission": "Fiscalizar regressao visual, performance, acessibilidade e qualidade das views sem competir com ownership visual dos demais workstreams.",
+  "status": "IMPLEMENTING",
+  "updated_at": "2026-09-27T13:46:00-03:00",
+  "baseline_main_sha": "d7d52435a40591e38088e6ff04f587ffee81ee6a",
+  "coordination": {
+    "master_read": true,
+    "master_owner": "W05",
+    "workstreams_seen": ["W01"],
+    "note": "MASTER permanece somente leitura. W01 ja possui P1 de EventView; W02 acabou de alterar profile-actors.css, portanto W10 nao sobrescreveu essa area."
+  },
+  "points": [
+    {
+      "id": "W10-001",
+      "priority": "P1",
+      "status": "CLAIMED",
+      "title": "Expandir Lighthouse para cobertura mobile e rotas publicas representativas",
+      "impact": "O gate atual mede somente a home em preset desktop; regressao mobile ou em evento/producao pode passar CI silenciosamente.",
+      "files": ["lighthouserc.json", ".github/workflows/lighthouse-ci.yml"],
+      "evidence": "lighthouserc.json coleta apenas http://localhost/ e fixa preset desktop."
+    },
+    {
+      "id": "W10-002",
+      "priority": "P1",
+      "status": "PENDING",
+      "title": "Criar smoke gate das rotas publicas criticas",
+      "impact": "Build verde nao comprova que home, busca, evento e producao renderizam sem erro de runtime.",
+      "files": ["src/App.js"],
+      "evidence": "validate.yml executa testes/build/perf budget, mas nao existe evidencia de smoke browser por rota."
+    },
+    {
+      "id": "W10-003",
+      "priority": "P2",
+      "status": "PENDING",
+      "title": "Auditar reduced-motion global e foco de componentes interativos",
+      "impact": "Evita animacao excessiva e perda de navegacao por teclado.",
+      "files": [],
+      "evidence": "W02 adicionou reduced-motion e focus-visible localmente; falta evidencia de cobertura global."
+    },
+    {
+      "id": "W10-004",
+      "priority": "P2",
+      "status": "PENDING",
+      "title": "Auditar imagens publicas por peso, lazy loading e dimensoes reservadas",
+      "impact": "Reduz LCP/CLS e transferencia desnecessaria em descoberta/eventos.",
+      "files": [],
+      "evidence": "perf:budget limita imagens estaticas public a 700 KiB, mas nao valida imagens remotas, lazy loading ou width/height."
+    }
+  ],
+  "requests_for": [],
+  "implementation": {
+    "files_changed": ["agents/cutinapp-visual/workstreams/W10.json"],
+    "functional_changes": [],
+    "validation": [
+      "MASTER.json lido sem escrita",
+      "W01.json lido; W01-001..005 nao duplicados",
+      "commits recentes auditados ate d7d52435",
+      "validate.yml confirma test/build/perf:budget em CI",
+      "lighthouse-ci.yml confirma Lighthouse em push/PR",
+      "lighthouserc.json confirma cobertura atual limitada a home desktop"
+    ]
+  },
+  "next": [
+    "Implementar W10-001 sem depender de rotas dinamicas sem fixture.",
+    "Mapear testes existentes e criar smoke gate minimo para rotas publicas estaticas.",
+    "Revisar novos commits visuais e reabrir regressao automaticamente quando houver evidencia."
+  ]
+}
