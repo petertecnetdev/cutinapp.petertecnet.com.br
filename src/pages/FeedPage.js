@@ -9,6 +9,7 @@ import ticketAvailabilityService from "../services/TicketAvailabilityService";
 import { storageUrl } from "../config";
 import { trackTelemetry } from "../utils/telemetry";
 import { showConfirmation } from "../utils/sweetAlert";
+import { publicEventRoute, publicProductionRoute } from "../utils/entityRoutes";
 import "./FeedPage.css";
 
 const fmt = (value) => value ? new Intl.DateTimeFormat("pt-BR", { weekday: "short", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" }).format(new Date(value)) : "";
@@ -167,7 +168,7 @@ export default function FeedPage() {
   };
 
   const sharePost = async (post) => {
-    const url = post.event_slug ? `${window.location.origin}/event/${post.event_slug}` : `${window.location.origin}/feed`;
+    const url = post.event_slug ? `${window.location.origin}${publicEventRoute(post.event_slug)}` : `${window.location.origin}/feed`;
     const text = `${authorName(post)} na Cutinapp: ${String(post.body || "").slice(0, 180)}`;
     try {
       if (navigator.share) await navigator.share({ title: post.event_title || "Publicação na Cutinapp", text, url });
@@ -250,7 +251,7 @@ export default function FeedPage() {
   const openEventFromFeed = (post, ticketIntent = false) => {
     if (!post?.event_slug) return;
     trackTelemetry(ticketIntent ? "feed_ticket_intent_clicked" : "feed_event_opened", feedEventTelemetryDetails(post, ticketIntent ? "ingresso" : "evento"));
-    navigate(`/event/${post.event_slug}${ticketIntent ? "#ingressos" : ""}`);
+    navigate(`${publicEventRoute(post.event_slug)}${ticketIntent ? "#ingressos" : ""}`);
   };
 
   const composerAvatar = imageUrl(user?.avatar);
@@ -303,7 +304,7 @@ export default function FeedPage() {
     {(post.event_slug || post.production_slug) && <div className="cut-feed-post__context">
       {post.event_slug && <button type="button" onClick={() => openEventFromFeed(post)}><i className="fa-regular fa-calendar" /> {post.event_title || "Ver evento"}{availabilityLabel ? ` · ${availabilityLabel}` : ""}</button>}
       {post.event_slug && canBuyTickets && <button type="button" onClick={() => openEventFromFeed(post, true)}><i className="fa-solid fa-ticket" /> {Number(post.sellable_free_ticket_lots_count || 0) > 0 ? "Pegar ingresso" : "Comprar ingresso"}</button>}
-      {post.production_slug && <button type="button" onClick={() => navigate(`/production/${post.production_slug}/public`)}><i className="fa-regular fa-building" /> {post.production_name || "Ver produção"}</button>}
+      {post.production_slug && <button type="button" onClick={() => navigate(publicProductionRoute(post.production_slug))}><i className="fa-regular fa-building" /> {post.production_name || "Ver produção"}</button>}
     </div>}
 
     <p className="cut-feed-post__body">{post.body}</p>
@@ -311,7 +312,7 @@ export default function FeedPage() {
       <button type="button" className={post.is_liked ? "active" : ""} disabled={busyPosts.has(post.id)} onClick={() => toggleLike(post)}><i className={`${post.is_liked ? "fa-solid" : "fa-regular"} fa-heart`} /><span>{post.likes_count || 0}</span><b>Curtir</b></button>
       <button type="button" onClick={() => openReply(post)}><i className="fa-regular fa-comment-dots" /><span>{post.comments_count || post.replies?.length || 0}</span><b>Comentar</b></button>
       <button type="button" onClick={() => sharePost(post)}><i className="fa-solid fa-share-nodes" /><b>Compartilhar</b></button>
-      {post.event_slug && <button type="button" onClick={() => navigate(`/event/${post.event_slug}#comunidade`)}><i className="fa-regular fa-comments" /><b>Ver conversa</b></button>}
+      {post.event_slug && <button type="button" onClick={() => navigate(`${publicEventRoute(post.event_slug)}#comunidade`)}><i className="fa-regular fa-comments" /><b>Ver conversa</b></button>}
     </div>
     {replyTo === post.id && <div className="cut-feed-replybox"><Form.Control as="textarea" rows={2} maxLength={3000} value={replyBody} onChange={(e) => setReplyBody(e.target.value)} placeholder={`Comentar na publicação de ${authorName(post)}...`} /><div><Button variant="outline-light" size="sm" onClick={() => { setReplyTo(null); setReplyBody(""); }}>Cancelar</Button><Button size="sm" disabled={busyPosts.has(post.id) || replyBody.trim().length < 2} onClick={() => publishReply(post)}>{busyPosts.has(post.id) ? "Publicando..." : "Comentar"}</Button></div></div>}
     {Array.isArray(post.replies) && post.replies.length > 0 && <div className="cut-feed-thread">{post.replies.map((reply) => renderPost(reply, depth + 1))}</div>}
