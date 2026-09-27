@@ -30,15 +30,17 @@ export const installMobileNavbarRecovery = () => {
     const collapse = collapseForToggle(toggle);
     if (!collapse) return;
     const wasOpen = collapse.classList.contains("show") || collapse.dataset.cutinappRecoveryOpen === "1";
+    const expectedOpen = !wasOpen;
 
-    // React-Bootstrap remains the primary controller. This guard only repairs
-    // the drawer when another layer/interceptor prevents its state from being
-    // reflected in the DOM on mobile.
-    window.setTimeout(() => {
-      const expectedOpen = !wasOpen;
-      const actuallyOpen = collapse.classList.contains("show");
-      if (actuallyOpen !== expectedOpen) forceState(toggle, collapse, expectedOpen);
-    }, 40);
+    // Apply the drawer state synchronously on pointer/click. React-Bootstrap
+    // still receives the same click and keeps component state authoritative,
+    // but slow Android WebViews and conflicting legacy collapse handlers can
+    // no longer leave the menu visually closed after the user taps it.
+    forceState(toggle, collapse, expectedOpen);
+
+    // Reassert once after React/Bootstrap handlers have completed. This is a
+    // recovery guard only; it deliberately mirrors the state chosen above.
+    window.setTimeout(() => forceState(toggle, collapse, expectedOpen), 60);
   };
 
   const onDestination = (event) => {
