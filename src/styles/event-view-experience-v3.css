@@ -1,0 +1,373 @@
+/* EventView v3 — final visual consolidation layer.
+ * Scoped to the public event route so legacy event styles cannot keep fighting
+ * for desktop hero geometry while checkout/social behavior stays untouched.
+ */
+
+.cut-event-view-page {
+  --cut-event-v3-bg: #060709;
+  --cut-event-v3-surface: #101217;
+  --cut-event-v3-surface-raised: #15181e;
+  --cut-event-v3-border: #2b2f38;
+  --cut-event-v3-border-strong: #3a3f49;
+  --cut-event-v3-text: #f7f7f8;
+  --cut-event-v3-muted: #b7bbc4;
+  --cut-event-v3-red: #e30613;
+  --cut-event-v3-red-strong: #ff2634;
+  background: var(--cut-event-v3-bg) !important;
+}
+
+.cut-event-view-page--flyer-background::before {
+  z-index: 0 !important;
+  inset: -84px -56px auto -56px !important;
+  height: 760px !important;
+  background: var(--cut-event-flyer-bg, none) center 18% / cover no-repeat !important;
+  filter: blur(68px) saturate(1.34) brightness(0.34) !important;
+  transform: scale(1.1) !important;
+  transform-origin: top center !important;
+}
+
+.cut-event-view-page::after {
+  display: none !important;
+}
+
+.cut-event-view-page > * {
+  position: relative;
+  z-index: 1 !important;
+}
+
+.cut-event-view-page .cut-event-summary-card {
+  overflow: hidden !important;
+  border: 1px solid var(--cut-event-v3-border) !important;
+  border-left: 3px solid var(--cut-event-v3-red) !important;
+  border-top: 1px solid var(--cut-event-v3-border) !important;
+  border-radius: 22px !important;
+  background: var(--cut-event-v3-surface) !important;
+  box-shadow: 0 24px 62px #000000 !important;
+}
+
+.cut-event-view-page .cut-event-summary-card h1 {
+  margin-bottom: 18px !important;
+  color: var(--cut-event-v3-text) !important;
+  font-size: clamp(2.45rem, 3vw, 3.5rem) !important;
+  line-height: 1 !important;
+  letter-spacing: -0.045em !important;
+}
+
+.cut-event-view-page .cut-event-summary-card__content .badge {
+  border-color: var(--cut-event-v3-border-strong) !important;
+  background: #1b1e24 !important;
+  color: #f1f2f4 !important;
+}
+
+.cut-event-view-page .cut-event-summary-card__content .badge.bg-primary,
+.cut-event-view-page .cut-event-summary-card__content .badge.bg-success,
+.cut-event-view-page .cut-event-summary-card__content .badge.bg-info {
+  border-color: var(--cut-event-v3-red) !important;
+  background: #29090d !important;
+  color: #ffffff !important;
+}
+
+.cut-event-view-page .cut-event-summary-card__meta {
+  margin-top: 18px !important;
+  border-top-color: var(--cut-event-v3-border) !important;
+}
+
+.cut-event-view-page .cut-event-summary-card__meta > span {
+  padding: 12px 0 !important;
+  border-bottom-color: var(--cut-event-v3-border) !important;
+  color: #e7e9ed !important;
+  font-size: 0.91rem !important;
+}
+
+.cut-event-view-page .cut-event-summary-card__meta i,
+.cut-event-view-page .cut-inline-profile-link i {
+  color: #ff4854 !important;
+}
+
+.cut-event-view-page .cut-inline-profile-link {
+  margin-top: 14px !important;
+  color: #d9dce2 !important;
+}
+
+.cut-event-view-page .cut-event-summary-card__actions {
+  gap: 10px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-top: 0 !important;
+}
+
+.cut-event-view-page .cut-event-summary-card__primary-actions {
+  grid-template-columns: 1fr !important;
+  gap: 9px !important;
+}
+
+.cut-event-view-page .cut-event-action {
+  min-height: 52px !important;
+  border-radius: 12px !important;
+}
+
+.cut-event-view-page .cut-event-action--tickets {
+  border-color: var(--cut-event-v3-red) !important;
+  background: var(--cut-event-v3-red) !important;
+}
+
+.cut-event-view-page .cut-event-action--tickets:hover,
+.cut-event-view-page .cut-event-action--tickets:focus-visible {
+  border-color: var(--cut-event-v3-red-strong) !important;
+  background: var(--cut-event-v3-red-strong) !important;
+}
+
+.cut-event-view-page .cut-event-action--interest {
+  border-color: var(--cut-event-v3-border-strong) !important;
+  background: var(--cut-event-v3-surface-raised) !important;
+}
+
+.cut-event-view-page .cut-event-quick-actions {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 7px !important;
+}
+
+.cut-event-view-page .cut-event-quick-action {
+  min-height: 54px !important;
+  padding: 8px 5px !important;
+  border-color: var(--cut-event-v3-border) !important;
+  border-radius: 11px !important;
+  background: #121419 !important;
+}
+
+.cut-event-view-page .cut-event-quick-action span {
+  font-size: 0.64rem !important;
+}
+
+.cut-event-view-page .cut-event-manage-action {
+  width: 100% !important;
+  justify-content: center !important;
+  min-height: 42px !important;
+  border-color: var(--cut-event-v3-border-strong) !important;
+  background: #e8e9eb !important;
+  color: #111217 !important;
+}
+
+.cut-event-view-page .cut-event-banner-frame,
+.cut-event-view-page .cut-event-banner-placeholder {
+  border: 1px solid var(--cut-event-v3-border-strong) !important;
+  border-radius: 20px !important;
+  background: #050608 !important;
+  box-shadow: 0 24px 58px #000000 !important;
+}
+
+.cut-event-view-page .cut-commerce-trust {
+  gap: 10px !important;
+}
+
+.cut-event-view-page .cut-commerce-trust__item,
+.cut-event-view-page .cut-commerce-trust__provider {
+  border-color: var(--cut-event-v3-border) !important;
+  border-radius: 14px !important;
+  background: var(--cut-event-v3-surface) !important;
+}
+
+.cut-event-view-page .cut-commerce-trust__item > i {
+  background: #29090d !important;
+  color: #ff4b56 !important;
+}
+
+.cut-event-view-page .cut-commerce-trust__item strong {
+  color: #f1f2f4 !important;
+}
+
+.cut-event-view-page .cut-commerce-trust__item small,
+.cut-event-view-page .cut-commerce-trust__provider {
+  color: var(--cut-event-v3-muted) !important;
+}
+
+.cut-event-view-page > .cut-page-container.py-4,
+.cut-event-view-page > .cut-page-container.py-lg-5 {
+  padding-top: 26px !important;
+}
+
+@media (min-width: 1400px) {
+  .cut-event-view-page {
+    grid-template-columns:
+      minmax(28px, 1fr)
+      minmax(700px, 760px)
+      32px
+      minmax(360px, 390px)
+      minmax(28px, 1fr) !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card {
+    grid-column: 2 !important;
+    grid-row: 2 !important;
+    align-self: start !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 270px !important;
+    gap: 28px !important;
+    width: 100% !important;
+    margin: 30px 0 24px !important;
+    padding: 30px 30px 28px !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card__actions {
+    align-self: stretch !important;
+    align-content: center !important;
+    padding-left: 24px !important;
+    border-left: 1px solid var(--cut-event-v3-border) !important;
+  }
+
+  .cut-event-view-page .cut-event-banner-frame,
+  .cut-event-view-page .cut-event-banner-placeholder {
+    grid-column: 4 !important;
+    grid-row: 2 !important;
+    align-self: start !important;
+    justify-self: center !important;
+    width: min(100%, 380px) !important;
+    max-width: 380px !important;
+    margin: 30px auto 24px !important;
+  }
+
+  .cut-event-view-page > .cut-event-summary-strip > .cut-page-container > .cut-commerce-trust {
+    grid-column: 2 / 5 !important;
+    grid-row: 3 !important;
+    width: 100% !important;
+    margin: 0 0 22px !important;
+  }
+
+  .cut-event-view-page > .cut-event-summary-strip > .cut-page-container > .cut-commerce-trust .cut-commerce-trust__item {
+    min-height: 82px !important;
+    padding: 14px 16px !important;
+  }
+
+  .cut-event-view-page > .cut-page-container.py-4,
+  .cut-event-view-page > .cut-page-container.py-lg-5 {
+    grid-row: 4 !important;
+  }
+}
+
+@media (min-width: 1200px) and (max-width: 1399.98px) {
+  .cut-event-view-page {
+    grid-template-columns:
+      minmax(22px, 1fr)
+      minmax(600px, 650px)
+      26px
+      minmax(320px, 350px)
+      minmax(22px, 1fr) !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 225px !important;
+    gap: 22px !important;
+    margin: 26px 0 22px !important;
+    padding: 26px !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card__actions {
+    align-content: center !important;
+    padding-left: 20px !important;
+    border-left: 1px solid var(--cut-event-v3-border) !important;
+  }
+
+  .cut-event-view-page .cut-event-banner-frame,
+  .cut-event-view-page .cut-event-banner-placeholder {
+    width: min(100%, 340px) !important;
+    max-width: 340px !important;
+    margin: 26px auto 22px !important;
+  }
+
+  .cut-event-view-page > .cut-event-summary-strip > .cut-page-container > .cut-commerce-trust {
+    margin-bottom: 22px !important;
+  }
+
+  .cut-event-view-page > .cut-event-summary-strip > .cut-page-container > .cut-commerce-trust .cut-commerce-trust__item {
+    min-height: 80px !important;
+    padding: 13px 14px !important;
+  }
+}
+
+@media (min-width: 992px) and (max-width: 1199.98px) {
+  .cut-event-view-page .cut-event-banner-frame,
+  .cut-event-view-page .cut-event-banner-placeholder {
+    width: min(100%, 390px) !important;
+    max-width: 390px !important;
+    margin-top: 22px !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card {
+    max-width: 860px !important;
+    margin: 16px auto 24px !important;
+    padding: 28px !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card__actions {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr) !important;
+    align-items: start !important;
+  }
+
+  .cut-event-view-page .cut-event-manage-action {
+    grid-column: 1 / -1 !important;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .cut-event-view-page--flyer-background::before {
+    inset: -56px -40px auto -40px !important;
+    height: 620px !important;
+    filter: blur(56px) saturate(1.24) brightness(0.3) !important;
+    transform: scale(1.08) !important;
+  }
+
+  .cut-event-view-page .cut-event-banner-frame,
+  .cut-event-view-page .cut-event-banner-placeholder {
+    width: min(100%, 430px) !important;
+    max-width: 430px !important;
+    margin-inline: auto !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card {
+    max-width: 760px !important;
+    margin-inline: auto !important;
+    padding: 24px 22px !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card__actions {
+    margin-top: 20px !important;
+    padding-top: 18px !important;
+    border-top: 1px solid var(--cut-event-v3-border) !important;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .cut-event-view-page .cut-event-banner-frame,
+  .cut-event-view-page .cut-event-banner-placeholder {
+    border-radius: 15px !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card {
+    padding: 20px 16px 18px !important;
+    border-left-width: 2px !important;
+    border-radius: 17px !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card h1 {
+    font-size: clamp(2rem, 9.5vw, 2.65rem) !important;
+  }
+
+  .cut-event-view-page .cut-event-quick-actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .cut-event-view-page .cut-event-quick-action {
+    min-height: 58px !important;
+  }
+
+  .cut-event-view-page .cut-commerce-trust {
+    margin-top: 12px !important;
+  }
+}
+
+@media (max-width: 359.98px) {
+  .cut-event-view-page .cut-event-quick-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
