@@ -12,12 +12,23 @@
   },
   "viewports": [1280, 1366, 1440, 1536, 1920, 2560],
   "zoom": [100, 125],
+  "architecture_inventory": {
+    "component": "src/components/NavlogComponent.js",
+    "registry": "src/navigation/navigationRegistry.js",
+    "desktop_zones": ["brand", "primary_navigation", "creation_and_notifications", "account", "ecosystem_launcher"],
+    "primary_entries": ["home", "search", "events", "feed", "messages", "productions"],
+    "more_menu": "Already exists, but currently duplicates messages and productions while those same entries remain first-level desktop links.",
+    "role_sensitive_areas": ["producer", "artist", "promoter", "agent", "admin"],
+    "preserve": ["capability-based permissions", "notifications", "artist invitations", "production context", "account actions", "admin actions", "ecosystem launcher"],
+    "globalization_finding": "notificationTime hardcodes locale pt-BR and timezone America/Sao_Paulo; this is a global-product regression and must be replaced by dynamic locale/timezone context.",
+    "next_safe_refactor": "Make the desktop first level intentionally small and unique; move secondary destinations into More without rendering the same destination twice, while preserving role/capability menus and utilities."
+  },
   "items": [
-    {"id":"NAV-001","status":"CLAIMED","problem":"Inventory desktop navbar architecture, roles, permissions and duplicate actions before refactor","evidence":"Issue #650 open; baseline requested","commit":null},
+    {"id":"NAV-001","status":"VERIFIED","problem":"Inventory desktop navbar architecture, roles, permissions and duplicate actions before refactor","evidence":"NavlogComponent.js and navigationRegistry.js audited on main: five desktop zones identified; primaryNavigation has six entries; More duplicates messages/productions; role/capability, notification, invitation, production-context, admin and ecosystem behavior documented; hardcoded pt-BR/America/Sao_Paulo also identified.","commit":"PENDING_COMMIT_SHA"},
     {"id":"NAV-002","status":"PENDING","problem":"Separate brand, primary navigation and account/utility zones","commit":null},
     {"id":"NAV-003","status":"PENDING","problem":"Define primary versus secondary links by role without exposing every route at first level","commit":null},
     {"id":"NAV-004","status":"PENDING","problem":"Implement explicit More/overflow strategy for secondary actions","commit":null},
-    {"id":"NAV-005","status":"PENDING","problem":"Remove duplicate Search/equivalent actions","commit":null},
+    {"id":"NAV-005","status":"REOPENED","problem":"Remove duplicate Search/equivalent actions and duplicate destinations across first-level/More","evidence":"Messages and Produções are rendered from primaryNavigation and then rendered again inside More.","commit":null},
     {"id":"NAV-006","status":"PENDING","problem":"Prevent account, notifications, invites and ecosystem launcher from compressing primary navigation","commit":null},
     {"id":"NAV-007","status":"PENDING","problem":"Use sustainable flex/grid sizing with min-width:0, controlled widths and tokenized gaps","commit":null},
     {"id":"NAV-008","status":"PENDING","problem":"Normalize icon/label alignment, hit areas, active, hover and focus states","commit":null},
@@ -32,6 +43,7 @@
     {"id":"NAV-017","status":"PENDING","problem":"Validate critical desktop widths at browser zoom 125%","commit":null},
     {"id":"NAV-018","status":"PENDING","problem":"Verify routes, permissions, notifications, invitations, context and administrative actions","commit":null},
     {"id":"NAV-019","status":"PENDING","problem":"Add automated functional/visual regression coverage when viable","commit":null},
-    {"id":"NAV-020","status":"PENDING","problem":"Capture before/after evidence and only verify after repeated visual and functional passes","commit":null}
+    {"id":"NAV-020","status":"PENDING","problem":"Capture before/after evidence and only verify after repeated visual and functional passes","commit":null},
+    {"id":"NAV-021","status":"REOPENED","problem":"Remove hardcoded pt-BR and America/Sao_Paulo from navbar notification formatting; use dynamic locale/timezone without geographic fallback","evidence":"src/components/NavlogComponent.js notificationTime currently instantiates Intl.DateTimeFormat('pt-BR') with timeZone 'America/Sao_Paulo'.","commit":null}
   ]
 }
