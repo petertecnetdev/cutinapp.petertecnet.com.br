@@ -7,6 +7,7 @@ import ProcessingIndicatorComponent from "../components/ProcessingIndicatorCompo
 import cutinappService from "../services/CutinappService";
 import { safeNavigationTarget } from "../utils/safeUrl";
 import { notificationTelemetryAttrs } from "../utils/notificationTelemetry";
+import { publicEntityFallbackRoute } from "../utils/entityRoutes";
 
 const fmt = (value) => {
   if (!value) return "";
@@ -107,7 +108,8 @@ export default function NotificationsPage() {
       return;
     }
 
-    if (item.reference_type === "event") navigate("/event");
+    const fallback = publicEntityFallbackRoute(item.reference_type);
+    if (fallback) navigate(fallback);
   };
 
   const markAll = async () => {
