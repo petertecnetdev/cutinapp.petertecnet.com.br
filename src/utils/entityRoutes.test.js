@@ -28,11 +28,14 @@ describe("canonical public entity routes", () => {
 
   test("builds canonical event, artist and production routes", () => {
     expect(publicEventRoute("festival-noite")).toBe("/event/festival-noite");
+    expect(publicEventRoute("festival/noite")).toBe("/event/festival%2Fnoite");
     expect(publicEventRoute(null)).toBe("/event");
     expect(publicArtistRoute("banda/noite")).toBe("/artist/banda%2Fnoite");
     expect(publicArtistRoute("")).toBe("/artists");
     expect(publicProductionRoute("producao central"))
       .toBe("/production/producao%20central/public");
+    expect(publicProductionRoute("producao/noite"))
+      .toBe("/production/producao%2Fnoite/public");
     expect(publicProductionRoute(undefined)).toBe("/productions");
   });
 
