@@ -1,0 +1,101 @@
+{
+  "workstream": "W08",
+  "mission": "Relacionamentos, carrosseis e navegacao entre entidades da Cutinapp.",
+  "status": "IMPLEMENTING",
+  "updated_at": "2026-09-27T13:51:00-03:00",
+  "baseline_main_sha": "4a7ce734b811076d52e64d7e51cb2e16c26f70c1",
+  "coordination": {
+    "master_read": true,
+    "workstreams_read": [
+      "W01",
+      "W06",
+      "W10"
+    ],
+    "active_claims_read": true,
+    "note": "W01 cobre views Evento/Producao, W02 perfis, W06 midia, W10 QA. W08 escolheu a Home, fora desses lotes, e nao altera primitives visuais nem arquivos de outros workers."
+  },
+  "points": [
+    {
+      "id": "W08-001",
+      "priority": "P1",
+      "status": "IMPLEMENTING",
+      "title": "Levar itens descobertos na Home diretamente ao detalhe do item",
+      "impact": "Reduz um salto desnecessario entre descoberta e valor/compra e elimina navegacao generica quando event.slug e item.id ja estao disponiveis.",
+      "files": [
+        "src/pages/HomeHubPage.js",
+        "src/utils/entityRoutes.js",
+        "src/utils/entityRoutes.test.js"
+      ],
+      "acceptance": "Item com evento e id abre /event/:slug/item/:itemId; dados parciais usam fallback publico seguro e nunca '#'."
+    },
+    {
+      "id": "W08-002",
+      "priority": "P1",
+      "status": "CONFIRMED",
+      "title": "Eliminar links mortos no ItemDiscoveryRail",
+      "impact": "Cards relacionais nao devem terminar em '#'.",
+      "files": [
+        "src/components/event/ItemDiscoveryRail.js"
+      ],
+      "evidence": "O componente usa href '#' quando slug ou id faltam.",
+      "request_for": "W03/W04"
+    },
+    {
+      "id": "W08-003",
+      "priority": "P2",
+      "status": "CONFIRMED",
+      "title": "Reduzir fan-out de itens nos carrosseis do blog",
+      "impact": "Blog ja conecta artigos, eventos, producoes e itens, mas consulta itens de ate seis producoes separadamente.",
+      "files": [
+        "src/components/blog/BlogDiscoveryCarousels.js"
+      ],
+      "evidence": "loadDiscovery executa productionItems para ate 6 producoes; limite evita carga ilimitada, mas ainda e fan-out.",
+      "request_for": "W03/API"
+    },
+    {
+      "id": "W08-004",
+      "priority": "P2",
+      "status": "PENDING",
+      "title": "Validar paginacao/lazy loading das areas relacionais de Evento, Producao e Artista",
+      "impact": "As views ja exibem multiplas relacoes; falta provar que volumes altos nao carregam centenas de registros.",
+      "files": [
+        "src/pages/event/EventViewPage.js",
+        "src/pages/production/ProductionPublicPage.js",
+        "src/pages/artist/ArtistViewPage.js"
+      ],
+      "request_for": "W01/W02"
+    }
+  ],
+  "requests_for": [
+    {
+      "worker": "W03/W04",
+      "point": "W08-002",
+      "request": "Substituir fallback '#' do ItemDiscoveryRail por rota publica canonica usando o helper W08, preservando ownership visual compartilhado."
+    },
+    {
+      "worker": "W03/API",
+      "point": "W08-003",
+      "request": "Avaliar endpoint agregado/batch para itens relacionados do blog e evitar fan-out por producao."
+    },
+    {
+      "worker": "W01/W02",
+      "point": "W08-004",
+      "request": "Ao concluir as views, registrar limites/paginacao/lazy loading das relacoes; nao marcar VERIFIED apenas por build."
+    }
+  ],
+  "implementation": {
+    "branch": "w08/entity-item-direct-route",
+    "files_changed": [
+      "agents/cutinapp-visual/workstreams/W08.json"
+    ],
+    "validation": [
+      "MASTER e W01-W10 existentes lidos",
+      "commits recentes auditados ate 4a7ce734",
+      "claim externo criado sem conflito"
+    ]
+  },
+  "next": [
+    "Concluir W08-001, rodar testes/CI e abrir PR.",
+    "Depois adotar helper canonico em superficies liberadas pelos owners correspondentes."
+  ]
+}
