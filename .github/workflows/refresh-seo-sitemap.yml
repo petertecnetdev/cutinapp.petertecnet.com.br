@@ -92,8 +92,7 @@ jobs:
             -o ConnectTimeout=20 \
             -o ServerAliveInterval=30 \
             -o ServerAliveCountMax=8 \
-            -p "$VPS_PORT" \
-            "$VPS_USER@$VPS_HOST" "bash -s -- '$GENERATOR'" <<'REMOTE'
+            -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" "bash -s -- '$GENERATOR'" <<'REMOTE'
           set -Eeuo pipefail
           APP_ROOT="/var/www/cutinapp.petertecnet.com.br"
           LIVE_BUILD="$APP_ROOT/build"
@@ -122,6 +121,14 @@ jobs:
             echo "Dynamic sitemap does not contain public event URLs." >&2
             exit 3
           }
+
+          # Fail closed: transactional, account and administrative URLs must never be
+          # promoted through the public sitemap, even if the discovery API regresses.
+          if grep -Eq 'https://cutinapp\.petertecnet\.com\.br/(checkout|purchases|ticket|passes|checkin|login|register|password|email-verify|logout|dashboard|messages|notifications|admin|agent|moderation)(/|<)' "$tmp"; then
+            echo "Dynamic sitemap contains a private or transactional URL; refusing publication." >&2
+            grep -E 'https://cutinapp\.petertecnet\.com\.br/(checkout|purchases|ticket|passes|checkin|login|register|password|email-verify|logout|dashboard|messages|notifications|admin|agent|moderation)(/|<)' "$tmp" >&2 || true
+            exit 5
+          fi
 
           rm -rf "$next_root"
           mkdir -p "$next_root"
