@@ -1,0 +1,71 @@
+/* Critical mobile navigation fail-safe.
+ * Keep this file imported after app.css so it wins every legacy navbar layer.
+ * The toggle's aria-expanded state is the accessibility/source-of-truth fallback
+ * even if Bootstrap's transient collapse classes are lost by a conflicting layer.
+ */
+@media (max-width: 991.98px) {
+  .cut-navbar .navbar-toggler {
+    position: relative !important;
+    z-index: 2147483647 !important;
+    pointer-events: auto !important;
+    touch-action: manipulation !important;
+  }
+
+  .cut-navbar .navbar-toggler[aria-expanded="true"] ~ .navbar-collapse,
+  .cut-navbar .navbar-collapse.show,
+  .cut-navbar .navbar-collapse.collapsing {
+    display: flex !important;
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    max-height: 100dvh !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: calc(76px + env(safe-area-inset-top, 0px)) 18px calc(32px + env(safe-area-inset-bottom, 0px)) !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    background: #080809 !important;
+    color: #fff !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: none !important;
+    pointer-events: auto !important;
+    z-index: 2147483646 !important;
+  }
+
+  .cut-navbar .navbar-toggler[aria-expanded="true"] {
+    position: fixed !important;
+    top: calc(14px + env(safe-area-inset-top, 0px)) !important;
+    right: 14px !important;
+    margin: 0 !important;
+  }
+
+  .cut-navbar .navbar-toggler[aria-expanded="true"] ~ .navbar-collapse :is(a, button, select, input, .nav-link, .dropdown-toggle, .dropdown-item),
+  .cut-navbar .navbar-collapse.show :is(a, button, select, input, .nav-link, .dropdown-toggle, .dropdown-item) {
+    pointer-events: auto !important;
+    touch-action: manipulation !important;
+  }
+
+  .cut-navbar .navbar-toggler[aria-expanded="true"] ~ .navbar-collapse .cut-navbar__links,
+  .cut-navbar .navbar-toggler[aria-expanded="true"] ~ .navbar-collapse .cut-navbar__tools,
+  .cut-navbar .navbar-toggler[aria-expanded="true"] ~ .navbar-collapse .cut-navbar__account {
+    display: flex !important;
+    width: 100% !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    flex: 0 0 auto !important;
+  }
+
+  .cut-navbar .navbar-toggler[aria-expanded="true"] ~ .navbar-collapse .nav-link,
+  .cut-navbar .navbar-toggler[aria-expanded="true"] ~ .navbar-collapse .dropdown-toggle {
+    display: flex !important;
+    width: 100% !important;
+    min-height: 48px !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    color: #fff !important;
+  }
+}
