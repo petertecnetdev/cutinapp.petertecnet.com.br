@@ -33,6 +33,25 @@ export const publicEventItemRoute = (eventSlug, itemId) => {
   return "/event";
 };
 
+const publicEntityFallbacks = Object.freeze({
+  event: "/event",
+  item: "/event",
+  eventitem: "/event",
+  production: "/productions",
+  artist: "/artists",
+  ticket: "/passes",
+  pass: "/passes",
+  purchase: "/purchases",
+  order: "/purchases",
+  user: "/profile",
+  profile: "/profile",
+});
+
+export const publicEntityFallbackRoute = (referenceType) => {
+  const type = pathSegment(referenceType).toLowerCase().replace(/[\s_-]+/g, "");
+  return publicEntityFallbacks[type] || "";
+};
+
 export const safeInternalRoute = (value, fallback = "/search") => {
   const candidate = pathSegment(value);
   const requestedFallback = pathSegment(fallback);
