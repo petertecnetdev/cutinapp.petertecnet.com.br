@@ -1,31 +1,106 @@
-/* Desktop balance fix for the public event page.
- * The premium hero uses display: contents so the artwork and summary can share
- * the page grid. CommerceTrustRail must therefore be positioned explicitly;
- * otherwise it becomes an auto-placed grid child and collapses into the first
- * narrow column, producing the broken stacked cards seen on wide screens.
+/* Event public view — desktop hero balance.
+ * W01 owns this layer. Keep the flyer complete, align the information panel and
+ * artwork as one composition, and prevent action controls from collapsing into
+ * narrow/tall cards at common desktop widths.
  */
 
 @media (min-width: 1200px) {
   .cut-event-view-page {
+    display: grid !important;
+    grid-template-columns:
+      minmax(24px, 1fr)
+      minmax(500px, 620px)
+      clamp(28px, 3vw, 52px)
+      minmax(400px, 500px)
+      minmax(24px, 1fr) !important;
+    grid-auto-rows: auto !important;
     align-items: start;
   }
 
-  /* Keep both hero columns aligned by the same top edge. */
-  .cut-event-view-page .cut-event-summary-card,
-  .cut-event-view-page .cut-event-banner-frame,
-  .cut-event-view-page .cut-event-banner-placeholder {
-    align-self: start !important;
-    margin-top: 44px !important;
+  .cut-event-view-page > .cut-navbar,
+  .cut-event-view-page > .cut-page-container,
+  .cut-event-view-page > .cut-event-buy-cta-fixed {
+    grid-column: 1 / -1 !important;
   }
 
-  /* The trust rail belongs below the complete hero, not inside the left gutter. */
+  .cut-event-view-page > .cut-event-banner-stage,
+  .cut-event-view-page > .cut-event-summary-strip,
+  .cut-event-view-page > .cut-event-banner-stage > .cut-page-container,
+  .cut-event-view-page > .cut-event-summary-strip > .cut-page-container {
+    display: contents !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card {
+    grid-column: 2 !important;
+    grid-row: 2 !important;
+    align-self: start !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: 36px 0 30px !important;
+    padding: clamp(28px, 2.4vw, 38px) !important;
+  }
+
+  .cut-event-view-page .cut-event-banner-frame,
+  .cut-event-view-page .cut-event-banner-placeholder {
+    grid-column: 4 !important;
+    grid-row: 2 !important;
+    align-self: start !important;
+    justify-self: center !important;
+    width: min(100%, 500px) !important;
+    max-width: 500px !important;
+    min-height: 0 !important;
+    margin: 36px auto 30px !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card__actions {
+    min-width: 0 !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card__primary-actions {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.45fr) minmax(180px, 0.8fr) !important;
+    gap: 10px !important;
+    align-items: stretch !important;
+  }
+
+  .cut-event-view-page .cut-event-action {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 52px !important;
+    white-space: nowrap !important;
+  }
+
+  .cut-event-view-page .cut-event-action > span:not(.cut-event-action__icon) {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .cut-event-view-page .cut-event-quick-actions {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  .cut-event-view-page .cut-event-quick-action {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 58px !important;
+  }
+
+  .cut-event-view-page .cut-event-manage-action {
+    min-height: 44px !important;
+  }
+
+  /* Commerce trust belongs below the complete two-column hero. */
   .cut-event-view-page > .cut-event-summary-strip > .cut-page-container > .cut-commerce-trust {
     grid-column: 2 / 5 !important;
     grid-row: 3 !important;
     align-self: start !important;
     width: 100% !important;
     max-width: none !important;
-    margin: 0 0 34px !important;
+    margin: 0 0 30px !important;
   }
 
   .cut-event-view-page > .cut-event-summary-strip > .cut-page-container > .cut-commerce-trust.cut-commerce-trust--event {
@@ -35,7 +110,7 @@
 
   .cut-event-view-page > .cut-event-summary-strip > .cut-page-container > .cut-commerce-trust .cut-commerce-trust__item {
     min-width: 0 !important;
-    min-height: 104px;
+    min-height: 96px;
     padding: 18px !important;
   }
 
@@ -46,20 +121,49 @@
     hyphens: none;
   }
 
-  /* Main event content starts only after the trust rail. */
   .cut-event-view-page > .cut-page-container.py-4,
   .cut-event-view-page > .cut-page-container.py-lg-5 {
     grid-row: 4 !important;
   }
 }
 
+/* 1280/1366 are real desktop targets, not a tablet fallback. Keep two columns,
+ * but reduce action density before any label collides or wraps vertically. */
 @media (min-width: 1200px) and (max-width: 1399.98px) {
   .cut-event-view-page {
     grid-template-columns:
-      minmax(24px, 1fr)
-      minmax(460px, 560px)
-      clamp(24px, 2.5vw, 40px)
-      minmax(390px, 500px)
-      minmax(24px, 1fr) !important;
+      minmax(22px, 1fr)
+      minmax(480px, 560px)
+      clamp(22px, 2.4vw, 36px)
+      minmax(390px, 470px)
+      minmax(22px, 1fr) !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card {
+    padding: 28px !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card h1 {
+    font-size: clamp(2.25rem, 3.4vw, 3.15rem) !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card__primary-actions {
+    grid-template-columns: 1fr !important;
+  }
+
+  .cut-event-view-page .cut-event-action {
+    justify-content: flex-start !important;
+  }
+
+  .cut-event-view-page .cut-event-action__arrow {
+    margin-left: auto !important;
+  }
+}
+
+@media (max-width: 1199.98px) {
+  .cut-event-view-page .cut-event-action,
+  .cut-event-view-page .cut-event-quick-action,
+  .cut-event-view-page .cut-event-manage-action {
+    min-height: 44px !important;
   }
 }
