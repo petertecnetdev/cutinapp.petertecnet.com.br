@@ -1,9 +1,9 @@
 {
   "workstream": "W08",
   "mission": "Relacionamentos, carrosseis e navegacao entre entidades da Cutinapp.",
-  "status": "IMPLEMENTING",
-  "updated_at": "2026-09-27T13:51:00-03:00",
-  "baseline_main_sha": "4a7ce734b811076d52e64d7e51cb2e16c26f70c1",
+  "status": "ACTIVE",
+  "updated_at": "2026-09-27T14:00:00-03:00",
+  "baseline_main_sha": "28bd09442b1e40c26a79b6c19979a4470ece388b",
   "coordination": {
     "master_read": true,
     "workstreams_read": [
@@ -18,7 +18,7 @@
     {
       "id": "W08-001",
       "priority": "P1",
-      "status": "IMPLEMENTING",
+      "status": "VERIFIED",
       "title": "Levar itens descobertos na Home diretamente ao detalhe do item",
       "impact": "Reduz um salto desnecessario entre descoberta e valor/compra e elimina navegacao generica quando event.slug e item.id ja estao disponiveis.",
       "files": [
@@ -26,7 +26,12 @@
         "src/utils/entityRoutes.js",
         "src/utils/entityRoutes.test.js"
       ],
-      "acceptance": "Item com evento e id abre /event/:slug/item/:itemId; dados parciais usam fallback publico seguro e nunca '#'."
+      "acceptance": "Item com evento e id abre /event/:slug/item/:itemId; dados parciais usam fallback publico seguro e nunca '#'.",
+      "evidence": [
+        "PR #670 merged as 28bd09442b1e40c26a79b6c19979a4470ece388b",
+        "Validate Cutinapp run 36334777827: success (tests, build, performance budget)",
+        "Lighthouse CI run 36334777908: success"
+      ]
     },
     {
       "id": "W08-002",
@@ -85,17 +90,29 @@
   ],
   "implementation": {
     "branch": "w08/entity-item-direct-route",
+    "pull_request": 670,
+    "merge_commit": "28bd09442b1e40c26a79b6c19979a4470ece388b",
     "files_changed": [
-      "agents/cutinapp-visual/workstreams/W08.json"
+      "agents/cutinapp-visual/workstreams/W08.json",
+      "src/pages/HomeHubPage.js",
+      "src/utils/entityRoutes.js",
+      "src/utils/entityRoutes.test.js"
+    ],
+    "functional_changes": [
+      "Cards de itens da Home abrem diretamente o detalhe publico quando evento e item estao identificados.",
+      "Fallbacks parciais levam ao catalogo do evento ou descoberta publica; nenhum link morto e produzido.",
+      "Rotas dinamicas sao codificadas antes de entrar no path."
     ],
     "validation": [
-      "MASTER e W01-W10 existentes lidos",
-      "commits recentes auditados ate 4a7ce734",
-      "claim externo criado sem conflito"
+      "5 testes de entityRoutes adicionados e aprovados na suite",
+      "linters de overlays, dialogs, estabilidade React e UX aprovados",
+      "build e performance budget aprovados",
+      "Lighthouse regression gate aprovado"
     ]
   },
   "next": [
-    "Concluir W08-001, rodar testes/CI e abrir PR.",
-    "Depois adotar helper canonico em superficies liberadas pelos owners correspondentes."
+    "Aguardar ownership W03/W04 para adotar o helper no ItemDiscoveryRail sem conflito.",
+    "Auditar paginas ainda sem duas areas relacionais usando apenas dados paginados/lazy-loaded.",
+    "Validar telemetria de Home item -> detail -> checkout antes de inferir impacto quantitativo."
   ]
 }
