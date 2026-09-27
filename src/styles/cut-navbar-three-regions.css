@@ -90,25 +90,38 @@
     gap: var(--cut-space-1);
   }
 
+  .cut-capability-nav .cut-nav-notification-menu,
+  .cut-capability-nav .cut-nav-notification-menu > .dropdown-toggle,
   .cut-capability-nav .cut-nav-notification-toggle {
     position: relative;
+    overflow: visible !important;
+  }
+
+  .cut-capability-nav .cut-nav-notification-toggle {
     display: inline-flex;
     align-items: center;
   }
 
   .cut-capability-nav .cut-nav-notification__badge {
     position: absolute;
-    top: -7px;
-    right: -11px;
-    min-width: 17px;
-    height: 17px;
-    padding: 0 3px;
+    top: 0 !important;
+    right: -5px !important;
+    z-index: 4;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px !important;
+    max-width: none;
+    height: 18px !important;
+    padding: 0 4px !important;
     font-size: 10px;
-    line-height: 17px;
+    line-height: 1 !important;
     border-radius: var(--cut-radius-pill);
     text-align: center;
     background: var(--cut-red);
     color: var(--cut-text-on-primary);
+    overflow: visible !important;
+    white-space: nowrap;
   }
 
   .cut-capability-nav .cut-navbar__user {
