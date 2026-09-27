@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-09-27T04:23:00-03:00",
+  "updated_at": "2026-09-27T10:22:00-03:00",
   "owner": "cutinapp-revenue-operations",
   "business_model": {
     "primary_revenue": "producer_subscription",
@@ -45,10 +45,21 @@
     "ticket_sales_role": "usage_and_value_delivered_indicator_only",
     "never_treat_gateway_fees_as_cutinapp_revenue": true
   },
+  "geography_regressions": [
+    {
+      "status": "REOPENED",
+      "priority": "P2",
+      "surface": "public_event_discovery",
+      "files": ["src/pages/event/EventPage.js", "src/components/event/EventDateCarousel.js"],
+      "evidence": "Event discovery still hardcodes pt-BR, America/Sao_Paulo and BRL; the date carousel also hardcodes Portuguese weekday labels and Sao Paulo timezone.",
+      "required_fix": "Use user/event locale, timezone and currency context without a Brazil/Sao Paulo structural fallback."
+    }
+  ],
   "current_gaps": [
     "No verified subscription-funnel dataset is attached to this scorecard yet.",
     "MRR, renewal, churn, delinquency/recovery and LTV remain null until a verifiable billing source exists.",
-    "Admin Center must expose subscription funnel and portfolio health without geographic assumptions."
+    "Admin Center must expose subscription funnel and portfolio health without geographic assumptions.",
+    "Public event discovery currently contains Brazil/Sao Paulo locale, timezone and currency hardcodes that conflict with global operation."
   ],
   "next_mrr_bottleneck": "Establish a verifiable subscription/trial data source and instrument signup -> trial -> activation -> first event -> paid -> renewal before reporting commercial metrics."
 }
