@@ -3,6 +3,7 @@ import { useEffect } from "react";
 
 const SITE_URL = "https://cutinapp.petertecnet.com.br";
 const DEFAULT_IMAGE = `${SITE_URL}/images/logo.png`;
+const DEFAULT_LOCALE = "pt-BR";
 
 const absoluteUrl = (value, fallback = SITE_URL) => {
   const raw = String(value || "").trim();
@@ -10,6 +11,15 @@ const absoluteUrl = (value, fallback = SITE_URL) => {
   if (/^https?:\/\//i.test(raw)) return raw;
   return `${SITE_URL}${raw.startsWith("/") ? raw : `/${raw}`}`;
 };
+
+const normalizeLocale = (value) => {
+  const raw = String(value || DEFAULT_LOCALE).trim().replace(/_/g, "-");
+  const [language, region] = raw.split("-");
+  if (!language) return DEFAULT_LOCALE;
+  return region ? `${language.toLowerCase()}-${region.toUpperCase()}` : language.toLowerCase();
+};
+
+const toOpenGraphLocale = (value) => normalizeLocale(value).replace("-", "_");
 
 const upsertMeta = (selector, attrs) => {
   let element = document.head.querySelector(selector);
@@ -44,14 +54,17 @@ export default function SeoHead({
   robots = "index, follow, max-image-preview:large",
   jsonLd,
   scriptId = "route",
+  locale,
 }) {
   useEffect(() => {
     const resolvedCanonical = absoluteUrl(canonical || "/", `${SITE_URL}/`);
     const resolvedImage = absoluteUrl(image || DEFAULT_IMAGE, DEFAULT_IMAGE);
     const resolvedTitle = String(title || "Cutinapp | Eventos e ingressos").trim();
     const resolvedDescription = String(description || "Descubra eventos, ingressos, artistas e produções na Cutinapp.").trim();
+    const resolvedLocale = normalizeLocale(locale || document.documentElement.lang || DEFAULT_LOCALE);
 
     document.title = resolvedTitle;
+    document.documentElement.lang = resolvedLocale;
     upsertMeta('meta[name="description"]', { name: "description", content: resolvedDescription });
     upsertMeta('meta[name="robots"]', { name: "robots", content: robots });
     upsertMeta('meta[property="og:title"]', { property: "og:title", content: resolvedTitle });
@@ -59,7 +72,7 @@ export default function SeoHead({
     upsertMeta('meta[property="og:url"]', { property: "og:url", content: resolvedCanonical });
     upsertMeta('meta[property="og:type"]', { property: "og:type", content: type });
     upsertMeta('meta[property="og:site_name"]', { property: "og:site_name", content: "Cutinapp" });
-    upsertMeta('meta[property="og:locale"]', { property: "og:locale", content: "pt_BR" });
+    upsertMeta('meta[property="og:locale"]', { property: "og:locale", content: toOpenGraphLocale(resolvedLocale) });
     upsertMeta('meta[property="og:image"]', { property: "og:image", content: resolvedImage });
     upsertMeta('meta[property="og:image:alt"]', { property: "og:image:alt", content: resolvedTitle });
     upsertMeta('meta[name="twitter:card"]', { name: "twitter:card", content: "summary_large_image" });
@@ -83,7 +96,7 @@ export default function SeoHead({
     return () => {
       script?.remove();
     };
-  }, [title, description, canonical, image, type, robots, jsonLd, scriptId]);
+  }, [title, description, canonical, image, type, robots, jsonLd, scriptId, locale]);
 
   return null;
 }
@@ -100,6 +113,7 @@ SeoHead.propTypes = {
     PropTypes.arrayOf(PropTypes.object),
   ]),
   scriptId: PropTypes.string,
+  locale: PropTypes.string,
 };
 
 export { SITE_URL };
