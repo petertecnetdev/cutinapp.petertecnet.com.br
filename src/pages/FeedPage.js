@@ -58,6 +58,56 @@ const removePostFromActivity = (posts = [], postId) => posts
     };
   });
 
+const MAX_POST_MEDIA = 10;
+const MAX_IMAGE_BYTES = 12 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 60 * 1024 * 1024;
+const MAX_TOTAL_MEDIA_BYTES = 120 * 1024 * 1024;
+const SUPPORTED_MEDIA_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "video/mp4",
+  "video/quicktime",
+  "video/webm",
+]);
+const mediaSource = (item) => imageUrl(item?.url || item?.path || "");
+
+function PostMediaCarousel({ media = [], author = "usuário" }) {
+  const items = Array.isArray(media) ? media.filter((item) => item?.url || item?.path) : [];
+  const viewportRef = useRef(null);
+  const [active, setActive] = useState(0);
+
+  if (items.length === 0) return null;
+
+  const goTo = (index) => {
+    const next = Math.max(0, Math.min(items.length - 1, index));
+    const viewport = viewportRef.current;
+    if (viewport) viewport.scrollTo({ left: next * viewport.clientWidth, behavior: "smooth" });
+    setActive(next);
+  };
+
+  const syncActive = () => {
+    const viewport = viewportRef.current;
+    if (!viewport?.clientWidth) return;
+    setActive(Math.max(0, Math.min(items.length - 1, Math.round(viewport.scrollLeft / viewport.clientWidth))));
+  };
+
+  return <div className="cut-feed-media" aria-label={`Mídia da publicação de ${author}`}>
+    <div className="cut-feed-media__viewport" ref={viewportRef} onScroll={syncActive}>
+      {items.map((item, index) => <figure className="cut-feed-media__slide" key={item.id || `${mediaSource(item)}-${index}`}>
+        {item.type === "video" || String(item.mime_type || "").startsWith("video/")
+          ? <video src={mediaSource(item)} controls playsInline preload="metadata" aria-label={item.alt_text || `Vídeo ${index + 1} da publicação`} />
+          : <img src={mediaSource(item)} alt={item.alt_text || `Foto ${index + 1} da publicação de ${author}`} loading="lazy" />}
+      </figure>)}
+    </div>
+    {items.length > 1 && <>
+      <button type="button" className="cut-feed-media__nav cut-feed-media__nav--prev" onClick={() => goTo(active - 1)} disabled={active === 0} aria-label="Mídia anterior"><i className="fa-solid fa-chevron-left" /></button>
+      <button type="button" className="cut-feed-media__nav cut-feed-media__nav--next" onClick={() => goTo(active + 1)} disabled={active === items.length - 1} aria-label="Próxima mídia"><i className="fa-solid fa-chevron-right" /></button>
+      <div className="cut-feed-media__dots" aria-label={`${active + 1} de ${items.length}`}>{items.map((item, index) => <button type="button" key={item.id || index} className={active === index ? "active" : ""} onClick={() => goTo(index)} aria-label={`Abrir mídia ${index + 1}`} />)}</div>
+    </>}
+  </div>;
+}
+
 export default function FeedPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -68,6 +118,10 @@ export default function FeedPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [postBody, setPostBody] = useState("");
+  const [postMedia, setPostMedia] = useState([]);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const mediaInputRef = useRef(null);
+  const postMediaRef = useRef([]);
   const [publishing, setPublishing] = useState(false);
   const [replyTo, setReplyTo] = useState(null);
   const [replyBody, setReplyBody] = useState("");
@@ -107,6 +161,16 @@ export default function FeedPage() {
 
   useEffect(() => { load({ showSkeleton: true }); }, [load]);
 
+  useEffect(() => {
+    postMediaRef.current = postMedia;
+  }, [postMedia]);
+
+  useEffect(() => () => {
+    postMediaRef.current.forEach((item) => {
+      if (item.preview) URL.revokeObjectURL(item.preview);
+    });
+  }, []);
+
   const setPostBusy = (postId, busy) => {
     setBusyPosts((current) => {
       const next = new Set(current);
@@ -122,20 +186,113 @@ export default function FeedPage() {
     return false;
   };
 
+  const clearPostMedia = () => {
+    setPostMedia((current) => {
+      current.forEach((item) => {
+        if (item.preview) URL.revokeObjectURL(item.preview);
+      });
+      return [];
+    });
+    if (mediaInputRef.current) mediaInputRef.current.value = "";
+  };
+
+  const removePostMedia = (mediaId) => {
+    setPostMedia((current) => current.filter((item) => {
+      if (item.id !== mediaId) return true;
+      if (item.preview) URL.revokeObjectURL(item.preview);
+      return false;
+    }));
+  };
+
+  const selectPostMedia = (event) => {
+    const selected = Array.from(event.target.files || []);
+    event.target.value = "";
+    if (selected.length === 0) return;
+
+    const remaining = Math.max(0, MAX_POST_MEDIA - postMedia.length);
+    if (selected.length > remaining) {
+      setError(`Você pode adicionar até ${MAX_POST_MEDIA} fotos ou vídeos por publicação.`);
+      return;
+    }
+
+    const invalidType = selected.find((file) => !SUPPORTED_MEDIA_TYPES.has(String(file.type || "").toLowerCase()));
+    if (invalidType) {
+      setError("Formato não suportado. Use JPG, PNG, WEBP, MP4, MOV ou WEBM.");
+      return;
+    }
+
+    const oversized = selected.find((file) => {
+      const isVideo = String(file.type || "").startsWith("video/");
+      return file.size > (isVideo ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES);
+    });
+    if (oversized) {
+      setError(String(oversized.type || "").startsWith("video/") ? "Cada vídeo pode ter no máximo 60 MB." : "Cada imagem pode ter no máximo 12 MB.");
+      return;
+    }
+
+    const totalBytes = [...postMedia.map((item) => item.file), ...selected].reduce((sum, file) => sum + Number(file?.size || 0), 0);
+    if (totalBytes > MAX_TOTAL_MEDIA_BYTES) {
+      setError("A publicação pode ter no máximo 120 MB de mídia no total.");
+      return;
+    }
+
+    const next = selected.map((file, index) => ({
+      id: `${Date.now()}-${index}-${file.name}`,
+      file,
+      type: String(file.type || "").startsWith("video/") ? "video" : "image",
+      preview: URL.createObjectURL(file),
+    }));
+    setError("");
+    setPostMedia((current) => [...current, ...next]);
+  };
+
   const publishPost = async (event) => {
     event.preventDefault();
     if (!requireLogin()) return;
     const body = postBody.trim();
-    if (body.length < 2) return setError("Escreva pelo menos 2 caracteres para publicar.");
-    setPublishing(true); setError(""); setSuccess("");
+    if (body.length === 1) return setError("Escreva pelo menos 2 caracteres ou publique somente a mídia.");
+    if (body.length < 2 && postMedia.length === 0) return setError("Escreva algo ou adicione uma foto ou vídeo para publicar.");
+
+    setPublishing(true);
+    setUploadProgress(0);
+    setError("");
+    setSuccess("");
     try {
-      await cutinappService.createFeedPost({ body });
+      if (postMedia.length > 0) {
+        const payload = new FormData();
+        if (body) payload.append("body", body);
+        postMedia.forEach((item) => payload.append("media[]", item.file, item.file.name));
+        await cutinappService.createFeedPost(payload, {
+          onUploadProgress: (progressEvent) => {
+            const total = Number(progressEvent.total || 0);
+            if (total > 0) setUploadProgress(Math.min(100, Math.round((Number(progressEvent.loaded || 0) / total) * 100)));
+          },
+        });
+      } else {
+        await cutinappService.createFeedPost({ body });
+      }
+
       setPostBody("");
+      clearPostMedia();
+      setUploadProgress(100);
       setSuccess("Sua publicação está no ar. A comunidade já pode curtir, comentar e compartilhar.");
+      trackTelemetry("feed_post_published", {
+        label: "Publicação criada no Feed",
+        target: "feed",
+        metadata: {
+          source: "feed",
+          media_count: postMedia.length,
+          has_video: postMedia.some((item) => item.type === "video"),
+          has_text: Boolean(body),
+        },
+      });
       await load();
     } catch (err) {
       setError(err?.response?.data?.message || err?.message || "Não foi possível publicar agora.");
-    } finally { setPublishing(false); }
+    } finally {
+      setPublishing(false);
+      window.setTimeout(() => setUploadProgress(0), 500);
+    }
   };
 
   const publishReply = async (post) => {
@@ -306,7 +463,8 @@ export default function FeedPage() {
       {post.production_slug && <button type="button" onClick={() => navigate(`/production/${post.production_slug}/public`)}><i className="fa-regular fa-building" /> {post.production_name || "Ver produção"}</button>}
     </div>}
 
-    <p className="cut-feed-post__body">{post.body}</p>
+    <PostMediaCarousel media={post.media} author={authorName(post)} />
+    {String(post.body || "").trim() && <p className="cut-feed-post__body">{post.body}</p>}
     <div className="cut-feed-post__actions">
       <button type="button" className={post.is_liked ? "active" : ""} disabled={busyPosts.has(post.id)} onClick={() => toggleLike(post)}><i className={`${post.is_liked ? "fa-solid" : "fa-regular"} fa-heart`} /><span>{post.likes_count || 0}</span><b>Curtir</b></button>
       <button type="button" onClick={() => openReply(post)}><i className="fa-regular fa-comment-dots" /><span>{post.comments_count || post.replies?.length || 0}</span><b>Comentar</b></button>
@@ -327,10 +485,23 @@ export default function FeedPage() {
 
       {!loading && <Card className="cut-feed-composer mb-4"><Card.Body><Form onSubmit={publishPost}>
         <div className="cut-feed-composer__main"><div className="cut-feed-composer__avatar">{composerAvatar ? <img src={composerAvatar} alt="" /> : <span>{composerInitial}</span>}</div><Form.Control as="textarea" rows={2} maxLength={3000} value={postBody} onChange={(event) => setPostBody(event.target.value)} placeholder={composerPlaceholder} disabled={publishing} /></div>
-        <div className="cut-feed-composer__footer"><span className="cut-feed-composer__visibility"><i className="fa-solid fa-earth-americas" /> Público na Cutinapp</span><div className="cut-feed-composer__actions">{postBody.length > 0 && <small>{postBody.length}/3000</small>}<Button type="submit" size="sm" disabled={publishing || postBody.trim().length < 2}>{publishing ? "Publicando..." : "Publicar"}</Button></div></div>
+        <input ref={mediaInputRef} className="cut-feed-composer__file-input" type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/webm" onChange={selectPostMedia} disabled={publishing} aria-label="Selecionar fotos ou vídeos para a publicação" />
+        {postMedia.length > 0 && <div className="cut-feed-composer__selected-media" aria-label="Mídia selecionada para publicação">{postMedia.map((item, index) => <div className="cut-feed-composer__preview" key={item.id}>
+          {item.type === "video" ? <video src={item.preview} muted playsInline preload="metadata" /> : <img src={item.preview} alt={`Prévia da foto ${index + 1}`} />}
+          <button type="button" onClick={() => removePostMedia(item.id)} disabled={publishing} aria-label={`Remover mídia ${index + 1}`}><i className="fa-solid fa-xmark" /></button>
+          <span>{item.type === "video" ? "Vídeo" : "Foto"}</span>
+        </div>)}</div>}
+        {publishing && postMedia.length > 0 && <div className="cut-feed-composer__progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={uploadProgress}><span style={{ width: `${uploadProgress}%` }} /></div>}
+        <div className="cut-feed-composer__footer">
+          <div className="cut-feed-composer__tools">
+            <span className="cut-feed-composer__visibility"><i className="fa-solid fa-earth-americas" /> Público na Cutinapp</span>
+            <button type="button" className="cut-feed-composer__media-button" onClick={() => mediaInputRef.current?.click()} disabled={publishing || postMedia.length >= MAX_POST_MEDIA}><i className="fa-regular fa-images" /> Foto ou vídeo <small>{postMedia.length ? `${postMedia.length}/${MAX_POST_MEDIA}` : ""}</small></button>
+          </div>
+          <div className="cut-feed-composer__actions">{postBody.length > 0 && <small>{postBody.length}/3000</small>}<Button type="submit" size="sm" disabled={publishing || (postBody.trim().length < 2 && postMedia.length === 0)}>{publishing ? (postMedia.length > 0 && uploadProgress > 0 ? `Enviando ${uploadProgress}%` : "Publicando...") : "Publicar"}</Button></div>
+        </div>
       </Form></Card.Body></Card>}
 
-      <div className="cut-feed-capabilities" aria-label="Recursos das publicações"><span><i className="fa-regular fa-comment-dots" /> Comentar</span><span><i className="fa-solid fa-comments" /> Responder</span><span><i className="fa-regular fa-heart" /> Curtir</span><span><i className="fa-solid fa-share-nodes" /> Compartilhar</span></div>
+      <div className="cut-feed-capabilities" aria-label="Recursos das publicações"><span><i className="fa-regular fa-images" /> Fotos e vídeos</span><span><i className="fa-regular fa-comment-dots" /> Comentar</span><span><i className="fa-regular fa-heart" /> Curtir</span><span><i className="fa-solid fa-share-nodes" /> Compartilhar</span></div>
 
       {loading ? <div className="cut-feed-stream">{Array.from({ length: 4 }).map((_, index) => <SkeletonCard key={index} />)}</div> : communityActivity.length === 0 ? <Card className="cut-empty-state"><Card.Body><div className="cut-empty-icon"><i className="fa-regular fa-comments" /></div><h2>O feed está começando</h2><p>Publique algo ou acompanhe as próximas novidades dos eventos.</p></Card.Body></Card> : <div className="cut-feed-stream">{communityActivity.map((item) => <Card className="cut-feed-social-card" key={`post-${item.id}`}><Card.Body>{renderPost(item)}</Card.Body></Card>)}</div>}
     </Container>
