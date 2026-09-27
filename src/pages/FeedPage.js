@@ -1,4 +1,5 @@
 import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
+import PropTypes from "prop-types";
 import { Alert, Button, Card, Container, Dropdown, Form } from "react-bootstrap";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
@@ -107,6 +108,17 @@ function PostMediaCarousel({ media = [], author = "usuário" }) {
     </>}
   </div>;
 }
+PostMediaCarousel.propTypes = {
+  media: PropTypes.arrayOf(PropTypes.shape({
+    id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    type: PropTypes.string,
+    mime_type: PropTypes.string,
+    url: PropTypes.string,
+    path: PropTypes.string,
+    alt_text: PropTypes.string,
+  })),
+  author: PropTypes.string,
+};
 
 export default function FeedPage() {
   const navigate = useNavigate();
