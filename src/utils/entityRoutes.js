@@ -27,3 +27,24 @@ export const publicEventItemRoute = (eventSlug, itemId) => {
 
   return "/event";
 };
+
+export const safeInternalRoute = (value, fallback = "/search") => {
+  const candidate = pathSegment(value);
+  const requestedFallback = pathSegment(fallback);
+  const safeFallback = (
+    requestedFallback.startsWith("/")
+    && !requestedFallback.startsWith("//")
+    && !requestedFallback.includes("\\")
+  ) ? requestedFallback : "/";
+
+  if (
+    !candidate.startsWith("/")
+    || candidate.startsWith("//")
+    || candidate.includes("\\")
+    || /[\u0000-\u001F\u007F]/.test(candidate)
+  ) {
+    return safeFallback;
+  }
+
+  return candidate;
+};
