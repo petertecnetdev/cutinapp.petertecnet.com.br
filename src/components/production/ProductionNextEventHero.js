@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 import { Button } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import EventArtwork from "../event/EventArtwork";
+import "./ProductionNextEventHero.css";
 
 const eventStart = (event) => event?.start_date || event?.starts_at || event?.start_at || event?.date || null;
 
@@ -77,7 +78,7 @@ export default function ProductionNextEventHero({
 
   if (!event) {
     return (
-      <section className="cut-production-next-event cut-production-next-event--empty" aria-label="Próximo evento">
+      <section className="cut-production-next-card cut-production-next-card--empty" aria-label="Próximo evento">
         <div>
           <span className="cut-eyebrow">Próximo evento</span>
           <h2>{emptyTitle}</h2>
@@ -94,29 +95,30 @@ export default function ProductionNextEventHero({
   const title = event?.title || "Evento Cutinapp";
 
   return (
-    <section className="cut-production-next-event" aria-labelledby="cut-production-next-event-title">
-      <div className="cut-production-next-event__media">
+    <section className="cut-production-next-card" aria-labelledby="cut-production-next-event-title">
+      <div className="cut-production-next-card__media">
         <EventArtwork
           image={event?.image}
           title={title}
           alt={title}
+          className="cut-production-next-card__artwork"
           loading="eager"
           fetchPriority="high"
           decoding="async"
-          fallbackClassName="cut-production-next-event__fallback"
+          fallbackClassName="cut-production-next-card__fallback"
         />
-        <span className="cut-production-next-event__badge">Próxima experiência</span>
+        <span className="cut-production-next-card__badge">Próxima experiência</span>
       </div>
 
-      <div className="cut-production-next-event__body">
+      <div className="cut-production-next-card__body">
         <span className="cut-eyebrow">Próximo evento</span>
         <h2 id="cut-production-next-event-title">{title}</h2>
-        <div className="cut-production-next-event__meta">
+        <div className="cut-production-next-card__meta">
           <span><i className="fa-regular fa-calendar" />{formatDate(eventStart(event))}</span>
           <span><i className="fa-solid fa-location-dot" />{locationLabel(event, production)}</span>
           {price && <span><i className="fa-solid fa-ticket" />{price}</span>}
         </div>
-        <div className="cut-production-next-event__actions">
+        <div className="cut-production-next-card__actions">
           {slug && (
             <Button onClick={() => navigate("/event/" + encodeURIComponent(slug))}>
               {tickets ? "Ver evento e ingressos" : "Ver evento"}

@@ -14,6 +14,7 @@ import { safeExternalHref } from "../../utils/safeUrl";
 import { subscribeGalleryUpdates } from "../../utils/gallerySync";
 import "./production-experience.css";
 import "./production-view-evolution.css";
+import "./production-public-profile.css";
 import "../../components/WhatsAppFloatingButton.css";
 
 const ProductionCommunitySection = React.lazy(() => import("../../components/production/ProductionCommunitySection"));
@@ -262,7 +263,7 @@ export default function ProductionPublicPage() {
     window.requestAnimationFrame(() => {
       const node = targets[key]?.current;
       if (!node) return;
-      const navOffset = document.querySelector(".cut-production-profile-tabs")?.getBoundingClientRect().height || 0;
+      const navOffset = document.querySelector(".cut-production-public-profile__tabs")?.getBoundingClientRect().height || 0;
       const appNavOffset = document.querySelector("nav")?.getBoundingClientRect().height || 0;
       const top = node.getBoundingClientRect().top + window.scrollY - navOffset - appNavOffset - 12;
       window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
@@ -299,42 +300,54 @@ export default function ProductionPublicPage() {
   };
 
   return (
-    <div className="cut-app-page cut-production-themed-page">
+    <div className="cut-app-page cut-production-themed-page cut-production-public-profile">
       <NavlogComponent />
 
-      <section className="cut-profile-hero cut-production-themed-page__hero cut-production-themed-page__hero--public" style={publicHeroStyle}>
-        <Container className="cut-page-container">
-          <div className="cut-profile-hero__content cut-production-public-identity">
-            <div className="cut-profile-avatar cut-profile-avatar--square cut-production-public-logo">
+      <section className="cut-production-public-profile__hero" aria-labelledby="cut-production-public-title">
+        <div
+          className="cut-production-public-profile__cover"
+          style={publicHeroStyle}
+          role="img"
+          aria-label={`Capa de ${production.name}`}
+        />
+        <Container className="cut-page-container cut-production-public-profile__identity-shell">
+          <div className="cut-production-public-profile__identity">
+            <div className="cut-production-public-profile__logo">
               {production.logo
                 ? <img src={mediaUrl(production.logo)} alt={production.name} loading="eager" decoding="async" />
                 : <span>{initials(production.name)}</span>}
             </div>
-            <div className="cut-production-public-hero-copy">
-              <div className="cut-production-public-meta-row">
+            <div className="cut-production-public-profile__copy">
+              <div className="cut-production-public-profile__kicker">
                 <span className="cut-eyebrow">Produção Cutinapp</span>
-                <span className="cut-production-type-chip">{production.type === "fixed" ? "Espaço fixo" : "Produção independente"}</span>
+                <span>{production.type === "fixed" ? "Espaço fixo" : "Produção independente"}</span>
               </div>
-              <h1>{production.name}</h1>
-              <p className="cut-production-public-location">{production.city ? <><i className="fa-solid fa-location-dot" />{production.city}{production.uf ? ` - ${production.uf}` : ""}</> : "Eventos e experiências"}</p>
+              <h1 id="cut-production-public-title">{production.name}</h1>
+              <p className="cut-production-public-profile__location">{production.city ? <><i className="fa-solid fa-location-dot" />{production.city}{production.uf ? ` - ${production.uf}` : ""}</> : "Eventos e experiências"}</p>
 
-              <div className="cut-social-stats">
-                <span>{production.followers_count || 0} seguidores</span>
-                <button type="button" className="cut-inline-profile-link" onClick={() => setShowViewers(true)}><i className="fa-regular fa-eye" /> {analytics.total_views || 0} visualizações</button>
-                <span>{upcoming.length} próximos eventos</span>
+              <div className="cut-production-public-profile__metrics" aria-label="Resumo da produção">
+                <span><strong>{upcoming.length}</strong> eventos</span>
+                <span><strong>{production.followers_count || 0}</strong> seguidores</span>
+                <button type="button" onClick={() => setShowViewers(true)}><i className="fa-regular fa-eye" aria-hidden="true" /> <strong>{analytics.total_views || 0}</strong> visualizações</button>
               </div>
 
-              {producer?.id && <button type="button" className="cut-production-producer-link" onClick={() => navigate(`/profile/${producer.id}`)} aria-label={`Abrir perfil de ${producerName}`}>
-                <span className="cut-production-producer-avatar">{producerAvatar ? <img src={producerAvatar} alt="" loading="lazy" decoding="async" /> : initials(producerName)}</span>
-                <span className="cut-production-producer-copy"><small>Produzido por</small><strong>{producerName}</strong></span>
+              {producer?.id && <button type="button" className="cut-production-public-profile__producer" onClick={() => navigate(`/profile/${producer.id}`)} aria-label={`Abrir perfil de ${producerName}`}>
+                <span className="cut-production-public-profile__producer-avatar">{producerAvatar ? <img src={producerAvatar} alt="" loading="lazy" decoding="async" /> : initials(producerName)}</span>
+                <span><small>Produzido por</small><strong>{producerName}</strong></span>
                 <i className="fa-solid fa-chevron-right" aria-hidden="true" />
               </button>}
+            </div>
 
-              <div className="cut-card-actions mt-3 cut-production-public-primary-actions">
+            <div className="cut-production-public-profile__actions">
+                {sellableUpcoming.length > 0 ? (
+                  <Button className="cut-production-public-profile__action cut-production-public-profile__action--primary" onClick={() => setTicketCartOpen(true)}><i className="fa-solid fa-ticket" />Ingressos</Button>
+                ) : (
+                  <Button className="cut-production-public-profile__action cut-production-public-profile__action--primary" onClick={() => goToTab("eventos")}><i className="fa-regular fa-calendar" />Ver agenda</Button>
+                )}
                 {production.is_following ? (
-                  <Dropdown className="cut-production-follow-dropdown" align="start">
+                  <Dropdown className="cut-production-public-profile__follow" align="start">
                     <Dropdown.Toggle
-                      variant="outline-light"
+                      className="cut-production-public-profile__action cut-production-public-profile__action--secondary"
                       disabled={busy}
                       aria-label={`Você está seguindo ${production.name}. Abrir opções`}
                     >
@@ -353,26 +366,22 @@ export default function ProductionPublicPage() {
                     </Dropdown.Menu>
                   </Dropdown>
                 ) : (
-                  <Button className="cut-production-follow-button" onClick={followProduction} disabled={busy}>
-                    <i className={`fa-solid ${busy ? "fa-spinner fa-spin" : "fa-user-plus"} me-2`} />
+                  <Button className="cut-production-public-profile__action cut-production-public-profile__action--secondary" onClick={followProduction} disabled={busy}>
+                    <i className={`fa-solid ${busy ? "fa-spinner fa-spin" : "fa-user-plus"}`} />
                     {busy ? "Seguindo..." : "Seguir"}
                   </Button>
                 )}
-                {sellableUpcoming.length > 0 && <Button variant="success" onClick={() => setTicketCartOpen(true)}><i className="fa-solid fa-ticket me-2" />Ingressos</Button>}
-                <Button variant="outline-light" onClick={shareNative}><i className="fa-solid fa-share-nodes me-2" />Compartilhar</Button>
-                <div className="cut-production-public-more">
-                  {isOwner && <Button variant="outline-light" onClick={() => navigate(`/production/edit/${production.id}`)} title="Editar produção"><i className="fa-regular fa-pen-to-square" /></Button>}
-                  {instagramHref && <Button as="a" href={instagramHref} target="_blank" rel="noopener noreferrer" variant="outline-light" title="Instagram"><i className="fa-brands fa-instagram" /></Button>}
-                  {websiteHref && <Button as="a" href={websiteHref} target="_blank" rel="noopener noreferrer" variant="outline-light" title="Site"><i className="fa-solid fa-globe" /></Button>}
-                </div>
-              </div>
+                <Button className="cut-production-public-profile__action cut-production-public-profile__action--secondary" onClick={shareNative}><i className="fa-solid fa-share-nodes" />Compartilhar</Button>
+                {isOwner && <Button className="cut-production-public-profile__action cut-production-public-profile__action--icon" onClick={() => navigate(`/production/edit/${production.id}`)} title="Editar produção" aria-label="Editar produção"><i className="fa-regular fa-pen-to-square" /></Button>}
+                {instagramHref && <Button className="cut-production-public-profile__action cut-production-public-profile__action--icon" as="a" href={instagramHref} target="_blank" rel="noopener noreferrer" title="Instagram" aria-label="Abrir Instagram"><i className="fa-brands fa-instagram" /></Button>}
+                {websiteHref && <Button className="cut-production-public-profile__action cut-production-public-profile__action--icon" as="a" href={websiteHref} target="_blank" rel="noopener noreferrer" title="Site" aria-label="Abrir site"><i className="fa-solid fa-globe" /></Button>}
             </div>
           </div>
         </Container>
       </section>
 
       <div ref={tabsSentinelRef} className="cut-production-tabs-sentinel" aria-hidden="true" />
-      <nav className={`cut-production-profile-tabs ${tabsPinned ? "is-fixed" : ""}` } aria-label="Seções da produção">
+      <nav className={`cut-production-public-profile__tabs ${tabsPinned ? "is-fixed" : ""}` } aria-label="Seções da produção">
         {[
           ["inicio", "Início"],
           ["eventos", "Eventos"],
@@ -380,19 +389,12 @@ export default function ProductionPublicPage() {
           ["sobre", "Sobre"],
           ["publicacoes", "Publicações"],
         ].map(([key, label]) => (
-          <button key={key} type="button" className={activeTab === key ? "is-active" : ""} onClick={() => goToTab(key)}>{label}</button>
+          <button key={key} type="button" className={activeTab === key ? "is-active" : ""} aria-current={activeTab === key ? "page" : undefined} onClick={() => goToTab(key)}>{label}</button>
         ))}
       </nav>
 
       <Container className="cut-page-container py-4 py-lg-5" ref={contentTopRef}>
         {error && <Alert variant="danger" dismissible onClose={() => setError("")}>{error}</Alert>}
-
-        <div className="cut-production-profile-stats" aria-label="Resumo da produção">
-          <div><i className="fa-regular fa-eye" /><strong>{analytics.total_views || 0}</strong><span>Visualizações</span></div>
-          <div><i className="fa-regular fa-calendar" /><strong>{upcoming.length}</strong><span>Próximos eventos</span></div>
-          <div><i className="fa-solid fa-users" /><strong>{production.followers_count || 0}</strong><span>Seguidores</span></div>
-          <div><i className="fa-regular fa-heart" /><strong>{production.likes_count || 0}</strong><span>Curtidas</span></div>
-        </div>
 
         <ProductionNextEventHero
           event={nextEvent}
@@ -483,13 +485,13 @@ export default function ProductionPublicPage() {
         {!secondaryLoading && <React.Suspense fallback={<div className="cut-production-section cut-production-async-indicator"><ProcessingIndicatorComponent fullscreen={false} label="Preparando publicações" /></div>}><ProductionCommunitySection production={production} isOwner={isOwner} /></React.Suspense>}
       </Container>
 
-      <a className="cut-whatsapp-fab" href={whatsappShareHref} target="_blank" rel="noopener noreferrer" aria-label="Compartilhar produção no WhatsApp" title="Compartilhar produção no WhatsApp"><i className="fa-brands fa-whatsapp" aria-hidden="true" /><span>Compartilhar</span></a>
+      <a className="cut-whatsapp-fab cut-production-share-fab" href={whatsappShareHref} target="_blank" rel="noopener noreferrer" aria-label="Compartilhar produção no WhatsApp" title="Compartilhar produção no WhatsApp"><i className="fa-brands fa-whatsapp" aria-hidden="true" /><span>Compartilhar</span></a>
 
       <ProductionTicketCartModal show={ticketCartOpen} onHide={() => setTicketCartOpen(false)} productionSlug={slug} />
 
-      <Modal show={showViewers} onHide={() => setShowViewers(false)} centered backdrop keyboard contentClassName="cut-viewers-modal">
-        <Modal.Header><Modal.Title>Quem visualizou</Modal.Title></Modal.Header>
-        <Modal.Body>{analytics.viewers?.length ? <div className="cut-viewer-list">{analytics.viewers.map((viewer) => <button type="button" className="cut-viewer-row cut-viewer-row--link" key={viewer.id} onClick={() => { setShowViewers(false); navigate(`/profile/${viewer.id}`); }} aria-label={`Abrir perfil de ${viewer.name}`}><div className="cut-viewer-avatar">{viewer.avatar ? <img src={mediaUrl(viewer.avatar)} alt="" loading="lazy" decoding="async" /> : initials(viewer.name)}</div><div><strong>{viewer.name}</strong><small>{viewer.last_viewed_at ? `Última visita: ${fmt(viewer.last_viewed_at)}` : "Visitou a produção"}</small></div><span>{viewer.views_count} {viewer.views_count === 1 ? "visita" : "visitas"}</span></button>)}</div> : <p className="text-muted mb-0">As visualizações anônimas entram no total. Usuários identificados aparecem aqui quando acessarem a página.</p>}</Modal.Body>
+      <Modal show={showViewers} onHide={() => setShowViewers(false)} centered backdrop keyboard contentClassName="cut-production-viewers-modal">
+        <Modal.Header closeButton closeVariant="white"><div><Modal.Title>Quem visualizou</Modal.Title><p>Somente perfis identificados são exibidos.</p></div></Modal.Header>
+        <Modal.Body>{analytics.viewers?.length ? <div className="cut-production-viewers-list">{analytics.viewers.map((viewer) => <button type="button" className="cut-production-viewer" key={viewer.id} onClick={() => { setShowViewers(false); navigate(`/profile/${viewer.id}`); }} aria-label={`Abrir perfil de ${viewer.name}`}><span className="cut-production-viewer__avatar">{viewer.avatar ? <img src={mediaUrl(viewer.avatar)} alt="" loading="lazy" decoding="async" /> : initials(viewer.name)}</span><span className="cut-production-viewer__identity"><strong>{viewer.name}</strong><small>{viewer.last_viewed_at ? `Última visita: ${fmt(viewer.last_viewed_at)}` : "Visitou a produção"}</small></span><span className="cut-production-viewer__count"><strong>{viewer.views_count}</strong><small>{viewer.views_count === 1 ? "visita" : "visitas"}</small></span></button>)}</div> : <p className="cut-production-viewers-empty">As visualizações anônimas entram somente no total. Nenhum perfil identificado está disponível nesta lista.</p>}</Modal.Body>
       </Modal>
     </div>
   );
