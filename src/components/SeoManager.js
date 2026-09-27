@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import eventService from "../services/EventService";
+import cutinappService from "../services/CutinappService";
+import { storageUrl } from "../config";
 import { buildEventSeo } from "../utils/eventSeo";
 import SeoHead, { SITE_URL } from "./SeoHead";
 
@@ -44,6 +46,67 @@ const publicProductionSeo = (path) => {
     description: productionName
       ? `Conheça ${productionName}, seus eventos e experiências publicados na Cutinapp.`
       : "Conheça esta produção e seus eventos na Cutinapp.",
+  };
+};
+
+const plainText = (value = "") => String(value)
+  .replace(/<[^>]*>/g, " ")
+  .replace(/\s+/g, " ")
+  .trim();
+
+const productionMediaUrl = (value) => {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  if (/^https?:\/\//i.test(raw)) return raw;
+  return `${storageUrl}${raw.replace(/^\/?storage\//, "").replace(/^\//, "")}`;
+};
+
+const buildProductionSeo = (production, slug) => {
+  if (!production?.name) return null;
+
+  const canonical = `${SITE_URL}/production/${encodeURIComponent(slug)}/public`;
+  const summary = plainText(production.description).slice(0, 220);
+  const location = [production.city, production.uf].filter(Boolean).join(", ");
+  const description = summary
+    || (location
+      ? `Conheça ${production.name}, produção de eventos em ${location}, e veja seus próximos eventos na Cutinapp.`
+      : `Conheça ${production.name}, seus eventos e experiências publicados na Cutinapp.`);
+  const image = productionMediaUrl(production.background || production.logo);
+  const about = {
+    "@type": "Organization",
+    name: production.name,
+    ...(production.website_url ? { url: production.website_url } : {}),
+    ...(production.logo ? { logo: productionMediaUrl(production.logo) } : {}),
+  };
+
+  if (production.location_public && (production.city || production.uf || production.country)) {
+    about.address = {
+      "@type": "PostalAddress",
+      ...(production.city ? { addressLocality: production.city } : {}),
+      ...(production.uf ? { addressRegion: production.uf } : {}),
+      ...(production.country ? { addressCountry: production.country } : {}),
+    };
+  }
+
+  return {
+    title: `${production.name} | Produção de eventos na Cutinapp`,
+    description,
+    canonical,
+    image: image || undefined,
+    type: "website",
+    jsonLd: {
+      "@context": "https://schema.org",
+      "@type": "ProfilePage",
+      name: production.name,
+      description,
+      url: canonical,
+      mainEntity: about,
+      isPartOf: {
+        "@type": "WebSite",
+        name: "Cutinapp",
+        url: SITE_URL,
+      },
+    },
   };
 };
 
@@ -140,10 +203,16 @@ const eventSlugFromPath = (path) => {
   return match?.[1] || "";
 };
 
+const productionSlugFromPath = (path) => {
+  const match = path.match(/^\/production\/([A-Za-z0-9-]+)\/public$/);
+  return match?.[1] || "";
+};
+
 export default function SeoManager() {
   const location = useLocation();
   const path = location.pathname.replace(/\/+$/, "") || "/";
   const [eventSeo, setEventSeo] = useState(null);
+  const [productionSeo, setProductionSeo] = useState(null);
 
   const baseSeo = useMemo(() => {
     const publicRoute = PUBLIC_ROUTES.find((route) => route.test(path));
@@ -182,5 +251,24 @@ export default function SeoManager() {
     return () => { active = false; };
   }, [path]);
 
-  return <SeoHead {...(eventSeo || baseSeo)} scriptId="route" />;
+  useEffect(() => {
+    const slug = productionSlugFromPath(path);
+    setProductionSeo(null);
+    if (!slug) return undefined;
+
+    let active = true;
+    cutinappService.publicProduction(slug)
+      .then((response) => {
+        if (!active || !response?.production) return;
+        const resolved = buildProductionSeo(response.production, slug);
+        if (resolved) setProductionSeo({ ...resolved, robots: "index, follow, max-image-preview:large" });
+      })
+      .catch(() => {
+        // Mantém o fallback derivado da rota quando a API pública estiver indisponível.
+      });
+
+    return () => { active = false; };
+  }, [path]);
+
+  return <SeoHead {...(eventSeo || productionSeo || baseSeo)} scriptId="route" />;
 }
