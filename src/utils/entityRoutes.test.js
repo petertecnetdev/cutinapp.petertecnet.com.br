@@ -1,5 +1,6 @@
 import {
   publicArtistRoute,
+  publicEntityFallbackRoute,
   publicEventItemRoute,
   publicEventRoute,
   publicProductionRoute,
@@ -37,6 +38,18 @@ describe("canonical public entity routes", () => {
     expect(publicProductionRoute("producao/noite"))
       .toBe("/production/producao%2Fnoite/public");
     expect(publicProductionRoute(undefined)).toBe("/productions");
+  });
+
+  test("maps known notification entity types to legitimate app fallbacks", () => {
+    expect(publicEntityFallbackRoute("event")).toBe("/event");
+    expect(publicEntityFallbackRoute("event_item")).toBe("/event");
+    expect(publicEntityFallbackRoute("production")).toBe("/productions");
+    expect(publicEntityFallbackRoute("artist")).toBe("/artists");
+    expect(publicEntityFallbackRoute("ticket")).toBe("/passes");
+    expect(publicEntityFallbackRoute("order")).toBe("/purchases");
+    expect(publicEntityFallbackRoute("profile")).toBe("/profile");
+    expect(publicEntityFallbackRoute("unknown")).toBe("");
+    expect(publicEntityFallbackRoute(null)).toBe("");
   });
 
   test("preserves safe internal search destinations", () => {
