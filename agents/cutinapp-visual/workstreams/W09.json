@@ -1,0 +1,48 @@
+{
+  "workstream": "W09",
+  "mission": "Apresentação pública, conversão, SEO e compartilhamento",
+  "status": "IMPLEMENTING",
+  "updated_at": "2026-09-27T13:45:00-03:00",
+  "baseline_main_sha": "d7d52435a40591e38088e6ff04f587ffee81ee6a",
+  "points": [
+    {
+      "id": "W09-001",
+      "priority": "P1",
+      "status": "CLAIMED",
+      "title": "SEO dinâmico da página pública de Produção",
+      "scope": ["/production/:slug/public"],
+      "problem": "SeoManager usa apenas o slug para title/description e sempre usa logo genérico; ao contrário do Evento, não busca a entidade real. Links de Produção compartilhados perdem nome canônico, descrição real, imagem da entidade e structured data, reduzindo qualidade de preview, confiança e descoberta.",
+      "acceptance": "Após carregar a produção pública, title/description/canonical/OG/Twitter usam dados reais disponíveis, imagem real quando houver e JSON-LD Organization/WebPage sem inventar localização, disponibilidade ou prova social. Fallback por rota continua funcionando quando API falhar.",
+      "evidence": ["src/components/SeoManager.js: publicProductionSeo humaniza apenas slug; fetch dinâmico existe somente para Event", "src/components/SeoHead.js: imagem default é /images/logo.png"]
+    },
+    {
+      "id": "W09-002",
+      "priority": "P1",
+      "status": "PENDING",
+      "title": "Eliminar locale estrutural fixo do head sem alegar idiomas inexistentes",
+      "scope": ["public/index.html", "src/components/SeoHead.js"],
+      "problem": "html lang, og:locale e JSON-LD inLanguage estão fixos em pt-BR; arquitetura global precisa derivar locale efetivamente servido, sem fingir variantes ainda inexistentes.",
+      "acceptance": "Locale do documento e metadata deriva de configuração/contexto real; hreflang só é publicado para variantes realmente servidas."
+    },
+    {
+      "id": "W09-003",
+      "priority": "P1",
+      "status": "PENDING",
+      "title": "Validar previews reais de Evento e Produção",
+      "scope": ["/event/:slug", "/production/:slug/public"],
+      "problem": "Metadata client-side pode não ser consumida por crawlers sociais que não executam JavaScript.",
+      "acceptance": "Evidência com fetch/crawler de preview confirma title, description, canonical e imagem específicos da entidade; se falhar, implementar renderização server-side/prerender/edge metadata."
+    }
+  ],
+  "requests_for": [
+    {"worker":"W01","request":"W01 mantém ownership visual de Evento/Produção. W09 não tocará hero/layout; favor preservar hooks/rotas públicas e informar mudanças de campos de imagem/slug da Produção."},
+    {"worker":"W04","request":"Se surgir primitive compartilhado de share/SEO visual, W04 mantém ownership; W09 limitará alterações a metadata/SEO/conversão pública."}
+  ],
+  "implementation": {
+    "files_changed": ["agents/cutinapp-visual/workstreams/W09.json"],
+    "functional_changes": [],
+    "validation": ["MASTER.json lido", "W01.json lido e ownership respeitado", "commits recentes auditados até d7d52435", "SeoManager/SeoHead/eventSeo/ProductionPublicPage inspecionados na main"],
+    "note": "Claim registrado antes de alteração funcional para evitar colisão com a nova equipe visual concorrente."
+  },
+  "next": ["Implementar W09-001 em lote pequeno e testável", "Validar build/CI", "Verificar preview HTTP real; somente então marcar VERIFIED"]
+}
