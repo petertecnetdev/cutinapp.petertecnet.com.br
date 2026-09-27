@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "updated_at": "2026-09-27T11:26:00-03:00",
+  "owner": "cutinapp-visual-operations",
+  "status": "IMPLEMENTING",
+  "identity": {
+    "background": "#050505",
+    "surface": "#0B0B0D",
+    "surface_2": "#141417",
+    "graphite": "#26262B",
+    "graphite_hi": "#3B3B42",
+    "red": "#E00000",
+    "red_hot": "#FF1717",
+    "red_hi": "#FF4545",
+    "text": "#F5F5F7",
+    "muted": "#A8A8B0",
+    "border": "#2B2B30"
+  },
+  "verification_policy": "Build alone never verifies an item. VERIFY requires affected-route visual and behavioral evidence.",
+  "items": [
+    {"id":"VIS-001","status":"REOPENED","owner":"cutinapp-visual-operations","surface":"Event discovery global locale/timezone/currency","files":["src/pages/event/EventPage.js","src/components/event/EventDateCarousel.js"],"evidence":"pt-BR, America/Sao_Paulo, BRL and Portuguese weekday labels are hardcoded.","commit":null,"validation":null},
+    {"id":"VIS-002","status":"IMPLEMENTING","owner":"cutinapp-visual-operations","surface":"Event discovery official black/graphite/red visual system","files":["src/pages/event/EventPage.css","src/components/event/EventDateCarousel.css"],"evidence":"Persistent EVENTCARDS visual audit required across desktop/mobile, focus and reduced-motion.","commit":null,"validation":null},
+    {"id":"VIS-003","status":"IMPLEMENTING","owner":"cutinapp-visual-operations","surface":"Desktop navbar overflow/symmetry","files":["src/components/NavlogComponent.js"],"evidence":"Coordinated by issue #650 and navbar-quality.json; viewport verification remains required.","commit":null,"validation":null},
+    {"id":"VIS-004","status":"PENDING","owner":null,"surface":"Feed multimedia composer/upload/carousel/profile media","files":[],"evidence":"Coordinate TASK-20260927-FEEDMEDIA01; verify resilient bounded uploads, accessibility, performance and official visual system.","commit":null,"validation":null}
+  ],
+  "reserved_items": {
+    "range": "VIS-005..VIS-100",
+    "status": "PENDING",
+    "rule": "Materialize each ID as its route/component is audited; never mark uninspected surfaces VERIFIED."
+  },
+  "required_viewports": {
+    "event_discovery_desktop": [1280,1366,1440,1920],
+    "event_discovery_mobile": [360,390,430],
+    "navbar_desktop": [1280,1366,1440,1536,1920,2560],
+    "navbar_zoom_percent": [100,125]
+  },
+  "next_action": "Remove structural Brazil/Sao Paulo locale/timezone/currency assumptions from EventPage and EventDateCarousel, then validate event discovery visually before verification."
+}
