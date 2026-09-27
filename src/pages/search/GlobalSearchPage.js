@@ -6,6 +6,7 @@ import { AuthContext } from "../../context/AuthContext";
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
 import { trackTelemetry } from "../../utils/telemetry";
+import { safeInternalRoute } from "../../utils/entityRoutes";
 import "./GlobalSearchPage.css";
 
 const RECENT_KEY = "cutinapp:global-search:recent:v2";
@@ -377,14 +378,15 @@ export default function GlobalSearchPage() {
   });
 
   const rememberLocal = (item) => {
-    const normalized = { type: item.type, id: item.id, title: item.title, subtitle: item.subtitle || "", image: item.image || "", url: item.url };
+    const normalized = { type: item.type, id: item.id, title: item.title, subtitle: item.subtitle || "", image: item.image || "", url: safeInternalRoute(item.url) };
     const next = [normalized, ...recent.filter((entry) => !(entry.type === normalized.type && String(entry.id) === String(normalized.id)))].slice(0, 20);
     setRecent(next);
     saveJson(RECENT_KEY, next);
   };
 
   const openResult = async (item, index = 0) => {
-    rememberLocal(item);
+    const destination = safeInternalRoute(item.url);
+    rememberLocal({ ...item, url: destination });
     const attribution = {
       search_id: response?.search_id || null,
       target_type: item.type,
@@ -405,7 +407,7 @@ export default function GlobalSearchPage() {
         title: item.title,
         subtitle: item.subtitle || "",
         image: item.image || "",
-        url: item.url,
+        url: destination,
       },
     }).catch(() => {});
 
@@ -415,21 +417,22 @@ export default function GlobalSearchPage() {
       sponsored: Boolean(item.sponsored),
       position: Number(index) + 1,
     });
-    navigate(item.url);
+    navigate(destination);
   };
 
   const prefetchResult = (item) => {
+    const destination = safeInternalRoute(item.url);
     const key = `${item.type}:${item.id}`;
     if (prefetchRef.current.has(key)) return;
     prefetchRef.current.add(key);
-    if (item.type === "event" && item.url?.startsWith("/event/")) {
-      const slug = item.url.split("/").filter(Boolean)[1];
+    if (item.type === "event" && destination.startsWith("/event/")) {
+      const slug = destination.split("/").filter(Boolean)[1];
       if (slug) cutinappService.publicEvent?.(slug).catch?.(() => {});
-    } else if ((item.type === "production" || item.type === "venue") && item.url?.includes("/production/")) {
-      const slug = item.url.split("/").filter(Boolean)[1];
+    } else if ((item.type === "production" || item.type === "venue") && destination.includes("/production/")) {
+      const slug = destination.split("/").filter(Boolean)[1];
       if (slug) cutinappService.publicProduction(slug).catch(() => {});
-    } else if (item.type === "artist" && item.url?.startsWith("/artist/")) {
-      const slug = item.url.split("/").filter(Boolean)[1];
+    } else if (item.type === "artist" && destination.startsWith("/artist/")) {
+      const slug = destination.split("/").filter(Boolean)[1];
       if (slug) cutinappService.publicArtist(slug).catch(() => {});
     } else if ((item.type === "user" || item.type === "promoter") && Number(item.id)) {
       cutinappService.publicProfile(Number(item.id)).catch(() => {});
