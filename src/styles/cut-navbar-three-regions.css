@@ -209,3 +209,27 @@
     animation-iteration-count: 1 !important;
   }
 }
+
+/* Instagram-style unread state: presence matters, the exact count does not.
+   The existing conditional badge remains the source of truth, but its text is
+   visually collapsed into a small brand-red activity dot on every viewport. */
+.cut-capability-nav .cut-nav-notification__badge {
+  top: 4px !important;
+  right: 2px !important;
+  width: 8px !important;
+  min-width: 8px !important;
+  max-width: 8px !important;
+  height: 8px !important;
+  min-height: 8px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 50% !important;
+  background: var(--cut-red-hi, #ff2020) !important;
+  color: transparent !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  overflow: hidden !important;
+  white-space: nowrap;
+  box-shadow: 0 0 0 2px var(--cut-bg-soft, #080809) !important;
+  pointer-events: none;
+}
