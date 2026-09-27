@@ -32,7 +32,15 @@
 
 .cut-event-view-page > * {
   position: relative;
-  z-index: 1 !important;
+}
+
+.cut-event-view-page > :not(.cut-navbar):not(.cut-capability-nav) {
+  z-index: var(--cut-layer-content) !important;
+}
+
+.cut-event-view-page > .cut-navbar,
+.cut-event-view-page > .cut-capability-nav {
+  z-index: var(--cut-layer-navbar) !important;
 }
 
 .cut-event-view-page .cut-event-summary-card {
