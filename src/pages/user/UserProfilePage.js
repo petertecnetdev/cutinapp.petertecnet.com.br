@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 import { Alert, Button, Container, Dropdown, Form, Modal, Spinner } from "react-bootstrap";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
+import EventDiscoveryRail from "../../components/event/EventDiscoveryRail";
 import QrCodeComponent from "../../components/QrCodeComponent";
 import { ProfileActorBadges, ProfileActorLinks, actorThemeClass } from "../../components/user/ProfileActorIdentity";
 import { AuthContext } from "../../context/AuthContext";
@@ -37,14 +38,6 @@ const normalizePostMedia = (post) => {
     .filter(Boolean);
   return [...legacy, ...social];
 };
-
-function EventCard({ event, onOpen }) {
-  return <button type="button" className="cut-profile-v2__event" onClick={() => onOpen(event)}>
-    <div className="cut-profile-v2__eventMedia">{event.image ? <img src={imageUrl(event.image)} alt="" loading="lazy" /> : <i className="fa-regular fa-calendar" />}</div>
-    <div className="cut-profile-v2__eventBody"><strong>{event.title || "Evento"}</strong><span>{fmt(event.start_date)}</span><span>{event.city ? `${event.city}${event.uf ? ` - ${event.uf}` : ""}` : "Local a confirmar"}</span></div>
-  </button>;
-}
-EventCard.propTypes = { event: PropTypes.shape({ id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]), slug: PropTypes.string, image: PropTypes.string, title: PropTypes.string, start_date: PropTypes.string, city: PropTypes.string, uf: PropTypes.string }).isRequired, onOpen: PropTypes.func.isRequired };
 
 function EmptyState({ icon, title, text, action, actionLabel }) {
   return <div className="cut-profile-v2__empty"><i className={icon} /><h3>{title}</h3><p>{text}</p>{action && <Button size="sm" onClick={action}>{actionLabel}</Button>}</div>;
@@ -174,7 +167,7 @@ export default function UserProfilePage() {
     catch (err) { if (err?.name !== "AbortError") setError("Não foi possível compartilhar o perfil agora."); }
   };
 
-  const openEvent = (event) => { if (!event?.slug) return; trackTelemetry("profile_event_opened", { label: "Evento aberto pelo perfil", target: String(event.id || event.slug), metadata: { source: "profile", profile_user_id: Number(profile.id || requestedUserId) } }); navigate(`/event/${event.slug}`); };
+  const trackEventOpen = (event) => { if (!event?.slug) return; trackTelemetry("profile_event_opened", { label: "Evento aberto pelo perfil", target: String(event.id || event.slug), metadata: { source: "profile", profile_user_id: Number(profile.id || requestedUserId) } }); };
   const openInterest = (interest) => navigate(`/event?search=${encodeURIComponent(interest)}`);
 
   if (loading) return <div className="cut-app-page"><NavlogComponent /><Container className="cut-page-container py-4"><div className="cut-profile-v2__skeleton" aria-label="Carregando perfil" /></Container></div>;
@@ -202,7 +195,31 @@ export default function UserProfilePage() {
           return <article className="cut-profile-v2__post" key={post.id}><div className="cut-profile-v2__postHeader"><div className="cut-profile-v2__miniAvatar">{avatar ? <img src={avatar} alt="" /> : profileInitials}</div><div><strong>{profileName}</strong><small>{fmt(post.created_at)}</small></div></div>{featuredMedia && <button type="button" className="cut-profile-v2__postMedia" onClick={() => navigate(`/feed?post=${post.id}`)} aria-label="Abrir publicação com mídia">{featuredMedia.type === "video" ? <video src={imageUrl(featuredMedia.url)} muted playsInline preload="metadata" /> : <img src={imageUrl(featuredMedia.url)} alt="Mídia da publicação" loading="lazy" />}{postMedia.length > 1 && <span><i className="fa-regular fa-images" /> {postMedia.length}</span>}{featuredMedia.type === "video" && <i className="fa-solid fa-play cut-profile-v2__postMediaPlay" />}</button>}{String(post.body || "").trim() && <div className="cut-profile-v2__postBody">{post.body}</div>}<div className="cut-profile-v2__postActions"><button type="button" className={post.is_liked ? "active" : ""} onClick={() => navigate(`/feed?post=${post.id}`)}><i className={`${post.is_liked ? "fa-solid" : "fa-regular"} fa-heart`} /> {number(post.likes_count)}</button><button type="button" onClick={() => navigate(`/feed?post=${post.id}`)}><i className="fa-regular fa-comment" /> {number(post.comments_count || post.replies?.length)}</button><button type="button" onClick={() => navigate(`/feed?post=${post.id}`)}><i className="fa-solid fa-share-nodes" /></button></div></article>;
         })}</div>}</section>}
 
-        {tab === "events" && <><section className="cut-profile-v2__section"><div className="cut-profile-v2__heading"><div><h2>Próximos eventos</h2><p>Agenda, interesses e experiências conectadas a este perfil.</p></div></div>{upcomingEvents.length ? <div className="cut-profile-v2__eventGrid">{upcomingEvents.slice(0,24).map((event) => <EventCard key={event.id} event={event} onOpen={openEvent} />)}</div> : <EmptyState icon="fa-regular fa-calendar-plus" title="Nenhum próximo evento" text={isOwnProfile ? "Explore eventos e monte sua agenda." : "Não há próximos eventos públicos neste perfil."} action={isOwnProfile ? () => navigate("/event") : null} actionLabel="Descobrir eventos" />}</section>{pastEvents.length > 0 && <section className="cut-profile-v2__section"><div className="cut-profile-v2__heading"><div><h2>Eventos anteriores</h2><p>Histórico público de experiências.</p></div></div><div className="cut-profile-v2__eventGrid">{pastEvents.slice(0,24).map((event) => <EventCard key={event.id} event={event} onOpen={openEvent} />)}</div></section>}</>}
+        {tab === "events" && <>
+          <EventDiscoveryRail
+            events={upcomingEvents}
+            eyebrow="Agenda"
+            title="Próximos eventos"
+            description="Agenda, interesses e experiências conectadas a este perfil."
+            allTo="/event"
+            allLabel="Todos os eventos"
+            emptyTitle="Nenhum próximo evento"
+            emptyText={isOwnProfile ? "Explore eventos e monte sua agenda." : "Não há próximos eventos públicos neste perfil."}
+            maxItems={24}
+            onEventOpen={trackEventOpen}
+            className="cut-profile-v2__eventsRail"
+          />
+          {pastEvents.length > 0 && <EventDiscoveryRail
+            events={pastEvents}
+            eyebrow="Histórico"
+            title="Eventos anteriores"
+            description="Histórico público de experiências."
+            allTo={null}
+            maxItems={24}
+            onEventOpen={trackEventOpen}
+            className="cut-profile-v2__eventsRail"
+          />}
+        </>}
 
         {tab === "media" && <section className="cut-profile-v2__section"><div className="cut-profile-v2__heading"><div><h2>Fotos e vídeos</h2><p>Mídia pública das publicações deste perfil.</p></div></div>{media.length ? <div className="cut-profile-v2__mediaGrid">{media.slice(0,40).map((item,index) => <button key={item.id || `${item.url}-${index}`} type="button" onClick={() => window.open(imageUrl(item.url), "_blank", "noopener,noreferrer")} aria-label={item.type === "video" ? "Abrir vídeo do perfil" : "Abrir foto do perfil"}>{item.type === "video" ? <><video src={imageUrl(item.url)} muted playsInline preload="metadata" /><i className="fa-solid fa-play cut-profile-v2__mediaPlay" /></> : <img src={imageUrl(item.url)} alt="Mídia do perfil" loading="lazy" />}</button>)}</div> : <EmptyState icon="fa-regular fa-images" title="Nenhuma mídia pública" text="Fotos e vídeos aparecerão aqui quando forem compartilhados." />}</section>}
 
