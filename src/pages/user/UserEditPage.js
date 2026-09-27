@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useMemo, useState } from "react";
+import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Button, Col, Form, Row } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
@@ -56,6 +56,7 @@ export default function UserEditPage() {
   const [preview, setPreview] = useState("");
   const [background, setBackground] = useState(null);
   const [backgroundPreview, setBackgroundPreview] = useState("");
+  const backgroundInputRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -149,6 +150,12 @@ export default function UserEditPage() {
   const chooseAvatar = pickImage({ maxMb: 4, label: "A foto do perfil", setter: setAvatar, previewSetter: setPreview });
   const chooseBackground = pickImage({ maxMb: 8, label: "A capa", setter: setBackground, previewSetter: setBackgroundPreview });
 
+  const openBackgroundPicker = () => {
+    if (loading || !backgroundInputRef.current) return;
+    backgroundInputRef.current.value = "";
+    backgroundInputRef.current.click();
+  };
+
   const submit = async (event) => {
     event.preventDefault();
     if (!user?.id || loading) return;
@@ -230,10 +237,33 @@ export default function UserEditPage() {
               </Col>
               <Col md={7}>
                 <Form.Group>
-                  <Form.Label>Capa do perfil</Form.Label>
-                  {backgroundPreview ? <img src={backgroundPreview} alt="Prévia da capa" className="cut-upload-preview mb-3" /> : <div className="cut-upload-placeholder mb-3"><i className="fa-regular fa-image" /><span>Adicione uma capa horizontal</span></div>}
-                  <Form.Control type="file" accept="image/png,image/jpeg,image/webp" onChange={chooseBackground} />
-                  <Form.Text>PNG, JPG ou WEBP de até 8 MB. A prévia mostra o recorte usado na view.</Form.Text>
+                  <Form.Label htmlFor="profile-background-input">Capa do perfil</Form.Label>
+                  <button
+                    type="button"
+                    className="cut-profile-cover-picker mb-3"
+                    onClick={openBackgroundPicker}
+                    disabled={loading}
+                    aria-label={backgroundPreview ? "Trocar capa do perfil" : "Adicionar capa do perfil"}
+                  >
+                    {backgroundPreview ? <img src={backgroundPreview} alt="Prévia da capa" className="cut-upload-preview" /> : <div className="cut-upload-placeholder"><i className="fa-regular fa-image" /><span>Adicione uma capa horizontal</span></div>}
+                    <span className="cut-profile-cover-picker__action">
+                      <i className="fa-solid fa-camera" aria-hidden="true" />
+                      {backgroundPreview ? "Trocar capa" : "Adicionar capa"}
+                    </span>
+                  </button>
+                  <Form.Control
+                    ref={backgroundInputRef}
+                    id="profile-background-input"
+                    className="visually-hidden"
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    onChange={chooseBackground}
+                  />
+                  <Button type="button" variant="outline-light" size="sm" onClick={openBackgroundPicker} disabled={loading}>
+                    <i className="fa-regular fa-image me-2" aria-hidden="true" />
+                    Selecionar imagem da capa
+                  </Button>
+                  <Form.Text className="d-block mt-2">PNG, JPG ou WEBP de até 8 MB. A prévia mostra o recorte usado na view.</Form.Text>
                 </Form.Group>
               </Col>
             </Row>
