@@ -49,8 +49,7 @@
   border: 1px solid var(--cut-border-strong) !important;
   border-radius: 24px !important;
   background:
-    radial-gradient(circle at 12% -25%, rgba(86, 220, 233, .09), transparent 38%),
-    var(--cut-event-panel) !important;
+    radial-gradient(circle at 12% -25%, #250000 0%, #0B0B0D 38%, #0B0B0D 100%) !important;
   box-shadow: 0 20px 55px rgba(0, 0, 0, .2);
 }
 
@@ -80,7 +79,7 @@
 
 .cut-event-discovery-page .cut-search-bar:focus-within {
   border-color: var(--cut-border-strong);
-  box-shadow: 0 0 0 3px rgba(86, 220, 233, .06);
+  box-shadow: 0 0 0 3px #3D0000;
 }
 
 .cut-event-discovery-page .cut-search-bar .btn {
@@ -759,11 +758,8 @@
 }
 
 .cut-event-discovery-page .cut-page-heading h1 {
-  background: linear-gradient(90deg, #FFFFFF 0%, #FFFFFF 54%, #FF5252 78%, #D80000 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  text-shadow: 0 14px 38px #000000;
+  color: #FFFFFF;
+  text-shadow: 0 14px 38px #000000, 0 0 24px #3D0000;
 }
 
 .cut-event-discovery-page .cut-page-heading p {
