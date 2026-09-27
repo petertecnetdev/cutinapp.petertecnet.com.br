@@ -1,0 +1,37 @@
+{
+  "workstream": "W01",
+  "mission": "Evoluir views publicas/detalhadas de Evento e Producao e paridade visual de create/edit para conversao de produtores.",
+  "status": "IMPLEMENTING",
+  "updated_at": "2026-09-27T13:40:24-03:00",
+  "baseline_main_sha": "ebea05918199a4d44e117a93a93ffc432248f337",
+  "coordination": {
+    "workstreams_directory_found": false,
+    "master_found": false,
+    "note": "Diretorio agents/cutinapp-visual/workstreams ainda nao existia na main; W01 criado sem alterar estados de outros workstreams. Estado legado agents/cutinapp-launch permanece somente leitura para W01."
+  },
+  "inventory": {
+    "event": [
+      "EventViewPage usa ProcessingIndicator e componentes especificos EventArtwork/EventCommercePanel/EventCommunitySection/EventDiscoveryRail.",
+      "View ainda possui locale pt-BR, timezone America/Sao_Paulo e moeda BRL hardcoded em formatacao e descoberta por data; isto viola internacionalizacao/global discovery.",
+      "EventCreatePage existe e deve manter paridade visual com a view; validacao visual completa desktop/mobile continua pendente."
+    ],
+    "production": [
+      "Inventario estrutural completo da view/create/edit de Producao continua pendente para a proxima rodada; nao houve edicao funcional sem leitura integral segura."
+    ]
+  },
+  "points": [
+    {"id":"W01-001","priority":"P1","status":"PENDING","title":"Remover pt-BR/BRL/America-Sao_Paulo hardcoded da EventViewPage","impact":"Evita datas, moeda e descoberta incorretas para produtores e participantes fora do Brasil.","files":["src/pages/event/EventViewPage.js"],"evidence":"formatDate, money, saoPauloDateKey e eventOffsetDateKey usam defaults brasileiros fixos."},
+    {"id":"W01-002","priority":"P1","status":"PENDING","title":"Validar hero de Evento mobile/desktop e flyer inteiro","impact":"Primeira impressao e conversao da view publica.","files":["src/pages/event/EventViewPage.js","src/pages/event/EventViewPage.css"],"evidence":"Requer verificacao visual real; nao marcar por build."},
+    {"id":"W01-003","priority":"P1","status":"PENDING","title":"Garantir paridade Event View/Create/Edit","impact":"Produtor entende durante edicao como a pagina publica ficara.","files":["src/pages/event/EventViewPage.js","src/pages/event/EventCreatePage.js"],"evidence":"Create existe; comparar hierarquia/hero/componentes antes de alterar."},
+    {"id":"W01-004","priority":"P1","status":"PENDING","title":"Inventariar e alinhar Production View/Create/Edit","impact":"Producao funciona como cartao de visita do produtor e caminho para proximos eventos.","files":[],"evidence":"Pendente localizar e ler integralmente componentes de producao na main."},
+    {"id":"W01-005","priority":"P2","status":"PENDING","title":"Validar pelo menos dois rails relacionais paginados no Evento quando houver dados","impact":"Aumenta navegacao entre eventos/entidades sem transformar a pagina em lista pesada.","files":["src/components/event/EventDiscoveryRail.js","src/pages/event/EventViewPage.js"],"evidence":"EventDiscoveryRail e EventCommunitySection ja estao importados; comportamento/paginacao deve ser confirmado."}
+  ],
+  "requests_for": [],
+  "implementation": {
+    "files_changed": ["agents/cutinapp-visual/workstreams/W01.json"],
+    "functional_changes": [],
+    "reason_no_functional_edit": "A main recebeu mudancas recentes e o primeiro P1 identificado envolve internacionalizacao/data/moeda; alterar sem mapear os campos reais de locale/timezone/currency do evento/contexto poderia criar fallback incorreto. Registrado para implementacao segura na proxima rodada.",
+    "validation": ["main tree lida em ebea05918199a4d44e117a93a93ffc432248f337","EventViewPage.js inspecionada na main","nenhum estado W02..W10 encontrado/alterado"]
+  },
+  "next": ["Mapear campos reais de locale/timezone/currency disponiveis no evento/contexto e implementar W01-001 sem fallback geografico.","Ler Production View/Create/Edit e deduplicar novos pontos.","Executar validacao visual mobile/desktop das views antes de VERIFIED."]
+}
