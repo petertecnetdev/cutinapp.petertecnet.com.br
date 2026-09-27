@@ -8,6 +8,7 @@ import "./components/event/EventPosterThumbnail.css";
 import "./styles/event-ticket-purchase.css";
 import "./components/WhatsAppFloatingButton.css";
 import "./components/event/EventDiscoveryRail.css";
+import "./styles/mobile-bottom-nav-fix.css";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import AppErrorBoundary from "./components/AppErrorBoundary";
@@ -48,9 +49,6 @@ const installDeferredEnhancers = async () => {
     || (Number.isFinite(navigator?.hardwareConcurrency) && navigator.hardwareConcurrency <= 4)
   );
 
-  // Keep optional convenience chunks out of the network/main-thread path on
-  // constrained phones. Core image performance still installs above; these
-  // progressive enhancers remain available on devices with enough headroom.
   if (constrainedNetwork || constrainedDevice) return;
 
   if (!window.location.pathname.startsWith("/checkout/")) {
@@ -91,9 +89,6 @@ if (typeof window !== "undefined") {
     }
   };
 
-  // Optional chunks must not compete with the critical document, fonts and
-  // route bundle during first load. Existing sessions (document already
-  // complete) still schedule them immediately into the next idle window.
   if (document.readyState === "complete") {
     scheduleDeferredEnhancers();
   } else {
