@@ -176,6 +176,12 @@ body:has(.cut-event-series-launcher):has(.cut-whatsapp-fab) .cut-event-series-al
   z-index: var(--cut-layer-navbar) !important;
 }
 
+.cut-entity-editor__nav {
+  position: sticky !important;
+  top: calc(var(--cut-navbar-fixed-height, var(--cut-navbar-height, 72px)) + env(safe-area-inset-top, 0px)) !important;
+  z-index: var(--cut-layer-sticky) !important;
+}
+
 .cut-event-manager-toolbar {
   top: calc(var(--cut-navbar-fixed-height, 72px) + 8px) !important;
   z-index: var(--cut-layer-sticky) !important;
