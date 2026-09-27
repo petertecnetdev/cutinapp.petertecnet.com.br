@@ -9,7 +9,7 @@ import cutinappService from "../services/CutinappService";
 import commerceService from "../services/CommerceService";
 import { storageUrl } from "../config";
 import { chronologicalBucketFor, parsePortableEventDate } from "../utils/chronologicalDiscovery";
-import { publicEventItemRoute } from "../utils/entityRoutes";
+import { publicEventItemRoute, publicProductionRoute } from "../utils/entityRoutes";
 import "./HomeHubPage.css";
 
 const formatMoney = (value, currency) => {
@@ -188,7 +188,7 @@ export default function HomeHubPage() {
             {productions.map((production) => {
               const cover = mediaUrl(production.background || production.cover || production.banner);
               const logo = mediaUrl(production.logo || production.photo || production.image);
-              return <Link to={`/production/${production.slug}/public`} className="cut-home-hub__productionCard" key={production.id || production.slug}><div className="cut-home-hub__productionCover">{cover ? <img src={cover} alt="" loading="lazy" decoding="async" /> : <span />}</div><div className="cut-home-hub__productionBody"><div className="cut-home-hub__productionAvatar">{logo ? <img src={logo} alt={production.name || "Produção"} loading="lazy" decoding="async" /> : initials(production.name)}</div><div><h3>{production.name || "Produção Cutinapp"}</h3><p>{production.city ? `${production.city}${production.uf ? ` - ${production.uf}` : ""}` : "Produção Cutinapp"}</p><small>{Number(production.upcoming_events_count || 0)} próximo(s) evento(s)</small></div></div></Link>;
+              return <Link to={publicProductionRoute(production.slug)} className="cut-home-hub__productionCard" key={production.id || production.slug}><div className="cut-home-hub__productionCover">{cover ? <img src={cover} alt="" loading="lazy" decoding="async" /> : <span />}</div><div className="cut-home-hub__productionBody"><div className="cut-home-hub__productionAvatar">{logo ? <img src={logo} alt={production.name || "Produção"} loading="lazy" decoding="async" /> : initials(production.name)}</div><div><h3>{production.name || "Produção Cutinapp"}</h3><p>{production.city ? `${production.city}${production.uf ? ` - ${production.uf}` : ""}` : "Produção Cutinapp"}</p><small>{Number(production.upcoming_events_count || 0)} próximo(s) evento(s)</small></div></div></Link>;
             })}
           </DiscoveryRail>
         )}
