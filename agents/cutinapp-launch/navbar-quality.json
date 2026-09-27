@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-09-26",
+  "updated_at": "2026-09-26T23:26:00-03:00",
   "owner": "cutinapp-revenue-operations",
   "issue": 650,
   "status": "IMPLEMENTING",
@@ -16,19 +16,20 @@
     "component": "src/components/NavlogComponent.js",
     "registry": "src/navigation/navigationRegistry.js",
     "desktop_zones": ["brand", "primary_navigation", "creation_and_notifications", "account", "ecosystem_launcher"],
-    "primary_entries": ["home", "search", "events", "feed", "messages", "productions"],
-    "more_menu": "Already exists, but currently duplicates messages and productions while those same entries remain first-level desktop links.",
+    "primary_entries": ["home", "search", "events", "feed"],
+    "more_entries": ["messages", "productions", "artists", "blog"],
+    "more_menu": "Secondary destinations now live only in More; messages and productions were removed from the desktop first level to eliminate duplication and reduce width pressure.",
     "role_sensitive_areas": ["producer", "artist", "promoter", "agent", "admin"],
     "preserve": ["capability-based permissions", "notifications", "artist invitations", "production context", "account actions", "admin actions", "ecosystem launcher"],
-    "globalization_finding": "notificationTime hardcodes locale pt-BR and timezone America/Sao_Paulo; this is a global-product regression and must be replaced by dynamic locale/timezone context.",
-    "next_safe_refactor": "Make the desktop first level intentionally small and unique; move secondary destinations into More without rendering the same destination twice, while preserving role/capability menus and utilities."
+    "globalization_finding": "notificationTime still hardcodes locale pt-BR and timezone America/Sao_Paulo; this remains REOPENED until dynamic locale/timezone context is implemented.",
+    "next_safe_refactor": "Validate the compact four-destination first level visually and functionally, then harden flex sizing/breakpoints and remove notification locale/timezone hardcodes."
   },
   "items": [
-    {"id":"NAV-001","status":"VERIFIED","problem":"Inventory desktop navbar architecture, roles, permissions and duplicate actions before refactor","evidence":"NavlogComponent.js and navigationRegistry.js audited on main: five desktop zones identified; primaryNavigation has six entries; More duplicates messages/productions; role/capability, notification, invitation, production-context, admin and ecosystem behavior documented; hardcoded pt-BR/America/Sao_Paulo also identified.","commit":"PENDING_COMMIT_SHA"},
-    {"id":"NAV-002","status":"PENDING","problem":"Separate brand, primary navigation and account/utility zones","commit":null},
-    {"id":"NAV-003","status":"PENDING","problem":"Define primary versus secondary links by role without exposing every route at first level","commit":null},
-    {"id":"NAV-004","status":"PENDING","problem":"Implement explicit More/overflow strategy for secondary actions","commit":null},
-    {"id":"NAV-005","status":"REOPENED","problem":"Remove duplicate Search/equivalent actions and duplicate destinations across first-level/More","evidence":"Messages and Produções are rendered from primaryNavigation and then rendered again inside More.","commit":null},
+    {"id":"NAV-001","status":"VERIFIED","problem":"Inventory desktop navbar architecture, roles, permissions and duplicate actions before refactor","evidence":"Five desktop zones inventoried; role/capability, notification, invitation, production-context, admin and ecosystem behavior documented.","commit":"907e79553afa66becbd1842045873c681f64fb75"},
+    {"id":"NAV-002","status":"IMPLEMENTING","problem":"Separate brand, primary navigation and account/utility zones","evidence":"Primary destination set reduced to four entries, lowering competition with tools/account/ecosystem zones; structural viewport validation still required.","commit":"bd5d64aa571e724cc110e704310fb2abb9e0ebee"},
+    {"id":"NAV-003","status":"IMPLEMENTING","problem":"Define primary versus secondary links by role without exposing every route at first level","evidence":"Primary now contains Início/Buscar/Eventos/Feed; Mensagens/Produções/Artistas/Blog are secondary More destinations. Capability-specific management remains in actor/account menus.","commit":"bd5d64aa571e724cc110e704310fb2abb9e0ebee"},
+    {"id":"NAV-004","status":"IMPLEMENTING","problem":"Implement explicit More/overflow strategy for secondary actions","evidence":"Secondary destinations moved into exploreNavigation consumed by existing More dropdown; visual breakpoint behavior remains to validate.","commit":"bd5d64aa571e724cc110e704310fb2abb9e0ebee"},
+    {"id":"NAV-005","status":"IMPLEMENTING","problem":"Remove duplicate Search/equivalent actions and duplicate destinations across first-level/More","evidence":"Messages and Produções no longer exist in primaryNavigation and are present once in exploreNavigation. Registry regression test asserts uniqueness across primary + More.","commit":"b5d05a73c1d9107ded15a0161a85c7bc2f355f1e"},
     {"id":"NAV-006","status":"PENDING","problem":"Prevent account, notifications, invites and ecosystem launcher from compressing primary navigation","commit":null},
     {"id":"NAV-007","status":"PENDING","problem":"Use sustainable flex/grid sizing with min-width:0, controlled widths and tokenized gaps","commit":null},
     {"id":"NAV-008","status":"PENDING","problem":"Normalize icon/label alignment, hit areas, active, hover and focus states","commit":null},
@@ -42,8 +43,8 @@
     {"id":"NAV-016","status":"PENDING","problem":"Validate navbar at 2560px 100%","commit":null},
     {"id":"NAV-017","status":"PENDING","problem":"Validate critical desktop widths at browser zoom 125%","commit":null},
     {"id":"NAV-018","status":"PENDING","problem":"Verify routes, permissions, notifications, invitations, context and administrative actions","commit":null},
-    {"id":"NAV-019","status":"PENDING","problem":"Add automated functional/visual regression coverage when viable","commit":null},
+    {"id":"NAV-019","status":"IMPLEMENTING","problem":"Add automated functional/visual regression coverage when viable","evidence":"navigationRegistry.test.js now asserts compact primary set, More set and cross-set destination uniqueness; viewport visual regression remains pending.","commit":"b5d05a73c1d9107ded15a0161a85c7bc2f355f1e"},
     {"id":"NAV-020","status":"PENDING","problem":"Capture before/after evidence and only verify after repeated visual and functional passes","commit":null},
-    {"id":"NAV-021","status":"REOPENED","problem":"Remove hardcoded pt-BR and America/Sao_Paulo from navbar notification formatting; use dynamic locale/timezone without geographic fallback","evidence":"src/components/NavlogComponent.js notificationTime currently instantiates Intl.DateTimeFormat('pt-BR') with timeZone 'America/Sao_Paulo'.","commit":null}
+    {"id":"NAV-021","status":"REOPENED","problem":"Remove hardcoded pt-BR and America/Sao_Paulo from navbar notification formatting; use dynamic locale/timezone without geographic fallback","evidence":"src/components/NavlogComponent.js notificationTime still instantiates Intl.DateTimeFormat('pt-BR') with timeZone 'America/Sao_Paulo'.","commit":null}
   ]
 }
