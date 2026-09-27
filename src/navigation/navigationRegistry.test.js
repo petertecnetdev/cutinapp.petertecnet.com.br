@@ -13,6 +13,13 @@ describe("capability based navigation", () => {
     expect(commonNavigation.find((entry) => entry.id === "search")).toMatchObject({ label: "Buscar", to: "/search" });
   });
 
+  test("desktop primary navigation stays compact and destinations are unique across primary and More", () => {
+    expect(primaryNavigation.map((entry) => entry.id)).toEqual(["home", "search", "events", "feed"]);
+    expect(exploreNavigation.map((entry) => entry.id)).toEqual(["messages", "productions", "artists", "blog"]);
+    const ids = [...primaryNavigation, ...exploreNavigation].map((entry) => entry.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
   test("roles are cumulative instead of exclusive", () => {
     const capabilities = resolveNavigationCapabilities({ applications: [app("producer", ["artist", "promoter"])] });
     expect(actorMenusFor(capabilities).map((area) => area.id)).toEqual(expect.arrayContaining(["producer", "artist", "promoter"]));
@@ -48,8 +55,8 @@ describe("capability based navigation", () => {
     expect(actions.some((entry) => entry.id === "quick-create-event")).toBe(true);
     expect(actions.some((entry) => entry.id === "quick-artist")).toBe(true);
     expect(rankQuickActions(actions, { "quick-artist": 8 })[0].id).toBe("quick-artist");
-    expect(primaryNavigation.map((entry) => entry.id)).toEqual(["home", "search", "events", "feed", "messages", "productions"]);
-    expect(exploreNavigation.map((entry) => entry.id)).toEqual(["artists", "blog"]);
+    expect(primaryNavigation.map((entry) => entry.id)).toEqual(["home", "search", "events", "feed"]);
+    expect(exploreNavigation.map((entry) => entry.id)).toEqual(["messages", "productions", "artists", "blog"]);
     expect(creationActionsFor(capabilities).some((entry) => entry.to === "/production/create")).toBe(true);
     expect(adminActionsFor(capabilities)).toEqual([]);
   });
