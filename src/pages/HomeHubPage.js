@@ -8,7 +8,7 @@ import eventService from "../services/EventService";
 import cutinappService from "../services/CutinappService";
 import commerceService from "../services/CommerceService";
 import { storageUrl } from "../config";
-import { chronologicalBucketFor, parsePortableEventDate } from "../utils/chronologicalDiscovery";
+import { chronologicalBucketFor, parsePortableEventDate } from "../utils/chronologicalDiscovery";\nimport { publicEventItemRoute } from "../utils/entityRoutes";
 import "./HomeHubPage.css";
 
 const formatMoney = (value, currency) => {
@@ -199,7 +199,7 @@ export default function HomeHubPage() {
               const production = item.__production || {};
               const image = mediaUrl(item.image || item.image_url || item.photo || item.cover);
               const currency = item.currency || item.currency_code || event.currency || event.currency_code || production.currency || production.currency_code;
-              return <Link to={event.slug ? `/event/${event.slug}/catalogo` : "/event"} className="cut-home-hub__itemCard" key={`${event.id || event.slug}-${item.id}`}><div className="cut-home-hub__itemMedia">{image ? <img src={image} alt={item.name || "Item"} loading="lazy" decoding="async" /> : <span className="cut-home-hub__itemInitials" aria-hidden="true">{initials(item.name || "Item")}</span>}<strong>{formatMoney(item.price, currency)}</strong></div><div className="cut-home-hub__itemBody"><h3>{item.name || "Item da produção"}</h3>{production.name && <p>{production.name}</p>}<small>{event.title || "Disponível em evento Cutinapp"}</small></div></Link>;
+              return <Link to={publicEventItemRoute(event.slug, item.id)} className="cut-home-hub__itemCard" key={`${event.id || event.slug}-${item.id}`}><div className="cut-home-hub__itemMedia">{image ? <img src={image} alt={item.name || "Item"} loading="lazy" decoding="async" /> : <span className="cut-home-hub__itemInitials" aria-hidden="true">{initials(item.name || "Item")}</span>}<strong>{formatMoney(item.price, currency)}</strong></div><div className="cut-home-hub__itemBody"><h3>{item.name || "Item da produção"}</h3>{production.name && <p>{production.name}</p>}<small>{event.title || "Disponível em evento Cutinapp"}</small></div></Link>;
             })}
           </DiscoveryRail>
         )}
