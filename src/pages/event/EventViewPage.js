@@ -213,6 +213,9 @@ export default function EventViewPage() {
   const mapEmbedUrl = useMemo(() => buildMapEmbedUrl(event), [event]);
   const googleMapsHref = useMemo(() => safeExternalHref(event?.google_maps_url), [event?.google_maps_url]);
   const flyerUrl = useMemo(() => resolveImageUrl(event?.image), [event?.image]);
+  const eventPageStyle = useMemo(() => (flyerUrl
+    ? { "--cut-event-flyer-bg": `url(${JSON.stringify(flyerUrl)})` }
+    : undefined), [flyerUrl]);
   const temporalState = useMemo(() => getEventTemporalState(event, clock), [event, clock]);
   const temporal = temporalMeta[temporalState];
   const isPastEvent = temporalState === "past";
@@ -498,7 +501,7 @@ export default function EventViewPage() {
   const attendanceCheckedIn = Number(ownerResults?.attendance?.checked_in || 0);
   const attendanceRate = attendanceIssued > 0 ? Math.round((attendanceCheckedIn / attendanceIssued) * 100) : 0;
 
-  return <div className={`cut-app-page cut-event-view-page ${showPersistentBuyCta ? "cut-event-view-page--buyable" : ""}`}><NavlogComponent />{(loading || artistClaimingId || duplicating) && <ProcessingIndicatorComponent label={artistClaimingId ? "Enviando reivindicação" : duplicating ? "Criando próxima edição" : "Carregando evento"} />}
+  return <div className={`cut-app-page cut-event-view-page ${showPersistentBuyCta ? "cut-event-view-page--buyable" : ""} ${flyerUrl ? "cut-event-view-page--flyer-background" : ""}`} style={eventPageStyle}><NavlogComponent />{(loading || artistClaimingId || duplicating) && <ProcessingIndicatorComponent label={artistClaimingId ? "Enviando reivindicação" : duplicating ? "Criando próxima edição" : "Carregando evento"} />}
     {!loading && event && <>
       <section className="cut-event-banner-stage" aria-label={`Imagem do evento ${event.title}`}>
         <Container className="cut-page-container">
