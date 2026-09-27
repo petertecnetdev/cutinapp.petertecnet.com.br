@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import cutinappService from "../services/CutinappService";
 import { storageUrl } from "../config";
+import { safeInternalRoute } from "../utils/entityRoutes";
 
 const EVENT_NAME = "cutinapp:open-global-search";
 
@@ -95,7 +96,7 @@ export default function GlobalSearchOverlay() {
   const go = (url) => {
     setOpen(false);
     setQuery("");
-    navigate(url);
+    navigate(safeInternalRoute(url));
   };
 
   const goFull = () => {
