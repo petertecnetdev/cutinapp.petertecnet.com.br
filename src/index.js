@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import "./styles/app.css";
+import "./styles/mobile-hamburger-emergency.css";
 import "./pages/production/production-public-polish.css";
 import "./styles/mobileFeedTouchTargets.css";
 import "./components/event/EventPosterThumbnail.css";
