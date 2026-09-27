@@ -17,6 +17,7 @@ import { apiBaseUrl, appSlug } from "./config";
 import reportWebVitals from "./reportWebVitals";
 import { installGlobalImageFallbacks } from "./utils/imageFallback";
 import { installNavigationRecovery } from "./utils/navigationRecovery";
+import { installMobileNavbarRecovery } from "./utils/mobileNavbarRecovery";
 import { installEventViewScrollReset } from "./utils/eventViewScrollReset";
 import { installCartCompletionCleanup } from "./utils/cartCompletionCleanup";
 import { installPersistentCart } from "./utils/persistentCart";
@@ -28,6 +29,7 @@ import { installFrontendErrorMonitoring } from "./utils/frontendErrorMonitoring"
 installGlobalSweetAlertBridge();
 installGlobalImageFallbacks();
 installNavigationRecovery();
+installMobileNavbarRecovery();
 installEventViewScrollReset();
 installCartCompletionCleanup();
 installPersistentCart();
