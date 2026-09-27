@@ -3,7 +3,7 @@
     "collect": {
       "staticDistDir": "./build",
       "url": ["http://localhost/"],
-      "numberOfRuns": 1,
+      "numberOfRuns": 3,
       "settings": {
         "formFactor": "mobile",
         "screenEmulation": {
