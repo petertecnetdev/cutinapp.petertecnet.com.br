@@ -8,7 +8,8 @@ import eventService from "../services/EventService";
 import cutinappService from "../services/CutinappService";
 import commerceService from "../services/CommerceService";
 import { storageUrl } from "../config";
-import { chronologicalBucketFor, parsePortableEventDate } from "../utils/chronologicalDiscovery";\nimport { publicEventItemRoute } from "../utils/entityRoutes";
+import { chronologicalBucketFor, parsePortableEventDate } from "../utils/chronologicalDiscovery";
+import { publicEventItemRoute } from "../utils/entityRoutes";
 import "./HomeHubPage.css";
 
 const formatMoney = (value, currency) => {
