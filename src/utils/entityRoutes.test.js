@@ -2,6 +2,7 @@ import {
   publicEventItemRoute,
   publicEventRoute,
   publicProductionRoute,
+  safeInternalRoute,
 } from "./entityRoutes";
 
 describe("canonical public entity routes", () => {
@@ -30,5 +31,21 @@ describe("canonical public entity routes", () => {
     expect(publicProductionRoute("producao central"))
       .toBe("/production/producao%20central/public");
     expect(publicProductionRoute(undefined)).toBe("/productions");
+  });
+
+  test("preserves safe internal search destinations", () => {
+    expect(safeInternalRoute("/artist/dj-noite?from=search"))
+      .toBe("/artist/dj-noite?from=search");
+  });
+
+  test("falls back when a search destination is missing or external", () => {
+    expect(safeInternalRoute(undefined)).toBe("/search");
+    expect(safeInternalRoute("https://example.com/event")).toBe("/search");
+    expect(safeInternalRoute("//example.com/event")).toBe("/search");
+    expect(safeInternalRoute("/\\example.com/event")).toBe("/search");
+  });
+
+  test("does not accept an unsafe fallback", () => {
+    expect(safeInternalRoute("", "https://example.com")).toBe("/");
   });
 });

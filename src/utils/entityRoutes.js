@@ -27,3 +27,27 @@ export const publicEventItemRoute = (eventSlug, itemId) => {
 
   return "/event";
 };
+
+export const safeInternalRoute = (value, fallback = "/search") => {
+  const candidate = pathSegment(value);
+  const requestedFallback = pathSegment(fallback);
+  const safeFallback = (
+    requestedFallback.startsWith("/")
+    && !requestedFallback.startsWith("//")
+    && !requestedFallback.includes("\\")
+  ) ? requestedFallback : "/";
+
+  if (
+    !candidate.startsWith("/")
+    || candidate.startsWith("//")
+    || candidate.includes("\\")
+    || Array.from(candidate).some((character) => {
+      const code = character.charCodeAt(0);
+      return code <= 31 || code === 127;
+    })
+  ) {
+    return safeFallback;
+  }
+
+  return candidate;
+};
