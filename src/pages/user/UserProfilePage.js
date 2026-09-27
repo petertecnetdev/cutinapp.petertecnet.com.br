@@ -120,11 +120,10 @@ export default function UserProfilePage() {
   }, [data?.profile, isOwnProfile]);
 
   useEffect(() => {
-    if (!data?.profile?.id || tab !== "posts") return undefined;
-    let active = true; setSecondaryLoading(true);
-    cutinappService.feed({ page: 1, per_page: 60 }).then((response) => { if (active) setPosts(asArray(response?.community_activity).filter((post) => Number(post?.user_id) === Number(data.profile.id))); }).catch(() => { if (active) setPosts([]); }).finally(() => { if (active) setSecondaryLoading(false); });
-    return () => { active = false; };
-  }, [data?.profile?.id, tab]);
+    if (!data?.profile?.id) return;
+    setPosts(asArray(data?.posts));
+    setSecondaryLoading(false);
+  }, [data?.profile?.id, data?.posts]);
 
   useEffect(() => {
     if (!isOwnProfile || !user?.id) {
