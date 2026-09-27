@@ -1,4 +1,4 @@
-/* Public production content polish — premium spacing, hierarchy and mobile-safe cards. */
+/* Public production content polish — solid Cutinapp surfaces, premium spacing and mobile-safe cards. */
 .cut-production-themed-page .cut-production-public-about{
   align-items:stretch!important;
   gap:clamp(20px,2.6vw,34px)!important;
@@ -11,14 +11,10 @@
   height:100%!important;
   min-width:0;
   overflow:hidden;
-  border:1px solid rgba(255,255,255,.105)!important;
+  border:1px solid var(--cut-border,#2b2b30)!important;
   border-radius:26px!important;
-  background:
-    radial-gradient(circle at 100% 0%,rgba(185,28,28,.12),transparent 31%),
-    linear-gradient(150deg,rgba(16,20,28,.985),rgba(7,9,14,.995))!important;
-  box-shadow:
-    0 26px 72px rgba(0,0,0,.32),
-    inset 0 1px 0 rgba(255,255,255,.04)!important;
+  background:var(--cut-surface,#0b0b0d)!important;
+  box-shadow:0 18px 44px #000!important;
 }
 
 .cut-production-themed-page .cut-production-public-about>.cut-panel::before{
@@ -27,20 +23,12 @@
   inset:0 auto auto 0;
   width:100%;
   height:2px;
-  background:linear-gradient(90deg,#ef4444,rgba(239,68,68,.2) 42%,transparent 76%);
+  background:var(--cut-red,#e00000);
   pointer-events:none;
 }
 
 .cut-production-themed-page .cut-production-public-about>.cut-panel::after{
-  content:"";
-  position:absolute;
-  right:-70px;
-  top:-85px;
-  width:210px;
-  height:210px;
-  border-radius:50%;
-  background:radial-gradient(circle,rgba(239,68,68,.075),transparent 70%);
-  pointer-events:none;
+  content:none;
 }
 
 .cut-production-themed-page .cut-production-about-card .card-body,
@@ -57,7 +45,7 @@
   align-items:center;
   gap:8px;
   margin-bottom:7px;
-  color:#ff6268;
+  color:var(--cut-red-hi,#ff4545);
   font-size:.71rem;
   font-weight:900;
   line-height:1;
@@ -71,13 +59,13 @@
   width:18px;
   height:1px;
   flex:none;
-  background:#ef4444;
+  background:var(--cut-red,#e00000);
 }
 
 .cut-production-themed-page .cut-production-about-card .cut-section-title,
 .cut-production-themed-page .cut-production-location-card .cut-section-title{
   margin:.3rem 0 0!important;
-  color:#f8fafc;
+  color:var(--cut-text,#f5f5f7);
   font-size:clamp(1.5rem,2.15vw,2rem);
   font-weight:900;
   line-height:1.1;
@@ -89,8 +77,8 @@
   max-width:900px!important;
   margin-top:22px;
   padding:0 0 0 19px;
-  border-left:2px solid rgba(239,68,68,.5);
-  color:#cbd2dc!important;
+  border-left:2px solid var(--cut-red,#e00000);
+  color:var(--cut-muted,#a8a8b0)!important;
   font-size:clamp(.98rem,1.08vw,1.06rem)!important;
   line-height:1.82!important;
 }
@@ -113,14 +101,14 @@
 
 .cut-production-themed-page .cut-production-description .cut-formatted-text strong,
 .cut-production-themed-page .cut-production-description strong{
-  color:#f7f8fa;
+  color:var(--cut-text,#f5f5f7);
   font-weight:850;
 }
 
 .cut-production-themed-page .cut-production-description-toggle{
   margin-top:12px!important;
   padding:6px 0!important;
-  color:#ff6268!important;
+  color:var(--cut-red-hi,#ff4545)!important;
   text-decoration:none!important;
 }
 
@@ -128,20 +116,20 @@
   gap:10px!important;
   margin-top:27px;
   padding-top:22px;
-  border-top:1px solid rgba(255,255,255,.075);
+  border-top:1px solid var(--cut-border,#2b2b30);
 }
 
 .cut-production-themed-page .cut-production-public-social .btn,
 .cut-production-themed-page .cut-production-location-actions .btn{
   min-height:44px;
   padding:10px 15px;
-  border-color:rgba(255,255,255,.14);
+  border-color:var(--cut-graphite-hi,#3b3b42);
   border-radius:13px!important;
-  background:rgba(255,255,255,.025);
+  background:var(--cut-surface-2,#141417);
   font-size:.83rem;
   font-weight:820;
   box-shadow:none;
-  transition:transform .16s ease,border-color .16s ease,background .16s ease,box-shadow .16s ease;
+  transition:transform .16s ease,border-color .16s ease,background .16s ease;
 }
 
 .cut-production-themed-page .cut-production-public-social .btn:hover,
@@ -149,8 +137,8 @@
 .cut-production-themed-page .cut-production-location-actions .btn-outline-light:hover,
 .cut-production-themed-page .cut-production-location-actions .btn-outline-light:focus-visible{
   transform:translateY(-1px);
-  border-color:rgba(239,68,68,.38);
-  background:rgba(239,68,68,.075);
+  border-color:var(--cut-red-hot,#ff1717);
+  background:var(--cut-graphite,#26262b);
 }
 
 .cut-production-themed-page .cut-production-location-copy{
@@ -160,10 +148,10 @@
   gap:13px!important;
   margin:22px 0 0!important;
   padding:15px 16px;
-  border:1px solid rgba(255,255,255,.08);
+  border:1px solid var(--cut-border,#2b2b30);
   border-radius:17px;
-  background:rgba(255,255,255,.027);
-  color:#c0c7d2;
+  background:var(--cut-surface-2,#141417);
+  color:var(--cut-muted,#a8a8b0);
   line-height:1.58;
 }
 
@@ -174,8 +162,8 @@
   place-items:center;
   margin:0!important;
   border-radius:12px;
-  background:rgba(239,68,68,.11);
-  color:#ff6268;
+  background:var(--cut-graphite,#26262b);
+  color:var(--cut-red-hi,#ff4545);
 }
 
 .cut-production-themed-page .cut-production-location-copy span{
@@ -190,24 +178,26 @@
 }
 
 .cut-production-themed-page .cut-production-location-actions .btn:not(.btn-outline-light){
-  border-color:rgba(239,68,68,.58)!important;
-  background:linear-gradient(135deg,#e11d2e,#b91c1c)!important;
-  box-shadow:0 10px 26px rgba(185,28,28,.2)!important;
+  border-color:var(--cut-red,#e00000)!important;
+  background:var(--cut-red,#e00000)!important;
+  box-shadow:0 8px 20px #000!important;
 }
 
 .cut-production-themed-page .cut-production-location-actions .btn:not(.btn-outline-light):hover,
 .cut-production-themed-page .cut-production-location-actions .btn:not(.btn-outline-light):focus-visible{
   transform:translateY(-1px);
-  box-shadow:0 14px 30px rgba(185,28,28,.28)!important;
+  border-color:var(--cut-red-hot,#ff1717)!important;
+  background:var(--cut-red-hot,#ff1717)!important;
+  box-shadow:0 10px 24px #000!important;
 }
 
 .cut-production-themed-page .cut-production-location-card iframe{
   width:100%;
   height:clamp(270px,29vw,360px)!important;
   margin-top:22px!important;
-  border:1px solid rgba(255,255,255,.08)!important;
+  border:1px solid var(--cut-border,#2b2b30)!important;
   border-radius:18px!important;
-  box-shadow:0 18px 42px rgba(0,0,0,.24);
+  box-shadow:0 14px 34px #000;
 }
 
 @media(min-width:992px){
@@ -285,5 +275,12 @@
   .cut-production-themed-page .cut-production-public-social,
   .cut-production-themed-page .cut-production-location-actions{
     grid-template-columns:1fr;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  .cut-production-themed-page .cut-production-public-social .btn,
+  .cut-production-themed-page .cut-production-location-actions .btn{
+    transition:none;
   }
 }
