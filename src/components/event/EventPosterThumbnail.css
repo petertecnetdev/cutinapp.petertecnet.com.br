@@ -9,28 +9,13 @@
   padding:var(--cut-event-poster-padding);
   overflow:hidden;
   isolation:isolate;
-  background:#070708;
+  background:var(--cut-bg-soft);
 }
 
+/* The old decorative blurred duplicate forced every carousel thumbnail to
+   repaint an oversized image. Keep the layer structurally available for
+   existing markup, but make the shared component use the solid brand surface. */
 .cut-event-poster-thumb__bg{
-  position:absolute!important;
-  inset:-28px!important;
-  z-index:0!important;
-  width:calc(100% + 56px)!important;
-  height:calc(100% + 56px)!important;
-  border:0!important;
-  border-radius:0!important;
-  filter:blur(28px) saturate(1.28) brightness(.46);
-  transform:scale(1.08);
-}
-
-.cut-event-poster-thumb__bg img{
-  width:100%!important;
-  height:100%!important;
-  object-fit:cover!important;
-}
-
-.cut-event-poster-thumb__bg.cut-optimized-image--fallback{
   display:none!important;
 }
 
@@ -40,10 +25,10 @@
   width:100%!important;
   height:100%!important;
   overflow:hidden;
-  border:1px solid #34343e;
-  border-radius:12px;
-  background:#050506;
-  box-shadow:0 10px 28px #020203;
+  border:1px solid var(--cut-border-strong);
+  border-radius:var(--cut-radius-sm);
+  background:var(--cut-bg);
+  box-shadow:var(--cut-shadow-sm);
 }
 
 .cut-event-poster-thumb__main img{
@@ -51,7 +36,7 @@
   height:100%!important;
   object-fit:contain!important;
   object-position:center!important;
-  background:#050506;
+  background:var(--cut-bg);
   transform:none!important;
   filter:none!important;
 }
@@ -59,9 +44,9 @@
 .cut-event-poster-thumb__fallback{
   display:grid!important;
   place-items:center!important;
-  color:#ff6b6b;
-  font-size:1.5rem;
-  font-weight:950;
+  color:var(--cut-red-hi);
+  font-size:var(--cut-text-xl);
+  font-weight:var(--cut-weight-black);
 }
 
 .cut-event-poster-thumb--tight{
