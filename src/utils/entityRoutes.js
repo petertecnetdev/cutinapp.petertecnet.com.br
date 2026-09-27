@@ -13,6 +13,11 @@ export const publicProductionRoute = (productionSlug) => {
   return slug ? `/production/${encodeURIComponent(slug)}/public` : "/productions";
 };
 
+export const publicArtistRoute = (artistSlug) => {
+  const slug = pathSegment(artistSlug);
+  return slug ? `/artist/${encodeURIComponent(slug)}` : "/artists";
+};
+
 export const publicEventItemRoute = (eventSlug, itemId) => {
   const slug = pathSegment(eventSlug);
   const id = pathSegment(itemId);
