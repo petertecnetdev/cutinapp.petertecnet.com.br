@@ -1,0 +1,44 @@
+{
+  "mission": "W05",
+  "updated_at": "2026-09-27T13:40:16-03:00",
+  "source": {"branch":"main","head":"ebea05918199a4d44e117a93a93ffc432248f337","routes_file":"src/App.js"},
+  "coordination": {
+    "status": "ACTIVE",
+    "workstream_files_found": [],
+    "note": "agents/cutinapp-visual/workstreams did not exist on main at this audit; W05 initialized MASTER without claiming W01-W04 implementation work.",
+    "ownership": {
+      "W01": ["events","productions","event/production create-edit-view alignment"],
+      "W02": ["profiles","users","artists","promoters","participants"],
+      "W03": ["items","tickets","passes","content surfaces"],
+      "W04": ["design system","brand tokens","shared visual primitives"],
+      "W05": ["cross-workstream integration","route inventory","conflicts","unowned P0/P1 regressions"],
+      "W06-W10": ["reserved for complementary workers; do not claim until their files appear"]
+    }
+  },
+  "route_inventory": {
+    "public_presentation": ["/","/blog","/blog/:slug","/search","/help","/for-producers","/profile/:userId","/artists","/artist/:slug","/productions","/agenda/:slug","/production/:slug/public","/eventos","/eventos/:citySlug","/eventos/:citySlug/categoria/:categorySlug","/eventos/:citySlug/:periodSlug","/event","/event/:slug/catalogo","/event/:slug/item/:itemId","/event/:slug"],
+    "authenticated_social": ["/feed","/messages","/notifications","/profile","/user/edit"],
+    "event_production_management": ["/production/create","/production/mine","/production/:id","/production/edit/:id","/production/:productionId/agenda","/production/:productionId/agenda/new","/production/:productionId/agenda/:scheduleId/edit","/event/create","/event/manage","/event/edit/:id","/event/:eventId/lineup","/event/:eventId/artist-claims","/event/:eventId/courtesies","/event/:eventId/participants"],
+    "commerce_ticketing": ["/checkout/:slug","/purchases","/purchases/:publicId","/ticket/create","/passes","/passes/:id","/checkin"],
+    "producer_ops": ["/producer/media","/producer/contracts","/producer/onboarding","/producer/finance","/producer/search-insights","/producer/sales","/producer/sales/:productionId/:publicId","/production/:productionId/coupons"],
+    "admin_auth": ["/login","/register","/password-email","/email-verify","/password","/logout","/dashboard","/agent","/agent/activate","/admin","/admin/blog","/admin/search","/admin/artist-claims","/admin/users","/admin/access","/admin/productions","/admin/onboarding","/admin/events","/admin/tickets","/admin/orders","/admin/finance","/admin/checkins","/admin/moderation"]
+  },
+  "points": [
+    {"id":"VIS-001","priority":"P0","owner":"W01","status":"REQUESTED","scope":["/event/:slug","/production/:slug/public"],"problem":"Shared public entity links are the commercial first impression and must expose identity, hierarchy, image, producer/production relationship and primary action immediately.","acceptance":"Both public views are visually self-explanatory on mobile without authentication and use current brand identity."},
+    {"id":"VIS-002","priority":"P0","owner":"W01","status":"REQUESTED","scope":["/event/create","/event/edit/:id","/event/:slug","/production/create","/production/edit/:id","/production/:slug/public"],"problem":"Create/edit/view parity is a global acceptance requirement.","acceptance":"Entity identity, information hierarchy, media and actions remain recognizable across create/edit/view."},
+    {"id":"VIS-003","priority":"P1","owner":"W02","status":"REQUESTED","scope":["/profile/:userId","/artist/:slug","/event/:eventId/participants"],"problem":"Role recognition must be explicit for participant, artist, producer/promoter and user surfaces.","acceptance":"Role and relationship to events/productions are visually clear without relying on generic profile chrome."},
+    {"id":"VIS-004","priority":"P1","owner":"W03","status":"REQUESTED","scope":["/event/:slug/catalogo","/event/:slug/item/:itemId","/passes","/passes/:id"],"problem":"Item and ticket/pass presentation spans public and authenticated surfaces and needs consistent entity context.","acceptance":"Every item/pass clearly identifies its event/production context, image and primary action."},
+    {"id":"VIS-005","priority":"P1","owner":"W04","status":"REQUESTED","scope":["global"],"problem":"Global acceptance forbids decorative opacity/transparency, Bootstrap-default regressions and off-brand blue/white surfaces.","acceptance":"Shared tokens/primitives enforce current logo palette, opaque surfaces, AA contrast, legible typography and no horizontal overflow."},
+    {"id":"VIS-006","priority":"P1","owner":"W05","status":"MONITORING","scope":["global routing"],"problem":"Public production has a canonical public route while /production/:id is protected; cross-links must never send shared visitors to the protected route.","acceptance":"All public production cards/share links resolve to /production/:slug/public or /agenda/:slug as appropriate."},
+    {"id":"VIS-007","priority":"P1","owner":"W01","status":"REQUESTED","scope":["/eventos/:citySlug","/eventos/:citySlug/categoria/:categorySlug","/eventos/:citySlug/:periodSlug"],"problem":"City-specific discovery routes must not visually or conceptually imply Cutinapp is limited to one city/country.","acceptance":"Location is a filter/context, while product language and navigation remain global."},
+    {"id":"VIS-008","priority":"P1","owner":"W03","status":"REQUESTED","scope":["/blog","/blog/:slug"],"problem":"Blog is public presentation content and must connect visibly to event, production, artist and discovery surfaces rather than act as an isolated content silo.","acceptance":"Relevant entity links/cards use shared visual language and lead into the ecosystem."}
+  ],
+  "integration_evidence": [
+    {"type":"route_audit","file":"src/App.js","result":"ProcessingIndicatorComponent is already the Suspense/loading fallback; route inventory captured from actual Routes declarations."},
+    {"type":"worker_discovery","path":"agents/cutinapp-visual/workstreams","result":"404/not present on main; no CLAIMED/IMPLEMENTING worker records were available to supersede."},
+    {"type":"repository_tree","result":"Existing coordination artifacts are under agents/cutinapp-launch; no prior MASTER.json found."}
+  ],
+  "regressions": [],
+  "conflicts": [],
+  "next_priorities": ["Ingest W01-W10 files immediately when they appear and deduplicate VIS points against CLAIMED/IMPLEMENTING work","Audit public event/production share-link targets for protected-route leakage","Review recent visual commits for shared CSS/nav/card regressions","Run build/smoke validation when an execution environment with repository checkout is available"]
+}
