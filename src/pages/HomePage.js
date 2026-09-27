@@ -10,6 +10,7 @@ import EventArtwork from "../components/event/EventArtwork";
 import EventPosterThumbnail from "../components/event/EventPosterThumbnail";
 import { storageUrl } from "../config";
 import { readDiscoveryPreference, saveDiscoveryPreference } from "../utils/discoveryFilters";
+import { publicArtistRoute, publicEventRoute, publicProductionRoute } from "../utils/entityRoutes";
 import "./HomePage.css";
 import "./HomeDiscovery.css";
 
@@ -503,7 +504,7 @@ export default function HomePage() {
                 ? (
                   <div className="cut-home-discovery__events">
                     {events.map((event) => (
-                      <Link key={event.id} to={`/event/${event.slug}`} className="cut-home-discovery__eventCard">
+                      <Link key={event.id} to={publicEventRoute(event.slug)} className="cut-home-discovery__eventCard">
                         <div className="cut-home-discovery__eventImage">
                           <EventPosterThumbnail image={event.image} title={event.title} alt={event.title} className="cut-home-discovery__eventPoster" loading="lazy" />
                         </div>
@@ -548,7 +549,7 @@ export default function HomePage() {
                   ? <ProcessingIndicatorComponent fullscreen={false} label="Buscando artistas" />
                   : featuredArtists.length
                     ? featuredArtists.map((artist, index) => (
-                      <Link key={artist.id} to={`/artist/${artist.slug}`} className={`cut-home-discovery__artistTile cut-home-discovery__artistTile--${index + 1}`}>
+                      <Link key={artist.id} to={publicArtistRoute(artist.slug)} className={`cut-home-discovery__artistTile cut-home-discovery__artistTile--${index + 1}`}>
                         <div>
                           {artist.photo
                             ? <img src={mediaUrl(artist.photo)} alt={artist.stage_name} loading="lazy" />
@@ -582,7 +583,7 @@ export default function HomePage() {
                     {productions.map((production) => {
                       const productionArtwork = mediaUrl(production.background || production.logo);
                       return (
-                      <Link key={production.id} to={`/production/${production.slug}/public`} className="cut-home-discovery__profileCard" role="listitem" style={productionArtwork ? { "--cut-production-card-cover": `url(${JSON.stringify(productionArtwork)})` } : undefined}>
+                      <Link key={production.id} to={publicProductionRoute(production.slug)} className="cut-home-discovery__profileCard" role="listitem" style={productionArtwork ? { "--cut-production-card-cover": `url(${JSON.stringify(productionArtwork)})` } : undefined}>
                         <div className="cut-home-discovery__profileAvatar">
                           {production.logo
                             ? <img src={mediaUrl(production.logo)} alt={production.name} loading="lazy" />

@@ -1,4 +1,5 @@
 import {
+  publicArtistRoute,
   publicEventItemRoute,
   publicEventRoute,
   publicProductionRoute,
@@ -25,9 +26,11 @@ describe("canonical public entity routes", () => {
     expect(publicEventItemRoute("", 42)).toBe("/event");
   });
 
-  test("builds canonical event and production routes", () => {
+  test("builds canonical event, artist and production routes", () => {
     expect(publicEventRoute("festival-noite")).toBe("/event/festival-noite");
     expect(publicEventRoute(null)).toBe("/event");
+    expect(publicArtistRoute("banda/noite")).toBe("/artist/banda%2Fnoite");
+    expect(publicArtistRoute("")).toBe("/artists");
     expect(publicProductionRoute("producao central"))
       .toBe("/production/producao%20central/public");
     expect(publicProductionRoute(undefined)).toBe("/productions");
