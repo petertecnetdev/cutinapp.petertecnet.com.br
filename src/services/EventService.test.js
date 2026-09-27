@@ -302,6 +302,55 @@ describe("EventService derived event mutation idempotency", () => {
   });
 });
 
+describe("EventService administrative event lifecycle", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    sessionStorage.clear();
+  });
+
+  test("unpublishes an event through the authenticated management endpoint", async () => {
+    appApiClient.post.mockResolvedValueOnce({
+      data: { message: "Evento retirado da publicação.", event: { id: 91, is_published: false } },
+    });
+
+    const result = await eventService.unpublish(91);
+
+    expect(appApiClient.post).toHaveBeenCalledWith(
+      "/events/91/unpublish",
+      {},
+      { headers: { "Idempotency-Key": expect.any(String) } }
+    );
+    expect(result.event.is_published).toBe(false);
+  });
+
+  test("permanently deletes an event with an idempotency key", async () => {
+    appApiClient.delete.mockResolvedValueOnce({
+      data: { message: "Evento excluído com sucesso." },
+    });
+
+    await expect(eventService.destroy(92)).resolves.toMatchObject({
+      message: "Evento excluído com sucesso.",
+    });
+
+    expect(appApiClient.delete).toHaveBeenCalledWith(
+      "/events/92",
+      { headers: { "Idempotency-Key": expect.any(String) } }
+    );
+  });
+
+  test("reuses the delete key after an uncertain network failure", async () => {
+    appApiClient.delete
+      .mockRejectedValueOnce({ code: "ERR_NETWORK", message: "Network Error" })
+      .mockResolvedValueOnce({ data: { message: "Evento excluído com sucesso." } });
+
+    await expect(eventService.destroy(93)).rejects.toMatchObject({ code: "ERR_NETWORK" });
+    const firstKey = appApiClient.delete.mock.calls[0]?.[1]?.headers?.["Idempotency-Key"];
+
+    await eventService.destroy(93);
+    expect(appApiClient.delete.mock.calls[1]?.[1]?.headers?.["Idempotency-Key"]).toBe(firstKey);
+  });
+});
+
 const agendaPayload = () => {
   const data = new FormData();
   data.append("title", "DJ Aurora");

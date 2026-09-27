@@ -1,6 +1,6 @@
 import appApiClient from "./AppApiClient";
 import { createIdempotentMutation, createMutationRequestKey } from "../utils/idempotencyAttempts";
-import { cachedPublicGet } from "../utils/publicRequestCache";
+import { cachedPublicGet, invalidatePublicRequestCache } from "../utils/publicRequestCache";
 
 const CUTINAPP_TIME_ZONE = "America/Sao_Paulo";
 const HOME_DISCOVERY_KEYS = new Set(["lat", "lng", "radius_km", "city", "uf", "per_page", "sort"]);
@@ -83,6 +83,23 @@ const createEventSeries = createIdempotentEventPost({
   storagePrefix: "cutinapp_event_series_attempt_",
   keyPrefix: "event-series",
   pathFor: (eventId) => `/events/${eventId}/series`,
+});
+
+const unpublishEvent = createIdempotentEventPost({
+  storagePrefix: "cutinapp_event_unpublish_attempt_",
+  keyPrefix: "event-unpublish",
+  pathFor: (eventId) => `/events/${eventId}/unpublish`,
+});
+
+const deleteEvent = createIdempotentMutation({
+  storagePrefix: "cutinapp_event_delete_attempt_",
+  keyPrefix: "event-delete",
+  requestKeyFor: (eventId) => String(Number(eventId)),
+  mutate: async ({ idempotencyKey }, eventId) => (
+    await appApiClient.delete(`/events/${Number(eventId)}`, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    })
+  ).data,
 });
 
 const createAgendaItem = createIdempotentMutation({
@@ -413,7 +430,16 @@ const eventService = {
   show: async (eventId) => (await appApiClient.get(`/events/${eventId}/manage`)).data.event,
   myEvents: fetchAllMyEvents,
   myEventsPage: fetchMyEventsPage,
-  destroy: async (eventId) => (await appApiClient.delete(`/events/${Number(eventId)}`)).data,
+  destroy: async (eventId) => {
+    const response = await deleteEvent(eventId);
+    invalidatePublicRequestCache("/events/public/");
+    return response;
+  },
+  unpublish: async (eventId) => {
+    const response = await unpublishEvent(eventId);
+    invalidatePublicRequestCache("/events/public/");
+    return response;
+  },
   duplicate: (eventId, date) => duplicateEvent(eventId, { date }),
   series: (eventId, payload) => createEventSeries(eventId, payload),
 
