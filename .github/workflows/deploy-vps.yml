@@ -159,7 +159,7 @@ jobs:
             timeout 25 cloudflared tunnel info bc276f38-4fc5-4256-85c4-5f5c5b699b90 2>&1 \
               | sed -E 's/(token[=: ]+)[A-Za-z0-9._-]+/\\1REDACTED/Ig' \
               | head -120 || true
-            REMOTE_DIAG
+          REMOTE_DIAG
             echo "::endgroup::"
             exit 1
           fi
