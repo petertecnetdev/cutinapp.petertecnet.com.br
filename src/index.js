@@ -10,6 +10,7 @@ import "./styles/event-ticket-purchase.css";
 import "./components/WhatsAppFloatingButton.css";
 import "./components/event/EventDiscoveryRail.css";
 import "./styles/mobile-bottom-nav-fix.css";
+import "./styles/checkout-mobile-hardening.css";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import AppErrorBoundary from "./components/AppErrorBoundary";
