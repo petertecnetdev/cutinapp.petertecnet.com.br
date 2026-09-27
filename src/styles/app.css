@@ -111,30 +111,8 @@
     min-height: 52px;
     touch-action: manipulation;
   }
-}@import "./cut-navbar-three-regions.css";
-
-/* Desktop notification count must stay entirely inside the bell hit area.
-   Negative offsets made two-digit badges clip against the navbar boundary. */
-@media (min-width: 992px) {
-  .cut-capability-nav .cut-nav-notification-menu,
-  .cut-capability-nav .cut-nav-notification-menu > .dropdown-toggle,
-  .cut-capability-nav .cut-nav-notification-toggle {
-    overflow: visible !important;
-  }
-
-  .cut-capability-nav .cut-nav-notification__badge {
-    top: 0 !important;
-    right: -5px !important;
-    z-index: 4;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 18px !important;
-    max-width: none;
-    height: 18px !important;
-    padding: 0 4px !important;
-    line-height: 1 !important;
-    overflow: visible !important;
-    white-space: nowrap;
-  }
 }
+
+/* W04 canonical navbar layer: imported after generic safety/theme layers so
+   shared navigation contracts remain centralized without app.css patches. */
+@import "./cut-navbar-three-regions.css";
