@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Alert, Badge, Button, Card, Col, Container, Form, Row } from "react-bootstrap";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import artistService from "../../services/ArtistService";
 import { storageUrl } from "../../config";
+import { publicArtistRoute } from "../../utils/entityRoutes";
 
 const imageUrl = (value) => {
   if (!value) return "";
@@ -71,7 +73,7 @@ export default function ArtistIdentityClaimsAdminPage() {
           </div>
           <div className="mt-3 p-3 cut-info-box"><strong>Evidência informada</strong><p className="mb-1 mt-2">{claim.evidence_text || "Nenhuma descrição adicional."}</p>{claim.evidence_url && <a href={claim.evidence_url} target="_blank" rel="noopener noreferrer">{claim.evidence_url}</a>}</div>
           <Form.Group className="mt-3"><Form.Label>Observação da análise</Form.Label><Form.Control as="textarea" rows={2} value={notes[claim.id] || ""} onChange={(event) => setNotes((current) => ({ ...current, [claim.id]: event.target.value }))} /></Form.Group>
-          <div className="d-flex gap-2 mt-3 flex-wrap"><Button disabled={busyId === claim.id} onClick={() => review(claim, "approve")}><i className="fa-solid fa-check me-2" />Aprovar vínculo</Button><Button disabled={busyId === claim.id} variant="outline-danger" onClick={() => review(claim, "reject")}><i className="fa-solid fa-xmark me-2" />Rejeitar</Button></div>
+          <div className="d-flex gap-2 mt-3 flex-wrap">{claim.artist_slug && <Button as={Link} to={publicArtistRoute(claim.artist_slug)} target="_blank" rel="noopener noreferrer" variant="outline-light"><i className="fa-solid fa-music me-2" aria-hidden="true" />Abrir artista</Button>}<Button as={Link} to={`/profile/${encodeURIComponent(String(claim.user_id))}`} target="_blank" rel="noopener noreferrer" variant="outline-light"><i className="fa-solid fa-user me-2" aria-hidden="true" />Abrir solicitante</Button><Button disabled={busyId === claim.id} onClick={() => review(claim, "approve")}><i className="fa-solid fa-check me-2" />Aprovar vínculo</Button><Button disabled={busyId === claim.id} variant="outline-danger" onClick={() => review(claim, "reject")}><i className="fa-solid fa-xmark me-2" />Rejeitar</Button></div>
         </Card.Body></Card></Col>)}
       </Row>}
     </Container>
