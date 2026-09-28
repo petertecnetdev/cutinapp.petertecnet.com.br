@@ -50,17 +50,17 @@ describe("mobileNavbarRecovery", () => {
 
     toggle.click();
     flushRecovery();
-    expect(collapse).toHaveClass("show");
+    expect(collapse.classList.contains("show")).toBe(true);
     expect(collapse.dataset.cutinappRecoveryOpen).toBe("1");
-    expect(toggle).toHaveAttribute("aria-expanded", "true");
-    expect(toggle).not.toHaveClass("collapsed");
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    expect(toggle.classList.contains("collapsed")).toBe(false);
 
     toggle.click();
     flushRecovery();
-    expect(collapse).not.toHaveClass("show");
+    expect(collapse.classList.contains("show")).toBe(false);
     expect(collapse.dataset.cutinappRecoveryOpen).toBe("0");
-    expect(toggle).toHaveAttribute("aria-expanded", "false");
-    expect(toggle).toHaveClass("collapsed");
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(toggle.classList.contains("collapsed")).toBe(true);
   });
 
   test("closes the drawer after a mobile destination is activated", () => {
@@ -69,12 +69,12 @@ describe("mobileNavbarRecovery", () => {
 
     toggle.click();
     flushRecovery();
-    expect(collapse).toHaveClass("show");
+    expect(collapse.classList.contains("show")).toBe(true);
 
     destination.click();
-    expect(collapse).not.toHaveClass("show");
+    expect(collapse.classList.contains("show")).toBe(false);
     expect(collapse.dataset.cutinappRecoveryOpen).toBe("0");
-    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
   });
 
   test("does not force drawer state outside the mobile breakpoint", () => {
@@ -84,9 +84,9 @@ describe("mobileNavbarRecovery", () => {
 
     toggle.click();
     flushRecovery();
-    expect(collapse).not.toHaveClass("show");
+    expect(collapse.classList.contains("show")).toBe(false);
     expect(collapse.dataset.cutinappRecoveryOpen).toBeUndefined();
-    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
   });
 
   test("cleanup removes recovery listeners so remounts cannot double-toggle", () => {
@@ -97,7 +97,7 @@ describe("mobileNavbarRecovery", () => {
 
     toggle.click();
     flushRecovery();
-    expect(collapse).not.toHaveClass("show");
+    expect(collapse.classList.contains("show")).toBe(false);
     expect(collapse.dataset.cutinappRecoveryOpen).toBeUndefined();
   });
 });
