@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import PropTypes from "prop-types";
 import { Link } from "react-router-dom";
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
@@ -128,8 +129,8 @@ export default function ProductionDiscoveryRail({ currentProduction, limit = 6 }
 
       {loading ? (
         <div className="cut-production-discovery-rail__track" aria-hidden="true">
-          {Array.from({ length: Math.min(limit, 4) }).map((_, index) => (
-            <div className="cut-production-discovery-rail__skeleton" key={index} />
+          {["one", "two", "three", "four"].slice(0, Math.min(limit, 4)).map((slot) => (
+            <div className="cut-production-discovery-rail__skeleton" key={`production-discovery-skeleton-${slot}`} />
           ))}
         </div>
       ) : (
@@ -182,3 +183,12 @@ export default function ProductionDiscoveryRail({ currentProduction, limit = 6 }
     </section>
   );
 }
+
+ProductionDiscoveryRail.propTypes = {
+  currentProduction: PropTypes.shape({
+    id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    slug: PropTypes.string,
+    city: PropTypes.string,
+  }),
+  limit: PropTypes.number,
+};

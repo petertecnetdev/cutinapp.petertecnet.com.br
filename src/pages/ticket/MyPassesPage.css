@@ -506,3 +506,217 @@
   .cut-wallet-event-art { width: 62px; height: 82px; }
   .cut-wallet-card__main h3 { font-size: 1.1rem; }
 }
+
+/* Ticket cards v2 — cada item da carteira passa a parecer um ingresso, não um card genérico. */
+.cut-wallet-ticket-card {
+  border-color: rgba(255,255,255,.10) !important;
+  background: #080809 !important;
+  box-shadow: 0 24px 60px rgba(0,0,0,.32);
+}
+
+.cut-wallet-ticket-card .cut-wallet-card__accent {
+  height: 3px;
+  background: linear-gradient(90deg, #ff1b24, #8c0010 62%, #ff4047);
+}
+
+.cut-wallet-card__ticket-cover {
+  position: relative;
+  min-height: 248px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 18px;
+  background:
+    radial-gradient(circle at 76% 16%, rgba(255,27,36,.26), transparent 36%),
+    linear-gradient(145deg, #240006, #0a0a0b 72%);
+}
+
+.cut-wallet-card__ticket-art,
+.cut-wallet-card__ticket-shade,
+.cut-wallet-card__ticket-fallback {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.cut-wallet-card__ticket-art {
+  object-fit: cover;
+  object-position: center;
+  filter: saturate(1.06) contrast(1.03);
+}
+
+.cut-wallet-card__ticket-shade {
+  background:
+    linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,.20) 40%, rgba(0,0,0,.90) 100%),
+    linear-gradient(90deg, rgba(0,0,0,.55), transparent 70%);
+}
+
+.cut-wallet-card__ticket-fallback {
+  display: grid;
+  place-items: center;
+  color: rgba(255,255,255,.12);
+  font-size: clamp(4rem, 11vw, 7.2rem);
+  font-weight: 950;
+  letter-spacing: -.08em;
+}
+
+.cut-wallet-ticket-card .cut-wallet-card__badges {
+  position: absolute;
+  z-index: 2;
+  top: 16px;
+  left: 16px;
+  right: 118px;
+  margin: 0;
+}
+
+.cut-wallet-ticket-card .cut-wallet-card__badges .badge {
+  border: 1px solid rgba(255,255,255,.14);
+  box-shadow: 0 7px 20px rgba(0,0,0,.30);
+}
+
+.cut-wallet-card__ticket-brand {
+  position: absolute;
+  z-index: 2;
+  top: 17px;
+  right: 17px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  color: #fff;
+  font-size: .63rem;
+  font-weight: 950;
+  letter-spacing: .14em;
+}
+
+.cut-wallet-card__ticket-brand i {
+  color: #ff2831;
+  font-size: 1.55rem;
+  filter: drop-shadow(0 0 12px rgba(255,27,36,.3));
+}
+
+.cut-wallet-card__ticket-copy {
+  position: relative;
+  z-index: 2;
+  min-width: 0;
+}
+
+.cut-wallet-ticket-card .cut-wallet-card__production {
+  margin-bottom: 7px;
+  color: rgba(255,255,255,.72);
+  font-size: .7rem;
+  font-weight: 800;
+  letter-spacing: .03em;
+}
+
+.cut-wallet-ticket-card .cut-wallet-card__production i,
+.cut-wallet-ticket-card .cut-wallet-card__meta i {
+  color: #ff343c;
+}
+
+.cut-wallet-ticket-card .cut-wallet-card__ticket-copy h3 {
+  max-width: 92%;
+  margin: 0 0 10px;
+  color: #fff;
+  font-size: clamp(1.45rem, 3vw, 2.05rem);
+  line-height: 1;
+  font-weight: 950;
+  letter-spacing: -.05em;
+  text-wrap: balance;
+  text-shadow: 0 5px 20px rgba(0,0,0,.55);
+}
+
+.cut-wallet-ticket-card .cut-wallet-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 14px;
+  color: rgba(255,255,255,.72);
+}
+
+.cut-wallet-card__perforation {
+  position: relative;
+  height: 1px;
+  border-top: 1px dashed rgba(255,255,255,.16);
+  background: #080809;
+}
+
+.cut-wallet-card__perforation span {
+  position: absolute;
+  top: -14px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--cut-bg, #050505);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.04);
+}
+
+.cut-wallet-card__perforation span:first-child { left: -14px; }
+.cut-wallet-card__perforation span:last-child { right: -14px; }
+
+.cut-wallet-ticket-card .cut-wallet-card__lifecycle {
+  margin-top: 16px;
+  border-color: rgba(255,27,36,.12);
+  background: rgba(255,27,36,.04);
+}
+
+.cut-wallet-ticket-card .cut-wallet-pass-row {
+  border-color: rgba(255,255,255,.08);
+  background: rgba(255,255,255,.02);
+}
+
+.cut-wallet-ticket-card .cut-wallet-pass-row:hover {
+  border-color: rgba(255,27,36,.18);
+  background: rgba(255,27,36,.025);
+}
+
+.cut-wallet-ticket-card .cut-wallet-card__footer {
+  border-top-style: dashed;
+}
+
+.cut-wallet-ticket-card .cut-wallet-secure-qr i {
+  color: #ff434b;
+}
+
+@media (max-width: 767px) {
+  .cut-wallet-card__ticket-cover {
+    min-height: 220px;
+    padding: 15px;
+  }
+
+  .cut-wallet-ticket-card .cut-wallet-card__badges {
+    top: 13px;
+    left: 13px;
+    right: 86px;
+  }
+
+  .cut-wallet-card__ticket-brand {
+    top: 14px;
+    right: 14px;
+  }
+
+  .cut-wallet-card__ticket-brand span {
+    display: none;
+  }
+
+  .cut-wallet-ticket-card .cut-wallet-card__ticket-copy h3 {
+    max-width: 100%;
+    font-size: clamp(1.35rem, 7vw, 1.8rem);
+  }
+
+  .cut-wallet-ticket-card .cut-wallet-card__meta {
+    display: grid;
+    gap: 6px;
+  }
+}
+
+@media (max-width: 430px) {
+  .cut-wallet-card__ticket-cover {
+    min-height: 205px;
+  }
+
+  .cut-wallet-ticket-card .cut-wallet-card__badges .badge {
+    font-size: .6rem;
+  }
+}

@@ -156,3 +156,369 @@
     border-radius: 22px;
   }
 }
+
+/* Ticket experience v2 — visual de ingresso físico/digital, com o QR como ação principal. */
+.cut-pass-detail-page {
+  --cut-pass-red: #ff1b24;
+  --cut-pass-red-strong: #d90016;
+  --cut-pass-red-soft: rgba(255, 27, 36, .16);
+  background:
+    radial-gradient(circle at 14% 8%, rgba(255, 27, 36, .10), transparent 34rem),
+    radial-gradient(circle at 86% 16%, rgba(121, 0, 20, .12), transparent 38rem),
+    #050505;
+}
+
+.cut-pass-detail-page .cut-pass-detail-heading h1 {
+  margin-bottom: 8px;
+  font-size: clamp(2.2rem, 5vw, 4.2rem);
+  letter-spacing: -.055em;
+}
+
+.cut-pass-detail-page .cut-pass-detail-heading p strong {
+  color: #fff;
+}
+
+.cut-pass-detail-page .cut-ticket-detail {
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, .12) !important;
+  border-radius: 34px !important;
+  background: #09090a !important;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, .48), 0 0 0 1px rgba(255, 27, 36, .04);
+}
+
+.cut-pass-detail-page .cut-ticket-detail::before {
+  background: none;
+}
+
+.cut-ticket-detail__hero {
+  position: relative;
+  min-height: clamp(320px, 38vw, 470px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  padding: clamp(24px, 4vw, 40px);
+  background:
+    radial-gradient(circle at 78% 16%, rgba(255, 33, 42, .28), transparent 34%),
+    linear-gradient(145deg, #250006 0%, #0f0305 48%, #080808 100%);
+}
+
+.cut-ticket-detail__hero-art,
+.cut-ticket-detail__hero-shade {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.cut-ticket-detail__hero-art {
+  object-fit: cover;
+  object-position: center;
+  filter: saturate(1.08) contrast(1.04);
+}
+
+.cut-ticket-detail__hero-shade {
+  background:
+    linear-gradient(180deg, rgba(0,0,0,.22) 0%, rgba(0,0,0,.12) 34%, rgba(0,0,0,.88) 100%),
+    linear-gradient(90deg, rgba(0,0,0,.70) 0%, transparent 58%);
+}
+
+.cut-ticket-detail__hero-head,
+.cut-ticket-detail__hero-copy {
+  position: relative;
+  z-index: 2;
+}
+
+.cut-ticket-detail__hero-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.cut-ticket-detail__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cut-ticket-detail__badges .badge {
+  border: 1px solid rgba(255,255,255,.14);
+  box-shadow: 0 8px 22px rgba(0,0,0,.28);
+}
+
+.cut-pass-detail-page .cut-ticket-detail__mark {
+  position: relative;
+  align-items: flex-end;
+  gap: 2px;
+  color: #fff;
+  text-shadow: 0 2px 16px rgba(0,0,0,.48);
+}
+
+.cut-pass-detail-page .cut-ticket-detail__mark i {
+  color: var(--cut-pass-red);
+  font-size: 2.2rem;
+  filter: drop-shadow(0 0 14px rgba(255,27,36,.35));
+}
+
+.cut-pass-detail-page .cut-ticket-detail__mark span {
+  font-size: .82rem;
+  letter-spacing: .2em;
+}
+
+.cut-pass-detail-page .cut-ticket-detail__mark small {
+  color: rgba(255,255,255,.66);
+  font-size: .54rem;
+  font-weight: 800;
+  letter-spacing: .16em;
+}
+
+.cut-ticket-detail__hero-copy {
+  max-width: 760px;
+  padding-top: 54px;
+}
+
+.cut-ticket-detail__ticket-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  color: #ff666c;
+  font-size: .73rem;
+  font-weight: 900;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.cut-ticket-detail__ticket-name::before {
+  content: "";
+  width: 24px;
+  height: 1px;
+  background: var(--cut-pass-red);
+}
+
+.cut-pass-detail-page .cut-ticket-detail__hero h2 {
+  max-width: 780px;
+  margin: 0;
+  color: #fff;
+  font-size: clamp(2.2rem, 6vw, 5rem);
+  line-height: .94;
+  font-weight: 950;
+  letter-spacing: -.065em;
+  text-wrap: balance;
+  text-shadow: 0 8px 30px rgba(0,0,0,.55);
+}
+
+.cut-ticket-detail__hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  margin-top: 18px;
+  color: rgba(255,255,255,.78);
+  font-size: .84rem;
+}
+
+.cut-ticket-detail__hero-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cut-ticket-detail__hero-meta i {
+  color: var(--cut-pass-red);
+}
+
+.cut-pass-detail-page .cut-ticket-detail__perforation {
+  border-top-color: rgba(255,255,255,.18);
+  background: #09090a;
+}
+
+.cut-pass-detail-page .cut-ticket-detail__perforation span {
+  width: 42px;
+  height: 42px;
+  top: -21px;
+  background: #050505;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.05);
+}
+
+.cut-pass-detail-page .cut-ticket-detail__perforation span:first-child { left: -21px; }
+.cut-pass-detail-page .cut-ticket-detail__perforation span:last-child { right: -21px; }
+
+.cut-ticket-detail__validation-strip {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 13px 36px;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+  background: linear-gradient(90deg, rgba(255,27,36,.10), rgba(255,255,255,.015));
+  color: rgba(255,255,255,.66);
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.cut-ticket-detail__validation-strip span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cut-ticket-detail__validation-strip i,
+.cut-ticket-detail__validation-strip strong {
+  color: #ff4a51;
+}
+
+.cut-pass-detail-page .cut-ticket-detail__body {
+  grid-template-columns: minmax(280px, .82fr) minmax(0, 1.18fr);
+  gap: 34px;
+  padding: 34px 36px 30px;
+  background:
+    radial-gradient(circle at 10% 10%, rgba(255,27,36,.045), transparent 22rem),
+    #09090a;
+}
+
+.cut-pass-detail-page .cut-ticket-detail__qrbox {
+  padding: 18px;
+  border: 7px solid #fff;
+  border-radius: 24px;
+  box-shadow: 0 18px 46px rgba(0,0,0,.40), 0 0 0 1px rgba(255,27,36,.12);
+}
+
+.cut-pass-detail-page .cut-pass-qr-button__hint,
+.cut-pass-detail-page .cut-ticket-detail__qr > strong {
+  color: #ff555c;
+}
+
+.cut-pass-detail-page .cut-ticket-detail__facts > div {
+  min-height: 78px;
+  justify-content: center;
+  border-color: rgba(255,255,255,.09);
+  border-radius: 16px;
+  background: rgba(255,255,255,.025);
+}
+
+.cut-pass-detail-page .cut-ticket-detail__facts > div:hover {
+  border-color: rgba(255,27,36,.22);
+  background: rgba(255,27,36,.035);
+}
+
+.cut-pass-detail-page .cut-ticket-detail__facts span {
+  color: rgba(255,255,255,.48);
+}
+
+.cut-pass-detail-page .cut-ticket-detail__facts strong {
+  color: #fff;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.cut-pass-detail-page .cut-pass-detail-quick-actions {
+  padding: 0 36px 30px;
+  background: #09090a;
+}
+
+.cut-pass-detail-page .cut-pass-detail-quick-actions .btn-primary,
+.cut-pass-detail-page .cut-ticket-detail__footer .btn-primary {
+  border-color: var(--cut-pass-red-strong);
+  background: linear-gradient(180deg, #ff252d, #d90016);
+  box-shadow: 0 10px 28px rgba(217,0,22,.2);
+}
+
+.cut-pass-detail-page .cut-ticket-detail__footer {
+  border-top: 1px dashed rgba(255,255,255,.14);
+  background: #070708;
+}
+
+.cut-pass-detail-page .cut-token-details code {
+  border-color: rgba(255,27,36,.14);
+  background: rgba(255,27,36,.055);
+  color: #ff6a70;
+}
+
+.cut-pass-detail-page .cut-ticket-detail.is-used .cut-ticket-detail__hero-art,
+.cut-pass-detail-page .cut-ticket-detail.is-cancelled .cut-ticket-detail__hero-art {
+  filter: grayscale(.45) saturate(.55) brightness(.7);
+}
+
+@media (max-width: 767px) {
+  .cut-ticket-detail__hero {
+    min-height: 330px;
+    padding: 20px;
+  }
+
+  .cut-ticket-detail__hero-head {
+    gap: 12px;
+  }
+
+  .cut-pass-detail-page .cut-ticket-detail__mark span,
+  .cut-pass-detail-page .cut-ticket-detail__mark small {
+    display: none;
+  }
+
+  .cut-pass-detail-page .cut-ticket-detail__mark i {
+    font-size: 1.9rem;
+  }
+
+  .cut-ticket-detail__hero-copy {
+    padding-top: 36px;
+  }
+
+  .cut-pass-detail-page .cut-ticket-detail__hero h2 {
+    font-size: clamp(2rem, 11vw, 3.35rem);
+  }
+
+  .cut-ticket-detail__hero-meta {
+    display: grid;
+    gap: 8px;
+  }
+
+  .cut-ticket-detail__validation-strip {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 12px 24px;
+  }
+
+  .cut-pass-detail-page .cut-ticket-detail__body {
+    grid-template-columns: 1fr;
+    padding: 28px 24px;
+  }
+
+  .cut-pass-detail-page .cut-pass-detail-quick-actions {
+    padding: 0 24px 24px;
+  }
+}
+
+@media (max-width: 575px) {
+  .cut-pass-detail-page .cut-ticket-detail {
+    border-radius: 26px !important;
+  }
+
+  .cut-ticket-detail__hero {
+    min-height: 300px;
+    padding: 17px;
+  }
+
+  .cut-ticket-detail__badges {
+    gap: 5px;
+  }
+
+  .cut-ticket-detail__badges .badge {
+    font-size: .62rem;
+  }
+
+  .cut-ticket-detail__ticket-name {
+    font-size: .63rem;
+  }
+
+  .cut-ticket-detail__validation-strip,
+  .cut-pass-detail-page .cut-ticket-detail__body,
+  .cut-pass-detail-page .cut-pass-detail-quick-actions,
+  .cut-pass-detail-page .cut-ticket-detail__footer {
+    padding-left: 17px;
+    padding-right: 17px;
+  }
+}

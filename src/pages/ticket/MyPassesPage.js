@@ -304,16 +304,23 @@ export default function MyPassesPage() {
         ? "is-past"
         : "";
 
-    return <Card key={group.key} className={`cut-wallet-card ${cardStateClass}`}>
+    return <Card key={group.key} className={`cut-wallet-card cut-wallet-ticket-card ${cardStateClass}`}>
       <div className="cut-wallet-card__accent" />
-      <div className="cut-wallet-card__top">
-        <EventArtwork event={event} />
-        <div className="cut-wallet-card__main">
-          <div className="cut-wallet-card__badges">
-            <Badge bg={state.variant}>{state.label}</Badge>
-            <Badge bg="dark">{count > 1 ? `${count} ingressos` : first.ticket?.name || "Ingresso"}</Badge>
-            <PriceBadge pass={first} />
-          </div>
+      <div className={`cut-wallet-card__ticket-cover ${event?.image ? "has-artwork" : ""}`}>
+        {event?.image
+          ? <img className="cut-wallet-card__ticket-art" src={event.image} alt="" loading="lazy" />
+          : <div className="cut-wallet-card__ticket-fallback" aria-hidden="true">{initials(event?.title)}</div>}
+        <div className="cut-wallet-card__ticket-shade" aria-hidden="true" />
+        <div className="cut-wallet-card__badges">
+          <Badge bg={state.variant}>{state.label}</Badge>
+          <Badge bg="dark">{count > 1 ? `${count} ingressos` : first.ticket?.name || "Ingresso"}</Badge>
+          <PriceBadge pass={first} />
+        </div>
+        <div className="cut-wallet-card__ticket-brand" aria-label="Cutinapp ingresso digital">
+          <i className="fa-solid fa-ticket" />
+          <span>CUTINAPP</span>
+        </div>
+        <div className="cut-wallet-card__ticket-copy">
           <span className="cut-wallet-card__production">
             <i className="fa-solid fa-bolt" />
             {productionName(event)}
@@ -322,6 +329,7 @@ export default function MyPassesPage() {
           <EventMeta event={event} />
         </div>
       </div>
+      <div className="cut-wallet-card__perforation" aria-hidden="true"><span /><span /></div>
 
       {(lifecycle || moment === "past" || state.key === "used") && <div className="cut-wallet-card__lifecycle">
         {moment === "past" || state.key === "used"

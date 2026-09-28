@@ -93,6 +93,7 @@ export default function PassDetailPage() {
   const routeToMap = mapsUrl(pass?.event);
   const purchase = pass?.purchase || null;
   const complimentary = Boolean(pass?.is_complimentary) || Number(pass?.ticket?.price || 0) <= 0;
+  const eventArtwork = String(pass?.event?.image || "");
 
   useEffect(() => {
     if (!pass || !location.state?.openTransfer) return;
@@ -178,9 +179,11 @@ export default function PassDetailPage() {
     <Container className="cut-page-container py-4 py-lg-5">
       <div className="cut-page-heading cut-pass-detail-heading">
         <div>
-          <span className="cut-eyebrow">Ingresso digital protegido</span>
-          <h1>{pass?.event?.title || transferred?.event_title || "Meu ingresso"}</h1>
-          <p>Seu QR Code é individual e só aparece nesta área autenticada. Para entregar o ingresso a outra pessoa, use a transferência oficial.</p>
+          <span className="cut-eyebrow">Carteira Cutinapp</span>
+          <h1>Seu ingresso</h1>
+          <p>{pass?.event?.title
+            ? <>Apresente o QR Code deste ingresso na entrada de <strong>{pass.event.title}</strong>. Para trocar o titular, use a transferência oficial.</>
+            : "Seu QR Code é individual e protegido nesta área autenticada."}</p>
         </div>
         <div className="cut-card-actions">
           <Button variant="outline-light" onClick={() => navigate("/passes")}>
@@ -229,26 +232,38 @@ export default function PassDetailPage() {
         <Row className="justify-content-center g-4">
           <Col xl={9}>
             <Card className={`cut-ticket-detail ${used ? "is-used" : ""} ${invalid ? "is-cancelled" : ""}`}>
-              <div className="cut-ticket-detail__top">
-                <div>
-                  <div className="d-flex flex-wrap gap-2 mb-3">
+              <div className={`cut-ticket-detail__hero ${eventArtwork ? "has-artwork" : ""}`}>
+                {eventArtwork && <img className="cut-ticket-detail__hero-art" src={eventArtwork} alt="" />}
+                <div className="cut-ticket-detail__hero-shade" aria-hidden="true" />
+                <div className="cut-ticket-detail__hero-head">
+                  <div className="cut-ticket-detail__badges">
                     <Badge bg={status.variant}>{status.label}</Badge>
                     <Badge bg="dark">{pass.ticket?.type || pass.ticket?.ticket_type || "Ingresso"}</Badge>
-                    <Badge bg={complimentary ? "primary" : "dark"}>
+                    <Badge bg={complimentary ? "danger" : "dark"}>
                       {complimentary ? "Cortesia" : money(purchase?.line_unit_price ?? pass.ticket?.price)}
                     </Badge>
                   </div>
-                  <span className="cut-eyebrow">{pass.ticket?.name || "Ingresso Cutinapp"}</span>
-                  <h2>{pass.event?.title || "Evento"}</h2>
-                  <p>{formatDate(pass.event?.start_date)}</p>
+                  <div className="cut-ticket-detail__mark" aria-label="Cutinapp ingresso digital">
+                    <i className="fa-solid fa-ticket" />
+                    <span>CUTINAPP</span>
+                    <small>INGRESSO DIGITAL</small>
+                  </div>
                 </div>
-                <div className="cut-ticket-detail__mark">
-                  <i className="fa-solid fa-ticket" />
-                  <span>CUTINAPP</span>
+                <div className="cut-ticket-detail__hero-copy">
+                  <span className="cut-ticket-detail__ticket-name">{pass.ticket?.name || "Ingresso Cutinapp"}</span>
+                  <h2>{pass.event?.title || "Evento"}</h2>
+                  <div className="cut-ticket-detail__hero-meta">
+                    <span><i className="fa-regular fa-calendar" />{formatDate(pass.event?.start_date)}</span>
+                    <span><i className="fa-solid fa-location-dot" />{pass.event?.venue || pass.event?.formatted_address || pass.event?.address || "Local no evento"}</span>
+                  </div>
                 </div>
               </div>
 
               <div className="cut-ticket-detail__perforation"><span /><span /></div>
+              <div className="cut-ticket-detail__validation-strip">
+                <span><i className="fa-solid fa-shield-halved" /> QR exclusivo deste ingresso</span>
+                <strong>PASS #{pass.id}</strong>
+              </div>
 
               <div className="cut-ticket-detail__body">
                 <div className="cut-ticket-detail__qr">
