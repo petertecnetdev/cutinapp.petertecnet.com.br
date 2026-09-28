@@ -1,9 +1,11 @@
 import { showConfirmation } from "../../utils/sweetAlert";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { Alert, Badge, Button, Card, Col, Container, Form, Modal, Row, Spinner } from "react-bootstrap";
 import NavlogComponent from "../../components/NavlogComponent";
 import appApiClient from "../../services/AppApiClient";
 import applicationAdminTicketService from "../../services/ApplicationAdminTicketService";
+import { publicEventRoute } from "../../utils/entityRoutes";
 
 const PAGE_SIZE = 12;
 
@@ -168,7 +170,8 @@ export default function ApplicationAdminTicketsPage() {
               <span>{ticket.remaining ?? 0}/{ticket.quantity ?? 0} restantes</span>
               <span>{ticket.valid_passes_count ?? ticket.passes_count ?? 0} emitidos</span>
             </div>
-            <div className="mt-auto d-flex gap-2">
+            <div className="mt-auto d-flex flex-wrap gap-2">
+              {ticket.event?.slug && <Button as={Link} to={publicEventRoute(ticket.event.slug)} variant="outline-light"><i className="fa-regular fa-eye me-2" aria-hidden="true" />Ver evento</Button>}
               <Button className="flex-grow-1" onClick={() => openEdit(ticket)} disabled={busy}><i className="fa-solid fa-pen me-2" />Editar</Button>
               <Button variant="outline-danger" onClick={() => remove(ticket)} disabled={busy} aria-label={`Excluir ${ticket.name}`}><i className="fa-solid fa-trash" /></Button>
             </div>
