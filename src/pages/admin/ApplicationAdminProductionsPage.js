@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Alert, Badge, Button, Card, Col, Container, Form, Row, Spinner } from "react-bootstrap";
 import NavlogComponent from "../../components/NavlogComponent";
 import appApiClient from "../../services/AppApiClient";
+import { publicProductionRoute } from "../../utils/entityRoutes";
 
 const PAGE_SIZE = 12;
 
@@ -89,6 +90,7 @@ export default function ApplicationAdminProductionsPage() {
           <p className="mb-3"><strong>Responsável:</strong> {production.user?.email || production.email || "Não informado"}</p>
           <div className="d-flex flex-wrap gap-3 mb-3"><span>{production.events_count || 0} eventos</span><span>{production.employers_count || 0} membros</span></div>
           <div className="mt-auto d-flex flex-wrap gap-2">
+            {production.slug && <Button size="sm" variant="outline-light" onClick={() => navigate(publicProductionRoute(production.slug))}><i className="fa-regular fa-eye me-2" aria-hidden="true" />Ver página</Button>}
             <Button size="sm" disabled={busyId === production.id} onClick={() => patch(production, { is_published: !production.is_published }, production.is_published ? "Produção despublicada." : "Produção publicada.")}>{production.is_published ? "Despublicar" : "Publicar"}</Button>
             <Button size="sm" variant={production.is_approved ? "outline-secondary" : "outline-success"} disabled={busyId === production.id} onClick={() => patch(production, { is_approved: !production.is_approved }, production.is_approved ? "Aprovação removida." : "Produção aprovada.")}>{production.is_approved ? "Remover aprovação" : "Aprovar"}</Button>
             <Button size="sm" variant={production.is_cancelled ? "outline-success" : "outline-danger"} disabled={busyId === production.id} onClick={() => patch(production, { is_cancelled: !production.is_cancelled }, production.is_cancelled ? "Produção reativada." : "Produção suspensa.")}>{production.is_cancelled ? "Reativar" : "Suspender"}</Button>
