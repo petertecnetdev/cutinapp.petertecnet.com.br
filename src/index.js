@@ -12,6 +12,9 @@ import "./components/WhatsAppFloatingButton.css";
 import "./components/event/EventDiscoveryRail.css";
 import "./styles/mobile-bottom-nav-fix.css";
 import "./styles/checkout-mobile-hardening.css";
+// Must stay after every legacy/navigation stylesheet. This is the authoritative
+// mobile drawer layer and prevents older navbar CSS from hiding the collapse.
+import "./styles/mobile-hamburger-recovery.css";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import AppErrorBoundary from "./components/AppErrorBoundary";
