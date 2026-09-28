@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Button, Form, Modal, Spinner } from "react-bootstrap";
+import { Button, Form, Modal } from "react-bootstrap";
+import ProcessingIndicatorComponent from "./ProcessingIndicatorComponent";
 import { storageUrl } from "../config";
 import cutinappService from "../services/CutinappService";
 import creativeService from "../services/CreativeService";
@@ -13,20 +14,20 @@ const formats = {
 };
 
 const themes = {
-  automatic: { label: "Automático", top: "#17052d", bottom: "#05050a", accent: "#b94cff", secondary: "#31d8ff" },
-  neon: { label: "Balada / Neon", top: "#19002f", bottom: "#05050a", accent: "#ef37ff", secondary: "#25d9ff" },
+  automatic: { label: "Automático", top: "#17052d", bottom: "#05050a", accent: "#b94cff", secondary: "#f4f4f5" },
+  neon: { label: "Balada / Neon", top: "#19002f", bottom: "#05050a", accent: "#ef37ff", secondary: "#ff2d55" },
   premium: { label: "Premium / Luxo", top: "#17130c", bottom: "#050505", accent: "#e8c66a", secondary: "#fff3c4" },
-  festival: { label: "Festival", top: "#281036", bottom: "#07070d", accent: "#ff4db8", secondary: "#56d9ff" },
+  festival: { label: "Festival", top: "#281036", bottom: "#07070d", accent: "#ff4db8", secondary: "#d4d4d8" },
   sertanejo: { label: "Sertanejo", top: "#2d1b11", bottom: "#090604", accent: "#e8a85d", secondary: "#ffe3b5" },
   pagode: { label: "Pagode", top: "#2b1711", bottom: "#080605", accent: "#f6a84f", secondary: "#ffd77a" },
-  funk: { label: "Funk", top: "#240b22", bottom: "#050507", accent: "#ff398a", secondary: "#6ee8ff" },
-  electronic: { label: "Eletrônico", top: "#091b35", bottom: "#03050a", accent: "#25d9ff", secondary: "#e83cff" },
+  funk: { label: "Funk", top: "#240b22", bottom: "#050507", accent: "#ff398a", secondary: "#e4e4e7" },
+  electronic: { label: "Eletrônico", top: "#161619", bottom: "#03050a", accent: "#ff2d55", secondary: "#e83cff" },
   pub: { label: "Bar / Pub", top: "#25140d", bottom: "#070504", accent: "#e28d48", secondary: "#ffd89b" },
-  minimal: { label: "Minimalista", top: "#182235", bottom: "#070b12", accent: "#78a8ff", secondary: "#d9e7ff" },
+  minimal: { label: "Minimalista", top: "#17171a", bottom: "#070b12", accent: "#ff334f", secondary: "#e4e4e7" },
   urban: { label: "Urbano", top: "#171719", bottom: "#050506", accent: "#f05252", secondary: "#dedede" },
-  open_bar: { label: "Open Bar", top: "#24102d", bottom: "#070509", accent: "#ff42c8", secondary: "#55e3ff" },
+  open_bar: { label: "Open Bar", top: "#24102d", bottom: "#070509", accent: "#ff42c8", secondary: "#f5f5f5" },
   sunset: { label: "Sunset", top: "#45114b", bottom: "#180514", accent: "#ff6b35", secondary: "#ffca55" },
-  clean: { label: "Clean", top: "#182235", bottom: "#070b12", accent: "#78a8ff", secondary: "#d9e7ff" },
+  clean: { label: "Clean", top: "#17171a", bottom: "#070b12", accent: "#ff334f", secondary: "#e4e4e7" },
 };
 
 const intensities = {
@@ -95,12 +96,18 @@ const wrapText = (ctx, text, maxWidth, maxLines) => {
   }
   if (current && lines.length < maxLines) lines.push(current); return lines;
 };
+const resolveLocale = () => {
+  if (typeof document !== "undefined" && document.documentElement?.lang) return document.documentElement.lang;
+  if (typeof navigator !== "undefined" && navigator.language) return navigator.language;
+  return undefined;
+};
+
 const formatDate = (value) => {
   if (!value) return { day: "EM BREVE", hour: "" }; const date = new Date(value);
   if (Number.isNaN(date.getTime())) return { day: "EM BREVE", hour: "" };
   return {
-    day: new Intl.DateTimeFormat("pt-BR", { weekday: "short", day: "2-digit", month: "short" }).format(date).replace(/\./g, "").toUpperCase(),
-    hour: new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" }).format(date),
+    day: new Intl.DateTimeFormat(resolveLocale(), { weekday: "short", day: "2-digit", month: "short" }).format(date).replace(/\./g, "").toUpperCase(),
+    hour: new Intl.DateTimeFormat(resolveLocale(), { hour: "2-digit", minute: "2-digit" }).format(date),
   };
 };
 const fileToReferenceDataUri = async (file) => {
@@ -141,7 +148,7 @@ async function renderFlyer({ data, production, formatKey, themeKey, intensityKey
   const lines = wrapText(ctx, title, textWidth, portrait ? 3 : 2); let y = headlineY; ctx.shadowColor = "rgba(0,0,0,.58)"; ctx.shadowBlur = width * 0.012; ctx.shadowOffsetY = width * 0.006;
   lines.forEach((line, index) => { ctx.fillStyle = index === lines.length - 1 && lines.length > 1 ? theme.secondary : "#fff"; ctx.fillText(line, margin, y); y += titleSize * 1.02; }); ctx.shadowColor = "transparent"; ctx.shadowBlur = 0;
   const producer = (data.productionName && data.productionName !== "Selecione") ? data.productionName : (production?.name || production?.title || "CUTINAPP");
-  const location = [data.venue, [data.city, data.uf].filter(Boolean).join("/")].filter(Boolean).join(" · "); const infoY = Math.min(height - margin * 1.6, y + height * 0.05);
+  const location = [data.venue, data.city, data.uf].filter(Boolean).join(" · "); const infoY = Math.min(height - margin * 1.6, y + height * 0.05);
   ctx.font = `700 ${Math.max(22, Math.round(width * 0.022))}px Inter, Arial, sans-serif`; ctx.fillStyle = "rgba(255,255,255,.9)"; if (location) ctx.fillText(location, margin, infoY);
   ctx.font = `700 ${Math.max(16, Math.round(width * 0.016))}px Inter, Arial, sans-serif`; ctx.fillStyle = "rgba(255,255,255,.6)"; ctx.fillText(`${producer.toUpperCase()}  •  INGRESSOS E EXPERIÊNCIAS NA CUTINAPP`, margin, height - margin * 0.62);
 
@@ -202,7 +209,7 @@ export default function EventFlyerAssistant() {
         <div className={`cut-flyer-preview ${isFinal ? "is-final" : ""}`} style={previewStyle}>{preview ? <img src={preview} alt="Prévia do flyer" /> : <div><i className="fa-regular fa-image" /><strong>Gere 3 propostas</strong><span>Previews rápidos primeiro; a escolhida é finalizada no modelo premium.</span></div>}</div>
         {candidates.length > 1 && <div className="cut-flyer-candidates">{candidates.map((candidate, index) => <button type="button" key={`${candidate.variation}-${index}`} className={selectedVariation === candidate.variation ? "active" : ""} onClick={() => chooseCandidate(candidate)}><img src={candidate.image.data_uri} alt={`Opção ${index + 1}`} /><span>{candidate.variation} · nota {candidate?.quality?.score ?? "—"}</span></button>)}</div>}
         {generationSource && <small className="cut-flyer-note">{generationSource === "local" ? "Fallback local utilizado." : `${isFinal ? "Render premium" : "Preview"} · ${generationSource}${selectedVariation ? ` · ${selectedVariation}` : ""}`}</small>}
-        <div className="cut-flyer-actions"><Button type="button" variant="outline-light" onClick={() => generate()} disabled={busy}>{busy ? <><Spinner size="sm" className="me-2" />Criando...</> : "Gerar 3 propostas"}</Button>{preview && generationSource !== "local" && !isFinal && <Button type="button" variant="warning" onClick={finalize} disabled={busy}>Finalizar em alta qualidade</Button>}<Button type="button" onClick={useAsCover} disabled={busy || !generatedFile}>{isFinal ? "Usar flyer final" : "Usar esta arte"}</Button></div>
+        <div className="cut-flyer-actions"><Button type="button" variant="outline-light" onClick={() => generate()} disabled={busy}>{busy ? <ProcessingIndicatorComponent fullscreen={false} label="Criando..." /> : "Gerar 3 propostas"}</Button>{preview && generationSource !== "local" && !isFinal && <Button type="button" variant="warning" onClick={finalize} disabled={busy}>Finalizar em alta qualidade</Button>}<Button type="button" onClick={useAsCover} disabled={busy || !generatedFile}>{isFinal ? "Usar flyer final" : "Usar esta arte"}</Button></div>
         <small className="cut-flyer-note">A IA nunca escreve o conteúdo oficial. A Cutinapp renderiza título, data e local para eliminar erros de português e informações inventadas.</small>
       </div></div>
     </Modal.Body></Modal></>;
