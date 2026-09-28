@@ -354,3 +354,22 @@
 
 @media(prefers-reduced-motion:reduce){.cut-production-themed-page *,.cut-production-themed-page *::before,.cut-production-themed-page *::after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}
 .cut-production-themed-page__hero--public .cut-production-public-hero-copy>p:not(.cut-production-public-location){display:-webkit-box;max-width:760px;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:3}
+
+/* W01 compact public production pass */
+.cut-production-themed-page__hero--public{min-height:clamp(300px,29vw,390px)}
+.cut-production-public-identity{grid-template-columns:clamp(64px,8vw,96px) minmax(0,1fr);gap:clamp(14px,2vw,22px);padding-block:clamp(20px,3vw,34px)}
+.cut-production-public-logo{width:clamp(64px,8vw,96px);height:clamp(64px,8vw,96px)}
+.cut-production-public-hero-copy h1{max-width:760px;font-size:clamp(1.9rem,4vw,3.65rem);line-height:1}
+.cut-production-public-primary-actions{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(140px,.8fr) auto;max-width:640px}
+.cut-production-public-primary-actions>.btn,.cut-production-public-primary-actions>.dropdown,.cut-production-public-primary-actions>.dropdown>.btn{width:100%;min-width:0}
+.cut-production-profile-stats{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:clamp(18px,2vw,28px)}
+.cut-production-profile-stats>div:last-child{display:none}
+.cut-production-profile-tabs{top:var(--cut-navbar-height,56px);min-height:56px}
+.cut-production-profile-tabs button{min-height:44px;padding-inline:16px}
+.cut-production-next-event{grid-template-columns:minmax(0,1fr) minmax(300px,.78fr);max-width:1120px;margin-inline:auto}
+.cut-production-next-event__media,.cut-production-next-event__media>img,.cut-production-next-event__media picture,.cut-production-next-event__media picture img{min-height:290px;max-height:360px}
+.cut-production-themed-page .cut-whatsapp-fab{right:max(16px,env(safe-area-inset-right));bottom:max(16px,env(safe-area-inset-bottom));min-height:44px;padding:10px 14px;border:1px solid var(--cut-production-red);border-radius:999px;background:var(--cut-production-surface);color:var(--cut-text,#f5f5f7);box-shadow:0 12px 28px #000}
+.cut-production-themed-page .cut-whatsapp-fab i{color:var(--cut-production-red-hi)}
+@media(max-width:991.98px){.cut-production-public-identity{grid-template-columns:72px minmax(0,1fr);padding-top:126px;padding-bottom:22px}.cut-production-public-primary-actions{grid-template-columns:repeat(2,minmax(0,1fr));max-width:none}.cut-production-public-more{grid-column:1/-1}}
+@media(max-width:575.98px){.cut-production-public-identity{grid-template-columns:60px minmax(0,1fr);padding-top:124px;padding-bottom:18px}.cut-production-public-logo{width:60px;height:60px}.cut-production-public-hero-copy h1{font-size:clamp(1.65rem,8vw,2.25rem)}.cut-production-public-primary-actions{grid-template-columns:1fr 1fr}.cut-production-next-event{grid-template-columns:1fr}.cut-production-next-event__media,.cut-production-next-event__media>img,.cut-production-next-event__media picture,.cut-production-next-event__media picture img{min-height:220px;max-height:300px}}
+@media(max-width:359.98px){.cut-production-public-primary-actions{grid-template-columns:1fr}.cut-production-public-more{grid-column:auto}}
