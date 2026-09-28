@@ -68,6 +68,10 @@
    so one scoped contract wins over historical event-view experiments. */
 @import "./event-view-experience-v3.css";
 
+/* 7.2. Final public EventView geometry. This stays after v3 so action widths,
+   flyer ratio and desktop symmetry cannot regress through older experiments. */
+@import "./event-view-symmetry.css";
+
 /* 8. Interaction safety is intentionally the final layer. Visual themes must
    never make an expanded hamburger drawer invisible or untouchable. */
 @import "./navbar-interaction-fix.css";
