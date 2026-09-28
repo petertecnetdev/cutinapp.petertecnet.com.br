@@ -1,5 +1,5 @@
-const SHELL_CACHE = "cutinapp-shell-v4";
-const RUNTIME_CACHE = "cutinapp-runtime-v4";
+const SHELL_CACHE = "cutinapp-shell-v5";
+const RUNTIME_CACHE = "cutinapp-runtime-v5";
 const APP_SHELL = ["/", "/manifest.json", "/images/logo.png"];
 
 self.addEventListener("install", (event) => {
