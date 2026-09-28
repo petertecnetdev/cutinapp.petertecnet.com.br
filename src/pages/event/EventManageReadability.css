@@ -1,0 +1,209 @@
+/* Event management: content-sized cards, readable labels and official logo palette. */
+.cut-event-manager-readable {
+  --cut-text-strong: #fff;
+  --cut-text-soft: #e5e5e8;
+  --cut-text-muted: #d7d7dc;
+  --cut-text-faint: #bdbdc5;
+}
+
+.cut-event-manager-readable .cut-event-manager-hero,
+.cut-event-manager-readable .cut-event-timebar {
+  background: #141417;
+  border-color: #34343a;
+  box-shadow: none;
+}
+.cut-event-manager-readable .cut-event-manager-hero::after { display: none; }
+.cut-event-manager-readable .cut-event-manager-hero h1 {
+  background: none;
+  color: #fff;
+  -webkit-text-fill-color: #fff;
+}
+.cut-event-manager-readable .cut-event-manager-hero p {
+  color: #d7d7dc;
+  font-size: 16px;
+  line-height: 1.6;
+}
+.cut-event-manager-readable .cut-event-timebar__label,
+.cut-event-manager-readable .cut-event-list-context,
+.cut-event-manager-readable .cut-event-list-context small,
+.cut-event-manager-readable .cut-event-pagination {
+  color: #d7d7dc;
+  font-size: 14px;
+}
+.cut-event-manager-readable .cut-event-timebar__label { background: #141417; }
+.cut-event-manager-readable .cut-event-timebar__filters button,
+.cut-event-manager-readable .cut-event-timebar__search {
+  min-height: 44px;
+  font-size: 15px !important;
+  color: #e5e5e8;
+  background: #202024;
+  border-color: #45454c;
+}
+.cut-event-manager-readable .cut-event-timebar__filters button.is-active {
+  color: #fff;
+  background: #980000;
+  border-color: #ff5252;
+  box-shadow: none;
+}
+.cut-event-manager-readable .cut-event-timebar__filters button:hover { border-color: #ff5252; }
+.cut-event-manager-readable .cut-producer-event-list {
+  display: grid;
+  gap: 16px !important;
+  container-type: inline-size;
+}
+.cut-event-manager-readable .cut-producer-event-card.is-readable-card {
+  grid-template-columns: 24px 88px minmax(0, 1fr) minmax(150px, .5fr);
+  grid-template-areas: "select media main status" "sales sales issues issues" "artists artists actions actions";
+  align-items: start;
+  gap: 18px;
+  padding: 20px;
+  border: 1px solid #45454c;
+  border-radius: 16px;
+  background: #141417;
+  color: #fff;
+  box-shadow: none;
+  transform: none;
+}
+.cut-event-manager-readable .is-readable-card:hover { border-color: #777780; }
+.cut-event-manager-readable .is-readable-card.is-selected { border-color: #ff5252; background: #210c0c; }
+.cut-event-manager-readable .is-readable-card::after { display: none; }
+.cut-event-manager-readable .is-readable-card > .cut-producer-event-card__select { grid-area: select; padding: 10px 0; }
+.cut-event-manager-readable .is-readable-card > .cut-producer-event-card__media {
+  grid-area: media;
+  width: 88px;
+  height: 104px;
+  min-height: 0;
+  border-radius: 12px;
+  background: #202024;
+  border-color: #45454c;
+}
+.cut-event-manager-readable .is-readable-card > .cut-producer-event-card__main { grid-area: main; gap: 10px; }
+.cut-event-manager-readable .is-readable-card > .cut-producer-event-card__artists { grid-area: artists; }
+.cut-event-manager-readable .is-readable-card > .cut-producer-event-card__status { grid-area: status; gap: 10px; }
+.cut-event-manager-readable .is-readable-card > .cut-producer-event-card__sales { grid-area: sales; gap: 5px; }
+.cut-event-manager-readable .is-readable-card > .cut-producer-event-card__issues { grid-area: issues; }
+.cut-event-manager-readable .is-readable-card > .cut-producer-event-card__quick-actions { grid-area: actions; }
+.cut-event-manager-readable .is-readable-card .cut-producer-event-card__title {
+  color: #fff;
+  font-size: 19px;
+  line-height: 1.4;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+.cut-event-manager-readable .is-readable-card .cut-producer-event-card__meta {
+  display: grid;
+  gap: 6px;
+}
+.cut-event-manager-readable .is-readable-card .cut-producer-event-card__meta span {
+  max-width: none;
+  color: #d7d7dc;
+  font-size: 15px;
+  line-height: 1.5;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  align-items: baseline;
+}
+.cut-event-manager-readable .is-readable-card .cut-producer-event-card__meta .cut-event-date { color: #fff; font-weight: 750; }
+.cut-event-manager-readable .is-readable-card .cut-producer-event-card__meta i { color: #ff5252; width: 16px; flex: 0 0 16px; }
+.cut-event-manager-readable .is-readable-card .cut-event-pin {
+  width: 44px;
+  height: 44px;
+  flex-basis: 44px;
+  font-size: 14px;
+  color: #d7d7dc;
+  background: #202024;
+  border-color: #45454c;
+}
+.cut-event-manager-readable .is-readable-card .cut-event-pin.is-active { color: #ff7272; border-color: #ff5252; }
+.cut-event-manager-readable .is-readable-card .cut-event-field-label {
+  display: block;
+  color: #bdbdc5;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.cut-event-manager-readable .is-readable-card .badge { font-size: 14px; line-height: 1.4; white-space: normal; }
+.cut-event-manager-readable .is-readable-card .cut-producer-event-card__sales strong { font-size: 17px; color: #fff; }
+.cut-event-manager-readable .is-readable-card .cut-producer-event-card__sales span { font-size: 16px; color: #fff; }
+.cut-event-manager-readable .is-readable-card .cut-producer-event-card__sales small { font-size: 14px; color: #bdbdc5; }
+.cut-event-manager-readable .is-readable-card .cut-producer-event-card__issues {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 7px;
+  padding: 12px;
+  background: #202024;
+  border: 1px solid #45454c;
+  border-radius: 10px;
+}
+.cut-event-manager-readable .is-readable-card .cut-producer-event-card__issues strong,
+.cut-event-manager-readable .is-readable-card .cut-producer-event-card__issues span {
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: normal;
+  overflow: visible;
+  overflow-wrap: anywhere;
+}
+.cut-event-manager-readable .is-readable-card .cut-producer-event-card__issues span { color: #d7d7dc; }
+.cut-event-manager-readable .is-readable-card .cut-producer-event-card__issues .btn { grid-column: 1; grid-row: auto; justify-self: start; }
+.cut-event-manager-readable .is-readable-card .cut-producer-event-card__quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  align-self: end;
+  gap: 8px;
+  opacity: 1;
+}
+.cut-event-manager-readable .is-readable-card .cut-producer-event-card__quick-actions > .btn,
+.cut-event-manager-readable .is-readable-card .cut-producer-event-card__issues .btn,
+.cut-event-manager-readable .is-readable-card .dropdown-toggle,
+.cut-event-manager-readable .cut-event-pagination .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: auto;
+  height: auto;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 9px 12px !important;
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 1.4;
+  background: #202024;
+  color: #fff;
+  border-color: #777780;
+}
+.cut-event-manager-readable .is-readable-card .dropdown-toggle::after { display: none; }
+.cut-event-manager-readable .is-readable-card .cut-event-artists-inline { flex-wrap: wrap; overflow: visible; margin-top: 6px; }
+.cut-event-manager-readable .is-readable-card .cut-event-artist-chip { max-width: 100%; background: #202024; border-color: #45454c; padding: 6px; }
+.cut-event-manager-readable .is-readable-card .cut-event-artist-chip__copy b,
+.cut-event-manager-readable .is-readable-card .cut-event-artist-chip__copy small,
+.cut-event-manager-readable .is-readable-card .cut-event-artists-more { font-size: 14px; white-space: normal; }
+.cut-event-manager-readable .is-readable-card .cut-event-artist-chip__copy b { color: #e5e5e8; }
+.cut-event-manager-readable .is-readable-card .form-check-input { width: 22px; height: 22px; border-color: #bdbdc5; }
+.cut-event-manager-readable button:focus-visible,
+.cut-event-manager-readable input:focus-visible {
+  outline: 2px solid #fff !important;
+  outline-offset: 3px;
+}
+
+@container (min-width: 1100px) {
+  .cut-event-manager-readable .cut-producer-event-card.is-readable-card {
+    grid-template-columns: 24px 88px minmax(0, 1.5fr) minmax(0, 1fr) minmax(220px, 1fr);
+    grid-template-areas: "select media main status sales" "select media artists issues actions";
+  }
+}
+@container (max-width: 679px) {
+  .cut-event-manager-readable .cut-producer-event-card.is-readable-card {
+    grid-template-columns: 24px 64px minmax(0, 1fr);
+    grid-template-areas: "select media main" "status status status" "sales sales sales" "artists artists artists" "issues issues issues" "actions actions actions";
+    gap: 14px 10px;
+    padding: 14px;
+  }
+  .cut-event-manager-readable .is-readable-card > .cut-producer-event-card__media { width: 64px; height: 80px; }
+  .cut-event-manager-readable .is-readable-card .cut-producer-event-card__title { font-size: 18px; }
+  .cut-event-manager-readable .is-readable-card .cut-producer-event-card__title-row { flex-wrap: wrap; }
+  .cut-event-manager-readable .is-readable-card .cut-event-pin { margin-left: auto; }
+  .cut-event-manager-readable .is-readable-card > .cut-producer-event-card__status { display: flex; align-items: center; flex-wrap: wrap; }
+  .cut-event-manager-readable .is-readable-card > .cut-producer-event-card__quick-actions { justify-content: flex-start; }
+}
