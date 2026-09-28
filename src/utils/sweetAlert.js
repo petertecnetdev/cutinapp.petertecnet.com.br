@@ -48,7 +48,31 @@ const escapeHtml = (value) => String(value ?? "")
   .replace(/"/g, "&quot;")
   .replace(/'/g, "&#039;");
 
-const alertElementText = (element) => {
+export const joinAlertTextSegments = (segments = []) => {
+  const normalized = segments
+    .map((segment) => normalizeMultilineText(segment))
+    .filter(Boolean);
+
+  return normalized.map((segment, index) => {
+    if (index === normalized.length - 1 || /[.!?;:…]$/.test(segment)) return segment;
+    return `${segment}.`;
+  }).join(" ");
+};
+
+export const alertElementText = (element) => {
+  const headingNode = element.querySelector?.("strong, .alert-heading");
+
+  if (headingNode) {
+    const headingText = normalizeMultilineText(headingNode.innerText || headingNode.textContent || "");
+    const copy = element.cloneNode(true);
+    copy.querySelectorAll?.(".btn-close, [data-bs-dismiss='alert'], [aria-hidden='true']")
+      .forEach((node) => node.remove());
+    copy.querySelector?.("strong, .alert-heading")?.remove();
+    const bodyText = normalizeMultilineText(copy.innerText || copy.textContent || "");
+    const structuredText = joinAlertTextSegments([headingText, bodyText]);
+    if (structuredText) return structuredText;
+  }
+
   const renderedText = typeof element.innerText === "string" ? element.innerText : "";
   const normalizedRenderedText = normalizeMultilineText(renderedText);
   if (normalizedRenderedText) return normalizedRenderedText;
