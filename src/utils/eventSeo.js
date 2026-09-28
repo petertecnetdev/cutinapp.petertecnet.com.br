@@ -128,7 +128,7 @@ const eventOffers = (event, tickets = []) => {
         price: Number(ticket.price || 0).toFixed(2),
         priceCurrency: currency || undefined,
         url: `${canonical}#ingressos`,
-        availability: ticket.available === false ? schema("SoldOut") : schema("InStock"),
+        availability: event?.is_cancelled || ticket.available === false ? schema("SoldOut") : schema("InStock"),
         validThrough: ticket.limit_date || event?.start_date || undefined,
       };
     });
