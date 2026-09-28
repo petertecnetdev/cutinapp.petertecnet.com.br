@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Alert, Badge, Button, Card, Col, Container, Row, Spinner } from "react-bootstrap";
 import NavlogComponent from "../../components/NavlogComponent";
 import appApiClient from "../../services/AppApiClient";
@@ -192,15 +193,27 @@ export default function ApplicationAdminFinancePage() {
                     <span>Emitidos: <strong>{order.emitted_passes ?? 0}</strong></span>
                     <span className="text-danger">Faltando: <strong>{order.missing_passes ?? 0}</strong></span>
                   </div>
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    disabled={Boolean(fulfillmentAction.orderId)}
-                    onClick={() => reprocessTicketFulfillment(order)}
-                    aria-label={`Reprocessar entrega do pedido ${order.public_id}`}
-                  >
-                    {fulfillmentAction.orderId === order.id ? <><Spinner size="sm" className="me-2" />Revalidando pagamento...</> : "Reprocessar entrega"}
-                  </Button>
+                  <div className="d-flex gap-2 flex-wrap justify-content-end">
+                    {order.public_id && <Button
+                      as={Link}
+                      to={`/admin/orders?q=${encodeURIComponent(order.public_id)}`}
+                      variant="outline-light"
+                      size="sm"
+                      aria-label={`Abrir pedido ${order.public_id}`}
+                    >
+                      <i className="fa-solid fa-arrow-up-right-from-square me-2" aria-hidden="true" />
+                      Abrir pedido
+                    </Button>}
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      disabled={Boolean(fulfillmentAction.orderId)}
+                      onClick={() => reprocessTicketFulfillment(order)}
+                      aria-label={`Reprocessar entrega do pedido ${order.public_id}`}
+                    >
+                      {fulfillmentAction.orderId === order.id ? <><Spinner size="sm" className="me-2" />Revalidando pagamento...</> : "Reprocessar entrega"}
+                    </Button>
+                  </div>
                 </div>
               </div>)}
             </div>
