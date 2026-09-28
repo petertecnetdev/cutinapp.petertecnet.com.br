@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Alert, Badge, Button, Card, Col, Container, Form, Modal, Row, Spinner } from "react-bootstrap";
 import NavlogComponent from "../../components/NavlogComponent";
 import appApiClient from "../../services/AppApiClient";
@@ -10,9 +10,11 @@ const money = (value) => Number(value || 0).toLocaleString("pt-BR", { style: "cu
 const variant = (status) => status === "paid" ? "success" : status === "refunded" ? "warning" : ["cancelled", "failed"].includes(status) ? "danger" : "secondary";
 
 export default function ApplicationAdminOrdersPage() {
+  const [searchParams] = useSearchParams();
+  const initialQuery = searchParams.get("q")?.trim() || "";
   const [rows, setRows] = useState([]);
-  const [query, setQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [query, setQuery] = useState(initialQuery);
+  const [debouncedQuery, setDebouncedQuery] = useState(initialQuery);
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
   const [loading, setLoading] = useState(true);
