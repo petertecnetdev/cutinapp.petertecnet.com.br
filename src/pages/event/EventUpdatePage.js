@@ -14,7 +14,7 @@ import commerceService from "../../services/CommerceService";
 import { storageUrl } from "../../config";
 import { eventHealth, eventOperationalMetrics } from "../../utils/eventManagerInsights";
 import { showImportantAlert } from "../../utils/sweetAlert";
-import { EVENT_POSTER_HINT, validateEventPosterFile } from "../../utils/eventPoster";
+import { validateEventPosterFile } from "../../utils/eventPoster";
 import "./EventUpdatePageV2.css";
 
 const SECTIONS = [
@@ -396,7 +396,6 @@ export default function EventUpdatePage() {
       saveLabel="Salvar agora"
       productionName={productionName}
       errors={fieldErrors}
-      imageHelp={EVENT_POSTER_HINT + " JPG, PNG ou WebP, até 5 MB."}
       secondaryActions={<>
         {publicViewPath && <Button type="button" variant="outline-light" onClick={() => navigate(publicViewPath)}><i className="fa-regular fa-eye me-2" />Ver página</Button>}
         <Button type="button" variant={eventData?.is_published ? "outline-light" : "primary"} onClick={togglePublication} disabled={publishing}>{eventData?.is_published ? "Despublicar" : "Publicar"}</Button>
