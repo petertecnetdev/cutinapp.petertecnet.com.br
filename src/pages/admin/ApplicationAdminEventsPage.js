@@ -5,6 +5,7 @@ import NavlogComponent from "../../components/NavlogComponent";
 import EventPosterThumbnail from "../../components/event/EventPosterThumbnail";
 import appApiClient from "../../services/AppApiClient";
 import applicationAdminEventService from "../../services/ApplicationAdminEventService";
+import { publicEventRoute } from "../../utils/entityRoutes";
 import "./ApplicationAdminEventsPage.css";
 
 const PAGE_SIZE = 12;
@@ -251,7 +252,7 @@ export default function ApplicationAdminEventsPage() {
             </button>
             <div className="cut-admin-event-row__actions">
               <Button onClick={() => navigate(`/event/edit/${event.id}`)}><i className="fa-regular fa-pen-to-square me-2" />Editar</Button>
-              <Button variant="outline-light" aria-label="Abrir evento" onClick={() => event.slug ? navigate(`/event/${event.slug}`) : navigate(`/event/edit/${event.id}`)}><i className="fa-regular fa-eye" /></Button>
+              <Button variant="outline-light" aria-label="Abrir evento" onClick={() => navigate(event.slug ? publicEventRoute(event.slug) : `/event/edit/${event.id}`)}><i className="fa-regular fa-eye" /></Button>
               <Button variant="outline-danger" aria-label="Excluir evento" onClick={() => { setDeleteConfirmation(""); setEventToDelete(event); }}><i className="fa-regular fa-trash-can" /></Button>
             </div>
           </article>;
