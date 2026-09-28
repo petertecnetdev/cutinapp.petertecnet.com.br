@@ -344,7 +344,15 @@ export default function ProductionPublicPage() {
                 ) : (
                   <Button className="cut-production-public-profile__action cut-production-public-profile__action--primary" onClick={() => goToTab("eventos")}><i className="fa-regular fa-calendar" />Ver agenda</Button>
                 )}
-                {production.is_following ? (
+                {isOwner ? (
+                  <Button
+                    className="cut-production-public-profile__action cut-production-public-profile__action--secondary"
+                    onClick={() => navigate(`/production/edit/${production.id}`)}
+                  >
+                    <i className="fa-regular fa-pen-to-square" aria-hidden="true" />
+                    Editar produção
+                  </Button>
+                ) : production.is_following ? (
                   <Dropdown className="cut-production-public-profile__follow" align="start">
                     <Dropdown.Toggle
                       className="cut-production-public-profile__action cut-production-public-profile__action--secondary"
@@ -372,7 +380,6 @@ export default function ProductionPublicPage() {
                   </Button>
                 )}
                 <Button className="cut-production-public-profile__action cut-production-public-profile__action--secondary" onClick={shareNative}><i className="fa-solid fa-share-nodes" />Compartilhar</Button>
-                {isOwner && <Button className="cut-production-public-profile__action cut-production-public-profile__action--icon" onClick={() => navigate(`/production/edit/${production.id}`)} title="Editar produção" aria-label="Editar produção"><i className="fa-regular fa-pen-to-square" /></Button>}
                 {instagramHref && <Button className="cut-production-public-profile__action cut-production-public-profile__action--icon" as="a" href={instagramHref} target="_blank" rel="noopener noreferrer" title="Instagram" aria-label="Abrir Instagram"><i className="fa-brands fa-instagram" /></Button>}
                 {websiteHref && <Button className="cut-production-public-profile__action cut-production-public-profile__action--icon" as="a" href={websiteHref} target="_blank" rel="noopener noreferrer" title="Site" aria-label="Abrir site"><i className="fa-solid fa-globe" /></Button>}
             </div>
