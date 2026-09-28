@@ -24,6 +24,8 @@ const checks = [
   ["public profile stylesheet avoids important overrides", !files.publicProfileStyles.includes("!important")],
   ["public profile cover has a bounded responsive height", files.publicProfileStyles.includes("height:clamp(220px,24vw,320px)")],
   ["public profile mobile action grid exists", files.publicProfileStyles.includes("grid-template-columns:repeat(3,minmax(0,1fr))")],
+  ["production owner gets a visible edit action", files.publicPage.includes("Editar produção")],
+  ["production owner action replaces follow state", files.publicPage.indexOf("isOwner ? (") < files.publicPage.indexOf("production.is_following ? (")],
   ["owner view imports evolution CSS", files.ownerPage.includes("production-view-evolution.css")],
   ["public view renders next event hero", files.publicPage.includes("<ProductionNextEventHero")],
   ["owner view renders next event hero", files.ownerPage.includes("<ProductionNextEventHero")],
