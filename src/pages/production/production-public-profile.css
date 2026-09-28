@@ -580,3 +580,47 @@
 @media(max-width:1199.98px){.cut-production-public-profile__identity{grid-template-columns:96px minmax(0,1fr)}.cut-production-public-profile__actions{grid-column:1/-1;margin-top:2px}}
 @media(max-width:767.98px){.cut-production-public-profile__cover{height:clamp(164px,48vw,214px)}.cut-production-public-profile__identity{grid-template-columns:72px minmax(0,1fr);gap:12px;padding:14px 0 16px}.cut-production-public-profile__logo{width:72px;height:72px;margin-top:-38px;border-width:3px}.cut-production-public-profile__copy h1{font-size:clamp(1.55rem,7.4vw,2.1rem)}.cut-production-public-profile__actions{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.cut-production-public-profile__action.btn,.cut-production-public-profile__follow>.btn{min-height:46px;font-size:.82rem}}
 @media(max-width:389.98px){.cut-production-public-profile__actions{grid-template-columns:1fr 1fr}}
+
+
+/* W01 first-fold v2: keep media restrained, action priority explicit and anchors safe. */
+.cut-production-public-profile__cover{
+  max-height:320px;
+  background-size:cover;
+}
+.cut-production-public-profile__identity-shell{
+  scroll-margin-top:calc(var(--cut-nav-height,64px) + 58px);
+}
+.cut-production-public-profile__actions{
+  align-self:center;
+}
+.cut-production-public-profile__action--primary.btn{
+  order:1;
+}
+.cut-production-public-profile__action--secondary.btn{
+  order:2;
+}
+.cut-production-public-profile__action--icon.btn{
+  order:3;
+}
+.cut-production-public-profile__metrics button:focus-visible,
+.cut-production-public-profile__producer:focus-visible,
+.cut-production-public-profile__action.btn:focus-visible{
+  outline:2px solid var(--cut-production-profile-red);
+  outline-offset:2px;
+}
+.cut-production-public-profile .cut-production-tab-anchor{
+  scroll-margin-top:calc(var(--cut-nav-height,64px) + 70px);
+}
+@media(max-width:1199.98px){
+  .cut-production-public-profile__actions{
+    align-self:stretch;
+  }
+}
+@media(max-width:767.98px){
+  .cut-production-public-profile__cover{
+    max-height:214px;
+  }
+  .cut-production-public-profile__actions{
+    align-self:stretch;
+  }
+}
