@@ -68,14 +68,24 @@ export default function ProductionDiscoveryRail({ currentProduction, limit = 6 }
       setFailed(false);
 
       try {
-        const localResponse = currentCity
-          ? await cutinappService.publicProductions({ city: currentCity, per_page: Math.max(limit + 2, 8) })
-          : null;
-        const localItems = excludeCurrent(unwrapProductions(localResponse));
+        let combined = [];
 
-        let combined = [...localItems];
+        if (currentCity) {
+          try {
+            const localResponse = await cutinappService.publicProductions({
+              city: currentCity,
+              per_page: Math.max(limit + 2, 8),
+            });
+            combined = excludeCurrent(unwrapProductions(localResponse));
+          } catch (_) {
+            // A falha do recorte local não deve impedir o fallback global.
+          }
+        }
+
         if (combined.length < limit) {
-          const globalResponse = await cutinappService.publicProductions({ per_page: Math.max(limit * 2, 12) });
+          const globalResponse = await cutinappService.publicProductions({
+            per_page: Math.max(limit * 2, 12),
+          });
           combined = [...combined, ...excludeCurrent(unwrapProductions(globalResponse))];
         }
 
