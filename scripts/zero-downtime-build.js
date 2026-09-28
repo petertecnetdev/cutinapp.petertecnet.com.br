@@ -22,7 +22,16 @@ function acquireBuildLock() { const deadline = Date.now() + lockWaitMs; while (t
 function assertBuildHeadroom() { if (typeof fs.statfsSync !== 'function') return; const stats = fs.statfsSync(os.tmpdir()); const freeBytes = Number(stats.bavail) * Number(stats.bsize); if (Number.isFinite(freeBytes) && freeBytes < minFreeBytes) throw new Error(`Insufficient disk headroom for Cutinapp build: ${Math.round(freeBytes / 1024 / 1024)} MiB free.`); }
 function lowerBuildCpuPriority() { if (process.platform === 'win32' || typeof os.setPriority !== 'function') return; try { os.setPriority(0, 15); } catch (_) {} }
 function runCommand(command, args, env = process.env) { const result = spawnSync(command, args, { cwd: appRoot, env, stdio: 'inherit' }); if (result.error) throw result.error; if (result.status !== 0) process.exit(result.status ?? 1); }
-function runReactBuild(buildPath) { const command = process.platform === 'win32' ? 'react-scripts.cmd' : 'react-scripts'; const env = { ...process.env, GENERATE_SOURCEMAP: 'false', INLINE_RUNTIME_CHUNK: 'false', IMAGE_INLINE_SIZE_LIMIT: '4096' }; if (buildPath) env.BUILD_PATH = buildPath; runCommand(command, ['build'], env); return buildPath || liveBuildPath; }
+function runReactBuild(buildPath) {
+  // Invoke the JavaScript entrypoint with Node instead of spawning the Windows
+  // react-scripts.cmd shim directly. Newer Node versions can reject direct
+  // spawnSync() execution of .cmd files with EINVAL on Windows.
+  const reactScriptsEntry = require.resolve('react-scripts/bin/react-scripts.js', { paths: [appRoot] });
+  const env = { ...process.env, GENERATE_SOURCEMAP: 'false', INLINE_RUNTIME_CHUNK: 'false', IMAGE_INLINE_SIZE_LIMIT: '4096' };
+  if (buildPath) env.BUILD_PATH = buildPath;
+  runCommand(process.execPath, [reactScriptsEntry, 'build'], env);
+  return buildPath || liveBuildPath;
+}
 function generateSeoSnapshots(buildPath) {
   const env = { ...process.env, CUTINAPP_BUILD_DIR: buildPath };
   const script = path.join(appRoot, 'scripts/generate-seo-snapshots.mjs');
@@ -63,7 +72,7 @@ function assertStaticAssetIntegrity(buildPath) {
   };
   walk(buildPath);
   if (missing.length) {
-    throw new Error(`Refusing to publish Cutinapp: ${missing.length} HTML snapshot asset reference(s) do not exist in this build. First mismatches:\\n${missing.slice(0, 12).join('\\n')}`);
+    throw new Error(`Refusing to publish Cutinapp: ${missing.length} HTML snapshot asset reference(s) do not exist in this build. First mismatches:\n${missing.slice(0, 12).join('\n')}`);
   }
 }
 function publishWithoutDowntime(stagingPath) { const stagedIndex = path.join(stagingPath, 'index.html'); if (!fs.existsSync(stagedIndex)) throw new Error('Production build completed without index.html. Refusing to publish.'); fs.mkdirSync(liveBuildPath, { recursive: true }); for (const entry of fs.readdirSync(stagingPath)) { if (entry === 'index.html') continue; fs.cpSync(path.join(stagingPath, entry), path.join(liveBuildPath, entry), { recursive: true, force: true }); } const temporaryIndex = path.join(liveBuildPath, `.index.html.${process.pid}.tmp`); fs.copyFileSync(stagedIndex, temporaryIndex); fs.renameSync(temporaryIndex, path.join(liveBuildPath, 'index.html')); }
