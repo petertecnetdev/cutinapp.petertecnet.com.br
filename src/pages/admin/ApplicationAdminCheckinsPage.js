@@ -1,8 +1,10 @@
 import { showTextPrompt } from "../../utils/sweetAlert";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { Alert, Badge, Button, Card, Col, Container, Form, Row, Spinner } from "react-bootstrap";
 import NavlogComponent from "../../components/NavlogComponent";
 import appApiClient from "../../services/AppApiClient";
+import { publicEventRoute, publicProductionRoute } from "../../utils/entityRoutes";
 
 const PAGE_SIZE = 12;
 const fmt = (value) => value ? new Date(value).toLocaleString("pt-BR") : "Não utilizado";
@@ -90,7 +92,7 @@ export default function ApplicationAdminCheckinsPage() {
           <p className="text-secondary mb-1">{pass.holder_email || pass.user?.email || "E-mail não informado"}</p>
           <p className="mb-1"><strong>Evento:</strong> {pass.event?.title || "Não informado"}</p>
           <p className="mb-3"><strong>Check-in:</strong> {fmt(pass.checked_in_at)}</p>
-          <div className="mt-auto"><Button variant="outline-danger" size="sm" disabled={busyId === pass.id || pass.status === "cancelled"} onClick={() => invalidate(pass)}>Invalidar ingresso</Button></div>
+          <div className="mt-auto d-flex flex-wrap gap-2">{pass.event?.slug && <Button as={Link} to={publicEventRoute(pass.event.slug)} variant="outline-light" size="sm"><i className="fa-regular fa-eye me-2" aria-hidden="true" />Ver evento</Button>}{pass.event?.production?.slug && <Button as={Link} to={publicProductionRoute(pass.event.production.slug)} variant="outline-light" size="sm"><i className="fa-solid fa-building me-2" aria-hidden="true" />Ver produção</Button>}<Button variant="outline-danger" size="sm" disabled={busyId === pass.id || pass.status === "cancelled"} onClick={() => invalidate(pass)}>Invalidar ingresso</Button></div>
         </Card.Body></Card></Col>)}
         {!rows.length && !error && <Col><Alert variant="secondary">Nenhum ingresso emitido encontrado no escopo global atual.</Alert></Col>}
       </Row>}
