@@ -18,6 +18,11 @@ const statusLabel = {
   ready_to_sell: "Pronto para vender",
 };
 
+const adminSearchRoute = (path, query) => {
+  const normalizedQuery = String(query || "").trim();
+  return normalizedQuery ? `${path}?q=${encodeURIComponent(normalizedQuery)}` : path;
+};
+
 export default function AssistedProducerOnboardingPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState(emptyForm);
@@ -155,7 +160,9 @@ export default function AssistedProducerOnboardingPage() {
                 <td style={{ minWidth: 150 }}><ProgressBar now={row.progress} label={`${row.progress}%`} /></td>
                 <td><Badge bg={row.sales_ready ? "success" : "warning"}>{statusLabel[row.status] || row.status}</Badge></td>
                 <td>{row.handoff_sent_at ? new Date(row.handoff_sent_at).toLocaleString("pt-BR") : "Pendente"}</td>
-                <td><div className="d-flex gap-2">
+                <td><div className="d-flex flex-wrap gap-2">
+                  {row.organization?.name && <Button size="sm" variant="outline-light" onClick={() => navigate(adminSearchRoute("/admin/productions", row.organization.name))}><i className="fa-solid fa-building me-2" aria-hidden="true" />Abrir produção</Button>}
+                  {row.owner?.email && <Button size="sm" variant="outline-light" onClick={() => navigate(adminSearchRoute("/admin/users", row.owner.email))}><i className="fa-solid fa-user me-2" aria-hidden="true" />Abrir produtor</Button>}
                   <Button size="sm" variant="outline-light" onClick={() => void resend(row.organization.id)} disabled={resendingId === row.organization.id}>{resendingId === row.organization.id ? "Enviando..." : "Reenviar e-mail"}</Button>
                 </div></td>
               </tr>)}
