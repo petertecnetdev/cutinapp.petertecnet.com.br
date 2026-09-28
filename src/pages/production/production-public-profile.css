@@ -242,9 +242,14 @@
   padding:0;
 }
 
-.cut-production-public-profile__follow,
+.cut-production-public-profile__follow{
+  width:auto;
+  min-width:0;
+}
+
 .cut-production-public-profile__follow>.btn{
-  width:100%;
+  width:auto;
+  min-width:132px;
 }
 
 .cut-production-public-profile__tabs{
