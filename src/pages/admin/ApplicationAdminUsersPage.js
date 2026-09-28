@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Alert, Badge, Button, Card, Col, Container, Form, Modal, Row, Spinner } from "react-bootstrap";
 import NavlogComponent from "../../components/NavlogComponent";
 import applicationAdminUserService from "../../services/ApplicationAdminUserService";
@@ -17,9 +18,11 @@ const statusVariant = (status) => status === "active" ? "success" : status === "
 const statusLabel = (status) => ({ active: "Ativo", suspended: "Suspenso", blocked: "Bloqueado" }[status] || status || "Ativo");
 
 export default function ApplicationAdminUsersPage() {
+  const [searchParams] = useSearchParams();
+  const initialQuery = searchParams.get("q")?.trim() || "";
   const [users, setUsers] = useState([]);
-  const [query, setQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [query, setQuery] = useState(initialQuery);
+  const [debouncedQuery, setDebouncedQuery] = useState(initialQuery);
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
   const [loading, setLoading] = useState(true);
