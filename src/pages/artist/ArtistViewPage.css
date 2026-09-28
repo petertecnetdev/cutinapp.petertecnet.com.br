@@ -12,9 +12,7 @@
   position: absolute;
   inset: 0;
   z-index: 0;
-  background:
-    radial-gradient(circle at 78% 26%, var(--cut-primary), transparent 32%),
-    radial-gradient(circle at 18% 78%, var(--cut-surface-2), transparent 28%);
+  background: var(--cut-surface-1);
   pointer-events: none;
 }
 
@@ -176,7 +174,7 @@
   padding: 0;
   border: 1px solid var(--cut-border);
   border-radius: var(--cut-radius-xl);
-  background: var(--cut-gradient-surface);
+  background: var(--cut-surface-1);
   color: var(--cut-text);
   text-align: left;
   box-shadow: var(--cut-shadow-md);
@@ -195,9 +193,7 @@
   position: relative;
   min-height: 154px;
   overflow: hidden;
-  background:
-    radial-gradient(circle at 40% 30%, var(--cut-primary), transparent 46%),
-    #071019;
+  background: var(--cut-surface-2);
 }
 
 .artist-profile-event-card__media img {
@@ -211,7 +207,7 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, transparent 48%, rgba(3, 8, 14, .46));
+  background: var(--cut-surface-2);
   pointer-events: none;
 }
 
