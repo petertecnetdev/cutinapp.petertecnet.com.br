@@ -1,5 +1,6 @@
 import { showConfirmation } from "../../utils/sweetAlert";
 import React, { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { Alert, Badge, Button, Card, Col, Container, Form, Modal, Row, Spinner, Table } from "react-bootstrap";
 import NavlogComponent from "../../components/NavlogComponent";
 import cutinappService from "../../services/CutinappService";
@@ -21,6 +22,7 @@ const emptyCampaign = {
 };
 
 const money = (cents) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format((Number(cents) || 0) / 100);
+const liveSearchRoute = (query) => `/search?q=${encodeURIComponent(String(query || "").trim())}`;
 
 export default function AdminSearchAnalyticsPage() {
   const [days, setDays] = useState(30);
@@ -135,10 +137,10 @@ export default function AdminSearchAnalyticsPage() {
 
         <Row className="g-4 mb-4">
           <Col lg={6}><Card className="cut-panel h-100"><Card.Body><div className="d-flex justify-content-between mb-3"><div><span className="cut-eyebrow">Intenção</span><h2 className="h4 mt-2">Termos mais pesquisados</h2></div></div>
-            <div className="d-grid gap-2">{(analytics?.top_terms || []).slice(0, 15).map((term, index) => <div key={term.normalized_query} className="d-flex justify-content-between align-items-center gap-3 border-bottom border-secondary border-opacity-25 pb-2"><span><strong className="me-2">{index + 1}.</strong>{term.query}</span><Badge bg="secondary">{term.searches} buscas</Badge></div>)}</div>
+            <div className="d-grid gap-2">{(analytics?.top_terms || []).slice(0, 15).map((term, index) => <div key={term.normalized_query} className="d-flex justify-content-between align-items-center gap-3 border-bottom border-secondary border-opacity-25 pb-2"><span><strong className="me-2">{index + 1}.</strong>{term.query}</span><div className="d-flex align-items-center gap-2"><Badge bg="secondary">{term.searches} buscas</Badge><Button as={Link} to={liveSearchRoute(term.query)} size="sm" variant="outline-light" aria-label={`Explorar resultados para ${term.query}`}><i className="fa-solid fa-arrow-up-right-from-square" aria-hidden="true" /></Button></div></div>)}</div>
           </Card.Body></Card></Col>
           <Col lg={6}><Card className="cut-panel h-100"><Card.Body><span className="cut-eyebrow">Oportunidade</span><h2 className="h4 mt-2">Buscas sem resultado</h2><p className="text-secondary small">Estes termos são demanda explícita que a Cutinapp ainda não está atendendo bem.</p>
-            <div className="d-grid gap-2">{(analytics?.zero_terms || []).slice(0, 15).map((term) => <div key={term.normalized_query} className="d-flex justify-content-between align-items-center gap-3 border-bottom border-secondary border-opacity-25 pb-2"><span>{term.query}</span><Badge bg="warning" text="dark">{term.searches}x</Badge></div>)}</div>
+            <div className="d-grid gap-2">{(analytics?.zero_terms || []).slice(0, 15).map((term) => <div key={term.normalized_query} className="d-flex justify-content-between align-items-center gap-3 border-bottom border-secondary border-opacity-25 pb-2"><span>{term.query}</span><div className="d-flex align-items-center gap-2"><Badge bg="warning" text="dark">{term.searches}x</Badge><Button as={Link} to={liveSearchRoute(term.query)} size="sm" variant="outline-light" aria-label={`Testar busca por ${term.query}`}><i className="fa-solid fa-magnifying-glass" aria-hidden="true" /></Button></div></div>)}</div>
           </Card.Body></Card></Col>
         </Row>
 
