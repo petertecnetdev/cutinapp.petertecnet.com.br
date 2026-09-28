@@ -1,0 +1,250 @@
+/*
+ * EventView symmetry hardening.
+ * Final scoped layer for the public event hero. It intentionally comes after
+ * event-view-experience-v3 so older experimental layouts cannot compress the
+ * commerce/social actions into a narrow sidebar again.
+ */
+
+.cut-event-view-page .cut-event-summary-card,
+.cut-event-view-page .cut-event-summary-card *,
+.cut-event-view-page .cut-event-banner-frame,
+.cut-event-view-page .cut-event-banner-frame * {
+  box-sizing: border-box;
+}
+
+.cut-event-view-page .cut-event-summary-card__content,
+.cut-event-view-page .cut-event-summary-card__actions,
+.cut-event-view-page .cut-event-summary-card__primary-actions,
+.cut-event-view-page .cut-event-quick-actions {
+  min-width: 0;
+}
+
+.cut-event-view-page .cut-event-action,
+.cut-event-view-page .cut-event-quick-action,
+.cut-event-view-page .cut-event-manage-action {
+  overflow: hidden;
+}
+
+.cut-event-view-page .cut-event-action > span:not(.cut-event-action__icon),
+.cut-event-view-page .cut-event-quick-action span,
+.cut-event-view-page .cut-event-manage-action {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cut-event-view-page .cut-event-action > span:not(.cut-event-action__icon),
+.cut-event-view-page .cut-event-quick-action span {
+  white-space: nowrap;
+}
+
+.cut-event-view-page .cut-event-action__arrow {
+  flex: 0 0 auto;
+}
+
+@media (min-width: 992px) {
+  .cut-event-view-page {
+    grid-template-columns:
+      minmax(24px, 1fr)
+      minmax(0, 720px)
+      clamp(26px, 3vw, 48px)
+      minmax(340px, 420px)
+      minmax(24px, 1fr) !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card {
+    grid-column: 2 !important;
+    grid-row: 2 !important;
+    align-self: start !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 0 !important;
+    margin: 30px 0 24px !important;
+    padding: clamp(24px, 2.1vw, 32px) !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card__content {
+    width: 100%;
+  }
+
+  .cut-event-view-page .cut-event-summary-card__meta {
+    max-width: none !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card__actions {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    align-content: start !important;
+    gap: 12px !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 24px 0 0 !important;
+    padding: 22px 0 0 !important;
+    border-top: 1px solid var(--cut-event-v3-border) !important;
+    border-left: 0 !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card__primary-actions {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) !important;
+    gap: 10px !important;
+    width: 100%;
+  }
+
+  .cut-event-view-page .cut-event-action {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 56px !important;
+    padding: 10px 14px !important;
+    border-radius: 14px !important;
+    line-height: 1.15 !important;
+  }
+
+  .cut-event-view-page .cut-event-action--tickets {
+    justify-content: flex-start !important;
+  }
+
+  .cut-event-view-page .cut-event-action--interest {
+    justify-content: center !important;
+  }
+
+  .cut-event-view-page .cut-event-quick-actions {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)) !important;
+    gap: 8px !important;
+    width: 100%;
+  }
+
+  .cut-event-view-page .cut-event-quick-action {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 64px !important;
+    padding: 9px 8px !important;
+    border-radius: 13px !important;
+  }
+
+  .cut-event-view-page .cut-event-quick-action span {
+    font-size: 0.68rem !important;
+  }
+
+  .cut-event-view-page .cut-event-manage-action {
+    justify-self: start !important;
+    width: auto !important;
+    max-width: 100% !important;
+    min-width: 150px !important;
+    min-height: 42px !important;
+    padding-inline: 16px !important;
+  }
+
+  .cut-event-view-page .cut-event-banner-frame,
+  .cut-event-view-page .cut-event-banner-placeholder {
+    grid-column: 4 !important;
+    grid-row: 2 !important;
+    align-self: start !important;
+    justify-self: center !important;
+    width: 100% !important;
+    max-width: 420px !important;
+    margin: 30px 0 24px !important;
+    aspect-ratio: 2 / 3 !important;
+    overflow: hidden !important;
+  }
+
+  .cut-event-view-page .cut-event-banner-frame img,
+  .cut-event-view-page .cut-event-banner-placeholder img {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    object-fit: contain !important;
+    object-position: center !important;
+  }
+
+  .cut-event-view-page > .cut-event-summary-strip > .cut-page-container > .cut-commerce-trust {
+    grid-column: 2 / 5 !important;
+    grid-row: 3 !important;
+    width: 100% !important;
+    margin: 0 0 24px !important;
+  }
+
+  .cut-event-view-page > .cut-page-container.py-4,
+  .cut-event-view-page > .cut-page-container.py-lg-5 {
+    grid-column: 1 / -1 !important;
+    grid-row: 4 !important;
+  }
+}
+
+@media (min-width: 1400px) {
+  .cut-event-view-page {
+    grid-template-columns:
+      minmax(32px, 1fr)
+      minmax(680px, 760px)
+      clamp(34px, 3.2vw, 58px)
+      minmax(380px, 440px)
+      minmax(32px, 1fr) !important;
+  }
+
+  .cut-event-view-page .cut-event-banner-frame,
+  .cut-event-view-page .cut-event-banner-placeholder {
+    max-width: 440px !important;
+  }
+}
+
+@media (min-width: 992px) and (max-width: 1199.98px) {
+  .cut-event-view-page {
+    grid-template-columns:
+      minmax(18px, 1fr)
+      minmax(0, 540px)
+      24px
+      minmax(320px, 360px)
+      minmax(18px, 1fr) !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card {
+    padding: 24px !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card h1 {
+    font-size: clamp(2.2rem, 4.3vw, 3rem) !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card__primary-actions {
+    grid-template-columns: 1fr !important;
+  }
+
+  .cut-event-view-page .cut-event-quick-actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .cut-event-view-page .cut-event-banner-frame,
+  .cut-event-view-page .cut-event-banner-placeholder {
+    max-width: 360px !important;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .cut-event-view-page .cut-event-summary-card__primary-actions {
+    grid-template-columns: 1fr !important;
+  }
+
+  .cut-event-view-page .cut-event-action {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .cut-event-view-page .cut-event-quick-actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .cut-event-view-page .cut-event-quick-action {
+    min-width: 0 !important;
+  }
+}
+
+@media (max-width: 389.98px) {
+  .cut-event-view-page .cut-event-quick-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
