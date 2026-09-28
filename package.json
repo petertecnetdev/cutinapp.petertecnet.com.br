@@ -13,7 +13,8 @@
     "lint:dialogs": "node scripts/check-dialog-policy.js",
     "lint:react-stability": "node scripts/check-react-stability.js",
     "lint:ux-regressions": "node scripts/check-ux-regressions.js",
-    "lint:production-view": "node scripts/check-production-view-regression.js"
+    "lint:production-view": "node scripts/check-production-view-regression.js",
+    "smoke:runtime": "node scripts/check-runtime-smoke.js"
   },
   "keywords": [],
   "author": "Peter Tecnet",
@@ -51,7 +52,7 @@
     "production": [
       ">0.2%",
       "not dead",
-      "not op_mini all"
+      "not_op_mini all"
     ],
     "development": [
       "last 1 chrome version",
