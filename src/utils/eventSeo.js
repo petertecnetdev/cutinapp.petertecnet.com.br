@@ -28,6 +28,17 @@ const absoluteAssetUrl = (value) => {
   return `${storageUrl}${raw.replace(/^\/+/, "")}`;
 };
 
+const publicHttpUrl = (value) => {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  try {
+    const parsed = new URL(raw);
+    return parsed.protocol === "http:" || parsed.protocol === "https:" ? parsed.href : "";
+  } catch (_) {
+    return "";
+  }
+};
+
 const eventAttendanceMode = (event) => {
   if (event?.event_format === "online") return schema("OnlineEventAttendanceMode");
   if (event?.event_format === "hybrid") return schema("MixedEventAttendanceMode");
@@ -67,7 +78,7 @@ const physicalLocation = (event) => {
 };
 
 const virtualLocation = (event) => {
-  const url = String(event?.online_url || "").trim();
+  const url = publicHttpUrl(event?.online_url);
   if (!url) return null;
   return {
     "@type": "VirtualLocation",
@@ -164,6 +175,9 @@ export const buildEventSeo = (event, { tickets = [], artists = [] } = {}) => {
   );
   const offers = eventOffers(event, tickets);
   const performers = eventPerformers(event, artists);
+  const sameAs = [event.website, event.instagram_url, event.facebook_url, event.youtube_url]
+    .map(publicHttpUrl)
+    .filter(Boolean);
 
   const eventJsonLd = {
     "@context": "https://schema.org",
@@ -183,7 +197,7 @@ export const buildEventSeo = (event, { tickets = [], artists = [] } = {}) => {
     offers: offers.length > 0 ? offers : undefined,
     isAccessibleForFree: offers.length > 0 ? offers.every((offer) => Number(offer.price) === 0) : undefined,
     maximumAttendeeCapacity: event.max_attendees ? Number(event.max_attendees) : undefined,
-    sameAs: [event.website, event.instagram_url, event.facebook_url, event.youtube_url].filter(Boolean),
+    sameAs: sameAs.length > 0 ? sameAs : undefined,
   };
 
   const breadcrumbJsonLd = {
