@@ -66,22 +66,25 @@ const physicalLocation = (event) => {
   return place;
 };
 
+const virtualLocation = (event) => {
+  const url = String(event?.online_url || "").trim();
+  if (!url) return null;
+  return {
+    "@type": "VirtualLocation",
+    url,
+  };
+};
+
 const eventLocation = (event) => {
   if (event?.event_format === "online") {
-    return {
+    return virtualLocation(event) || {
       "@type": "VirtualLocation",
-      url: event?.online_url || `${SITE_URL}/event/${encodeURIComponent(event?.slug || "")}`,
+      url: `${SITE_URL}/event/${encodeURIComponent(event?.slug || "")}`,
     };
   }
 
   if (event?.event_format === "hybrid") {
-    return [
-      physicalLocation(event),
-      {
-        "@type": "VirtualLocation",
-        url: event?.online_url || undefined,
-      },
-    ];
+    return [physicalLocation(event), virtualLocation(event)].filter(Boolean);
   }
 
   return physicalLocation(event);
