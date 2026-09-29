@@ -94,12 +94,24 @@ function checkFocusVisibleContract(css) {
   return failures;
 }
 
+function checkAddedAccessibility(lines) {
+  const failures = [];
+  for (const { file, line, text } of lines) {
+    if (/<img\b/i.test(text) && !/\balt\s*=/.test(text)) {
+      failures.push(`${file}:${line} image accessibility: new <img> must declare alt text (use alt="" for decorative images).`);
+    }
+  }
+  return failures;
+}
+
 const globalCss = readGlobalCss();
+const addedSourceLines = getAddedSourceLines();
 const failures = [
   ...checkReducedMotionContract(globalCss),
   ...checkFocusVisibleContract(globalCss),
+  ...checkAddedAccessibility(addedSourceLines),
 ];
-for (const { file, line, text } of getAddedSourceLines()) {
+for (const { file, line, text } of addedSourceLines) {
   for (const check of checks) {
     check.pattern.lastIndex = 0;
     if (check.pattern.test(text)) failures.push(`${file}:${line} ${check.label}: ${check.reason}`);
@@ -110,4 +122,4 @@ if (failures.length) {
   console.error('UX/performance architecture regression detected:\n- ' + failures.join('\n- '));
   process.exit(1);
 }
-console.log('UX/performance architecture guard OK: forbidden production patterns absent; reduced-motion and keyboard focus contracts preserved.');
+console.log('UX/performance architecture guard OK: forbidden production patterns absent; reduced-motion, keyboard focus and new-image alt contracts preserved.');
