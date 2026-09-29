@@ -46,9 +46,11 @@ function getAddedSourceLines() {
   return added;
 }
 
-function checkReducedMotionContract() {
-  const globalCssPath = path.resolve(__dirname, '../src/styles/global.css');
-  const css = fs.readFileSync(globalCssPath, 'utf8');
+function readGlobalCss() {
+  return fs.readFileSync(path.resolve(__dirname, '../src/styles/global.css'), 'utf8');
+}
+
+function checkReducedMotionContract(css) {
   const failures = [];
   const mediaStart = css.indexOf('@media (prefers-reduced-motion: reduce)');
 
@@ -71,7 +73,32 @@ function checkReducedMotionContract() {
   return failures;
 }
 
-const failures = checkReducedMotionContract();
+function checkFocusVisibleContract(css) {
+  const failures = [];
+  const match = css.match(/:focus-visible\s*\{([^}]*)\}/s);
+  if (!match) {
+    failures.push('src/styles/global.css: missing global :focus-visible keyboard focus treatment.');
+    return failures;
+  }
+
+  const declarations = match[1];
+  const outline = declarations.match(/outline\s*:\s*([^;]+)\s*;/i)?.[1]?.trim() || '';
+  const offset = declarations.match(/outline-offset\s*:\s*([^;]+)\s*;/i)?.[1]?.trim() || '';
+
+  if (!outline || /\b(?:none|0(?:px|rem|em)?)\b/i.test(outline) || /transparent/i.test(outline)) {
+    failures.push('src/styles/global.css: :focus-visible must keep a visible non-zero outline.');
+  }
+  if (!offset || /^0(?:px|rem|em)?$/i.test(offset)) {
+    failures.push('src/styles/global.css: :focus-visible must keep non-zero outline-offset so focus is visually distinct.');
+  }
+  return failures;
+}
+
+const globalCss = readGlobalCss();
+const failures = [
+  ...checkReducedMotionContract(globalCss),
+  ...checkFocusVisibleContract(globalCss),
+];
 for (const { file, line, text } of getAddedSourceLines()) {
   for (const check of checks) {
     check.pattern.lastIndex = 0;
@@ -83,4 +110,4 @@ if (failures.length) {
   console.error('UX/performance architecture regression detected:\n- ' + failures.join('\n- '));
   process.exit(1);
 }
-console.log('UX/performance architecture guard OK: forbidden production patterns absent and reduced-motion contract preserved.');
+console.log('UX/performance architecture guard OK: forbidden production patterns absent; reduced-motion and keyboard focus contracts preserved.');
