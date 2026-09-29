@@ -121,7 +121,7 @@ const eventCurrency = (event, ticket) => String(
 
 const eventOffers = (event, tickets = []) => {
   const canonical = `${SITE_URL}/event/${encodeURIComponent(event?.slug || "")}`;
-  return (Array.isArray(tickets) ? tickets : [])
+  const offers = (Array.isArray(tickets) ? tickets : [])
     .filter((ticket) => ticket && ticket.price !== undefined && ticket.price !== null)
     .map((ticket) => {
       const currency = eventCurrency(event, ticket);
@@ -135,6 +135,21 @@ const eventOffers = (event, tickets = []) => {
         validThrough: ticket.limit_date || event?.start_date || undefined,
       };
     });
+
+  if (offers.length === 0 && event?.is_free === true) {
+    const currency = eventCurrency(event);
+    offers.push({
+      "@type": "Offer",
+      name: "Entrada gratuita",
+      price: "0.00",
+      priceCurrency: currency || undefined,
+      url: canonical,
+      availability: event?.is_cancelled ? schema("SoldOut") : schema("InStock"),
+      validThrough: event?.start_date || undefined,
+    });
+  }
+
+  return offers;
 };
 
 export const buildEventSeo = (event, { tickets = [], artists = [] } = {}) => {
