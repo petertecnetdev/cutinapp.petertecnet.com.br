@@ -3,6 +3,8 @@ export const EVENT_POSTER_HEIGHT = 1536;
 export const EVENT_POSTER_RATIO = EVENT_POSTER_WIDTH / EVENT_POSTER_HEIGHT;
 export const EVENT_POSTER_MAX_BYTES = 5 * 1024 * 1024;
 export const EVENT_POSTER_SOURCE_MAX_BYTES = 30 * 1024 * 1024;
+export const EVENT_POSTER_SOURCE_MAX_DIMENSION = 12000;
+export const EVENT_POSTER_SOURCE_MAX_PIXELS = 60 * 1000 * 1000;
 export const EVENT_POSTER_HINT = "Qualquer imagem pode ser ajustada. A Cutinapp converte para 1024 × 1536 px (2:3) antes do envio.";
 
 const EVENT_POSTER_TYPES = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp"]);
@@ -142,7 +144,6 @@ export const renderEventPosterCanvas = (canvas, image, options = {}) => {
       flipY: options.flipY,
       filter: buildFilter({ background: true }),
     });
-
   }
 
   drawImage(ctx, image, {
@@ -226,6 +227,13 @@ export const validateEventPosterFile = async (file) => {
     const width = Number(image.naturalWidth || 0);
     const height = Number(image.naturalHeight || 0);
     if (!width || !height) throw new Error("Dimensões inválidas.");
+
+    if (width > EVENT_POSTER_SOURCE_MAX_DIMENSION || height > EVENT_POSTER_SOURCE_MAX_DIMENSION || (width * height) > EVENT_POSTER_SOURCE_MAX_PIXELS) {
+      return {
+        ok: false,
+        message: "A imagem tem resolução excessiva para edição segura. Use uma imagem de até 12.000 px por lado e 60 megapixels.",
+      };
+    }
 
     const ratio = width / height;
     return {
