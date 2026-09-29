@@ -40,10 +40,34 @@ function assetUrls(html) {
   return [...urls];
 }
 
+function assertSecurityHeaders(response) {
+  const required = [
+    ['x-content-type-options', (value) => value.toLowerCase() === 'nosniff'],
+    ['referrer-policy', (value) => value.trim().length > 0],
+    ['content-security-policy', (value) => value.trim().length > 0],
+  ];
+
+  const failures = [];
+  for (const [name, validate] of required) {
+    const value = response.headers.get(name);
+    if (!value) failures.push(`${name}: missing`);
+    else if (!validate(value)) failures.push(`${name}: invalid (${value})`);
+  }
+
+  if (baseUrl.protocol === 'https:') {
+    const hsts = response.headers.get('strict-transport-security');
+    if (!hsts) failures.push('strict-transport-security: missing');
+    else if (!/max-age\s*=\s*\d+/i.test(hsts)) failures.push(`strict-transport-security: invalid (${hsts})`);
+  }
+
+  if (failures.length) throw new Error(`security header regression:\n${failures.join('\n')}`);
+}
+
 async function main() {
   const probe = new URL(`?w10-smoke=${Date.now()}`, baseUrl);
   const home = await request(probe);
   if (!home.ok) throw new Error(`home returned HTTP ${home.status}`);
+  assertSecurityHeaders(home);
   const html = await home.text();
   if (!/<div[^>]+id=["']root["']/i.test(html)) throw new Error('home HTML is missing #root');
 
@@ -70,6 +94,7 @@ async function main() {
   console.log(`runtime smoke OK: ${baseUrl.href}`);
   console.log(`release: ${releaseSha}`);
   console.log(`critical assets checked: ${assets.length}`);
+  console.log('security headers: baseline OK');
 }
 
 main().catch((error) => {
