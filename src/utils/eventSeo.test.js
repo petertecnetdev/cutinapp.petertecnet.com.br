@@ -28,6 +28,26 @@ describe("event structured data offer availability", () => {
     expect(eventSchema(seo).eventStatus).toBe("https://schema.org/EventCancelled");
     expect(eventSchema(seo).offers[0].availability).toBe("https://schema.org/SoldOut");
   });
+
+  test("publishes a zero-price offer for a free event even when no ticket rows are returned", () => {
+    const seo = buildEventSeo({ ...baseEvent, is_free: true, currency: "EUR" });
+    const event = eventSchema(seo);
+
+    expect(event.isAccessibleForFree).toBe(true);
+    expect(event.offers).toHaveLength(1);
+    expect(event.offers[0]).toMatchObject({
+      "@type": "Offer",
+      price: "0.00",
+      priceCurrency: "EUR",
+      availability: "https://schema.org/InStock",
+    });
+  });
+
+  test("marks the synthetic free offer sold out when the event is cancelled", () => {
+    const seo = buildEventSeo({ ...baseEvent, is_free: true, is_cancelled: true });
+
+    expect(eventSchema(seo).offers[0].availability).toBe("https://schema.org/SoldOut");
+  });
 });
 
 describe("event structured data locations", () => {
