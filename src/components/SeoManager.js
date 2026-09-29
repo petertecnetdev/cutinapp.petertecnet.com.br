@@ -54,6 +54,17 @@ const plainText = (value = "") => String(value)
   .replace(/\s+/g, " ")
   .trim();
 
+const publicHttpUrl = (value) => {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  try {
+    const parsed = new URL(raw);
+    return parsed.protocol === "http:" || parsed.protocol === "https:" ? parsed.href : "";
+  } catch (_) {
+    return "";
+  }
+};
+
 const productionMediaUrl = (value) => {
   const raw = String(value || "").trim();
   if (!raw) return "";
@@ -66,24 +77,30 @@ const buildProductionSeo = (production, slug) => {
 
   const canonical = `${SITE_URL}/production/${encodeURIComponent(slug)}/public`;
   const summary = plainText(production.description).slice(0, 220);
-  const location = [production.city, production.uf].filter(Boolean).join(", ");
+  const location = [production.city, production.uf || production.state, production.country].filter(Boolean).join(", ");
   const description = summary
     || (location
       ? `Conheça ${production.name}, produção de eventos em ${location}, e veja seus próximos eventos na Cutinapp.`
       : `Conheça ${production.name}, seus eventos e experiências publicados na Cutinapp.`);
   const image = productionMediaUrl(production.background || production.logo);
+  const website = publicHttpUrl(production.website_url || production.website);
+  const sameAs = [production.instagram_url, production.facebook_url, production.youtube_url, production.tiktok_url]
+    .map(publicHttpUrl)
+    .filter(Boolean);
   const about = {
     "@type": "Organization",
+    "@id": `${canonical}#organization`,
     name: production.name,
-    ...(production.website_url ? { url: production.website_url } : {}),
+    url: website || canonical,
     ...(production.logo ? { logo: productionMediaUrl(production.logo) } : {}),
+    ...(sameAs.length > 0 ? { sameAs } : {}),
   };
 
-  if (production.location_public && (production.city || production.uf || production.country)) {
+  if (production.location_public && (production.city || production.uf || production.state || production.country)) {
     about.address = {
       "@type": "PostalAddress",
       ...(production.city ? { addressLocality: production.city } : {}),
-      ...(production.uf ? { addressRegion: production.uf } : {}),
+      ...(production.uf || production.state ? { addressRegion: production.uf || production.state } : {}),
       ...(production.country ? { addressCountry: production.country } : {}),
     };
   }
@@ -97,6 +114,7 @@ const buildProductionSeo = (production, slug) => {
     jsonLd: {
       "@context": "https://schema.org",
       "@type": "ProfilePage",
+      "@id": `${canonical}#profile`,
       name: production.name,
       description,
       url: canonical,
