@@ -1,4 +1,6 @@
 const { execFileSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
 
 const checks = [
   { label: 'hard reload', pattern: /(?:window\.)?location\.reload\s*\(/g, reason: 'Use state/cache invalidation or router navigation instead of a full reload.' },
@@ -44,7 +46,32 @@ function getAddedSourceLines() {
   return added;
 }
 
-const failures = [];
+function checkReducedMotionContract() {
+  const globalCssPath = path.resolve(__dirname, '../src/styles/global.css');
+  const css = fs.readFileSync(globalCssPath, 'utf8');
+  const failures = [];
+  const mediaStart = css.indexOf('@media (prefers-reduced-motion: reduce)');
+
+  if (mediaStart === -1) {
+    failures.push('src/styles/global.css: missing global prefers-reduced-motion: reduce media query.');
+    return failures;
+  }
+
+  const reducedMotionBlock = css.slice(mediaStart);
+  const requiredContracts = [
+    ['smooth scrolling disabled', /html\s*\{[^}]*scroll-behavior\s*:\s*auto\s*;[^}]*\}/s],
+    ['animations effectively disabled', /animation-duration\s*:\s*\.01ms\s*!important\s*;/],
+    ['animation loops capped', /animation-iteration-count\s*:\s*1\s*!important\s*;/],
+    ['transitions effectively disabled', /transition-duration\s*:\s*\.01ms\s*!important\s*;/],
+  ];
+
+  for (const [label, pattern] of requiredContracts) {
+    if (!pattern.test(reducedMotionBlock)) failures.push(`src/styles/global.css: reduced-motion contract weakened: ${label}.`);
+  }
+  return failures;
+}
+
+const failures = checkReducedMotionContract();
 for (const { file, line, text } of getAddedSourceLines()) {
   for (const check of checks) {
     check.pattern.lastIndex = 0;
@@ -56,4 +83,4 @@ if (failures.length) {
   console.error('UX/performance architecture regression detected:\n- ' + failures.join('\n- '));
   process.exit(1);
 }
-console.log('UX/performance architecture guard OK: no forbidden production patterns added.');
+console.log('UX/performance architecture guard OK: forbidden production patterns absent and reduced-motion contract preserved.');
