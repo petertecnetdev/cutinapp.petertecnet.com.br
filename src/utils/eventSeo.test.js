@@ -84,3 +84,32 @@ describe("event structured data locations", () => {
     });
   });
 });
+
+describe("event structured data public identity URLs", () => {
+  test("keeps only absolute HTTP(S) URLs in sameAs", () => {
+    const seo = buildEventSeo({
+      slug: "safe-links",
+      title: "Safe Links",
+      website: "https://example.test/event",
+      instagram_url: "javascript:alert(1)",
+      facebook_url: "/relative-profile",
+      youtube_url: "http://youtube.example.test/channel",
+    });
+
+    expect(eventSchema(seo).sameAs).toEqual([
+      "https://example.test/event",
+      "http://youtube.example.test/channel",
+    ]);
+  });
+
+  test("omits sameAs when no valid public identity URL exists", () => {
+    const seo = buildEventSeo({
+      slug: "no-safe-links",
+      title: "No Safe Links",
+      website: "mailto:hello@example.test",
+      instagram_url: "not-a-url",
+    });
+
+    expect(eventSchema(seo).sameAs).toBeUndefined();
+  });
+});
