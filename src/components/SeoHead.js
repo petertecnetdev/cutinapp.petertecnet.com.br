@@ -79,6 +79,7 @@ export default function SeoHead({
     upsertMeta('meta[name="twitter:title"]', { name: "twitter:title", content: resolvedTitle });
     upsertMeta('meta[name="twitter:description"]', { name: "twitter:description", content: resolvedDescription });
     upsertMeta('meta[name="twitter:image"]', { name: "twitter:image", content: resolvedImage });
+    upsertMeta('meta[name="twitter:image:alt"]', { name: "twitter:image:alt", content: resolvedTitle });
     upsertCanonical(resolvedCanonical);
 
     const selector = `script[data-cutinapp-seo="${scriptId}"]`;
