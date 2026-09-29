@@ -7,6 +7,7 @@ const limits = {
   staticImage: 700 * 1024,
   singleJsGzip: 350 * 1024,
   singleCssGzip: 120 * 1024,
+  initialJsGzip: 250 * 1024,
   totalJsGzip: 1.25 * 1024 * 1024,
 };
 const failures = [];
@@ -69,6 +70,34 @@ if (totalJsGzip > limits.totalJsGzip) {
   failures.push(`total JS ${(totalJsGzip / 1024 / 1024).toFixed(2)} MiB gzip > 1.25 MiB`);
 }
 
+let initialJsGzip = 0;
+let initialJsCount = 0;
+if (fs.existsSync(buildIndex)) {
+  const html = fs.readFileSync(buildIndex, "utf8");
+  const sources = [...html.matchAll(/<script\b[^>]*\bsrc=["']([^"']+\.js(?:\?[^"']*)?)["'][^>]*>/gi)].map((match) => match[1]);
+  const initialFiles = [...new Set(sources.map((source) => {
+    const clean = source.replace(/[?#].*$/, "");
+    if (/^https?:\/\//i.test(clean) || clean.startsWith("//")) return null;
+    return path.resolve(buildDir, clean.replace(/^\/+/, ""));
+  }).filter(Boolean))];
+
+  if (initialFiles.length === 0) {
+    failures.push("build/index.html references no local JavaScript bootstrap assets; initial JS budget cannot be measured");
+  } else {
+    for (const file of initialFiles) {
+      if (!fs.existsSync(file)) {
+        failures.push(`initial JavaScript asset missing: ${path.relative(root, file)}`);
+        continue;
+      }
+      initialJsGzip += gzipSize(file);
+      initialJsCount += 1;
+    }
+    if (initialJsGzip > limits.initialJsGzip) {
+      failures.push(`initial JS ${kib(initialJsGzip)} gzip > 250 KiB`);
+    }
+  }
+}
+
 if (failures.length) {
   console.error("Performance budget exceeded:\n- " + failures.join("\n- "));
   process.exit(1);
@@ -77,4 +106,5 @@ if (failures.length) {
 const orphanJs = Math.max(0, allJs.length - js.length);
 const orphanCss = Math.max(0, allCss.length - css.length);
 console.log(`Performance budget OK: ${js.length} active JS chunks, ${(totalJsGzip / 1024 / 1024).toFixed(2)} MiB total JS gzip.`);
+console.log(`Initial JS: ${initialJsCount} bootstrap assets, ${kib(initialJsGzip)} / 250 KiB gzip (${((initialJsGzip / limits.initialJsGzip) * 100).toFixed(1)}%).`);
 if (orphanJs || orphanCss) console.log(`Ignored stale build artifacts: ${orphanJs} JS, ${orphanCss} CSS not referenced by current manifest.`);
