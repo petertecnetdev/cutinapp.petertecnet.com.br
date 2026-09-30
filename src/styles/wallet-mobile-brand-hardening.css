@@ -1,0 +1,100 @@
+/* W07: authoritative mobile-first wallet polish. Scoped to the ticket wallet only. */
+.cut-wallet-page {
+  min-height: 100dvh;
+  overflow-x: clip;
+  background: #050505;
+}
+
+.cut-wallet-page .cut-wallet-hero,
+.cut-wallet-page .cut-wallet-next,
+.cut-wallet-page .cut-wallet-toolbar,
+.cut-wallet-page .cut-wallet-card {
+  background: #09090a !important;
+  border-color: rgba(255,255,255,.10) !important;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.cut-wallet-page .cut-wallet-hero::after { display: none; }
+.cut-wallet-page .cut-wallet-stat { background: #101012; backdrop-filter: none; }
+.cut-wallet-page .cut-wallet-next { border-color: rgba(255,35,48,.22) !important; }
+.cut-wallet-page .cut-wallet-next__art,
+.cut-wallet-page .cut-wallet-event-art { background: #151517; }
+.cut-wallet-page .cut-wallet-next__meta i,
+.cut-wallet-page .cut-wallet-card__meta i,
+.cut-wallet-page .cut-wallet-empty i { color: #ff2330; }
+
+.cut-wallet-page .cut-wallet-filter-tabs button {
+  min-height: 44px;
+  background: #101012;
+}
+.cut-wallet-page .cut-wallet-filter-tabs button:hover,
+.cut-wallet-page .cut-wallet-filter-tabs button.active {
+  border-color: rgba(255,35,48,.45);
+  background: #211014;
+  color: #fff;
+}
+
+.cut-wallet-page .cut-wallet-card:hover {
+  transform: none;
+  border-color: rgba(255,35,48,.24) !important;
+  box-shadow: none;
+}
+.cut-wallet-page .cut-wallet-card__accent,
+.cut-wallet-page .cut-wallet-transfer .cut-wallet-card__accent {
+  background: #ff2330;
+}
+.cut-wallet-page .cut-wallet-card__lifecycle {
+  border-color: rgba(255,35,48,.16);
+  background: #12090b;
+}
+.cut-wallet-page .cut-wallet-card__footer .btn,
+.cut-wallet-page .cut-wallet-pass-row .btn,
+.cut-wallet-page .cut-wallet-next__actions .btn,
+.cut-wallet-page .cut-wallet-hero__actions .btn {
+  min-height: 44px;
+}
+
+@media (max-width: 767px) {
+  .cut-wallet-page { padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .cut-wallet-page .container { max-width: 100%; padding-inline: max(12px, env(safe-area-inset-left, 0px)); }
+  .cut-wallet-page .cut-wallet-hero { padding: 18px 16px; border-radius: 18px; gap: 18px; }
+  .cut-wallet-page .cut-wallet-hero h1 { font-size: clamp(2rem, 11vw, 2.8rem); }
+  .cut-wallet-page .cut-wallet-toolbar { border-radius: 18px !important; }
+  .cut-wallet-page .cut-wallet-ticket-card { border-radius: 18px !important; }
+  .cut-wallet-page .cut-wallet-filter-tabs {
+    margin-inline: -2px;
+    padding-bottom: 8px;
+    scroll-snap-type: x proximity;
+    overscroll-behavior-inline: contain;
+  }
+  .cut-wallet-page .cut-wallet-filter-tabs button { scroll-snap-align: start; }
+  .cut-wallet-page .cut-wallet-pass-row__info strong {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .cut-wallet-page .cut-wallet-pass-row__actions,
+  .cut-wallet-page .cut-wallet-card__footer-actions { gap: 8px; }
+  .cut-wallet-page .cut-wallet-mobile-primary {
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (max-width: 430px) {
+  .cut-wallet-page .cut-wallet-hero__summary { gap: 8px; }
+  .cut-wallet-page .cut-wallet-stat { padding: 12px; }
+  .cut-wallet-page .cut-wallet-card__ticket-cover { min-height: 190px; }
+  .cut-wallet-page .cut-wallet-card__footer-actions,
+  .cut-wallet-page .cut-wallet-pass-row__actions { display: grid; grid-template-columns: 1fr; }
+  .cut-wallet-page .cut-wallet-card__footer-actions .btn,
+  .cut-wallet-page .cut-wallet-pass-row__actions .btn { width: 100%; }
+}
+
+@media (max-width: 360px) {
+  .cut-wallet-page .container { padding-inline: max(10px, env(safe-area-inset-left, 0px)); }
+  .cut-wallet-page .cut-wallet-hero { padding: 16px 13px; }
+  .cut-wallet-page .cut-wallet-hero h1 { font-size: 1.95rem; letter-spacing: -.045em; }
+  .cut-wallet-page .cut-wallet-stat span { font-size: .68rem; }
+  .cut-wallet-page .cut-wallet-card__ticket-cover { min-height: 180px; padding: 13px; }
+  .cut-wallet-page .cut-wallet-ticket-card .cut-wallet-card__badges { left: 11px; right: 64px; }
+}
