@@ -1,13 +1,16 @@
 /* W07: revenue-critical checkout interaction hardening. View-level only. */
 @media (max-width: 900px) {
   .cut-checkout-page {
+    min-height: 100svh;
     min-height: 100dvh;
     overflow-x: clip;
-    padding-bottom: calc(144px + env(safe-area-inset-bottom));
+    padding-bottom: calc(156px + env(safe-area-inset-bottom));
   }
 
   .cut-checkout-container,
   .cut-checkout-topbar__inner {
+    width: 100%;
+    max-width: 100%;
     padding-left: max(16px, env(safe-area-inset-left));
     padding-right: max(16px, env(safe-area-inset-right));
   }
@@ -19,6 +22,7 @@
   .cut-checkout-primary,
   .cut-payment-submit {
     min-height: 44px;
+    touch-action: manipulation;
   }
 
   .cut-checkout-line-controls {
@@ -34,7 +38,10 @@
   }
 
   .cut-payment-input,
-  .cut-checkout-payer input {
+  .cut-checkout-payer input,
+  .cut-checkout-payer select,
+  .cut-checkout-payer textarea {
+    max-width: 100%;
     font-size: 16px !important;
   }
 
@@ -42,25 +49,45 @@
   .cut-checkout-purchased,
   .cut-payment-breakdown > div,
   .cut-payment-total,
-  .cut-payment-summary {
+  .cut-payment-summary,
+  .cut-checkout-summary__event,
+  .cut-checkout-section,
+  .cut-checkout-summary {
     min-width: 0;
+    max-width: 100%;
   }
 
   .cut-checkout-summary__lines > div > div,
   .cut-checkout-summary__event div,
-  .cut-checkout-purchased > div {
+  .cut-checkout-purchased > div,
+  .cut-payment-total,
+  .cut-payment-summary {
     min-width: 0;
     overflow-wrap: anywhere;
   }
 
   .cut-pix-code {
     max-width: 100%;
+    overflow-x: auto;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
   }
 
   .cut-checkout-mobile-paybar {
-    max-width: calc(100vw - max(24px, env(safe-area-inset-left) + env(safe-area-inset-right)));
+    left: max(12px, env(safe-area-inset-left));
+    right: max(12px, env(safe-area-inset-right));
+    bottom: max(10px, env(safe-area-inset-bottom));
+    width: auto;
+    max-width: none;
+    z-index: 1040;
+  }
+
+  .cut-checkout-mobile-paybar .btn,
+  .cut-payment-submit,
+  .cut-checkout-primary {
+    width: 100%;
+    white-space: normal;
+    line-height: 1.2;
   }
 }
 
@@ -86,11 +113,17 @@
 
   .cut-payment-card-badges {
     padding-left: 0;
+    flex-wrap: wrap;
   }
 
   .cut-payment-breakdown,
   .cut-checkout-payer {
     padding: 14px;
+  }
+
+  .cut-payment-methods button {
+    width: 100%;
+    min-width: 0;
   }
 }
 
@@ -110,12 +143,45 @@
 
   .cut-payment-methods button {
     grid-template-columns: 28px minmax(0, 1fr) auto;
-    padding: 14px;
+    padding: 14px 12px;
+    gap: 8px;
+  }
+
+  .cut-checkout-line-controls {
+    grid-template-columns: 44px minmax(24px, 1fr) 44px 44px;
+    gap: 6px;
   }
 
   .cut-checkout-mobile-paybar {
     left: max(8px, env(safe-area-inset-left));
     right: max(8px, env(safe-area-inset-right));
     bottom: max(8px, env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 320px) {
+  .cut-checkout-heading h1 {
+    font-size: 1.65rem;
+  }
+
+  .cut-checkout-section,
+  .cut-checkout-summary,
+  .cut-checkout-success {
+    padding: 14px;
+    border-radius: 14px;
+  }
+
+  .cut-payment-breakdown,
+  .cut-checkout-payer {
+    padding: 12px;
+  }
+
+  .cut-payment-methods button {
+    grid-template-columns: 24px minmax(0, 1fr);
+  }
+
+  .cut-payment-methods button > :last-child:not(:nth-child(2)) {
+    grid-column: 2;
+    justify-self: start;
   }
 }
