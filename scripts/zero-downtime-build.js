@@ -34,15 +34,20 @@ function runReactBuild(buildPath) {
 }
 function generateSeoSnapshots(buildPath) {
   const env = { ...process.env, CUTINAPP_BUILD_DIR: buildPath };
+  const globalReadinessGuard = path.join(appRoot, 'scripts/check-seo-snapshot-global-readiness.mjs');
   const script = path.join(appRoot, 'scripts/generate-seo-snapshots.mjs');
-  const result = spawnSync(process.execPath, [script, buildPath], { cwd: appRoot, env, stdio: 'inherit' });
+  const guard = spawnSync(process.execPath, [globalReadinessGuard], { cwd: appRoot, env, stdio: 'inherit' });
+  const result = !guard.error && guard.status === 0
+    ? spawnSync(process.execPath, [script, buildPath], { cwd: appRoot, env, stdio: 'inherit' })
+    : guard;
 
   if (!result.error && result.status === 0) return true;
 
-  // Snapshot SEO depends on the public API and has its own refresh workflow.
-  // A transient API/CDN failure must not block an otherwise validated frontend
-  // release in CI. Operators can still require snapshots in a controlled local
-  // build by setting CUTINAPP_SEO_SNAPSHOTS_REQUIRED=1 outside CI.
+  // Snapshot SEO depends on the public API and must also satisfy the global-readiness
+  // guard before crawler-visible HTML can be generated. A transient API/CDN failure
+  // or a known snapshot-contract violation must not publish misleading snapshots.
+  // Operators can require snapshots in a controlled local build with
+  // CUTINAPP_SEO_SNAPSHOTS_REQUIRED=1 outside CI.
   const required = process.env.CI !== 'true' && process.env.CUTINAPP_SEO_SNAPSHOTS_REQUIRED === '1';
   const reason = result.error?.message || `exit code ${result.status ?? 'unknown'}`;
 
@@ -51,7 +56,7 @@ function generateSeoSnapshots(buildPath) {
     throw new Error(`SEO snapshot generation failed (${reason}).`);
   }
 
-  console.warn(`SEO snapshot generation unavailable (${reason}); continuing with the validated SPA build. Refresh SEO Index can regenerate snapshots after the API recovers.`);
+  console.warn(`SEO snapshot generation unavailable (${reason}); continuing with the validated SPA build. Refresh SEO Index can regenerate snapshots after the API or snapshot contract recovers.`);
   return false;
 }
 function assertStaticAssetIntegrity(buildPath) {
