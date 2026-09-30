@@ -55,6 +55,23 @@ export const snapshotContext = (event = {}) => ({
   country: eventCountry(event),
 });
 
+export const discoveryContext = (events = []) => {
+  const rows = Array.isArray(events) ? events : [];
+  const localeEvent = rows.find((event) => firstText(event?.locale, event?.language, event?.language_code));
+  const timeZoneEvent = rows.find((event) => firstText(
+    event?.timezone,
+    event?.time_zone,
+    event?.venue?.timezone,
+    event?.location?.timezone,
+  ));
+  const countryEvent = rows.find((event) => eventCountry(event));
+  return {
+    locale: eventLocale(localeEvent || {}),
+    timeZone: eventTimeZone(timeZoneEvent || {}),
+    country: eventCountry(countryEvent || {}),
+  };
+};
+
 export const dateKeyForContext = (value, context = {}) => {
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return "";
