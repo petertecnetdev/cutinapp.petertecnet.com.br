@@ -1,4 +1,6 @@
-const BUILD_VERSION = "__CUTINAPP_BUILD_VERSION__";
+const CACHE_SCHEMA = "v6";
+const RELEASE_VERSION = new URL(self.location.href).searchParams.get("v") || "unknown";
+const BUILD_VERSION = `${CACHE_SCHEMA}-${RELEASE_VERSION}`;
 const SHELL_CACHE = `cutinapp-shell-${BUILD_VERSION}`;
 const RUNTIME_CACHE = `cutinapp-runtime-${BUILD_VERSION}`;
 const APP_SHELL = ["/", "/manifest.json", "/images/logo.png"];
