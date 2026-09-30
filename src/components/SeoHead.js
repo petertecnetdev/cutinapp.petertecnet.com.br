@@ -50,6 +50,7 @@ export default function SeoHead({
   description,
   canonical,
   image,
+  imageAlt,
   type = "website",
   robots = "index, follow, max-image-preview:large",
   jsonLd,
@@ -60,6 +61,7 @@ export default function SeoHead({
     const resolvedCanonical = absoluteUrl(canonical || "/", `${SITE_URL}/`);
     const resolvedImage = absoluteUrl(image || DEFAULT_IMAGE, DEFAULT_IMAGE);
     const resolvedTitle = String(title || "Cutinapp | Eventos e ingressos").trim();
+    const resolvedImageAlt = String(imageAlt || resolvedTitle).trim() || resolvedTitle;
     const resolvedDescription = String(description || "Descubra eventos, ingressos, artistas e produções na Cutinapp.").trim();
     const resolvedLocale = normalizeLocale(locale || document.documentElement.lang || DEFAULT_LOCALE);
 
@@ -74,12 +76,12 @@ export default function SeoHead({
     upsertMeta('meta[property="og:site_name"]', { property: "og:site_name", content: "Cutinapp" });
     upsertMeta('meta[property="og:locale"]', { property: "og:locale", content: toOpenGraphLocale(resolvedLocale) });
     upsertMeta('meta[property="og:image"]', { property: "og:image", content: resolvedImage });
-    upsertMeta('meta[property="og:image:alt"]', { property: "og:image:alt", content: resolvedTitle });
+    upsertMeta('meta[property="og:image:alt"]', { property: "og:image:alt", content: resolvedImageAlt });
     upsertMeta('meta[name="twitter:card"]', { name: "twitter:card", content: "summary_large_image" });
     upsertMeta('meta[name="twitter:title"]', { name: "twitter:title", content: resolvedTitle });
     upsertMeta('meta[name="twitter:description"]', { name: "twitter:description", content: resolvedDescription });
     upsertMeta('meta[name="twitter:image"]', { name: "twitter:image", content: resolvedImage });
-    upsertMeta('meta[name="twitter:image:alt"]', { name: "twitter:image:alt", content: resolvedTitle });
+    upsertMeta('meta[name="twitter:image:alt"]', { name: "twitter:image:alt", content: resolvedImageAlt });
     upsertCanonical(resolvedCanonical);
 
     const selector = `script[data-cutinapp-seo="${scriptId}"]`;
@@ -97,7 +99,7 @@ export default function SeoHead({
     return () => {
       script?.remove();
     };
-  }, [title, description, canonical, image, type, robots, jsonLd, scriptId, locale]);
+  }, [title, description, canonical, image, imageAlt, type, robots, jsonLd, scriptId, locale]);
 
   return null;
 }
@@ -107,6 +109,7 @@ SeoHead.propTypes = {
   description: PropTypes.string,
   canonical: PropTypes.string,
   image: PropTypes.string,
+  imageAlt: PropTypes.string,
   type: PropTypes.string,
   robots: PropTypes.string,
   jsonLd: PropTypes.oneOfType([
