@@ -82,8 +82,9 @@ const buildProductionSeo = (production, slug) => {
     || (location
       ? `Conheça ${production.name}, produção de eventos em ${location}, e veja seus próximos eventos na Cutinapp.`
       : `Conheça ${production.name}, seus eventos e experiências publicados na Cutinapp.`);
-  const image = productionMediaUrl(production.background || production.logo);
-  const imageAlt = image
+  const productionImage = productionMediaUrl(production.background || production.logo);
+  const image = productionImage || `${SITE_URL}/images/logo.png`;
+  const imageAlt = productionImage
     ? `${production.background ? "Capa" : "Logo"} oficial de ${production.name}${location ? ` em ${location}` : ""}`
     : `Cutinapp — ${production.name}`;
   const website = publicHttpUrl(production.website_url || production.website);
@@ -112,7 +113,7 @@ const buildProductionSeo = (production, slug) => {
     title: `${production.name} | Produção de eventos na Cutinapp`,
     description,
     canonical,
-    image: image || undefined,
+    image,
     imageAlt,
     type: "website",
     jsonLd: {
