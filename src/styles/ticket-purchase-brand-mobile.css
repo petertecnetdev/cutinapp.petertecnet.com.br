@@ -1,0 +1,148 @@
+/* W07 — conversion-safe visual layer for event ticket selection/cart. */
+.cut-ticket-kicker,
+.cut-eyebrow,
+.cut-event-cart-drawer__copy small {
+  color: #ff3b3b;
+}
+
+.cut-ticket-shop__option {
+  background: #0d0d0f;
+  border-color: rgba(255,255,255,.12);
+  box-shadow: none;
+}
+
+.cut-ticket-shop__option:hover,
+.cut-ticket-shop__option:focus-within {
+  border-color: rgba(255,59,59,.5);
+  background: #111114;
+}
+
+.cut-ticket-shop__stepper button {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  border-color: rgba(255,255,255,.16);
+  background: #17171a;
+  color: #fff;
+  box-shadow: none;
+}
+
+.cut-ticket-shop__stepper button:not(:disabled):hover {
+  background: #232327;
+}
+
+.cut-ticket-shop__summary {
+  border-color: rgba(255,255,255,.13);
+  background: #0b0b0d;
+  color: #fff;
+  box-shadow: none;
+}
+
+.cut-ticket-shop__summary-line--total strong,
+.cut-ticket-shop__trust i {
+  color: #ff3b3b;
+}
+
+.cut-ticket-shop__checkout-btn,
+.cut-event-cart-drawer__footer .btn {
+  border-color: #ff3030;
+  background: #e31b23;
+  color: #fff;
+  box-shadow: none;
+}
+
+.cut-ticket-shop__checkout-btn:not(:disabled):hover,
+.cut-event-cart-drawer__footer .btn:not(:disabled):hover {
+  background: #f3262f;
+  filter: none;
+}
+
+.cut-event-cart-fab {
+  border-color: rgba(255,59,59,.42);
+  background: #0b0b0d;
+  box-shadow: 0 12px 32px rgba(0,0,0,.42);
+  backdrop-filter: none;
+}
+
+.cut-event-cart-fab > i {
+  background: #251012;
+  color: #ff4a4a;
+}
+
+.cut-event-cart-drawer.offcanvas {
+  background: #080809;
+}
+
+@media (max-width: 575.98px) {
+  .cut-ticket-shop-section {
+    overflow-x: clip;
+    padding-top: 18px;
+  }
+
+  .cut-ticket-shop__heading {
+    gap: 10px;
+  }
+
+  .cut-ticket-shop__heading h3 {
+    font-size: 1.18rem;
+  }
+
+  .cut-ticket-shop__option {
+    gap: 12px;
+    padding: 14px;
+    border-radius: 14px;
+  }
+
+  .cut-ticket-shop__option-copy strong,
+  .cut-ticket-shop__option-copy > span:not(.cut-ticket-kicker),
+  .cut-ticket-shop__option-copy small {
+    overflow-wrap: anywhere;
+  }
+
+  .cut-ticket-shop__stepper {
+    grid-template-columns: 44px 24px 44px;
+    gap: 4px;
+  }
+
+  .cut-ticket-shop__summary {
+    border-radius: 14px;
+  }
+
+  .cut-event-cart-fab {
+    left: max(12px, env(safe-area-inset-left));
+    right: max(12px, env(safe-area-inset-right));
+    bottom: calc(88px + env(safe-area-inset-bottom));
+    min-height: 56px;
+    border-radius: 14px;
+  }
+
+  .cut-event-cart-drawer.offcanvas-bottom {
+    height: min(78dvh, 680px);
+    max-height: calc(100dvh - env(safe-area-inset-top));
+    padding-bottom: env(safe-area-inset-bottom);
+    border-radius: 16px 16px 0 0;
+  }
+
+  .cut-event-cart-drawer .offcanvas-body {
+    min-width: 0;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+  }
+}
+
+@media (max-width: 359.98px) {
+  .cut-ticket-shop__option {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .cut-ticket-shop__stepper {
+    align-self: end;
+  }
+
+  .cut-event-cart-fab {
+    grid-template-columns: 36px minmax(0,1fr) 28px;
+    gap: 8px;
+  }
+}
