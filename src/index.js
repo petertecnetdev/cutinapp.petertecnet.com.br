@@ -8,6 +8,7 @@ import "./pages/production/production-public-polish.css";
 import "./styles/mobileFeedTouchTargets.css";
 import "./components/event/EventPosterThumbnail.css";
 import "./styles/event-ticket-purchase.css";
+import "./styles/ticket-purchase-brand-mobile.css";
 import "./components/WhatsAppFloatingButton.css";
 import "./components/event/EventDiscoveryRail.css";
 import "./styles/mobile-bottom-nav-fix.css";
