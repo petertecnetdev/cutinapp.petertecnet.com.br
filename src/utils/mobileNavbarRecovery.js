@@ -18,6 +18,8 @@ const forceState = (toggle, collapse, open) => {
   collapse.dataset.cutinappRecoveryOpen = open ? "1" : "0";
 };
 
+const isOpen = (collapse) => collapse?.classList.contains("show") === true;
+
 export const installMobileNavbarRecovery = () => {
   if (typeof window === "undefined" || typeof document === "undefined") return () => {};
   if (window.__cutinappMobileNavbarRecoveryInstalled) return () => {};
@@ -29,18 +31,33 @@ export const installMobileNavbarRecovery = () => {
 
     const collapse = collapseForToggle(toggle);
     if (!collapse) return;
-    const wasOpen = collapse.classList.contains("show") || collapse.dataset.cutinappRecoveryOpen === "1";
-    const expectedOpen = !wasOpen;
 
-    // Apply the drawer state synchronously on pointer/click. React-Bootstrap
-    // still receives the same click and keeps component state authoritative,
-    // but slow Android WebViews and conflicting legacy collapse handlers can
-    // no longer leave the menu visually closed after the user taps it.
-    forceState(toggle, collapse, expectedOpen);
+    const beforeOpen = isOpen(collapse);
+    const expectedOpen = !beforeOpen;
 
-    // Reassert once after React/Bootstrap handlers have completed. This is a
-    // recovery guard only; it deliberately mirrors the state chosen above.
-    window.setTimeout(() => forceState(toggle, collapse, expectedOpen), 60);
+    // Let React/Bootstrap own the click first. Previous recovery code changed
+    // the DOM in capture phase before the framework handler ran, which could
+    // race with a later React render and make the drawer close again.
+    window.setTimeout(() => {
+      const frameworkOpen = isOpen(collapse);
+      const frameworkExpanded = toggle.getAttribute("aria-expanded") === "true";
+
+      // Framework handled the click. Only normalize class/ARIA if one of them
+      // lagged behind; do not compete with component state.
+      if (frameworkOpen === expectedOpen || frameworkExpanded === expectedOpen) {
+        if (frameworkOpen !== frameworkExpanded) forceState(toggle, collapse, expectedOpen);
+        return;
+      }
+
+      // No state transition happened: recover the drawer as a fallback.
+      forceState(toggle, collapse, expectedOpen);
+
+      // Some mobile WebViews flush a delayed Bootstrap/React update after the
+      // first task. Verify once more, without installing a competing loop.
+      window.setTimeout(() => {
+        if (isOpen(collapse) !== expectedOpen) forceState(toggle, collapse, expectedOpen);
+      }, 220);
+    }, 100);
   };
 
   const onDestination = (event) => {
@@ -52,11 +69,13 @@ export const installMobileNavbarRecovery = () => {
     if (collapse && toggle) forceState(toggle, collapse, false);
   };
 
-  document.addEventListener("click", onToggle, true);
+  // Bubble phase is intentional: framework handlers get the first chance to
+  // update the controlled navbar state. Recovery only verifies afterwards.
+  document.addEventListener("click", onToggle, false);
   document.addEventListener("click", onDestination, false);
 
   return () => {
-    document.removeEventListener("click", onToggle, true);
+    document.removeEventListener("click", onToggle, false);
     document.removeEventListener("click", onDestination, false);
     delete window.__cutinappMobileNavbarRecoveryInstalled;
   };
