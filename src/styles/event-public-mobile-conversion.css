@@ -1,0 +1,120 @@
+/* Public Event landing — mobile conversion layer.
+ * Keep the flyer visually strong without forcing visitors from social/search to
+ * scroll a full poster before they can understand the event and reach tickets.
+ */
+@media (max-width: 767.98px) {
+  .cut-event-view-page {
+    overflow-x: clip;
+  }
+
+  .cut-event-view-page .cut-event-banner-stage {
+    padding-top: 10px !important;
+  }
+
+  .cut-event-view-page .cut-event-banner-stage .cut-page-container,
+  .cut-event-view-page .cut-event-summary-strip .cut-page-container {
+    padding-inline: 12px !important;
+  }
+
+  .cut-event-view-page .cut-event-banner-frame,
+  .cut-event-view-page .cut-event-banner-placeholder {
+    width: 100% !important;
+    height: clamp(230px, 36svh, 330px) !important;
+    min-height: 0 !important;
+    aspect-ratio: auto !important;
+    border-radius: 16px !important;
+    box-shadow: none !important;
+  }
+
+  .cut-event-view-page .cut-event-banner-frame img {
+    object-fit: contain !important;
+    background: #07080b !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-strip {
+    margin-top: 10px !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card {
+    padding: 16px !important;
+    border-radius: 16px !important;
+    box-shadow: none !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card__content > .d-flex:first-child {
+    margin-bottom: 10px !important;
+    gap: 6px !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card__content .badge {
+    padding: 5px 8px !important;
+    font-size: 0.59rem !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card h1 {
+    font-size: clamp(1.55rem, 7.4vw, 2.05rem) !important;
+    line-height: 1.04 !important;
+    letter-spacing: -0.035em !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card__meta {
+    margin-top: 12px !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card__meta > span {
+    grid-template-columns: 20px minmax(0, 1fr) !important;
+    gap: 9px !important;
+    padding: 10px 0 !important;
+    font-size: 0.86rem !important;
+  }
+
+  .cut-event-view-page .cut-inline-profile-link {
+    min-height: 44px;
+    margin-top: 6px !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .cut-event-view-page .cut-event-summary-card__actions {
+    margin-top: 10px !important;
+    padding-top: 12px !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card__primary-actions {
+    grid-template-columns: 1fr !important;
+  }
+
+  .cut-event-view-page .cut-event-action {
+    min-height: 48px !important;
+  }
+
+  .cut-event-view-page .cut-event-quick-actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .cut-event-view-page .cut-event-quick-action {
+    min-height: 52px !important;
+  }
+}
+
+@media (max-width: 359.98px) {
+  .cut-event-view-page .cut-event-banner-stage .cut-page-container,
+  .cut-event-view-page .cut-event-summary-strip .cut-page-container {
+    padding-inline: 9px !important;
+  }
+
+  .cut-event-view-page .cut-event-banner-frame,
+  .cut-event-view-page .cut-event-banner-placeholder {
+    height: clamp(210px, 34svh, 280px) !important;
+    border-radius: 14px !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card {
+    padding: 14px !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card h1 {
+    font-size: clamp(1.45rem, 7.8vw, 1.8rem) !important;
+  }
+}
