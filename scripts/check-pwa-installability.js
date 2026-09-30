@@ -24,6 +24,15 @@ if (!['standalone', 'fullscreen', 'minimal-ui'].includes(manifest.display)) {
 }
 if (!String(manifest.start_url || '').startsWith('/')) fail('start_url must remain same-origin');
 if (!String(manifest.scope || '').startsWith('/')) fail('scope must remain same-origin');
+try {
+  const origin = 'https://cutinapp.petertecnet.com.br';
+  const startUrl = new URL(manifest.start_url, origin);
+  const scopeUrl = new URL(manifest.scope, origin);
+  if (startUrl.origin !== origin || scopeUrl.origin !== origin) fail('start_url and scope must resolve on the Cutinapp origin');
+  if (!startUrl.pathname.startsWith(scopeUrl.pathname)) fail(`start_url ${startUrl.pathname} must remain inside scope ${scopeUrl.pathname}`);
+} catch (error) {
+  fail(`start_url/scope must be valid URLs: ${error.message}`);
+}
 
 const icons = Array.isArray(manifest.icons) ? manifest.icons : [];
 const hasSize = (size) => icons.some((icon) => String(icon.sizes || '').split(/\s+/).includes(size));
@@ -47,8 +56,15 @@ if (!/serviceWorker\.register\(["']\/sw\.js(?:\?[^"']*)?["']/i.test(html)) {
   fail('index.html must register the root /sw.js service worker');
 }
 if (!fs.existsSync(path.join(root, 'public', 'sw.js'))) fail('public/sw.js is missing');
-if (!/install-app\.js/i.test(html) || !/data-manifest=["']\/manifest\.json["']/i.test(html)) {
-  fail('shared install-app integration must target /manifest.json');
+
+const installScript = html.match(/<script\b[^>]*\bsrc=["'](https:\/\/[^"']*\/install-app\.js(?:\?[^"']*)?)["'][^>]*>/i);
+if (!installScript) {
+  fail('shared install-app integration must load from an explicit HTTPS script URL');
+} else {
+  const tag = installScript[0];
+  if (!/\bdata-manifest=["']\/manifest\.json["']/i.test(tag)) fail('install-app integration must target /manifest.json');
+  if (!/\bdata-sw=["']\/sw\.js(?:\?[^"']*)?["']/i.test(tag)) fail('install-app integration must target the root /sw.js service worker');
+  if (!/\bdata-app-slug=["']cutinapp["']/i.test(tag)) fail('install-app integration must identify the cutinapp app slug');
 }
 
 if (!process.exitCode) {
