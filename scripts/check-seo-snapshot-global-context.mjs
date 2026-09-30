@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import {
   dateKeyForContext,
+  discoveryContext,
   eventCountry,
   eventLocale,
   eventTimeZone,
@@ -26,6 +27,16 @@ assert.deepEqual(snapshotContext(internationalEvent), {
   locale: "en-GB",
   timeZone: "Europe/London",
   country: "GB",
+});
+assert.deepEqual(discoveryContext([internationalEvent]), {
+  locale: "en-GB",
+  timeZone: "Europe/London",
+  country: "GB",
+});
+assert.deepEqual(discoveryContext([]), {
+  locale: process.env.CUTINAPP_SEO_LOCALE || "en",
+  timeZone: process.env.CUTINAPP_SEO_TIME_ZONE || "UTC",
+  country: undefined,
 });
 assert.deepEqual(organizerIdentity(internationalEvent, siteUrl), {
   name: "External Nights Ltd",
