@@ -35,6 +35,10 @@ export default function EmailVerifyPage() {
   const resendInFlightRef = useRef(false);
   const normalized = useMemo(() => code.trim(), [code]);
   const returnTo = location.state?.from || "/dashboard";
+  const continuationState = useMemo(() => ({
+    ...(location.state?.artistClaim ? { artistClaim: location.state.artistClaim } : {}),
+    ...(location.state?.acquisitionSource ? { acquisitionSource: location.state.acquisitionSource } : {}),
+  }), [location.state]);
   const resendCooldownActive = resendCooldown > 0;
 
   const startResendCooldown = (seconds = DEFAULT_RESEND_COOLDOWN_SECONDS) => {
@@ -97,7 +101,7 @@ export default function EmailVerifyPage() {
       const user = await refreshUser();
       if (!user?.email_verified_at) throw new Error("A confirmação ainda não apareceu na sessão. Tente novamente.");
       setMessage({ type: "success", text: response?.message || "E-mail verificado com sucesso." });
-      navigate(returnTo, { replace: true, state: { artistClaim: location.state?.artistClaim || null } });
+      navigate(returnTo, { replace: true, state: continuationState });
     } catch (err) {
       setMessage({ type: "error", text: err?.message || "Código inválido ou expirado." });
     } finally {
@@ -143,7 +147,7 @@ export default function EmailVerifyPage() {
       const response = await authService.deferEmailVerification();
       setVerificationState(response?.email_verification || verificationState);
       setMessage(null);
-      navigate(returnTo, { replace: true, state: { artistClaim: location.state?.artistClaim || null } });
+      navigate(returnTo, { replace: true, state: continuationState });
     } catch (err) {
       if (err?.status === 403) {
         setVerificationState((current) => ({
