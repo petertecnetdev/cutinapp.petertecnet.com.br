@@ -9,19 +9,23 @@ const assertAbsent = (pattern, message) => {
 };
 
 assertAbsent(
-  /const\s+TIME_ZONE\s*=\s*["']America\/Sao_Paulo["']/, 
+  /const\s+TIME_ZONE\s*=\s*["']America\/Sao_Paulo["']/,
   "crawler snapshots must not hardcode America/Sao_Paulo for a global product",
 );
 assertAbsent(
-  /Intl\.DateTimeFormat\(["']pt-BR["']/, 
+  /Intl\.DateTimeFormat\(["']pt-BR["']/,
   "crawler snapshots must not hardcode pt-BR formatting for every event",
 );
 assertAbsent(
-  /addressCountry:\s*event\.country\s*\|\|\s*["']BR["']/, 
-  "structured data must not invent BR when event.country is absent",
+  /addressCountry:\s*event\.country\s*\|\|\s*["']BR["']/,
+  "event structured data must not invent BR when event.country is absent",
 );
 assertAbsent(
-  /url:\s*production\?\.slug\s*\?[^\n]+:\s*SITE_URL/, 
+  /addressCountry:\s*["']BR["']/,
+  "discovery structured data must not hardcode BR for every event",
+);
+assertAbsent(
+  /url:\s*production\?\.slug\s*\?[^\n]+:\s*SITE_URL/,
   "external organizers must not inherit the Cutinapp homepage URL",
 );
 
