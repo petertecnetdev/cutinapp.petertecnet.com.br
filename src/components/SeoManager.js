@@ -83,6 +83,9 @@ const buildProductionSeo = (production, slug) => {
       ? `Conheça ${production.name}, produção de eventos em ${location}, e veja seus próximos eventos na Cutinapp.`
       : `Conheça ${production.name}, seus eventos e experiências publicados na Cutinapp.`);
   const image = productionMediaUrl(production.background || production.logo);
+  const imageAlt = image
+    ? `${production.background ? "Capa" : "Logo"} oficial de ${production.name}${location ? ` em ${location}` : ""}`
+    : `Cutinapp — ${production.name}`;
   const website = publicHttpUrl(production.website_url || production.website);
   const sameAs = [production.instagram_url, production.facebook_url, production.youtube_url, production.tiktok_url]
     .map(publicHttpUrl)
@@ -110,6 +113,7 @@ const buildProductionSeo = (production, slug) => {
     description,
     canonical,
     image: image || undefined,
+    imageAlt,
     type: "website",
     jsonLd: {
       "@context": "https://schema.org",
