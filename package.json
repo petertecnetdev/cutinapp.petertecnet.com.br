@@ -16,7 +16,8 @@
     "lint:production-view": "node scripts/check-production-view-regression.js",
     "smoke:runtime": "node scripts/check-runtime-smoke.js",
     "smoke:pwa": "node scripts/check-pwa-installability.js",
-    "smoke:seo-global": "node scripts/check-seo-snapshot-global-readiness.mjs"
+    "smoke:seo-global": "node scripts/check-seo-snapshot-global-readiness.mjs",
+    "smoke:seo-indexability": "node scripts/check-seo-indexability.mjs"
   },
   "keywords": [],
   "author": "Peter Tecnet",
@@ -66,6 +67,6 @@
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
     "@babel/plugin-transform-private-property-in-object": "^7.24.7",
     "sass": "^1.72.0",
-    "source-map-loader": "^5.0.0"
+    "source-map-loader": "^0.2.4"
   }
 }
