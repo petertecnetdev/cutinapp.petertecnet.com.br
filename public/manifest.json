@@ -4,14 +4,6 @@
   "name": "Cutinapp — Eventos e Ingressos | Peter Tecnet",
   "description": "Descubra eventos, retire ingressos e cortesias e acesse seus QR Codes pelo celular.",
   "lang": "pt-BR",
-  "icons": [
-    {
-      "src": "/images/logo.png",
-      "type": "image/png",
-      "sizes": "any",
-      "purpose": "any"
-    }
-  ],
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
