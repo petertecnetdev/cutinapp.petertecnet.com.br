@@ -67,6 +67,15 @@ if (typeof window !== "undefined" && "serviceWorker" in navigator) {
   const isSecureOrigin = window.location.protocol === "https:" || isLocalhost;
 
   if (isSecureOrigin) {
+    let controllerChangeTracked = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (controllerChangeTracked) return;
+      controllerChangeTracked = true;
+      trackTelemetry("pwa_service_worker_controller_changed", {
+        controlled: Boolean(navigator.serviceWorker.controller),
+      });
+    });
+
     window.addEventListener("load", () => {
       const releaseVersion = getServiceWorkerReleaseVersion();
       navigator.serviceWorker.register(`/sw.js?v=${encodeURIComponent(releaseVersion)}`, { scope: "/" }).then((registration) => {
@@ -74,6 +83,30 @@ if (typeof window !== "undefined" && "serviceWorker" in navigator) {
           scope: registration.scope,
           controlled: Boolean(navigator.serviceWorker.controller),
           release_version: releaseVersion,
+        });
+
+        registration.addEventListener("updatefound", () => {
+          const installingWorker = registration.installing;
+          if (!installingWorker) return;
+
+          trackTelemetry("pwa_service_worker_update_found", {
+            release_version: releaseVersion,
+          });
+
+          installingWorker.addEventListener("statechange", () => {
+            if (installingWorker.state !== "installed") return;
+            trackTelemetry("pwa_service_worker_update_installed", {
+              release_version: releaseVersion,
+              has_existing_controller: Boolean(navigator.serviceWorker.controller),
+            });
+          });
+        });
+
+        registration.update().catch((error) => {
+          trackTelemetry("pwa_service_worker_update_check_failed", {
+            message: error?.message || "unknown",
+            release_version: releaseVersion,
+          });
         });
       }).catch((error) => {
         trackTelemetry("pwa_service_worker_registration_failed", {
