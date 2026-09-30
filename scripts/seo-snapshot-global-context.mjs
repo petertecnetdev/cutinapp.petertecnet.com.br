@@ -49,6 +49,44 @@ export const eventCountry = (event = {}) => {
   return country.length === 2 ? country.toUpperCase() : country;
 };
 
+export const snapshotContext = (event = {}) => ({
+  locale: eventLocale(event),
+  timeZone: eventTimeZone(event),
+  country: eventCountry(event),
+});
+
+export const dateKeyForContext = (value, context = {}) => {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const timeZone = validTimeZone(context.timeZone);
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts
+    .filter(({ type }) => ["year", "month", "day"].includes(type))
+    .map(({ type, value: partValue }) => [type, partValue]));
+  return `${values.year}-${values.month}-${values.day}`;
+};
+
+export const formatDateForContext = (value, context = {}, options = {}) => {
+  if (!value) return "";
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat(validLocale(context.locale), {
+    timeZone: validTimeZone(context.timeZone),
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    ...options,
+  }).format(date);
+};
+
 const absoluteHttpUrl = (value) => {
   const raw = firstText(value);
   if (!raw) return undefined;
@@ -73,16 +111,9 @@ export const organizerIdentity = (event = {}, siteUrl) => {
     production?.website,
   ));
 
-  // Only attribute the platform homepage when there is no external organizer identity.
   if (!explicitName) return { name: "Cutinapp", url: siteUrl };
   return {
     name: explicitName,
     ...(productionUrl || externalUrl ? { url: productionUrl || externalUrl } : {}),
   };
 };
-
-export const snapshotContext = (event = {}) => ({
-  locale: eventLocale(event),
-  timeZone: eventTimeZone(event),
-  country: eventCountry(event),
-});
