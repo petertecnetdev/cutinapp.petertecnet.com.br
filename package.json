@@ -24,15 +24,17 @@
   "author": "Peter Tecnet",
   "license": "ISC",
   "eslintConfig": {
-    "overrides": {
-      "files": [
-        "src/components/editor/EntityEditorShell.js",
-        "src/pages/search/GlobalSearchPage.js"
-      ],
-      "rules": {
-        "react/prop-types": "off"
+    "overrides": [
+      {
+        "files": [
+          "src/components/editor/EntityEditorShell.js",
+          "src/pages/search/GlobalSearchPage.js"
+        ],
+        "rules": {
+          "react/prop-types": "off"
+        }
       }
-    }
+    ]
   },
   "dependencies": {
     "@aws-amplify/ui-react": "^6.15.6",
@@ -47,7 +49,7 @@
     "react-bootstrap": "^2.10.2",
     "react-router-dom": "^6.22.3",
     "react-scripts": "^5.0.1",
-    "react-webcam": "^7.0.1",
+    "react-webcam": "^7.2.0",
     "web-vitals": "^3.5.2"
   },
   "browserslist": {
