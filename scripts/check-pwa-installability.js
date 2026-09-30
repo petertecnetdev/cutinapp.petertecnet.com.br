@@ -8,6 +8,13 @@ const fail = (message) => {
 };
 const read = (relative) => fs.readFileSync(path.join(root, relative), 'utf8');
 
+const readPngDimensions = (filePath) => {
+  const buffer = fs.readFileSync(filePath);
+  const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  if (buffer.length < 24 || !buffer.subarray(0, 8).equals(signature)) return null;
+  return { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) };
+};
+
 let manifest;
 try {
   manifest = JSON.parse(read('public/manifest.json'));
@@ -45,7 +52,26 @@ if (!icons.some((icon) => /(^|\s)maskable(\s|$)/.test(String(icon.purpose || '')
 for (const icon of icons) {
   if (!icon.src || /^https?:\/\//i.test(icon.src)) continue;
   const relative = icon.src.replace(/^\//, '');
-  if (!fs.existsSync(path.join(root, 'public', relative))) fail(`manifest icon does not exist: ${icon.src}`);
+  const iconPath = path.join(root, 'public', relative);
+  if (!fs.existsSync(iconPath)) {
+    fail(`manifest icon does not exist: ${icon.src}`);
+    continue;
+  }
+
+  const declaredSizes = String(icon.sizes || '').split(/\s+/).filter(Boolean);
+  if (icon.type === 'image/png' && declaredSizes.some((size) => /^\d+x\d+$/.test(size))) {
+    const actual = readPngDimensions(iconPath);
+    if (!actual) {
+      fail(`manifest icon declares image/png but is not a valid PNG: ${icon.src}`);
+      continue;
+    }
+    for (const size of declaredSizes.filter((value) => /^\d+x\d+$/.test(value))) {
+      const [width, height] = size.split('x').map(Number);
+      if (actual.width !== width || actual.height !== height) {
+        fail(`manifest icon ${icon.src} declares ${size} but file is ${actual.width}x${actual.height}`);
+      }
+    }
+  }
 }
 
 const html = read('public/index.html');
