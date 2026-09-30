@@ -169,10 +169,14 @@ export const buildEventSeo = (event, { tickets = [], artists = [] } = {}) => {
   const canonical = `${SITE_URL}/event/${encodeURIComponent(event.slug)}`;
   const image = absoluteAssetUrl(event.image) || `${SITE_URL}/images/logo.png`;
   const locationLabel = [event.city, event.uf || event.state, event.country].filter(Boolean).join(" - ");
-  const title = `${event.title || "Evento"}${locationLabel ? ` em ${locationLabel}` : ""} | Cutinapp`;
+  const eventName = event.title || "Evento";
+  const title = `${eventName}${locationLabel ? ` em ${locationLabel}` : ""} | Cutinapp`;
   const description = truncate(
-    event.description || `Confira data, local, atrações e ingressos para ${event.title || "este evento"} na Cutinapp.`
+    event.description || `Confira data, local, atrações e ingressos para ${eventName === "Evento" ? "este evento" : eventName} na Cutinapp.`
   );
+  const imageAlt = event.image
+    ? `Flyer oficial de ${eventName}${locationLabel ? ` em ${locationLabel}` : ""}`
+    : `Cutinapp — ${eventName}`;
   const offers = eventOffers(event, tickets);
   const performers = eventPerformers(event, artists);
   const sameAs = [event.website, event.instagram_url, event.facebook_url, event.youtube_url]
@@ -226,6 +230,7 @@ export const buildEventSeo = (event, { tickets = [], artists = [] } = {}) => {
     description,
     canonical,
     image,
+    imageAlt,
     type: "website",
     jsonLd: [eventJsonLd, breadcrumbJsonLd],
   };
