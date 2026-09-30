@@ -113,3 +113,23 @@ describe("event structured data public identity URLs", () => {
     expect(eventSchema(seo).sameAs).toBeUndefined();
   });
 });
+
+describe("event social sharing image accessibility", () => {
+  test("describes event artwork using the event identity and public location", () => {
+    const seo = buildEventSeo({
+      slug: "night-session",
+      title: "Night Session",
+      image: "/events/night-session.webp",
+      city: "Lisbon",
+      country: "PT",
+    });
+
+    expect(seo.imageAlt).toBe("Flyer oficial de Night Session em Lisbon - PT");
+  });
+
+  test("uses a branded fallback description when the event has no artwork", () => {
+    const seo = buildEventSeo({ slug: "night-session", title: "Night Session" });
+
+    expect(seo.imageAlt).toBe("Cutinapp — Night Session");
+  });
+});
