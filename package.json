@@ -15,7 +15,8 @@
     "lint:ux-regressions": "node scripts/check-ux-regressions.js",
     "lint:production-view": "node scripts/check-production-view-regression.js",
     "smoke:runtime": "node scripts/check-runtime-smoke.js",
-    "smoke:pwa": "node scripts/check-pwa-installability.js"
+    "smoke:pwa": "node scripts/check-pwa-installability.js",
+    "smoke:seo-global": "node scripts/check-seo-snapshot-global-readiness.mjs"
   },
   "keywords": [],
   "author": "Peter Tecnet",
