@@ -103,15 +103,29 @@ const eventLocation = (event) => {
 
 const eventOrganizer = (event) => {
   const production = event?.production || event?.organization || null;
-  const name = event?.organizer_name || production?.name || "Cutinapp";
-  const url = production?.slug
-    ? `${SITE_URL}/production/${encodeURIComponent(production.slug)}/public`
-    : SITE_URL;
+  const organizerName = String(event?.organizer_name || "").trim();
+
+  if (production?.slug) {
+    const canonical = `${SITE_URL}/production/${encodeURIComponent(production.slug)}/public`;
+    return {
+      "@type": "Organization",
+      "@id": `${canonical}#organization`,
+      name: organizerName || production.name || "Produção Cutinapp",
+      url: canonical,
+    };
+  }
+
+  if (organizerName) {
+    return {
+      "@type": "Organization",
+      name: organizerName,
+    };
+  }
 
   return {
     "@type": "Organization",
-    name,
-    url,
+    name: "Cutinapp",
+    url: SITE_URL,
   };
 };
 
