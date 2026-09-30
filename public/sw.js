@@ -1,5 +1,6 @@
-const SHELL_CACHE = "cutinapp-shell-v5";
-const RUNTIME_CACHE = "cutinapp-runtime-v5";
+const BUILD_VERSION = "__CUTINAPP_BUILD_VERSION__";
+const SHELL_CACHE = `cutinapp-shell-${BUILD_VERSION}`;
+const RUNTIME_CACHE = `cutinapp-runtime-${BUILD_VERSION}`;
 const APP_SHELL = ["/", "/manifest.json", "/images/logo.png"];
 
 self.addEventListener("install", (event) => {
@@ -9,23 +10,46 @@ self.addEventListener("install", (event) => {
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => Promise.all(
-      keys.filter((key) => ![SHELL_CACHE, RUNTIME_CACHE].includes(key)).map((key) => caches.delete(key))
-    ))
+    Promise.all([
+      caches.keys().then((keys) => Promise.all(
+        keys
+          .filter((key) => key.startsWith("cutinapp-") && ![SHELL_CACHE, RUNTIME_CACHE].includes(key))
+          .map((key) => caches.delete(key))
+      )),
+      self.clients.claim(),
+    ])
   );
-  self.clients.claim();
 });
 
-const networkFirst = async (request) => {
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
+});
+
+const networkFirst = async (request, cacheName = SHELL_CACHE) => {
   try {
     const response = await fetch(request, { cache: "no-store" });
     if (response.ok) {
-      const cache = await caches.open(SHELL_CACHE);
+      const cache = await caches.open(cacheName);
       cache.put(request, response.clone()).catch(() => {});
     }
     return response;
   } catch (_) {
-    return (await caches.match(request)) || (await caches.match("/"));
+    return (await caches.match(request)) || (request.mode === "navigate" ? await caches.match("/") : null) || Response.error();
+  }
+};
+
+const validatedAsset = async (request) => {
+  try {
+    // JS/CSS bundles are release-critical. Revalidate instead of serving an
+    // old service-worker copy first, then keep the current response for offline fallback.
+    const response = await fetch(request, { cache: "no-cache" });
+    if (response.ok && response.type !== "opaque") {
+      const cache = await caches.open(RUNTIME_CACHE);
+      cache.put(request, response.clone()).catch(() => {});
+    }
+    return response;
+  } catch (_) {
+    return (await caches.match(request)) || Response.error();
   }
 };
 
@@ -50,7 +74,12 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (/\.(?:js|css|png|jpe?g|gif|ico|svg|webp|avif|woff2?|ttf)$/i.test(url.pathname)) {
+  if (/\.(?:js|css)$/i.test(url.pathname)) {
+    event.respondWith(validatedAsset(request));
+    return;
+  }
+
+  if (/\.(?:png|jpe?g|gif|ico|svg|webp|avif|woff2?|ttf)$/i.test(url.pathname)) {
     event.respondWith(staleWhileRevalidate(request));
   }
 });
