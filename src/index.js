@@ -33,6 +33,7 @@ import { trackTelemetry } from "./utils/telemetry";
 import { installOverlayLayoutManager } from "./utils/overlayLayoutManager";
 import { installGlobalSweetAlertBridge } from "./utils/sweetAlert";
 import { installFrontendErrorMonitoring } from "./utils/frontendErrorMonitoring";
+import { installPwaInstallPromptLifecycle } from "./utils/pwaInstallPrompt";
 
 installGlobalSweetAlertBridge();
 installGlobalImageFallbacks();
@@ -43,6 +44,7 @@ installCartCompletionCleanup();
 installPersistentCart();
 installOverlayLayoutManager();
 installFrontendErrorMonitoring();
+installPwaInstallPromptLifecycle();
 
 const getServiceWorkerReleaseVersion = () => {
   if (typeof document === "undefined") return "app-v6";
