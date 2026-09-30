@@ -13,6 +13,7 @@ import "./components/WhatsAppFloatingButton.css";
 import "./components/event/EventDiscoveryRail.css";
 import "./styles/mobile-bottom-nav-fix.css";
 import "./styles/checkout-mobile-hardening.css";
+import "./styles/wallet-mobile-brand-hardening.css";
 // Must stay after every legacy/navigation stylesheet. This is the authoritative
 // mobile drawer layer and prevents older navbar CSS from hiding the collapse.
 import "./styles/mobile-hamburger-recovery.css";
@@ -59,9 +60,6 @@ const getServiceWorkerReleaseVersion = () => {
   return "app-v6";
 };
 
-// PWA installability requires an active service worker controlling the app.
-// Register only on secure origins (or localhost, which browsers treat as secure)
-// and keep registration failure non-fatal so it can never block the React boot.
 if (typeof window !== "undefined" && "serviceWorker" in navigator) {
   const isLocalhost = ["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname);
   const isSecureOrigin = window.location.protocol === "https:" || isLocalhost;
@@ -126,9 +124,7 @@ const installDeferredEnhancers = async () => {
 
 if (typeof window !== "undefined") {
   const startDeferredEnhancers = () => {
-    installDeferredEnhancers().catch(() => {
-      // Enhancers are progressive; a failed optional chunk must never block app boot.
-    });
+    installDeferredEnhancers().catch(() => {});
   };
 
   const scheduleDeferredEnhancers = () => {
