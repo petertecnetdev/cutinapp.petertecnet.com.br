@@ -245,11 +245,6 @@
     min-height: 82px !important;
     padding: 14px 16px !important;
   }
-
-  .cut-event-view-page > .cut-page-container.py-4,
-  .cut-event-view-page > .cut-page-container.py-lg-5 {
-    grid-row: 4 !important;
-  }
 }
 
 @media (min-width: 1200px) and (max-width: 1399.98px) {
@@ -361,6 +356,25 @@
     font-size: clamp(2rem, 9.5vw, 2.65rem) !important;
   }
 
+  .cut-event-view-page .cut-event-summary-card__primary-actions {
+    gap: 8px !important;
+  }
+
+  .cut-event-view-page .cut-event-action--tickets {
+    min-height: 56px !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.01em !important;
+    box-shadow: 0 10px 26px rgba(227, 6, 19, 0.28) !important;
+  }
+
+  .cut-event-view-page .cut-event-action--tickets .cut-event-action__arrow {
+    margin-left: auto !important;
+  }
+
+  .cut-event-view-page .cut-event-action--interest {
+    min-height: 46px !important;
+  }
+
   .cut-event-view-page .cut-event-quick-actions {
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   }
@@ -374,7 +388,32 @@
   }
 }
 
+@media (max-width: 430px) {
+  .cut-event-view-page .cut-event-summary-card__actions {
+    margin-top: 14px !important;
+    padding-top: 14px !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card__meta > span {
+    padding: 10px 0 !important;
+  }
+
+  .cut-event-view-page .cut-event-action--tickets:focus-visible,
+  .cut-event-view-page .cut-event-quick-action:focus-visible {
+    outline: 3px solid #ffffff !important;
+    outline-offset: 3px !important;
+  }
+}
+
 @media (max-width: 359.98px) {
+  .cut-event-view-page .cut-event-summary-card {
+    padding-inline: 14px !important;
+  }
+
+  .cut-event-view-page .cut-event-summary-card h1 {
+    font-size: clamp(1.8rem, 9vw, 2.2rem) !important;
+  }
+
   .cut-event-view-page .cut-event-quick-actions {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
