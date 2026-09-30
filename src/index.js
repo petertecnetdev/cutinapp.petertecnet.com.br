@@ -42,6 +42,22 @@ installPersistentCart();
 installOverlayLayoutManager();
 installFrontendErrorMonitoring();
 
+const getServiceWorkerReleaseVersion = () => {
+  if (typeof document === "undefined") return "app-v6";
+
+  const assetUrls = [
+    ...Array.from(document.querySelectorAll("script[src]"), (node) => node.src),
+    ...Array.from(document.querySelectorAll('link[rel="stylesheet"][href]'), (node) => node.href),
+  ];
+
+  for (const assetUrl of assetUrls) {
+    const match = assetUrl.match(/\/static\/(?:js|css)\/[^/?]*?\.([a-f0-9]{8,})\.(?:js|css)(?:\?|$)/i);
+    if (match?.[1]) return match[1].toLowerCase();
+  }
+
+  return "app-v6";
+};
+
 // PWA installability requires an active service worker controlling the app.
 // Register only on secure origins (or localhost, which browsers treat as secure)
 // and keep registration failure non-fatal so it can never block the React boot.
@@ -51,10 +67,12 @@ if (typeof window !== "undefined" && "serviceWorker" in navigator) {
 
   if (isSecureOrigin) {
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register("/sw.js", { scope: "/" }).then((registration) => {
+      const releaseVersion = getServiceWorkerReleaseVersion();
+      navigator.serviceWorker.register(`/sw.js?v=${encodeURIComponent(releaseVersion)}`, { scope: "/" }).then((registration) => {
         trackTelemetry("pwa_service_worker_registered", {
           scope: registration.scope,
           controlled: Boolean(navigator.serviceWorker.controller),
+          release_version: releaseVersion,
         });
       }).catch((error) => {
         trackTelemetry("pwa_service_worker_registration_failed", {
