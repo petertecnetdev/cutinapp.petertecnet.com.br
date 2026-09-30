@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import PropTypes from "prop-types";
 import QRCode from "qrcode";
 
+const qrRenderSize = (displaySize) => Math.min(1024, Math.max(512, Math.round(displaySize * 2)));
+
 export default function QrCodeComponent({ value, size = 260, subject = "ingresso", alt }) {
   const [dataUrl, setDataUrl] = useState("");
   const [error, setError] = useState("");
@@ -20,7 +22,9 @@ export default function QrCodeComponent({ value, size = 260, subject = "ingresso
     }
 
     QRCode.toDataURL(String(value), {
-      width: size,
+      // Render above CSS/display size so dense ticket tokens stay crisp on
+      // high-density mobile screens and venue scanners receive clean edges.
+      width: qrRenderSize(size),
       margin: 2,
       errorCorrectionLevel: "M",
       color: {
@@ -49,7 +53,7 @@ export default function QrCodeComponent({ value, size = 260, subject = "ingresso
   }
 
   if (!dataUrl) {
-    return <div className="cut-qr-loading">Gerando QR Code...</div>;
+    return <div className="cut-qr-loading" role="status" aria-live="polite">Gerando QR Code...</div>;
   }
 
   return (
@@ -59,6 +63,9 @@ export default function QrCodeComponent({ value, size = 260, subject = "ingresso
       height={size}
       alt={alt || `QR Code de ${subject}`}
       className="cut-qr-image"
+      draggable="false"
+      decoding="sync"
+      style={{ maxWidth: "100%", height: "auto" }}
     />
   );
 }
