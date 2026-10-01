@@ -12,9 +12,7 @@
   position: absolute;
   inset: 0;
   z-index: 0;
-  background:
-    radial-gradient(circle at 78% 26%, rgba(184, 108, 255, .16), transparent 32%),
-    radial-gradient(circle at 18% 78%, rgba(24, 212, 255, .12), transparent 28%);
+  background: var(--cut-surface-1);
   pointer-events: none;
 }
 
@@ -27,8 +25,8 @@
   width: 172px;
   height: 172px;
   flex-basis: 172px;
-  border-color: rgba(190, 119, 255, .42);
-  box-shadow: 0 0 0 7px rgba(184, 108, 255, .08), 0 22px 64px rgba(0, 0, 0, .38);
+  border-color: var(--cut-primary);
+  box-shadow: 0 0 0 7px var(--cut-primary), 0 22px 64px rgba(0, 0, 0, .38);
 }
 
 .artist-profile-hero__copy {
@@ -39,7 +37,7 @@
 .artist-profile-tagline {
   max-width: 720px;
   margin: 0 0 12px;
-  color: rgba(255, 255, 255, .82) !important;
+  color: var(--cut-text) !important;
   font-size: clamp(.95rem, 1.5vw, 1.08rem);
   line-height: 1.55;
 }
@@ -50,7 +48,7 @@
   flex-wrap: wrap;
   gap: 9px 14px;
   margin-bottom: 14px;
-  color: rgba(255, 255, 255, .72);
+  color: var(--cut-text);
   font-size: .86rem;
 }
 
@@ -65,7 +63,7 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: #e9d5ff;
+  color: var(--cut-primary);
   text-align: left;
 }
 
@@ -93,11 +91,11 @@
   flex-direction: column;
   gap: 1px;
   padding: 9px 13px;
-  border: 1px solid rgba(255, 255, 255, .11);
+  border: 1px solid var(--cut-text);
   border-radius: 15px;
   background: rgba(5, 12, 20, .5);
-  -webkit-backdrop-filter: blur(15px);
-  backdrop-filter: blur(15px);
+
+
 }
 
 .artist-profile-metrics strong {
@@ -107,7 +105,7 @@
 }
 
 .artist-profile-metrics small {
-  color: rgba(255, 255, 255, .61);
+  color: var(--cut-text);
   font-size: .68rem;
   font-weight: 800;
   letter-spacing: .04em;
@@ -176,7 +174,7 @@
   padding: 0;
   border: 1px solid var(--cut-border);
   border-radius: var(--cut-radius-xl);
-  background: var(--cut-gradient-surface);
+  background: var(--cut-surface-1);
   color: var(--cut-text);
   text-align: left;
   box-shadow: var(--cut-shadow-md);
@@ -186,7 +184,7 @@
 .artist-profile-event-card:hover,
 .artist-profile-event-card:focus-visible {
   transform: translateY(-3px);
-  border-color: rgba(184, 108, 255, .48);
+  border-color: var(--cut-primary);
   outline: none;
   box-shadow: var(--cut-shadow-lg);
 }
@@ -195,9 +193,7 @@
   position: relative;
   min-height: 154px;
   overflow: hidden;
-  background:
-    radial-gradient(circle at 40% 30%, rgba(184, 108, 255, .22), transparent 46%),
-    #071019;
+  background: var(--cut-surface-2);
 }
 
 .artist-profile-event-card__media img {
@@ -211,7 +207,7 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, transparent 48%, rgba(3, 8, 14, .46));
+  background: var(--cut-surface-2);
   pointer-events: none;
 }
 
@@ -221,7 +217,7 @@
   min-height: 154px;
   display: grid;
   place-items: center;
-  color: #d6b0ff;
+  color: var(--cut-primary);
   font-size: 2rem;
 }
 
@@ -240,8 +236,8 @@
   font-weight: 900;
   letter-spacing: .03em;
   text-transform: uppercase;
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
+
+
 }
 
 .artist-profile-event-card__status.is-pending {
@@ -261,7 +257,7 @@
 
 .artist-profile-event-card__production {
   overflow: hidden;
-  color: #d8b8ff;
+  color: var(--cut-primary);
   font-size: .68rem;
   font-weight: 900;
   letter-spacing: .055em;
@@ -304,7 +300,7 @@
 }
 
 .artist-profile-empty .card-body > i {
-  color: #c58bff;
+  color: var(--cut-primary);
   font-size: 2rem;
 }
 
@@ -321,16 +317,16 @@
   align-items: center;
   gap: 12px;
   padding: 11px;
-  border: 1px solid rgba(184, 108, 255, .19);
+  border: 1px solid var(--cut-primary);
   border-radius: 17px;
-  background: rgba(184, 108, 255, .06);
+  background: var(--cut-primary);
   color: var(--cut-text);
   text-align: left;
 }
 
 .artist-profile-origin-card > .card-body > button:not(:disabled):hover {
-  border-color: rgba(184, 108, 255, .44);
-  background: rgba(184, 108, 255, .11);
+  border-color: var(--cut-primary);
+  background: var(--cut-primary);
 }
 
 .artist-profile-origin-card__logo {
@@ -340,8 +336,8 @@
   place-items: center;
   overflow: hidden;
   border-radius: 15px;
-  background: rgba(255, 255, 255, .06);
-  color: #d5a9ff;
+  background: var(--cut-text);
+  color: var(--cut-primary);
   font-size: 1.15rem;
 }
 
