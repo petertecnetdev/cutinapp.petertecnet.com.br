@@ -35,7 +35,7 @@
       "name": "Encontrar eventos",
       "short_name": "Eventos",
       "description": "Descubra eventos disponíveis na Cutinapp.",
-      "url": "/events"
+      "url": "/event"
     }
   ]
 }
