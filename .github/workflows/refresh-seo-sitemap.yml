@@ -111,7 +111,9 @@ jobs:
 
           tmp="$(mktemp)"
           next_root="${SEO_ROOT}.next.$$"
-          trap 'rm -f "$tmp" "$GENERATOR"; rm -rf "$next_root"' EXIT
+          live_event_next="${APP_ROOT}/.cutinapp-event-snapshots.next.$$"
+          live_event_previous="${APP_ROOT}/.cutinapp-event-snapshots.previous.$$"
+          trap 'rm -f "$tmp" "$GENERATOR"; rm -rf "$next_root" "$live_event_next"' EXIT
           curl --fail --silent --show-error --location --retry 3 --retry-delay 2 "$SITEMAP_API" -o "$tmp"
           grep -q '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' "$tmp" || {
             echo "Dynamic sitemap response is not a valid sitemap." >&2
@@ -130,11 +132,23 @@ jobs:
             exit 5
           fi
 
-          rm -rf "$next_root"
+          rm -rf "$next_root" "$live_event_next" "$live_event_previous"
           mkdir -p "$next_root"
           cp "$LIVE_BUILD/index.html" "$next_root/index.html"
           install -m 0644 "$tmp" "$next_root/sitemap.xml"
-          CUTINAPP_BUILD_DIR="$next_root" node "$GENERATOR" "$next_root"
+
+          # Keep already generated public-event snapshots so ended events remain
+          # crawlable after they leave the active discovery feed. The generator
+          # fills any sitemap URL that is still missing through the public event API.
+          if [[ -d "$SEO_ROOT/event" ]]; then
+            mkdir -p "$next_root/event"
+            cp -a "$SEO_ROOT/event/." "$next_root/event/"
+          elif [[ -d "$LIVE_BUILD/event" ]]; then
+            mkdir -p "$next_root/event"
+            cp -a "$LIVE_BUILD/event/." "$next_root/event/"
+          fi
+
+          CUTINAPP_SEO_PRESERVE_EVENT_SNAPSHOTS=1 CUTINAPP_BUILD_DIR="$next_root" node "$GENERATOR" "$next_root"
 
           previous="${SEO_ROOT}.previous.$$"
           rm -rf "$previous"
@@ -144,6 +158,36 @@ jobs:
             exit 4
           fi
           rm -rf "$previous"
+
+          # Nginx serves /event/* from LIVE_BUILD. Publish only the generated
+          # event subtree with an atomic directory swap so the SPA assets stay intact.
+          [[ -d "$SEO_ROOT/event" ]] || { echo "Generated public event snapshots are missing." >&2; exit 6; }
+          mkdir -p "$live_event_next"
+          cp -a "$SEO_ROOT/event/." "$live_event_next/"
+          if [[ -e "$LIVE_BUILD/event" || -L "$LIVE_BUILD/event" ]]; then
+            mv "$LIVE_BUILD/event" "$live_event_previous"
+          fi
+          if ! mv "$live_event_next" "$LIVE_BUILD/event"; then
+            [[ -e "$live_event_previous" || -L "$live_event_previous" ]] && mv "$live_event_previous" "$LIVE_BUILD/event" || true
+            echo "Unable to activate public event snapshots." >&2
+            exit 7
+          fi
+          rm -rf "$live_event_previous"
+
+          sample_event="$(grep -m1 -oE '<loc>https://cutinapp\.petertecnet\.com\.br/event/[^<]+' "$SEO_ROOT/sitemap.xml" | sed 's#<loc>##')"
+          [[ -n "$sample_event" ]] || { echo "Unable to select an event URL for crawler verification." >&2; exit 8; }
+          probe="$(curl --fail --silent --show-error --location --max-time 20 \
+            -A 'facebookexternalhit/1.1 (+https://www.facebook.com/externalhit_uatext.php)' \
+            -H 'Cache-Control: no-cache, no-store, max-age=0' \
+            "${sample_event}?seo_refresh=$(date +%s)")"
+          grep -Fq "property=\"og:url\" content=\"$sample_event\"" <<<"$probe" || {
+            echo "Crawler verification did not receive event-specific og:url for $sample_event." >&2
+            exit 9
+          }
+          grep -Eq '/static/js/[^\"]+\.js' <<<"$probe" || {
+            echo "Crawler snapshot no longer references the SPA JavaScript bundle." >&2
+            exit 10
+          }
 
           echo "Dynamic sitemap published: $(grep -c '<url>' "$SEO_ROOT/sitemap.xml") URLs"
           cat "$SEO_ROOT/.cutinapp-seo-snapshots"
