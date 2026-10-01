@@ -8,6 +8,7 @@ const emptyForm = {
   producer: { first_name: "", email: "", phone: "" },
   organization: { name: "", cnpj: "", description: "", city: "", uf: "", address: "", instagram_url: "" },
   event: { title: "", description: "", start_date: "", end_date: "", venue: "", city: "", uf: "" },
+  acquisition_source: "",
   send_email: true,
 };
 
@@ -66,6 +67,7 @@ export default function AssistedProducerOnboardingPage() {
     try {
       const payload = {
         ...form,
+        acquisition_source: String(form.acquisition_source || "").trim() || undefined,
         producer: Object.fromEntries(Object.entries(form.producer).filter(([, value]) => String(value).trim() !== "")),
         organization: Object.fromEntries(Object.entries(form.organization).filter(([, value]) => String(value).trim() !== "")),
         event: Object.fromEntries(Object.entries(form.event).filter(([, value]) => String(value).trim() !== "")),
@@ -114,6 +116,7 @@ export default function AssistedProducerOnboardingPage() {
             <Col md={4}><Form.Group><Form.Label>Nome *</Form.Label><Form.Control required value={form.producer.first_name} onChange={(e) => change("producer", "first_name", e.target.value)} /></Form.Group></Col>
             <Col md={5}><Form.Group><Form.Label>E-mail *</Form.Label><Form.Control required type="email" value={form.producer.email} onChange={(e) => change("producer", "email", e.target.value)} /></Form.Group></Col>
             <Col md={3}><Form.Group><Form.Label>Telefone</Form.Label><Form.Control value={form.producer.phone} onChange={(e) => change("producer", "phone", e.target.value)} /></Form.Group></Col>
+            <Col md={6}><Form.Group><Form.Label>Origem da aquisição</Form.Label><Form.Control value={form.acquisition_source} onChange={(e) => change(null, "acquisition_source", e.target.value)} placeholder="Ex.: indicação, Instagram, busca orgânica, prospecção" /><Form.Text className="text-secondary">Use a origem real do contato. O campo é opcional e não presume canal ou cidade.</Form.Text></Form.Group></Col>
           </Row>
 
           <hr className="my-4" />
