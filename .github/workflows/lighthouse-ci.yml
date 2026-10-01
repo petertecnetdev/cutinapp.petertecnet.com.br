@@ -13,7 +13,7 @@ concurrency:
 jobs:
   lighthouse:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -22,5 +22,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - name: Lighthouse regression gate
+      - name: Lighthouse desktop regression gate
         run: npx --yes @lhci/cli@0.15.1 autorun --config=./lighthouserc.json
+      - name: Lighthouse mobile regression gate
+        run: npx --yes @lhci/cli@0.15.1 autorun --config=./lighthouserc.mobile.json
