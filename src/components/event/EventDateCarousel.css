@@ -15,7 +15,7 @@
   scroll-snap-type: x proximity;
   scrollbar-width: none;
   touch-action: pan-x;
-  padding: 0.25rem 0.15rem 0.55rem;
+  padding: 0.35rem 0.15rem 0.65rem;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -24,13 +24,14 @@
 }
 
 .cut-event-date-carousel__day {
+  position: relative;
   flex: 0 0 76px;
   width: 76px;
   height: 76px;
+  border: 1px solid #34343A;
   border-radius: 50%;
-  border: 1px solid rgba(159, 105, 255, 0.34);
-  background: rgba(12, 15, 40, 0.72);
-  color: rgba(255, 255, 255, 0.88);
+  background: linear-gradient(145deg, #141417 0%, #0B0B0D 70%, #080809 100%);
+  color: #D7D7DC;
   display: inline-flex;
   flex-direction: column;
   align-items: center;
@@ -38,40 +39,64 @@
   gap: 0.15rem;
   scroll-snap-align: start;
   cursor: pointer;
+  box-shadow: 0 10px 24px #000000, inset 0 1px #202024;
   transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, box-shadow 180ms ease, color 180ms ease;
-  backdrop-filter: blur(12px);
   -webkit-tap-highlight-color: transparent;
+}
+
+.cut-event-date-carousel__day::after {
+  content: "";
+  position: absolute;
+  right: 14px;
+  bottom: 8px;
+  left: 14px;
+  height: 2px;
+  border-radius: 999px;
+  background: #650000;
+  transition: background 180ms ease, box-shadow 180ms ease;
 }
 
 .cut-event-date-carousel__day:hover {
   transform: translateY(-2px);
-  border-color: rgba(190, 93, 255, 0.8);
-  background: rgba(33, 27, 73, 0.9);
+  border-color: #980000;
+  background: linear-gradient(145deg, #210707 0%, #141417 56%, #0B0B0D 100%);
+  color: #FFFFFF;
+  box-shadow: 0 14px 30px #000000, 0 0 0 1px #650000;
+}
+
+.cut-event-date-carousel__day:hover::after {
+  background: #FF2020;
+  box-shadow: 0 0 12px #650000;
 }
 
 .cut-event-date-carousel__day:focus-visible {
-  outline: 3px solid rgba(70, 201, 255, 0.78);
+  outline: 3px solid #FF2020;
   outline-offset: 3px;
 }
 
 .cut-event-date-carousel__day.is-active {
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.54);
-  background: linear-gradient(145deg, #c640ff 0%, #744cff 48%, #00a8ff 100%);
-  box-shadow: 0 12px 30px rgba(119, 65, 255, 0.34), 0 0 22px rgba(29, 180, 255, 0.2);
+  color: #FFFFFF;
+  border-color: #FF2020;
+  background: linear-gradient(145deg, #FF2020 0%, #D80000 46%, #980000 100%);
+  box-shadow: 0 14px 34px #000000, 0 0 0 1px #650000, 0 0 24px #3D0000;
   transform: translateY(-2px) scale(1.03);
+}
+
+.cut-event-date-carousel__day.is-active::after {
+  background: #FFFFFF;
+  box-shadow: 0 0 12px #650000;
 }
 
 .cut-event-date-carousel__weekday {
   font-size: 0.7rem;
-  font-weight: 800;
+  font-weight: 900;
   line-height: 1;
   letter-spacing: 0.08em;
 }
 
 .cut-event-date-carousel__date {
   font-size: 0.94rem;
-  font-weight: 700;
+  font-weight: 800;
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
 }
