@@ -215,10 +215,14 @@ const createEventCommunityPost = createIdempotentMutation({
   storagePrefix: "cutinapp_event_community_post_attempt_",
   keyPrefix: "event-community-post",
   requestKeyFor: (eventId, payload = {}) => `${Number(eventId)}:${createMutationRequestKey(payload)}`,
-  mutate: async ({ idempotencyKey }, eventId, payload = {}) => (await appApiClient.post(
+  mutate: async ({ idempotencyKey }, eventId, payload = {}, options = {}) => (await appApiClient.post(
     `/events/${Number(eventId)}/community`,
     payload,
-    { headers: { "Idempotency-Key": idempotencyKey } },
+    {
+      headers: { "Idempotency-Key": idempotencyKey },
+      onUploadProgress: options.onUploadProgress,
+      signal: options.signal,
+    },
   )).data,
 });
 
@@ -825,8 +829,8 @@ const cutinappService = {
   },
   publicEventArtists: async (slug) => (await cachedPublicGet(appApiClient, `/events/public/${slug}/artists`, { ttlMs: 30000, staleMs: 300000 })).artists || [],
   eventCommunity: async (slug, params = {}) => (await appApiClient.get(`/events/public/${slug}/community`, { params })).data,
-  createEventPost: (eventId, payload) => createEventCommunityPost(eventId, payload),
-  createFeedPost: (payload) => createEventCommunityPost(0, payload),
+  createEventPost: (eventId, payload, options = {}) => createEventCommunityPost(eventId, payload, options),
+  createFeedPost: (payload, options = {}) => createEventCommunityPost(0, payload, options),
   deleteEventPost: deleteEventCommunityPost,
   likeEventPost: likeEventCommunityPost,
   unlikeEventPost: unlikeEventCommunityPost,
