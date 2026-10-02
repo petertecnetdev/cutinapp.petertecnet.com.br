@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import PropTypes from "prop-types";
-import { Alert, Container, Spinner } from "react-bootstrap";
+import { Alert, Container } from "react-bootstrap";
 import { Link, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
+import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import BlogDiscoveryCarousels from "../../components/blog/BlogDiscoveryCarousels";
 import blogService from "../../services/BlogService";
 import { storageUrl } from "../../config";
@@ -105,10 +106,19 @@ function parseArticle(content) {
 }
 
 function InlineText({ text }) {
-  const parts = String(text || "").split(/(\*\*[^*]+\*\*)/g);
+  const parts = String(text || "").split(/(\*\*[^*]+\*\*|\[[^\]]+\]\((?:\/|https?:\/\/)[^)]+\))/g);
   return <>{parts.map((part, index) => {
-    if (/^\*\*[^*]+\*\*$/.test(part)) return <strong key={index}>{part.slice(2, -2)}</strong>;
-    return <React.Fragment key={index}>{part}</React.Fragment>;
+    const key = `${part}-${index}`;
+    if (/^\*\*[^*]+\*\*$/.test(part)) return <strong key={key}>{part.slice(2, -2)}</strong>;
+
+    const link = part.match(/^\[([^\]]+)\]\(((?:\/|https?:\/\/)[^)]+)\)$/);
+    if (link) {
+      const [, label, href] = link;
+      if (href.startsWith("/")) return <Link key={key} to={href}>{label}</Link>;
+      return <a key={key} href={href} target="_blank" rel="noreferrer">{label}</a>;
+    }
+
+    return <React.Fragment key={key}>{part}</React.Fragment>;
   })}</>;
 }
 
@@ -168,6 +178,63 @@ ArticleCover.propTypes = {
   }).isRequired,
 };
 
+function ArticleConversionBlock({ entry }) {
+  const metadata = entry?.metadata || {};
+  const audience = metadata.audience || "participant";
+  const defaults = audience === "producer"
+    ? {
+      primary: { label: "Criar minha produção", path: "/production/create" },
+      secondary: { label: "Ver produções na Cutinapp", path: "/productions" },
+      title: "Transforme descoberta em público para o seu evento",
+      text: "Crie sua presença na Cutinapp, publique experiências e conecte produção, artistas, ingressos e itens em uma jornada única.",
+    }
+    : audience === "artist"
+      ? {
+        primary: { label: "Explorar artistas", path: "/artists" },
+        secondary: { label: "Ver eventos", path: "/event" },
+        title: "Continue da leitura para experiências reais",
+        text: "Descubra artistas, eventos e produções relacionados ao assunto e navegue pela cena diretamente na Cutinapp.",
+      }
+      : audience === "promoter"
+        ? {
+          primary: { label: "Encontrar eventos", path: "/event" },
+          secondary: { label: "Explorar produções", path: "/productions" },
+          title: "Encontre eventos para divulgar e acompanhar",
+          text: "Use a Cutinapp como ponto de descoberta entre público, promoters, produções, artistas e experiências.",
+        }
+        : {
+          primary: { label: "Descobrir eventos", path: "/event" },
+          secondary: { label: "Explorar produções", path: "/productions" },
+          title: "Continue descobrindo dentro da Cutinapp",
+          text: "Passe do conteúdo para eventos, produções, artistas, ingressos e experiências relacionadas sem quebrar sua jornada.",
+        };
+
+  const primary = metadata.primary_cta || defaults.primary;
+  const secondary = metadata.secondary_cta || defaults.secondary;
+
+  return <aside className="cut-blog-conversion" aria-label="Próximos passos na Cutinapp">
+    <div>
+      <span className="cut-eyebrow">Próximo passo</span>
+      <h2>{defaults.title}</h2>
+      <p>{defaults.text}</p>
+    </div>
+    <div className="cut-blog-conversion-actions">
+      <Link className="cut-blog-conversion-primary" to={primary.path || defaults.primary.path}>
+        {primary.label || defaults.primary.label} <i className="fa-solid fa-arrow-right" />
+      </Link>
+      <Link className="cut-blog-conversion-secondary" to={secondary.path || defaults.secondary.path}>
+        {secondary.label || defaults.secondary.label}
+      </Link>
+    </div>
+  </aside>;
+}
+
+ArticleConversionBlock.propTypes = {
+  entry: PropTypes.shape({
+    metadata: PropTypes.object,
+  }).isRequired,
+};
+
 export default function BlogArticlePage() {
   const { slug } = useParams();
   const [entry, setEntry] = useState(null);
@@ -207,6 +274,7 @@ export default function BlogArticlePage() {
       dateModified: entry.updated_at || undefined,
       mainEntityOfPage: canonicalUrl,
       publisher: { "@type": "Organization", name: "Cutinapp" },
+      keywords: Array.isArray(entry.tags) ? entry.tags.join(", ") : undefined,
     };
     let script = document.getElementById("cutinapp-blog-schema");
     if (!script) { script = document.createElement("script"); script.type = "application/ld+json"; script.id = "cutinapp-blog-schema"; document.head.appendChild(script); }
@@ -220,7 +288,7 @@ export default function BlogArticlePage() {
       <Container className="cut-page-container cut-blog-article-shell">
         <Link to="/blog" className="cut-blog-back"><i className="fa-solid fa-arrow-left" /> Voltar ao blog</Link>
         {error && <Alert variant="danger" className="mt-4">{error}</Alert>}
-        {loading && <div className="cut-blog-loading"><Spinner /><p>Carregando conteúdo...</p></div>}
+        {loading && <div className="cut-blog-loading"><ProcessingIndicatorComponent fullscreen={false} label="Carregando conteúdo" /></div>}
 
         {entry && <>
           <article className="cut-blog-article">
@@ -249,7 +317,14 @@ export default function BlogArticlePage() {
             </div>
           </article>
 
-          <BlogDiscoveryCarousels currentSlug={entry.slug} />
+          <ArticleConversionBlock entry={entry} />
+          <BlogDiscoveryCarousels
+            currentSlug={entry.slug}
+            relatedEvents={entry.related_events}
+            relatedItems={entry.related_items}
+            relatedProductions={entry.related_productions}
+            relatedArtists={entry.related_artists}
+          />
         </>}
       </Container>
     </main>

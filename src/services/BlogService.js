@@ -51,10 +51,20 @@ const blogService = {
   },
 
   async show(slug) {
-    const response = await apiClient.get(`/v1/content/${encodeURIComponent(slug)}`, {
-      params: { application: appSlug },
-    });
-    return unwrap(response);
+    const encodedSlug = encodeURIComponent(slug);
+    const params = { application: appSlug };
+    const [contentResponse, recommendationResponse] = await Promise.all([
+      apiClient.get(`/v1/content/${encodedSlug}`, { params }),
+      apiClient.get(`/v1/content/${encodedSlug}/recommendations`, { params })
+        .catch(() => null),
+    ]);
+
+    const content = unwrap(contentResponse);
+    const recommendations = recommendationResponse ? unwrap(recommendationResponse) : null;
+
+    return recommendations && content
+      ? { ...content, ...recommendations }
+      : content;
   },
 
   async adminContext() {

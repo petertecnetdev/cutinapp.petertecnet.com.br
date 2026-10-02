@@ -8,14 +8,20 @@ import { storageUrl } from "../../config";
 import { getImageFallbackInitials } from "../../utils/imageFallback";
 import EventPosterThumbnail from "../event/EventPosterThumbnail";
 
-const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-const eventDate = new Intl.DateTimeFormat("pt-BR", {
+const eventDate = new Intl.DateTimeFormat(undefined, {
   day: "2-digit",
   month: "short",
   hour: "2-digit",
   minute: "2-digit",
-  timeZone: "America/Sao_Paulo",
 });
+
+const formatMoney = (value, currency = "BRL") => {
+  try {
+    return new Intl.NumberFormat(undefined, { style: "currency", currency }).format(Number(value) || 0);
+  } catch {
+    return String(value ?? "");
+  }
+};
 
 let discoveryCache = null;
 let discoveryPromise = null;
@@ -34,7 +40,7 @@ const firstFileUrl = (item) => {
 };
 
 const itemImage = (item) => mediaUrl(
-  item?.image || item?.cover_image || item?.photo || item?.thumbnail || firstFileUrl(item)
+  item?.image_url || item?.image || item?.cover_image || item?.photo || item?.thumbnail || firstFileUrl(item)
 );
 
 const initials = (value) => getImageFallbackInitials(value);
@@ -155,7 +161,7 @@ function ProductionLogo({ production }) {
   return <span className="cut-blog-production-logo">
     {src && !failed
       ? <img src={src} alt="" loading="lazy" onError={() => setFailed(true)} />
-      : initials(production?.name)}
+      : initials(production?.name || production?.fantasy)}
   </span>;
 }
 
@@ -163,23 +169,36 @@ ProductionLogo.propTypes = {
   production: PropTypes.shape({
     logo: PropTypes.string,
     name: PropTypes.string,
+    fantasy: PropTypes.string,
   }).isRequired,
 };
 
-export default function BlogDiscoveryCarousels({ currentSlug = "", blogEntries = null, showBlogs = true }) {
+export default function BlogDiscoveryCarousels({
+  currentSlug = "",
+  blogEntries = null,
+  showBlogs = true,
+  relatedEvents = null,
+  relatedItems = null,
+  relatedProductions = null,
+  relatedArtists = null,
+}) {
   const [remoteBlogs, setRemoteBlogs] = useState([]);
-  const [events, setEvents] = useState([]);
-  const [items, setItems] = useState([]);
+  const [fallbackEvents, setFallbackEvents] = useState([]);
+  const [fallbackItems, setFallbackItems] = useState([]);
 
   useEffect(() => {
+    if (Array.isArray(relatedEvents) && relatedEvents.length > 0 && Array.isArray(relatedItems) && relatedItems.length > 0) {
+      return undefined;
+    }
+
     let active = true;
     loadDiscovery().then((data) => {
       if (!active) return;
-      setEvents(data.events || []);
-      setItems(data.items || []);
+      if (!Array.isArray(relatedEvents) || relatedEvents.length === 0) setFallbackEvents(data.events || []);
+      if (!Array.isArray(relatedItems) || relatedItems.length === 0) setFallbackItems(data.items || []);
     }).catch(() => {});
     return () => { active = false; };
-  }, []);
+  }, [relatedEvents, relatedItems]);
 
   useEffect(() => {
     if (!showBlogs || Array.isArray(blogEntries)) return undefined;
@@ -195,10 +214,103 @@ export default function BlogDiscoveryCarousels({ currentSlug = "", blogEntries =
     return source.filter((entry) => entry?.slug && entry.slug !== currentSlug).slice(0, 12);
   }, [blogEntries, currentSlug, remoteBlogs]);
 
+  const events = (Array.isArray(relatedEvents) && relatedEvents.length > 0 ? relatedEvents : fallbackEvents).slice(0, 12);
+  const items = (Array.isArray(relatedItems) && relatedItems.length > 0 ? relatedItems : fallbackItems).slice(0, 16);
+  const productions = (Array.isArray(relatedProductions) ? relatedProductions : []).slice(0, 10);
+  const artists = (Array.isArray(relatedArtists) ? relatedArtists : []).slice(0, 10);
+
   return <div className="cut-blog-discovery-sections">
+    {events.length > 0 && <Carousel
+      eyebrow={Array.isArray(relatedEvents) && relatedEvents.length ? "Relacionado ao conteúdo" : "Acontece na Cutinapp"}
+      title="Eventos para continuar descobrindo"
+      action={<Link className="cut-blog-carousel-link" to="/event">Ver eventos</Link>}
+    >
+      {events.map((event) => <Link to={`/event/${event.slug}`} className="cut-blog-slide cut-blog-slide--event" key={`event-${event.id || event.slug}`}>
+        <div className="cut-blog-slide-media cut-blog-slide-media--event">
+          <EventPosterThumbnail image={event.image} title={event.title} alt={event.title} className="cut-blog-event-poster" loading="lazy" />
+        </div>
+        <div className="cut-blog-slide-body">
+          {event.category && <span className="cut-blog-event-category">{event.category}</span>}
+          <h3>{event.title}</h3>
+          <p className="cut-blog-slide-meta"><i className="fa-regular fa-calendar" /> {event.start_date ? eventDate.format(new Date(event.start_date)) : "Data a definir"}</p>
+          <p className="cut-blog-slide-meta"><i className="fa-solid fa-location-dot" /> {event.venue || event.city || "Local a definir"}</p>
+          {event.production?.slug && <span className="cut-blog-context-caption">{event.production.name || event.production.fantasy}</span>}
+        </div>
+      </Link>)}
+    </Carousel>}
+
+    {productions.length > 0 && <Carousel
+      eyebrow="Quem movimenta essa cena"
+      title="Produções relacionadas"
+      action={<Link className="cut-blog-carousel-link" to="/productions">Ver produções</Link>}
+    >
+      {productions.map((production) => {
+        const name = production.name || production.fantasy || "Produção";
+        return <Link to={`/production/${production.slug}/public`} className="cut-blog-slide cut-blog-slide--entity" key={`production-${production.id || production.slug}`}>
+          <div className="cut-blog-slide-media cut-blog-slide-media--entity">
+            <Media src={mediaUrl(production.background || production.logo)} alt={name} icon="fa-solid fa-bolt" fallbackText={name} />
+            <span>Produção</span>
+          </div>
+          <div className="cut-blog-slide-body">
+            <div className="cut-blog-entity-title"><ProductionLogo production={production} /><h3>{name}</h3></div>
+            {production.description && <p>{production.description}</p>}
+            {(production.city || production.uf) && <p className="cut-blog-slide-meta"><i className="fa-solid fa-location-dot" /> {[production.city, production.uf].filter(Boolean).join(" · ")}</p>}
+            <strong>Conhecer produção <i className="fa-solid fa-arrow-right" /></strong>
+          </div>
+        </Link>;
+      })}
+    </Carousel>}
+
+    {artists.length > 0 && <Carousel
+      eyebrow="Line-up e identidade"
+      title="Artistas para conhecer"
+      action={<Link className="cut-blog-carousel-link" to="/artists">Ver artistas</Link>}
+    >
+      {artists.map((artist) => <Link to={`/artist/${artist.slug}`} className="cut-blog-slide cut-blog-slide--entity" key={`artist-${artist.id || artist.slug}`}>
+        <div className="cut-blog-slide-media cut-blog-slide-media--artist">
+          <Media src={mediaUrl(artist.cover || artist.photo)} alt={artist.stage_name || "Artista"} icon="fa-solid fa-music" fallbackText={artist.stage_name || "Artista"} />
+          <span>Artista</span>
+        </div>
+        <div className="cut-blog-slide-body">
+          <h3>{artist.stage_name || "Artista"}</h3>
+          {artist.short_bio && <p>{artist.short_bio}</p>}
+          {Array.isArray(artist.genres) && artist.genres.length > 0 && <span className="cut-blog-context-caption">{artist.genres.slice(0, 3).join(" · ")}</span>}
+          {(artist.city || artist.uf) && <p className="cut-blog-slide-meta"><i className="fa-solid fa-location-dot" /> {[artist.city, artist.uf].filter(Boolean).join(" · ")}</p>}
+          <strong>Ver perfil <i className="fa-solid fa-arrow-right" /></strong>
+        </div>
+      </Link>)}
+    </Carousel>}
+
+    {items.length > 0 && <Carousel
+      eyebrow="Complete a experiência"
+      title="Itens e experiências das produções"
+      action={<Link className="cut-blog-carousel-link" to="/productions">Ver produções</Link>}
+      className="cut-blog-carousel-section--items"
+    >
+      {items.map((item, index) => {
+        const production = item.production || item.establishment || {};
+        const productionPath = production.slug ? `/production/${production.slug}/public` : "/productions";
+        return <article className="cut-blog-slide cut-blog-slide--item" key={`item-${item.id || index}-${production.id || "production"}`}>
+          <Link to={productionPath} className="cut-blog-slide-media" aria-label={`Ver ${production.name || production.fantasy || "produção"}`}>
+            <Media src={itemImage(item)} alt={item.name || "Item da produção"} icon="fa-solid fa-bag-shopping" fallbackText={item.name || "Item"} />
+            {item.type && <span>{item.type}</span>}
+          </Link>
+          <div className="cut-blog-slide-body">
+            <h3>{item.name || "Item da produção"}</h3>
+            <Link to={productionPath} className="cut-blog-production-link">
+              <ProductionLogo production={production} />
+              <span><small>Produção</small><strong>{production.name || production.fantasy || "Ver produção"}</strong></span>
+              <i className="fa-solid fa-arrow-up-right-from-square" />
+            </Link>
+            {item.price !== undefined && item.price !== null && <div className="cut-blog-item-price">{formatMoney(item.price, item.currency || "BRL")}</div>}
+          </div>
+        </article>;
+      })}
+    </Carousel>}
+
     {showBlogs && blogs.length > 0 && <Carousel
       eyebrow="Continue explorando"
-      title="Outros conteúdos da Cutinapp"
+      title="Mais conteúdos da Cutinapp"
       action={<Link className="cut-blog-carousel-link" to="/blog">Ver todo o blog</Link>}
     >
       {blogs.map((entry) => <Link to={`/blog/${entry.slug}`} className="cut-blog-slide cut-blog-slide--article" key={`blog-${entry.id || entry.slug}`}>
@@ -213,51 +325,6 @@ export default function BlogDiscoveryCarousels({ currentSlug = "", blogEntries =
         </div>
       </Link>)}
     </Carousel>}
-
-    {events.length > 0 && <Carousel
-      eyebrow="Acontece na Cutinapp"
-      title="Próximos eventos"
-      action={<Link className="cut-blog-carousel-link" to="/event">Ver eventos</Link>}
-    >
-      {events.map((event) => <Link to={`/event/${event.slug}`} className="cut-blog-slide cut-blog-slide--event" key={`event-${event.id || event.slug}`}>
-        <div className="cut-blog-slide-media cut-blog-slide-media--event">
-          <EventPosterThumbnail image={event.image} title={event.title} alt={event.title} className="cut-blog-event-poster" loading="lazy" />
-        </div>
-        <div className="cut-blog-slide-body">
-          {event.category && <span className="cut-blog-event-category">{event.category}</span>}
-          <h3>{event.title}</h3>
-          <p className="cut-blog-slide-meta"><i className="fa-regular fa-calendar" /> {event.start_date ? eventDate.format(new Date(event.start_date)) : "Data a definir"}</p>
-          <p className="cut-blog-slide-meta"><i className="fa-solid fa-location-dot" /> {event.venue || event.city || "Local a definir"}</p>
-        </div>
-      </Link>)}
-    </Carousel>}
-
-    {items.length > 0 && <Carousel
-      eyebrow="Descubra nas produções"
-      title="Itens das produções"
-      action={<Link className="cut-blog-carousel-link" to="/productions">Ver produções</Link>}
-      className="cut-blog-carousel-section--items"
-    >
-      {items.map((item, index) => {
-        const production = item.production || {};
-        const productionPath = production.slug ? `/production/${production.slug}/public` : "/productions";
-        return <article className="cut-blog-slide cut-blog-slide--item" key={`item-${item.id || index}-${production.id || "production"}`}>
-          <Link to={productionPath} className="cut-blog-slide-media" aria-label={`Ver ${production.name || "produção"}`}>
-            <Media src={itemImage(item)} alt={item.name || "Item da produção"} icon="fa-solid fa-bag-shopping" fallbackText={item.name || "Item"} />
-            {item.type && <span>{item.type}</span>}
-          </Link>
-          <div className="cut-blog-slide-body">
-            <h3>{item.name || "Item da produção"}</h3>
-            <Link to={productionPath} className="cut-blog-production-link">
-              <ProductionLogo production={production} />
-              <span><small>Produção</small><strong>{production.name || "Ver produção"}</strong></span>
-              <i className="fa-solid fa-arrow-up-right-from-square" />
-            </Link>
-            {item.price !== undefined && item.price !== null && <div className="cut-blog-item-price">{money.format(Number(item.price) || 0)}</div>}
-          </div>
-        </article>;
-      })}
-    </Carousel>}
   </div>;
 }
 
@@ -265,4 +332,8 @@ BlogDiscoveryCarousels.propTypes = {
   currentSlug: PropTypes.string,
   blogEntries: PropTypes.arrayOf(PropTypes.object),
   showBlogs: PropTypes.bool,
+  relatedEvents: PropTypes.arrayOf(PropTypes.object),
+  relatedItems: PropTypes.arrayOf(PropTypes.object),
+  relatedProductions: PropTypes.arrayOf(PropTypes.object),
+  relatedArtists: PropTypes.arrayOf(PropTypes.object),
 };
