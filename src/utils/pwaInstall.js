@@ -1,5 +1,13 @@
 const MOBILE_MEDIA_QUERY = "(max-width: 820px)";
 
+let deferredInstallPrompt = null;
+let installLifecycleInitialized = false;
+
+const emitInstallState = () => {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent("petertecnet:pwa-install-state"));
+};
+
 export const isMobileDevice = () => {
   if (typeof window === "undefined" || typeof navigator === "undefined") return false;
 
@@ -26,11 +34,52 @@ export const isPwaInstalled = () => {
   }
 };
 
+export const canPromptPwaInstall = () => Boolean(deferredInstallPrompt);
+
+export const initializePwaInstallLifecycle = () => {
+  if (typeof window === "undefined" || installLifecycleInitialized) return;
+  installLifecycleInitialized = true;
+
+  window.addEventListener("beforeinstallprompt", (event) => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    emitInstallState();
+  });
+
+  window.addEventListener("appinstalled", () => {
+    deferredInstallPrompt = null;
+    emitInstallState();
+  });
+};
+
+initializePwaInstallLifecycle();
+
 export const requiresPwaInstallForPurchase = () => isMobileDevice() && !isPwaInstalled();
 
-export const openPwaInstall = () => {
-  if (typeof window === "undefined") return false;
+export const openPwaInstall = async () => {
+  if (typeof window === "undefined" || isPwaInstalled()) return false;
 
+  // Chrome/Edge Android: always prefer the browser's real PWA installation
+  // dialog. This installs the web app as a standalone application instead of
+  // creating a normal browser shortcut.
+  if (deferredInstallPrompt) {
+    const promptEvent = deferredInstallPrompt;
+    deferredInstallPrompt = null;
+
+    try {
+      await promptEvent.prompt();
+      const choice = await promptEvent.userChoice;
+      emitInstallState();
+      return choice?.outcome === "accepted";
+    } catch (_) {
+      emitInstallState();
+      return false;
+    }
+  }
+
+  // Shared ecosystem UI remains the fallback for browsers/webviews where the
+  // native beforeinstallprompt event is unavailable (for example iOS or an
+  // in-app browser). It must not replace a native prompt when one exists.
   if (window.PeterTecnetInstall?.open) {
     window.PeterTecnetInstall.open();
     return true;
@@ -47,6 +96,7 @@ export const subscribeToPwaInstallState = (callback) => {
     installed: isPwaInstalled(),
     mobile: isMobileDevice(),
     required: requiresPwaInstallForPurchase(),
+    canPrompt: canPromptPwaInstall(),
   });
 
   const media = window.matchMedia?.("(display-mode: standalone)");
