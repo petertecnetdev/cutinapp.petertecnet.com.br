@@ -22,10 +22,8 @@ jobs:
         run: |
           set -u
           branches=(
-            "agent/np07-t1/register-password-friction"
-            "agent/np08-t3/cutinapp-sharing-fallback-metadata"
-            "agent/np13-t1/event-duplication-calendar-safety"
-            "fix/event-social-preview-20261001"
+            "automation/production-sellable-events-r10"
+            "feat/checkout-direct-resume-20260908"
           )
 
           failures=0
