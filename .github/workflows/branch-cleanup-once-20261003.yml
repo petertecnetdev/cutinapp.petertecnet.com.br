@@ -22,8 +22,7 @@ jobs:
         run: |
           set -u
           branches=(
-            "automation/production-sellable-events-r10"
-            "feat/checkout-direct-resume-20260908"
+            "fix/pwa-native-install-20261003"
           )
 
           failures=0
