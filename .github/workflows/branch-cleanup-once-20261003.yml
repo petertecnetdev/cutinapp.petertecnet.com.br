@@ -22,9 +22,10 @@ jobs:
         run: |
           set -u
           branches=(
-            "automation/acquisition-first-sale-share-20260905"
-            "automation/conversion-pix-copy-feedback-20260905"
-            "agent/np02/redeploy-after-health-fix"
+            "agent/np07-t1/register-password-friction"
+            "agent/np08-t3/cutinapp-sharing-fallback-metadata"
+            "agent/np13-t1/event-duplication-calendar-safety"
+            "fix/event-social-preview-20261001"
           )
 
           failures=0
