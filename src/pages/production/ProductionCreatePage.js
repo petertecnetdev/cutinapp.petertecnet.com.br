@@ -34,7 +34,7 @@ const trackProducerActivation = (type, production, metadata = {}) => {
       target: String(production?.id || ""),
       metadata: { production_id: Number(production?.id || 0), ...metadata },
     });
-  } catch (_) {}
+  } catch (_) { /* Telemetry is best-effort and must never block producer activation. */ }
 };
 
 export default function ProductionCreatePage() {
