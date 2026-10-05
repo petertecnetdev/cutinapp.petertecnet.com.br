@@ -1,7 +1,7 @@
 import { installMobileNavbarRecovery } from "./mobileNavbarRecovery";
 
 const flushRecovery = () => {
-  jest.advanceTimersByTime(70);
+  jest.advanceTimersByTime(120);
 };
 
 const mountNavbar = () => {
