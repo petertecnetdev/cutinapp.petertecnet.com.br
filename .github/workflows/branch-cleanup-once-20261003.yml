@@ -2,8 +2,7 @@ name: Branch cleanup once 2026-10-03
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
     paths:
       - .github/workflows/branch-cleanup-once-20261003.yml
 
@@ -11,7 +10,7 @@ permissions:
   contents: write
 
 jobs:
-  delete-verified-merged-branches:
+  delete-verified-merged-historical:
     runs-on: ubuntu-latest
     steps:
       - name: Delete verified merged historical branches
@@ -22,130 +21,131 @@ jobs:
         run: |
           set -u
           declare -A expected=(
-            ["hotfix/official-brand-logos-20261006"]="58e85282ac267065a1c456a1b06e9f682b11c7c5"
-            ["feat/event-image-editor-2x3"]="8a0a21a54f60f0ea094459a704bfa9d400162f8d"
-            ["feat/item-discovery-view"]="422e99e865733de6313c099b7da14bc839351423"
-            ["fix/build-script-template-literals"]="2a9096deba1562295b58a1a8da8b03330dbdf93b"
-            ["feat/issue-645-flyer-rich-description"]="6912585680f35ad17004e30f5a073e403d55ba03"
-            ["feat/desktop-navbar-three-regions"]="5bf9a0a43bf09b6b692d8359a10590abb23458a1"
-            ["fix/production-public-international-contact-20260926"]="8946c0580da15e286dde4e8bb3e0202427b2225a"
-            ["growth/producer-acquisition-attribution-20260925"]="1fae38c93aba2cc01542c29720fd056b43caf9fc"
-            ["fix/production-feedback-activation-20260925"]="451dab9fae83a164cfc35bb47405f8bf322cefbe"
-            ["agent/cutinapp-growth-conversion-global-location"]="36bf814633c8d64a74fc98cabc150f946d80b178"
-            ["growth/producer-saas-trial-landing"]="238d4947705b0bb0211bbc6a12e9de6c0ca91671"
-            ["fix/admin-impersonation-onboarding-bypass-v2"]="0fb9047b86a3e0042f36db987e65973ba96d553b"
-            ["fix/readable-typography-cutinapp"]="2263ff1a2fe523939ccdb7ac92a38c3e44dad158"
-            ["feat/event-purchase-fastix-terms"]="d1a424947a169c99a87dd9ee12996520662d095d"
-            ["agent/np02/fastix-competitive-100"]="0e4b26f09831b5422602e42519ecd0920a6a5789"
-            ["agent/np02/event-public-network-recovery"]="9fb980fc864030d598faf95e04ee07b0345bbfaf"
-            ["automation/discovery-contextual-date-20260923-1101"]="4b8ce9ac8b2227238e203805c239fd491edfd144"
-            ["automation/discovery-rail-image-priority-11"]="aae91baa4ca33a5ff4205018bca7635b4f4d5c41"
-            ["automation/discovery-location-context-11"]="0f1248965d198d27fe8692748b40dcaec5c3466f"
-            ["automation/discovery-rail-keyboard-20260923-0801"]="3cebad23fe3735aa1b68b5f544d1d67662976635"
-            ["automation/discovery-reduced-motion-20260923"]="1821066aa3fda5fa27501d48c66ce5c786277407"
-            ["automation/discovery-rail-keyboard-11"]="9732bab916566eba21d1b5304fa9c572e8a3958e"
-            ["automation/discovery-price-metadata-11"]="b853d5db33873e2bae46f79ba6877aaca11b3bc6"
-            ["automation/discovery-card-categories-20260923"]="be9ed3a860ef90bc4af6e4f496bb43aa57ca686f"
-            ["fix/home-discovery-duplicate-keys"]="1fb6ea46f712e73a6da37c729656df893295f23d"
-            ["automation/home-card-density-20260923-0200"]="e49998eec5de3ce8237f32f8226c98da76374836"
-            ["automation/home-card-media-priority-20260923"]="e906c98ead212753e1738838f826916c12f85eaa"
-            ["feat/weekly-agenda-event-picker"]="51674057181965f3b964c67fd96b58e114f99446"
-            ["fix/home-portable-date-labels-20260923"]="7aabb60c872bc4608cef4375d5ec3d119ae1fbd5"
-            ["fix/discovery-sql-datetime-mobile"]="b3a164c8395821efeef57c7ebbff1df421a61c68"
-            ["automation/discovery-local-calendar-20260922"]="555155ee5ebe9636c8dabf1ce0915e189e480566"
-            ["automation/home-image-priority-20260922"]="aad80e23dd6e8c73f11c3a55ac85e2fe49dab484"
-            ["automation/cart-empty-selection-20260922-1902"]="0431ed8473d2fc6f50a2f473130320699e167ef2"
-            ["automation/p1-commerce-logout-isolation-1801"]="54741153168e51735f36034aab3ddbe51c0dba41"
-            ["agent/np02/redeploy-after-marker-fallback"]="7a5a296aef00b4c9c2a8082e88f5de558e1ebc1b"
-            ["agent/np02/event-editor-view-parity"]="ff2ac0400047cd9a574bcd4bb879bd84e2ab921a"
-            ["agent/np02/production-follow-state"]="52aa50fe7452973b0e2f0e464d8d0781c104991e"
-            ["fix/production-hero-bottom-dock-20260919-v2"]="9a136854ec5899227a97528dadf1dd61b2984aa7"
-            ["perf/defer-noncritical-runtime-603"]="abee17a928a91e81aac11e951fe5316ce9c1fe85"
-            ["perf/mobile-scroll-handler-20260919"]="fa94bbe66210ddc48d317c2b37c20be0cecbce04"
-            ["perf/mobile-scroll-visual-cost-20260919-2112"]="a635c52c0be42c8735f68b09a479cd7e20f0ea2b"
-            ["perf/abort-obsolete-requests-20260919-2100"]="c90578da20099c9d137a252171c2a186c8e83108"
-            ["feat/feed-admin-moderation-20260919"]="e5b45e64ebe6482f26d11f9d3e25e8b4b1f35fef"
-            ["feat/feed-post-management-20260919"]="3279e3be5ecc760978528ce0b021b8187865e98b"
-            ["perf/css-single-entry-20260919"]="48393cfc7cdb64dd1a83b8d4347c34d3d8d04293"
-            ["perf/scroll-main-thread-v2-20260919"]="01f1b2f999845c9b6ec9fadad00ffbaddb15208d"
-            ["feat/event-view-parity-editor-20260919"]="a196c57baf16dbe498db3935702a5ae92597e6c1"
-            ["fix/event-artwork-natural-light-20260919"]="52057d883c73c117462d0ff807f6032aaa2b170a"
-            ["feat/view-mode-create-edit-unification-20260919"]="bb4e3c5452dd4a52c51623d904cdc5adaae2b6ad"
-            ["perf/gallery-manager-and-app-speed-20260919"]="c27e540dee75ca7cdc5d5e7c5dc64799c0563557"
-            ["fix/production-public-cover-20260919"]="578700986988149807f3f5628c042d3cdefb2fee"
-            ["fix/pwa-native-install-20261003"]="1fb231914d7faf2e6da54c170b2f01da9519f71c"
-            ["feat/checkout-direct-resume-20260908"]="81c09518ad35e0a7b31a8e8ea37eb2f601a28d3f"
-            ["automation/production-sellable-events-r10"]="6364559b16cd1731c868d77eb9e01c8964b4122f"
-            ["fix/event-social-preview-20261001"]="dcab4ac2ec06ad1a7fb29a9fc81a9cc138438af0"
-            ["agent/np02/redeploy-after-health-fix"]="d7dc60d91a84da74b3410385f834755009076923"
-            ["fix/admin-production-edit-20260919"]="57e82e4239b57b542b5facaf1bec7db02ac885b1"
-            ["automation/cutinapp-r11-recovery-gmv"]="2cf16340d4a03ad613491f4d72f6ad13bfca8348"
-            ["automation/checkout-effectiveness-ui-r11"]="ad6587b35e9caccf86762c4466b6520623389af6"
-            ["automation/checkout-period-comparison-ui-r11"]="70de9b49b2c255910916bf49ce05f24661b7c72f"
-            ["automation/checkout-remediation-ui-r11"]="84f25e7960f4d3afda6e257c0bd3de5ab2950ba5"
-            ["automation/cutinapp-contribution-r10"]="4f7b7a9462f7f84be019a63fc5ea6f7087eb33fe"
-            ["automation/finance-largest-economic-dropoff-r10"]="2e747dafa798d441bde796afe1168e960ad99b4c"
-            ["feat/advanced-social-profile"]="a17417e3ee6d16d0327efc995b6d86dce135a68d"
-            ["automation/checkout-funnel-dashboard-r10"]="0c0b50aa14762b7bbc2c7a160f1f518730013b44"
-            ["automation/checkout-journey-correlation-r10"]="7cbbd89a2ef966da8992eb5f09db0f4bf610dd80"
-            ["automation/mobile-checkout-payment-cta-r10"]="be6f04418b88b4b3b20557bf8f5118edc46fec1e"
-            ["feature/admin-impersonation-v2"]="7f593f1598d7bade23dfb868959091ac9e8818c6"
-            ["fix/weekly-agenda-delay-max-6-20260910"]="0b03dc94fb1c12a50bbd33102171ce54f0a804c0"
-            ["feature/event-list-weekly-agenda-strategy-20260910"]="b2e875dc59da6201983da127cc68122c6790c9c6"
-            ["automation/recovery-decision-ui-r11"]="79850745ddd534b642ebc4da0228d5d3d229921a"
-            ["feature/weekly-agenda-rolling-horizon-20260910"]="0cc3001932a6b0eb8ec1a6ea7f25b4f820ab9284"
-            ["feat/creative-event-studio"]="1150cf70ca4c444e853a2af25d7ccb03085b1997"
-            ["feature/weekly-agenda-existing-events-20260910"]="7032ee77ebaa620ac12cf48bf4af4cec18f2c20e"
-            ["feature/ecosystem-impersonation"]="f38fc1ca186673c792ba326d097f8a098db413ac"
-            ["automation/recovery-experiment-dashboard-r18"]="3d35b765e486c69bba6e09551ce5817cb8a95f36"
-            ["automation/recovery-net-margin-r17"]="20be928c4eea6475c7d646d1df48d95f5a842b6b"
-            ["automation/recovery-surface-ranking-r16"]="bad59c331d6db3e4ac2653157a158a376dbac95a"
-            ["automation/recovery-yield-r15-gh"]="fee5754ef405ebcdcbbc11dcb066ef47f138ebf4"
-            ["automation/recovery-economics-dashboard-r14"]="f2f69420831369312662207409eb38350db10ff3"
-            ["automation/checkout-recovery-attribution-r13"]="8bcdb4263bf602c5523f5f54f957c418f2701861"
-            ["automation/feed-checkout-recovery-r12"]="c29f2255dd7d9c440e656b42e456da1fd349f34f"
-            ["automation/feed-revenue-attribution-r11"]="d43650ee0836d0fbd2648f4e37c9bd4012dd8c6b"
-            ["automation/feed-funnel-telemetry-r10"]="15e4611c2b3af0da6c57bf5893612f4f488545b9"
-            ["automation/feed-sellable-event-cta-r11"]="b7d872fa93dde880bc79719ccb10b36cfe91a177"
-            ["automation/agenda-ticket-availability-ui-r10"]="ad0902c8ef633c1f874c8cb31df79a8e995bf751"
-            ["automation/event-detail-sellable-cta"]="4172e88b613b71f03b4efd38540b783aada4152e"
-            ["automation/cutinapp-ticket-availability-status"]="fba4621ea7c985dac463c879b9b75830384629bc"
-            ["auto/cutinapp-event-availability-status"]="975c10985d386f64dd05c74bf4068949443ca0ed"
-            ["automation/cutinapp-default-sellable"]="d97985bb4de10019625cfd5ee04745ea15854df1"
-            ["automation/cutinapp-sellable-discovery-20260909"]="f4a56da3d00a8b257e5e463e8988aaefe1f121ee"
-            ["fix/seo-refresh-unique-generator-r11"]="5613c78b4eb71ab2cd066f4c5e42eeab674388a8"
-            ["fix/seo-refresh-ssh-upload-r11"]="0150dbf39f693c8a84973d9ff399711c57d99975"
-            ["automation/producer-readiness-20260909"]="3562a060ce75e0df2b0c598ca412c8adb0607d77"
-            ["ai/pix-validity-round11"]="f65a1b41f49109fd2e4290c534997d77b3080504"
-            ["automation/pix-expiry-stop-sync-20260909"]="22547c7029b43e594d6b05f847d71525843bea46"
-            ["automation/checkout-latest-payment-20260909"]="b07e86bef413b2de3aad1f98d84a69f427414696"
-            ["feat/recovery-navbar-prominence-experiment"]="af1d3858c41821ac10fa3e936e8f55dd36a3e0b2"
-            ["automation/pix-payment-live-status"]="e021add745bde030e6d91ea4c9d93caebe99206a"
-            ["automation/recovery-detail-reactive-run11"]="d76a169ea4fd29b48efba2c5433e5004a4b2a617"
+            ["feat/revenue-real-payment-expiry"]="261e3cfb74e4b9e64df3bfbe373fd7dea43b99a4"
+            ["fix/checkout-faster-payment-confirmation-main"]="4e9100d10bd52355944493067c375b8b6323854b"
+            ["automation/cutinapp-event-idempotency-20260907"]="9f28a19e7d7f3a8b61c58af65507d267fa7b6143"
+            ["feat-acquisition-commission-margin-guard-20260906"]="ef9c8287188c5a02709a2672fc064128cdc55fd9"
+            ["automation/cutinapp-idempotent-production-20260906"]="3328a3b1226ad3da8ba53fe709c2755886a9ae09"
+            ["fix/checkout-card-sdk-retry-20260906"]="c826b2ba92c521154bb296aca31bbec43e637bec"
+            ["automation/producer-first-sale-20260906"]="1ce6538436b227caf05e601177bba97ffcdd8d94"
+            ["feat/revenue-net-margin-20260906"]="9b724acad8ba930edb17fd29f92f9227a0726d60"
+            ["fix/event-series-calendar-dates"]="971c69a77638e90c5e342f73b20299aae15f8bbe"
+            ["fix/checkout-preserve-idempotency-5xx"]="fee7f7f57cad40e4f2bf56302f2addd131e60229"
+            ["automation/producer-inline-production-20260906-gh"]="a79bdae4a9cc8def76d27b1bce3fd1fca9a0bb6b"
+            ["feat/revenue-prioritize-fresh-pending"]="2ab0a8aa0c98965329b7273e8d49bd69e5c0d6e5"
+            ["feat/revenue-pending-recovery-20260906"]="ebed2435c43f54a380af496b97713bfdd543c8b3"
+            ["automation/cutinapp-run11-20260906"]="0812127d56b3cee3c6e00c5287df0ccb401a6f5d"
+            ["fix/checkout-block-pending-method-switch"]="4af2a4d956eff2258e55c385d508d6ff239f8fed"
+            ["automation/revenue-analytics-observability-20260906"]="6aa52e02f2d5788ab069ae4115b798806e03d4a6"
+            ["fix/revenue-cold-start-addon-opportunity"]="6592187a7365cb9a5b5f320eb3bb5565cea15aad"
+            ["automation/producer-fast-production-20260906"]="a375f7ae92c345fec45426db4f103087e3f633c1"
+            ["feat/event-addon-revenue-opportunity"]="d0d569d40e64150dad4a76f8da3c55c52c400dab"
+            ["fix/landing-events-first"]="60f430af59cc070d27238cb38c9321598ffa6982"
+            ["fix/timeline-posts-20260906"]="2ce7e12c5fcc4a2cea9cefd74eff3532b8b07210"
+            ["fix/checkout-card-single-submit"]="8c5990d31ad101266fe73618794ceb4eb321ea8f"
+            ["fix/finance-analytics-fallback-20260906"]="4b24be30db97af8d1412948c444dd6110391e0f1"
+            ["feat/revenue-funnel-visibility"]="9b88f671d1ac94b3192157531bd2aa0183bcbb18"
+            ["automation/producer-first-sale-share-20260906"]="c024d6aeee65411159154416dad2a3b609769038"
+            ["feat/event-addons-management-20260906"]="1e279f18c46f9ede8be0efcb53fd349885c74f09"
+            ["fix/pass-expiry-live-refresh"]="4988f6e043fcab1df259d134fcb3e7038cb7c623"
+            ["automation/auth-storage-read-availability"]="29b7682118d132e45c55723b05d9c2e45d3eb5ca"
+            ["automation/checkout-recovery-safe-storage-20260906"]="b378dadb17d396f65494d68e8a8c5e58753d881a"
+            ["fix/home-location-privacy-ttl"]="013fe722abe92dbc6ecd421dcee10abda885b8bc"
+            ["chore/consolidate-local-storage"]="083fe10e3996e2764ca20f6a8cd91610861dfe6a"
+            ["automation/run11-safe-checkout-storage"]="e7ff14d40c4dfedd66541513fbc33ab19e230ea7"
+            ["perf/resource-hints-20260906-v2"]="fdc591c0772f2572c75cedca5679f39f823d212d"
+            ["automation/catalog-cache-profitability-20260906"]="e2aedde30a2b379f383fc2cf263094d42bcbc785"
+            ["feat/acquisition-first-ticket-commercial-20260906"]="65ab7eb9aa92571f2e735b7aedce02054a584916"
+            ["fix/checkout-safe-session-storage-20260906"]="ffecc4f4be7f00e1ae56dc899b59f21ef244221c"
+            ["feat/checkout-cross-sell-profit"]="0dff439aa0246fa15a65c7fa0e041f9785a65f79"
+            ["automation/cutinapp-a11y-crosssell-20260906"]="7f24f4e5f2ed06b2b0ba82647a2229f982154ce4"
+            ["feat/acquisition-auto-production-template-20260906"]="d12543006ec258c707b19534bdfb5113fc0e0e38"
+            ["feat/monetization-addon-economics-20260906"]="bd1443ebad745d460d822c2aa55dcbaf020a206a"
+            ["fix/checkout-recovery-storage-contract"]="218b115e8477481c020f07ed471b53635f527e44"
+            ["feat/conversion-mobile-ticket-stepper-20260906"]="5b8f3f30ace6fdfcf539121e4ead94717508b450"
+            ["fix/checkout-auth-resilience-20260906"]="048fc371e80909e3ef756d31018ffa3d4823762b"
+            ["feat/acquisition-resume-event-onboarding-20260906"]="17857d061f5d06abe59c699884474c27e2fe30a9"
+            ["feat/monetization-ticket-uplift-20260906"]="b89695c76d121f39373cca42b610b4bc3bef1f6c"
+            ["feat/conversion-card-recovery-20260906"]="2365a3e83d0282a453375ab4a4dfb6a0c832cea4"
+            ["fix/auth-storage-resilience"]="b1c17ec5bc7bda718bec3bff7c7a6c3ab820d4a7"
+            ["automation/event-commerce-storage"]="f8a857149ab3b67fa541290304e4aa4998e16120"
+            ["feat/adaptive-payment-sync-20260906"]="fd6f50885ea0262d22909f47b1076deaac539d34"
+            ["fix/card-sdk-loader-resilience-20260906"]="ebba9243507ec1f8d1fa4bebdb7764ebe1409c7e"
+            ["fix/checkout-sync-coalescing-20260906"]="6146552e29559bd44df5232fa347c56af3d72df6"
+            ["fix/checkout-restore-payment-method"]="270ff73230910210ec962112f0f8de354430c034"
+            ["feat/checkout-durable-recovery"]="70f73ae5074c9df6b667229075491d2744b9f4bc"
+            ["fix/checkout-idempotency-retries-v2"]="d9a129e799e9d82adceb00cdde5295c2bb797618"
+            ["automation/event-discovery-a11y-perf-20260906"]="def19843b12e32412663beb9016b0310dba336a0"
+            ["automation/conversion-failed-payment-recovery-20260906"]="d76b698e57e2794db0b2b18557e51c46dff838a9"
+            ["automation/fix-cra-telemetry-20260906-r3"]="8a80a2b4f05ce9d23b291fdb38263b59283a5fb1"
+            ["automation/acquisition-public-event-seo-20260906"]="18005e6738e267672554008cce615779c22a2add"
+            ["automation/conversion-visible-total-20260905"]="026f0cb84e989f567a71fdf99d72d7e65d279108"
+            ["chore/runtime-shell-hardening-20260906-v2"]="09c79e0adb3b482bd95a3415ced94c4b73de0e65"
+            ["automation/acquisition-activation-loop-20260905"]="7b2688c2141a970097abeba33dcd937a2bb45e52"
+            ["automation/conversion-pix-copy-feedback-20260906"]="655c8aca8043d23e9525676dd3c89b61cc49a88a"
+            ["feat/acquisition-first-sale-sharing"]="668197586d68630de1823b564089c861d89a0315"
+            ["autonomous/request-correlation-20260906"]="409745d152e07aa3f9637e1e7ad18b9a0296b2c8"
+            ["improve/http-resilience-20260905"]="83747addb0a62a665bc122116a7fdd8577ee406d"
+            ["feat/event-date-item-redemption-main"]="b93c4adc34e2e15427c25e4bbdc2bfdd29c627d1"
+            ["chore/port-dynamic-branding-main"]="2b83a3849cc8417b8505f01d9f1efbc2ffc98df1"
+            ["automation/monetization-margin-signals-20260905"]="691bef5d345eece78256418fd46d94fa9e8ca68c"
+            ["fix/checkin-qr-loader-retry"]="31707d8659da9c8b71f0160d4d6f2db89246d47a"
+            ["feat/duplicate-event"]="1800ef1906773670284853b1c27cc3efdc29f363"
+            ["fix/notification-permission-recovery"]="620963751ceefde14b8128805b2997826f4c7e0f"
+            ["feat/landing-conversion-complete-20260905"]="8e562a9cb59b6c649550df4a016259c13c0cb46f"
+            ["checkin-network-resilience-20260905"]="088d5ebf223cd259ab16a31a15b1c2ea23ce24f1"
+            ["fix/agenda-dedicated-pages-20260905"]="5b330f23185d825d084437a69fc063b3bf4d3a0d"
+            ["fix/weekly-agenda-proptypes-20260905"]="97a097e6bc25b9aa180b0489352d99fb8be0f960"
+            ["feat/weekly-event-agenda-20260905"]="3dcc8024eba0bab0c2333783091a3ce4624406f6"
+            ["fix/cutinapp-mobile-navbar-click-20260905"]="b258ce54d63ccebfbd6e65e83f693fe3d80b9710"
+            ["feat/production-discovery-cards-20260905"]="fa06351649126a8a9c395ae8e59bcc409c1999a5"
+            ["fix/cutinapp-mobile-navbar-20260905"]="d5468b5889bfc0cc21c774b0fe4fc489373bab5e"
+            ["feat/user-profile-background-20260905"]="ca31455563f71d6eb10e6d7a7a6345dbfff832c3"
+            ["feat/landing-experience-20260905"]="c11e7a14dfdcf8dbe405dcced0c56e7e39fbd7eb"
+            ["feature/public-productions-menu-20260905"]="25cda450652d53baa93a56c9b260dc4eba797948"
+            ["feat/acquisition-first-sale-publish-flow-20260905"]="57b53b9a4c47c9c8c8ea40dd5deb07656cfb1c87"
+            ["automation/conversion-checkout-funnel-20260905-0819"]="cb7ee165d435b0fd4eaa48cc8aba15c6c0dbfbea"
+            ["automation/acquisition-first-sale-readiness"]="02ac076fa740357c725195311fd2bdf95f5dcefb"
+            ["feat/retention-repeat-from-history-v2-20260905"]="1cec2b1b245979a76b0a6ee14e71ac3ce06e2646"
+            ["automation/monetization-event-economics-20260905"]="973459642291a1c1aa5d46214cb141477c0b3a6a"
+            ["automation/monetization-revenue-per-sale"]="a659ec17993fafe677b5d0d4ba49b89ca6b8ebbc"
+            ["feature/event-production-prefill-main"]="c6644910cd64db5a5c63d14708baeddddf843b46"
+            ["fix/checkin-sri-correction-20260904"]="77209cb886bebef9c8160e1ffb5fda5562edb15c"
+            ["fix/checkin-fallback-hardening-20260904"]="437b61218b854d6488f573d9515bdb9b7d5f46f7"
+            ["fix/event-engagement-persistence"]="a88b2b15dee4e3a0eb076e15c125897b8465cf4b"
+            ["automation/notification-telemetry-hardening"]="812806e50e10b0a8d5a4976d71bf38720d95a8d2"
+            ["automation-checkin-scan-lock-20260904"]="c9c12c77125e62fdfccb21bfbab05440ed784167"
+            ["feat/email-verification-deferral"]="35252459382ac6a2de0912b0fd2bc8328848167c"
+            ["feat/ticket-transfer-20260904"]="37345dd53a6bd965d4e6aa5b2aa16a4eb4eb3da0"
+            ["fix/acquisition-dashboard-hardening"]="d50efe6c15eb3b46774d111ecc243d6d0e66b4dc"
+            ["feature/acquisition-agent"]="d2e55688122fcd77e20c7943391dccfee5a1b111"
+            ["feat/delete-production-20260904"]="d6f31533eb578ef9c5cce33ae27a66b2d7c95fd0"
+            ["refactor/canonical-platform-api-20260903"]="02243b0e00bdc9f2b3580edc39317c743e9a9bc6"
           )
           failures=0
           deleted=0
           absent=0
           changed=0
           for branch in "${!expected[@]}"; do
-            current="$(gh api "repos/$REPO/git/ref/heads/$branch" --jq '.object.sha' 2>/dev/null || true)"
-            if [ -z "$current" ]; then
+            if current="$(gh api "repos/$REPO/git/ref/heads/$branch" --jq '.object.sha' 2>/dev/null)"; then
+              :
+            else
               echo "Already absent: $branch"
-              absent=$((absent + 1))
+              absent=$((absent+1))
               continue
             fi
             if [ "$current" != "${expected[$branch]}" ]; then
               echo "HEAD CHANGED; refusing deletion: $branch expected=${expected[$branch]} current=$current"
-              changed=$((changed + 1))
-              failures=$((failures + 1))
+              changed=$((changed+1))
+              failures=$((failures+1))
               continue
             fi
             if gh api --method DELETE "repos/$REPO/git/refs/heads/$branch" >/dev/null; then
               echo "Deleted $branch"
-              deleted=$((deleted + 1))
+              deleted=$((deleted+1))
             else
               echo "FAILED to delete $branch"
-              failures=$((failures + 1))
+              failures=$((failures+1))
             fi
           done
           echo "SUMMARY deleted=$deleted absent=$absent changed=$changed failures=$failures"
