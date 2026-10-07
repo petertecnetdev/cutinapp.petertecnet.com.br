@@ -1,3 +1,5 @@
+[Reading 445 lines from start (total: 445 lines, 0 remaining)]
+
 import React, { useEffect, useMemo, useState } from "react";
 import { Alert, Badge, Button, Card, Col, Container, Form, Modal, Row, Spinner } from "react-bootstrap";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
@@ -94,6 +96,37 @@ export default function PassDetailPage() {
   const purchase = pass?.purchase || null;
   const complimentary = Boolean(pass?.is_complimentary) || Number(pass?.ticket?.price || 0) <= 0;
   const eventArtwork = String(pass?.event?.image || "");
+
+  useEffect(() => {
+    if (!qrOpen || !pass?.token || used || invalid || eventEnded || !("wakeLock" in navigator)) return undefined;
+
+    let wakeLock = null;
+    let cancelled = false;
+
+    const requestWakeLock = async () => {
+      if (document.visibilityState !== "visible" || cancelled || wakeLock) return;
+      try {
+        wakeLock = await navigator.wakeLock.request("screen");
+        wakeLock.addEventListener("release", () => { wakeLock = null; }, { once: true });
+      } catch (_) {
+        // Wake Lock is an enhancement: QR/check-in remains usable when denied or unsupported.
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") requestWakeLock();
+    };
+
+    requestWakeLock();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (wakeLock) wakeLock.release().catch(() => {});
+      wakeLock = null;
+    };
+  }, [eventEnded, invalid, pass?.token, qrOpen, used]);
 
   useEffect(() => {
     if (!pass || !location.state?.openTransfer) return;
@@ -412,3 +445,5 @@ export default function PassDetailPage() {
     </Modal>
   </div>;
 }
+
+[executed on device: petertecnetserver (b42cd296-add7-4131-9294-fe647b68fcc9)]
