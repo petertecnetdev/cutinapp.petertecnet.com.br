@@ -44,3 +44,144 @@
 
 .cut-landing__eventPrice{display:flex;align-items:center;gap:7px;margin-top:9px;color:#f1e8ff;font-size:.72rem}
 .cut-landing__eventPrice i{color:#c76cff;font-size:.68rem}
+
+/* Canonical public mobile navigation.
+ * The mobile drawer is portaled directly under document.body so the sticky
+ * landing header/backdrop-filter can never become its containing block. */
+.cut-landing__menuToggle{display:none}
+.cut-landing-mobile-drawer{display:none}
+
+@media(max-width:991px){
+  .cut-landing__menuToggle{
+    display:grid;
+    place-items:center;
+    flex:0 0 44px;
+    width:44px;
+    height:44px;
+    margin-left:auto;
+    padding:0;
+    border:1px solid rgba(255,255,255,.12);
+    border-radius:14px;
+    background:#0b0b16;
+    color:#fff;
+    font-size:1.2rem;
+    touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent
+  }
+  .cut-landing__menuToggle:focus-visible{
+    outline:2px solid #c65cff;
+    outline-offset:2px
+  }
+  .cut-landing__publicNav{display:none!important}
+  .cut-landing-mobile-drawer{
+    position:fixed!important;
+    inset:0!important;
+    z-index:2147483647!important;
+    display:flex!important;
+    flex-direction:column;
+    width:100vw;
+    height:100dvh;
+    overflow:hidden;
+    background:#080809;
+    color:#fff
+  }
+  .cut-landing-mobile-drawer__header{
+    min-height:calc(68px + env(safe-area-inset-top,0px));
+    padding:calc(10px + env(safe-area-inset-top,0px)) max(14px,env(safe-area-inset-right,0px)) 10px max(14px,env(safe-area-inset-left,0px));
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+    flex:0 0 auto;
+    border-bottom:1px solid rgba(255,255,255,.09)
+  }
+  .cut-landing-mobile-drawer__brand{
+    min-width:0;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    color:#fff!important;
+    text-decoration:none!important
+  }
+  .cut-landing-mobile-drawer__brand img{
+    width:42px;
+    height:42px;
+    object-fit:contain;
+    border-radius:50%;
+    flex:0 0 auto
+  }
+  .cut-landing-mobile-drawer__brand span{
+    min-width:0;
+    display:flex;
+    flex-direction:column
+  }
+  .cut-landing-mobile-drawer__brand strong{font-size:.95rem}
+  .cut-landing-mobile-drawer__brand small{
+    color:#8d8997;
+    font-size:.62rem;
+    font-weight:850;
+    letter-spacing:.08em
+  }
+  .cut-landing-mobile-drawer__close{
+    width:46px;
+    height:46px;
+    flex:0 0 auto;
+    display:grid;
+    place-items:center;
+    border:0;
+    border-radius:50%;
+    background:#17171b;
+    color:#fff;
+    font-size:1.25rem;
+    touch-action:manipulation
+  }
+  .cut-landing-mobile-drawer__content{
+    flex:1 1 auto;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+    padding:14px max(14px,env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(14px,env(safe-area-inset-left,0px))
+  }
+  .cut-landing-mobile-drawer__content>a:not(.btn){
+    width:100%;
+    min-height:52px;
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding:12px 14px;
+    border:1px solid transparent;
+    border-radius:14px;
+    color:#f2eef7!important;
+    text-decoration:none!important;
+    font-size:.92rem;
+    font-weight:850
+  }
+  .cut-landing-mobile-drawer__content>a:not(.btn):active{
+    background:#151519;
+    border-color:rgba(255,255,255,.08)
+  }
+  .cut-landing-mobile-drawer__content>a>i{
+    width:24px;
+    text-align:center;
+    color:#c56aff
+  }
+  .cut-landing-mobile-drawer__cta{
+    width:100%;
+    min-height:50px;
+    margin-top:10px!important;
+    display:flex!important;
+    align-items:center;
+    justify-content:center;
+    border:0!important;
+    border-radius:14px!important;
+    background:linear-gradient(135deg,#db5eff,#7658ff 60%,#318fff)!important;
+    font-weight:900!important
+  }
+  body.cut-public-mobile-menu-open .cut-landing__mobileCta{
+    visibility:hidden!important;
+    pointer-events:none!important
+  }
+}
+@media(min-width:992px){
+  .cut-landing-mobile-drawer{display:none!important}
+}
