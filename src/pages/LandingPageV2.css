@@ -44,3 +44,75 @@
 
 .cut-landing__eventPrice{display:flex;align-items:center;gap:7px;margin-top:9px;color:#f1e8ff;font-size:.72rem}
 .cut-landing__eventPrice i{color:#c76cff;font-size:.68rem}
+
+/* Canonical public mobile navigation.
+ * The landing previously hid desktop links without providing a replacement,
+ * leaving guests with no menu on phones. */
+.cut-landing__menuToggle{display:none}
+@media(max-width:991px){
+  .cut-landing__nav--menu-open{z-index:120}
+  .cut-landing__menuToggle{
+    display:grid;
+    place-items:center;
+    flex:0 0 44px;
+    width:44px;
+    height:44px;
+    margin-left:auto;
+    padding:0;
+    border:1px solid rgba(255,255,255,.12);
+    border-radius:14px;
+    background:#0b0b16;
+    color:#fff;
+    font-size:1.2rem;
+    touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent
+  }
+  .cut-landing__menuToggle:focus-visible{
+    outline:2px solid #c65cff;
+    outline-offset:2px
+  }
+  .cut-landing__publicNav{display:none!important}
+  .cut-landing__publicNav.is-open{
+    position:fixed;
+    inset:64px 0 0;
+    display:flex!important;
+    flex-direction:column;
+    align-items:stretch;
+    gap:6px;
+    width:100vw;
+    height:calc(100dvh - 64px);
+    padding:18px max(16px,env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    background:#080809;
+    border-top:1px solid rgba(255,255,255,.08)
+  }
+  .cut-landing__nav .cut-landing__publicNav.is-open>a:not(.btn){
+    display:flex!important;
+    align-items:center;
+    min-height:50px;
+    width:100%;
+    padding:12px 14px;
+    border:1px solid transparent;
+    border-radius:14px;
+    color:#e7e4ec;
+    font-size:.92rem;
+    font-weight:850
+  }
+  .cut-landing__nav .cut-landing__publicNav.is-open>a:not(.btn):hover,
+  .cut-landing__nav .cut-landing__publicNav.is-open>a:not(.btn):focus-visible{
+    background:#141417;
+    border-color:rgba(255,255,255,.08);
+    color:#fff;
+    outline:none
+  }
+  .cut-landing__publicNav.is-open .cut-landing__navCta{
+    display:flex!important;
+    align-items:center;
+    justify-content:center;
+    width:100%;
+    min-height:50px;
+    margin:8px 0 0!important
+  }
+}
+
