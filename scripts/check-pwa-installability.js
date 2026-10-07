@@ -142,7 +142,7 @@ for (const icon of icons) {
 }
 
 const html = read('public/index.html');
-if (!/<link[^>]+rel=["']manifest["'][^>]+href=["']\/manifest\.json["']/i.test(html)) {
+if (!/<link[^>]+rel=["']manifest["'][^>]+href=["']\/manifest\.json(?:\?[^"']*)?["']/i.test(html)) {
   fail('index.html must link /manifest.json');
 }
 if (!/serviceWorker\.register\(["']\/sw\.js(?:\?[^"']*)?["']/i.test(html)) {
