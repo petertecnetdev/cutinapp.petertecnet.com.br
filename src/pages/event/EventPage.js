@@ -39,6 +39,7 @@ const ticketPriceLabel = (event) => {
 };
 
 const ticketAvailabilityBadge = (event) => {
+  if (event?.kind === "community") return { bg: "light", text: "dark", label: "Encontro grátis" };
   switch (event?.ticket_availability_status) {
     case "free_available": return { bg: "success", label: "Gratuito" };
     case "available": return { bg: "primary", label: "Ingressos disponíveis" };
@@ -54,7 +55,7 @@ const ticketAvailabilityBadge = (event) => {
   }
 };
 
-const DATE_FILTER_KEYS = new Set(["city", "uf", "date", "page"]);
+const DATE_FILTER_KEYS = new Set(["city", "uf", "date", "kind", "page"]);
 
 export default function EventPage() {
   const navigate = useNavigate();
@@ -68,6 +69,7 @@ export default function EventPage() {
     city: searchParams.get("city") || "",
     uf: searchParams.get("uf") || "",
     date: searchParams.get("date") || "",
+    kind: searchParams.get("kind") || "",
     page: Math.max(1, Number(searchParams.get("page") || 1)),
   }), [searchParams]);
 
@@ -103,6 +105,7 @@ export default function EventPage() {
       city: filters.city || undefined,
       uf: filters.uf || undefined,
       date: filters.date || undefined,
+      kind: filters.kind || undefined,
       page: filters.page,
       view: "compact",
       per_page: 18,
@@ -121,7 +124,7 @@ export default function EventPage() {
       });
 
     return () => { active = false; };
-  }, [filters.city, filters.uf, filters.date, filters.page]);
+  }, [filters.city, filters.uf, filters.date, filters.kind, filters.page]);
 
   const update = (changes) => {
     const next = new URLSearchParams(searchParams);
@@ -153,6 +156,12 @@ export default function EventPage() {
         </div>
 
         {error && <Alert variant="danger">{error}</Alert>}
+
+        <div className="d-flex flex-wrap gap-2 mb-4" aria-label="Filtrar tipo de experiência">
+          <Button size="sm" variant={!filters.kind ? "light" : "outline-light"} onClick={() => update({ kind: "" })}>Todos</Button>
+          <Button size="sm" variant={filters.kind === "commercial" ? "light" : "outline-light"} onClick={() => update({ kind: "commercial" })}>Eventos</Button>
+          <Button size="sm" variant={filters.kind === "community" ? "light" : "outline-light"} onClick={() => update({ kind: "community" })}>Encontros</Button>
+        </div>
 
         <EventDateCarousel
           city={filters.city}
@@ -219,7 +228,7 @@ export default function EventPage() {
                       </div>
                       <Card.Body>
                         <div className="cut-event-card__badges">{event.category && <Badge bg="dark">{event.category}</Badge>}<Badge bg={availabilityBadge.bg} text={availabilityBadge.text}>{availabilityBadge.label}</Badge></div>
-                        <span className="cut-eyebrow">{event.production?.name || "Cutinapp"}</span>
+                        <span className="cut-eyebrow">{event.kind === "community" ? "Encontro comunitário" : event.production?.name || "Cutinapp"}</span>
                         <h2>{event.title}</h2>
                         <div className="cut-event-card__meta">
                           <span><i className="fa-regular fa-calendar" />{formatDate(event.start_date)}</span>
