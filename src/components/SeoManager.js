@@ -82,10 +82,10 @@ const buildProductionSeo = (production, slug) => {
     || (location
       ? `Conheça ${production.name}, produção de eventos em ${location}, e veja seus próximos eventos na Cutinapp.`
       : `Conheça ${production.name}, seus eventos e experiências publicados na Cutinapp.`);
-  const productionImage = productionMediaUrl(production.background || production.logo);
-  const image = productionImage || `${SITE_URL}/images/logo.png`;
+  const productionImage = productionMediaUrl(production.logo || production.image || production.background || production.cover);
+  const image = productionImage || `${SITE_URL}/images/cutinapp.png`;
   const imageAlt = productionImage
-    ? `${production.background ? "Capa" : "Logo"} oficial de ${production.name}${location ? ` em ${location}` : ""}`
+    ? `Logo ou imagem principal de ${production.name}${location ? ` em ${location}` : ""}`
     : `Cutinapp — ${production.name}`;
   const website = publicHttpUrl(production.website_url || production.website);
   const sameAs = [production.instagram_url, production.facebook_url, production.youtube_url, production.tiktok_url]
@@ -245,7 +245,7 @@ export default function SeoManager() {
       title: resolved.title || DEFAULT_TITLE,
       description: resolved.description || DEFAULT_DESCRIPTION,
       canonical: `${SITE_URL}${path === "/" ? "/" : path}`,
-      image: `${SITE_URL}/images/logo.png`,
+      image: `${SITE_URL}/images/cutinapp.png`,
       type: "website",
       robots: indexable ? "index, follow, max-image-preview:large" : "noindex, nofollow",
       jsonLd: resolved.jsonLd,
