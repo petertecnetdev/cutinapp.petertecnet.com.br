@@ -7,8 +7,8 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "theme_color": "#030910",
-  "background_color": "#030910",
+  "theme_color": "#000000",
+  "background_color": "#000000",
   "prefer_related_applications": false,
   "icons": [
     {
@@ -21,7 +21,7 @@
       "src": "/images/cutinapp.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ],
   "shortcuts": [
