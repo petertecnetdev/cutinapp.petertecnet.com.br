@@ -998,3 +998,251 @@
     flex-direction: column;
   }
 
+  .cut-lineup-device-switch,
+  .cut-lineup-view-switch {
+    width: 100%;
+  }
+
+  .cut-lineup-device-switch button,
+  .cut-lineup-view-switch button {
+    flex: 1 1 0;
+  }
+
+  .cut-lineup-preview-item {
+    grid-template-columns: 1fr;
+    gap: 3px;
+  }
+
+  .cut-lineup-tool-row,
+  .cut-lineup-submit-row,
+  .cut-lineup-two-cols,
+  .cut-lineup-core-fields {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+
+  .cut-lineup-tool-row {
+    display: grid;
+  }
+
+  .cut-lineup-submit-row {
+    display: grid;
+  }
+
+  .cut-lineup-mode-switch {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .cut-lineup-mode-switch button {
+    min-height: 46px;
+    padding: 8px;
+    font-size: .76rem;
+  }
+
+  .cut-lineup-editor-heading {
+    margin-bottom: 14px;
+  }
+
+  .cut-lineup-item-main {
+    padding-right: 0;
+  }
+
+  .cut-lineup-drag {
+    display: none;
+  }
+
+  .cut-lineup-avatar {
+    width: 44px;
+    height: 44px;
+  }
+
+  .cut-lineup-order-label {
+    position: static;
+    width: max-content;
+    margin-left: auto;
+  }
+
+  .cut-lineup-quick-edit {
+    grid-template-columns: 1fr;
+  }
+
+  .cut-lineup-headliner-switch,
+  .cut-lineup-headliner-switch span {
+    width: 100%;
+  }
+
+  .cut-lineup-item-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cut-lineup-item-actions .btn {
+    width: 100%;
+  }
+
+  .cut-lineup-saving-label {
+    position: static;
+    justify-self: end;
+  }
+
+  .cut-lineup-mobile-add {
+    position: fixed;
+    right: 14px;
+    bottom: max(76px, calc(env(safe-area-inset-bottom, 0px) + 66px));
+    z-index: calc(var(--cut-z-sticky) + 5);
+    min-height: 48px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 16px;
+    border: 1px solid rgba(255, 255, 255, .16);
+    border-radius: 999px;
+    background: var(--cut-gradient-brand);
+    color: #fff;
+    box-shadow: var(--cut-shadow-brand-strong);
+    font-weight: 900;
+  }
+
+  .cut-lineup-skeleton-metrics {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 7px;
+  }
+
+  .cut-lineup-skeleton-metrics > div {
+    height: 76px;
+  }
+}
+
+@media (max-width: 439.98px) {
+  .cut-lineup-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .cut-lineup-summary > div {
+    min-height: 68px;
+  }
+
+  .cut-lineup-summary span {
+    margin-top: 4px;
+  }
+
+  .cut-lineup-hero-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .cut-lineup-hero-actions .btn:last-child:nth-child(3) {
+    grid-column: auto;
+  }
+
+  .cut-lineup-mode-switch {
+    grid-template-columns: 1fr;
+  }
+
+  .cut-lineup-item-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cut-lineup-progress > span,
+  .cut-lineup-tools > summary::after,
+  .cut-lineup-public-preview {
+    transition: none;
+  }
+}
+
+
+/* Candidate picker: keep external/user avatars inside a predictable compact row. */
+.cut-lineup-picker-results{
+  display:grid;
+  gap:8px;
+  max-height:320px;
+  overflow:auto;
+  padding:8px;
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:16px;
+  background:rgba(var(--cut-surface-1-rgb), .96);
+  box-shadow:0 20px 55px rgba(0,0,0,.38);
+  -webkit-backdrop-filter:blur(22px) saturate(150%);
+  backdrop-filter:blur(22px) saturate(150%);
+}
+.cut-lineup-picker-item{
+  width:100%;
+  min-width:0;
+  display:grid;
+  grid-template-columns:52px minmax(0,1fr) auto;
+  align-items:center;
+  gap:11px;
+  padding:9px 10px;
+  border:1px solid transparent;
+  border-radius:13px;
+  background:transparent;
+  color:#fff;
+  text-align:left;
+}
+.cut-lineup-picker-item:hover,
+.cut-lineup-picker-item:focus-visible{
+  border-color:rgba(var(--cut-red-rgb), .24);
+  background:rgba(var(--cut-red-rgb), .10);
+}
+.cut-lineup-picker-avatar{
+  width:48px !important;
+  height:48px !important;
+  min-width:48px !important;
+  max-width:48px !important;
+  min-height:48px !important;
+  max-height:48px !important;
+  aspect-ratio:1/1;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:50%;
+  background:var(--cut-gradient-brand-soft);
+  color:#fff;
+  font-size:.78rem;
+  font-weight:900;
+  line-height:1;
+}
+.cut-lineup-picker-avatar img{
+  display:block !important;
+  width:48px !important;
+  height:48px !important;
+  min-width:48px !important;
+  max-width:48px !important;
+  min-height:48px !important;
+  max-height:48px !important;
+  object-fit:cover !important;
+  object-position:center;
+  border-radius:50%;
+}
+.cut-lineup-candidate-type{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  margin-top:4px;
+  color:var(--cut-readable-soft,var(--cut-text-soft));
+  font-size:.72rem;
+  font-weight:800;
+}
+@media (max-width:575.98px){
+  .cut-lineup-picker-item{grid-template-columns:44px minmax(0,1fr);padding:8px}
+  .cut-lineup-picker-avatar,
+  .cut-lineup-picker-avatar img{
+    width:42px !important;
+    height:42px !important;
+    min-width:42px !important;
+    max-width:42px !important;
+    min-height:42px !important;
+    max-height:42px !important;
+  }
+  .cut-lineup-picker-item>.badge{grid-column:2;justify-self:start}
+}
+
+
+.cut-lineup-invite-metrics{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.cut-lineup-invite-metrics span{display:grid;gap:2px;min-width:105px;padding:9px 11px;border:1px solid rgba(255,255,255,.09);border-radius:12px;background:rgba(255,255,255,.025);color:var(--cut-readable-muted,var(--cut-text-muted));font-size:.72rem}
+.cut-lineup-invite-metrics strong{color:#fff;font-size:.95rem}
+.cut-lineup-email-editor{display:grid;grid-template-columns:minmax(220px,1fr) auto auto;gap:8px;align-items:center;padding-top:12px;border-top:1px solid rgba(255,255,255,.08)}
+.cut-lineup-page .form-select.form-select-sm{min-width:190px}
+@media(max-width:575.98px){.cut-lineup-invite-metrics{width:100%;justify-content:stretch}.cut-lineup-invite-metrics span{flex:1}.cut-lineup-email-editor{grid-template-columns:1fr}.cut-lineup-email-editor .btn{width:100%}.cut-lineup-page .form-select.form-select-sm{width:100%;min-width:0}}

@@ -997,3 +997,202 @@
     max-width: none !important;
     padding: 0 12px calc(var(--cut-instagram-bottombar-height, 74px) + env(safe-area-inset-bottom, 0px) + 26px);
   }
+
+  .cut-global-search__header {
+    position: sticky;
+    top: var(--cut-instagram-topbar-height, 64px);
+    margin: 0 -12px 24px;
+    padding: 14px 12px 15px;
+    border-inline: 0;
+    border-top: 0;
+    border-radius: 0 0 20px 20px;
+    background: var(--cut-surface-1);
+    box-shadow: 0 8px 0 var(--cut-bg-deep);
+  }
+
+  .cut-global-search__title-row {
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .cut-global-search__headline {
+    gap: 2px;
+  }
+
+  .cut-global-search__headline .cut-eyebrow,
+  .cut-global-search__headline p {
+    display: none;
+  }
+
+  .cut-global-search__headline h1 {
+    font-size: 1.32rem;
+  }
+
+  .cut-global-search__input-wrap {
+    min-height: 50px;
+    padding-inline: 13px 10px;
+    border-radius: 15px;
+    box-shadow: none;
+  }
+
+  .cut-global-search__input-wrap input {
+    height: 48px;
+    font-size: .9rem;
+  }
+
+  .cut-global-search__input-wrap > button {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+  }
+
+  .cut-global-search__quick-chips,
+  .cut-global-search__tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 3px;
+    scrollbar-width: none;
+  }
+
+  .cut-global-search__quick-chips::-webkit-scrollbar,
+  .cut-global-search__tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .cut-global-search__filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cut-global-search__suggestions {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: calc(var(--cut-instagram-topbar-height, 64px) + 68px);
+    bottom: calc(var(--cut-instagram-bottombar-height, 74px) + env(safe-area-inset-bottom, 0px));
+    max-height: none;
+    border-inline: 0;
+    border-radius: 18px 18px 0 0;
+    box-shadow: none;
+  }
+
+  .cut-global-search__starter-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cut-global-search__starter-grid > button {
+    min-height: 138px;
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 11px;
+    padding: 14px;
+  }
+
+  .cut-global-search__starter-icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  .cut-global-search__starter-arrow {
+    display: none;
+  }
+
+  .cut-global-search__trend-terms > div:last-child {
+    grid-template-columns: 1fr;
+  }
+
+  .cut-global-search__discover-grid {
+    grid-auto-columns: minmax(166px, 76vw);
+  }
+
+  .cut-global-search__discover-grid > button {
+    min-height: 172px;
+  }
+
+  .cut-global-search__content {
+    gap: 28px;
+  }
+
+  .cut-global-search__results > .cut-global-search__result,
+  .cut-global-search__recent > .cut-global-search__result,
+  .cut-global-search__saved-list > div {
+    content-visibility: auto;
+    contain: layout paint style;
+    contain-intrinsic-size: auto 80px;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .cut-global-search__title-row .btn {
+    min-height: 36px;
+    padding-inline: 10px;
+  }
+
+  .cut-global-search__filters {
+    grid-template-columns: 1fr;
+  }
+
+  .cut-global-search__starter-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+  }
+
+  .cut-global-search__starter-grid > button {
+    min-height: 132px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .cut-global-search__starter-copy small {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .cut-global-search__result {
+    grid-template-columns: 48px minmax(0, 1fr) auto;
+    min-height: 72px;
+    padding: 10px;
+  }
+
+  .cut-global-search__avatar {
+    width: 48px;
+    height: 48px;
+  }
+
+  .cut-global-search__result-open {
+    min-height: 70px;
+    grid-template-columns: 48px minmax(0, 1fr);
+    padding-left: 10px;
+  }
+
+  .cut-global-search__result-copy em {
+    display: none;
+  }
+
+  .cut-global-search__section-heading {
+    align-items: center;
+  }
+
+  .cut-global-search__section-heading > small {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cut-global-search__input-wrap,
+  .cut-global-search__quick-chips button,
+  .cut-global-search__tabs button,
+  .cut-global-search__starter-grid > button,
+  .cut-global-search__result,
+  .cut-global-search__discover-grid > button {
+    transition: none;
+    transform: none;
+  }
+
+  .cut-global-search__skeleton-row > span,
+  .cut-global-search__skeleton-row b,
+  .cut-global-search__skeleton-row i {
+    animation: none;
+  }
+}
