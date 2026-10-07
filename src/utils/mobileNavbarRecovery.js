@@ -25,6 +25,28 @@ export const installMobileNavbarRecovery = () => {
   if (window.__cutinappMobileNavbarRecoveryInstalled) return () => {};
   window.__cutinappMobileNavbarRecoveryInstalled = true;
 
+  const pendingToggleIntent = new WeakMap();
+
+  const currentOpenState = (toggle, collapse) => (
+    isOpen(collapse)
+    || toggle.getAttribute("aria-expanded") === "true"
+    || collapse.dataset.cutinappRecoveryOpen === "1"
+  );
+
+  const onToggleIntent = (event) => {
+    const toggle = event.target?.closest?.(".cut-navbar .navbar-toggler");
+    if (!toggle || !window.matchMedia(MOBILE_QUERY).matches) return;
+
+    const collapse = collapseForToggle(toggle);
+    if (!collapse) return;
+
+    // Snapshot the state before React/Bootstrap handles the click, but never
+    // mutate the DOM in capture phase. Reading the state later in document
+    // bubble phase is too late because React may already have committed the
+    // new state, which previously made recovery immediately undo a valid open.
+    pendingToggleIntent.set(toggle, !currentOpenState(toggle, collapse));
+  };
+
   const onToggle = (event) => {
     const toggle = event.target?.closest?.(".cut-navbar .navbar-toggler");
     if (!toggle || !window.matchMedia(MOBILE_QUERY).matches) return;
@@ -32,12 +54,12 @@ export const installMobileNavbarRecovery = () => {
     const collapse = collapseForToggle(toggle);
     if (!collapse) return;
 
-    const beforeOpen = isOpen(collapse);
-    const expectedOpen = !beforeOpen;
+    const expectedOpen = pendingToggleIntent.get(toggle);
+    pendingToggleIntent.delete(toggle);
+    if (typeof expectedOpen !== "boolean") return;
 
-    // Let React/Bootstrap own the click first. Previous recovery code changed
-    // the DOM in capture phase before the framework handler ran, which could
-    // race with a later React render and make the drawer close again.
+    // Let React/Bootstrap own the click. Recovery only verifies the transition
+    // against the pre-click intent captured above.
     window.setTimeout(() => {
       const frameworkOpen = isOpen(collapse);
       const frameworkExpanded = toggle.getAttribute("aria-expanded") === "true";
@@ -69,12 +91,15 @@ export const installMobileNavbarRecovery = () => {
     if (collapse && toggle) forceState(toggle, collapse, false);
   };
 
-  // Bubble phase is intentional: framework handlers get the first chance to
-  // update the controlled navbar state. Recovery only verifies afterwards.
+  // Capture phase only records intent; it never changes the DOM. Bubble phase
+  // verifies after framework handlers have had the first chance to update the
+  // controlled navbar state.
+  document.addEventListener("click", onToggleIntent, true);
   document.addEventListener("click", onToggle, false);
   document.addEventListener("click", onDestination, false);
 
   return () => {
+    document.removeEventListener("click", onToggleIntent, true);
     document.removeEventListener("click", onToggle, false);
     document.removeEventListener("click", onDestination, false);
     delete window.__cutinappMobileNavbarRecoveryInstalled;

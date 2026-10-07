@@ -63,6 +63,31 @@ describe("mobileNavbarRecovery", () => {
     expect(toggle.classList.contains("collapsed")).toBe(true);
   });
 
+  test("does not undo a framework transition that already handled the same click", () => {
+    const { toggle, collapse } = mountNavbar();
+    cleanup = installMobileNavbarRecovery();
+
+    const frameworkToggle = () => {
+      const nextOpen = !collapse.classList.contains("show");
+      collapse.classList.toggle("show", nextOpen);
+      toggle.classList.toggle("collapsed", !nextOpen);
+      toggle.setAttribute("aria-expanded", nextOpen ? "true" : "false");
+    };
+    toggle.addEventListener("click", frameworkToggle);
+
+    toggle.click();
+    flushRecovery();
+    expect(collapse.classList.contains("show")).toBe(true);
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+
+    toggle.click();
+    flushRecovery();
+    expect(collapse.classList.contains("show")).toBe(false);
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+
+    toggle.removeEventListener("click", frameworkToggle);
+  });
+
   test("closes the drawer after a mobile destination is activated", () => {
     const { toggle, collapse, destination } = mountNavbar();
     cleanup = installMobileNavbarRecovery();
