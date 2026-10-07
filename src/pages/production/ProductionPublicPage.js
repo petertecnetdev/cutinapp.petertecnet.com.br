@@ -1,5 +1,3 @@
-[Reading 561 lines from start (total: 561 lines, 0 remaining)]
-
 import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Alert, Button, Card, Container, Dropdown, Modal } from "react-bootstrap";
 import { useNavigate, useParams } from "react-router-dom";
