@@ -4,6 +4,8 @@ import process from "node:process";
 
 const SITE_URL = "https://cutinapp.petertecnet.com.br";
 const API_BASE = process.env.CUTINAPP_PUBLIC_API || "https://api.petertecnet.com.br/api/v1/apps/cutinapp";
+const CONTENT_API_BASE = process.env.CUTINAPP_CONTENT_API || "https://api.petertecnet.com.br/api/v1";
+const DEFAULT_SHARE_IMAGE = process.env.CUTINAPP_DEFAULT_SHARE_IMAGE || `${SITE_URL}/images/cutinapp.png`;
 const BUILD_DIR = path.resolve(process.env.CUTINAPP_BUILD_DIR || process.argv[2] || "build");
 const TIME_ZONE = process.env.CUTINAPP_SEO_TIME_ZONE || "UTC";
 const MAX_EVENTS = Math.max(1, Number(process.env.CUTINAPP_SEO_MAX_EVENTS || 5000));
@@ -42,7 +44,7 @@ const slugify = (value = "") => String(value)
 
 const absoluteImage = (value) => {
   const raw = String(value || "").trim();
-  if (!raw) return `${SITE_URL}/images/logo.png`;
+  if (!raw) return DEFAULT_SHARE_IMAGE;
   if (/^https?:\/\//i.test(raw)) return raw;
   return `https://api.petertecnet.com.br/storage/${raw.replace(/^\/+/, "")}`;
 };
@@ -157,6 +159,80 @@ const fetchAllProductions = async () => {
   return productions;
 };
 
+const fetchAllBlogArticles = async () => {
+  const articles = [];
+  for (let page = 1; page <= 100; page += 1) {
+    const url = new URL(`${CONTENT_API_BASE}/content`);
+    url.searchParams.set("application", "cutinapp");
+    url.searchParams.set("type", "article");
+    url.searchParams.set("per_page", String(PAGE_SIZE));
+    url.searchParams.set("page", String(page));
+    const payload = await fetchJson(url);
+    const paginator = payload?.data || {};
+    const rows = Array.isArray(paginator?.data) ? paginator.data : [];
+    articles.push(...rows.filter((entry) => entry?.status === "published"));
+    if (rows.length === 0 || page >= Number(paginator.last_page || page)) break;
+  }
+  return articles;
+};
+
+const fetchAllArtists = async () => {
+  const artists = [];
+  for (let page = 1; page <= 100; page += 1) {
+    const url = new URL(`${API_BASE}/artists`);
+    url.searchParams.set("per_page", String(PAGE_SIZE));
+    url.searchParams.set("page", String(page));
+    const payload = await fetchJson(url);
+    const paginator = payload?.artists || {};
+    const rows = Array.isArray(paginator?.data) ? paginator.data : [];
+    artists.push(...rows.filter((artist) => artist?.is_published !== false));
+    if (rows.length === 0 || page >= Number(paginator.last_page || page)) break;
+  }
+  return artists;
+};
+
+const fetchAllProfiles = async () => {
+  const profiles = [];
+  try {
+    for (let page = 1; page <= 100; page += 1) {
+      const url = new URL(`${API_BASE}/profiles`);
+      url.searchParams.set("per_page", String(PAGE_SIZE));
+      url.searchParams.set("page", String(page));
+      const payload = await fetchJson(url);
+      const paginator = payload?.profiles || {};
+      const rows = Array.isArray(paginator?.data) ? paginator.data : [];
+      profiles.push(...rows);
+      if (rows.length === 0 || page >= Number(paginator.last_page || page)) break;
+    }
+  } catch (error) {
+    console.warn(`Public profile snapshot source unavailable: ${error.message}`);
+  }
+  return profiles;
+};
+
+const fetchEventItems = async (event) => {
+  try {
+    const payload = await fetchJson(`${API_BASE}/events/public/${encodeURIComponent(event.slug)}/commerce`);
+    return Array.isArray(payload?.items) ? payload.items : [];
+  } catch (error) {
+    console.warn(`Item snapshot source unavailable for ${event.slug}: ${error.message}`);
+    return [];
+  }
+};
+
+const mapConcurrent = async (values, concurrency, worker) => {
+  const queue = [...values];
+  const results = [];
+  const runners = Array.from({ length: Math.max(1, Math.min(concurrency, queue.length || 1)) }, async () => {
+    while (queue.length) {
+      const value = queue.shift();
+      results.push(await worker(value));
+    }
+  });
+  await Promise.all(runners);
+  return results;
+};
+
 const replaceTagContent = (html, tag, value) => html.replace(
   new RegExp(`<${tag}[^>]*>[\\s\\S]*?<\\/${tag}>`, "i"),
   `<${tag}>${escapeHtml(value)}</${tag}>`,
@@ -194,11 +270,11 @@ const applySeo = (baseHtml, { title, description, canonical, image, imageAlt = "
   html = replaceMeta(html, "og:title", title);
   html = replaceMeta(html, "og:description", description);
   html = replaceMeta(html, "og:url", canonical);
-  html = replaceMeta(html, "og:image", image || `${SITE_URL}/images/logo.png`);
+  html = replaceMeta(html, "og:image", image || DEFAULT_SHARE_IMAGE);
   html = replaceMeta(html, "og:image:alt", imageAlt);
   html = replaceMeta(html, "twitter:title", title);
   html = replaceMeta(html, "twitter:description", description);
-  html = replaceMeta(html, "twitter:image", image || `${SITE_URL}/images/logo.png`);
+  html = replaceMeta(html, "twitter:image", image || DEFAULT_SHARE_IMAGE);
   html = replaceMeta(html, "twitter:image:alt", imageAlt);
   html = replaceCanonical(html, canonical);
   html = replaceJsonLd(html, jsonLd);
@@ -328,7 +404,7 @@ const productionSchema = (production) => {
       description: stripMarkdownText(production.description || production.bio || ""),
       url: canonical,
       logo: production.logo || production.image ? absoluteImage(production.logo || production.image) : undefined,
-      image: absoluteImage(production.background || production.cover || production.logo || production.image),
+      image: absoluteImage(production.logo || production.image || production.background || production.cover),
       address,
       sameAs: [production.website_url, production.instagram_url, production.facebook_url, production.twitter_url, production.youtube_url].filter(Boolean),
     },
@@ -337,7 +413,7 @@ const productionSchema = (production) => {
 
 const productionBody = (production) => {
   const description = stripMarkdownText(production.description || production.bio || "");
-  const image = production.background || production.cover || production.logo || production.image;
+  const image = production.logo || production.image || production.background || production.cover;
   const location = [production.city, production.uf].filter(Boolean).join(" - ");
   return `<article style="max-width:900px;margin:0 auto;padding:32px 20px;font-family:system-ui,sans-serif">
     <p><a href="${SITE_URL}/">Cutinapp</a> · Produção</p>
@@ -359,10 +435,129 @@ const buildProductionSnapshot = (baseHtml, production) => {
     title,
     description,
     canonical,
-    image: absoluteImage(production.background || production.cover || production.logo || production.image),
-    imageAlt: `Capa de ${name}`,
+    image: absoluteImage(production.logo || production.image || production.background || production.cover),
+    imageAlt: `Logo de ${name}`,
     jsonLd: productionSchema(production),
     body: productionBody(production),
+  });
+};
+
+const buildBlogSnapshot = (baseHtml, article) => {
+  const canonical = article.canonical_url || `${SITE_URL}/blog/${encodeURIComponent(article.slug)}`;
+  const title = article?.seo?.title || article.seo_title || `${article.title || "Artigo"} | Blog Cutinapp`;
+  const description = truncate(article?.seo?.description || article.seo_description || article.excerpt || "Conteúdo publicado na Cutinapp.");
+  const image = absoluteImage(article.cover_image || article.og_image || article?.seo?.og_image);
+  return applySeo(baseHtml, {
+    title,
+    description,
+    canonical,
+    image,
+    imageAlt: `Imagem de ${article.title || "artigo da Cutinapp"}`,
+    jsonLd: {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      headline: article.title,
+      description,
+      image: [image],
+      datePublished: article.published_at || undefined,
+      dateModified: article.updated_at || undefined,
+      mainEntityOfPage: canonical,
+      publisher: { "@type": "Organization", name: "Cutinapp", url: SITE_URL },
+    },
+    body: `<article style="max-width:900px;margin:0 auto;padding:32px 20px;font-family:system-ui,sans-serif">
+      <p><a href="${SITE_URL}/blog">Blog Cutinapp</a></p>
+      <h1>${escapeHtml(article.title || "Artigo")}</h1>
+      ${article.cover_image || article.og_image ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(article.title || "Artigo")}" style="max-width:100%;height:auto" />` : ""}
+      ${article.excerpt ? `<p>${escapeHtml(article.excerpt)}</p>` : ""}
+    </article>`,
+  });
+};
+
+const buildArtistSnapshot = (baseHtml, artist) => {
+  const canonical = `${SITE_URL}/artist/${encodeURIComponent(artist.slug)}`;
+  const name = artist.stage_name || artist.name || "Artista";
+  const location = [artist.city, artist.uf].filter(Boolean).join(" - ");
+  const description = truncate(artist.bio || artist.short_bio || `Conheça ${name}${location ? ` em ${location}` : ""}, agenda e participações na Cutinapp.`);
+  const image = absoluteImage(artist.photo || artist.avatar || artist.cover);
+  return applySeo(baseHtml, {
+    title: `${name}${location ? ` em ${location}` : ""} | Cutinapp`,
+    description,
+    canonical,
+    image,
+    imageAlt: `Foto de ${name}`,
+    jsonLd: {
+      "@context": "https://schema.org",
+      "@type": "ProfilePage",
+      url: canonical,
+      mainEntity: { "@type": "Person", name, description, image, url: canonical },
+    },
+    body: `<article style="max-width:900px;margin:0 auto;padding:32px 20px;font-family:system-ui,sans-serif">
+      <p><a href="${SITE_URL}/artists">Artistas na Cutinapp</a></p>
+      <h1>${escapeHtml(name)}</h1>
+      ${artist.photo || artist.avatar || artist.cover ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(name)}" style="max-width:100%;height:auto" />` : ""}
+      ${description ? `<p>${escapeHtml(description)}</p>` : ""}
+    </article>`,
+  });
+};
+
+const profileName = (profile = {}) => [profile.first_name, profile.last_name].filter(Boolean).join(" ").trim() || profile.user_name || "Participante Cutinapp";
+
+const buildProfileSnapshot = (baseHtml, profile) => {
+  const canonical = `${SITE_URL}/profile/${Number(profile.id)}`;
+  const name = profileName(profile);
+  const description = truncate(profile.about || `Veja o perfil de ${name} na comunidade Cutinapp.`);
+  const image = absoluteImage(profile.avatar || profile.background);
+  return applySeo(baseHtml, {
+    title: `${name} | Cutinapp`,
+    description,
+    canonical,
+    image,
+    imageAlt: `Avatar de ${name}`,
+    jsonLd: {
+      "@context": "https://schema.org",
+      "@type": "ProfilePage",
+      url: canonical,
+      mainEntity: { "@type": "Person", name, description, image, url: canonical },
+    },
+    body: `<article style="max-width:900px;margin:0 auto;padding:32px 20px;font-family:system-ui,sans-serif">
+      <p><a href="${SITE_URL}/">Cutinapp</a> · Participante</p>
+      <h1>${escapeHtml(name)}</h1>
+      ${profile.avatar || profile.background ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(name)}" style="max-width:100%;height:auto" />` : ""}
+      ${profile.about ? `<p>${escapeHtml(stripText(profile.about))}</p>` : ""}
+    </article>`,
+  });
+};
+
+const buildItemSnapshot = (baseHtml, event, item) => {
+  const canonical = `${SITE_URL}/event/${encodeURIComponent(event.slug)}/item/${Number(item.id)}`;
+  const name = item.name || item.title || "Item";
+  const production = event.production || event.organization || null;
+  const description = truncate(item.short_description || item.description || `${name} disponível em ${event.title || "evento"} na Cutinapp.`);
+  const image = absoluteImage(item.image_url || item.image || item.photo);
+  const price = item.promotion_enabled && Number(item.promotion_price) >= 0 ? Number(item.promotion_price) : Number(item.price || 0);
+  const currency = item.currency || event.currency || undefined;
+  return applySeo(baseHtml, {
+    title: `${name} | ${event.title || production?.name || "Cutinapp"}`,
+    description,
+    canonical,
+    image,
+    imageAlt: `Imagem de ${name}`,
+    jsonLd: {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      name,
+      description,
+      image: [image],
+      sku: item.sku || undefined,
+      brand: production?.name ? { "@type": "Brand", name: production.name } : undefined,
+      offers: currency ? { "@type": "Offer", priceCurrency: String(currency).toUpperCase(), price: price.toFixed(2), url: canonical } : undefined,
+    },
+    body: `<article style="max-width:900px;margin:0 auto;padding:32px 20px;font-family:system-ui,sans-serif">
+      <p><a href="${SITE_URL}/event/${encodeURIComponent(event.slug)}">${escapeHtml(event.title || "Evento")}</a> · Item</p>
+      <h1>${escapeHtml(name)}</h1>
+      ${item.image_url || item.image || item.photo ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(name)}" style="max-width:100%;height:auto" />` : ""}
+      <p>${escapeHtml(description)}</p>
+    </article>`,
   });
 };
 
@@ -468,6 +663,9 @@ const cleanupPreviousSnapshots = async () => {
       fs.rm(path.join(BUILD_DIR, "event"), { recursive: true, force: true }),
       fs.rm(path.join(BUILD_DIR, "eventos"), { recursive: true, force: true }),
       fs.rm(path.join(BUILD_DIR, "production"), { recursive: true, force: true }),
+      fs.rm(path.join(BUILD_DIR, "blog"), { recursive: true, force: true }),
+      fs.rm(path.join(BUILD_DIR, "artist"), { recursive: true, force: true }),
+      fs.rm(path.join(BUILD_DIR, "profile"), { recursive: true, force: true }),
     ]);
   } catch (_) {
     // Primeira execução: não remove diretórios que não foram criados por este gerador.
@@ -478,8 +676,18 @@ const main = async () => {
   const baseHtml = await fs.readFile(path.join(BUILD_DIR, "index.html"), "utf8");
   await cleanupPreviousSnapshots();
 
-  const events = (await fetchAllEvents()).filter((event) => event?.slug && event?.title);
-  const productions = (await fetchAllProductions()).filter((production) => production?.slug && production?.name);
+  const [eventsRaw, productionsRaw, articlesRaw, artistsRaw, profilesRaw] = await Promise.all([
+    fetchAllEvents(),
+    fetchAllProductions(),
+    fetchAllBlogArticles(),
+    fetchAllArtists(),
+    fetchAllProfiles(),
+  ]);
+  const events = eventsRaw.filter((event) => event?.slug && event?.title);
+  const productions = productionsRaw.filter((production) => production?.slug && production?.name);
+  const articles = articlesRaw.filter((article) => article?.slug && article?.title);
+  const artists = artistsRaw.filter((artist) => artist?.slug && (artist?.stage_name || artist?.name));
+  const profiles = profilesRaw.filter((profile) => Number(profile?.id) > 0);
   const now = new Date();
   let written = 0;
 
@@ -491,6 +699,35 @@ const main = async () => {
   for (const production of productions) {
     await writeSnapshot(`production/${production.slug}/public`, buildProductionSnapshot(baseHtml, production));
     written += 1;
+  }
+
+  for (const article of articles) {
+    await writeSnapshot(`blog/${article.slug}`, buildBlogSnapshot(baseHtml, article));
+    written += 1;
+  }
+
+  for (const artist of artists) {
+    await writeSnapshot(`artist/${artist.slug}`, buildArtistSnapshot(baseHtml, artist));
+    written += 1;
+  }
+
+  for (const profile of profiles) {
+    await writeSnapshot(`profile/${Number(profile.id)}`, buildProfileSnapshot(baseHtml, profile));
+    written += 1;
+  }
+
+  const itemGroups = await mapConcurrent(events, 6, async (event) => ({
+    event,
+    items: await fetchEventItems(event),
+  }));
+  let itemSnapshots = 0;
+  for (const { event, items } of itemGroups) {
+    for (const item of items) {
+      if (!Number(item?.id)) continue;
+      await writeSnapshot(`event/${event.slug}/item/${Number(item.id)}`, buildItemSnapshot(baseHtml, event, item));
+      written += 1;
+      itemSnapshots += 1;
+    }
   }
 
   const globalRoute = "eventos";
@@ -547,10 +784,14 @@ const main = async () => {
     generated_at: new Date().toISOString(),
     events: events.length,
     productions: productions.length,
+    articles: articles.length,
+    artists: artists.length,
+    profiles: profiles.length,
+    items: itemSnapshots,
     snapshots: written,
   }, null, 2), "utf8");
 
-  console.log(`SEO snapshots generated: ${written} pages from ${events.length} public events and ${productions.length} public productions.`);
+  console.log(`SEO snapshots generated: ${written} pages from ${events.length} events, ${productions.length} productions, ${articles.length} articles, ${artists.length} artists, ${profiles.length} profiles and ${itemSnapshots} items.`);
 };
 
 main().catch((error) => {
