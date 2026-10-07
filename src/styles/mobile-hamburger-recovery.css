@@ -198,3 +198,64 @@
   from { opacity: 0; transform: translateY(-4px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+
+/* Authoritative mobile drawer: rendered through a React portal directly under
+ * document.body so page/navbar stacking contexts cannot hide navigation. */
+.cut-mobile-drawer { display: none; }
+
+@media (max-width: 991.98px) {
+  body.cut-mobile-menu-open .cut-navbar .navbar-collapse { display: none !important; }
+  .cut-mobile-drawer {
+    position: fixed !important; inset: 0 !important; display: flex !important;
+    flex-direction: column !important; width: 100vw !important; height: 100dvh !important;
+    background: #081622 !important; z-index: 2147483647 !important; overflow: hidden !important; color: #fff;
+  }
+  .cut-mobile-drawer__header {
+    min-height: calc(68px + env(safe-area-inset-top, 0px));
+    padding: calc(10px + env(safe-area-inset-top, 0px)) 14px 10px;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    border-bottom: 1px solid rgba(255,255,255,.1); flex: 0 0 auto;
+  }
+  .cut-mobile-drawer__brand {
+    display: flex; align-items: center; gap: 10px; color: #fff !important; text-decoration: none !important;
+  }
+  .cut-mobile-drawer__brand img { width: 42px; height: 42px; object-fit: contain; border-radius: 50%; }
+  .cut-mobile-drawer__brand span, .cut-mobile-drawer__account > span:last-child {
+    display: flex; flex-direction: column; min-width: 0;
+  }
+  .cut-mobile-drawer__brand small, .cut-mobile-drawer__account small {
+    color: rgba(255,255,255,.62); font-size: .75rem; overflow: hidden; text-overflow: ellipsis;
+  }
+  .cut-mobile-drawer__close {
+    width: 46px; height: 46px; border: 0; border-radius: 50%;
+    background: rgba(255,255,255,.08); color: #fff; font-size: 1.35rem; flex: 0 0 auto;
+  }
+  .cut-mobile-drawer__content {
+    flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+    padding: 14px 14px calc(30px + env(safe-area-inset-bottom, 0px));
+  }
+  .cut-mobile-drawer__content > a, .cut-mobile-drawer__content > button,
+  .cut-mobile-drawer__section > a, .cut-mobile-drawer__section > button, .cut-mobile-drawer__account {
+    width: 100%; min-height: 52px; padding: 12px 14px; display: flex; align-items: center; gap: 14px;
+    border: 0; border-radius: 12px; background: transparent; color: #fff !important;
+    text-decoration: none !important; text-align: left; font: inherit;
+  }
+  .cut-mobile-drawer__content a:active, .cut-mobile-drawer__content button:active { background: rgba(255,255,255,.1); }
+  .cut-mobile-drawer__content i { width: 24px; text-align: center; font-size: 1.05rem; }
+  .cut-mobile-drawer__account { margin-bottom: 10px; background: rgba(255,255,255,.06) !important; }
+  .cut-mobile-drawer__section {
+    margin: 12px 0; padding: 10px 0; border-top: 1px solid rgba(255,255,255,.08);
+    border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+  .cut-mobile-drawer__section > strong {
+    display: block; padding: 4px 14px 8px; color: rgba(255,255,255,.58);
+    font-size: .72rem; letter-spacing: .08em; text-transform: uppercase;
+  }
+  body.cut-mobile-menu-open .cut-mobile-bottom-nav,
+  body.cut-mobile-menu-open .cut-event-buy-cta-fixed,
+  body.cut-mobile-menu-open .cut-instagram-mobile-action {
+    visibility: hidden !important; pointer-events: none !important;
+  }
+}
+@media (min-width: 992px) { .cut-mobile-drawer { display: none !important; } }
