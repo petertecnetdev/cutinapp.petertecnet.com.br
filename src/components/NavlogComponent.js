@@ -332,7 +332,7 @@ export default function NavlogComponent() {
   };
 
   const mobileDrawer = open && typeof document !== "undefined" ? createPortal(
-    <div id="cut-mobile-drawer" className="cut-mobile-drawer" role="dialog" aria-modal="true" aria-label="Menu principal">
+    <div id="cut-mobile-drawer" className="cut-mobile-drawer" role="dialog" aria-modal="true" aria-label="Menu principal" style={{ position: "fixed", inset: 0, width: "100vw", height: "100dvh", zIndex: 2147483647, display: "flex", flexDirection: "column", overflow: "hidden", background: "#081622", color: "#fff" }}>
       <div className="cut-mobile-drawer__header">
         <Link to="/" className="cut-mobile-drawer__brand" onClick={closeMenu}>
           <img src="/images/logo.png" alt="" />
