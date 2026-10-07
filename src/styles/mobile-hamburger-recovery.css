@@ -1,261 +1,187 @@
-/* Final safety layer for the mobile hamburger.
- * Imported after every legacy navigation stylesheet.
- * The drawer is a true full-screen navigation surface and always wins the
- * stacking order over fixed CTAs, footers, dialogs and page content.
+/* Authoritative Cutinapp mobile navigation contract.
+ *
+ * Mobile navigation is rendered through React portals directly under
+ * document.body. The legacy React-Bootstrap collapse remains desktop markup
+ * only and is never promoted into a mobile overlay here.
  */
+
+.cut-mobile-drawer {
+  display: none;
+}
 
 @media (max-width: 991.98px) {
   .cut-navbar {
     overflow: visible !important;
   }
 
-  /* React owns the open state and adds this body class. Do not depend on
-   * :has() to lift the navbar above page stacking contexts: older WebViews
-   * can lock the body while leaving the drawer painted behind the page. */
-  body.cut-mobile-menu-open .cut-navbar {
-    position: fixed !important;
-    inset: 0 0 auto 0 !important;
-    width: 100vw !important;
-    overflow: visible !important;
-    z-index: 2147483645 !important;
-    isolation: isolate !important;
-  }
-
+  .cut-navbar .cut-mobile-menu-toggle,
   .cut-navbar .navbar-toggler {
     display: block !important;
-    position: relative !important;
-    z-index: 2147483647 !important;
     pointer-events: auto !important;
     touch-action: manipulation !important;
+    -webkit-tap-highlight-color: transparent;
   }
 
-  body.cut-mobile-menu-open .cut-navbar .navbar-toggler {
-    position: fixed !important;
-    top: calc(14px + env(safe-area-inset-top, 0px)) !important;
-    right: max(14px, env(safe-area-inset-right, 0px)) !important;
-    margin: 0 !important;
-  }
-
+  /* The portal is the only mobile drawer. Never allow the legacy collapse to
+   * become a second interactive surface while React considers the menu open. */
   body.cut-mobile-menu-open .cut-navbar .navbar-collapse {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: stretch !important;
-    transform: translate3d(0, 0, 0) !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-    pointer-events: auto !important;
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
   }
 
-  .cut-navbar .navbar-collapse {
+  .cut-mobile-drawer {
     position: fixed !important;
     inset: 0 !important;
-    width: 100vw !important;
-    max-width: none !important;
-    height: 100dvh !important;
-    min-height: 100dvh !important;
-    max-height: 100dvh !important;
-    padding:
-      calc(76px + env(safe-area-inset-top, 0px))
-      max(18px, env(safe-area-inset-right, 0px))
-      calc(28px + env(safe-area-inset-bottom, 0px))
-      max(18px, env(safe-area-inset-left, 0px)) !important;
-    overflow-x: hidden !important;
-    overflow-y: auto !important;
-    overscroll-behavior: contain !important;
-    -webkit-overflow-scrolling: touch;
-    border: 0 !important;
-    border-radius: 0 !important;
-    /* Keep the viewport-sized drawer opaque and flat. Multiple full-screen
-       gradients force extra paint work while the menu itself is scrolling. */
-    background: #080809 !important;
-    box-shadow: none !important;
-    transform: translate3d(0, -14px, 0) !important;
-    transform-origin: top center !important;
-    opacity: 0 !important;
-    visibility: hidden !important;
-    pointer-events: none !important;
-    transition: opacity .18s ease, transform .18s ease, visibility 0s linear .18s !important;
-    z-index: 2147483646 !important;
-    isolation: isolate !important;
-  }
-
-  .cut-navbar .navbar-collapse.show,
-  .cut-navbar .navbar-collapse.collapsing {
+    z-index: 2147483647 !important;
     display: flex !important;
     flex-direction: column !important;
-    align-items: stretch !important;
+    width: 100vw !important;
     height: 100dvh !important;
-    transform: translate3d(0, 0, 0) !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-    pointer-events: auto !important;
-    transition-delay: 0s !important;
+    overflow: hidden !important;
+    isolation: isolate !important;
+    background: #080809 !important;
+    color: #fff;
   }
 
-  .cut-navbar .navbar-collapse.collapsing {
-    transition: opacity .14s ease, transform .14s ease !important;
-  }
-
-  .cut-navbar:has(.navbar-collapse.show),
-  .cut-navbar:has(.navbar-collapse.collapsing) {
-    z-index: 2147483645 !important;
-  }
-
-  .cut-navbar:has(.navbar-collapse.show) .navbar-toggler,
-  .cut-navbar:has(.navbar-collapse.collapsing) .navbar-toggler {
-    position: fixed !important;
-    top: calc(14px + env(safe-area-inset-top, 0px)) !important;
-    right: max(14px, env(safe-area-inset-right, 0px)) !important;
-    margin: 0 !important;
-    z-index: 2147483647 !important;
-  }
-
-  /* Actor areas (Administrador, Promoter, Produtor, etc.) behave like
-   * collapsible sections inside the full-screen drawer, never like floating
-   * popovers that can shift hit targets or accidentally navigate. */
-  .cut-navbar .navbar-collapse .cut-actor-menu,
-  .cut-navbar .navbar-collapse .cut-context-menu,
-  .cut-navbar .navbar-collapse .cut-navbar__quick-toggle,
-  .cut-navbar .navbar-collapse .cut-nav-notification-menu {
-    width: 100% !important;
-    position: relative !important;
-  }
-
-  .cut-navbar .navbar-collapse .dropdown-toggle {
-    width: 100% !important;
-    min-height: 48px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    gap: 12px !important;
-    touch-action: manipulation !important;
-  }
-
-  .cut-navbar .navbar-collapse .dropdown-menu {
-    position: static !important;
-    inset: auto !important;
-    float: none !important;
-    transform: none !important;
-    width: 100% !important;
-    max-width: none !important;
-    margin: 6px 0 10px !important;
-    padding: 8px !important;
-    border-radius: 14px !important;
-    box-shadow: none !important;
-  }
-
-  .cut-navbar .navbar-collapse .dropdown-menu:not(.show) {
-    display: none !important;
-  }
-
-  .cut-navbar .navbar-collapse .dropdown-menu.show {
-    display: block !important;
-    animation: cut-mobile-submenu-in .16s ease both;
-  }
-
-  .cut-navbar .navbar-collapse .dropdown-item {
-    min-height: 44px !important;
-    display: flex !important;
-    align-items: center !important;
-    white-space: normal !important;
-  }
-
-  /* While the drawer is open, page-level fixed controls such as Comprar
-   * ingresso must be fully inert even on browsers with unusual stacking
-   * contexts. */
-  html:has(.cut-navbar .navbar-collapse.show) .cut-event-buy-cta-fixed,
-  html:has(.cut-navbar .navbar-collapse.collapsing) .cut-event-buy-cta-fixed,
-  html:has(.cut-navbar .navbar-collapse.show) .cut-mobile-bottom-nav,
-  html:has(.cut-navbar .navbar-collapse.collapsing) .cut-mobile-bottom-nav,
-  html:has(.cut-navbar .navbar-collapse.show) .cut-instagram-mobile-action,
-  html:has(.cut-navbar .navbar-collapse.collapsing) .cut-instagram-mobile-action {
-    pointer-events: none !important;
-    visibility: hidden !important;
-  }
-
-  /* Legacy pseudo-overlays are not allowed to capture touches. */
-  .cut-navbar::before,
-  .cut-navbar::after {
-    pointer-events: none !important;
-  }
-
-  .cut-navbar .navbar-collapse:not(.show):not(.collapsing) {
-    pointer-events: none !important;
-  }
-
-  .cut-navbar .navbar-collapse.show a,
-  .cut-navbar .navbar-collapse.show button,
-  .cut-navbar .navbar-collapse.show select,
-  .cut-navbar .navbar-collapse.show input,
-  .cut-navbar .navbar-collapse.show .dropdown-toggle,
-  .cut-navbar .navbar-collapse.show .dropdown-item {
-    pointer-events: auto !important;
-    touch-action: manipulation !important;
-  }
-}
-
-@keyframes cut-mobile-submenu-in {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-
-/* Authoritative mobile drawer: rendered through a React portal directly under
- * document.body so page/navbar stacking contexts cannot hide navigation. */
-.cut-mobile-drawer { display: none; }
-
-@media (max-width: 991.98px) {
-  body.cut-mobile-menu-open .cut-navbar .navbar-collapse { display: none !important; }
-  .cut-mobile-drawer {
-    position: fixed !important; inset: 0 !important; display: flex !important;
-    flex-direction: column !important; width: 100vw !important; height: 100dvh !important;
-    background: #080809 !important; z-index: 2147483647 !important; overflow: hidden !important; color: #fff;
-  }
   .cut-mobile-drawer__header {
     min-height: calc(68px + env(safe-area-inset-top, 0px));
-    padding: calc(10px + env(safe-area-inset-top, 0px)) 14px 10px;
-    display: flex; align-items: center; justify-content: space-between; gap: 16px;
-    border-bottom: 1px solid rgba(255,255,255,.1); flex: 0 0 auto;
+    padding:
+      calc(10px + env(safe-area-inset-top, 0px))
+      max(14px, env(safe-area-inset-right, 0px))
+      10px
+      max(14px, env(safe-area-inset-left, 0px));
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex: 0 0 auto;
+    border-bottom: 1px solid rgba(255, 255, 255, .1);
   }
+
   .cut-mobile-drawer__brand {
-    display: flex; align-items: center; gap: 10px; color: #fff !important; text-decoration: none !important;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #fff !important;
+    text-decoration: none !important;
   }
-  .cut-mobile-drawer__brand img { width: 42px; height: 42px; object-fit: contain; border-radius: 50%; }
-  .cut-mobile-drawer__brand span, .cut-mobile-drawer__account > span:last-child {
-    display: flex; flex-direction: column; min-width: 0;
+
+  .cut-mobile-drawer__brand img {
+    width: 42px;
+    height: 42px;
+    flex: 0 0 auto;
+    object-fit: contain;
+    border-radius: 50%;
   }
-  .cut-mobile-drawer__brand small, .cut-mobile-drawer__account small {
-    color: rgba(255,255,255,.62); font-size: .75rem; overflow: hidden; text-overflow: ellipsis;
+
+  .cut-mobile-drawer__brand span,
+  .cut-mobile-drawer__account > span:last-child {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
   }
+
+  .cut-mobile-drawer__brand small,
+  .cut-mobile-drawer__account small {
+    overflow: hidden;
+    color: rgba(255, 255, 255, .62);
+    font-size: .75rem;
+    text-overflow: ellipsis;
+  }
+
   .cut-mobile-drawer__close {
-    width: 46px; height: 46px; border: 0; border-radius: 50%;
-    background: rgba(255,255,255,.08); color: #fff; font-size: 1.35rem; flex: 0 0 auto;
+    width: 46px;
+    height: 46px;
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 50%;
+    background: #17171b;
+    color: #fff;
+    font-size: 1.35rem;
+    pointer-events: auto;
+    touch-action: manipulation;
   }
+
   .cut-mobile-drawer__content {
-    flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
-    padding: 14px 14px calc(30px + env(safe-area-inset-bottom, 0px));
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding:
+      14px
+      max(14px, env(safe-area-inset-right, 0px))
+      calc(30px + env(safe-area-inset-bottom, 0px))
+      max(14px, env(safe-area-inset-left, 0px));
   }
-  .cut-mobile-drawer__content > a, .cut-mobile-drawer__content > button,
-  .cut-mobile-drawer__section > a, .cut-mobile-drawer__section > button, .cut-mobile-drawer__account {
-    width: 100%; min-height: 52px; padding: 12px 14px; display: flex; align-items: center; gap: 14px;
-    border: 0; border-radius: 12px; background: transparent; color: #fff !important;
-    text-decoration: none !important; text-align: left; font: inherit;
+
+  .cut-mobile-drawer__content > a,
+  .cut-mobile-drawer__content > button,
+  .cut-mobile-drawer__section > a,
+  .cut-mobile-drawer__section > button,
+  .cut-mobile-drawer__account {
+    width: 100%;
+    min-height: 52px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    color: #fff !important;
+    text-align: left;
+    text-decoration: none !important;
+    font: inherit;
+    pointer-events: auto;
+    touch-action: manipulation;
   }
-  .cut-mobile-drawer__content a:active, .cut-mobile-drawer__content button:active { background: rgba(255,255,255,.1); }
-  .cut-mobile-drawer__content i { width: 24px; text-align: center; font-size: 1.05rem; }
-  .cut-mobile-drawer__account { margin-bottom: 10px; background: rgba(255,255,255,.06) !important; }
+
+  .cut-mobile-drawer__content a:active,
+  .cut-mobile-drawer__content button:active {
+    background: #17171b;
+  }
+
+  .cut-mobile-drawer__content i {
+    width: 24px;
+    text-align: center;
+    font-size: 1.05rem;
+  }
+
+  .cut-mobile-drawer__account {
+    margin-bottom: 10px;
+    background: #121215 !important;
+  }
+
   .cut-mobile-drawer__section {
-    margin: 12px 0; padding: 10px 0; border-top: 1px solid rgba(255,255,255,.08);
-    border-bottom: 1px solid rgba(255,255,255,.08);
+    margin: 12px 0;
+    padding: 10px 0;
+    border-top: 1px solid rgba(255, 255, 255, .08);
+    border-bottom: 1px solid rgba(255, 255, 255, .08);
   }
+
   .cut-mobile-drawer__section > strong {
-    display: block; padding: 4px 14px 8px; color: rgba(255,255,255,.58);
-    font-size: .72rem; letter-spacing: .08em; text-transform: uppercase;
+    display: block;
+    padding: 4px 14px 8px;
+    color: rgba(255, 255, 255, .58);
+    font-size: .72rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
   }
+
   body.cut-mobile-menu-open .cut-mobile-bottom-nav,
   body.cut-mobile-menu-open .cut-event-buy-cta-fixed,
   body.cut-mobile-menu-open .cut-instagram-mobile-action {
-    visibility: hidden !important; pointer-events: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
   }
 }
-@media (min-width: 992px) { .cut-mobile-drawer { display: none !important; } }
+
+@media (min-width: 992px) {
+  .cut-mobile-drawer {
+    display: none !important;
+  }
+}
