@@ -231,6 +231,7 @@ function urgencyLabel(value) {
 export default function LandingPageV2() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
+  const [publicMenuOpen, setPublicMenuOpen] = useState(false);
   const [events, setEvents] = useState([]);
   const [productions, setProductions] = useState([]);
   const [artists, setArtists] = useState([]);
@@ -249,6 +250,25 @@ export default function LandingPageV2() {
     const saved = readDiscoveryPreference();
     return saved?.city ? { city: saved.city, uf: saved.uf || "", mode: "city" } : null;
   });
+
+  useEffect(() => {
+    if (!publicMenuOpen || typeof window === "undefined") return undefined;
+
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") setPublicMenuOpen(false);
+    };
+    const onResize = () => {
+      if (window.innerWidth > 991) setPublicMenuOpen(false);
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [publicMenuOpen]);
+
 
   const discoveryParams = useMemo(() => {
     if (location?.lat && location?.lng) return { lat: location.lat, lng: location.lng, radius_km: 80 };
@@ -398,20 +418,34 @@ export default function LandingPageV2() {
 
   return (
     <div className="cut-landing">
-      <header className="cut-landing__nav">
+      <header className={`cut-landing__nav ${publicMenuOpen ? "cut-landing__nav--menu-open" : ""}`}>
         <Container className="cut-landing__navInner">
-          <Link to="/" className="cut-landing__brand" aria-label="Cutinapp - início">
+          <Link to="/" className="cut-landing__brand" aria-label="Cutinapp - início" onClick={() => setPublicMenuOpen(false)}>
             <span className="cut-landing__brandOrb"><img src="/images/logo.png" alt="" /></span>
             <span><strong>Cutinapp</strong><small>A CENA CONECTADA</small></span>
           </Link>
-          <nav aria-label="Navegação pública">
-            <a href="#descobrir">Eventos</a>
-            <a href="#como-funciona">Como funciona</a>
-            <Link to="/for-producers">Para produtores</Link>
-            <a href="#faq">FAQ</a>
-            <Link to="/help">Ajuda</Link>
-            <Link to="/login">Entrar</Link>
-            <Button as={Link} to="/register" className="cut-landing__navCta">Criar conta grátis</Button>
+          <button
+            type="button"
+            className="cut-landing__menuToggle"
+            aria-controls="cut-landing-public-nav"
+            aria-expanded={publicMenuOpen}
+            aria-label={publicMenuOpen ? "Fechar menu" : "Abrir menu"}
+            onClick={() => setPublicMenuOpen((current) => !current)}
+          >
+            <i className={publicMenuOpen ? "fa-solid fa-xmark" : "fa-solid fa-bars"} aria-hidden="true" />
+          </button>
+          <nav
+            id="cut-landing-public-nav"
+            className={`cut-landing__publicNav ${publicMenuOpen ? "is-open" : ""}`}
+            aria-label="Navegação pública"
+          >
+            <a href="#descobrir" onClick={() => setPublicMenuOpen(false)}>Eventos</a>
+            <a href="#como-funciona" onClick={() => setPublicMenuOpen(false)}>Como funciona</a>
+            <Link to="/for-producers" onClick={() => setPublicMenuOpen(false)}>Para produtores</Link>
+            <a href="#faq" onClick={() => setPublicMenuOpen(false)}>FAQ</a>
+            <Link to="/help" onClick={() => setPublicMenuOpen(false)}>Ajuda</Link>
+            <Link to="/login" onClick={() => setPublicMenuOpen(false)}>Entrar</Link>
+            <Button as={Link} to="/register" className="cut-landing__navCta" onClick={() => setPublicMenuOpen(false)}>Criar conta grátis</Button>
           </nav>
         </Container>
       </header>
