@@ -3,7 +3,7 @@
   .cut-capability-nav.cut-navbar {
     height: var(--cut-navbar-height) !important;
     min-height: var(--cut-navbar-height) !important;
-    background: var(--cut-bg-soft) !important;
+    background: var(--cut-logo-black, #000000) !important;
     border-bottom: 1px solid var(--cut-border-soft);
   }
 
