@@ -376,7 +376,7 @@ export default function NavlogComponent() {
       <Navbar expand="lg" sticky="top" className="cut-navbar cut-advanced-nav" expanded={open} onToggle={setOpen} onSelect={closeMenu}>
         <Container className="cut-navbar__inner">
           <Navbar.Brand as={Link} to="/" className="cut-navbar__brand"><img src="/images/logo.png" alt="Cutinapp" /><div><strong>Cutinapp</strong><small>Rede social de eventos</small></div></Navbar.Brand>
-          <button type="button" className="navbar-toggler cut-mobile-menu-toggle" aria-expanded={open} aria-controls="cut-mobile-drawer" aria-label={open ? "Fechar menu" : "Abrir menu"} onClick={() => setOpen((value) => !value)}><span className="navbar-toggler-icon" /></button>
+          <button type="button" className="navbar-toggler cut-mobile-menu-toggle d-lg-none" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, minWidth: 44, opacity: 1, visibility: "visible", position: "relative", zIndex: 2147483647 }} aria-expanded={open} aria-controls="cut-mobile-drawer" aria-label={open ? "Fechar menu" : "Abrir menu"} onClick={() => setOpen((value) => !value)}><span className="navbar-toggler-icon" /></button>
           <Navbar.Collapse id="cut-navbar-public"><Nav className="ms-auto cut-navbar__links"><Nav.Link as={Link} to="/search" onClick={closeMenu}><i className="fa-solid fa-magnifying-glass me-2" />Buscar</Nav.Link><Nav.Link as={Link} to="/event">Eventos</Nav.Link><Nav.Link as={Link} to="/productions">Produções</Nav.Link><Nav.Link as={Link} to="/artists">Artistas</Nav.Link><Nav.Link as={Link} to="/login">Entrar</Nav.Link></Nav></Navbar.Collapse>
         </Container>
       </Navbar>
@@ -394,7 +394,7 @@ export default function NavlogComponent() {
       <Navbar expand="lg" sticky="top" className="cut-navbar cut-advanced-nav cut-capability-nav" expanded={open} onToggle={setOpen} onSelect={closeMenu}>
         <Container className="cut-navbar__inner">
           <Navbar.Brand as={Link} to="/" className="cut-navbar__brand" onClick={closeMenu}><img src="/images/logo.png" alt="Cutinapp" /><div><strong>Cutinapp</strong><small>Rede social de eventos</small></div></Navbar.Brand>
-          <button type="button" className="navbar-toggler cut-mobile-menu-toggle" aria-expanded={open} aria-controls="cut-mobile-drawer" aria-label={open ? "Fechar menu" : "Abrir menu"} onClick={() => setOpen((value) => !value)}><span className="navbar-toggler-icon" /></button>
+          <button type="button" className="navbar-toggler cut-mobile-menu-toggle d-lg-none" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, minWidth: 44, opacity: 1, visibility: "visible", position: "relative", zIndex: 2147483647 }} aria-expanded={open} aria-controls="cut-mobile-drawer" aria-label={open ? "Fechar menu" : "Abrir menu"} onClick={() => setOpen((value) => !value)}><span className="navbar-toggler-icon" /></button>
           <Navbar.Collapse id="cut-navbar">
             <Link to="/profile" className="cut-navbar__mobile-account" onClick={closeMenu} aria-label="Abrir meu perfil">
               <span className="cut-navbar__avatar">{userAvatar ? <img src={userAvatar} alt="" /> : userFallbackInitials}</span>
