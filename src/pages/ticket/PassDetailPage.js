@@ -443,5 +443,3 @@ export default function PassDetailPage() {
     </Modal>
   </div>;
 }
-
-[executed on device: petertecnetserver (b42cd296-add7-4131-9294-fe647b68fcc9)]
