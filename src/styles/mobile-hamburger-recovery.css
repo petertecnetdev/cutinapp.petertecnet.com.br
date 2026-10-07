@@ -17,8 +17,24 @@
     inset: 0 0 auto 0 !important;
     width: 100vw !important;
     overflow: visible !important;
+    transform: none !important;
+    visibility: visible !important;
     z-index: 2147483645 !important;
     isolation: isolate !important;
+  }
+
+  /* The Instagram-style shell may have hidden the top bar while scrolling.
+   * Opening the drawer is a stronger state and must synchronously cancel that
+   * transform before body scrolling is locked. */
+  html[data-cut-instagram-shell="active"] body.cut-mobile-menu-open .cut-capability-nav.cut-mobile-nav--hidden {
+    transform: none !important;
+  }
+
+  body.cut-mobile-menu-open .cut-event-buy-cta-fixed,
+  body.cut-mobile-menu-open .cut-mobile-bottom-nav,
+  body.cut-mobile-menu-open .cut-instagram-mobile-action {
+    pointer-events: none !important;
+    visibility: hidden !important;
   }
 
   .cut-navbar .navbar-toggler {
@@ -67,7 +83,7 @@
     border-radius: 0 !important;
     /* Keep the viewport-sized drawer opaque and flat. Multiple full-screen
        gradients force extra paint work while the menu itself is scrolling. */
-    background: rgb(8 22 34) !important;
+    background: #080809 !important;
     box-shadow: none !important;
     transform: translate3d(0, -14px, 0) !important;
     transform-origin: top center !important;
