@@ -2,7 +2,7 @@ import PropTypes from "prop-types";
 import { useEffect } from "react";
 
 const SITE_URL = "https://cutinapp.petertecnet.com.br";
-const DEFAULT_IMAGE = `${SITE_URL}/images/logo.png`;
+const DEFAULT_IMAGE = `${SITE_URL}/images/cutinapp.png`;
 const DEFAULT_LOCALE = "pt-BR";
 
 const absoluteUrl = (value, fallback = SITE_URL) => {
