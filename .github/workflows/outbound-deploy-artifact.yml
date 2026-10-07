@@ -1,0 +1,51 @@
+name: Build outbound deployment artifact
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/outbound-deploy-artifact.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cutinapp-outbound-artifact
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      REACT_APP_API_URL: https://api.petertecnet.com.br/api
+      REACT_APP_GOOGLE_CLIENT_ID: 404224718244-5tudlgk5q63fmtg2q816eso8c76nvel3.apps.googleusercontent.com
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Build production frontend
+        env:
+          CI: "true"
+          NODE_OPTIONS: --max-old-space-size=4096
+        run: |
+          npm run build
+          npm run perf:budget --if-present
+          printf '%s\n' "$GITHUB_SHA" > build/release-sha.txt
+      - name: Package deployment artifact
+        run: tar -C build -czf cutinapp-build.tar.gz .
+      - name: Upload deployment artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cutinapp-build-${{ github.sha }}
+          path: cutinapp-build.tar.gz
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
