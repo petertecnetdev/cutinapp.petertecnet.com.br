@@ -23,20 +23,20 @@ describe("instagramMobileShell navbar visibility", () => {
     document.body.classList.add("cut-mobile-menu-open");
     syncNavbarScrollState();
 
-    expect(document.querySelector(".cut-capability-nav")).not.toHaveClass("cut-mobile-nav--hidden");
+    expect(document.querySelector(".cut-capability-nav").classList.contains("cut-mobile-nav--hidden")).toBe(false);
   });
 
   test("removes auto-hide state when Bootstrap collapse is visibly open", () => {
     document.querySelector(".navbar-collapse").classList.add("show");
     syncNavbarScrollState();
 
-    expect(document.querySelector(".cut-capability-nav")).not.toHaveClass("cut-mobile-nav--hidden");
+    expect(document.querySelector(".cut-capability-nav").classList.contains("cut-mobile-nav--hidden")).toBe(false);
   });
 
   test("removes auto-hide state when the toggle ARIA state is open", () => {
     document.querySelector(".navbar-toggler").setAttribute("aria-expanded", "true");
     syncNavbarScrollState();
 
-    expect(document.querySelector(".cut-capability-nav")).not.toHaveClass("cut-mobile-nav--hidden");
+    expect(document.querySelector(".cut-capability-nav").classList.contains("cut-mobile-nav--hidden")).toBe(false);
   });
 });
