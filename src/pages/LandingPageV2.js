@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { Button, Container } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
 import PeterTecnetSignature from "../components/PeterTecnetSignature";
@@ -252,7 +253,13 @@ export default function LandingPageV2() {
   });
 
   useEffect(() => {
-    if (!publicMenuOpen || typeof window === "undefined") return undefined;
+    if (!publicMenuOpen || typeof window === "undefined" || typeof document === "undefined") return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    const previousOverscroll = document.body.style.overscrollBehavior;
+    document.body.style.overflow = "hidden";
+    document.body.style.overscrollBehavior = "none";
+    document.body.classList.add("cut-public-mobile-menu-open");
 
     const onKeyDown = (event) => {
       if (event.key === "Escape") setPublicMenuOpen(false);
@@ -264,6 +271,9 @@ export default function LandingPageV2() {
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("resize", onResize);
     return () => {
+      document.body.style.overflow = previousOverflow;
+      document.body.style.overscrollBehavior = previousOverscroll;
+      document.body.classList.remove("cut-public-mobile-menu-open");
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("resize", onResize);
     };
@@ -416,9 +426,33 @@ export default function LandingPageV2() {
     return categoryOk && queryOk;
   });
 
+  const publicMobileDrawer = publicMenuOpen && typeof document !== "undefined" ? createPortal(
+    <div id="cut-landing-public-drawer" className="cut-landing-mobile-drawer" role="dialog" aria-modal="true" aria-label="Menu principal">
+      <div className="cut-landing-mobile-drawer__header">
+        <Link to="/" className="cut-landing-mobile-drawer__brand" onClick={() => setPublicMenuOpen(false)}>
+          <img src="/images/logo.png" alt="" />
+          <span><strong>Cutinapp</strong><small>A CENA CONECTADA</small></span>
+        </Link>
+        <button type="button" className="cut-landing-mobile-drawer__close" onClick={() => setPublicMenuOpen(false)} aria-label="Fechar menu">
+          <i className="fa-solid fa-xmark" aria-hidden="true" />
+        </button>
+      </div>
+      <nav className="cut-landing-mobile-drawer__content" aria-label="Navegação pública mobile">
+        <a href="#descobrir" onClick={() => setPublicMenuOpen(false)}><i className="fa-regular fa-calendar-days" aria-hidden="true" />Eventos</a>
+        <a href="#como-funciona" onClick={() => setPublicMenuOpen(false)}><i className="fa-solid fa-route" aria-hidden="true" />Como funciona</a>
+        <Link to="/for-producers" onClick={() => setPublicMenuOpen(false)}><i className="fa-solid fa-ticket" aria-hidden="true" />Para produtores</Link>
+        <a href="#faq" onClick={() => setPublicMenuOpen(false)}><i className="fa-regular fa-circle-question" aria-hidden="true" />FAQ</a>
+        <Link to="/help" onClick={() => setPublicMenuOpen(false)}><i className="fa-regular fa-life-ring" aria-hidden="true" />Ajuda</Link>
+        <Link to="/login" onClick={() => setPublicMenuOpen(false)}><i className="fa-solid fa-arrow-right-to-bracket" aria-hidden="true" />Entrar</Link>
+        <Button as={Link} to="/register" className="cut-landing-mobile-drawer__cta" onClick={() => setPublicMenuOpen(false)}>Criar conta grátis</Button>
+      </nav>
+    </div>,
+    document.body
+  ) : null;
+
   return (
     <div className="cut-landing">
-      <header className={`cut-landing__nav ${publicMenuOpen ? "cut-landing__nav--menu-open" : ""}`}>
+      <header className="cut-landing__nav">
         <Container className="cut-landing__navInner">
           <Link to="/" className="cut-landing__brand" aria-label="Cutinapp - início" onClick={() => setPublicMenuOpen(false)}>
             <span className="cut-landing__brandOrb"><img src="/images/logo.png" alt="" /></span>
@@ -427,28 +461,25 @@ export default function LandingPageV2() {
           <button
             type="button"
             className="cut-landing__menuToggle"
-            aria-controls="cut-landing-public-nav"
+            aria-controls="cut-landing-public-drawer"
             aria-expanded={publicMenuOpen}
             aria-label={publicMenuOpen ? "Fechar menu" : "Abrir menu"}
             onClick={() => setPublicMenuOpen((current) => !current)}
           >
             <i className={publicMenuOpen ? "fa-solid fa-xmark" : "fa-solid fa-bars"} aria-hidden="true" />
           </button>
-          <nav
-            id="cut-landing-public-nav"
-            className={`cut-landing__publicNav ${publicMenuOpen ? "is-open" : ""}`}
-            aria-label="Navegação pública"
-          >
-            <a href="#descobrir" onClick={() => setPublicMenuOpen(false)}>Eventos</a>
-            <a href="#como-funciona" onClick={() => setPublicMenuOpen(false)}>Como funciona</a>
-            <Link to="/for-producers" onClick={() => setPublicMenuOpen(false)}>Para produtores</Link>
-            <a href="#faq" onClick={() => setPublicMenuOpen(false)}>FAQ</a>
-            <Link to="/help" onClick={() => setPublicMenuOpen(false)}>Ajuda</Link>
-            <Link to="/login" onClick={() => setPublicMenuOpen(false)}>Entrar</Link>
-            <Button as={Link} to="/register" className="cut-landing__navCta" onClick={() => setPublicMenuOpen(false)}>Criar conta grátis</Button>
+          <nav className="cut-landing__publicNav" aria-label="Navegação pública">
+            <a href="#descobrir">Eventos</a>
+            <a href="#como-funciona">Como funciona</a>
+            <Link to="/for-producers">Para produtores</Link>
+            <a href="#faq">FAQ</a>
+            <Link to="/help">Ajuda</Link>
+            <Link to="/login">Entrar</Link>
+            <Button as={Link} to="/register" className="cut-landing__navCta">Criar conta grátis</Button>
           </nav>
         </Container>
       </header>
+      {publicMobileDrawer}
 
       <main>
         <section className="cut-landing__hero" aria-labelledby="cutinapp-hero-title">
