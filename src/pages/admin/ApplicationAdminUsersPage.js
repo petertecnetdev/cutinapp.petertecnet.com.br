@@ -148,7 +148,7 @@ export default function ApplicationAdminUsersPage() {
     const targetWindow = window.open("", "_blank");
     if (targetWindow) {
       targetWindow.document.title = "Abrindo acesso temporário · Cutinapp";
-      targetWindow.document.body.innerHTML = '<div style="font-family:system-ui;padding:32px;background:#09090b;color:#fff;min-height:100vh"><strong>Abrindo acesso temporário…</strong><p>Validando a sessão administrativa da Cutinapp.</p></div>';
+      targetWindow.document.body.innerHTML = '<div style="font-family:system-ui;padding:32px;background:#0B0B0D;color:#fff;min-height:100vh"><strong>Abrindo acesso temporário…</strong><p>Validando a sessão administrativa da Cutinapp.</p></div>';
     }
 
     setImpersonationBusy(true);

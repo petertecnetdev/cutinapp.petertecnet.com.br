@@ -11,17 +11,17 @@
 
 :root {
   /* Re-map the existing design tokens so older CSS automatically participates. */
-  --cut-bg: #05060d;
-  --cut-bg-deep: #020308;
-  --cut-bg-soft: #090b16;
-  --cut-surface-1: rgba(16, 18, 30, .68);
-  --cut-surface-2: rgba(22, 24, 38, .72);
-  --cut-surface-3: rgba(30, 32, 48, .76);
-  --cut-surface-4: rgba(39, 41, 58, .78);
-  --cut-surface-glass: rgba(16, 18, 30, .62);
-  --cut-surface-glass-strong: rgba(10, 12, 22, .82);
+  --cut-bg: var(--cut-bg-deep);
+  --cut-bg-deep: var(--cut-bg-deep);
+  --cut-bg-soft: var(--cut-bg-deep);
+  --cut-surface-1: rgba(var(--cut-surface-1-rgb), .68);
+  --cut-surface-2: rgba(var(--cut-surface-1-rgb), .72);
+  --cut-surface-3: rgba(var(--cut-red-rgb), .76);
+  --cut-surface-4: rgba(var(--cut-red-rgb), .78);
+  --cut-surface-glass: rgba(var(--cut-surface-1-rgb), .62);
+  --cut-surface-glass-strong: rgba(var(--cut-surface-1-rgb), .82);
   --cut-surface-hover: rgba(255, 255, 255, .075);
-  --cut-surface-active: rgba(184, 71, 250, .15);
+  --cut-surface-active: rgba(var(--cut-red-rgb), .15);
 
   --cut-text: #f4f5fb;
   --cut-text-strong: #ffffff;
@@ -45,11 +45,11 @@
   --cut-shadow-xl: 0 38px 120px rgba(0, 0, 0, .48);
 
   /* Global material system. */
-  --cut-cg-bg: rgba(17, 19, 31, .66);
+  --cut-cg-bg: rgba(var(--cut-surface-1-rgb), .66);
   --cut-cg-bg-soft: rgba(255, 255, 255, .045);
-  --cut-cg-bg-raised: rgba(24, 26, 40, .72);
-  --cut-cg-bg-strong: rgba(12, 14, 25, .84);
-  --cut-cg-bg-overlay: rgba(8, 10, 19, .90);
+  --cut-cg-bg-raised: rgba(var(--cut-surface-1-rgb), .72);
+  --cut-cg-bg-strong: rgba(var(--cut-surface-1-rgb), .84);
+  --cut-cg-bg-overlay: rgba(var(--cut-surface-1-rgb), .90);
   --cut-cg-border: rgba(255, 255, 255, .12);
   --cut-cg-border-strong: rgba(255, 255, 255, .18);
   --cut-cg-highlight: rgba(255, 255, 255, .10);
@@ -60,11 +60,11 @@
   --cut-cg-brightness-strong: 62%;
   --cut-cg-shadow: 0 20px 58px rgba(0, 0, 0, .29), inset 0 1px 0 rgba(255, 255, 255, .075);
   --cut-cg-shadow-raised: 0 30px 88px rgba(0, 0, 0, .40), inset 0 1px 0 rgba(255, 255, 255, .10);
-  --cut-cg-shadow-hover: 0 26px 74px rgba(0, 0, 0, .36), 0 0 34px rgba(113, 65, 247, .08), inset 0 1px 0 rgba(255, 255, 255, .11);
+  --cut-cg-shadow-hover: 0 26px 74px rgba(0, 0, 0, .36), 0 0 34px rgba(var(--cut-red-rgb), .08), inset 0 1px 0 rgba(255, 255, 255, .11);
   --cut-cg-edge: linear-gradient(145deg, rgba(255, 255, 255, .085), rgba(255, 255, 255, .018));
-  --cut-cg-brand-haze: radial-gradient(circle at 10% 0%, rgba(184, 71, 250, .11), transparent 36%), radial-gradient(circle at 100% 100%, rgba(6, 175, 250, .07), transparent 35%);
+  --cut-cg-brand-haze: radial-gradient(circle at 10% 0%, rgba(var(--cut-red-rgb), .11), transparent 36%), radial-gradient(circle at 100% 100%, rgba(var(--cut-red-rgb), .07), transparent 35%);
 
-  --bs-body-bg: #05060d;
+  --bs-body-bg: var(--cut-bg-deep);
   --bs-body-color: #f4f5fb;
   --bs-secondary-color: rgba(239, 241, 250, .76);
   --bs-tertiary-color: rgba(230, 233, 244, .60);
@@ -77,17 +77,17 @@
 /* -------------------------------------------------------------------------- */
 
 html {
-  background: #05060d;
+  background: var(--cut-bg-deep);
 }
 
 body {
   color: var(--cut-text);
   background:
-    radial-gradient(circle at 13% -8%, rgba(184, 71, 250, .20), transparent 31%),
-    radial-gradient(circle at 88% 3%, rgba(43, 98, 244, .13), transparent 28%),
-    radial-gradient(circle at 82% 88%, rgba(6, 175, 250, .07), transparent 29%),
-    radial-gradient(circle at 42% 115%, rgba(229, 108, 255, .08), transparent 28%),
-    linear-gradient(155deg, #060710 0%, #090b18 45%, #05060e 100%) !important;
+    radial-gradient(circle at 13% -8%, rgba(var(--cut-red-rgb), .20), transparent 31%),
+    radial-gradient(circle at 88% 3%, rgba(var(--cut-red-rgb), .13), transparent 28%),
+    radial-gradient(circle at 82% 88%, rgba(var(--cut-red-rgb), .07), transparent 29%),
+    radial-gradient(circle at 42% 115%, rgba(var(--cut-red-rgb), .08), transparent 28%),
+    linear-gradient(155deg, var(--cut-bg-deep) 0%, var(--cut-surface-1) 45%, var(--cut-bg-deep) 100%) !important;
   background-attachment: fixed !important;
 }
 
@@ -95,7 +95,7 @@ body::before {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, .015), transparent 26%),
     radial-gradient(circle at 48% -14%, rgba(255, 255, 255, .045), transparent 34%),
-    radial-gradient(circle at 12% 60%, rgba(184, 71, 250, .045), transparent 26%) !important;
+    radial-gradient(circle at 12% 60%, rgba(var(--cut-red-rgb), .045), transparent 26%) !important;
 }
 
 #root,
@@ -125,7 +125,7 @@ hr {
 /* Premium scrollbars without changing layout. */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(184, 71, 250, .45) rgba(255, 255, 255, .025);
+  scrollbar-color: rgba(var(--cut-red-rgb), .45) rgba(255, 255, 255, .025);
 }
 
 *::-webkit-scrollbar { width: 10px; height: 10px; }
@@ -133,7 +133,7 @@ hr {
 *::-webkit-scrollbar-thumb {
   border: 2px solid transparent;
   border-radius: 999px;
-  background: linear-gradient(180deg, rgba(184, 71, 250, .58), rgba(6, 175, 250, .38)) padding-box;
+  background: linear-gradient(180deg, rgba(var(--cut-red-rgb), .58), rgba(var(--cut-red-rgb), .38)) padding-box;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -241,7 +241,7 @@ hr {
 }
 
 :where(a.card, a[class*="-card"], article[class*="-card"]):hover {
-  border-color: rgba(157, 199, 255, .25) !important;
+  border-color: rgba(var(--cut-red-rgb), .25) !important;
   box-shadow: var(--cut-cg-shadow-hover) !important;
   transform: translateY(-2px);
 }
@@ -259,7 +259,7 @@ hr {
   border-color: rgba(255, 255, 255, .085) !important;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, .045), rgba(255, 255, 255, .012)),
-    rgba(8, 10, 20, .78) !important;
+    rgba(var(--cut-surface-1-rgb), .78) !important;
   box-shadow: 0 14px 42px rgba(0, 0, 0, .24), inset 0 -1px 0 rgba(255, 255, 255, .025) !important;
   -webkit-backdrop-filter: blur(28px) saturate(145%) brightness(67%) !important;
   backdrop-filter: blur(28px) saturate(145%) brightness(67%) !important;
@@ -290,10 +290,10 @@ hr {
 .topbar .nav-link.active,
 .nav-pills .nav-link.active {
   color: #fff !important;
-  border-color: rgba(184, 71, 250, .24) !important;
+  border-color: rgba(var(--cut-red-rgb), .24) !important;
   background:
-    linear-gradient(135deg, rgba(184, 71, 250, .18), rgba(43, 98, 244, .11)) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 8px 24px rgba(79, 70, 229, .10) !important;
+    linear-gradient(135deg, rgba(var(--cut-red-rgb), .18), rgba(var(--cut-red-rgb), .11)) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 8px 24px rgba(var(--cut-red-rgb), .10) !important;
 }
 
 .navbar-toggler,
@@ -310,7 +310,7 @@ hr {
     border: 1px solid rgba(255, 255, 255, .11) !important;
     background:
       var(--cut-cg-brand-haze),
-      rgba(8, 10, 20, .90) !important;
+      rgba(var(--cut-surface-1-rgb), .90) !important;
     box-shadow: 20px 0 70px rgba(0, 0, 0, .48), inset 0 1px 0 rgba(255, 255, 255, .07) !important;
     -webkit-backdrop-filter: blur(34px) saturate(140%) brightness(62%) !important;
     backdrop-filter: blur(34px) saturate(140%) brightness(62%) !important;
@@ -361,7 +361,7 @@ hr {
 .dropdown-item:active {
   color: #fff !important;
   border-color: rgba(255, 255, 255, .07) !important;
-  background: rgba(184, 71, 250, .13) !important;
+  background: rgba(var(--cut-red-rgb), .13) !important;
 }
 
 .dropdown-divider {
@@ -370,7 +370,7 @@ hr {
 
 .modal-backdrop.show,
 .offcanvas-backdrop.show {
-  background: rgba(1, 2, 7, .66) !important;
+  background: rgba(var(--cut-surface-1-rgb), .66) !important;
   opacity: 1 !important;
   -webkit-backdrop-filter: blur(12px) saturate(110%) brightness(68%) !important;
   backdrop-filter: blur(12px) saturate(110%) brightness(68%) !important;
@@ -383,7 +383,7 @@ hr {
   background:
     var(--cut-cg-brand-haze),
     linear-gradient(145deg, rgba(255, 255, 255, .07), rgba(255, 255, 255, .015)),
-    rgba(10, 12, 23, .87) !important;
+    rgba(var(--cut-surface-1-rgb), .87) !important;
   color: var(--cut-text) !important;
   box-shadow: 0 38px 120px rgba(0, 0, 0, .52), inset 0 1px 0 rgba(255, 255, 255, .10) !important;
   -webkit-backdrop-filter: blur(40px) saturate(145%) brightness(60%) !important;
@@ -392,7 +392,7 @@ hr {
 
 .swal2-container.swal2-backdrop-show,
 .swal2-container.swal2-backdrop-hide {
-  background: rgba(1, 2, 7, .62) !important;
+  background: rgba(var(--cut-surface-1-rgb), .62) !important;
   -webkit-backdrop-filter: blur(12px) saturate(115%) brightness(70%) !important;
   backdrop-filter: blur(12px) saturate(115%) brightness(70%) !important;
 }
@@ -460,14 +460,14 @@ hr {
 .swal2-input:focus,
 .swal2-textarea:focus,
 .swal2-select:focus {
-  border-color: rgba(184, 71, 250, .56) !important;
+  border-color: rgba(var(--cut-red-rgb), .56) !important;
   background-color: rgba(255, 255, 255, .075) !important;
-  box-shadow: 0 0 0 4px rgba(184, 71, 250, .11), inset 0 1px 0 rgba(255, 255, 255, .055) !important;
+  box-shadow: 0 0 0 4px rgba(var(--cut-red-rgb), .11), inset 0 1px 0 rgba(255, 255, 255, .055) !important;
 }
 
 .form-select option {
   color: #f5f5fa;
-  background: #11131f;
+  background: var(--cut-surface-1);
 }
 
 .form-label {
@@ -488,13 +488,13 @@ hr {
   border-color: rgba(255, 255, 255, .08) !important;
   background: var(--cut-gradient-brand) !important;
   color: #fff !important;
-  box-shadow: 0 12px 32px rgba(113, 65, 247, .22), inset 0 1px 0 rgba(255, 255, 255, .16) !important;
+  box-shadow: 0 12px 32px rgba(var(--cut-red-rgb), .22), inset 0 1px 0 rgba(255, 255, 255, .16) !important;
 }
 
 .btn-primary:hover:not(:disabled),
 .swal2-confirm:hover {
   filter: brightness(1.07) saturate(1.05);
-  box-shadow: 0 16px 40px rgba(113, 65, 247, .30), inset 0 1px 0 rgba(255, 255, 255, .18) !important;
+  box-shadow: 0 16px 40px rgba(var(--cut-red-rgb), .30), inset 0 1px 0 rgba(255, 255, 255, .18) !important;
 }
 
 .btn-secondary,
@@ -551,8 +551,8 @@ hr {
 .nav-tabs .nav-link.active,
 .nav-pills .nav-link.active {
   color: #fff !important;
-  border-color: rgba(184, 71, 250, .20) !important;
-  background: linear-gradient(135deg, rgba(184, 71, 250, .16), rgba(43, 98, 244, .09)) !important;
+  border-color: rgba(var(--cut-red-rgb), .20) !important;
+  background: linear-gradient(135deg, rgba(var(--cut-red-rgb), .16), rgba(var(--cut-red-rgb), .09)) !important;
 }
 
 .accordion-button,
@@ -575,11 +575,11 @@ hr {
 
 .accordion-item:has(.accordion-collapse.show),
 .cut-collapsible-filters.is-open {
-  border-color: rgba(157, 199, 255, .20) !important;
+  border-color: rgba(var(--cut-red-rgb), .20) !important;
   background:
     var(--cut-cg-brand-haze),
     linear-gradient(145deg, rgba(255, 255, 255, .07), rgba(255, 255, 255, .015)),
-    rgba(13, 15, 27, .76) !important;
+    rgba(var(--cut-surface-1-rgb), .76) !important;
   -webkit-backdrop-filter: blur(32px) saturate(138%) brightness(66%) !important;
   backdrop-filter: blur(32px) saturate(138%) brightness(66%) !important;
 }
@@ -628,8 +628,8 @@ hr {
   --bs-pagination-hover-bg: rgba(255, 255, 255, .075);
   --bs-pagination-hover-border-color: rgba(255, 255, 255, .13);
   --bs-pagination-hover-color: #fff;
-  --bs-pagination-active-bg: rgba(184, 71, 250, .22);
-  --bs-pagination-active-border-color: rgba(184, 71, 250, .32);
+  --bs-pagination-active-bg: rgba(var(--cut-red-rgb), .22);
+  --bs-pagination-active-border-color: rgba(var(--cut-red-rgb), .32);
 }
 
 .page-link {
@@ -649,10 +649,10 @@ hr {
   backdrop-filter: blur(18px) saturate(125%) brightness(78%);
 }
 
-.alert-danger { background: rgba(82, 22, 39, .42) !important; }
-.alert-success { background: rgba(13, 67, 54, .40) !important; }
+.alert-danger { background: var(--cut-danger-soft) !important; }
+.alert-success { background: rgba(var(--cut-red-rgb), .40) !important; }
 .alert-warning { background: rgba(86, 61, 16, .40) !important; }
-.alert-info { background: rgba(14, 57, 83, .40) !important; }
+.alert-info { background: rgba(var(--cut-red-rgb), .40) !important; }
 
 /* -------------------------------------------------------------------------- */
 /* Event/feed/profile/message/checkout visual bridges                          */
@@ -676,7 +676,7 @@ hr {
   border-color: var(--cut-cg-border) !important;
   background:
     var(--cut-cg-edge),
-    rgba(17, 19, 31, .66) !important;
+    rgba(var(--cut-surface-1-rgb), .66) !important;
   box-shadow: var(--cut-cg-shadow) !important;
   -webkit-backdrop-filter: blur(24px) saturate(135%) brightness(73%) !important;
   backdrop-filter: blur(24px) saturate(135%) brightness(73%) !important;
@@ -729,7 +729,7 @@ canvas {
   }
 
   .cut-mobile-bottom-nav {
-    background: rgba(8, 10, 20, .88) !important;
+    background: rgba(var(--cut-surface-1-rgb), .88) !important;
     -webkit-backdrop-filter: blur(20px) saturate(132%) brightness(68%) !important;
     backdrop-filter: blur(20px) saturate(132%) brightness(68%) !important;
   }
@@ -758,7 +758,7 @@ canvas {
   .swal2-popup:not(.swal2-toast),
   :where(div, article, section, aside, li, a)[class*="-card "],
   :where(div, article, section, aside, li, a)[class$="-card"] {
-    background: #121522 !important;
+    background: var(--cut-surface-1) !important;
   }
 }
 
@@ -780,7 +780,7 @@ canvas {
   .swal2-popup:not(.swal2-toast),
   :where(div, article, section, aside, li, a)[class*="-card "],
   :where(div, article, section, aside, li, a)[class$="-card"] {
-    background: #141624 !important;
+    background: var(--cut-surface-1) !important;
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
   }

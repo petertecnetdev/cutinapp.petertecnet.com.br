@@ -1,6 +1,6 @@
 .cut-login-form { display: flex; width: 100%; flex-direction: column; gap: 15px; }
 .cut-login-form__error { padding: 12px 14px; border: 1px solid rgba(255,107,125,.26); border-radius: var(--cut-radius-md); background: var(--cut-danger-soft); color: #ffdbe0; font-size: .87rem; line-height: 1.48; }
-.cut-login-form__info { padding: 12px 14px; border: 1px solid rgba(47,198,216,.24); border-radius: var(--cut-radius-md); background: rgba(47,198,216,.08); color: #d9f8fb; font-size: .87rem; line-height: 1.48; }
+.cut-login-form__info { padding: 12px 14px; border: 1px solid rgba(var(--cut-red-rgb), .24); border-radius: var(--cut-radius-md); background: rgba(var(--cut-red-rgb), .08); color: #d9f8fb; font-size: .87rem; line-height: 1.48; }
 .cut-login-form__field { display: flex; flex-direction: column; gap: 8px; }
 .cut-login-form__field label { margin: 0; color: #d3e2e9; font-size: .84rem; font-weight: 770; }
 .cut-login-form__hint { margin-top: -1px; color: var(--cut-text-muted); font-size: .74rem; line-height: 1.48; }
@@ -8,16 +8,16 @@
 .cut-login-form__inputWrap > i { position: absolute; left: 13px; top: 50%; z-index: 2; width: 29px; height: 29px; display: grid; place-items: center; transform: translateY(-50%); border: 1px solid var(--cut-border-soft); border-radius: 9px; background: rgba(255,255,255,.035); color: var(--cut-primary); font-size: .8rem; pointer-events: none; }
 .cut-login-form__inputWrap .form-control { min-height: 51px; padding: .88rem 1rem .88rem 3.35rem !important; border-radius: var(--cut-radius-md) !important; background: rgba(255,255,255,.038) !important; }
 .cut-login-form__inputWrap--password .form-control { padding-right: 5.85rem !important; }
-.cut-login-form__inputWrap .form-control:focus { background: rgba(8,23,32,.92) !important; }
-.cut-login-form__passwordToggle { position: absolute; z-index: 3; top: 50%; right: 9px; min-width: 68px; min-height: 36px; padding: 0 10px; transform: translateY(-50%); border: 1px solid rgba(47,198,216,.24); border-radius: 10px; background: rgba(7,23,31,.92); color: #ccebf0; font-size: .74rem; font-weight: 820; line-height: 1; cursor: pointer; transition: border-color var(--cut-duration-normal) ease, background var(--cut-duration-normal) ease, color var(--cut-duration-normal) ease; }
-.cut-login-form__passwordToggle:hover:not(:disabled) { border-color: rgba(47,198,216,.58); background: rgba(47,198,216,.12); color: #fff; }
-.cut-login-form__passwordToggle:focus-visible { outline: 2px solid rgba(47,198,216,.78); outline-offset: 2px; }
+.cut-login-form__inputWrap .form-control:focus { background: rgba(var(--cut-surface-1-rgb), .92) !important; }
+.cut-login-form__passwordToggle { position: absolute; z-index: 3; top: 50%; right: 9px; min-width: 68px; min-height: 36px; padding: 0 10px; transform: translateY(-50%); border: 1px solid rgba(var(--cut-red-rgb), .24); border-radius: 10px; background: rgba(var(--cut-surface-1-rgb), .92); color: #ccebf0; font-size: .74rem; font-weight: 820; line-height: 1; cursor: pointer; transition: border-color var(--cut-duration-normal) ease, background var(--cut-duration-normal) ease, color var(--cut-duration-normal) ease; }
+.cut-login-form__passwordToggle:hover:not(:disabled) { border-color: rgba(var(--cut-red-rgb), .58); background: rgba(var(--cut-red-rgb), .12); color: #fff; }
+.cut-login-form__passwordToggle:focus-visible { outline: 2px solid rgba(var(--cut-red-rgb), .78); outline-offset: 2px; }
 .cut-login-form__passwordToggle:disabled { opacity: .5; cursor: not-allowed; }
 .cut-login-form__submit { min-height: 51px; border: 0 !important; border-radius: var(--cut-radius-md) !important; background: var(--cut-gradient-brand) !important; color: var(--cut-text-on-primary) !important; font-weight: 900 !important; letter-spacing: .01em; box-shadow: var(--cut-shadow-brand); transition: transform var(--cut-duration-normal) ease, filter var(--cut-duration-normal) ease, box-shadow var(--cut-duration-normal) ease; }
-.cut-login-form__submit:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.06); box-shadow: 0 20px 50px rgba(47,198,216,.28); }
+.cut-login-form__submit:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.06); box-shadow: 0 20px 50px rgba(var(--cut-red-rgb), .28); }
 .cut-login-form__submit:active:not(:disabled) { transform: scale(.988); }
 .cut-login-form__submit:disabled { opacity: .5; }
-.cut-login-form__spinner { display: inline-block; width: 16px; height: 16px; margin-right: 8px; vertical-align: -3px; border: 2px solid rgba(3,19,23,.25); border-top-color: #031317; border-radius: 50%; animation: cutLoginSpin .75s linear infinite; }
+.cut-login-form__spinner { display: inline-block; width: 16px; height: 16px; margin-right: 8px; vertical-align: -3px; border: 2px solid rgba(var(--cut-surface-1-rgb), .25); border-top-color: var(--cut-surface-1); border-radius: 50%; animation: cutLoginSpin .75s linear infinite; }
 .cut-login-form__divider { display: flex; align-items: center; gap: 12px; margin-top: 1px; color: var(--cut-text-faint); font-size: .72rem; font-weight: 820; letter-spacing: .09em; text-transform: uppercase; }
 .cut-login-form__divider::before, .cut-login-form__divider::after { content: ""; height: 1px; flex: 1; background: linear-gradient(90deg,transparent,var(--cut-divider),transparent); }
 .cut-login-form__providers { display: grid; gap: 10px; }
@@ -44,7 +44,7 @@
 .cut-instagram-account__verified { justify-self: end; color: var(--cut-primary); font-size: 1rem; }
 .cut-login-form__secondaryAction, .cut-login-form__textAction { width: 100%; border-radius: var(--cut-radius-md); font-weight: 820; cursor: pointer; transition: border-color var(--cut-duration-normal) ease, background var(--cut-duration-normal) ease, color var(--cut-duration-normal) ease; }
 .cut-login-form__secondaryAction { min-height: 44px; border: 1px solid var(--cut-border); background: rgba(255,255,255,.025); color: #d9e8ee; font-size: .82rem; }
-.cut-login-form__secondaryAction:hover:not(:disabled) { border-color: rgba(47,198,216,.42); background: rgba(47,198,216,.08); color: #fff; }
+.cut-login-form__secondaryAction:hover:not(:disabled) { border-color: rgba(var(--cut-red-rgb), .42); background: rgba(var(--cut-red-rgb), .08); color: #fff; }
 .cut-login-form__textAction { min-height: 34px; border: 0; background: transparent; color: var(--cut-text-muted); font-size: .77rem; }
 .cut-login-form__textAction:hover:not(:disabled) { color: var(--cut-primary); }
 .cut-login-form__secondaryAction:disabled, .cut-login-form__textAction:disabled { opacity: .5; cursor: not-allowed; }

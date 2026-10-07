@@ -156,7 +156,7 @@ const renderPrompt = () => {
     padding: "12px 14px",
     border: "1px solid rgba(255,255,255,.16)",
     borderRadius: "16px",
-    background: "rgba(14,17,24,.96)",
+    background: "rgba(11,11,13,.96)",
     boxShadow: "0 16px 40px rgba(0,0,0,.32)",
     color: "#fff",
     backdropFilter: "blur(14px)",

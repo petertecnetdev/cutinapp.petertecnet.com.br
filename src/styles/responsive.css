@@ -32,8 +32,8 @@
     display: block !important;
     overflow-y: auto;
     overscroll-behavior: contain;
-    background: linear-gradient(180deg, rgba(8,18,28,.995), rgba(5,12,20,.995));
-    border-right: 1px solid rgba(86,220,233,.14);
+    background: linear-gradient(180deg, rgba(var(--cut-surface-1-rgb), .995), rgba(var(--cut-surface-1-rgb), .995));
+    border-right: 1px solid rgba(var(--cut-red-rgb), .14);
     box-shadow: 28px 0 80px rgba(0,0,0,.52);
     transform: translateX(-105%);
     transition: transform .24s ease;
@@ -92,7 +92,7 @@
     position: fixed;
     inset: 0;
     z-index: 1400;
-    background: rgba(0,7,12,.64);
+    background: rgba(var(--cut-surface-1-rgb), .64);
     backdrop-filter: blur(4px);
     pointer-events: none;
   }

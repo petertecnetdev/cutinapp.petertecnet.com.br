@@ -37,7 +37,7 @@ function escapeXml(value) {
 
 export function buildInitialsImageDataUri(value) {
   const initials = escapeXml(getImageFallbackInitials(value));
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="${initials}"><defs><linearGradient id="ptg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#172033"/><stop offset="100%" stop-color="#080c14"/></linearGradient></defs><rect width="256" height="256" rx="28" fill="url(#ptg)"/><circle cx="206" cy="48" r="54" fill="rgba(255,255,255,.055)"/><circle cx="42" cy="220" r="72" fill="rgba(255,255,255,.035)"/><text x="128" y="138" text-anchor="middle" dominant-baseline="middle" font-family="Inter,Arial,sans-serif" font-size="82" font-weight="750" letter-spacing="2" fill="#f8fafc">${initials}</text></svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="${initials}"><defs><linearGradient id="ptg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#141417"/><stop offset="100%" stop-color="#050505"/></linearGradient></defs><rect width="256" height="256" rx="28" fill="url(#ptg)"/><circle cx="206" cy="48" r="54" fill="rgba(255,255,255,.055)"/><circle cx="42" cy="220" r="72" fill="rgba(255,255,255,.035)"/><text x="128" y="138" text-anchor="middle" dominant-baseline="middle" font-family="Inter,Arial,sans-serif" font-size="82" font-weight="750" letter-spacing="2" fill="#f8fafc">${initials}</text></svg>`;
   return `${FALLBACK_PREFIX}${encodeURIComponent(svg)}`;
 }
 

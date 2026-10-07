@@ -13,6 +13,7 @@
     "lint:dialogs": "node scripts/check-dialog-policy.js",
     "lint:react-stability": "node scripts/check-react-stability.js",
     "lint:ux-regressions": "node scripts/check-ux-regressions.js",
+    "lint:brand": "node scripts/check-brand-colors.js",
     "lint:production-view": "node scripts/check-production-view-regression.js",
     "smoke:runtime": "node scripts/check-runtime-smoke.js",
     "smoke:pwa": "node scripts/check-pwa-installability.js",

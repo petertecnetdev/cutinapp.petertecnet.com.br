@@ -38,8 +38,8 @@
   overflow: hidden;
   border-color: rgba(255,255,255,.08) !important;
   background:
-    radial-gradient(circle at 100% 0%, rgba(0,183,255,.08), transparent 42%),
-    linear-gradient(155deg, rgba(24,23,55,.96), rgba(10,11,28,.99)) !important;
+    radial-gradient(circle at 100% 0%, rgba(var(--cut-red-rgb), .08), transparent 42%),
+    linear-gradient(155deg, rgba(var(--cut-red-rgb), .96), rgba(var(--cut-surface-1-rgb), .99)) !important;
 }
 
 .cut-participant-kpi .card-body {
@@ -62,8 +62,8 @@
   place-items: center;
   border-radius: 14px;
   color: #fff;
-  background: linear-gradient(135deg, rgba(190,65,255,.76), rgba(0,183,255,.58));
-  box-shadow: 0 10px 24px rgba(91, 42, 176, .18);
+  background: linear-gradient(135deg, rgba(var(--cut-red-rgb), .76), rgba(var(--cut-red-rgb), .58));
+  box-shadow: 0 10px 24px rgba(var(--cut-red-rgb), .18);
 }
 
 .cut-participant-kpi small {
@@ -154,7 +154,7 @@
   border: 0;
   padding: 0;
   background: transparent;
-  color: #c87cff;
+  color: var(--cut-red-hi);
   font-weight: 800;
 }
 
@@ -205,7 +205,7 @@
   place-items: center;
   border-radius: 12px;
   color: #fff;
-  background: linear-gradient(135deg, rgba(194,67,255,.72), rgba(0,183,255,.52));
+  background: linear-gradient(135deg, rgba(var(--cut-red-rgb), .72), rgba(var(--cut-red-rgb), .52));
   font-size: .75rem;
   font-weight: 900;
   letter-spacing: .03em;
@@ -238,9 +238,9 @@
   display: grid;
   place-items: center;
   border-radius: 16px;
-  color: #d98cff;
-  background: rgba(190,65,255,.10);
-  border: 1px solid rgba(190,65,255,.18);
+  color: var(--cut-red-hi);
+  background: rgba(var(--cut-red-rgb), .10);
+  border: 1px solid rgba(var(--cut-red-rgb), .18);
   font-size: 1.15rem;
 }
 

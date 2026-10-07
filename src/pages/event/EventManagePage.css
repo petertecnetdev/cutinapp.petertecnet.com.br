@@ -55,7 +55,7 @@
   padding: 7px 12px;
   border: 1px solid var(--cut-border);
   border-radius: 999px;
-  background: rgba(13, 13, 36, .72);
+  background: rgba(var(--cut-surface-1-rgb), .72);
   color: var(--cut-text-soft);
   font-size: .76rem;
   font-weight: 800;
@@ -71,7 +71,7 @@
 }
 
 .cut-event-manager-summary button.is-active {
-  box-shadow: inset 0 0 0 1px rgba(86, 220, 233, .08);
+  box-shadow: inset 0 0 0 1px rgba(var(--cut-red-rgb), .08);
 }
 
 .cut-event-manager-summary button strong {
@@ -95,7 +95,7 @@
   padding: 10px;
   border: 1px solid rgba(255, 255, 255, .08);
   border-radius: 16px;
-  background: rgba(9, 9, 29, .62);
+  background: rgba(var(--cut-surface-1-rgb), .62);
 }
 
 .cut-event-manager-search {
@@ -192,7 +192,7 @@
   padding: .8rem;
   border: 1px solid rgba(255, 255, 255, .08);
   border-radius: 18px;
-  background: linear-gradient(180deg, rgba(18, 21, 54, .93), rgba(8, 11, 32, .94));
+  background: linear-gradient(180deg, rgba(var(--cut-red-rgb), .93), rgba(var(--cut-surface-1-rgb), .94));
   box-shadow: 0 12px 30px rgba(0, 0, 0, .15);
 }
 
@@ -240,7 +240,7 @@
   max-width: 100%;
   margin-top: .34rem;
   overflow: hidden;
-  color: rgba(240, 156, 255, .82);
+  color: rgba(var(--cut-red-rgb), .82);
   font-size: .72rem;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -325,7 +325,7 @@
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--cut-primary), var(--cut-secondary, #b847fa));
+  background: linear-gradient(90deg, var(--cut-primary), var(--cut-secondary, var(--cut-red-hi)));
   transition: width 240ms ease;
 }
 
@@ -510,8 +510,8 @@
 
   .cut-event-admin-table tbody tr:hover {
     transform: translateY(-1px);
-    border-color: rgba(126, 88, 255, .3);
-    background: linear-gradient(180deg, rgba(23, 25, 63, .96), rgba(10, 12, 36, .96));
+    border-color: rgba(var(--cut-red-rgb), .3);
+    background: linear-gradient(180deg, rgba(var(--cut-red-rgb), .96), rgba(var(--cut-surface-1-rgb), .96));
     box-shadow: 0 14px 34px rgba(0, 0, 0, .2);
   }
 }
@@ -860,7 +860,7 @@
   padding:.8rem 1rem;
   border:1px solid rgba(255,255,255,.075);
   border-radius:18px;
-  background:rgba(12,14,34,.88);
+  background:rgba(var(--cut-surface-1-rgb), .88);
 }
 .cut-event-manager-hero__copy{
   min-width:0;
@@ -893,7 +893,7 @@
   min-height:34px;
   padding:5px 10px;
   border-radius:10px;
-  background:rgba(13,15,35,.82);
+  background:rgba(var(--cut-surface-1-rgb), .82);
   font-size:.68rem;
 }
 .cut-event-manager-summary button>i{
@@ -915,7 +915,7 @@
   margin:.5rem 0;
   border:1px solid rgba(255,255,255,.065);
   border-radius:12px;
-  background:rgba(11,13,31,.62);
+  background:rgba(var(--cut-surface-1-rgb), .62);
 }
 .cut-event-commerce-summary>summary{
   display:flex;
@@ -955,7 +955,7 @@
   margin:.6rem 0;
   padding:.45rem;
   border-radius:13px;
-  background:rgba(9,11,29,.97);
+  background:rgba(var(--cut-surface-1-rgb), .97);
   box-shadow:0 8px 20px rgba(0,0,0,.15);
 }
 .cut-event-manager-search .form-control{
@@ -994,9 +994,9 @@
   gap:.4rem;
   min-height:30px;
   padding:.3rem .55rem;
-  border:1px solid rgba(86,220,233,.16);
+  border:1px solid rgba(var(--cut-red-rgb), .16);
   border-radius:999px;
-  background:rgba(86,220,233,.055);
+  background:rgba(var(--cut-red-rgb), .055);
   color:var(--cut-text-soft);
   font-size:.6rem;
   font-weight:780;
@@ -1051,14 +1051,14 @@
   min-height:74px!important;
   padding:.48rem .62rem!important;
   border-radius:13px!important;
-  background:rgba(13,15,37,.88)!important;
+  background:rgba(var(--cut-surface-1-rgb), .88)!important;
   box-shadow:none!important;
   contain:layout style;
   overflow:visible;
 }
 .cut-producer-event-card.is-compact-table:hover{
-  border-color:rgba(86,220,233,.17);
-  background:rgba(16,19,44,.94)!important;
+  border-color:rgba(var(--cut-red-rgb), .17);
+  background:rgba(var(--cut-surface-1-rgb), .94)!important;
 }
 .cut-producer-event-card.is-compact-table::after{
   display:none;
@@ -1133,8 +1133,8 @@
   text-align:left;
 }
 .cut-event-artist-chip:hover{
-  border-color:rgba(86,220,233,.18);
-  background:rgba(86,220,233,.04);
+  border-color:rgba(var(--cut-red-rgb), .18);
+  background:rgba(var(--cut-red-rgb), .04);
 }
 .cut-event-artist-chip__avatar{
   width:24px;
@@ -1144,7 +1144,7 @@
   place-items:center;
   overflow:hidden;
   border-radius:50%;
-  background:rgba(86,220,233,.1);
+  background:rgba(var(--cut-red-rgb), .1);
   color:var(--cut-primary);
   font-size:.48rem;
   font-weight:950;
@@ -1276,14 +1276,14 @@
 }
 .cut-producer-event-card__media-overlay{
   backdrop-filter:none!important;
-  background:rgba(5,7,20,.94);
+  background:rgba(var(--cut-surface-1-rgb), .94);
 }
 .cut-event-bulk-selection{
   position:sticky;
   top:126px;
   z-index:21;
   margin:.45rem 0;
-  background:rgba(13,15,37,.98)!important;
+  background:rgba(var(--cut-surface-1-rgb), .98)!important;
 }
 .cut-event-incremental-footer{
   padding:.65rem .1rem 0;
@@ -1479,7 +1479,7 @@
     position:sticky;
     top:126px;
     z-index:17;
-    background:rgba(7,9,25,.97);
+    background:rgba(var(--cut-surface-1-rgb), .97);
     border-bottom:1px solid rgba(255,255,255,.055);
   }
 }
@@ -1495,7 +1495,7 @@
   padding:.6rem .65rem;
   border:1px solid rgba(255,255,255,.08);
   border-radius:16px;
-  background:rgba(8,10,31,.74);
+  background:rgba(var(--cut-surface-1-rgb), .74);
   box-shadow:0 10px 30px rgba(0,0,0,.12);
 }
 .cut-event-timebar__filters{
@@ -1533,13 +1533,13 @@
 }
 .cut-event-timebar__filters button:hover{
   color:var(--cut-text-strong);
-  border-color:rgba(173,86,255,.42);
+  border-color:rgba(var(--cut-red-rgb), .42);
 }
 .cut-event-timebar__filters button.is-active{
   color:#fff;
-  border-color:rgba(193,92,255,.7);
-  background:linear-gradient(135deg,rgba(177,64,255,.36),rgba(37,153,255,.26));
-  box-shadow:0 0 0 1px rgba(163,72,255,.08),0 8px 24px rgba(76,55,255,.13);
+  border-color:rgba(var(--cut-red-rgb), .7);
+  background:linear-gradient(135deg,rgba(var(--cut-red-rgb), .36),rgba(var(--cut-red-rgb), .26));
+  box-shadow:0 0 0 1px rgba(var(--cut-red-rgb), .08),0 8px 24px rgba(var(--cut-red-rgb), .13);
 }
 .cut-event-timebar__search{
   flex:0 0 auto;
@@ -1584,7 +1584,7 @@
     position:sticky;
     left:0;
     z-index:1;
-    background:rgba(8,10,31,.96);
+    background:rgba(var(--cut-surface-1-rgb), .96);
   }
   .cut-event-timebar__search{width:100%}
   .cut-event-pagination{

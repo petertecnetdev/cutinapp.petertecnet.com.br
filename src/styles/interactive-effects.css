@@ -37,7 +37,7 @@
   min-height: 360px;
   left: -12vw;
   top: 6vh;
-  background: radial-gradient(circle, rgba(229,108,255,.78), rgba(184,71,250,.22) 48%, transparent 72%);
+  background: radial-gradient(circle, rgba(var(--cut-red-rgb), .78), rgba(var(--cut-red-rgb), .22) 48%, transparent 72%);
   animation: cutFxAuroraOne 18s ease-in-out infinite alternate;
 }
 
@@ -48,7 +48,7 @@
   min-height: 390px;
   right: -14vw;
   top: 13vh;
-  background: radial-gradient(circle, rgba(43,98,244,.76), rgba(113,65,247,.24) 50%, transparent 72%);
+  background: radial-gradient(circle, rgba(var(--cut-red-rgb), .76), rgba(var(--cut-red-rgb), .24) 50%, transparent 72%);
   animation: cutFxAuroraTwo 22s ease-in-out infinite alternate;
 }
 
@@ -59,7 +59,7 @@
   min-height: 320px;
   left: 35vw;
   bottom: -18vw;
-  background: radial-gradient(circle, rgba(6,175,250,.50), rgba(43,98,244,.16) 48%, transparent 72%);
+  background: radial-gradient(circle, rgba(var(--cut-red-rgb), .50), rgba(var(--cut-red-rgb), .16) 48%, transparent 72%);
   animation: cutFxAuroraThree 20s ease-in-out infinite alternate;
 }
 
@@ -68,8 +68,8 @@
   inset: -20%;
   opacity: .14;
   background-image:
-    linear-gradient(rgba(184,71,250,.13) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(6,175,250,.09) 1px, transparent 1px);
+    linear-gradient(rgba(var(--cut-red-rgb), .13) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(var(--cut-red-rgb), .09) 1px, transparent 1px);
   background-size: 64px 64px;
   transform: perspective(800px) rotateX(63deg) translateY(26%);
   transform-origin: center top;
@@ -82,9 +82,9 @@
   inset: 0;
   background: radial-gradient(
     420px circle at var(--cut-pointer-x) var(--cut-pointer-y),
-    rgba(229,108,255,.10),
-    rgba(113,65,247,.07) 30%,
-    rgba(6,175,250,.035) 48%,
+    rgba(var(--cut-red-rgb), .10),
+    rgba(var(--cut-red-rgb), .07) 30%,
+    rgba(var(--cut-red-rgb), .035) 48%,
     transparent 72%
   );
   mix-blend-mode: screen;
@@ -95,7 +95,7 @@
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at center, transparent 34%, rgba(2,2,11,.18) 72%, rgba(2,2,11,.62) 100%),
+    radial-gradient(circle at center, transparent 34%, rgba(var(--cut-surface-1-rgb), .18) 72%, rgba(var(--cut-surface-1-rgb), .62) 100%),
     linear-gradient(180deg, rgba(255,255,255,.01), rgba(0,0,0,.08));
 }
 
@@ -108,8 +108,8 @@
   z-index: 11000;
   transform: scaleX(var(--cut-scroll-progress));
   transform-origin: left center;
-  background: linear-gradient(90deg,#e56cff 0%,#b847fa 28%,#7141f7 52%,#2b62f4 76%,#06affa 100%);
-  box-shadow: 0 0 12px rgba(184,71,250,.9), 0 0 22px rgba(6,175,250,.4);
+  background: linear-gradient(90deg,var(--cut-red-hi) 0%,var(--cut-red-hi) 28%,var(--cut-red-hi) 52%,var(--cut-red-hi) 76%,var(--cut-red-hi) 100%);
+  box-shadow: 0 0 12px rgba(var(--cut-red-rgb), .9), 0 0 22px rgba(var(--cut-red-rgb), .4);
 }
 
 .cut-fx-reveal {
@@ -144,13 +144,13 @@
 .cut-fx-surface.cut-fx-surface-active {
   box-shadow:
     0 28px 72px rgba(0,0,0,.38),
-    0 0 0 1px rgba(229,108,255,.06),
-    0 0 38px rgba(113,65,247,.10),
-    0 0 70px rgba(6,175,250,.035) !important;
+    0 0 0 1px rgba(var(--cut-red-rgb), .06),
+    0 0 38px rgba(var(--cut-red-rgb), .10),
+    0 0 70px rgba(var(--cut-red-rgb), .035) !important;
 }
 
 .cut-fx-surface.cut-fx-surface-active::selection {
-  background: rgba(229,108,255,.3);
+  background: rgba(var(--cut-red-rgb), .3);
 }
 
 .cut-fx-magnetic {
@@ -198,7 +198,7 @@
   box-shadow:
     0 18px 48px rgba(0,0,0,.28),
     inset 0 1px 0 rgba(255,255,255,.035),
-    inset 0 -1px 0 rgba(113,65,247,.025);
+    inset 0 -1px 0 rgba(var(--cut-red-rgb), .025);
 }
 
 .cut-page-heading h1,
@@ -213,7 +213,7 @@
 .cut-home__eyebrow {
   position: relative;
   width: fit-content;
-  text-shadow: 0 0 18px rgba(184,71,250,.28);
+  text-shadow: 0 0 18px rgba(var(--cut-red-rgb), .28);
 }
 
 .cut-eyebrow::after,
@@ -223,8 +223,8 @@
   height: 6px;
   margin-left: 2px;
   border-radius: 50%;
-  background: #06affa;
-  box-shadow: 0 0 10px rgba(6,175,250,.85), 0 0 20px rgba(184,71,250,.45);
+  background: var(--cut-red-hi);
+  box-shadow: 0 0 10px rgba(var(--cut-red-rgb), .85), 0 0 20px rgba(var(--cut-red-rgb), .45);
   animation: cutFxSignal 2.2s ease-in-out infinite;
 }
 
@@ -234,14 +234,14 @@
 .cut-auth-shell__brandMark {
   box-shadow:
     inset 0 1px rgba(255,255,255,.08),
-    inset 0 -1px rgba(113,65,247,.05),
+    inset 0 -1px rgba(var(--cut-red-rgb), .05),
     0 18px 52px rgba(0,0,0,.34),
-    0 0 42px rgba(184,71,250,.09) !important;
+    0 0 42px rgba(var(--cut-red-rgb), .09) !important;
 }
 
 .cut-navbar,
 .cut-home__nav {
-  border-bottom-color: rgba(229,108,255,.10) !important;
+  border-bottom-color: rgba(var(--cut-red-rgb), .10) !important;
 }
 
 .cut-navbar::before,
@@ -250,7 +250,7 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: radial-gradient(500px circle at var(--cut-pointer-xp) 0%, rgba(184,71,250,.055), transparent 68%);
+  background: radial-gradient(500px circle at var(--cut-pointer-xp) 0%, rgba(var(--cut-red-rgb), .055), transparent 68%);
 }
 
 .form-control,
@@ -264,9 +264,9 @@
 .form-select:focus,
 .cut-search-bar:focus-within {
   box-shadow:
-    0 0 0 1px rgba(229,108,255,.16),
-    0 0 0 4px rgba(113,65,247,.09),
-    0 0 28px rgba(43,98,244,.075) !important;
+    0 0 0 1px rgba(var(--cut-red-rgb), .16),
+    0 0 0 4px rgba(var(--cut-red-rgb), .09),
+    0 0 28px rgba(var(--cut-red-rgb), .075) !important;
 }
 
 .btn-primary,
@@ -305,21 +305,21 @@
 }
 
 .dropdown-menu {
-  border-color: rgba(184,71,250,.20) !important;
+  border-color: rgba(var(--cut-red-rgb), .20) !important;
   box-shadow:
     0 26px 68px rgba(0,0,0,.46),
-    0 0 44px rgba(113,65,247,.08) !important;
+    0 0 44px rgba(var(--cut-red-rgb), .08) !important;
 }
 
 .modal-content {
-  border-color: rgba(184,71,250,.22) !important;
+  border-color: rgba(var(--cut-red-rgb), .22) !important;
   box-shadow:
     0 42px 110px rgba(0,0,0,.58),
-    0 0 70px rgba(113,65,247,.09) !important;
+    0 0 70px rgba(var(--cut-red-rgb), .09) !important;
 }
 
 .cut-skeleton::after {
-  background: linear-gradient(90deg,transparent,rgba(229,108,255,.06),rgba(6,175,250,.08),transparent) !important;
+  background: linear-gradient(90deg,transparent,rgba(var(--cut-red-rgb), .06),rgba(var(--cut-red-rgb), .08),transparent) !important;
 }
 
 @keyframes cutFxAuroraOne {

@@ -8,9 +8,9 @@
 :root {
   --cut-readable-text: #f7f5ff;
   --cut-readable-muted: #c5c1dc;
-  --cut-readable-soft: #a5a0bf;
-  --cut-readable-faint: #85809e;
-  --cut-focus-ring: 0 0 0 4px rgba(184, 71, 250, .22), 0 0 0 1px rgba(255, 255, 255, .18);
+  --cut-readable-soft: var(--cut-text-soft);
+  --cut-readable-faint: var(--cut-text-soft);
+  --cut-focus-ring: 0 0 0 4px rgba(var(--cut-red-rgb), .22), 0 0 0 1px rgba(255, 255, 255, .18);
   --cut-control-min-height: 44px;
   --cut-mobile-action-safe-bottom: max(84px, calc(env(safe-area-inset-bottom, 0px) + 72px));
 }
@@ -41,7 +41,7 @@
 }
 
 .cut-app-page :where(.form-control, .form-select, .btn, button, [role="button"], a):focus-visible {
-  outline: 2px solid rgba(230, 146, 247, .94);
+  outline: 2px solid rgba(var(--cut-red-rgb), .94);
   outline-offset: 3px;
   box-shadow: var(--cut-focus-ring);
 }
@@ -122,7 +122,7 @@
   padding: 12px 14px;
   border: 1px solid rgba(255, 255, 255, .16);
   border-radius: 16px;
-  background: rgb(11, 12, 34);
+  background: rgb(var(--cut-surface-1-rgb));
   color: var(--cut-readable-text);
   box-shadow: var(--cut-shadow-lg);
 }
@@ -182,10 +182,10 @@
  * concentrated on actions and edges so content stays fast and readable.
  */
 .cut-app-page {
-  --cut-visual-surface: #0b0b1f;
-  --cut-visual-surface-raised: #11112a;
-  --cut-visual-edge: rgba(151, 113, 255, .22);
-  --cut-visual-edge-active: rgba(98, 223, 255, .44);
+  --cut-visual-surface: var(--cut-surface-1);
+  --cut-visual-surface-raised: var(--cut-surface-1);
+  --cut-visual-edge: rgba(var(--cut-red-rgb), .22);
+  --cut-visual-edge-active: rgba(var(--cut-red-rgb), .44);
   --cut-visual-shadow: 0 14px 34px rgba(0, 0, 0, .28);
   background-color: var(--cut-bg);
 }
@@ -212,25 +212,25 @@
   color: #fff;
   font-weight: 800;
   letter-spacing: -.01em;
-  box-shadow: 0 8px 22px rgba(113, 65, 247, .24);
+  box-shadow: 0 8px 22px rgba(var(--cut-red-rgb), .24);
 }
 
 .cut-app-page :where(.btn-outline-primary, .cut-btn--secondary) {
-  border-color: rgba(184, 71, 250, .42);
-  background: #101027;
+  border-color: rgba(var(--cut-red-rgb), .42);
+  background: var(--cut-surface-1);
   color: #f3dcff;
 }
 
 .cut-app-page :where(.badge, .cut-chip, .cut-pill) {
-  border: 1px solid rgba(151, 113, 255, .24);
-  background-color: #14142f;
+  border: 1px solid rgba(var(--cut-red-rgb), .24);
+  background-color: var(--cut-surface-3);
   color: #e8e5ff;
   font-weight: 700;
 }
 
 .cut-app-page :where(.form-control, .form-select, textarea.form-control) {
-  border-color: rgba(151, 113, 255, .20);
-  background-color: #09091c;
+  border-color: rgba(var(--cut-red-rgb), .20);
+  background-color: var(--cut-surface-1);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -240,7 +240,7 @@
 
   .cut-app-page :where(.btn-primary, .cut-btn--primary):hover {
     border-color: transparent;
-    box-shadow: 0 10px 28px rgba(113, 65, 247, .32);
+    box-shadow: 0 10px 28px rgba(var(--cut-red-rgb), .32);
   }
 }
 

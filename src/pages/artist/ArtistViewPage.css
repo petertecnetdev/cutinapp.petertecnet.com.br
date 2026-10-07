@@ -13,8 +13,8 @@
   inset: 0;
   z-index: 0;
   background:
-    radial-gradient(circle at 78% 26%, rgba(184, 108, 255, .16), transparent 32%),
-    radial-gradient(circle at 18% 78%, rgba(24, 212, 255, .12), transparent 28%);
+    radial-gradient(circle at 78% 26%, rgba(var(--cut-red-rgb), .16), transparent 32%),
+    radial-gradient(circle at 18% 78%, rgba(var(--cut-red-rgb), .12), transparent 28%);
   pointer-events: none;
 }
 
@@ -27,8 +27,8 @@
   width: 172px;
   height: 172px;
   flex-basis: 172px;
-  border-color: rgba(190, 119, 255, .42);
-  box-shadow: 0 0 0 7px rgba(184, 108, 255, .08), 0 22px 64px rgba(0, 0, 0, .38);
+  border-color: rgba(var(--cut-red-rgb), .42);
+  box-shadow: 0 0 0 7px rgba(var(--cut-red-rgb), .08), 0 22px 64px rgba(0, 0, 0, .38);
 }
 
 .artist-profile-hero__copy {
@@ -65,7 +65,7 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: #e9d5ff;
+  color: var(--cut-text-muted);
   text-align: left;
 }
 
@@ -95,7 +95,7 @@
   padding: 9px 13px;
   border: 1px solid rgba(255, 255, 255, .11);
   border-radius: 15px;
-  background: rgba(5, 12, 20, .5);
+  background: rgba(var(--cut-surface-1-rgb), .5);
   -webkit-backdrop-filter: blur(15px);
   backdrop-filter: blur(15px);
 }
@@ -151,10 +151,10 @@
 .artist-profile-count {
   flex: 0 0 auto;
   padding: 7px 11px;
-  border: 1px solid rgba(86, 220, 233, .18);
+  border: 1px solid rgba(var(--cut-red-rgb), .18);
   border-radius: 999px;
-  background: rgba(86, 220, 233, .07);
-  color: #c8f9ff;
+  background: rgba(var(--cut-red-rgb), .07);
+  color: var(--cut-text-muted);
   font-size: .72rem;
   font-weight: 850;
 }
@@ -186,7 +186,7 @@
 .artist-profile-event-card:hover,
 .artist-profile-event-card:focus-visible {
   transform: translateY(-3px);
-  border-color: rgba(184, 108, 255, .48);
+  border-color: rgba(var(--cut-red-rgb), .48);
   outline: none;
   box-shadow: var(--cut-shadow-lg);
 }
@@ -196,8 +196,8 @@
   min-height: 154px;
   overflow: hidden;
   background:
-    radial-gradient(circle at 40% 30%, rgba(184, 108, 255, .22), transparent 46%),
-    #071019;
+    radial-gradient(circle at 40% 30%, rgba(var(--cut-red-rgb), .22), transparent 46%),
+    var(--cut-surface-1);
 }
 
 .artist-profile-event-card__media img {
@@ -211,7 +211,7 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, transparent 48%, rgba(3, 8, 14, .46));
+  background: linear-gradient(90deg, transparent 48%, rgba(var(--cut-surface-1-rgb), .46));
   pointer-events: none;
 }
 
@@ -221,7 +221,7 @@
   min-height: 154px;
   display: grid;
   place-items: center;
-  color: #d6b0ff;
+  color: var(--cut-red-hi);
   font-size: 2rem;
 }
 
@@ -261,7 +261,7 @@
 
 .artist-profile-event-card__production {
   overflow: hidden;
-  color: #d8b8ff;
+  color: var(--cut-text-muted);
   font-size: .68rem;
   font-weight: 900;
   letter-spacing: .055em;
@@ -304,7 +304,7 @@
 }
 
 .artist-profile-empty .card-body > i {
-  color: #c58bff;
+  color: var(--cut-red-hi);
   font-size: 2rem;
 }
 
@@ -321,16 +321,16 @@
   align-items: center;
   gap: 12px;
   padding: 11px;
-  border: 1px solid rgba(184, 108, 255, .19);
+  border: 1px solid rgba(var(--cut-red-rgb), .19);
   border-radius: 17px;
-  background: rgba(184, 108, 255, .06);
+  background: rgba(var(--cut-red-rgb), .06);
   color: var(--cut-text);
   text-align: left;
 }
 
 .artist-profile-origin-card > .card-body > button:not(:disabled):hover {
-  border-color: rgba(184, 108, 255, .44);
-  background: rgba(184, 108, 255, .11);
+  border-color: rgba(var(--cut-red-rgb), .44);
+  background: rgba(var(--cut-red-rgb), .11);
 }
 
 .artist-profile-origin-card__logo {
@@ -341,7 +341,7 @@
   overflow: hidden;
   border-radius: 15px;
   background: rgba(255, 255, 255, .06);
-  color: #d5a9ff;
+  color: var(--cut-red-hi);
   font-size: 1.15rem;
 }
 

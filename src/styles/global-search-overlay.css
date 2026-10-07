@@ -26,8 +26,8 @@
   border: 1px solid rgba(255,255,255,.12);
   border-radius: 24px;
   background:
-    radial-gradient(circle at 10% -10%, rgba(198,76,255,.16), transparent 34%),
-    rgba(8, 10, 22, .985);
+    radial-gradient(circle at 10% -10%, rgba(var(--cut-red-rgb), .16), transparent 34%),
+    rgba(var(--cut-surface-1-rgb), .985);
   box-shadow: 0 34px 120px rgba(0,0,0,.66);
   color: #fff;
 }
@@ -42,7 +42,7 @@
   border-bottom: 1px solid rgba(255,255,255,.075);
 }
 
-.cut-search-overlay__panel > header > i:first-child { color: #c674ff; }
+.cut-search-overlay__panel > header > i:first-child { color: var(--cut-red-hi); }
 
 .cut-search-overlay__panel input {
   min-width: 0;
@@ -92,8 +92,8 @@
   place-items: center;
   margin-bottom: 6px;
   border-radius: 20px;
-  background: linear-gradient(135deg, rgba(198,76,255,.2), rgba(40,184,255,.1));
-  color: #d398ff;
+  background: linear-gradient(135deg, rgba(var(--cut-red-rgb), .2), rgba(var(--cut-red-rgb), .1));
+  color: var(--cut-red-hi);
   font-size: 1.45rem;
 }
 
@@ -132,7 +132,7 @@
 
 .cut-search-overlay__term > i:first-child {
   width: 40px;
-  color: #c77dff;
+  color: var(--cut-red-hi);
   text-align: center;
 }
 
@@ -165,7 +165,7 @@
   overflow: hidden;
   border: 1px solid rgba(255,255,255,.1);
   border-radius: 14px;
-  background: linear-gradient(145deg, rgba(198,76,255,.22), rgba(40,184,255,.11));
+  background: linear-gradient(145deg, rgba(var(--cut-red-rgb), .22), rgba(var(--cut-red-rgb), .11));
   font-size: .68rem;
   font-weight: 900;
 }
@@ -182,11 +182,11 @@
   min-height: 42px;
   margin: 4px 0;
   padding: 7px 11px;
-  background: rgba(198,76,255,.07);
+  background: rgba(var(--cut-red-rgb), .07);
   color: rgba(255,255,255,.65);
   font-size: .72rem;
 }
-.cut-search-overlay__correction strong { color: #ce91ff; }
+.cut-search-overlay__correction strong { color: var(--cut-red-hi); }
 
 .cut-search-overlay__panel > footer {
   display: grid;
@@ -202,9 +202,9 @@
   justify-content: space-between;
   gap: 12px;
   padding: 0 14px;
-  border: 1px solid rgba(198,76,255,.2);
+  border: 1px solid rgba(var(--cut-red-rgb), .2);
   border-radius: 14px;
-  background: linear-gradient(135deg, rgba(198,76,255,.16), rgba(113,56,255,.12));
+  background: linear-gradient(135deg, rgba(var(--cut-red-rgb), .16), rgba(var(--cut-red-rgb), .12));
   color: #fff;
   font-size: .78rem;
   font-weight: 850;

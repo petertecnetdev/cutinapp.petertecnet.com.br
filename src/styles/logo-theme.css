@@ -7,22 +7,22 @@
  */
 
 :root {
-  --cut-logo-black: #000000;
-  --cut-logo-black-soft: #050505;
-  --cut-logo-graphite: #0B0B0D;
-  --cut-logo-graphite-2: #141417;
-  --cut-logo-graphite-3: #202024;
-  --cut-logo-metal: #34343A;
-  --cut-logo-silver: #D7D7DC;
-  --cut-logo-white: #FFFFFF;
-  --cut-logo-red-deep: #650000;
-  --cut-logo-red-dark: #980000;
-  --cut-logo-red: #D80000;
-  --cut-logo-red-hot: #FF2020;
-  --cut-logo-red-light: #FF5252;
-  --cut-logo-shadow: 0 18px 52px #000000;
-  --cut-logo-glow: 0 0 0 1px #650000, 0 0 24px #3D0000;
-  --cut-logo-glow-strong: 0 0 0 1px #D80000, 0 0 32px #650000;
+  --cut-logo-black: var(--cut-black);
+  --cut-logo-black-soft: var(--cut-bg);
+  --cut-logo-graphite: var(--cut-surface-1);
+  --cut-logo-graphite-2: var(--cut-surface-2);
+  --cut-logo-graphite-3: var(--cut-border-soft);
+  --cut-logo-metal: var(--cut-graphite-hi);
+  --cut-logo-silver: var(--cut-silver);
+  --cut-logo-white: var(--cut-text-strong);
+  --cut-logo-red-deep: var(--cut-red-deep);
+  --cut-logo-red-dark: var(--cut-red-dark);
+  --cut-logo-red: var(--cut-red);
+  --cut-logo-red-hot: var(--cut-red-hot);
+  --cut-logo-red-light: var(--cut-red-hi);
+  --cut-logo-shadow: 0 18px 52px var(--cut-black);
+  --cut-logo-glow: 0 0 0 1px var(--cut-red-deep), 0 0 24px #3D0000;
+  --cut-logo-glow-strong: 0 0 0 1px var(--cut-red), 0 0 32px var(--cut-red-deep);
 }
 
 html,
