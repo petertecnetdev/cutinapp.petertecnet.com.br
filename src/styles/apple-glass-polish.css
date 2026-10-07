@@ -12,12 +12,12 @@
    * material with backdrop blur + brightness reduction so the content INSIDE the
    * glass remains the visual focus.
    */
-  --cut-apple-glass-bg: rgba(12, 13, 36, .72);
-  --cut-apple-glass-bg-strong: rgba(9, 10, 29, .84);
-  --cut-apple-glass-bg-menu: rgba(8, 9, 27, .88);
+  --cut-apple-glass-bg: rgba(var(--cut-surface-1-rgb), .72);
+  --cut-apple-glass-bg-strong: rgba(var(--cut-surface-1-rgb), .84);
+  --cut-apple-glass-bg-menu: rgba(var(--cut-surface-1-rgb), .88);
   --cut-apple-glass-bg-soft: rgba(255, 255, 255, .06);
   --cut-apple-glass-border: rgba(255, 255, 255, .16);
-  --cut-apple-glass-border-hover: rgba(130, 199, 255, .36);
+  --cut-apple-glass-border-hover: rgba(var(--cut-red-rgb), .36);
   --cut-apple-glass-blur: 30px;
   --cut-apple-glass-blur-strong: 38px;
   --cut-apple-glass-saturation: 145%;
@@ -78,10 +78,10 @@
 
 .cut-collapsible-filters.is-open,
 .cut-app-page .accordion-item:has(.accordion-collapse.show) {
-  border-color: rgba(156, 207, 255, .25) !important;
+  border-color: rgba(var(--cut-red-rgb), .25) !important;
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, .085), rgba(184, 71, 250, .025)),
-    rgba(10, 11, 32, .78) !important;
+    linear-gradient(145deg, rgba(255, 255, 255, .085), rgba(var(--cut-red-rgb), .025)),
+    rgba(var(--cut-surface-1-rgb), .78) !important;
   -webkit-backdrop-filter:
     blur(var(--cut-apple-glass-blur-strong))
     saturate(var(--cut-apple-glass-saturation))
@@ -115,7 +115,7 @@
   inset: 0;
   pointer-events: none;
   border-radius: inherit;
-  background: linear-gradient(145deg, rgba(255, 255, 255, .06), transparent 38%, rgba(80, 170, 255, .025));
+  background: linear-gradient(145deg, rgba(255, 255, 255, .06), transparent 38%, rgba(var(--cut-red-rgb), .025));
 }
 
 :where(.card, .cut-panel):hover,
@@ -143,8 +143,8 @@
 .modal-content {
   border: 1px solid rgba(255, 255, 255, .18) !important;
   background:
-    radial-gradient(circle at 10% 0%, rgba(185, 72, 250, .105), transparent 38%),
-    radial-gradient(circle at 100% 100%, rgba(19, 174, 255, .08), transparent 34%),
+    radial-gradient(circle at 10% 0%, rgba(var(--cut-red-rgb), .105), transparent 38%),
+    radial-gradient(circle at 100% 100%, rgba(var(--cut-red-rgb), .08), transparent 34%),
     var(--cut-apple-glass-bg-strong) !important;
   box-shadow: 0 32px 100px rgba(0, 0, 0, .46), inset 0 1px 0 rgba(255, 255, 255, .11) !important;
   -webkit-backdrop-filter:
@@ -158,7 +158,7 @@
 }
 
 .modal-backdrop.show {
-  background: rgba(2, 3, 18, .56) !important;
+  background: rgba(var(--cut-surface-1-rgb), .56) !important;
   opacity: 1 !important;
   -webkit-backdrop-filter: blur(12px) saturate(115%) brightness(72%);
   backdrop-filter: blur(12px) saturate(115%) brightness(72%);
@@ -167,7 +167,7 @@
 /* SweetAlert2 — single Cutinapp contract, including alerts invoked directly. */
 .swal2-container.swal2-backdrop-show,
 .swal2-container.swal2-backdrop-hide {
-  background: rgba(2, 3, 18, .56) !important;
+  background: rgba(var(--cut-surface-1-rgb), .56) !important;
   -webkit-backdrop-filter: blur(14px) saturate(120%) brightness(74%) !important;
   backdrop-filter: blur(14px) saturate(120%) brightness(74%) !important;
 }
@@ -178,9 +178,9 @@
   border: 1px solid rgba(255, 255, 255, .18) !important;
   border-radius: 28px !important;
   background:
-    radial-gradient(circle at 10% 0%, rgba(188, 74, 255, .13), transparent 38%),
-    radial-gradient(circle at 100% 100%, rgba(0, 177, 255, .095), transparent 35%),
-    rgba(10, 11, 32, .84) !important;
+    radial-gradient(circle at 10% 0%, rgba(var(--cut-red-rgb), .13), transparent 38%),
+    radial-gradient(circle at 100% 100%, rgba(var(--cut-red-rgb), .095), transparent 35%),
+    rgba(var(--cut-surface-1-rgb), .84) !important;
   color: rgba(250, 249, 255, .97) !important;
   box-shadow: 0 32px 100px rgba(0, 0, 0, .46), inset 0 1px 0 rgba(255, 255, 255, .11) !important;
   -webkit-backdrop-filter: blur(40px) saturate(150%) brightness(60%) !important;
@@ -213,7 +213,7 @@
 
 .swal2-confirm,
 .cut-swal-confirm {
-  box-shadow: 0 10px 32px rgba(79, 70, 229, .24) !important;
+  box-shadow: 0 10px 32px rgba(var(--cut-red-rgb), .24) !important;
 }
 
 .swal2-cancel,
@@ -267,14 +267,14 @@
   .cut-navbar .navbar-collapse {
     background:
       linear-gradient(145deg, rgba(255, 255, 255, .045), rgba(255, 255, 255, .01)),
-      rgba(7, 9, 28, .89) !important;
+      rgba(var(--cut-surface-1-rgb), .89) !important;
     box-shadow: 20px 0 60px rgba(0, 0, 0, .42) !important;
     -webkit-backdrop-filter: blur(34px) saturate(140%) brightness(62%) !important;
     backdrop-filter: blur(34px) saturate(140%) brightness(62%) !important;
   }
 
   .cut-mobile-bottom-nav {
-    background: rgba(8, 10, 28, .88) !important;
+    background: rgba(var(--cut-surface-1-rgb), .88) !important;
     -webkit-backdrop-filter: blur(24px) saturate(140%) brightness(68%) !important;
     backdrop-filter: blur(24px) saturate(140%) brightness(68%) !important;
   }
@@ -313,7 +313,7 @@
   .popover,
   .cut-navbar .navbar-collapse,
   .cut-mobile-bottom-nav {
-    background: rgba(10, 11, 32, .97) !important;
+    background: rgba(var(--cut-surface-1-rgb), .97) !important;
   }
 }
 
@@ -333,7 +333,7 @@
   .popover,
   .cut-navbar .navbar-collapse,
   .cut-mobile-bottom-nav {
-    background: rgba(10, 11, 32, .96) !important;
+    background: rgba(var(--cut-surface-1-rgb), .96) !important;
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
   }

@@ -4,11 +4,11 @@
  */
 
 .cut-event-view-page {
-  --cut-event-v3-bg: #060709;
-  --cut-event-v3-surface: #101217;
-  --cut-event-v3-surface-raised: #15181e;
-  --cut-event-v3-border: #2b2f38;
-  --cut-event-v3-border-strong: #3a3f49;
+  --cut-event-v3-bg: var(--cut-bg-deep);
+  --cut-event-v3-surface: var(--cut-surface-1);
+  --cut-event-v3-surface-raised: var(--cut-surface-1);
+  --cut-event-v3-border: var(--cut-surface-3);
+  --cut-event-v3-border-strong: var(--cut-surface-3);
   --cut-event-v3-text: #f7f7f8;
   --cut-event-v3-muted: #b7bbc4;
   --cut-event-v3-red: #e30613;
@@ -63,7 +63,7 @@
 
 .cut-event-view-page .cut-event-summary-card__content .badge {
   border-color: var(--cut-event-v3-border-strong) !important;
-  background: #1b1e24 !important;
+  background: var(--cut-surface-1) !important;
   color: #f1f2f4 !important;
 }
 
@@ -140,7 +140,7 @@
   padding: 8px 5px !important;
   border-color: var(--cut-event-v3-border) !important;
   border-radius: 11px !important;
-  background: #121419 !important;
+  background: var(--cut-surface-1) !important;
 }
 
 .cut-event-view-page .cut-event-quick-action span {
@@ -153,14 +153,14 @@
   min-height: 42px !important;
   border-color: var(--cut-event-v3-border-strong) !important;
   background: #e8e9eb !important;
-  color: #111217 !important;
+  color: var(--cut-surface-1) !important;
 }
 
 .cut-event-view-page .cut-event-banner-frame,
 .cut-event-view-page .cut-event-banner-placeholder {
   border: 1px solid var(--cut-event-v3-border-strong) !important;
   border-radius: 20px !important;
-  background: #050608 !important;
+  background: var(--cut-bg-deep) !important;
   box-shadow: 0 24px 58px #000000 !important;
 }
 

@@ -255,9 +255,9 @@ export const showImportantAlert = async ({
     customClass: defaultClasses,
     allowOutsideClick,
     allowEscapeKey,
-    background: "#0d0d24",
+    background: "#0B0B0D",
     color: "#f7f5ff",
-    backdrop: "rgba(2, 3, 18, .78)",
+    backdrop: "rgba(0, 0, 0, .78)",
     ...(imageUrl ? { imageUrl, imageAlt, imageHeight: 180 } : {}),
   });
 
@@ -411,9 +411,9 @@ export const showTextPrompt = async ({
     customClass: defaultClasses,
     allowOutsideClick: false,
     allowEscapeKey: true,
-    background: "#0d0d24",
+    background: "#0B0B0D",
     color: "#f7f5ff",
-    backdrop: "rgba(2, 3, 18, .78)",
+    backdrop: "rgba(0, 0, 0, .78)",
     inputValidator: required
       ? (value) => String(value || "").trim() ? undefined : "Preencha este campo para continuar."
       : undefined,

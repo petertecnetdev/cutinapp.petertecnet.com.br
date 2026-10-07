@@ -58,7 +58,7 @@
   display: grid;
   place-items: center;
   border-radius: 16px;
-  background: rgba(90, 151, 255, 0.14);
+  background: rgba(var(--cut-red-rgb), 0.14);
   font-size: 1.2rem;
 }
 
@@ -109,7 +109,7 @@
   margin: 1rem 0 1.35rem;
   padding: 0.9rem 1rem;
   border-radius: 16px;
-  background: rgba(95, 152, 255, 0.08);
+  background: rgba(var(--cut-red-rgb), 0.08);
   color: rgba(238, 245, 255, 0.7);
 }
 
@@ -149,9 +149,9 @@
 }
 
 .cut-agenda-form-card {
-  border: 1px solid rgba(106, 162, 255, 0.25);
+  border: 1px solid rgba(var(--cut-red-rgb), 0.25);
   border-radius: 22px;
-  background: rgba(18, 30, 52, 0.94);
+  background: rgba(var(--cut-red-rgb), 0.94);
   color: #f8fbff;
 }
 
@@ -172,7 +172,7 @@
 .cut-agenda-form-card .form-select {
   min-height: 46px;
   border-color: rgba(255, 255, 255, 0.12);
-  background: rgba(3, 8, 18, 0.55);
+  background: rgba(var(--cut-surface-1-rgb), 0.55);
   color: #fff;
 }
 
@@ -199,7 +199,7 @@
 .cut-agenda-section-heading span {
   display: block;
   margin-bottom: 0.15rem;
-  color: rgba(166, 199, 255, 0.82);
+  color: rgba(var(--cut-red-rgb), 0.82);
   font-size: 0.76rem;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -209,9 +209,9 @@
 .cut-agenda-template-action {
   justify-content: space-between;
   padding: 0.85rem 1rem;
-  border: 1px dashed rgba(137, 179, 255, 0.3);
+  border: 1px dashed rgba(var(--cut-red-rgb), 0.3);
   border-radius: 16px;
-  background: rgba(88, 139, 230, 0.07);
+  background: rgba(var(--cut-red-rgb), 0.07);
 }
 
 .cut-agenda-form-actions {
@@ -245,7 +245,7 @@
   width: 18px;
   margin-top: 0.15rem;
   text-align: center;
-  color: rgba(146, 185, 255, 0.9);
+  color: rgba(var(--cut-red-rgb), 0.9);
 }
 
 .cut-agenda-form-summary p {
@@ -284,7 +284,7 @@
 
 .cut-agenda-item:hover {
   transform: translateY(-2px);
-  border-color: rgba(119, 169, 255, 0.35);
+  border-color: rgba(var(--cut-red-rgb), 0.35);
 }
 
 .cut-agenda-item.is-paused {
@@ -316,7 +316,7 @@
   gap: 0.45rem;
   padding: 0.42rem 0.65rem;
   border-radius: 12px;
-  background: rgba(94, 151, 255, 0.14);
+  background: rgba(var(--cut-red-rgb), 0.14);
 }
 
 .cut-agenda-day strong {
@@ -363,7 +363,7 @@
 .cut-agenda-item__meta i {
   width: 16px;
   text-align: center;
-  color: rgba(146, 185, 255, 0.85);
+  color: rgba(var(--cut-red-rgb), 0.85);
 }
 
 .cut-agenda-item__actions {
@@ -395,7 +395,7 @@
   place-items: center;
   margin: 0 auto 1rem;
   border-radius: 20px;
-  background: rgba(91, 151, 255, 0.12);
+  background: rgba(var(--cut-red-rgb), 0.12);
   font-size: 1.45rem;
 }
 
@@ -412,9 +412,9 @@
   gap: 0.8rem;
   margin: 0.9rem 0 0;
   padding: 0.8rem 0.9rem;
-  border: 1px solid rgba(109, 165, 255, 0.18);
+  border: 1px solid rgba(var(--cut-red-rgb), 0.18);
   border-radius: 15px;
-  background: rgba(65, 125, 225, 0.07);
+  background: rgba(var(--cut-red-rgb), 0.07);
 }
 
 .cut-production-agenda-entry > div {
@@ -536,7 +536,7 @@
 
 .cut-weekly-agenda-day {
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(12, 17, 31, 0.76);
+  background: rgba(var(--cut-surface-1-rgb), 0.76);
   overflow: hidden;
 }
 
@@ -578,8 +578,8 @@
   height: 48px;
   flex: 0 0 48px;
   border-radius: 15px;
-  background: rgba(93, 97, 255, 0.15);
-  border: 1px solid rgba(124, 128, 255, 0.3);
+  background: rgba(var(--cut-red-rgb), 0.15);
+  border: 1px solid rgba(var(--cut-red-rgb), 0.3);
   font-size: 0.78rem;
   letter-spacing: 0.08em;
 }
@@ -605,7 +605,7 @@
   overflow: hidden;
   display: grid;
   place-items: center;
-  background: rgba(93, 97, 255, 0.2);
+  background: rgba(var(--cut-red-rgb), 0.2);
   font-weight: 800;
   letter-spacing: 0.04em;
 }

@@ -1,7 +1,7 @@
 .cut-collapsible-filters {
   border: 1px solid var(--cut-border);
   border-radius: var(--cut-radius-lg);
-  background: rgba(8, 20, 29, .58);
+  background: rgba(var(--cut-surface-1-rgb), .58);
   overflow: hidden;
 }
 
@@ -22,7 +22,7 @@
 
 .cut-collapsible-filters__toggle:hover,
 .cut-collapsible-filters__toggle:focus-visible {
-  background: rgba(86, 220, 233, .055);
+  background: rgba(var(--cut-red-rgb), .055);
 }
 
 .cut-collapsible-filters__toggle:focus-visible {
@@ -70,7 +70,7 @@
   flex: 0 0 36px;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(86, 220, 233, .18);
+  border: 1px solid rgba(var(--cut-red-rgb), .18);
   border-radius: 12px;
   background: var(--cut-primary-soft);
   color: var(--cut-primary);

@@ -1,8 +1,8 @@
 .cut-pass-detail-page {
   min-height: 100vh;
   background:
-    radial-gradient(circle at 12% 12%, rgba(86,220,233,.06), transparent 30rem),
-    radial-gradient(circle at 88% 22%, rgba(115,99,244,.06), transparent 34rem);
+    radial-gradient(circle at 12% 12%, rgba(var(--cut-red-rgb), .06), transparent 30rem),
+    radial-gradient(circle at 88% 22%, rgba(var(--cut-red-rgb), .06), transparent 34rem);
 }
 
 .cut-pass-detail-heading {
@@ -67,11 +67,11 @@
 
 .cut-pass-qr-modal {
   overflow: hidden;
-  border: 1px solid rgba(86,220,233,.2) !important;
+  border: 1px solid rgba(var(--cut-red-rgb), .2) !important;
   border-radius: 28px !important;
   background:
-    radial-gradient(circle at 80% 0%, rgba(115,99,244,.14), transparent 34%),
-    linear-gradient(145deg, #102431, #06111a 74%) !important;
+    radial-gradient(circle at 80% 0%, rgba(var(--cut-red-rgb), .14), transparent 34%),
+    linear-gradient(145deg, var(--cut-surface-3), var(--cut-surface-1) 74%) !important;
   box-shadow: 0 30px 100px rgba(0,0,0,.56);
 }
 

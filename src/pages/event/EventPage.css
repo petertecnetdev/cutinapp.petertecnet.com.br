@@ -1,6 +1,6 @@
 .cut-event-discovery-page {
-  --cut-event-panel: rgba(8, 9, 28, .88);
-  --cut-event-panel-strong: rgba(12, 14, 39, .96);
+  --cut-event-panel: rgba(var(--cut-surface-1-rgb), .88);
+  --cut-event-panel-strong: rgba(var(--cut-surface-1-rgb), .96);
 }
 
 .cut-event-discovery-page .cut-page-container {
@@ -49,7 +49,7 @@
   border: 1px solid var(--cut-border-strong) !important;
   border-radius: 24px !important;
   background:
-    radial-gradient(circle at 12% -25%, rgba(86, 220, 233, .09), transparent 38%),
+    radial-gradient(circle at 12% -25%, rgba(var(--cut-red-rgb), .09), transparent 38%),
     var(--cut-event-panel) !important;
   box-shadow: 0 20px 55px rgba(0, 0, 0, .2);
 }
@@ -75,12 +75,12 @@
   min-height: 48px;
   border: 1px solid var(--cut-border);
   border-radius: 16px;
-  background: rgba(4, 5, 18, .72);
+  background: rgba(var(--cut-surface-1-rgb), .72);
 }
 
 .cut-event-discovery-page .cut-search-bar:focus-within {
   border-color: var(--cut-border-strong);
-  box-shadow: 0 0 0 3px rgba(86, 220, 233, .06);
+  box-shadow: 0 0 0 3px rgba(var(--cut-red-rgb), .06);
 }
 
 .cut-event-discovery-page .cut-search-bar .btn {
@@ -603,12 +603,12 @@
 
 
 .cut-event-faq{display:grid;gap:10px}
-.cut-event-faq details{overflow:hidden;border:1px solid rgba(148,163,184,.12);border-radius:15px;background:rgba(255,255,255,.02)}
+.cut-event-faq details{overflow:hidden;border:1px solid rgba(var(--cut-silver-rgb), .12);border-radius:15px;background:rgba(255,255,255,.02)}
 .cut-event-faq summary{position:relative;padding:15px 44px 15px 16px;cursor:pointer;list-style:none;color:var(--cut-text,#f8fafc);font-weight:850}
 .cut-event-faq summary::-webkit-details-marker{display:none}
-.cut-event-faq summary::after{content:"+";position:absolute;right:16px;top:50%;transform:translateY(-50%);color:#c084fc;font-size:1.1rem}
+.cut-event-faq summary::after{content:"+";position:absolute;right:16px;top:50%;transform:translateY(-50%);color:var(--cut-red-hi);font-size:1.1rem}
 .cut-event-faq details[open] summary::after{content:"−"}
-.cut-event-faq p{margin:0;padding:0 16px 15px;color:var(--cut-text-muted,#94a3b8);line-height:1.58}
+.cut-event-faq p{margin:0;padding:0 16px 15px;color:var(--cut-text-muted,var(--cut-text-soft));line-height:1.58}
 .cut-event-faq .btn{margin:0 16px 16px}
 
 
@@ -646,8 +646,8 @@
 .cut-event-action--tickets {
   color: #04130f !important;
   border: 0 !important;
-  background: linear-gradient(135deg, #5ee7b7 0%, #4fd7ca 100%) !important;
-  box-shadow: 0 12px 30px rgba(79,215,202,.16) !important;
+  background: linear-gradient(135deg, #5ee7b7 0%, var(--cut-red-hi) 100%) !important;
+  box-shadow: 0 12px 30px rgba(var(--cut-red-rgb), .16) !important;
 }
 .cut-event-action--tickets .cut-event-action__icon { background: rgba(0,0,0,.09); }
 .cut-event-action__arrow { margin-left: auto; opacity: .72; }
@@ -656,9 +656,9 @@
   background: rgba(255,255,255,.035) !important;
 }
 .cut-event-action--interest.is-active {
-  color: #0b1020 !important;
+  color: var(--cut-surface-1) !important;
   border-color: transparent !important;
-  background: linear-gradient(135deg, #d9f99d, #67e8f9) !important;
+  background: linear-gradient(135deg, #d9f99d, var(--cut-red-hi)) !important;
 }
 .cut-event-quick-actions {
   display: grid;

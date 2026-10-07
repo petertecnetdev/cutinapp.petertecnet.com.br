@@ -118,7 +118,7 @@
   border-radius: 14px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, .1);
-  background: #08080a;
+  background: var(--cut-bg-deep);
   font-weight: 900;
 }
 

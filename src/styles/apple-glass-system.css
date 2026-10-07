@@ -9,10 +9,10 @@
 
 :root {
   --cut-glass-bg: linear-gradient(145deg, rgba(255, 255, 255, .095), rgba(255, 255, 255, .032));
-  --cut-glass-bg-strong: linear-gradient(145deg, rgba(24, 25, 57, .72), rgba(8, 9, 28, .56));
+  --cut-glass-bg-strong: linear-gradient(145deg, rgba(var(--cut-red-rgb), .72), rgba(var(--cut-surface-1-rgb), .56));
   --cut-glass-bg-subtle: rgba(255, 255, 255, .045);
   --cut-glass-border: rgba(255, 255, 255, .145);
-  --cut-glass-border-hover: rgba(104, 184, 255, .30);
+  --cut-glass-border-hover: rgba(var(--cut-red-rgb), .30);
   --cut-glass-highlight: rgba(255, 255, 255, .18);
   --cut-glass-shadow: 0 18px 54px rgba(0, 0, 0, .24), inset 0 1px 0 rgba(255, 255, 255, .07);
   --cut-glass-shadow-lg: 0 30px 90px rgba(0, 0, 0, .34), inset 0 1px 0 rgba(255, 255, 255, .09);
@@ -88,13 +88,13 @@
 .cut-event-attention-center {
   background:
     linear-gradient(135deg, rgba(250, 204, 21, .065), rgba(255, 255, 255, .035)),
-    rgba(10, 11, 31, .54) !important;
+    rgba(var(--cut-surface-1-rgb), .54) !important;
 }
 
 .cut-event-attention-center.is-clear {
   background:
     linear-gradient(135deg, rgba(74, 222, 128, .05), rgba(255, 255, 255, .03)),
-    rgba(10, 11, 31, .54) !important;
+    rgba(var(--cut-surface-1-rgb), .54) !important;
 }
 
 /* Bootstrap modal surfaces follow the same material without changing layout. */
@@ -115,7 +115,7 @@
 /* SweetAlert2: one global appearance even when a page calls Swal.fire directly. */
 .swal2-container.swal2-backdrop-show,
 .swal2-container.swal2-backdrop-hide {
-  background: rgba(2, 3, 18, .48) !important;
+  background: rgba(var(--cut-surface-1-rgb), .48) !important;
   -webkit-backdrop-filter: blur(12px) saturate(130%);
   backdrop-filter: blur(12px) saturate(130%);
 }
@@ -127,9 +127,9 @@
   border: 1px solid rgba(255, 255, 255, .17) !important;
   border-radius: 28px !important;
   background:
-    radial-gradient(circle at 12% 0%, rgba(184, 71, 250, .13), transparent 38%),
-    radial-gradient(circle at 100% 100%, rgba(6, 175, 250, .10), transparent 34%),
-    rgba(14, 15, 39, .68) !important;
+    radial-gradient(circle at 12% 0%, rgba(var(--cut-red-rgb), .13), transparent 38%),
+    radial-gradient(circle at 100% 100%, rgba(var(--cut-red-rgb), .10), transparent 34%),
+    rgba(var(--cut-surface-1-rgb), .68) !important;
   color: var(--cut-text) !important;
   box-shadow: var(--cut-glass-shadow-lg) !important;
   -webkit-backdrop-filter: blur(var(--cut-glass-blur-dialog)) saturate(170%);
@@ -150,7 +150,7 @@
 .swal2-toast {
   border: 1px solid rgba(255, 255, 255, .14) !important;
   border-radius: 16px !important;
-  background: rgba(14, 15, 39, .76) !important;
+  background: rgba(var(--cut-surface-1-rgb), .76) !important;
   color: var(--cut-text) !important;
   box-shadow: var(--cut-glass-shadow) !important;
   -webkit-backdrop-filter: blur(22px) saturate(160%);
@@ -221,7 +221,7 @@
 .dropdown-menu,
 .cut-autocomplete-menu {
   border-color: var(--cut-glass-border) !important;
-  background: rgba(10, 11, 31, .74) !important;
+  background: rgba(var(--cut-surface-1-rgb), .74) !important;
   box-shadow: var(--cut-glass-shadow-lg) !important;
   -webkit-backdrop-filter: blur(26px) saturate(160%);
   backdrop-filter: blur(26px) saturate(160%);
@@ -253,7 +253,7 @@
   .modal-content,
   .swal2-popup:not(.swal2-toast),
   .cut-swal-popup {
-    background: rgba(13, 13, 36, .96) !important;
+    background: rgba(var(--cut-surface-1-rgb), .96) !important;
   }
 }
 
@@ -266,7 +266,7 @@
   .modal-content,
   .swal2-popup:not(.swal2-toast),
   .cut-swal-popup {
-    background: rgba(13, 13, 36, .94) !important;
+    background: rgba(var(--cut-surface-1-rgb), .94) !important;
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
   }

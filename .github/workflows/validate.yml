@@ -33,6 +33,7 @@ jobs:
       - run: npm run lint:dialogs
       - run: npm run lint:react-stability
       - run: npm run lint:ux-regressions
+      - run: npm run lint:brand
       - name: Validate SEO global snapshot context contract
         run: node scripts/check-seo-snapshot-global-context.mjs
       - run: CI=true npm test -- --watchAll=false

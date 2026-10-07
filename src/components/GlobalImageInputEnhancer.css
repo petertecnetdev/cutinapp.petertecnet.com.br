@@ -17,7 +17,7 @@
 }
 
 .pt-image-input-surface {
-  --pt-image-accent: var(--bs-primary, #7c3aed);
+  --pt-image-accent: var(--bs-primary, var(--cut-red-hi));
   position: relative;
   display: block;
   width: min(100%, 560px);
@@ -103,7 +103,7 @@
 
 .pt-image-input-surface[data-pt-image-shape="event-poster"] .pt-image-input-surface__preview {
   object-fit: contain;
-  background: #05060c;
+  background: var(--cut-bg-deep);
 }
 
 .pt-image-input-surface__placeholder {
@@ -147,7 +147,7 @@
   padding: .48rem .72rem;
   border: 1px solid rgba(255,255,255,.16);
   border-radius: 999px;
-  background: rgba(4, 7, 18, .76);
+  background: rgba(var(--cut-surface-1-rgb), .76);
   color: #fff;
   font-size: .78rem;
   font-weight: 700;
@@ -167,7 +167,7 @@
 [data-pt-image-clickable="true"]:focus-visible {
   filter: brightness(1.05);
   transform: translateY(-1px);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--bs-primary, #7c3aed) 20%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--bs-primary, var(--cut-red-hi)) 20%, transparent);
 }
 
 @media (max-width: 575.98px) {

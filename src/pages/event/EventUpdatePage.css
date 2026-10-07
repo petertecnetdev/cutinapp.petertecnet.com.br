@@ -42,10 +42,10 @@
 }
 
 .cut-event-editor-page .cut-event-editor-title.form-control:focus {
-  border-bottom-color: rgba(192, 67, 255, 0.9);
+  border-bottom-color: rgba(var(--cut-red-rgb), 0.9);
   background: transparent;
   color: #fff;
-  box-shadow: 0 8px 0 -7px rgba(192, 67, 255, 0.72);
+  box-shadow: 0 8px 0 -7px rgba(var(--cut-red-rgb), 0.72);
 }
 
 .cut-event-editor-page .cut-event-editor-title.form-control::placeholder {
@@ -169,8 +169,8 @@
 }
 
 .cut-event-editor-page .cut-event-editor-guide {
-  border-color: rgba(54, 199, 239, 0.25);
-  background: rgba(54, 199, 239, 0.08);
+  border-color: rgba(var(--cut-red-rgb), 0.25);
+  background: rgba(var(--cut-red-rgb), 0.08);
   color: rgba(255, 255, 255, 0.83);
 }
 

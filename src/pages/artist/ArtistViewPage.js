@@ -183,7 +183,7 @@ export default function ArtistViewPage() {
   const bio = artist.bio || artist.short_bio || "Este perfil artístico ainda não adicionou uma biografia.";
 
   return <div className="cut-app-page artist-profile-page"><NavlogComponent />
-    <section className="cut-profile-hero artist-profile-hero" style={artist.cover ? { backgroundImage: `linear-gradient(180deg,rgba(2,8,13,.15),rgba(2,8,13,.94)),url(${mediaUrl(artist.cover)})` } : undefined}>
+    <section className="cut-profile-hero artist-profile-hero" style={artist.cover ? { backgroundImage: `linear-gradient(180deg,rgba(0,0,0,.15),rgba(0,0,0,.94)),url(${mediaUrl(artist.cover)})` } : undefined}>
       <Container className="cut-page-container">
         <div className="cut-profile-hero__content artist-profile-hero__content">
           <div className="cut-profile-avatar artist-profile-avatar">

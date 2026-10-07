@@ -94,16 +94,16 @@ textarea.form-control { min-height: 116px; resize: vertical; }
 .btn:disabled { opacity: .48; cursor: not-allowed; }
 .btn-primary { border-color: transparent !important; background: var(--cut-gradient-brand) !important; color: #fff !important; box-shadow: var(--cut-shadow-brand); }
 .btn-primary:hover:not(:disabled) { filter: brightness(1.09) saturate(1.08); box-shadow: var(--cut-shadow-brand-strong); }
-.btn-secondary { border-color: rgba(113,65,247,.36) !important; background: rgba(113,65,247,.15) !important; color: #eee9ff !important; }
-.btn-secondary:hover:not(:disabled) { border-color: rgba(184,71,250,.42) !important; background: rgba(184,71,250,.17) !important; }
-.btn-outline-primary { border-color: rgba(184,71,250,.48) !important; color: #e4b8ff !important; }
+.btn-secondary { border-color: rgba(var(--cut-red-rgb), .36) !important; background: rgba(var(--cut-red-rgb), .15) !important; color: #eee9ff !important; }
+.btn-secondary:hover:not(:disabled) { border-color: rgba(var(--cut-red-rgb), .42) !important; background: rgba(var(--cut-red-rgb), .17) !important; }
+.btn-outline-primary { border-color: rgba(var(--cut-red-rgb), .48) !important; color: var(--cut-text-muted) !important; }
 .btn-outline-primary:hover:not(:disabled) { border-color: transparent !important; background: var(--cut-gradient-brand) !important; color: #fff !important; }
 .btn-outline-light { border-color: rgba(255,255,255,.14) !important; background: rgba(255,255,255,.018) !important; color: #f4f2ff !important; }
-.btn-outline-light:hover:not(:disabled) { border-color: #670000 !important; background: rgba(184,71,250,.10) !important; }
+.btn-outline-light:hover:not(:disabled) { border-color: #670000 !important; background: rgba(var(--cut-red-rgb), .10) !important; }
 .btn-outline-danger { border-color: rgba(255,102,135,.34) !important; color: #ffa7ba !important; }
 .btn-outline-danger:hover { background: var(--cut-danger-soft) !important; }
 .btn-success { border-color: transparent !important; background: linear-gradient(135deg,#62edbf,#38c996) !important; color: #04140e !important; }
-.btn-info { border-color: transparent !important; background: linear-gradient(135deg,#2b62f4,#06affa) !important; color: #fff !important; }
+.btn-info { border-color: transparent !important; background: linear-gradient(135deg,var(--cut-red-hi),var(--cut-red-hi)) !important; color: #fff !important; }
 .btn-sm { min-height: 36px; border-radius: var(--cut-radius-sm); padding: .48rem .74rem; font-size: .84rem; }
 .btn-lg { min-height: 52px; border-radius: 16px; padding: .85rem 1.2rem; font-size: .96rem; }
 
@@ -111,21 +111,21 @@ textarea.form-control { min-height: 116px; resize: vertical; }
 .alert-danger { border-color: rgba(255,102,135,.22); background: var(--cut-danger-soft); color: #ffdbe4; }
 .alert-success { border-color: rgba(78,231,178,.22); background: var(--cut-success-soft); color: #cff9e9; }
 .alert-warning { border-color: rgba(255,202,106,.24); background: var(--cut-warning-soft); color: #ffe9bb; }
-.alert-info { border-color: rgba(6,175,250,.28); background: var(--cut-info-soft); color: #d8f5ff; }
+.alert-info { border-color: rgba(var(--cut-red-rgb), .28); background: var(--cut-info-soft); color: #d8f5ff; }
 .badge { border-radius: var(--cut-radius-pill); padding: .48em .72em; font-size: .76rem; line-height: 1.15; font-weight: var(--cut-weight-bold); letter-spacing: .02em; }
 .bg-primary { background: var(--cut-gradient-brand) !important; }
 .text-primary { color: var(--cut-brand-300) !important; }
-.border-primary { border-color: rgba(184,71,250,.48) !important; }
+.border-primary { border-color: rgba(var(--cut-red-rgb), .48) !important; }
 
-.dropdown-menu { padding: 8px; border: 1px solid var(--cut-border) !important; border-radius: var(--cut-radius-lg) !important; background: rgba(8,7,26,.98) !important; color: var(--cut-text); box-shadow: var(--cut-shadow-lg); backdrop-filter: blur(20px); z-index: var(--cut-z-dropdown); }
+.dropdown-menu { padding: 8px; border: 1px solid var(--cut-border) !important; border-radius: var(--cut-radius-lg) !important; background: rgba(var(--cut-surface-1-rgb), .98) !important; color: var(--cut-text); box-shadow: var(--cut-shadow-lg); backdrop-filter: blur(20px); z-index: var(--cut-z-dropdown); }
 .dropdown-item { min-height: 40px; display: flex; align-items: center; border-radius: var(--cut-radius-sm); color: #dedaf2 !important; font-size: .86rem; font-weight: 650; }
 .dropdown-item:hover,.dropdown-item:focus { background: var(--cut-primary-soft) !important; color: #fff !important; }
 .dropdown-divider { border-color: var(--cut-divider); }
 
 .modal { z-index: var(--cut-z-modal); }
-.modal-backdrop { z-index: var(--cut-z-backdrop); background: #02020b; }
+.modal-backdrop { z-index: var(--cut-z-backdrop); background: var(--cut-bg-deep); }
 .modal-backdrop.show { opacity: .82; }
-.modal-content { overflow: hidden; border: 1px solid rgba(184,71,250,.20) !important; border-radius: var(--cut-radius-2xl) !important; background: linear-gradient(155deg,#171635,#09091d) !important; color: var(--cut-text); box-shadow: var(--cut-shadow-xl); }
+.modal-content { overflow: hidden; border: 1px solid rgba(var(--cut-red-rgb), .20) !important; border-radius: var(--cut-radius-2xl) !important; background: linear-gradient(155deg,var(--cut-surface-3),var(--cut-surface-1)) !important; color: var(--cut-text); box-shadow: var(--cut-shadow-xl); }
 .modal-header,.modal-footer { border-color: var(--cut-divider); }
 .modal-header .btn-close { filter: invert(1) grayscale(1); opacity: .68; }
 
@@ -133,7 +133,7 @@ textarea.form-control { min-height: 116px; resize: vertical; }
 .table > :not(caption) > * > * { padding: .9rem .85rem; }
 .table thead th { color: var(--cut-text-soft); font-size: .78rem; font-weight: var(--cut-weight-black); letter-spacing: .075em; text-transform: uppercase; }
 .table tbody tr { transition: background var(--cut-duration-fast) ease; }
-.table tbody tr:hover { --bs-table-accent-bg: rgba(184,71,250,.055); }
+.table tbody tr:hover { --bs-table-accent-bg: rgba(var(--cut-red-rgb), .055); }
 .text-secondary,.text-muted { color: var(--cut-text-muted) !important; }
 
 .progress { background: rgba(255,255,255,.07); }
