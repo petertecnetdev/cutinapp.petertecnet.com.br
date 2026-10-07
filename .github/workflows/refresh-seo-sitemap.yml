@@ -159,20 +159,26 @@ jobs:
           fi
           rm -rf "$previous"
 
-          # Nginx serves /event/* from LIVE_BUILD. Publish only the generated
-          # event subtree with an atomic directory swap so the SPA assets stay intact.
+          # Publish every public entity snapshot subtree atomically. This keeps
+          # social crawlers on entity-specific metadata instead of the generic SPA shell.
           [[ -d "$SEO_ROOT/event" ]] || { echo "Generated public event snapshots are missing." >&2; exit 6; }
-          mkdir -p "$live_event_next"
-          cp -a "$SEO_ROOT/event/." "$live_event_next/"
-          if [[ -e "$LIVE_BUILD/event" || -L "$LIVE_BUILD/event" ]]; then
-            mv "$LIVE_BUILD/event" "$live_event_previous"
-          fi
-          if ! mv "$live_event_next" "$LIVE_BUILD/event"; then
-            [[ -e "$live_event_previous" || -L "$live_event_previous" ]] && mv "$live_event_previous" "$LIVE_BUILD/event" || true
-            echo "Unable to activate public event snapshots." >&2
-            exit 7
-          fi
-          rm -rf "$live_event_previous"
+          for subtree in event production blog artist profile; do
+            [[ -d "$SEO_ROOT/$subtree" ]] || continue
+            live_next="${APP_ROOT}/.cutinapp-${subtree}-snapshots.next.$$"
+            live_previous="${APP_ROOT}/.cutinapp-${subtree}-snapshots.previous.$$"
+            rm -rf "$live_next" "$live_previous"
+            mkdir -p "$live_next"
+            cp -a "$SEO_ROOT/$subtree/." "$live_next/"
+            if [[ -e "$LIVE_BUILD/$subtree" || -L "$LIVE_BUILD/$subtree" ]]; then
+              mv "$LIVE_BUILD/$subtree" "$live_previous"
+            fi
+            if ! mv "$live_next" "$LIVE_BUILD/$subtree"; then
+              [[ -e "$live_previous" || -L "$live_previous" ]] && mv "$live_previous" "$LIVE_BUILD/$subtree" || true
+              echo "Unable to activate public $subtree snapshots." >&2
+              exit 7
+            fi
+            rm -rf "$live_previous"
+          done
 
           sample_event="$(grep -m1 -oE '<loc>https://cutinapp\.petertecnet\.com\.br/event/[^<]+' "$SEO_ROOT/sitemap.xml" | sed 's#<loc>##')"
           [[ -n "$sample_event" ]] || { echo "Unable to select an event URL for crawler verification." >&2; exit 8; }
