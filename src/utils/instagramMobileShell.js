@@ -101,13 +101,23 @@ const ensureTopActions = () => {
 };
 
 let lastScrollY = 0;
-const syncNavbarScrollState = () => {
+export const syncNavbarScrollState = () => {
   const navbar = document.querySelector(".cut-capability-nav");
   if (!navbar) return;
   const y = Math.max(0, window.scrollY || 0);
   const delta = y - lastScrollY;
   navbar.classList.toggle("cut-mobile-nav--scrolled", y > 10);
   navbar.classList.toggle("cut-mobile-nav--compact", y > 56);
+
+  const drawerOpen = document.body.classList.contains("cut-mobile-menu-open")
+    || Boolean(navbar.querySelector(".navbar-collapse.show, .navbar-collapse.collapsing"))
+    || navbar.querySelector(".navbar-toggler")?.getAttribute("aria-expanded") === "true";
+
+  if (drawerOpen) {
+    navbar.classList.remove("cut-mobile-nav--hidden");
+    lastScrollY = y;
+    return;
+  }
 
   const canHide = y > 160 && Math.abs(delta) > 4 && !document.body.classList.contains("cut-mobile-keyboard-open");
   if (canHide && delta > 0) navbar.classList.add("cut-mobile-nav--hidden");
