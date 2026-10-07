@@ -1,7 +1,11 @@
-const MOBILE_MEDIA_QUERY = "(max-width: 820px)";
+import {
+  getPwaInstallState,
+  requestPwaInstall,
+  PWA_INSTALL_AVAILABLE_EVENT,
+  PWA_INSTALL_STATE_EVENT,
+} from "./pwaInstallPrompt";
 
-let deferredInstallPrompt = null;
-let installLifecycleInitialized = false;
+const MOBILE_MEDIA_QUERY = "(max-width: 820px)";
 
 const emitInstallState = () => {
   if (typeof window === "undefined") return;
@@ -22,10 +26,7 @@ export const isMobileDevice = () => {
 export const isPwaInstalled = () => {
   if (typeof window === "undefined") return false;
 
-  const standalone = window.matchMedia?.("(display-mode: standalone)")?.matches ||
-    window.navigator?.standalone === true;
-
-  if (standalone) return true;
+  if (getPwaInstallState().installed) return true;
 
   try {
     return Boolean(window.PeterTecnetInstall?.isInstalled?.());
@@ -34,47 +35,20 @@ export const isPwaInstalled = () => {
   }
 };
 
-export const canPromptPwaInstall = () => Boolean(deferredInstallPrompt);
-
-export const initializePwaInstallLifecycle = () => {
-  if (typeof window === "undefined" || installLifecycleInitialized) return;
-  installLifecycleInitialized = true;
-
-  window.addEventListener("beforeinstallprompt", (event) => {
-    event.preventDefault();
-    deferredInstallPrompt = event;
-    emitInstallState();
-  });
-
-  window.addEventListener("appinstalled", () => {
-    deferredInstallPrompt = null;
-    emitInstallState();
-  });
-};
-
-initializePwaInstallLifecycle();
+export const canPromptPwaInstall = () => getPwaInstallState().available;
 
 export const requiresPwaInstallForPurchase = () => isMobileDevice() && !isPwaInstalled();
 
 export const openPwaInstall = async () => {
   if (typeof window === "undefined" || isPwaInstalled()) return false;
 
-  // Chrome/Edge Android: always prefer the browser's real PWA installation
-  // dialog. This installs the web app as a standalone application instead of
-  // creating a normal browser shortcut.
-  if (deferredInstallPrompt) {
-    const promptEvent = deferredInstallPrompt;
-    deferredInstallPrompt = null;
-
-    try {
-      await promptEvent.prompt();
-      const choice = await promptEvent.userChoice;
-      emitInstallState();
-      return choice?.outcome === "accepted";
-    } catch (_) {
-      emitInstallState();
-      return false;
-    }
+  // The canonical lifecycle in pwaInstallPrompt owns beforeinstallprompt.
+  // Consumers request the prompt through it instead of registering a second
+  // listener and racing for the same one-shot browser event.
+  if (canPromptPwaInstall()) {
+    const { outcome } = await requestPwaInstall();
+    emitInstallState();
+    return outcome === "accepted";
   }
 
   // Shared ecosystem UI remains the fallback for browsers/webviews where the
@@ -106,6 +80,8 @@ export const subscribeToPwaInstallState = (callback) => {
   window.addEventListener("pageshow", refresh);
   window.addEventListener("focus", refresh);
   window.addEventListener("petertecnet:pwa-install-state", refresh);
+  window.addEventListener(PWA_INSTALL_AVAILABLE_EVENT, refresh);
+  window.addEventListener(PWA_INSTALL_STATE_EVENT, refresh);
   media?.addEventListener?.("change", refresh);
   mobileMedia?.addEventListener?.("change", refresh);
 
@@ -121,6 +97,8 @@ export const subscribeToPwaInstallState = (callback) => {
     window.removeEventListener("pageshow", refresh);
     window.removeEventListener("focus", refresh);
     window.removeEventListener("petertecnet:pwa-install-state", refresh);
+    window.removeEventListener(PWA_INSTALL_AVAILABLE_EVENT, refresh);
+    window.removeEventListener(PWA_INSTALL_STATE_EVENT, refresh);
     media?.removeEventListener?.("change", refresh);
     mobileMedia?.removeEventListener?.("change", refresh);
     document.removeEventListener("visibilitychange", handleVisibility);
