@@ -336,7 +336,7 @@ export default function NavlogComponent() {
         <Container className="cut-navbar__inner">
           <Navbar.Brand as={Link} to="/" className="cut-navbar__brand"><img src="/images/logo.png" alt="Cutinapp" /><div><strong>Cutinapp</strong><small>Rede social de eventos</small></div></Navbar.Brand>
           <Navbar.Toggle aria-controls="cut-navbar-public" aria-label={open ? "Fechar menu" : "Abrir menu"} />
-          <Navbar.Collapse id="cut-navbar-public"><Nav className="ms-auto cut-navbar__links"><Nav.Link as={Link} to="/search" onClick={closeMenu}><i className="fa-solid fa-magnifying-glass me-2" />Buscar</Nav.Link><Nav.Link as={Link} to="/event">Eventos</Nav.Link><Nav.Link as={Link} to="/productions">Produções</Nav.Link><Nav.Link as={Link} to="/artists">Artistas</Nav.Link><Nav.Link as={Link} to="/login">Entrar</Nav.Link></Nav><span data-peter-ecosystem-slot className="cut-navbar__ecosystem-slot" /></Navbar.Collapse>
+          <Navbar.Collapse id="cut-navbar-public"><Nav className="ms-auto cut-navbar__links"><Nav.Link as={Link} to="/search" onClick={closeMenu}><i className="fa-solid fa-magnifying-glass me-2" />Buscar</Nav.Link><Nav.Link as={Link} to="/event">Eventos</Nav.Link><Nav.Link as={Link} to="/productions">Produções</Nav.Link><Nav.Link as={Link} to="/artists">Artistas</Nav.Link><Nav.Link as={Link} to="/login">Entrar</Nav.Link></Nav></Navbar.Collapse>
         </Container>
       </Navbar>
     );
@@ -390,7 +390,6 @@ export default function NavlogComponent() {
                 <NavDropdown.Item as="button" onClick={signOut}><i className="fa-solid fa-arrow-right-from-bracket me-2" />Sair</NavDropdown.Item>
               </NavDropdown>
             </Nav>
-            <span data-peter-ecosystem-slot className="cut-navbar__ecosystem-slot" aria-label="Navegação do ecossistema Peter Tecnet" />
           </Navbar.Collapse>
         </Container>
       </Navbar>

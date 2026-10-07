@@ -58,8 +58,7 @@
     display: none;
   }
 
-  .cut-capability-nav .cut-navbar__account,
-  .cut-capability-nav .cut-navbar__ecosystem-slot {
+  .cut-capability-nav .cut-navbar__account {
     position: relative;
     z-index: 2;
     flex: 0 0 auto;

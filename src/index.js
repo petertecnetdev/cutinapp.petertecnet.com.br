@@ -21,7 +21,7 @@ import "./styles/mobile-hamburger-recovery.css";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import AppErrorBoundary from "./components/AppErrorBoundary";
-import PeterAccountGateway from "./components/PeterAccountGateway";
+import PeterTelemetryGateway from "./components/PeterTelemetryGateway";
 import { apiBaseUrl, appSlug } from "./config";
 import reportWebVitals from "./reportWebVitals";
 import { installGlobalImageFallbacks } from "./utils/imageFallback";
@@ -182,11 +182,11 @@ const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <React.StrictMode>
     <AppErrorBoundary>
-      <PeterAccountGateway apiBaseUrl={apiBaseUrl} appSlug={appSlug}>
+      <PeterTelemetryGateway apiBaseUrl={apiBaseUrl} appSlug={appSlug}>
         <AuthProvider>
           <App />
         </AuthProvider>
-      </PeterAccountGateway>
+      </PeterTelemetryGateway>
     </AppErrorBoundary>
   </React.StrictMode>
 );

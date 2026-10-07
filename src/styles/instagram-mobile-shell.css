@@ -337,10 +337,6 @@
     display: none;
   }
 
-  html[data-cut-instagram-shell="active"] .cut-navbar__ecosystem-slot {
-    margin-right: 0 !important;
-  }
-
   html[data-cut-instagram-shell="active"] main,
   html[data-cut-instagram-shell="active"] .cut-page-shell,
   html[data-cut-instagram-shell="active"] .container {

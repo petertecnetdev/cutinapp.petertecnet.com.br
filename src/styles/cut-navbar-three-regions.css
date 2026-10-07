@@ -138,12 +138,6 @@
     text-overflow: ellipsis;
   }
 
-  .cut-capability-nav .cut-navbar__ecosystem-slot {
-    border-left: 1px solid var(--cut-border-strong);
-    padding-left: 9px;
-    margin-left: 2px;
-  }
-
   .cut-capability-nav .dropdown-menu {
     min-width: 240px;
     max-height: calc(100dvh - var(--cut-navbar-height) - var(--cut-space-4));
