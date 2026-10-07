@@ -9,11 +9,41 @@
     overflow: visible !important;
   }
 
+  /* React owns the open state and adds this body class. Do not depend on
+   * :has() to lift the navbar above page stacking contexts: older WebViews
+   * can lock the body while leaving the drawer painted behind the page. */
+  body.cut-mobile-menu-open .cut-navbar {
+    position: fixed !important;
+    inset: 0 0 auto 0 !important;
+    width: 100vw !important;
+    overflow: visible !important;
+    z-index: 2147483645 !important;
+    isolation: isolate !important;
+  }
+
   .cut-navbar .navbar-toggler {
+    display: block !important;
     position: relative !important;
     z-index: 2147483647 !important;
     pointer-events: auto !important;
     touch-action: manipulation !important;
+  }
+
+  body.cut-mobile-menu-open .cut-navbar .navbar-toggler {
+    position: fixed !important;
+    top: calc(14px + env(safe-area-inset-top, 0px)) !important;
+    right: max(14px, env(safe-area-inset-right, 0px)) !important;
+    margin: 0 !important;
+  }
+
+  body.cut-mobile-menu-open .cut-navbar .navbar-collapse {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    transform: translate3d(0, 0, 0) !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
   }
 
   .cut-navbar .navbar-collapse {
