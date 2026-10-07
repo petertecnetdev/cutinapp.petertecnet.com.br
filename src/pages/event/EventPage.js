@@ -38,7 +38,8 @@ const ticketPriceLabel = (event) => {
   return null;
 };
 
-const ticketAvailabilityBadge = (event) => {\n  if (event?.kind === "community") return { bg: "light", text: "dark", label: "Encontro grátis" };
+const ticketAvailabilityBadge = (event) => {
+  if (event?.kind === "community") return { bg: "light", text: "dark", label: "Encontro grátis" };
   switch (event?.ticket_availability_status) {
     case "free_available": return { bg: "success", label: "Gratuito" };
     case "available": return { bg: "primary", label: "Ingressos disponíveis" };
