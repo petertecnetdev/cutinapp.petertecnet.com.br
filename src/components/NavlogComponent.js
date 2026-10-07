@@ -131,7 +131,7 @@ export default function NavlogComponent() {
   }, [userId]);
 
   useEffect(() => { closeMenu(); }, [location.pathname, location.search, location.hash]);
-  useEffect(() => { const onKeyDown = (event) => { if (event.key === "Escape") setActiveDropdown(null); }; window.addEventListener("keydown", onKeyDown); return () => window.removeEventListener("keydown", onKeyDown); }, []);
+  useEffect(() => { const onKeyDown = (event) => { if (event.key === "Escape") { setActiveDropdown(null); setOpen(false); } }; window.addEventListener("keydown", onKeyDown); return () => window.removeEventListener("keydown", onKeyDown); }, []);
 
   useEffect(() => {
     if (typeof document === "undefined") return undefined;
