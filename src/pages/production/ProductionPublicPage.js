@@ -1,3 +1,5 @@
+[Reading 561 lines from start (total: 561 lines, 0 remaining)]
+
 import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Alert, Button, Card, Container, Dropdown, Modal } from "react-bootstrap";
 import { useNavigate, useParams } from "react-router-dom";
@@ -43,6 +45,12 @@ export default function ProductionPublicPage() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [showViewers, setShowViewers] = useState(false);
+  const [showFollowers, setShowFollowers] = useState(false);
+  const [showEvents, setShowEvents] = useState(false);
+  const [followers, setFollowers] = useState([]);
+  const [followersMeta, setFollowersMeta] = useState({ currentPage: 0, lastPage: 1, total: 0 });
+  const [followersLoading, setFollowersLoading] = useState(false);
+  const [followersError, setFollowersError] = useState("");
   const [ticketCartOpen, setTicketCartOpen] = useState(false);
   const [sellableUpcoming, setSellableUpcoming] = useState([]);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
@@ -75,6 +83,12 @@ export default function ProductionPublicPage() {
     setError("");
     setDescriptionExpanded(false);
     setShowMap(false);
+    setShowViewers(false);
+    setShowFollowers(false);
+    setShowEvents(false);
+    setFollowers([]);
+    setFollowersMeta({ currentPage: 0, lastPage: 1, total: 0 });
+    setFollowersError("");
 
     (async () => {
       try {
@@ -192,6 +206,8 @@ export default function ProductionPublicPage() {
     try {
       if (nextFollowing) await cutinappService.follow("production", data.production.id);
       else await cutinappService.unfollow("production", data.production.id);
+      setFollowers([]);
+      setFollowersMeta({ currentPage: 0, lastPage: 1, total: 0 });
     } catch (err) {
       setFollowingState(previousFollowing);
       setError(err?.response?.data?.message || err?.message || "Não foi possível atualizar o acompanhamento.");
@@ -202,6 +218,36 @@ export default function ProductionPublicPage() {
 
   const followProduction = () => updateFollow(true);
   const unfollowProduction = () => updateFollow(false);
+
+  const loadFollowers = async (page = 1, append = false) => {
+    if (!data?.production?.id || followersLoading) return;
+    setFollowersLoading(true);
+    setFollowersError("");
+    try {
+      const response = await cutinappService.socialFollowers("production", data.production.id, { page, per_page: 50 });
+      const pager = response?.followers || {};
+      const items = Array.isArray(pager?.data) ? pager.data : [];
+      setFollowers((current) => {
+        if (!append) return items;
+        const seen = new Set(current.map((item) => Number(item.id)));
+        return [...current, ...items.filter((item) => !seen.has(Number(item.id)))];
+      });
+      setFollowersMeta({
+        currentPage: Number(pager.current_page || page),
+        lastPage: Number(pager.last_page || page),
+        total: Number(pager.total || items.length),
+      });
+    } catch (err) {
+      setFollowersError(err?.response?.data?.message || err?.message || "Não foi possível carregar os seguidores.");
+    } finally {
+      setFollowersLoading(false);
+    }
+  };
+
+  const openFollowers = () => {
+    setShowFollowers(true);
+    if (followersMeta.currentPage === 0) loadFollowers(1, false);
+  };
 
   if (loading) {
     return <div className="cut-app-page"><NavlogComponent /><ProcessingIndicatorComponent label="Abrindo produção" /></div>;
@@ -326,8 +372,8 @@ export default function ProductionPublicPage() {
               <p className="cut-production-public-profile__location">{production.city ? <><i className="fa-solid fa-location-dot" />{production.city}{production.uf ? ` - ${production.uf}` : ""}</> : "Eventos e experiências"}</p>
 
               <div className="cut-production-public-profile__metrics" aria-label="Resumo da produção">
-                <span><strong>{upcoming.length}</strong> eventos</span>
-                <span><strong>{production.followers_count || 0}</strong> seguidores</span>
+                <button type="button" onClick={() => setShowEvents(true)} aria-label={`Ver ${upcoming.length} eventos de ${production.name}`}><i className="fa-regular fa-calendar" aria-hidden="true" /> <strong>{upcoming.length}</strong> eventos</button>
+                <button type="button" onClick={openFollowers} aria-label={`Ver seguidores de ${production.name}`}><i className="fa-solid fa-user-group" aria-hidden="true" /> <strong>{production.followers_count || 0}</strong> seguidores</button>
                 <button type="button" onClick={() => setShowViewers(true)}><i className="fa-regular fa-eye" aria-hidden="true" /> <strong>{analytics.total_views || 0}</strong> visualizações</button>
               </div>
 
@@ -496,6 +542,18 @@ export default function ProductionPublicPage() {
 
       <ProductionTicketCartModal show={ticketCartOpen} onHide={() => setTicketCartOpen(false)} productionSlug={slug} />
 
+      <Modal show={showEvents} onHide={() => setShowEvents(false)} centered backdrop keyboard size="lg" contentClassName="cut-production-viewers-modal cut-production-events-modal">
+        <Modal.Header closeButton closeVariant="white"><div><Modal.Title>Eventos de {production.name}</Modal.Title><p>Abra um evento para ver detalhes, ingressos e programação.</p></div></Modal.Header>
+        <Modal.Body>{upcoming.length ? <div className="cut-production-event-list">{upcoming.map((event) => <button type="button" className="cut-production-event-row" key={event.id} onClick={() => { setShowEvents(false); navigate(`/event/${event.slug}`); }} aria-label={`Abrir evento ${event.title}`}><span className="cut-production-event-row__flyer">{event.image ? <img src={mediaUrl(event.image)} alt="" loading="lazy" decoding="async" /> : initials(event.title)}</span><span className="cut-production-event-row__identity"><strong>{event.title}</strong><small>{fmt(event.start_date)}{event.city ? ` · ${event.city}${event.uf ? ` - ${event.uf}` : ""}` : ""}</small></span><i className="fa-solid fa-chevron-right cut-production-event-row__chevron" aria-hidden="true" /></button>)}</div> : <p className="cut-production-viewers-empty">Esta produção ainda não possui próximos eventos publicados.</p>}</Modal.Body>
+      </Modal>
+
+      <Modal show={showFollowers} onHide={() => setShowFollowers(false)} centered backdrop keyboard contentClassName="cut-production-viewers-modal cut-production-followers-modal">
+        <Modal.Header closeButton closeVariant="white"><div><Modal.Title>Seguidores</Modal.Title><p>{followersMeta.total || production.followers_count || 0} {Number(followersMeta.total || production.followers_count || 0) === 1 ? "pessoa segue" : "pessoas seguem"} esta produção.</p></div></Modal.Header>
+        <Modal.Body>
+          {followersError ? <div className="cut-production-viewers-empty"><p>{followersError}</p><Button variant="outline-light" size="sm" onClick={() => loadFollowers(1, false)} disabled={followersLoading}>Tentar novamente</Button></div> : followers.length ? <><div className="cut-production-viewers-list">{followers.map((follower) => <button type="button" className="cut-production-viewer" key={follower.id} onClick={() => { setShowFollowers(false); navigate(`/profile/${follower.id}`); }} aria-label={`Abrir perfil de ${follower.name}`}><span className="cut-production-viewer__avatar">{follower.avatar ? <img src={mediaUrl(follower.avatar)} alt="" loading="lazy" decoding="async" /> : initials(follower.name)}</span><span className="cut-production-viewer__identity"><strong>{follower.name}</strong><small>{follower.user_name ? `@${String(follower.user_name).replace(/^@/, "")}` : "Segue esta produção"}</small></span><span className="cut-production-viewer__count cut-production-viewer__count--chevron"><i className="fa-solid fa-chevron-right" aria-hidden="true" /></span></button>)}</div>{followersMeta.currentPage < followersMeta.lastPage && <div className="cut-production-modal-load-more"><Button variant="outline-light" size="sm" onClick={() => loadFollowers(followersMeta.currentPage + 1, true)} disabled={followersLoading}>{followersLoading ? "Carregando..." : "Carregar mais"}</Button></div>}</> : <p className="cut-production-viewers-empty">{followersLoading ? "Carregando seguidores..." : "Nenhum seguidor público disponível nesta lista."}</p>}
+        </Modal.Body>
+      </Modal>
+
       <Modal show={showViewers} onHide={() => setShowViewers(false)} centered backdrop keyboard contentClassName="cut-production-viewers-modal">
         <Modal.Header closeButton closeVariant="white"><div><Modal.Title>Quem visualizou</Modal.Title><p>Somente perfis identificados são exibidos.</p></div></Modal.Header>
         <Modal.Body>{analytics.viewers?.length ? <div className="cut-production-viewers-list">{analytics.viewers.map((viewer) => <button type="button" className="cut-production-viewer" key={viewer.id} onClick={() => { setShowViewers(false); navigate(`/profile/${viewer.id}`); }} aria-label={`Abrir perfil de ${viewer.name}`}><span className="cut-production-viewer__avatar">{viewer.avatar ? <img src={mediaUrl(viewer.avatar)} alt="" loading="lazy" decoding="async" /> : initials(viewer.name)}</span><span className="cut-production-viewer__identity"><strong>{viewer.name}</strong><small>{viewer.last_viewed_at ? `Última visita: ${fmt(viewer.last_viewed_at)}` : "Visitou a produção"}</small></span><span className="cut-production-viewer__count"><strong>{viewer.views_count}</strong><small>{viewer.views_count === 1 ? "visita" : "visitas"}</small></span></button>)}</div> : <p className="cut-production-viewers-empty">As visualizações anônimas entram somente no total. Nenhum perfil identificado está disponível nesta lista.</p>}</Modal.Body>
@@ -503,3 +561,5 @@ export default function ProductionPublicPage() {
     </div>
   );
 }
+
+[executed on device: petertecnetserver (b42cd296-add7-4131-9294-fe647b68fcc9)]

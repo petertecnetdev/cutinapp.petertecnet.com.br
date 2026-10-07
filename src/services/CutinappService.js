@@ -1,3 +1,5 @@
+[Reading 886 lines from start (total: 886 lines, 0 remaining)]
+
 import appApiClient from "./AppApiClient";
 import { createIdempotentMutation, createMutationRequestKey } from "../utils/idempotencyAttempts";
 import { cachedPublicGet, invalidatePublicRequestCache } from "../utils/publicRequestCache";
@@ -851,6 +853,9 @@ const cutinappService = {
   eventArtists: async (eventId) => (await appApiClient.get(`/events/${eventId}/artists`)).data,
   attachArtist,
   detachArtist,
+  socialFollowers: async (targetType, targetId, params = {}) => (await appApiClient.get("/social/followers", {
+    params: { ...params, target_type: targetType, target_id: Number(targetId) },
+  })).data,
   follow: (targetType, targetId) => {
     const request = followSocialTarget(targetType, targetId);
     request.then(() => trackSearchConversion("follow", targetId)).catch(() => false);
@@ -881,3 +886,5 @@ const cutinappService = {
 };
 
 export default cutinappService;
+
+[executed on device: petertecnetserver (b42cd296-add7-4131-9294-fe647b68fcc9)]

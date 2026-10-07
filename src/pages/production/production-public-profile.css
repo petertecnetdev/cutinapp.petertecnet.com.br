@@ -1,3 +1,5 @@
+[Reading 736 lines from start (total: 736 lines, 0 remaining)]
+
 /* Canonical public Production composition.
    Uses route-specific class names so legacy profile rules cannot override it. */
 
@@ -631,3 +633,108 @@
     align-self:stretch;
   }
 }
+
+/* Production metric drill-down */
+.cut-production-viewer__count--chevron{
+  min-width:auto;
+  color:#8d8d98;
+  font-size:.82rem;
+}
+
+.cut-production-event-list{
+  display:grid;
+  gap:7px;
+}
+
+.cut-production-event-row{
+  width:100%;
+  min-height:78px;
+  display:grid;
+  grid-template-columns:60px minmax(0,1fr) auto;
+  align-items:center;
+  gap:14px;
+  padding:9px 12px 9px 9px;
+  border:1px solid #29292e;
+  border-radius:15px;
+  background:#18181b;
+  color:#fff;
+  text-align:left;
+}
+.cut-production-event-row:hover,
+.cut-production-event-row:focus-visible{
+  border-color:#5c5c65;
+  background:#222226;
+}
+
+.cut-production-event-row__flyer{
+  width:60px;
+  height:60px;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+  border:1px solid #34343a;
+  border-radius:12px;
+  background:#25252a;
+  color:#fff;
+  font-size:.78rem;
+  font-weight:900;
+  letter-spacing:.04em;
+}
+
+.cut-production-event-row__flyer img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+.cut-production-event-row__identity{
+  min-width:0;
+  display:grid;
+  gap:4px;
+}
+
+.cut-production-event-row__identity strong{
+  overflow:hidden;
+  color:#fff;
+  font-size:.96rem;
+  line-height:1.25;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.cut-production-event-row__identity small{
+  overflow:hidden;
+  color:#b8b8c0;
+  font-size:.79rem;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.cut-production-event-row__chevron{
+  color:#8d8d98;
+  font-size:.82rem;
+}
+
+.cut-production-modal-load-more{
+  display:flex;
+  justify-content:center;
+  padding:12px 6px 4px;
+}
+
+.cut-production-public-profile__metrics button{
+  cursor:pointer;
+}
+
+@media(max-width:575.98px){
+  .cut-production-event-row{
+    grid-template-columns:56px minmax(0,1fr) auto;
+    gap:10px;
+  }
+
+  .cut-production-event-row__flyer{
+    width:56px;
+    height:56px;
+  }
+}
+
+[executed on device: petertecnetserver (b42cd296-add7-4131-9294-fe647b68fcc9)]
