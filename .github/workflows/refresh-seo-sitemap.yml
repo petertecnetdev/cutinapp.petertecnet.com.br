@@ -111,9 +111,8 @@ jobs:
 
           tmp="$(mktemp)"
           next_root="${SEO_ROOT}.next.$$"
-          live_event_next="${APP_ROOT}/.cutinapp-event-snapshots.next.$$"
-          live_event_previous="${APP_ROOT}/.cutinapp-event-snapshots.previous.$$"
-          trap 'rm -f "$tmp" "$GENERATOR"; rm -rf "$next_root" "$live_event_next"' EXIT
+          live_public_next="${APP_ROOT}/.cutinapp-public-snapshots.next.$$"
+          trap 'rm -f "$tmp" "$GENERATOR"; rm -rf "$next_root" "$live_public_next"' EXIT
           curl --fail --silent --show-error --location --retry 3 --retry-delay 2 "$SITEMAP_API" -o "$tmp"
           grep -q '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' "$tmp" || {
             echo "Dynamic sitemap response is not a valid sitemap." >&2
@@ -159,20 +158,34 @@ jobs:
           fi
           rm -rf "$previous"
 
-          # Nginx serves /event/* from LIVE_BUILD. Publish only the generated
-          # event subtree with an atomic directory swap so the SPA assets stay intact.
+          # Nginx resolves public entity routes from LIVE_BUILD. Publish every
+          # generated entity subtree so crawlers receive entity-specific Open Graph
+          # metadata instead of the SPA fallback. Each subtree is staged before swap.
           [[ -d "$SEO_ROOT/event" ]] || { echo "Generated public event snapshots are missing." >&2; exit 6; }
-          mkdir -p "$live_event_next"
-          cp -a "$SEO_ROOT/event/." "$live_event_next/"
-          if [[ -e "$LIVE_BUILD/event" || -L "$LIVE_BUILD/event" ]]; then
-            mv "$LIVE_BUILD/event" "$live_event_previous"
-          fi
-          if ! mv "$live_event_next" "$LIVE_BUILD/event"; then
-            [[ -e "$live_event_previous" || -L "$live_event_previous" ]] && mv "$live_event_previous" "$LIVE_BUILD/event" || true
-            echo "Unable to activate public event snapshots." >&2
-            exit 7
-          fi
-          rm -rf "$live_event_previous"
+          public_subtrees=(event production artist blog profile)
+          mkdir -p "$live_public_next"
+          for subtree in "${public_subtrees[@]}"; do
+            [[ -d "$SEO_ROOT/$subtree" ]] || continue
+            mkdir -p "$live_public_next/$subtree"
+            cp -a "$SEO_ROOT/$subtree/." "$live_public_next/$subtree/"
+          done
+
+          for subtree in "${public_subtrees[@]}"; do
+            [[ -d "$live_public_next/$subtree" ]] || continue
+            previous="${APP_ROOT}/.cutinapp-${subtree}-snapshots.previous.$$"
+            rm -rf "$previous"
+            if [[ -e "$LIVE_BUILD/$subtree" || -L "$LIVE_BUILD/$subtree" ]]; then
+              mv "$LIVE_BUILD/$subtree" "$previous"
+            fi
+            if ! mv "$live_public_next/$subtree" "$LIVE_BUILD/$subtree"; then
+              [[ -e "$previous" || -L "$previous" ]] && mv "$previous" "$LIVE_BUILD/$subtree" || true
+              echo "Unable to activate $subtree snapshots." >&2
+              exit 7
+            fi
+            rm -rf "$previous"
+          done
+          rmdir "$live_public_next" 2>/dev/null || true
+          install -m 0644 "$SEO_ROOT/.cutinapp-seo-snapshots" "$LIVE_BUILD/.cutinapp-seo-snapshots"
 
           sample_event="$(grep -m1 -oE '<loc>https://cutinapp\.petertecnet\.com\.br/event/[^<]+' "$SEO_ROOT/sitemap.xml" | sed 's#<loc>##')"
           [[ -n "$sample_event" ]] || { echo "Unable to select an event URL for crawler verification." >&2; exit 8; }
