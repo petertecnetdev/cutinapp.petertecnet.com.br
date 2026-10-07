@@ -1,17 +1,16 @@
+[Reading 559 lines from start (total: 559 lines, 0 remaining)]
+
 import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 
 const SITE_URL = "https://cutinapp.petertecnet.com.br";
 const API_BASE = process.env.CUTINAPP_PUBLIC_API || "https://api.petertecnet.com.br/api/v1/apps/cutinapp";
-const SITEMAP_URL = process.env.CUTINAPP_PUBLIC_SITEMAP || "https://api.petertecnet.com.br/api/v1/discovery/sitemap.xml?origin=https%3A%2F%2Fcutinapp.petertecnet.com.br&application=cutinapp";
 const BUILD_DIR = path.resolve(process.env.CUTINAPP_BUILD_DIR || process.argv[2] || "build");
-const TIME_ZONE = "America/Sao_Paulo";
+const TIME_ZONE = process.env.CUTINAPP_SEO_TIME_ZONE || "UTC";
 const MAX_EVENTS = Math.max(1, Number(process.env.CUTINAPP_SEO_MAX_EVENTS || 5000));
 const PAGE_SIZE = 50;
 const GENERATED_MARKER = ".cutinapp-seo-snapshots";
-const PRESERVE_EVENT_SNAPSHOTS = process.env.CUTINAPP_SEO_PRESERVE_EVENT_SNAPSHOTS === "1";
-const ARCHIVE_FETCH_CONCURRENCY = Math.max(1, Math.min(12, Number(process.env.CUTINAPP_SEO_ARCHIVE_CONCURRENCY || 6)));
 
 const escapeHtml = (value = "") => String(value)
   .replace(/&/g, "&amp;")
@@ -24,6 +23,12 @@ const stripText = (value = "") => String(value)
   .replace(/<[^>]*>/g, " ")
   .replace(/\s+/g, " ")
   .trim();
+
+const stripMarkdownText = (value = "") => stripText(String(value)
+  .replace(/^\s{0,3}#{1,6}\s+[^\r\n]+[\r\n]+/, "")
+  .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
+  .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+  .replace(/[\*_`>#~]+/g, " "));
 
 const truncate = (value = "", limit = 165) => {
   const text = stripText(value);
@@ -122,51 +127,6 @@ const fetchJson = async (url) => {
   return response.json();
 };
 
-const readSitemapEventSlugs = async () => {
-  let xml;
-  try {
-    xml = await fs.readFile(path.join(BUILD_DIR, "sitemap.xml"), "utf8");
-  } catch (error) {
-    if (error?.code !== "ENOENT") throw error;
-    const response = await fetch(SITEMAP_URL, {
-      headers: { Accept: "application/xml,text/xml", "User-Agent": "CutinappSeoSnapshot/1.0" },
-      signal: AbortSignal.timeout(20000),
-    });
-    if (!response.ok) throw new Error(`HTTP ${response.status} ao consultar ${SITEMAP_URL}`);
-    xml = await response.text();
-  }
-
-  const prefix = `${SITE_URL}/event/`;
-  const slugs = [];
-  const seen = new Set();
-  for (const match of xml.matchAll(/<loc>([^<]+)<\/loc>/gi)) {
-    const location = String(match[1] || "").trim().replace(/&amp;/g, "&");
-    if (!location.startsWith(prefix)) continue;
-    const encoded = location.slice(prefix.length).split(/[?#]/, 1)[0].replace(/\/$/, "");
-    if (!encoded) continue;
-    let slug;
-    try { slug = decodeURIComponent(encoded); } catch (_) { slug = encoded; }
-    if (!slug || slug.includes("/") || seen.has(slug)) continue;
-    seen.add(slug);
-    slugs.push(slug);
-    if (slugs.length >= MAX_EVENTS) break;
-  }
-  return slugs;
-};
-
-const fetchPublicEvent = async (slug) => {
-  const payload = await fetchJson(`${API_BASE}/events/public/${encodeURIComponent(slug)}`);
-  return payload?.event || null;
-};
-
-const eventSocialImage = (event) => {
-  const slug = encodeURIComponent(event?.slug || "");
-  if (!slug) return absoluteImage(event?.image);
-  const updated = Date.parse(event?.updated_at || "");
-  const version = Number.isFinite(updated) ? `?v=${Math.max(1, Math.floor(updated / 1000))}` : "";
-  return `${API_BASE}/events/public/${slug}/share-image.jpg${version}`;
-};
-
 const fetchAllEvents = async () => {
   const events = [];
   for (let page = 1; page <= 100 && events.length < MAX_EVENTS; page += 1) {
@@ -182,6 +142,21 @@ const fetchAllEvents = async () => {
     if (rows.length === 0 || page >= Number(paginator.last_page || page)) break;
   }
   return events.slice(0, MAX_EVENTS);
+};
+
+const fetchAllProductions = async () => {
+  const productions = [];
+  for (let page = 1; page <= 100; page += 1) {
+    const url = new URL(`${API_BASE}/organizations/public`);
+    url.searchParams.set("per_page", String(PAGE_SIZE));
+    url.searchParams.set("page", String(page));
+    const payload = await fetchJson(url);
+    const paginator = payload?.organizations || {};
+    const rows = Array.isArray(paginator?.data) ? paginator.data : [];
+    productions.push(...rows);
+    if (rows.length === 0 || page >= Number(paginator.last_page || page)) break;
+  }
+  return productions;
 };
 
 const replaceTagContent = (html, tag, value) => html.replace(
@@ -214,7 +189,7 @@ const injectRootSnapshot = (html, body) => {
   return html.replace(/<div\s+id=["']root["']\s*><\/div>/i, root);
 };
 
-const applySeo = (baseHtml, { title, description, canonical, image, jsonLd, body }) => {
+const applySeo = (baseHtml, { title, description, canonical, image, imageAlt = "Cutinapp", jsonLd, body }) => {
   let html = replaceTagContent(baseHtml, "title", title);
   html = replaceMeta(html, "description", description);
   html = replaceMeta(html, "robots", "index, follow, max-image-preview:large");
@@ -222,9 +197,11 @@ const applySeo = (baseHtml, { title, description, canonical, image, jsonLd, body
   html = replaceMeta(html, "og:description", description);
   html = replaceMeta(html, "og:url", canonical);
   html = replaceMeta(html, "og:image", image || `${SITE_URL}/images/logo.png`);
+  html = replaceMeta(html, "og:image:alt", imageAlt);
   html = replaceMeta(html, "twitter:title", title);
   html = replaceMeta(html, "twitter:description", description);
   html = replaceMeta(html, "twitter:image", image || `${SITE_URL}/images/logo.png`);
+  html = replaceMeta(html, "twitter:image:alt", imageAlt);
   html = replaceCanonical(html, canonical);
   html = replaceJsonLd(html, jsonLd);
   html = injectRootSnapshot(html, body);
@@ -270,7 +247,7 @@ const eventSchema = (event) => {
         addressLocality: event.city || undefined,
         addressRegion: event.uf || event.state || undefined,
         postalCode: event.cep || undefined,
-        addressCountry: event.country || "BR",
+        addressCountry: event.country || undefined,
       },
       ...(event.latitude !== null && event.latitude !== undefined && event.longitude !== null && event.longitude !== undefined ? {
         geo: { "@type": "GeoCoordinates", latitude: Number(event.latitude), longitude: Number(event.longitude) },
@@ -310,7 +287,6 @@ const buildEventSnapshot = (baseHtml, event) => {
   const location = [event.city, event.uf].filter(Boolean).join(" - ");
   const title = `${event.title || "Evento"}${location ? ` em ${location}` : ""} | Cutinapp`;
   const description = truncate(event.description || `Confira data, local, atrações e ingressos para ${event.title || "este evento"} na Cutinapp.`);
-  const socialImage = eventSocialImage(event);
   const breadcrumb = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -321,21 +297,75 @@ const buildEventSnapshot = (baseHtml, event) => {
       { "@type": "ListItem", position: event.city ? 4 : 3, name: event.title || "Evento", item: canonical },
     ],
   };
-  let html = applySeo(baseHtml, {
+  return applySeo(baseHtml, {
     title,
     description,
     canonical,
-    image: socialImage,
+    image: absoluteImage(event.image),
+    imageAlt: `Flyer de ${event.title || "evento"}`,
     jsonLd: [eventSchema(event), breadcrumb],
     body: eventBody(event),
   });
-  html = replaceMeta(html, "og:image:secure_url", socialImage);
-  html = replaceMeta(html, "og:image:type", "image/jpeg");
-  html = replaceMeta(html, "og:image:width", "1200");
-  html = replaceMeta(html, "og:image:height", "630");
-  html = replaceMeta(html, "og:image:alt", `Flyer de ${event.title || "evento"}`);
-  html = replaceMeta(html, "twitter:image:alt", `Flyer de ${event.title || "evento"}`);
-  return html;
+};
+
+const productionSchema = (production) => {
+  const canonical = `${SITE_URL}/production/${encodeURIComponent(production.slug)}/public`;
+  const address = production.location_public === false ? undefined : {
+    "@type": "PostalAddress",
+    streetAddress: [production.address, production.address_number, production.neighborhood].filter(Boolean).join(", ") || undefined,
+    addressLocality: production.city || undefined,
+    addressRegion: production.uf || undefined,
+    postalCode: production.cep || undefined,
+    addressCountry: production.country || "BR",
+  };
+  return {
+    "@context": "https://schema.org",
+    "@type": "ProfilePage",
+    "@id": `${canonical}#profile`,
+    url: canonical,
+    mainEntity: {
+      "@type": "Organization",
+      "@id": `${canonical}#organization`,
+      name: production.name,
+      description: stripMarkdownText(production.description || production.bio || ""),
+      url: canonical,
+      logo: production.logo || production.image ? absoluteImage(production.logo || production.image) : undefined,
+      image: absoluteImage(production.background || production.cover || production.logo || production.image),
+      address,
+      sameAs: [production.website_url, production.instagram_url, production.facebook_url, production.twitter_url, production.youtube_url].filter(Boolean),
+    },
+  };
+};
+
+const productionBody = (production) => {
+  const description = stripMarkdownText(production.description || production.bio || "");
+  const image = production.background || production.cover || production.logo || production.image;
+  const location = [production.city, production.uf].filter(Boolean).join(" - ");
+  return `<article style="max-width:900px;margin:0 auto;padding:32px 20px;font-family:system-ui,sans-serif">
+    <p><a href="${SITE_URL}/">Cutinapp</a> · Produção</p>
+    <h1>${escapeHtml(production.name || "Produção")}</h1>
+    ${image ? `<img src="${escapeHtml(absoluteImage(image))}" alt="Capa de ${escapeHtml(production.name || "Produção")}" style="max-width:100%;height:auto" />` : ""}
+    ${location ? `<p><strong>Localização:</strong> ${escapeHtml(location)}</p>` : ""}
+    ${description ? `<p>${escapeHtml(description)}</p>` : ""}
+    <p><a href="${SITE_URL}/production/${encodeURIComponent(production.slug)}/public">Ver produção e eventos publicados</a></p>
+  </article>`;
+};
+
+const buildProductionSnapshot = (baseHtml, production) => {
+  const canonical = `${SITE_URL}/production/${encodeURIComponent(production.slug)}/public`;
+  const name = production.name || "Produção";
+  const location = [production.city, production.uf].filter(Boolean).join(" - ");
+  const title = `${name}${location ? ` em ${location}` : ""} | Cutinapp`;
+  const description = truncate(stripMarkdownText(production.description || production.bio || "") || `Conheça ${name}, seus eventos e ingressos disponíveis na Cutinapp.`);
+  return applySeo(baseHtml, {
+    title,
+    description,
+    canonical,
+    image: absoluteImage(production.background || production.cover || production.logo || production.image),
+    imageAlt: `Capa de ${name}`,
+    jsonLd: productionSchema(production),
+    body: productionBody(production),
+  });
 };
 
 const discoveryCopy = ({ city, period, category, now }) => {
@@ -394,7 +424,7 @@ const discoverySchema = (canonical, heading, events) => ({
           "@type": "PostalAddress",
           addressLocality: event.city || undefined,
           addressRegion: event.uf || undefined,
-          addressCountry: "BR",
+          addressCountry: event.country || undefined,
         },
       },
     },
@@ -436,61 +466,14 @@ const cleanupPreviousSnapshots = async () => {
   const marker = path.join(BUILD_DIR, GENERATED_MARKER);
   try {
     await fs.access(marker);
-    const removals = [fs.rm(path.join(BUILD_DIR, "eventos"), { recursive: true, force: true })];
-    if (!PRESERVE_EVENT_SNAPSHOTS) {
-      removals.push(fs.rm(path.join(BUILD_DIR, "event"), { recursive: true, force: true }));
-    }
-    await Promise.all(removals);
+    await Promise.all([
+      fs.rm(path.join(BUILD_DIR, "event"), { recursive: true, force: true }),
+      fs.rm(path.join(BUILD_DIR, "eventos"), { recursive: true, force: true }),
+      fs.rm(path.join(BUILD_DIR, "production"), { recursive: true, force: true }),
+    ]);
   } catch (_) {
     // Primeira execução: não remove diretórios que não foram criados por este gerador.
   }
-};
-
-const ensureSitemapEventSnapshots = async (baseHtml) => {
-  const slugs = await readSitemapEventSlugs();
-  if (slugs.length === 0) return { indexed: 0, restored: 0, pruned: 0 };
-
-  const pending = [];
-  for (const slug of slugs) {
-    const target = path.join(BUILD_DIR, "event", slug, "index.html");
-    try {
-      await fs.access(target);
-    } catch (_) {
-      pending.push(slug);
-    }
-  }
-
-  let restored = 0;
-  for (let offset = 0; offset < pending.length; offset += ARCHIVE_FETCH_CONCURRENCY) {
-    const batch = pending.slice(offset, offset + ARCHIVE_FETCH_CONCURRENCY);
-    const results = await Promise.all(batch.map(async (slug) => {
-      try {
-        const event = await fetchPublicEvent(slug);
-        if (!event?.slug || !event?.title) return false;
-        await writeSnapshot(`event/${slug}`, buildEventSnapshot(baseHtml, event));
-        return true;
-      } catch (error) {
-        console.warn(`Unable to restore archived event snapshot for ${slug}: ${error.message}`);
-        return false;
-      }
-    }));
-    restored += results.filter(Boolean).length;
-  }
-
-  const allowed = new Set(slugs);
-  let pruned = 0;
-  const eventRoot = path.join(BUILD_DIR, "event");
-  try {
-    for (const entry of await fs.readdir(eventRoot, { withFileTypes: true })) {
-      if (!entry.isDirectory() || allowed.has(entry.name)) continue;
-      await fs.rm(path.join(eventRoot, entry.name), { recursive: true, force: true });
-      pruned += 1;
-    }
-  } catch (error) {
-    if (error?.code !== "ENOENT") throw error;
-  }
-
-  return { indexed: slugs.length, restored, pruned };
 };
 
 const main = async () => {
@@ -498,6 +481,7 @@ const main = async () => {
   await cleanupPreviousSnapshots();
 
   const events = (await fetchAllEvents()).filter((event) => event?.slug && event?.title);
+  const productions = (await fetchAllProductions()).filter((production) => production?.slug && production?.name);
   const now = new Date();
   let written = 0;
 
@@ -506,8 +490,10 @@ const main = async () => {
     written += 1;
   }
 
-  const sitemapEvents = await ensureSitemapEventSnapshots(baseHtml);
-  written += sitemapEvents.restored;
+  for (const production of productions) {
+    await writeSnapshot(`production/${production.slug}/public`, buildProductionSnapshot(baseHtml, production));
+    written += 1;
+  }
 
   const globalRoute = "eventos";
   await writeSnapshot(globalRoute, buildDiscoverySnapshot(baseHtml, { route: globalRoute, events, now }));
@@ -561,17 +547,17 @@ const main = async () => {
 
   await fs.writeFile(path.join(BUILD_DIR, GENERATED_MARKER), JSON.stringify({
     generated_at: new Date().toISOString(),
-    active_events: events.length,
-    sitemap_events: sitemapEvents.indexed,
-    archived_event_snapshots_restored: sitemapEvents.restored,
-    stale_event_snapshots_pruned: sitemapEvents.pruned,
+    events: events.length,
+    productions: productions.length,
     snapshots: written,
   }, null, 2), "utf8");
 
-  console.log(`SEO snapshots generated: ${written} pages from ${events.length} active events; ${sitemapEvents.indexed} public event URLs indexed, ${sitemapEvents.restored} archived snapshots restored.`);
+  console.log(`SEO snapshots generated: ${written} pages from ${events.length} public events and ${productions.length} public productions.`);
 };
 
 main().catch((error) => {
   console.error("SEO snapshot generation failed:", error);
   process.exitCode = 1;
 });
+
+[executed on device: petertecnetserver (b42cd296-add7-4131-9294-fe647b68fcc9)]
