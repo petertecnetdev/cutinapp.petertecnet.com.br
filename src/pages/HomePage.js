@@ -6,6 +6,7 @@ import cutinappService from "../services/CutinappService";
 import PeterTecnetSignature from "../components/PeterTecnetSignature";
 import ProcessingIndicatorComponent from "../components/ProcessingIndicatorComponent";
 import CommerceTrustRail from "../components/CommerceTrustRail";
+import NavlogComponent from "../components/NavlogComponent";
 import EventArtwork from "../components/event/EventArtwork";
 import EventPosterThumbnail from "../components/event/EventPosterThumbnail";
 import { storageUrl } from "../config";
@@ -247,22 +248,7 @@ export default function HomePage() {
 
   return (
     <div className="cut-home cut-home-discovery">
-      <header className="cut-home__nav cut-home-discovery__nav">
-        <Container className="cut-home__navInner">
-          <Link to="/" className="cut-home__brand">
-            <span className="cut-home__brandOrb"><img src="/images/logo.png" alt="Cutinapp" /></span>
-            <span className="cut-home__brandText"><strong>Cutinapp</strong><small>A CENA CONECTADA</small></span>
-          </Link>
-          <nav aria-label="Navegação pública">
-            <a href="#descobrir">Descobrir</a>
-            <a href="#para-voce">Para você</a>
-            <a href="#artistas">Artistas</a>
-            <Link to="/productions">Produções</Link>
-            <Link to="/login">Entrar</Link>
-            <Button as={Link} to="/register" className="cut-home__cta">Criar conta</Button>
-          </nav>
-        </Container>
-      </header>
+      <NavlogComponent />
 
       <main>
         <section className="cut-home-discovery__brandHero" aria-labelledby="cutinapp-hero-title">
