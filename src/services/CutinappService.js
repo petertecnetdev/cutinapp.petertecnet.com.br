@@ -1,5 +1,3 @@
-[Reading 886 lines from start (total: 886 lines, 0 remaining)]
-
 import appApiClient from "./AppApiClient";
 import { createIdempotentMutation, createMutationRequestKey } from "../utils/idempotencyAttempts";
 import { cachedPublicGet, invalidatePublicRequestCache } from "../utils/publicRequestCache";
