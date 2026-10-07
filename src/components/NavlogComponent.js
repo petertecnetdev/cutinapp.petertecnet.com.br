@@ -131,7 +131,7 @@ export default function NavlogComponent() {
   }, [userId]);
 
   useEffect(() => { closeMenu(); }, [location.pathname, location.search, location.hash]);
-  useEffect(() => { const onKeyDown = (event) => { if (event.key === "Escape") setActiveDropdown(null); }; window.addEventListener("keydown", onKeyDown); return () => window.removeEventListener("keydown", onKeyDown); }, []);
+  useEffect(() => { const onKeyDown = (event) => { if (event.key === "Escape") { setActiveDropdown(null); setOpen(false); } }; window.addEventListener("keydown", onKeyDown); return () => window.removeEventListener("keydown", onKeyDown); }, []);
 
   useEffect(() => {
     if (typeof document === "undefined") return undefined;
@@ -145,11 +145,13 @@ export default function NavlogComponent() {
     const previousOverscroll = document.body.style.overscrollBehavior;
     document.body.style.overflow = "hidden";
     document.body.style.overscrollBehavior = "none";
+    document.body.classList.add("cut-mobile-menu-open");
     const onKeyDown = (event) => event.key === "Escape" && setOpen(false);
     window.addEventListener("keydown", onKeyDown);
     return () => {
       document.body.style.overflow = previousOverflow;
       document.body.style.overscrollBehavior = previousOverscroll;
+      document.body.classList.remove("cut-mobile-menu-open");
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [open]);
