@@ -1,4 +1,5 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import PropTypes from "prop-types";
 import { Alert, Button, Card } from "react-bootstrap";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
@@ -131,3 +132,14 @@ export default function CommunityAttendanceSection({ event, isOwner = false }) {
     </section>
   );
 }
+
+
+CommunityAttendanceSection.propTypes = {
+  event: PropTypes.shape({
+    id: PropTypes.number.isRequired,
+    slug: PropTypes.string.isRequired,
+    start_date: PropTypes.string,
+    end_date: PropTypes.string,
+  }).isRequired,
+  isOwner: PropTypes.bool,
+};
