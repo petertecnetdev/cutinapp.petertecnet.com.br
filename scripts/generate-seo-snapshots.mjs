@@ -557,5 +557,3 @@ main().catch((error) => {
   console.error("SEO snapshot generation failed:", error);
   process.exitCode = 1;
 });
-
-[executed on device: petertecnetserver (b42cd296-add7-4131-9294-fe647b68fcc9)]
