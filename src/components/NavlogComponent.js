@@ -143,6 +143,8 @@ export default function NavlogComponent() {
     if (!open || typeof document === "undefined") return undefined;
     const previousOverflow = document.body.style.overflow;
     const previousOverscroll = document.body.style.overscrollBehavior;
+    const navbar = document.querySelector(".cut-navbar");
+    navbar?.classList.remove("cut-mobile-nav--hidden");
     document.body.style.overflow = "hidden";
     document.body.style.overscrollBehavior = "none";
     document.body.classList.add("cut-mobile-menu-open");
