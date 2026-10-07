@@ -5,7 +5,7 @@ import process from "node:process";
 const SITE_URL = "https://cutinapp.petertecnet.com.br";
 const API_BASE = process.env.CUTINAPP_PUBLIC_API || "https://api.petertecnet.com.br/api/v1/apps/cutinapp";
 const CONTENT_API_BASE = process.env.CUTINAPP_CONTENT_API || "https://api.petertecnet.com.br/api/v1";
-const DEFAULT_SHARE_IMAGE = process.env.CUTINAPP_DEFAULT_SHARE_IMAGE || `${SITE_URL}/images/cutinapp.png`;
+const DEFAULT_SHARE_IMAGE = process.env.CUTINAPP_DEFAULT_SHARE_IMAGE || `${SITE_URL}/images/logo.png`;
 const BUILD_DIR = path.resolve(process.env.CUTINAPP_BUILD_DIR || process.argv[2] || "build");
 const TIME_ZONE = process.env.CUTINAPP_SEO_TIME_ZONE || "UTC";
 const MAX_EVENTS = Math.max(1, Number(process.env.CUTINAPP_SEO_MAX_EVENTS || 5000));
