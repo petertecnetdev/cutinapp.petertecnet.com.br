@@ -1,9 +1,9 @@
-const CACHE_SCHEMA = "v8-official-brand";
+const CACHE_SCHEMA = "v9-pwa-transparent-splash";
 const RELEASE_VERSION = new URL(self.location.href).searchParams.get("v") || "unknown";
 const BUILD_VERSION = `${CACHE_SCHEMA}-${RELEASE_VERSION}`;
 const SHELL_CACHE = `cutinapp-shell-${BUILD_VERSION}`;
 const RUNTIME_CACHE = `cutinapp-runtime-${BUILD_VERSION}`;
-const APP_SHELL = ["/", "/manifest.json", "/images/logo.png"];
+const APP_SHELL = ["/", "/manifest.json", "/images/logo.png", "/pwa-icon-192.png", "/pwa-icon-512.png", "/logo512-maskable.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(SHELL_CACHE).then((cache) => cache.addAll(APP_SHELL)));
