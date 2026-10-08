@@ -76,4 +76,28 @@ describe("navigation recovery with portaled mobile drawers", () => {
     installAndFlush();
     expect(document.body.style.overflow).toBe("hidden");
   });
+
+  test.each([
+    '<div class="modal fade" aria-modal="true"></div>',
+    '<div class="modal fade" style="display: block;"></div>',
+    '<div class="modal fade" style="display:block"></div>',
+    '<div class="modal showing"></div>',
+    '<div class="offcanvas hiding"></div>',
+  ])("preserves a transitioning dialog and its backdrop: %s", (markup) => {
+    document.body.innerHTML = `${markup}<div class="modal-backdrop show"></div>`;
+    document.body.style.overflow = "hidden";
+    document.body.style.overscrollBehavior = "none";
+    installAndFlush();
+    expect(document.querySelector(".modal-backdrop")).not.toBeNull();
+    expect(document.body.style.overflow).toBe("hidden");
+    expect(document.body.style.overscrollBehavior).toBe("none");
+  });
+
+  test("still removes an orphaned backdrop after transition ends", () => {
+    document.body.innerHTML = '<div class="modal fade" style="display: none;"></div><div class="modal-backdrop"></div>';
+    document.body.style.overflow = "hidden";
+    installAndFlush();
+    expect(document.querySelector(".modal-backdrop")).toBeNull();
+    expect(document.body.style.overflow).toBe("");
+  });
 });
