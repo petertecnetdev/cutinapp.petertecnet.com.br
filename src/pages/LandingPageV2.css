@@ -69,7 +69,7 @@
     -webkit-tap-highlight-color:transparent
   }
   .cut-landing__menuToggle:focus-visible{
-    outline:2px solid #c65cff;
+    outline:2px solid #fff;
     outline-offset:2px
   }
   .cut-landing__publicNav{display:none!important}
@@ -171,7 +171,7 @@
   .cut-landing-mobile-drawer__content>a>i{
     width:24px;
     text-align:center;
-    color:#c56aff
+    color:var(--cut-logo-red-hot,#FF2020)
   }
   .cut-landing-mobile-drawer__cta{
     width:100%;
@@ -182,7 +182,8 @@
     justify-content:center;
     border:0!important;
     border-radius:14px!important;
-    background:linear-gradient(135deg,#db5eff,#7658ff 60%,#318fff)!important;
+    background:linear-gradient(135deg,var(--cut-logo-red-dark,#980000),var(--cut-logo-red,#D80000))!important;
+    color:#fff!important;
     font-weight:900!important
   }
   body.cut-public-mobile-menu-open .cut-landing__mobileCta{
