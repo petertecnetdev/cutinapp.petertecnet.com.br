@@ -48,7 +48,7 @@ export const resolveProducerCampaign = ({ state, search } = {}) => {
   const campaign = fromQuery.utm_source ? fromQuery : fromState.utm_source ? fromState : saved || {};
   const legacySource = sanitize(state?.acquisitionSource);
   const isPlacement = legacySource?.startsWith("producer_landing_");
-  const source = campaign.utm_source || (!isPlacement ? legacySource : null) || saved?.acquisitionSource || legacySource || null;
+  const source = campaign.utm_source || (!isPlacement ? legacySource : null) || saved?.acquisitionSource || null;
   return {
     ...Object.fromEntries(FIELDS.map((key) => [key, campaign[key] || null])),
     acquisitionSource: source,
