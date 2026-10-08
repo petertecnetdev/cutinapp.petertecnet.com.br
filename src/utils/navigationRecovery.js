@@ -1,6 +1,17 @@
 const NAVBAR_SELECTOR = ".cut-navbar .navbar-collapse";
 const ACTIVE_NAV_SELECTOR = `${NAVBAR_SELECTOR}.show, ${NAVBAR_SELECTOR}.collapsing`;
-const ACTIVE_BLOCKING_UI_SELECTOR = ".modal.show, .offcanvas.show, .offcanvas.showing";
+// During Bootstrap's fade-in/fade-out, a modal can own the backdrop before
+// or after .show is applied. Never clear body locks while it is still visible.
+const ACTIVE_BLOCKING_UI_SELECTOR = [
+  ".modal.show",
+  ".modal.showing",
+  ".modal[aria-modal='true']",
+  ".modal[style*='display: block']",
+  ".modal[style*='display:block']",
+  ".offcanvas.show",
+  ".offcanvas.showing",
+  ".offcanvas.hiding",
+].join(", ");
 const ACTIVE_PORTAL_DRAWER_SELECTOR = ".cut-mobile-drawer[role='dialog'], .cut-landing-mobile-drawer[role='dialog']";
 const STALE_BACKDROP_SELECTOR = ".modal-backdrop, .offcanvas-backdrop";
 
