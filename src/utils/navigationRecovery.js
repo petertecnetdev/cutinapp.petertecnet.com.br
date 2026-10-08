@@ -1,6 +1,7 @@
 const NAVBAR_SELECTOR = ".cut-navbar .navbar-collapse";
 const ACTIVE_NAV_SELECTOR = `${NAVBAR_SELECTOR}.show, ${NAVBAR_SELECTOR}.collapsing`;
 const ACTIVE_BLOCKING_UI_SELECTOR = ".modal.show, .offcanvas.show, .offcanvas.showing";
+const ACTIVE_PORTAL_DRAWER_SELECTOR = ".cut-mobile-drawer[role='dialog'], .cut-landing-mobile-drawer[role='dialog']";
 const STALE_BACKDROP_SELECTOR = ".modal-backdrop, .offcanvas-backdrop";
 
 const clearStaleBodyLock = () => {
@@ -8,7 +9,7 @@ const clearStaleBodyLock = () => {
 
   const navigationOpen = Boolean(document.querySelector(ACTIVE_NAV_SELECTOR));
   const blockingUiOpen = Boolean(document.querySelector(ACTIVE_BLOCKING_UI_SELECTOR));
-  if (navigationOpen || blockingUiOpen) return;
+  if (navigationOpen || blockingUiOpen || document.querySelector(ACTIVE_PORTAL_DRAWER_SELECTOR)) return;
 
   if (document.body.style.overflow === "hidden") document.body.style.removeProperty("overflow");
   if (document.body.style.overscrollBehavior === "none") document.body.style.removeProperty("overscroll-behavior");
@@ -19,7 +20,7 @@ const clearStaleBodyLock = () => {
 
 const collapseStaleNavbar = () => {
   if (typeof document === "undefined") return;
-  if (document.querySelector(ACTIVE_BLOCKING_UI_SELECTOR)) return;
+  if (document.querySelector(ACTIVE_BLOCKING_UI_SELECTOR) || document.querySelector(ACTIVE_PORTAL_DRAWER_SELECTOR)) return;
 
   document.querySelectorAll(`${NAVBAR_SELECTOR}.show, ${NAVBAR_SELECTOR}.collapsing`).forEach((collapse) => {
     collapse.classList.remove("show", "collapsing");
