@@ -172,6 +172,16 @@
     text-transform: uppercase;
   }
 
+  /* Keyboard focus must remain visible against the opaque portal. The
+   * inset outline stays inside the scrollable panel on narrow screens. */
+  .cut-mobile-drawer__brand:focus-visible,
+  .cut-mobile-drawer__close:focus-visible,
+  .cut-mobile-drawer__content a:focus-visible,
+  .cut-mobile-drawer__content button:focus-visible {
+    outline: 2px solid #fff !important;
+    outline-offset: -3px;
+  }
+
   body.cut-mobile-menu-open .cut-mobile-bottom-nav,
   body.cut-mobile-menu-open .cut-event-buy-cta-fixed,
   body.cut-mobile-menu-open .cut-instagram-mobile-action {
