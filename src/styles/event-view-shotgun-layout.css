@@ -11,10 +11,10 @@
   --cut-shotgun-ink: #111315;
   --cut-shotgun-muted: rgba(245, 247, 249, 0.66);
   --cut-shotgun-line: rgba(255, 255, 255, 0.11);
-  --cut-shotgun-accent: #c043ff;
-  --cut-shotgun-accent-2: #36c7ef;
+  --cut-shotgun-accent: #ff4343;
+  --cut-shotgun-accent-2: #ef3636;
   background:
-    radial-gradient(circle at 42% 2%, rgba(192, 67, 255, 0.08), transparent 34rem),
+    radial-gradient(circle at 42% 2%, rgba(255,67,67, 0.08), transparent 34rem),
     linear-gradient(180deg, #191b1d 0%, #151719 64%, #121416 100%);
 }
 
@@ -393,7 +393,7 @@
 
 .cut-event-view-page .cut-panel:not(.cut-ticket-purchase-panel) .text-secondary,
 .cut-event-view-page .cut-body-copy {
-  color: rgba(236, 241, 245, 0.68) !important;
+  color: rgba(250,231,231, 0.68) !important;
 }
 
 /* The page itself now exposes the buy CTA clearly in the hero, so the floating

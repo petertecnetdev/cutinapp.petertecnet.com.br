@@ -55,9 +55,9 @@
   gap: .85rem;
   margin: 0 0 1rem;
   padding: .8rem .9rem;
-  border: 1px solid rgba(133, 102, 255, .2);
+  border: 1px solid rgba(255,102,102, .2);
   border-radius: 16px;
-  background: rgba(67, 47, 130, .16);
+  background: rgba(149,28,28, .16);
 }
 
 .cut-admin-events-bulkbar .form-check {
@@ -103,14 +103,14 @@
   padding: .8rem;
   border: 1px solid rgba(255, 255, 255, .08);
   border-radius: 18px;
-  background: linear-gradient(180deg, rgba(18, 21, 54, .93), rgba(8, 11, 32, .94));
+  background: linear-gradient(180deg, rgba(42,23,23, .93), rgba(24,13,13, .94));
   box-shadow: 0 12px 30px rgba(0, 0, 0, .15);
 }
 
 .cut-admin-event-row.is-selected {
-  border-color: rgba(133, 102, 255, .58);
-  background: linear-gradient(180deg, rgba(31, 27, 72, .97), rgba(12, 13, 40, .97));
-  box-shadow: 0 12px 30px rgba(0, 0, 0, .18), inset 0 0 0 1px rgba(133, 102, 255, .12);
+  border-color: rgba(255,102,102, .58);
+  background: linear-gradient(180deg, rgba(59,32,32, .97), rgba(31,16,16, .97));
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .18), inset 0 0 0 1px rgba(255,102,102, .12);
 }
 
 .cut-admin-event-row__select {
@@ -207,7 +207,7 @@
 }
 
 .cut-admin-event-row__content small {
-  color: rgba(240, 156, 255, .82);
+  color: rgba(255,156,156, .82);
 }
 
 .cut-admin-event-row__actions {
@@ -254,11 +254,11 @@
 
   .cut-admin-event-row:hover {
     transform: translateY(-1px);
-    border-color: rgba(126, 88, 255, .3);
+    border-color: rgba(255,88,88, .3);
   }
 
   .cut-admin-event-row.is-selected:hover {
-    border-color: rgba(133, 102, 255, .72);
+    border-color: rgba(255,102,102, .72);
   }
 }
 

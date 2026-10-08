@@ -34,9 +34,9 @@
 }
 
 .cut-public-gallery__filters button.is-active{
-  border-color:rgba(217,70,239,.4);
-  background:rgba(217,70,239,.12);
-  color:#f5d0fe;
+  border-color:rgba(239,70,70,.4);
+  background:rgba(239,70,70,.12);
+  color:#fed0d0;
 }
 
 .cut-public-gallery__grid{
@@ -56,7 +56,7 @@
   padding:0;
   border:1px solid rgba(148,163,184,.14);
   border-radius:16px;
-  background:#07101a;
+  background:#130a0a;
   text-align:left;
 }
 
@@ -82,14 +82,14 @@
 }
 
 .cut-public-gallery__item:focus-visible{
-  outline:2px solid #c084fc;
+  outline:2px solid #fc8484;
   outline-offset:2px;
 }
 
 .cut-public-gallery__shade{
   position:absolute;
   inset:0;
-  background:linear-gradient(180deg,rgba(2,8,13,.03) 48%,rgba(2,8,13,.8) 100%);
+  background:linear-gradient(180deg,rgba(9,5,5,.03) 48%,rgba(9,5,5,.8) 100%);
 }
 
 .cut-public-gallery__featured{
@@ -101,7 +101,7 @@
   gap:5px;
   padding:5px 8px;
   border-radius:999px;
-  background:rgba(2,8,13,.78);
+  background:rgba(9,5,5,.78);
   color:#fde68a;
   font-size:.62rem;
   font-weight:900;
@@ -118,7 +118,7 @@
   place-items:center;
   border:1px solid rgba(255,255,255,.15);
   border-radius:50%;
-  background:rgba(2,8,13,.68);
+  background:rgba(9,5,5,.68);
   color:#fff;
   font-size:.72rem;
 }
@@ -133,7 +133,7 @@
   place-items:center;
   border:1px solid rgba(255,255,255,.15);
   border-radius:50%;
-  background:rgba(2,8,13,.68);
+  background:rgba(9,5,5,.68);
   color:#fff;
 }
 
@@ -155,14 +155,14 @@
   align-items:center;
   gap:14px;
   padding:20px;
-  border:1px dashed rgba(168,85,247,.28);
+  border:1px dashed rgba(247,85,85,.28);
   border-radius:18px;
-  background:rgba(168,85,247,.045);
+  background:rgba(247,85,85,.045);
 }
 
 .cut-public-gallery__owner-empty>i{
   font-size:1.8rem;
-  color:#d946ef;
+  color:#ef4646;
 }
 
 .cut-public-gallery__owner-empty>div{
@@ -189,7 +189,7 @@
 
 .cut-gallery-lightbox .modal-content{
   border:1px solid rgba(148,163,184,.16);
-  background:#050b12;
+  background:#0e0808;
 }
 
 .cut-gallery-lightbox .modal-header{
@@ -219,7 +219,7 @@
   place-items:center;
   overflow:hidden;
   border-radius:14px;
-  background:#02060b;
+  background:#070404;
   touch-action:pan-y;
 }
 
@@ -242,7 +242,7 @@
   transform:translateY(-50%);
   border:1px solid rgba(255,255,255,.16);
   border-radius:50%;
-  background:rgba(2,8,13,.72);
+  background:rgba(9,5,5,.72);
   color:#fff;
   backdrop-filter:blur(10px);
 }
@@ -279,7 +279,7 @@
 
 
 .cut-public-gallery__item{
-  background:linear-gradient(110deg,#08111c 8%,#101c2a 18%,#08111c 33%);
+  background:linear-gradient(110deg,#150b0b 8%,#221212 18%,#150b0b 33%);
   background-size:200% 100%;
   animation:cut-public-gallery-skeleton 1.35s linear infinite;
 }
@@ -290,11 +290,11 @@
 }
 
 .cut-public-gallery__item.is-loaded{
-  background:#07101a;
+  background:#130a0a;
 }
 
 .cut-public-gallery__item.has-error{
-  background:linear-gradient(145deg,#0d1724,#07101a);
+  background:linear-gradient(145deg,#1c0f0f,#130a0a);
 }
 
 .cut-public-gallery__broken,
@@ -313,7 +313,7 @@
   position:absolute;
   inset:0;
   padding:16px;
-  background:linear-gradient(145deg,#0d1724,#07101a);
+  background:linear-gradient(145deg,#1c0f0f,#130a0a);
 }
 
 .cut-public-gallery__broken i,
@@ -354,7 +354,7 @@
 .cut-gallery-lightbox__report-form .form-select,
 .cut-gallery-lightbox__report-form .form-control{
   border-color:rgba(148,163,184,.18);
-  background-color:rgba(15,23,42,.72);
+  background-color:rgba(33,18,18,.72);
   color:var(--cut-text);
 }
 

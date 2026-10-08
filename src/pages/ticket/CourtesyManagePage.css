@@ -43,11 +43,11 @@
   width:100%;
   min-width:0;
   overflow:hidden;
-  border-color:rgba(156,89,255,.26)!important;
+  border-color:rgba(255,89,89,.26)!important;
   background:
-    radial-gradient(circle at 100% 0%,rgba(0,183,255,.075),transparent 32%),
-    radial-gradient(circle at 0% 100%,rgba(193,60,255,.085),transparent 38%),
-    linear-gradient(155deg,rgba(23,22,53,.98),rgba(10,11,27,.985))!important;
+    radial-gradient(circle at 100% 0%,rgba(255,0,0,.075),transparent 32%),
+    radial-gradient(circle at 0% 100%,rgba(255,60,60,.085),transparent 38%),
+    linear-gradient(155deg,rgba(45,24,24,.98),rgba(21,11,11,.985))!important;
   box-shadow:0 18px 48px rgba(0,0,0,.19),inset 0 1px 0 rgba(255,255,255,.025)!important;
 }
 .cut-ticket-lot-card__body{
@@ -106,7 +106,7 @@
   white-space:nowrap;
 }
 .cut-ticket-lot-card__meta i{
-  color:#ca8cff;
+  color:#ff8c8c;
   font-size:.68rem;
 }
 .cut-ticket-lot-card__status{
@@ -138,13 +138,13 @@
   min-height:46px;
   border-radius:13px;
   border-color:rgba(255,255,255,.10);
-  background:#0c0d1b;
+  background:#180d0d;
   color:#fff;
 }
 .cut-ticket-lot-form .form-control:focus,
 .cut-ticket-lot-form .form-select:focus{
-  border-color:rgba(187,77,255,.65);
-  box-shadow:0 0 0 3px rgba(172,72,255,.11);
+  border-color:rgba(255,77,77,.65);
+  box-shadow:0 0 0 3px rgba(255,72,72,.11);
 }
 .cut-ticket-lot-form textarea.form-control{
   min-height:96px;

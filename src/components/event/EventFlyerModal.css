@@ -8,7 +8,7 @@
 .cut-flyer-modal {
   overflow: hidden;
   color: #fff;
-  background: rgba(4, 10, 16, .94);
+  background: rgba(12,6,6, .94);
   border: 1px solid rgba(255, 255, 255, .12);
   border-radius: 28px;
   box-shadow: 0 34px 90px rgba(0, 0, 0, .58), 0 0 0 1px rgba(255, 255, 255, .025) inset;
@@ -25,7 +25,7 @@
   position: relative;
   z-index: 5;
   border-color: rgba(255, 255, 255, .08) !important;
-  background: linear-gradient(180deg, rgba(8, 16, 25, .98), rgba(8, 16, 25, .84));
+  background: linear-gradient(180deg, rgba(19,10,10, .98), rgba(19,10,10, .84));
 }
 
 .cut-flyer-modal__header {
@@ -92,7 +92,7 @@
 
 .cut-flyer-modal__body {
   padding: 0 !important;
-  background: #02060a;
+  background: #070404;
 }
 
 .cut-flyer-stage {
@@ -101,7 +101,7 @@
   max-height: calc(100vh - 180px);
   overflow: hidden;
   isolation: isolate;
-  background: #02060a;
+  background: #070404;
 }
 
 .cut-flyer-stage__ambient {
@@ -123,7 +123,7 @@
   pointer-events: none;
   background:
     radial-gradient(circle at 50% 30%, rgba(255,255,255,.09), transparent 38%),
-    linear-gradient(180deg, rgba(1,5,9,.28), rgba(1,5,9,.82));
+    linear-gradient(180deg, rgba(6,3,3,.28), rgba(6,3,3,.82));
 }
 
 .cut-flyer-stage__grid {
@@ -181,7 +181,7 @@
   gap: 6px;
   padding: 7px;
   transform: translateX(-50%);
-  background: rgba(5, 12, 19, .78);
+  background: rgba(14,8,8, .78);
   border: 1px solid rgba(255,255,255,.13);
   border-radius: 18px;
   box-shadow: 0 18px 42px rgba(0,0,0,.42);

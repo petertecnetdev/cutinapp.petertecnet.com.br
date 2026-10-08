@@ -44,8 +44,8 @@
 }
 
 .cut-ticket-shop__option:hover {
-  border-color: rgba(168,85,247,.42);
-  background: linear-gradient(145deg, rgba(168,85,247,.08), rgba(255,255,255,.035));
+  border-color: rgba(247,85,85,.42);
+  background: linear-gradient(145deg, rgba(247,85,85,.08), rgba(255,255,255,.035));
   transform: translateY(-1px);
 }
 
@@ -97,7 +97,7 @@
 
 .cut-ticket-kicker,
 .cut-eyebrow {
-  color: #c45cff;
+  color: #ff5c5c;
   font-weight: 900;
   letter-spacing: .09em;
   text-transform: uppercase;
@@ -157,12 +157,12 @@
 
 .cut-ticket-shop__summary {
   overflow: hidden;
-  border: 1px solid rgba(168,85,247,.28);
+  border: 1px solid rgba(247,85,85,.28);
   border-radius: 22px;
   background:
-    radial-gradient(circle at top right, rgba(168,85,247,.16), transparent 38%),
-    linear-gradient(160deg, rgba(19,14,31,.98), rgba(8,11,19,.98));
-  color: #f8f7ff;
+    radial-gradient(circle at top right, rgba(247,85,85,.16), transparent 38%),
+    linear-gradient(160deg, rgba(26,14,14,.98), rgba(17,9,9,.98));
+  color: #fff7f7;
   box-shadow: 0 22px 60px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.05);
 }
 
@@ -178,7 +178,7 @@
 
 .cut-ticket-shop__summary-head small {
   display: block;
-  color: #f6f3ff;
+  color: #fff3f3;
   font-size: .78rem;
   font-weight: 900;
   letter-spacing: .02em;
@@ -274,7 +274,7 @@
 }
 
 .cut-ticket-shop__summary-line--total strong {
-  color: #d96cff;
+  color: #ff6c6c;
   font-size: 1.12rem;
 }
 
@@ -292,9 +292,9 @@
   padding: 0 18px;
   border: 1px solid rgba(255,255,255,.1);
   border-radius: 15px;
-  background: linear-gradient(135deg, #7c3aed, #c026d3);
+  background: linear-gradient(135deg, #ed3a3a, #d32626);
   color: #fff;
-  box-shadow: 0 12px 28px rgba(147,51,234,.26);
+  box-shadow: 0 12px 28px rgba(234,51,51,.26);
   font-size: .82rem;
   font-weight: 950;
   letter-spacing: .015em;
@@ -328,7 +328,7 @@
 
 .cut-ticket-shop__trust i {
   margin-top: 2px;
-  color: var(--cut-primary, #a855f7);
+  color: var(--cut-primary, #f75555);
 }
 
 .cut-ticket-shop-section {
@@ -376,11 +376,11 @@
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
-  border: 1px solid rgba(168,85,247,.35);
+  border: 1px solid rgba(247,85,85,.35);
   border-radius: 18px;
-  background: rgba(12,9,24,.96);
+  background: rgba(19,10,10,.96);
   color: #fff;
-  box-shadow: 0 18px 55px rgba(0,0,0,.42), 0 0 30px rgba(126,34,206,.12);
+  box-shadow: 0 18px 55px rgba(0,0,0,.42), 0 0 30px rgba(206,34,34,.12);
   backdrop-filter: blur(18px);
 }
 
@@ -390,7 +390,7 @@
   display: grid;
   place-items: center;
   border-radius: 12px;
-  background: linear-gradient(135deg, rgba(124,58,237,.4), rgba(192,38,211,.22));
+  background: linear-gradient(135deg, rgba(237,58,58,.4), rgba(211,38,38,.22));
 }
 
 .cut-event-cart-fab > span {
@@ -417,20 +417,20 @@
   place-items: center;
   border-radius: 50%;
   background: #fff;
-  color: #0b0f17;
+  color: #140b0b;
   font-size: .72rem;
 }
 
 .cut-event-cart-fab:hover {
   transform: translateY(-2px);
-  background: #0c0918;
+  background: #130a0a;
 }
 
 .cut-event-cart-drawer.offcanvas {
   width: min(460px, 100vw);
   border-left: 1px solid rgba(255,255,255,.12);
-  background: #080d16;
-  color: #f7fbff;
+  background: #120909;
+  color: #fff7f7;
 }
 
 .cut-event-cart-drawer .offcanvas-header {
@@ -479,7 +479,7 @@
 }
 
 .cut-event-cart-drawer__copy small {
-  color: var(--cut-primary, #a855f7);
+  color: var(--cut-primary, #f75555);
   font-size: .65rem;
   font-weight: 900;
   text-transform: uppercase;
@@ -541,7 +541,7 @@
   min-height: 50px;
   border: 0;
   border-radius: 14px;
-  background: linear-gradient(135deg, #7c3aed, #c026d3);
+  background: linear-gradient(135deg, #ed3a3a, #d32626);
   font-weight: 900;
 }
 

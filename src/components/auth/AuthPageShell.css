@@ -9,9 +9,9 @@
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at 14% 18%, rgba(86,220,233,.17), transparent 40%),
-    radial-gradient(circle at 84% 14%, rgba(115,99,244,.15), transparent 38%),
-    linear-gradient(155deg,var(--cut-bg-deep) 0%,#06131d 50%,var(--cut-bg-deep) 100%);
+    radial-gradient(circle at 14% 18%, rgba(233,86,86,.17), transparent 40%),
+    radial-gradient(circle at 84% 14%, rgba(244,99,99,.15), transparent 38%),
+    linear-gradient(155deg,var(--cut-bg-deep) 0%,#150b0b 50%,var(--cut-bg-deep) 100%);
 }
 .cut-auth-shell__grid {
   position: absolute;
@@ -54,13 +54,13 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  background: linear-gradient(160deg,rgba(16,36,49,.76),rgba(6,17,25,.62));
+  background: linear-gradient(160deg,rgba(38,20,20,.76),rgba(19,10,10,.62));
 }
 .cut-auth-shell__heroCard::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 25% 12%,rgba(86,220,233,.13),transparent 42%);
+  background: radial-gradient(circle at 25% 12%,rgba(233,86,86,.13),transparent 42%);
   pointer-events: none;
 }
 .cut-auth-shell__brandRow { position: relative; display: flex; gap: 18px; align-items: center; }
@@ -92,7 +92,7 @@
   font-size: .84rem;
   font-weight: 760;
 }
-.cut-auth-shell__pill span { width: 9px; height: 9px; border-radius: 50%; background: var(--cut-primary); box-shadow: 0 0 16px rgba(86,220,233,.6); }
+.cut-auth-shell__pill span { width: 9px; height: 9px; border-radius: 50%; background: var(--cut-primary); box-shadow: 0 0 16px rgba(233,86,86,.6); }
 .cut-auth-shell__benefits { position: relative; list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
 .cut-auth-shell__benefits li { display: grid; gap: 3px; padding: 14px 16px; border: 1px solid var(--cut-border-soft); border-radius: var(--cut-radius-lg); background: rgba(255,255,255,.022); }
 .cut-auth-shell__benefits b { font-size: .93rem; }
@@ -104,10 +104,10 @@
   width: 100%;
   max-width: 510px;
   padding: 29px 26px;
-  border-color: rgba(86,220,233,.18);
-  background: linear-gradient(180deg,rgba(7,18,27,.78),rgba(3,10,16,.94));
+  border-color: rgba(233,86,86,.18);
+  background: linear-gradient(180deg,rgba(20,11,11,.78),rgba(12,6,6,.94));
 }
-.cut-auth-shell__card::before { content: ""; position: absolute; inset: 0 0 auto; height: 1px; background: linear-gradient(90deg,transparent,rgba(86,220,233,.32),transparent); }
+.cut-auth-shell__card::before { content: ""; position: absolute; inset: 0 0 auto; height: 1px; background: linear-gradient(90deg,transparent,rgba(233,86,86,.32),transparent); }
 .cut-auth-shell__cardHeader { position: relative; margin-bottom: 20px; text-align: center; }
 .cut-auth-shell__logo { width: 94px; height: 94px; margin: 0 auto 13px; border-radius: 25px; }
 .cut-auth-shell__logo img { width: 66px; height: 66px; object-fit: contain; }

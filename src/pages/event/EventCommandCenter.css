@@ -72,15 +72,15 @@
   padding:.72rem .8rem;
   border:1px solid rgba(255,255,255,.07);
   border-radius:14px;
-  background:rgba(4,6,20,.42);
+  background:rgba(14,8,8,.42);
   color:inherit;
   text-align:left;
   transition:transform .15s ease,border-color .15s ease,background .15s ease
 }
 .cut-event-attention-center__grid>button:hover{
   transform:translateY(-1px);
-  border-color:rgba(86,220,233,.22);
-  background:rgba(86,220,233,.045)
+  border-color:rgba(233,86,86,.22);
+  background:rgba(233,86,86,.045)
 }
 .cut-event-attention-center__event{
   min-width:0;
@@ -130,9 +130,9 @@
   width:min(620px,100vw)!important;
   border-left:1px solid var(--cut-border-strong)!important;
   background:
-    radial-gradient(circle at 100% 0,rgba(184,71,250,.12),transparent 35%),
-    radial-gradient(circle at 0 10%,rgba(86,220,233,.1),transparent 32%),
-    linear-gradient(180deg,rgba(15,17,43,.995),rgba(5,7,22,.998))!important;
+    radial-gradient(circle at 100% 0,rgba(250,71,71,.12),transparent 35%),
+    radial-gradient(circle at 0 10%,rgba(233,86,86,.1),transparent 32%),
+    linear-gradient(180deg,rgba(34,18,18,.995),rgba(17,9,9,.998))!important;
   color:var(--cut-text-soft)!important
 }
 .cut-event-command-center .offcanvas-header{
@@ -168,7 +168,7 @@
   overflow:hidden;
   border:1px solid rgba(255,255,255,.1);
   border-radius:18px;
-  background:linear-gradient(145deg,rgba(35,39,87,.96),rgba(10,12,34,.97));
+  background:linear-gradient(145deg,rgba(102,20,20,.96),rgba(26,14,14,.97));
   color:var(--cut-primary);
   font-size:1.25rem;
   font-weight:950
@@ -262,9 +262,9 @@
 }
 .cut-event-command-feedback{
   padding:.65rem .75rem;
-  border:1px solid rgba(86,220,233,.16);
+  border:1px solid rgba(233,86,86,.16);
   border-radius:12px;
-  background:rgba(86,220,233,.055);
+  background:rgba(233,86,86,.055);
   color:var(--cut-primary);
   font-size:.62rem;
   font-weight:750
@@ -351,8 +351,8 @@
 }
 .cut-event-command-tabs button i{font-size:.72rem}
 .cut-event-command-tabs button.is-active{
-  border-color:rgba(86,220,233,.2);
-  background:linear-gradient(135deg,rgba(86,220,233,.11),rgba(184,71,250,.08));
+  border-color:rgba(233,86,86,.2);
+  background:linear-gradient(135deg,rgba(233,86,86,.11),rgba(250,71,71,.08));
   color:var(--cut-primary)
 }
 .cut-event-command-checklist{
@@ -390,7 +390,7 @@
   min-width:52px;
   padding:6px 8px;
   border-radius:999px;
-  background:rgba(86,220,233,.08);
+  background:rgba(233,86,86,.08);
   color:var(--cut-primary);
   font-size:.62rem;
   text-align:center
@@ -414,8 +414,8 @@
   text-align:left
 }
 .cut-event-command-checklist button:hover{
-  border-color:rgba(86,220,233,.16);
-  background:rgba(86,220,233,.035)
+  border-color:rgba(233,86,86,.16);
+  background:rgba(233,86,86,.035)
 }
 .cut-event-command-checklist button>i:first-child{
   color:#f6d878;
@@ -470,8 +470,8 @@
 }
 .cut-event-command-action:hover:not(:disabled){
   transform:translateY(-1px);
-  border-color:rgba(86,220,233,.18);
-  background:rgba(86,220,233,.04)
+  border-color:rgba(233,86,86,.18);
+  background:rgba(233,86,86,.04)
 }
 .cut-event-command-action:disabled{
   opacity:.38;
@@ -483,7 +483,7 @@
   display:grid;
   place-items:center;
   border-radius:11px;
-  background:rgba(86,220,233,.08);
+  background:rgba(233,86,86,.08);
   color:var(--cut-primary);
   font-size:.76rem
 }
@@ -573,7 +573,7 @@
   bottom:0;
   width:2px;
   border-radius:999px;
-  background:linear-gradient(var(--cut-primary),rgba(184,71,250,.2))
+  background:linear-gradient(var(--cut-primary),rgba(250,71,71,.2))
 }
 .cut-producer-event-groups.is-timeline .cut-producer-event-card{
   position:relative
@@ -587,8 +587,8 @@
   height:10px;
   border:2px solid var(--cut-primary);
   border-radius:50%;
-  background:#0a0d24;
-  box-shadow:0 0 0 4px rgba(86,220,233,.09)
+  background:#1b0e0e;
+  box-shadow:0 0 0 4px rgba(233,86,86,.09)
 }
 
 @media(max-width:991.98px){
@@ -637,7 +637,7 @@
   margin:.5rem 0;
   padding:.6rem .7rem;
   border-radius:13px;
-  background:rgba(12,14,34,.9);
+  background:rgba(27,14,14,.9);
   box-shadow:none;
 }
 .cut-event-attention-center.is-compact>header{
@@ -680,9 +680,9 @@
   gap:.4rem;
   min-height:32px;
   padding:.35rem .55rem;
-  border:1px solid rgba(86,220,233,.16);
+  border:1px solid rgba(233,86,86,.16);
   border-radius:9px;
-  background:rgba(86,220,233,.055);
+  background:rgba(233,86,86,.055);
   color:var(--cut-primary);
   font-size:.56rem;
   font-weight:850;
