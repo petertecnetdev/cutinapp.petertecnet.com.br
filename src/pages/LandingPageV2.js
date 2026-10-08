@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { Button, Container } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
 import PeterTecnetSignature from "../components/PeterTecnetSignature";
+import useMobileDrawer from "../hooks/useMobileDrawer";
 import ProcessingIndicatorComponent from "../components/ProcessingIndicatorComponent";
 import CommerceTrustRail from "../components/CommerceTrustRail";
 import cutinappService from "../services/CutinappService";
@@ -233,6 +234,7 @@ export default function LandingPageV2() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [publicMenuOpen, setPublicMenuOpen] = useState(false);
+  useMobileDrawer({ open: publicMenuOpen, onClose: () => setPublicMenuOpen(false), drawerId: "cut-landing-public-drawer", bodyClass: "cut-public-mobile-menu-open" });
   const [events, setEvents] = useState([]);
   const [productions, setProductions] = useState([]);
   const [artists, setArtists] = useState([]);
@@ -251,33 +253,6 @@ export default function LandingPageV2() {
     const saved = readDiscoveryPreference();
     return saved?.city ? { city: saved.city, uf: saved.uf || "", mode: "city" } : null;
   });
-
-  useEffect(() => {
-    if (!publicMenuOpen || typeof window === "undefined" || typeof document === "undefined") return undefined;
-
-    const previousOverflow = document.body.style.overflow;
-    const previousOverscroll = document.body.style.overscrollBehavior;
-    document.body.style.overflow = "hidden";
-    document.body.style.overscrollBehavior = "none";
-    document.body.classList.add("cut-public-mobile-menu-open");
-
-    const onKeyDown = (event) => {
-      if (event.key === "Escape") setPublicMenuOpen(false);
-    };
-    const onResize = () => {
-      if (window.innerWidth > 991) setPublicMenuOpen(false);
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    window.addEventListener("resize", onResize);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.body.style.overscrollBehavior = previousOverscroll;
-      document.body.classList.remove("cut-public-mobile-menu-open");
-      window.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener("resize", onResize);
-    };
-  }, [publicMenuOpen]);
 
 
   const discoveryParams = useMemo(() => {
