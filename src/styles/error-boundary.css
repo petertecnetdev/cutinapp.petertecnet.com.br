@@ -4,8 +4,8 @@
   place-items: center;
   padding: var(--cut-space-8) var(--cut-space-4);
   background:
-    radial-gradient(circle at 20% 20%, rgba(184, 71, 250, .16), transparent 34%),
-    radial-gradient(circle at 80% 15%, rgba(6, 175, 250, .12), transparent 32%),
+    radial-gradient(circle at 20% 20%, rgba(250,71,71, .16), transparent 34%),
+    radial-gradient(circle at 80% 15%, rgba(250,6,6, .12), transparent 32%),
     var(--cut-gradient-night);
   color: var(--cut-text);
 }

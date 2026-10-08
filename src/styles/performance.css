@@ -100,7 +100,7 @@
   .cut-checkout-topbar {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
-    background: #060a14;
+    background: #0f0808;
     contain: paint;
   }
 
@@ -110,7 +110,7 @@
   .cut-navbar {
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
-    background: #060a14;
+    background: #0f0808;
     contain: paint;
   }
 

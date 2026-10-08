@@ -9,7 +9,7 @@
 .cut-item-discovery__controls button:focus-visible,.cut-item-discovery__card:focus-visible,.cut-item-discovery__rail:focus-visible{outline:3px solid #ff2020;outline-offset:3px}
 .cut-item-discovery__rail{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(210px,244px);gap:12px;overflow-x:auto;overscroll-behavior-inline:contain;scroll-snap-type:inline mandatory;padding:4px 2px 14px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .cut-item-discovery__rail::-webkit-scrollbar{display:none}
-.cut-item-discovery__card{display:flex;min-width:0;min-height:338px;flex-direction:column;overflow:hidden;scroll-snap-align:start;border:1px solid #30303a;border-radius:22px;background:#09090b;color:#fff;text-decoration:none;box-shadow:0 18px 42px #030304;transition:transform .18s ease,border-color .18s ease}
+.cut-item-discovery__card{display:flex;min-width:0;min-height:338px;flex-direction:column;overflow:hidden;scroll-snap-align:start;border:1px solid #30303a;border-radius:22px;background:#09090b;color:#fff;text-decoration:none;box-shadow:0 18px 42px #040404;transition:transform .18s ease,border-color .18s ease}
 .cut-item-discovery__media{position:relative;display:grid;place-items:center;aspect-ratio:4/3;overflow:hidden;background:linear-gradient(145deg,#1a171b,#080809);color:#ff7777;font-size:2rem}
 .cut-item-discovery__media img{width:100%;height:100%;object-fit:cover;transition:transform .28s ease}
 .cut-item-discovery__media small{position:absolute;left:10px;top:10px;padding:5px 8px;border-radius:999px;background:#7f0909;color:#fff;font-size:.62rem;font-weight:900;text-transform:uppercase;letter-spacing:.06em}

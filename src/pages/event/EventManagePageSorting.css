@@ -6,7 +6,7 @@
   padding:0 12px;
   border:1px solid var(--cut-border);
   border-radius:12px;
-  background:rgba(13,13,36,.78);
+  background:rgba(28,15,15,.78);
   color:var(--cut-text-muted);
   font-size:.72rem;
   font-weight:850;
@@ -39,14 +39,14 @@
 .cut-event-sort-head:hover,
 .cut-event-sort-head:focus-visible{
   outline:0;
-  background:rgba(86,220,233,.07);
+  background:rgba(233,86,86,.07);
   color:var(--cut-text-strong)
 }
 .cut-event-sort-head i{color:var(--cut-text-faint);font-size:.7rem}
 th[aria-sort="ascending"] .cut-event-sort-head,
 th[aria-sort="descending"] .cut-event-sort-head{
   color:var(--cut-primary)!important;
-  background:rgba(86,220,233,.055)
+  background:rgba(233,86,86,.055)
 }
 th[aria-sort="ascending"] .cut-event-sort-head i,
 th[aria-sort="descending"] .cut-event-sort-head i{color:var(--cut-primary)}
@@ -138,7 +138,7 @@ th[aria-sort="descending"] .cut-event-sort-head i{color:var(--cut-primary)}
     padding:10px;
     border:1px solid var(--cut-border);
     border-radius:16px;
-    background:rgba(9,9,29,.76)
+    background:rgba(22,12,12,.76)
   }
   .cut-event-mobile-sort>span{
     color:var(--cut-text-faint);
@@ -189,7 +189,7 @@ th[aria-sort="descending"] .cut-event-sort-head i{color:var(--cut-primary)}
     overflow:visible;
     border:1px solid var(--cut-border);
     border-radius:18px;
-    background:rgba(7,7,24,.92);
+    background:rgba(19,10,10,.92);
     box-shadow:var(--cut-shadow-sm)
   }
   .cut-event-mobile-card.is-attention::before{
@@ -296,7 +296,7 @@ th[aria-sort="descending"] .cut-event-sort-head i{color:var(--cut-primary)}
     padding:9px 10px;
     border:1px solid var(--cut-divider);
     border-radius:12px;
-    background:rgba(18,18,45,.55)
+    background:rgba(38,20,20,.55)
   }
   .cut-event-mobile-card__meta span{
     display:flex;
@@ -412,7 +412,7 @@ th[aria-sort="descending"] .cut-event-sort-head i{color:var(--cut-primary)}
   padding:10px 12px;
   border:1px solid var(--cut-border);
   border-radius:14px;
-  background:rgba(10,12,34,.78)
+  background:rgba(26,14,14,.78)
 }
 .cut-event-bulk-selection__summary,
 .cut-event-bulk-selection__actions{
@@ -465,8 +465,8 @@ th[aria-sort="descending"] .cut-event-sort-head i{color:var(--cut-primary)}
 }
 .cut-event-admin-table tbody tr.is-selected,
 .cut-event-mobile-card.is-selected{
-  border-color:rgba(86,220,233,.55);
-  box-shadow:0 12px 30px rgba(0,0,0,.15), inset 0 0 0 1px rgba(86,220,233,.14)
+  border-color:rgba(233,86,86,.55);
+  box-shadow:0 12px 30px rgba(0,0,0,.15), inset 0 0 0 1px rgba(233,86,86,.14)
 }
 .cut-event-mobile-card__badges .cut-event-mobile-card__select{
   display:flex;
@@ -519,9 +519,9 @@ th[aria-sort="descending"] .cut-event-sort-head i{color:var(--cut-primary)}
   border:1px solid rgba(255,255,255,.1);
   border-radius:28px;
   background:
-    radial-gradient(circle at 84% 14%,rgba(86,220,233,.15),transparent 32%),
-    radial-gradient(circle at 10% 100%,rgba(184,71,250,.12),transparent 34%),
-    linear-gradient(145deg,rgba(18,20,54,.96),rgba(7,9,28,.95));
+    radial-gradient(circle at 84% 14%,rgba(233,86,86,.15),transparent 32%),
+    radial-gradient(circle at 10% 100%,rgba(250,71,71,.12),transparent 34%),
+    linear-gradient(145deg,rgba(42,23,23,.96),rgba(21,11,11,.95));
   box-shadow:0 22px 54px rgba(0,0,0,.24)
 }
 .cut-event-manager-hero::after{
@@ -531,9 +531,9 @@ th[aria-sort="descending"] .cut-event-sort-head i{color:var(--cut-primary)}
   height:180px;
   right:-65px;
   bottom:-105px;
-  border:1px solid rgba(86,220,233,.12);
+  border:1px solid rgba(233,86,86,.12);
   border-radius:50%;
-  box-shadow:0 0 0 28px rgba(86,220,233,.025),0 0 0 58px rgba(184,71,250,.018);
+  box-shadow:0 0 0 28px rgba(233,86,86,.025),0 0 0 58px rgba(250,71,71,.018);
   pointer-events:none
 }
 .cut-event-manager-hero__copy{
@@ -582,7 +582,7 @@ th[aria-sort="descending"] .cut-event-sort-head i{color:var(--cut-primary)}
   padding:.9rem;
   overflow:hidden;
   border-radius:20px;
-  background:linear-gradient(160deg,rgba(18,21,54,.88),rgba(9,11,31,.92));
+  background:linear-gradient(160deg,rgba(42,23,23,.88),rgba(24,13,13,.92));
   box-shadow:0 12px 30px rgba(0,0,0,.14);
   text-align:left
 }
@@ -593,27 +593,27 @@ th[aria-sort="descending"] .cut-event-sort-head i{color:var(--cut-primary)}
   width:82px;
   height:82px;
   border-radius:50%;
-  background:radial-gradient(circle,rgba(86,220,233,.12),transparent 66%);
+  background:radial-gradient(circle,rgba(233,86,86,.12),transparent 66%);
   opacity:.65;
   pointer-events:none
 }
 .cut-event-manager-summary button:hover,
 .cut-event-manager-summary button.is-active{
   transform:translateY(-1px);
-  border-color:rgba(86,220,233,.38);
-  background:linear-gradient(160deg,rgba(24,29,70,.94),rgba(11,14,39,.96))
+  border-color:rgba(233,86,86,.38);
+  background:linear-gradient(160deg,rgba(55,30,30,.94),rgba(30,16,16,.96))
 }
 .cut-event-manager-summary button.is-active{
-  box-shadow:0 14px 34px rgba(0,0,0,.18),inset 0 0 0 1px rgba(86,220,233,.12)
+  box-shadow:0 14px 34px rgba(0,0,0,.18),inset 0 0 0 1px rgba(233,86,86,.12)
 }
 .cut-event-manager-summary__icon{
   width:40px;
   height:40px;
   display:grid;
   place-items:center;
-  border:1px solid rgba(86,220,233,.18);
+  border:1px solid rgba(233,86,86,.18);
   border-radius:13px;
-  background:linear-gradient(145deg,rgba(86,220,233,.14),rgba(184,71,250,.08));
+  background:linear-gradient(145deg,rgba(233,86,86,.14),rgba(250,71,71,.08));
   color:var(--cut-primary);
   font-size:.88rem
 }
@@ -644,7 +644,7 @@ th[aria-sort="descending"] .cut-event-sort-head i{color:var(--cut-primary)}
   height:38px;
   margin:0;
   padding:0 9px;
-  background:rgba(86,220,233,.1);
+  background:rgba(233,86,86,.1);
   font-size:.9rem
 }
 
@@ -655,7 +655,7 @@ th[aria-sort="descending"] .cut-event-sort-head i{color:var(--cut-primary)}
   margin:.85rem 0;
   padding:.65rem;
   border-color:rgba(255,255,255,.09);
-  background:rgba(7,9,28,.82);
+  background:rgba(21,11,11,.82);
   box-shadow:0 12px 28px rgba(0,0,0,.18);
   backdrop-filter:blur(18px)
 }
@@ -665,14 +665,14 @@ th[aria-sort="descending"] .cut-event-sort-head i{color:var(--cut-primary)}
   box-shadow:none!important
 }
 .cut-event-manager-search .form-control:focus{
-  border-color:rgba(86,220,233,.42)!important;
-  box-shadow:0 0 0 3px rgba(86,220,233,.08)!important
+  border-color:rgba(233,86,86,.42)!important;
+  box-shadow:0 0 0 3px rgba(233,86,86,.08)!important
 }
 
 .cut-event-bulk-selection{
   margin:0 0 .85rem;
-  border-color:rgba(86,220,233,.16);
-  background:linear-gradient(145deg,rgba(14,18,48,.9),rgba(8,10,30,.9));
+  border-color:rgba(233,86,86,.16);
+  background:linear-gradient(145deg,rgba(37,20,20,.9),rgba(22,12,12,.9));
   box-shadow:0 12px 26px rgba(0,0,0,.12)
 }
 
@@ -694,8 +694,8 @@ th[aria-sort="descending"] .cut-event-sort-head i{color:var(--cut-primary)}
   border-color:rgba(255,255,255,.085);
   border-radius:24px;
   background:
-    radial-gradient(circle at 92% 8%,rgba(86,220,233,.06),transparent 22%),
-    linear-gradient(150deg,rgba(18,21,55,.96),rgba(8,10,31,.97));
+    radial-gradient(circle at 92% 8%,rgba(233,86,86,.06),transparent 22%),
+    linear-gradient(150deg,rgba(42,23,23,.96),rgba(24,13,13,.97));
   box-shadow:0 18px 42px rgba(0,0,0,.18)
 }
 .cut-event-admin-table tbody tr::before{
@@ -705,16 +705,16 @@ th[aria-sort="descending"] .cut-event-sort-head i{color:var(--cut-primary)}
   right:1rem;
   top:0;
   height:1px;
-  background:linear-gradient(90deg,transparent,rgba(86,220,233,.3),transparent);
+  background:linear-gradient(90deg,transparent,rgba(233,86,86,.3),transparent);
   opacity:.55;
   pointer-events:none
 }
 .cut-event-admin-table tbody tr:hover{
   transform:translateY(-2px);
-  border-color:rgba(86,220,233,.24);
+  border-color:rgba(233,86,86,.24);
   background:
-    radial-gradient(circle at 92% 8%,rgba(86,220,233,.09),transparent 24%),
-    linear-gradient(150deg,rgba(22,26,65,.98),rgba(10,12,36,.98));
+    radial-gradient(circle at 92% 8%,rgba(233,86,86,.09),transparent 24%),
+    linear-gradient(150deg,rgba(52,28,28,.98),rgba(27,14,14,.98));
   box-shadow:0 22px 48px rgba(0,0,0,.24)
 }
 .cut-event-admin-table tbody tr>td:nth-child(1){grid-column:1/6;grid-row:1/3}
@@ -744,8 +744,8 @@ th[aria-sort="descending"] .cut-event-sort-head i{color:var(--cut-primary)}
   border-radius:20px;
   border-color:rgba(255,255,255,.12);
   background:
-    radial-gradient(circle at 30% 20%,rgba(86,220,233,.16),transparent 46%),
-    linear-gradient(145deg,rgba(28,31,74,.95),rgba(12,14,39,.95));
+    radial-gradient(circle at 30% 20%,rgba(233,86,86,.16),transparent 46%),
+    linear-gradient(145deg,rgba(86,16,16,.95),rgba(31,16,16,.95));
   box-shadow:0 12px 28px rgba(0,0,0,.2)
 }
 .cut-event-admin-identity__initials{
@@ -765,7 +765,7 @@ th[aria-sort="descending"] .cut-event-sort-head i{color:var(--cut-primary)}
 }
 .cut-event-admin-table__production{
   margin-top:.45rem;
-  color:rgba(240,156,255,.72);
+  color:rgba(255,156,156,.72);
   font-size:.68rem;
   font-weight:750
 }
@@ -788,7 +788,7 @@ th[aria-sort="descending"] .cut-event-sort-head i{color:var(--cut-primary)}
   place-items:center;
   border:1px solid rgba(255,255,255,.08);
   border-radius:8px;
-  background:rgba(86,220,233,.08);
+  background:rgba(233,86,86,.08);
   color:var(--cut-primary);
   font-size:.58rem;
   font-weight:950
@@ -826,9 +826,9 @@ th[aria-sort="descending"] .cut-event-sort-head i{color:var(--cut-primary)}
   gap:2px 1rem;
   min-height:58px;
   padding:.7rem .8rem;
-  border:1px solid rgba(86,220,233,.09);
+  border:1px solid rgba(233,86,86,.09);
   border-radius:14px;
-  background:linear-gradient(135deg,rgba(86,220,233,.045),rgba(184,71,250,.025))
+  background:linear-gradient(135deg,rgba(233,86,86,.045),rgba(250,71,71,.025))
 }
 .cut-event-admin-next strong,
 .cut-event-admin-next span{
@@ -851,8 +851,8 @@ th[aria-sort="descending"] .cut-event-sort-head i{color:var(--cut-primary)}
   background:rgba(255,255,255,.025)!important
 }
 .cut-event-admin-actions .dropdown-toggle:hover{
-  border-color:rgba(86,220,233,.3)!important;
-  background:rgba(86,220,233,.08)!important;
+  border-color:rgba(233,86,86,.3)!important;
+  background:rgba(233,86,86,.08)!important;
   color:var(--cut-primary)!important
 }
 
@@ -964,8 +964,8 @@ th[aria-sort="descending"] .cut-event-sort-head i{color:var(--cut-primary)}
     padding:13px;
     border-radius:22px;
     background:
-      radial-gradient(circle at 90% 8%,rgba(86,220,233,.06),transparent 28%),
-      linear-gradient(150deg,rgba(17,20,52,.97),rgba(7,9,28,.98));
+      radial-gradient(circle at 90% 8%,rgba(233,86,86,.06),transparent 28%),
+      linear-gradient(150deg,rgba(40,21,21,.97),rgba(21,11,11,.98));
     box-shadow:0 16px 38px rgba(0,0,0,.2)
   }
   .cut-event-mobile-card__top{
@@ -977,8 +977,8 @@ th[aria-sort="descending"] .cut-event-sort-head i{color:var(--cut-primary)}
     height:84px;
     border-radius:19px;
     background:
-      radial-gradient(circle at 30% 20%,rgba(86,220,233,.16),transparent 46%),
-      linear-gradient(145deg,rgba(28,31,74,.95),rgba(12,14,39,.95));
+      radial-gradient(circle at 30% 20%,rgba(233,86,86,.16),transparent 46%),
+      linear-gradient(145deg,rgba(86,16,16,.95),rgba(31,16,16,.95));
     box-shadow:0 10px 24px rgba(0,0,0,.18)
   }
   .cut-event-mobile-card__media .cut-event-admin-identity__initials{
@@ -995,7 +995,7 @@ th[aria-sort="descending"] .cut-event-sort-head i{color:var(--cut-primary)}
     display:grid;
     place-items:center;
     border-radius:6px;
-    background:rgba(86,220,233,.1);
+    background:rgba(233,86,86,.1);
     color:var(--cut-primary);
     font-size:.5rem;
     font-weight:950
@@ -1017,9 +1017,9 @@ th[aria-sort="descending"] .cut-event-sort-head i{color:var(--cut-primary)}
   }
   .cut-event-mobile-card__footer{
     padding:10px;
-    border:1px solid rgba(86,220,233,.08);
+    border:1px solid rgba(233,86,86,.08);
     border-radius:14px;
-    background:linear-gradient(135deg,rgba(86,220,233,.04),rgba(184,71,250,.025))
+    background:linear-gradient(135deg,rgba(233,86,86,.04),rgba(250,71,71,.025))
   }
 }
 
@@ -1047,7 +1047,7 @@ th[aria-sort="descending"] .cut-event-sort-head i{color:var(--cut-primary)}
   padding:.8rem .9rem;
   border:1px solid rgba(255,255,255,.075);
   border-radius:16px;
-  background:linear-gradient(150deg,rgba(16,19,49,.88),rgba(8,10,28,.9));
+  background:linear-gradient(150deg,rgba(38,20,20,.88),rgba(21,11,11,.9));
   box-shadow:0 10px 26px rgba(0,0,0,.12)
 }
 .cut-event-portfolio-metrics>div.is-warning{border-color:rgba(255,197,87,.24)}
@@ -1081,7 +1081,7 @@ th[aria-sort="descending"] .cut-event-sort-head i{color:var(--cut-primary)}
   padding:8px!important;
   border:1px solid var(--cut-border-strong)!important;
   border-radius:15px!important;
-  background:rgba(13,15,38,.98)!important;
+  background:rgba(31,16,16,.98)!important;
   box-shadow:0 22px 60px rgba(0,0,0,.42)!important;
   backdrop-filter:blur(18px)
 }
@@ -1142,7 +1142,7 @@ th[aria-sort="descending"] .cut-event-sort-head i{color:var(--cut-primary)}
   margin:-.25rem 0 .9rem;
   border:1px solid rgba(255,255,255,.07);
   border-radius:16px;
-  background:rgba(8,10,29,.66);
+  background:rgba(21,11,11,.66);
   overflow:hidden
 }
 .cut-event-advanced-filters summary{
@@ -1244,19 +1244,19 @@ th[aria-sort="descending"] .cut-event-sort-head i{color:var(--cut-primary)}
   border:1px solid rgba(255,255,255,.085);
   border-radius:22px;
   background:
-    radial-gradient(circle at 92% 8%,rgba(86,220,233,.055),transparent 24%),
-    linear-gradient(150deg,rgba(18,21,55,.96),rgba(8,10,31,.97));
+    radial-gradient(circle at 92% 8%,rgba(233,86,86,.055),transparent 24%),
+    linear-gradient(150deg,rgba(42,23,23,.96),rgba(24,13,13,.97));
   box-shadow:0 16px 38px rgba(0,0,0,.17);
   transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease
 }
 .cut-producer-event-card:hover{
   transform:translateY(-2px);
-  border-color:rgba(86,220,233,.24);
+  border-color:rgba(233,86,86,.24);
   box-shadow:0 22px 48px rgba(0,0,0,.23)
 }
 .cut-producer-event-card.is-selected{
-  border-color:rgba(86,220,233,.52);
-  box-shadow:0 18px 42px rgba(0,0,0,.2),inset 0 0 0 1px rgba(86,220,233,.12)
+  border-color:rgba(233,86,86,.52);
+  box-shadow:0 18px 42px rgba(0,0,0,.2),inset 0 0 0 1px rgba(233,86,86,.12)
 }
 .cut-producer-event-card.is-attention::before{
   content:"";
@@ -1304,8 +1304,8 @@ th[aria-sort="descending"] .cut-event-sort-head i{color:var(--cut-primary)}
   border:1px solid rgba(255,255,255,.1);
   border-radius:17px;
   background:
-    radial-gradient(circle at 30% 20%,rgba(86,220,233,.16),transparent 46%),
-    linear-gradient(145deg,rgba(28,31,74,.95),rgba(12,14,39,.95));
+    radial-gradient(circle at 30% 20%,rgba(233,86,86,.16),transparent 46%),
+    linear-gradient(145deg,rgba(86,16,16,.95),rgba(31,16,16,.95));
   color:var(--cut-primary);
   font-size:1.1rem;
   font-weight:950;
@@ -1325,7 +1325,7 @@ th[aria-sort="descending"] .cut-event-sort-head i{color:var(--cut-primary)}
   gap:5px;
   padding:5px 6px;
   border-radius:8px;
-  background:rgba(5,7,20,.82);
+  background:rgba(14,8,8,.82);
   color:#fff;
   font-size:.55rem;
   font-weight:800;
@@ -1374,7 +1374,7 @@ th[aria-sort="descending"] .cut-event-sort-head i{color:var(--cut-primary)}
 .cut-event-performance.is-success{border-color:rgba(74,222,128,.22);color:#8ef0ad;background:rgba(74,222,128,.07)}
 .cut-event-performance.is-warning{border-color:rgba(250,204,21,.23);color:#f6d878;background:rgba(250,204,21,.065)}
 .cut-event-performance.is-danger{border-color:rgba(248,113,113,.24);color:#ffaaa7;background:rgba(248,113,113,.07)}
-.cut-event-performance.is-info{border-color:rgba(86,220,233,.23);color:var(--cut-primary);background:rgba(86,220,233,.065)}
+.cut-event-performance.is-info{border-color:rgba(233,86,86,.23);color:var(--cut-primary);background:rgba(233,86,86,.065)}
 .cut-producer-event-card__pinned{color:var(--cut-primary)}
 .cut-producer-event-card__title-row{
   display:flex;
@@ -1407,7 +1407,7 @@ th[aria-sort="descending"] .cut-event-sort-head i{color:var(--cut-primary)}
   color:var(--cut-text-faint);
   font-size:.65rem
 }
-.cut-event-pin:hover,.cut-event-pin.is-active{border-color:rgba(86,220,233,.25);background:var(--cut-primary-soft);color:var(--cut-primary)}
+.cut-event-pin:hover,.cut-event-pin.is-active{border-color:rgba(233,86,86,.25);background:var(--cut-primary-soft);color:var(--cut-primary)}
 .cut-producer-event-card__meta{
   display:flex;
   align-items:center;
@@ -1484,7 +1484,7 @@ th[aria-sort="descending"] .cut-event-sort-head i{color:var(--cut-primary)}
   display:block;
   height:100%;
   border-radius:inherit;
-  background:linear-gradient(90deg,var(--cut-primary),var(--cut-secondary,#b847fa))
+  background:linear-gradient(90deg,var(--cut-primary),var(--cut-secondary,#fa4747))
 }
 .cut-event-health strong{color:var(--cut-text-strong);font-size:.66rem}
 .cut-event-health small{color:var(--cut-text-faint);font-size:.54rem}
@@ -1544,7 +1544,7 @@ th[aria-sort="descending"] .cut-event-sort-head i{color:var(--cut-primary)}
 .cut-event-alert-chips>span.is-danger{border-color:rgba(248,113,113,.2);color:#ffaaa7;background:rgba(248,113,113,.055)}
 .cut-event-alert-chips>span.is-warning{border-color:rgba(250,204,21,.2);color:#f6d878;background:rgba(250,204,21,.05)}
 .cut-event-alert-chips>span.is-success{border-color:rgba(74,222,128,.2);color:#8ef0ad;background:rgba(74,222,128,.05)}
-.cut-event-alert-chips>span.is-info{border-color:rgba(86,220,233,.2);color:var(--cut-primary);background:rgba(86,220,233,.05)}
+.cut-event-alert-chips>span.is-info{border-color:rgba(233,86,86,.2);color:var(--cut-primary);background:rgba(233,86,86,.05)}
 
 .cut-producer-event-card__side{
   min-width:0;
@@ -1581,9 +1581,9 @@ th[aria-sort="descending"] .cut-event-sort-head i{color:var(--cut-primary)}
   display:grid;
   gap:2px;
   padding:.6rem;
-  border:1px solid rgba(86,220,233,.075);
+  border:1px solid rgba(233,86,86,.075);
   border-radius:12px;
-  background:linear-gradient(135deg,rgba(86,220,233,.035),rgba(184,71,250,.02))
+  background:linear-gradient(135deg,rgba(233,86,86,.035),rgba(250,71,71,.02))
 }
 .cut-producer-event-card__next small{
   color:var(--cut-text-faint);
@@ -1695,7 +1695,7 @@ th[aria-sort="descending"] .cut-event-sort-head i{color:var(--cut-primary)}
 .cut-event-quickview{
   width:min(470px,100vw)!important;
   border-left:1px solid var(--cut-border-strong)!important;
-  background:linear-gradient(180deg,rgba(15,17,43,.99),rgba(6,8,24,.995))!important;
+  background:linear-gradient(180deg,rgba(34,18,18,.99),rgba(18,9,9,.995))!important;
   color:var(--cut-text-soft)!important
 }
 .cut-event-quickview .offcanvas-header{

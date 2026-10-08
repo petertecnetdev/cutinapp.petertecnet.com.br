@@ -8,16 +8,16 @@
   align-items: flex-end;
   overflow: hidden;
   background:
-    radial-gradient(circle at 15% 15%, rgba(86,220,233,.18), transparent 34%),
-    radial-gradient(circle at 85% 10%, rgba(115,99,244,.2), transparent 32%),
-    linear-gradient(135deg, #081a26, #030910);
+    radial-gradient(circle at 15% 15%, rgba(233,86,86,.18), transparent 34%),
+    radial-gradient(circle at 85% 10%, rgba(244,99,99,.2), transparent 32%),
+    linear-gradient(135deg, #1b0e0e, #0c0606);
   background-size: cover;
   background-position: center;
 }
 .cut-account-cover__overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(3,9,16,.12), rgba(3,9,16,.88));
+  background: linear-gradient(180deg, rgba(12,6,6,.12), rgba(12,6,6,.88));
   pointer-events: none;
 }
 .cut-account-cover__content {
@@ -49,7 +49,7 @@
   font-weight: 850;
 }
 .cut-panel .cut-account-cover__action {
-  color: #041219 !important;
+  color: #110909 !important;
 }
 .cut-account-avatar {
   position: relative;
@@ -76,7 +76,7 @@
 }
 .cut-account-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .cut-panel .form-text { color: var(--cut-text-soft) !important; }
-.cut-panel .form-label { color: #d4e3ea; font-weight: 760; }
+.cut-panel .form-label { color: #f5c9c9; font-weight: 760; }
 
 @media (max-width: 767px) {
   .cut-account-cover { min-height: 220px; }
@@ -131,7 +131,7 @@
   padding: 9px 12px;
   border: 1px solid rgba(255,255,255,.22);
   border-radius: 999px;
-  background: rgba(3,9,16,.88);
+  background: rgba(12,6,6,.88);
   color: #fff;
   font-weight: 850;
   box-shadow: 0 10px 28px rgba(0,0,0,.28);

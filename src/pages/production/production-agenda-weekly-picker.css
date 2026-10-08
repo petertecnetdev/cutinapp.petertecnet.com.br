@@ -15,7 +15,7 @@
 
 .cut-weekly-agenda-day__open:focus-visible,
 .cut-agenda-picker-event:focus-visible {
-  outline: 2px solid rgba(102, 126, 234, .95);
+  outline: 2px solid rgba(234,102,102, .95);
   outline-offset: 4px;
 }
 
@@ -42,8 +42,8 @@
 }
 
 .cut-weekly-agenda-day__open:hover .cut-weekly-agenda-empty-choice {
-  border-color: rgba(105, 132, 255, .72);
-  background: rgba(105, 132, 255, .09);
+  border-color: rgba(255,105,105, .72);
+  background: rgba(255,105,105, .09);
   transform: translateY(-1px);
 }
 
@@ -54,8 +54,8 @@
   place-items: center;
   flex: 0 0 42px;
   border-radius: 14px;
-  background: rgba(105, 132, 255, .14);
-  color: #b9c4ff;
+  background: rgba(255,105,105, .14);
+  color: #ffb9b9;
 }
 
 .cut-weekly-agenda-empty-choice > span:last-child {
@@ -87,7 +87,7 @@
 .cut-agenda-picker-modal {
   border: 1px solid rgba(255,255,255,.12);
   border-radius: 24px;
-  background: rgba(15, 17, 25, .98);
+  background: rgba(20,20,20, .98);
   color: #fff;
   box-shadow: 0 28px 90px rgba(0,0,0,.48);
   overflow: hidden;
@@ -176,13 +176,13 @@
 
 .cut-agenda-picker-event:hover {
   transform: translateY(-2px);
-  border-color: rgba(105,132,255,.6);
-  background: rgba(105,132,255,.08);
+  border-color: rgba(255,105,105,.6);
+  background: rgba(255,105,105,.08);
 }
 
 .cut-agenda-picker-event.is-selected {
-  border-color: rgba(105,132,255,.88);
-  background: rgba(105,132,255,.14);
+  border-color: rgba(255,105,105,.88);
+  background: rgba(255,105,105,.14);
 }
 
 .cut-agenda-picker-event__cover {
@@ -192,7 +192,7 @@
   place-items: center;
   overflow: hidden;
   border-radius: 13px;
-  background: linear-gradient(145deg, rgba(105,132,255,.24), rgba(154,90,255,.13));
+  background: linear-gradient(145deg, rgba(255,105,105,.24), rgba(255,90,90,.13));
   color: rgba(255,255,255,.8);
   font-weight: 800;
 }
@@ -230,11 +230,11 @@
 
 .cut-agenda-picker-event__body span i {
   width: 14px;
-  color: rgba(184,195,255,.82);
+  color: rgba(255,184,184,.82);
 }
 
 .cut-agenda-picker-event__select {
-  color: #aebaff;
+  color: #ffaeae;
   font-size: 1.15rem;
 }
 
@@ -256,7 +256,7 @@
 .cut-agenda-picker__empty > i {
   margin-bottom: .35rem;
   font-size: 2rem;
-  color: #aebaff;
+  color: #ffaeae;
 }
 
 .cut-agenda-picker__empty strong {

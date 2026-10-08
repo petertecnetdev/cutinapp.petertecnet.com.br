@@ -3,9 +3,9 @@
  */
 
 .cut-navbar {
-  --cut-nav-glass: rgba(5, 12, 24, .86);
-  --cut-nav-border: rgba(118, 201, 255, .16);
-  --cut-nav-hover: rgba(86, 220, 233, .085);
+  --cut-nav-glass: rgba(17,9,9, .86);
+  --cut-nav-border: rgba(255,118,118, .16);
+  --cut-nav-hover: rgba(233,86,86, .085);
   min-height: 72px;
   border-bottom: 1px solid var(--cut-nav-border) !important;
   background: var(--cut-nav-glass) !important;
@@ -288,7 +288,7 @@
     width: 100%;
     min-height: 50px !important;
     padding: 0 14px !important;
-    border: 1px solid rgba(118, 201, 255, .08);
+    border: 1px solid rgba(255,118,118, .08);
     border-radius: 14px !important;
     background: rgba(255, 255, 255, .025) !important;
     white-space: normal;

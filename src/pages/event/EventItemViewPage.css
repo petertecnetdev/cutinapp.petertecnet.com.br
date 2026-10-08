@@ -1,10 +1,10 @@
 .cut-item-view-page{min-height:100%;overflow-x:hidden}
 .cut-item-view__breadcrumbs{display:flex;align-items:center;gap:8px;min-width:0;margin-bottom:18px;color:#85818c;font-size:.75rem}
 .cut-item-view__breadcrumbs a{color:#aaa6b0;text-decoration:none}.cut-item-view__breadcrumbs a:hover{color:#fff}.cut-item-view__breadcrumbs i{font-size:.55rem}.cut-item-view__breadcrumbs span{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-.cut-item-view__hero{display:grid;grid-template-columns:minmax(320px,.9fr) minmax(0,1.1fr);gap:clamp(28px,5vw,70px);align-items:center;padding:clamp(18px,3vw,34px);border:1px solid #292932;border-radius:32px;background:#080809;box-shadow:0 28px 72px #030304}
+.cut-item-view__hero{display:grid;grid-template-columns:minmax(320px,.9fr) minmax(0,1.1fr);gap:clamp(28px,5vw,70px);align-items:center;padding:clamp(18px,3vw,34px);border:1px solid #292932;border-radius:32px;background:#080809;box-shadow:0 28px 72px #040404}
 .cut-item-view__visual{position:relative;isolation:isolate;display:grid;place-items:center;min-height:520px;overflow:hidden;border-radius:25px;background:#070708}
 .cut-item-view__ambient{position:absolute;inset:-42px;z-index:-2;background-size:cover;background-position:center;filter:blur(42px) saturate(1.45);transform:scale(1.18)}
-.cut-item-view__visual::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(6,6,8,.24),rgba(6,6,8,.82))}
+.cut-item-view__visual::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(7,7,7,.24),rgba(7,7,7,.82))}
 .cut-item-view__media{display:grid;place-items:center;width:min(82%,430px);aspect-ratio:1/1;overflow:hidden;border:1px solid rgba(255,255,255,.14);border-radius:24px;background:#111114;box-shadow:0 24px 60px rgba(0,0,0,.4);color:#ff7777;font-size:3rem}
 .cut-item-view__media img{width:100%;height:100%;object-fit:contain}
 .cut-item-view__content{min-width:0}.cut-item-view__badges{display:flex;flex-wrap:wrap;gap:7px}.cut-item-view__badges span{padding:6px 9px;border:1px solid #34343c;border-radius:999px;background:#111114;color:#bbb7c0;font-size:.65rem;font-weight:900;text-transform:uppercase;letter-spacing:.07em}.cut-item-view__badges .is-highlight{border-color:#731313;background:#210707;color:#ff8585}

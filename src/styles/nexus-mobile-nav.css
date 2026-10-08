@@ -43,14 +43,14 @@
     justify-content: center;
     padding: 0 !important;
     margin: 0 !important;
-    border: 1px solid #31506e !important;
+    border: 1px solid #861919 !important;
     border-radius: 13px !important;
     background: rgba(255, 255, 255, .055) !important;
     box-shadow: none !important;
   }
 
   .cut-navbar .navbar-toggler:focus {
-    box-shadow: 0 0 0 3px rgba(89, 199, 255, .18) !important;
+    box-shadow: 0 0 0 3px rgba(255,89,89, .18) !important;
   }
 
   .cut-navbar .navbar-toggler-icon {
@@ -73,10 +73,10 @@
     overflow-y: auto;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
-    color: #f7fbff;
-    background: linear-gradient(155deg, #12273d 0%, #0b1c2d 62%, #081522 100%) !important;
+    color: #fff7f7;
+    background: linear-gradient(155deg, #2f1919 0%, #211212 62%, #190d0d 100%) !important;
     border: 0 !important;
-    border-left: 1px solid rgba(101, 209, 255, .22) !important;
+    border-left: 1px solid rgba(255,101,101, .22) !important;
     box-shadow: -24px 0 70px rgba(0, 0, 0, .46) !important;
     transform: translate3d(105%, 0, 0) !important;
     visibility: hidden;
@@ -107,7 +107,7 @@
     position: fixed;
     inset: 0;
     z-index: 1500;
-    background: rgba(2, 8, 17, .7) !important;
+    background: rgba(12,6,6, .7) !important;
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
   }
@@ -142,8 +142,8 @@
   .cut-navbar__links .nav-link:hover,
   .cut-navbar__links .nav-link.active,
   .cut-navbar__links .show > .dropdown-toggle {
-    background: rgba(89, 199, 255, .1) !important;
-    border-color: rgba(101, 209, 255, .16) !important;
+    background: rgba(255,89,89, .1) !important;
+    border-color: rgba(255,101,101, .16) !important;
   }
 
   .cut-navbar__links .dropdown-toggle::after {
@@ -179,7 +179,7 @@
     margin: 14px 0 0 !important;
     padding: 14px 0 0 !important;
     align-items: stretch !important;
-    border-top: 1px solid rgba(101, 209, 255, .13) !important;
+    border-top: 1px solid rgba(255,101,101, .13) !important;
   }
 
   .cut-navbar__account > .nav-item,
