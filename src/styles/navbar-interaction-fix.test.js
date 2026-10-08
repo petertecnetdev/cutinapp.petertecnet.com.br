@@ -39,3 +39,22 @@ describe("Cutinapp mobile navbar legacy collapse guard", () => {
     expect(rule[1]).toMatch(/touch-action:\s*manipulation\s*!important/);
   });
 });
+
+describe("mobile navigation stylesheet load order", () => {
+  const appCss = fs.readFileSync(path.join(__dirname, "app.css"), "utf8");
+  const entry = fs.readFileSync(path.join(__dirname, "../index.js"), "utf8");
+
+  test("mobile collapse safety layer follows legacy fixed-navbar styles", () => {
+    const legacy = appCss.indexOf('@import "./navbar-fixed-top.css"');
+    const safety = appCss.indexOf('@import "./navbar-interaction-fix.css"');
+    expect(legacy).toBeGreaterThanOrEqual(0);
+    expect(safety).toBeGreaterThan(legacy);
+  });
+
+  test("portal drawer stylesheet loads after global styles", () => {
+    const global = entry.indexOf('import "./styles/app.css"');
+    const portal = entry.indexOf('import "./styles/mobile-hamburger-recovery.css"');
+    expect(global).toBeGreaterThanOrEqual(0);
+    expect(portal).toBeGreaterThan(global);
+  });
+});
