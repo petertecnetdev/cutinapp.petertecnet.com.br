@@ -57,4 +57,21 @@ describe("public mobile drawer official Cutinapp brand CSS", () => {
   test("public mobile menu toggle has a visible neutral keyboard focus", () => {
     expect(rule(".cut-landing__menuToggle:focus-visible")).toMatch(/outline:2px solid #fff/i);
   });
+  test("sticky public mobile CTA uses official red and readable white text", () => {
+    const stickyRules = [...css.matchAll(/\\.cut-landing__mobileCta\\s+\\.btn\\s*\\{([^}]*)\\}/g)]
+      .map((match) => match[1]);
+    expect(stickyRules).toHaveLength(1);
+    const sticky = stickyRules[0];
+    expect(sticky).toMatch(/var\\(--cut-logo-red-dark,#980000\\)/i);
+    expect(sticky).toMatch(/var\\(--cut-logo-red,#D80000\\)/i);
+    expect(sticky).toMatch(/color:#fff/i);
+    expect(sticky).not.toMatch(/#db5eff|#7658ff|#318fff/i);
+    expect(contrast(hex("--cut-logo-red-dark"), "#FFFFFF")).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(hex("--cut-logo-red"), "#FFFFFF")).toBeGreaterThanOrEqual(4.5);
+  });
+  test("sticky CTA cannot intercept clicks while the public mobile drawer is open", () => {
+    const hidden = rule("body.cut-public-mobile-menu-open .cut-landing__mobileCta");
+    expect(hidden).toMatch(/visibility:hidden!important/i);
+    expect(hidden).toMatch(/pointer-events:none!important/i);
+  });
 });
