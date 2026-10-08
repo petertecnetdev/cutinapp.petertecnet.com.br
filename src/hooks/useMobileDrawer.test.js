@@ -59,4 +59,29 @@ describe("shared mobile drawer lifecycle", () => {
     expect(close).toHaveBeenCalledTimes(1);
     Object.defineProperty(window, "innerWidth", { configurable: true, value: oldWidth });
   });
+
+  test("closing a drawer returns focus to its original opener", () => {
+    const opener = document.createElement("button");
+    opener.type = "button";
+    opener.textContent = "Open navigation";
+    document.body.appendChild(opener);
+    opener.focus();
+    expect(document.activeElement).toBe(opener);
+
+    act(() => root.render(<Fixture open onClose={() => {}} />));
+    act(() => root.render(<Fixture open={false} onClose={() => {}} />));
+
+    expect(document.activeElement).toBe(opener);
+    opener.remove();
+  });
+
+  test("another drawer opening requests closure of the active drawer", () => {
+    const close = jest.fn();
+    act(() => root.render(<Fixture open onClose={close} drawerId="primary-drawer" />));
+    act(() => window.dispatchEvent(new CustomEvent("cutinapp:mobile-drawer-open", {
+      detail: "secondary-drawer",
+    })));
+    expect(close).toHaveBeenCalledTimes(1);
+  });
+
 });
