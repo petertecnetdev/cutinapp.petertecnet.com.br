@@ -1,26 +1,27 @@
+/* Cutinapp uses its own red-and-graphite brand, never Peter Tecnet purple/blue. */
 :root {
-  --cut-brand-500: var(--peter-brand-primary, #b847fa) !important;
-  --cut-brand-700: var(--peter-brand-primary-dark, #7141f7) !important;
-  --cut-blue-500: var(--peter-brand-secondary, #2b62f4) !important;
-  --cut-cyan-500: var(--peter-brand-accent, #06affa) !important;
-  --cut-pink-300: var(--peter-brand-primary-hover, #f0a4ff) !important;
-  --cut-primary: var(--peter-brand-primary, #b847fa) !important;
-  --cut-primary-hover: var(--peter-brand-primary-hover, #f0a4ff) !important;
-  --cut-primary-strong: var(--peter-brand-primary-dark, #7141f7) !important;
-  --cut-secondary: var(--peter-brand-secondary, #2b62f4) !important;
-  --cut-accent: var(--peter-brand-accent, #06affa) !important;
-  --cut-primary-soft: rgba(var(--peter-brand-primary-rgb, 184, 71, 250), .13) !important;
-  --cut-secondary-soft: rgba(var(--peter-brand-secondary-rgb, 43, 98, 244), .13) !important;
-  --cut-accent-soft: rgba(var(--peter-brand-accent-rgb, 6, 175, 250), .12) !important;
-  --cut-gradient-brand: var(--peter-brand-gradient, linear-gradient(135deg, #e56cff 0%, #b847fa 28%, #7141f7 55%, #2b62f4 78%, #06affa 100%)) !important;
-  --cut-gradient-brand-horizontal: linear-gradient(90deg, var(--cut-primary), var(--cut-secondary), var(--cut-accent)) !important;
-  --cut-shadow-focus: 0 0 0 4px rgba(var(--peter-brand-primary-rgb, 184, 71, 250), .15) !important;
-  --bs-primary: var(--cut-primary) !important;
-  --bs-primary-rgb: var(--peter-brand-primary-rgb, 184, 71, 250) !important;
-  --bs-secondary: var(--cut-secondary) !important;
-  --bs-secondary-rgb: var(--peter-brand-secondary-rgb, 43, 98, 244) !important;
-  --bs-info: var(--cut-accent) !important;
-  --bs-info-rgb: var(--peter-brand-accent-rgb, 6, 175, 250) !important;
+  --cut-brand-500: var(--cut-red) !important;
+  --cut-brand-700: #980000 !important;
+  --cut-blue-500: var(--cut-red-hot) !important;
+  --cut-cyan-500: var(--cut-red-hi) !important;
+  --cut-pink-300: var(--cut-red-hi) !important;
+  --cut-primary: var(--cut-red) !important;
+  --cut-primary-hover: var(--cut-red-hot) !important;
+  --cut-primary-strong: #980000 !important;
+  --cut-secondary: var(--cut-graphite-hi) !important;
+  --cut-accent: var(--cut-red-hot) !important;
+  --cut-primary-soft: #210707 !important;
+  --cut-secondary-soft: #1a1a1e !important;
+  --cut-accent-soft: #260606 !important;
+  --cut-gradient-brand: var(--cut-red) !important;
+  --cut-gradient-brand-horizontal: var(--cut-red) !important;
+  --cut-shadow-focus: 0 0 0 4px rgba(216,0,0,.17) !important;
+  --bs-primary: var(--cut-red) !important;
+  --bs-primary-rgb: 216,0,0 !important;
+  --bs-secondary: var(--cut-graphite-hi) !important;
+  --bs-secondary-rgb: 59,59,66 !important;
+  --bs-info: var(--cut-text-muted) !important;
+  --bs-info-rgb: 168,168,176 !important;
 }
 
 .btn-primary,
