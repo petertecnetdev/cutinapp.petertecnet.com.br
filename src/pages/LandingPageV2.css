@@ -160,6 +160,14 @@
     background:#151519;
     border-color:rgba(255,255,255,.08)
   }
+  /* Keep keyboard focus visible for both public landing navigation and CTA. */
+  .cut-landing-mobile-drawer__brand:focus-visible,
+  .cut-landing-mobile-drawer__close:focus-visible,
+  .cut-landing-mobile-drawer__content a:focus-visible,
+  .cut-landing-mobile-drawer__content button:focus-visible{
+    outline:2px solid #fff!important;
+    outline-offset:-3px
+  }
   .cut-landing-mobile-drawer__content>a>i{
     width:24px;
     text-align:center;
