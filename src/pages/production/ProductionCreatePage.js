@@ -8,6 +8,7 @@ import LocationFields from "../../components/location/LocationFields";
 import { FormattedTextEditor } from "../../components/editor/FormattedText";
 import cutinappService from "../../services/CutinappService";
 import { runBestEffort } from "../../utils/bestEffort";
+import { resolveProducerCampaign, producerCampaignMetadata } from "../../utils/producerCampaignAttribution";
 import "./production-experience.css";
 import "./production-inline-editor.css";
 import "./production-view-evolution.css";
@@ -25,7 +26,6 @@ const normalizeText = (value) => String(value || "").trim().toLowerCase().normal
 const cityId = (city) => city?.ibge_code ?? city?.city_id ?? city?.id ?? city?.code ?? "";
 const cityName = (city) => city?.name ?? city?.city ?? city?.nome ?? "";
 const cityUf = (city) => city?.uf ?? city?.state_code ?? city?.state?.uf ?? "";
-const normalizeAcquisitionSource = (value) => String(value || "").trim().slice(0, 120) || null;
 
 const trackProducerActivation = (type, production, metadata = {}) => {
   try {
@@ -40,10 +40,11 @@ const trackProducerActivation = (type, production, metadata = {}) => {
 export default function ProductionCreatePage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const acquisitionSource = useMemo(() => {
-    const query = new URLSearchParams(location.search || "");
-    return normalizeAcquisitionSource(location.state?.acquisitionSource || query.get("acquisitionSource") || query.get("from"));
-  }, [location.search, location.state]);
+  const producerCampaign = useMemo(() => resolveProducerCampaign({
+    state: location.state,
+    search: location.search,
+  }), [location.search, location.state]);
+  const campaignMetadata = useMemo(() => producerCampaignMetadata(producerCampaign), [producerCampaign]);
   const [form, setForm] = useState(initialForm);
   const [showOptionalDetails, setShowOptionalDetails] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -114,7 +115,7 @@ export default function ProductionCreatePage() {
       const experienceSynced = await runBestEffort(
         () => cutinappService.updateProductionExperience(id, experiencePayload),
         (syncError) => trackProducerActivation("producer_production_experience_sync_failed", { ...production, id, name: production?.name || resolvedForm.name }, {
-          activation_stage: "production_created", next_step: "event_create", acquisition_source: acquisitionSource,
+          activation_stage: "production_created", next_step: "event_create", ...campaignMetadata,
           status: Number(syncError?.status || syncError?.response?.status || 0) || null,
         })
       );
@@ -122,13 +123,13 @@ export default function ProductionCreatePage() {
       const locationResolution = resolvedForm.city_id ? "catalog" : resolvedForm.city ? "manual" : "not_provided";
       const activationMetadata = {
         activation_stage: "production_created", next_step: "event_create", onboarding_path: usedQuickPath ? "quick" : "detailed",
-        location_resolution: locationResolution, acquisition_source: acquisitionSource,
+        location_resolution: locationResolution, ...campaignMetadata,
       };
       trackProducerActivation("producer_production_created", { ...production, id, name: production?.name || resolvedForm.name }, activationMetadata);
       if (usedQuickPath) trackProducerActivation("producer_quick_production_created", { ...production, id, name: production?.name || resolvedForm.name }, activationMetadata);
       navigate(`/event/create?productionId=${id}`, {
         replace: true,
-        state: { productionCreated: true, productionExperienceSynced: experienceSynced, acquisitionSource },
+        state: { productionCreated: true, productionExperienceSynced: experienceSynced, ...producerCampaign },
       });
     } catch (err) {
       const errors = err?.errors || err?.response?.data?.errors || {};
