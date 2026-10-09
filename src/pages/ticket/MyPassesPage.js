@@ -6,6 +6,7 @@ import NavlogComponent from "../../components/NavlogComponent";
 import CollapsibleFilterPanel from "../../components/CollapsibleFilterPanel";
 import walletService from "../../services/WalletService";
 import commerceService from "../../services/CommerceService";
+import { eventImageUrl } from "../../utils/eventMedia";
 import {
   PASS_FILTERS,
   countdownLabel,
@@ -84,7 +85,7 @@ const eventPropType = PropTypes.shape({
 const EventArtwork = ({ event, large = false }) => (
   <div className={large ? "cut-wallet-next__art" : "cut-wallet-event-art"} aria-hidden="true">
     {event?.image
-      ? <img src={event.image} alt="" loading="lazy" />
+      ? <img src={eventImageUrl(event.image)} alt="" loading="lazy" decoding="async" />
       : <span>{initials(event?.title)}</span>}
   </div>
 );
