@@ -29,7 +29,7 @@ const highIntentTopics = [
   ["Check-in de ingressos por QR Code", "Use o ingresso emitido no fluxo de compra para validar a entrada e manter o histórico operacional ligado ao evento."],
 ];
 
-const producerTrialState = (acquisitionSource) => ({
+const producerSignupState = (acquisitionSource) => ({
   from: "/production/create",
   acquisitionSource,
 });
@@ -43,7 +43,7 @@ export default function ProducerLandingPage() {
           <Link to="/event">Ver eventos</Link>
           <Link to="/help">Ajuda</Link>
           <Link to="/login">Entrar</Link>
-          <Button as={Link} to="/register" state={producerTrialState("producer_landing_nav")}>Iniciar trial grátis</Button>
+          <Button as={Link} to="/register" state={producerSignupState("producer_landing_nav")}>Começar como produtor</Button>
         </nav>
       </Container>
     </header>
@@ -52,14 +52,14 @@ export default function ProducerLandingPage() {
       <section className="cut-producer-landing__hero">
         <Container className="cut-producer-landing__heroGrid">
           <div>
-            <span className="cut-eyebrow">30 dias para operar antes de decidir</span>
+            <span className="cut-eyebrow">Da primeira publicação à próxima edição</span>
             <h1>Publique, venda e opere seu evento <em>em um fluxo só.</em></h1>
-            <p>A Cutinapp é uma plataforma por assinatura para produtores. No trial inicial de 30 dias, você pode cadastrar sua produção, preparar eventos e incorporar o fluxo à operação antes de decidir pela assinatura.</p>
+            <p>Organize sua produção, prepare eventos, publique uma página compartilhável e acompanhe ingressos e participantes no mesmo fluxo.</p>
             <div className="cut-producer-landing__actions">
-              <Button as={Link} to="/register" state={producerTrialState("producer_landing_hero")} size="lg">Iniciar meu trial <i className="fa-solid fa-arrow-right ms-2" /></Button>
+              <Button as={Link} to="/register" state={producerSignupState("producer_landing_hero")} size="lg">Cadastrar minha produção <i className="fa-solid fa-arrow-right ms-2" /></Button>
               <Link to="/login">Já tenho conta</Link>
             </div>
-            <p><small>A assinatura da Cutinapp é separada das taxas inevitáveis do meio de pagamento. Planos e condições aplicáveis são apresentados no fluxo da conta.</small></p>
+            <p><small>A Cutinapp não exige assinatura obrigatória no modelo atual. A monetização é baseada em taxas de transação; consulte as condições comerciais aplicáveis antes de abrir as vendas.</small></p>
             <CommerceTrustRail context="event" />
           </div>
           <div className="cut-producer-landing__command">
@@ -71,7 +71,7 @@ export default function ProducerLandingPage() {
 
       <section className="cut-producer-landing__section">
         <Container>
-          <div className="cut-producer-landing__heading"><span className="cut-eyebrow">Do trial ao uso real</span><h2>Use o primeiro mês para colocar a operação para funcionar.</h2><p>O objetivo do trial não é apenas conhecer telas: é cadastrar sua produção, publicar seu primeiro evento, operar participantes e perceber se a Cutinapp merece continuar na sua rotina.</p></div>
+          <div className="cut-producer-landing__heading"><span className="cut-eyebrow">Do cadastro ao primeiro evento</span><h2>Coloque sua operação para funcionar desde o primeiro evento.</h2><p>O objetivo é ir além de conhecer telas: cadastrar sua produção, publicar seu primeiro evento, organizar participantes e acompanhar os resultados da operação.</p></div>
           <div className="cut-producer-landing__grid">{capabilities.map(([icon,title,description]) => <article key={title}><i className={icon} /><h3>{title}</h3><p>{description}</p></article>)}</div>
         </Container>
       </section>
@@ -81,7 +81,7 @@ export default function ProducerLandingPage() {
           <div className="cut-producer-landing__heading">
             <span className="cut-eyebrow">Da descoberta à entrada</span>
             <h2 id="producer-use-cases">Venda ingressos online e opere o evento no mesmo fluxo.</h2>
-            <p>Da página pública ao check-in, a Cutinapp conecta as etapas que geram valor durante o trial. O produtor pode começar sem depender de uma cidade específica: cada evento informa sua própria localização e pode ser descoberto e compartilhado pela sua página pública.</p>
+            <p>Da página pública ao check-in, a Cutinapp conecta as etapas que ajudam a divulgar o evento e organizar sua operação. O produtor pode começar sem depender de uma cidade específica: cada evento informa sua própria localização e pode ser descoberto e compartilhado pela sua página pública.</p>
           </div>
           <div className="cut-producer-landing__grid">
             {highIntentTopics.map(([title, description]) => <article key={title}><h3>{title}</h3><p>{description}</p></article>)}
@@ -102,8 +102,8 @@ export default function ProducerLandingPage() {
 
       <section className="cut-producer-landing__cta">
         <Container>
-          <div><span className="cut-eyebrow">Comece pelo uso real</span><h2>Seu trial deve chegar ao primeiro evento, não parar no cadastro.</h2><p>Crie a conta, cadastre sua produção e avance pelo fluxo guiado. Você tem 30 dias iniciais para experimentar a operação antes da etapa de assinatura.</p></div>
-          <Button as={Link} to="/register" state={producerTrialState("producer_landing_bottom")} size="lg">Iniciar trial grátis</Button>
+          <div><span className="cut-eyebrow">Comece pelo uso real</span><h2>Seu primeiro evento deve sair do cadastro e chegar à publicação.</h2><p>Crie sua conta, cadastre sua produção e siga pelo fluxo guiado para preparar e publicar seu primeiro evento. A Cutinapp não exige assinatura obrigatória no modelo atual; a monetização é baseada em taxas de transação, conforme as condições comerciais aplicáveis.</p></div>
+          <Button as={Link} to="/register" state={producerSignupState("producer_landing_bottom")} size="lg">Cadastrar minha produção</Button>
         </Container>
       </section>
     </main>
