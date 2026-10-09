@@ -104,9 +104,30 @@ function parseArticle(content) {
   return blocks;
 }
 
-function InlineText({ text }) {
-  const parts = String(text || "").split(/(\*\*[^*]+\*\*)/g);
+export function InlineText({ text }) {
+  const parts = String(text || "").split(/(\[[^\]]+\]\([^)]+\)|\*\*[^*]+\*\*)/g);
   return <>{parts.map((part, index) => {
+    const link = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+    if (link) {
+      const label = link[1];
+      const href = link[2].trim();
+
+      if (href.startsWith("/") && !href.startsWith("//") && !href.includes("\\") && !/[\r\n]/.test(href)) {
+        return <Link key={index} to={href}>{label}</Link>;
+      }
+
+      try {
+        const parsed = new URL(href);
+        if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+          return <a key={index} href={parsed.href} target="_blank" rel="noopener noreferrer">{label}</a>;
+        }
+      } catch (_) {
+        // Render malformed links as plain text.
+      }
+
+      return <React.Fragment key={index}>{label}</React.Fragment>;
+    }
+
     if (/^\*\*[^*]+\*\*$/.test(part)) return <strong key={index}>{part.slice(2, -2)}</strong>;
     return <React.Fragment key={index}>{part}</React.Fragment>;
   })}</>;
