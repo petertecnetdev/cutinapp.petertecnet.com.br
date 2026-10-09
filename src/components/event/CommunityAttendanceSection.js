@@ -110,7 +110,7 @@ export default function CommunityAttendanceSection({ event, isOwner = false }) {
   const happening = useMemo(() => {
     const start = new Date(event.start_date).getTime();
     const end = new Date(event.end_date).getTime();
-    return Number.isFinite(start) && Number.isFinite(end) && now >= start && now <= end;
+    return Number.isFinite(start) && Number.isFinite(end) && now >= start && now < end;
   }, [event.start_date, event.end_date, now]);
 
   return (
