@@ -30,9 +30,10 @@ export default function RegisterPage() {
     const target = String(params.get("from") || "");
     return target.startsWith("/") && !target.startsWith("//") ? target : "";
   }, [location.search]);
-  const returnTo = location.state?.from || queryReturnTo || "/dashboard";
+  const producerIntent = location.state?.from === "/production/create" || queryReturnTo === "/production/create" || new URLSearchParams(location.search).get("role") === "producer";
+  const returnTo = location.state?.from || queryReturnTo || (producerIntent ? "/production/create" : "/dashboard");
   const acquisitionSource = useMemo(() => {
-    const source = String(location.state?.acquisitionSource || "").trim();
+    const source = String(location.state?.acquisitionSource || new URLSearchParams(location.search).get("utm_source") || "").trim();
     return /^[a-z0-9_-]{1,80}$/i.test(source) ? source : "";
   }, [location.state]);
   const continuationState = useMemo(() => ({
@@ -171,13 +172,16 @@ export default function RegisterPage() {
 
   return (
     <AuthPageShell
-      title="Crie sua conta grátis"
-      subtitle="Use sua conta Google ou comece com nome, e-mail e senha."
+      register
+      producer={producerIntent}
+      title={producerIntent ? "Comece a produzir eventos" : "Crie sua conta grátis"}
+      subtitle={producerIntent ? "Crie sua conta em poucos instantes e cadastre sua produção." : "Continue com Google ou cadastre-se com seu e-mail."}
     >
       {(loading || googleLoading) && <ProcessingIndicatorComponent label={googleLoading ? "Entrando com Google" : "Criando sua conta"} />}
       <Form onSubmit={submit} className="cut-auth-form">
         {error && <div className="cut-form-message cut-form-message--error">{error}</div>}
-        <div className="cut-form-message cut-form-message--success">{contextMessage}</div>
+        {producerIntent && <div className="cut-auth-producer-steps"><span>01 Conta</span><span>02 Produção</span><span>03 Evento</span></div>}
+        {returnTo !== "/dashboard" && <div className="cut-auth-context">{contextMessage}</div>}
         {location.state?.artistClaim && (
           <div className="cut-form-message cut-form-message--success">
             Depois de confirmar seu e-mail, você voltará ao evento para reivindicar seu vínculo artístico.
@@ -229,7 +233,7 @@ export default function RegisterPage() {
         </Form.Group>
 
         <Button type="submit" className="cut-primary-action" disabled={!canSubmit}>
-          Criar conta grátis
+          {producerIntent ? "Criar conta e continuar" : "Criar conta grátis"}
         </Button>
         <div className="cut-auth-inline-links">
           <span>Já possui conta?</span>
