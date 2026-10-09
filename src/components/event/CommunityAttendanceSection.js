@@ -22,6 +22,19 @@ export default function CommunityAttendanceSection({ event, isOwner = false }) {
   const [participants, setParticipants] = useState([]);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState(null);
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const refreshClock = () => setNow(Date.now());
+    const timer = window.setInterval(refreshClock, 15000);
+    document.addEventListener("visibilitychange", refreshClock);
+    window.addEventListener("focus", refreshClock);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", refreshClock);
+      window.removeEventListener("focus", refreshClock);
+    };
+  }, []);
 
   const login = () => navigate("/login", { state: { from: `${location.pathname}${location.search}#participar` } });
 
@@ -95,11 +108,10 @@ export default function CommunityAttendanceSection({ event, isOwner = false }) {
   const counts = data?.counts || {};
   const mine = data?.mine || null;
   const happening = useMemo(() => {
-    const now = Date.now();
     const start = new Date(event.start_date).getTime();
     const end = new Date(event.end_date).getTime();
     return Number.isFinite(start) && Number.isFinite(end) && now >= start && now <= end;
-  }, [event.start_date, event.end_date]);
+  }, [event.start_date, event.end_date, now]);
 
   return (
     <section id="participar" className="cut-meetup-attendance mb-5">
