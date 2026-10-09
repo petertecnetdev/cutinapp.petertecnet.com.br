@@ -3,9 +3,9 @@ import PropTypes from "prop-types";
 import PeterTecnetSignature from "../PeterTecnetSignature";
 import "./AuthPageShell.css";
 
-export default function AuthPageShell({ title, subtitle, children, compact = false }) {
+export default function AuthPageShell({ title, subtitle, children, compact = false, register = false, producer = false }) {
   return (
-    <div className={`cut-auth-shell${compact ? " cut-auth-shell--compact" : ""}`}>
+    <div className={`cut-auth-shell${compact ? " cut-auth-shell--compact" : ""}${register ? " cut-auth-shell--register" : ""}${producer ? " cut-auth-shell--producer" : ""}`}>
       <div className="cut-auth-shell__bg" aria-hidden="true">
         <div className="cut-auth-shell__orb cut-auth-shell__orb--a" />
         <div className="cut-auth-shell__orb cut-auth-shell__orb--b" />
@@ -26,15 +26,15 @@ export default function AuthPageShell({ title, subtitle, children, compact = fal
                   </div>
                 </div>
 
-                <div className="cut-auth-shell__pill"><span /> Evento • cortesia • QR Code • check-in</div>
+                <div className="cut-auth-shell__pill"><span /> {producer ? "Sua produção começa aqui" : "Eventos • ingressos • QR Code • check-in"}</div>
                 <ul className="cut-auth-shell__benefits">
-                  <li><b>Para participantes</b><span>Encontre eventos, retire cortesias e tenha seu ingresso sempre à mão.</span></li>
-                  <li><b>Para produtores</b><span>Crie produções, publique eventos e organize lotes gratuitos.</span></li>
-                  <li><b>Para a portaria</b><span>Valide QR Codes pelo celular e bloqueie reutilizações automaticamente.</span></li>
+                  {!producer && <li><b>Para participantes</b><span>Encontre eventos e tenha seu ingresso sempre à mão.</span></li>}
+                  <li><b>{producer ? "1. Cadastre sua produção" : "Para produtores"}</b><span>{producer ? "Apresente sua marca e organize sua operação." : "Crie produções, publique eventos e venda ingressos."}</span></li>
+                  <li><b>{producer ? "2. Publique seu evento" : "Para a portaria"}</b><span>{producer ? "Configure os ingressos e comece a divulgar." : "Valide QR Codes com segurança pelo celular."}</span></li>
                 </ul>
               </div>
 
-              <div className="cut-auth-shell__security"><i className="fa-solid fa-shield-halved" /> A validação dos ingressos acontece no servidor da Peter Tecnet.</div>
+              <div className="cut-auth-shell__security"><i className="fa-solid fa-shield-halved" /> Seus dados são protegidos pela Cutinapp.</div>
             </div>
           </aside>
 
@@ -62,4 +62,6 @@ AuthPageShell.propTypes = {
   subtitle: PropTypes.string.isRequired,
   children: PropTypes.node.isRequired,
   compact: PropTypes.bool,
+  register: PropTypes.bool,
+  producer: PropTypes.bool,
 };
