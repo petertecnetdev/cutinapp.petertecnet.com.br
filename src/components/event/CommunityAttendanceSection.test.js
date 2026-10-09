@@ -82,7 +82,7 @@ describe("community attendance check-in clock and auth gates", () => {
       jest.setSystemTime(new Date("2026-10-09T11:00:00Z"));
       window.dispatchEvent(new Event("focus"));
     });
-    expect(checkinVisible()).toBe(true); // inclusive end
+    expect(checkinVisible()).toBe(false); // API treats end as exclusive
     act(() => {
       jest.setSystemTime(new Date("2026-10-09T11:00:00.001Z"));
       document.dispatchEvent(new Event("visibilitychange"));
