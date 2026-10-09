@@ -151,3 +151,74 @@
   .cut-auth-form__actions { align-items: stretch; flex-direction: column; }
   .cut-auth-form__actions .btn { width: 100%; flex: none; }
 }
+
+/* Refresh 2026 — escopo do cadastro. Não altera login e recuperação de senha. */
+.cut-auth-shell--register {
+  --auth-accent: #e62735;
+  --auth-line: rgba(255,255,255,.105);
+  color: #f8f5f5;
+  background: #080809;
+}
+.cut-auth-shell--register .cut-auth-shell__bg {
+  background: radial-gradient(ellipse at 16% 12%,rgba(135,11,26,.18),transparent 42%),#080809;
+}
+.cut-auth-shell--register .cut-auth-shell__orb,
+.cut-auth-shell--register .cut-auth-shell__grid { display:none; }
+.cut-auth-shell--register .cut-auth-shell__container { width:min(1040px,100%);padding:32px 20px 10px; }
+.cut-auth-shell--register .cut-auth-shell__layout {grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr);gap:44px;align-items:center;}
+.cut-auth-shell--register .cut-auth-shell__hero {min-height:auto;}
+.cut-auth-shell--register .cut-auth-shell__heroCard {padding:22px 0;border:0;background:none;box-shadow:none;backdrop-filter:none;gap:38px;}
+.cut-auth-shell--register .cut-auth-shell__heroCard::before,
+.cut-auth-shell--register .cut-auth-shell__card::before {display:none;}
+.cut-auth-shell--register .cut-auth-shell__brandRow {align-items:flex-start;gap:15px;}
+.cut-auth-shell--register .cut-auth-shell__brandMark {height:62px;width:62px;border-radius:16px;box-shadow:none;background:#14090b;border-color:rgba(230,39,53,.3);}
+.cut-auth-shell--register .cut-auth-shell__brandMark img {height:51px;width:51px;}
+.cut-auth-shell--register .cut-auth-shell__brandRow h1 {font-size:2rem;letter-spacing:-.04em;}
+.cut-auth-shell--register .cut-auth-shell__brandRow p {max-width:340px;color:#aaa4a6;}
+.cut-auth-shell--register .cut-auth-shell__eyebrow {color:#f2535d;font-size:.68rem;}
+.cut-auth-shell--register .cut-auth-shell__pill {margin:0 0 18px;border-color:rgba(230,39,53,.27);color:#f5b9bd;background:#210e12;}
+.cut-auth-shell--register .cut-auth-shell__pill span {background:#e62735;box-shadow:none;}
+.cut-auth-shell--register .cut-auth-shell__benefits {gap:20px;}
+.cut-auth-shell--register .cut-auth-shell__benefits li {padding:0;border:0;background:none;border-radius:0;gap:5px;}
+.cut-auth-shell--register .cut-auth-shell__benefits b {font-size:1rem;}
+.cut-auth-shell--register .cut-auth-shell__benefits span {color:#a9a2a5;font-size:.9rem;}
+.cut-auth-shell--register .cut-auth-shell__security {color:#827b7e;margin-top:0;}
+.cut-auth-shell--register .cut-auth-shell__card {max-width:490px;background:#111113;border:1px solid var(--auth-line);border-radius:22px;box-shadow:0 20px 70px rgba(0,0,0,.25);backdrop-filter:none;padding:27px 30px;}
+.cut-auth-shell--register .cut-auth-shell__cardHeader {margin-bottom:19px;}
+.cut-auth-shell--register .cut-auth-shell__logo {width:65px;height:65px;background:none;border:0;box-shadow:none;border-radius:0;margin-bottom:7px;}
+.cut-auth-shell--register .cut-auth-shell__logo img {width:60px;height:60px;object-fit:contain;}
+.cut-auth-shell--register .cut-auth-shell__cardHeader h2 {font-size:clamp(1.45rem,2.5vw,1.85rem);font-weight:800;letter-spacing:-.035em;}
+.cut-auth-shell--register .cut-auth-shell__cardHeader p {font-size:.85rem;color:#b9b3b6;}
+.cut-auth-shell--register .cut-auth-shell__body {margin-top:0;}
+.cut-auth-shell--register .cut-auth-form {gap:13px;}
+.cut-auth-shell--register .cut-auth-form .form-label {font-size:.82rem;color:#eee8e9;font-weight:700;margin-bottom:7px;}
+.cut-auth-shell--register .cut-auth-form .form-control {min-height:46px;background:#19191c !important;color:#faf7f7 !important;border:1px solid #373136 !important;border-radius:11px !important;box-shadow:none !important;}
+.cut-auth-shell--register .cut-auth-form .form-control::placeholder {color:#898186;}
+.cut-auth-shell--register .cut-auth-form .form-control:focus {border-color:#ed3545 !important;box-shadow:0 0 0 3px rgba(237,53,69,.13) !important;}
+.cut-auth-shell--register .cut-auth-form .form-text {color:#aaa0a4;font-size:.73rem;}
+.cut-auth-shell--register .cut-auth-form .cut-primary-action {min-height:49px;border-radius:11px !important;background:#d91e30 !important;color:white !important;box-shadow:none !important;transition:background .15s ease;}
+.cut-auth-shell--register .cut-auth-form .cut-primary-action:hover:not(:disabled) {background:#f03143 !important;filter:none;}
+.cut-auth-shell--register .cut-auth-form .cut-primary-action:disabled {opacity:.55;}
+.cut-auth-shell--register .cut-auth-shell__terms {color:#aaa1a5;border-color:var(--auth-line);}
+.cut-auth-shell--register .auth-google-block {margin:0;}
+.cut-auth-shell--register .auth-google-block p {font-size:.78rem;color:#aaa1a5;margin-bottom:8px;}
+.cut-auth-shell--register .auth-google-button {max-width:100%;overflow:hidden;min-height:40px;}
+.cut-auth-shell--register .auth-divider {color:#a99fa4;}
+.cut-auth-shell--register .cut-auth-context {font-size:.79rem;color:#e1b0b5;line-height:1.45;background:#221315;border-left:2px solid #d91e30;padding:10px 12px;border-radius:6px;}
+.cut-auth-shell--register .cut-auth-producer-steps {display:flex;justify-content:space-between;gap:6px;font-size:.73rem;font-weight:700;color:#f5c7cb;}
+.cut-auth-shell--register .cut-auth-producer-steps span {flex:1;text-align:center;border-bottom:2px solid #4e292e;padding-bottom:7px;}
+.cut-auth-shell--register .cut-auth-producer-steps span:first-child {border-color:#ef3545;color:white;}
+@media(max-width:980px) {
+ .cut-auth-shell--register .cut-auth-shell__layout {grid-template-columns:1fr;}
+ .cut-auth-shell--register .cut-auth-shell__container {width:min(550px,100%);padding:20px 16px 8px;}
+ .cut-auth-shell--register .cut-auth-shell__hero {display:none;}
+ .cut-auth-shell--register .cut-auth-shell__card {max-width:none;}
+}
+@media(max-width:520px) {
+ .cut-auth-shell--register .cut-auth-shell__container {padding:10px 10px 4px;}
+ .cut-auth-shell--register .cut-auth-shell__card {border-radius:15px;padding:19px 17px;}
+ .cut-auth-shell--register .cut-auth-shell__logo {width:52px;height:52px;margin-bottom:5px;}
+ .cut-auth-shell--register .cut-auth-shell__logo img {width:50px;height:50px;}
+ .cut-auth-shell--register .cut-auth-shell__cardHeader {margin-bottom:16px;}
+ .cut-auth-shell--register .cut-auth-form {gap:11px;}
+}
