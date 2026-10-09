@@ -24,6 +24,7 @@ import {
   readNavigationUsage,
 } from "../navigation/navigationRegistry";
 import NotificationPermissionControl from "./NotificationPermissionControl";
+import useMobileDrawer from "../hooks/useMobileDrawer";
 
 const CAPABILITY_CACHE_TTL = 5 * 60 * 1000;
 const NAV_RUNTIME_CACHE_TTL = 45 * 1000;
@@ -114,6 +115,7 @@ export default function NavlogComponent() {
   const active = (to) => to === "/" ? location.pathname === "/" : location.pathname === to || location.pathname.startsWith(`${to}/`);
   const closeMenu = () => { setOpen(false); setActiveDropdown(null); };
   const dropdown = (id) => ({ show: activeDropdown === id, onToggle: (next) => setActiveDropdown(next ? id : null) });
+  useMobileDrawer({ open, onClose: closeMenu, drawerId: "cut-mobile-drawer", bodyClass: "cut-mobile-menu-open" });
 
   useEffect(() => {
     setCapabilityEvidence(readCapabilityEvidence(userId));
@@ -132,7 +134,6 @@ export default function NavlogComponent() {
   }, [userId]);
 
   useEffect(() => { closeMenu(); }, [location.pathname, location.search, location.hash]);
-  useEffect(() => { const onKeyDown = (event) => { if (event.key === "Escape") { setActiveDropdown(null); setOpen(false); } }; window.addEventListener("keydown", onKeyDown); return () => window.removeEventListener("keydown", onKeyDown); }, []);
 
   useEffect(() => {
     if (typeof document === "undefined") return undefined;
@@ -140,22 +141,6 @@ export default function NavlogComponent() {
     return () => document.body.classList.remove("cut-has-mobile-bottom-nav");
   }, [user]);
 
-  useEffect(() => {
-    if (!open || typeof document === "undefined") return undefined;
-    const previousOverflow = document.body.style.overflow;
-    const previousOverscroll = document.body.style.overscrollBehavior;
-    document.body.style.overflow = "hidden";
-    document.body.style.overscrollBehavior = "none";
-    document.body.classList.add("cut-mobile-menu-open");
-    const onKeyDown = (event) => event.key === "Escape" && setOpen(false);
-    window.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.body.style.overscrollBehavior = previousOverscroll;
-      document.body.classList.remove("cut-mobile-menu-open");
-      window.removeEventListener("keydown", onKeyDown);
-    };
-  }, [open]);
 
   useEffect(() => {
     if (!userId) { setProductions([]); return undefined; }
@@ -373,10 +358,10 @@ export default function NavlogComponent() {
   if (!user) {
     return (
       <>
-      <Navbar expand="lg" sticky="top" className="cut-navbar cut-advanced-nav" expanded={open} onToggle={setOpen} onSelect={closeMenu}>
+      <Navbar expand="lg" sticky="top" className="cut-navbar cut-advanced-nav" onSelect={closeMenu}>
         <Container className="cut-navbar__inner">
           <Navbar.Brand as={Link} to="/" className="cut-navbar__brand"><img src="/images/logo.png" alt="Cutinapp" /><div><strong>Cutinapp</strong><small>Rede social de eventos</small></div></Navbar.Brand>
-          <button type="button" className="navbar-toggler cut-mobile-menu-toggle d-lg-none" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, minWidth: 44, opacity: 1, visibility: "visible", position: "relative", zIndex: 2147483647 }} aria-expanded={open} aria-controls="cut-mobile-drawer" aria-label={open ? "Fechar menu" : "Abrir menu"} onClick={() => setOpen((value) => !value)}><span className="navbar-toggler-icon" /></button>
+          <button type="button" className="navbar-toggler cut-mobile-menu-toggle d-lg-none" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, minWidth: 44, opacity: 1, visibility: "visible", position: "relative", zIndex: 2147483647 }} aria-expanded={Boolean(open)} aria-controls="cut-mobile-drawer" aria-label={open ? "Fechar menu" : "Abrir menu"} onClick={() => setOpen((value) => !value)}><span className="navbar-toggler-icon" /></button>
           <Navbar.Collapse id="cut-navbar-public"><Nav className="ms-auto cut-navbar__links"><Nav.Link as={Link} to="/search" onClick={closeMenu}><i className="fa-solid fa-magnifying-glass me-2" />Buscar</Nav.Link><Nav.Link as={Link} to="/event">Eventos</Nav.Link><Nav.Link as={Link} to="/productions">Produções</Nav.Link><Nav.Link as={Link} to="/artists">Artistas</Nav.Link><Nav.Link as={Link} to="/login">Entrar</Nav.Link></Nav></Navbar.Collapse>
         </Container>
       </Navbar>
@@ -391,10 +376,10 @@ export default function NavlogComponent() {
 
   return (
     <>
-      <Navbar expand="lg" sticky="top" className="cut-navbar cut-advanced-nav cut-capability-nav" expanded={open} onToggle={setOpen} onSelect={closeMenu}>
+      <Navbar expand="lg" sticky="top" className="cut-navbar cut-advanced-nav cut-capability-nav" onSelect={closeMenu}>
         <Container className="cut-navbar__inner">
           <Navbar.Brand as={Link} to="/" className="cut-navbar__brand" onClick={closeMenu}><img src="/images/logo.png" alt="Cutinapp" /><div><strong>Cutinapp</strong><small>Rede social de eventos</small></div></Navbar.Brand>
-          <button type="button" className="navbar-toggler cut-mobile-menu-toggle d-lg-none" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, minWidth: 44, opacity: 1, visibility: "visible", position: "relative", zIndex: 2147483647 }} aria-expanded={open} aria-controls="cut-mobile-drawer" aria-label={open ? "Fechar menu" : "Abrir menu"} onClick={() => setOpen((value) => !value)}><span className="navbar-toggler-icon" /></button>
+          <button type="button" className="navbar-toggler cut-mobile-menu-toggle d-lg-none" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, minWidth: 44, opacity: 1, visibility: "visible", position: "relative", zIndex: 2147483647 }} aria-expanded={Boolean(open)} aria-controls="cut-mobile-drawer" aria-label={open ? "Fechar menu" : "Abrir menu"} onClick={() => setOpen((value) => !value)}><span className="navbar-toggler-icon" /></button>
           <Navbar.Collapse id="cut-navbar">
             <Link to="/profile" className="cut-navbar__mobile-account" onClick={closeMenu} aria-label="Abrir meu perfil">
               <span className="cut-navbar__avatar">{userAvatar ? <img src={userAvatar} alt="" /> : userFallbackInitials}</span>
