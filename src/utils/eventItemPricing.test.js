@@ -6,3 +6,5 @@ test("uses the active promotional price in the public item flow", () => {
   expect(effectiveEventItemPrice(item)).toBe(19.9);
   expect(hasEventItemDiscount(item)).toBe(true);
 });
+
+test("falls back to the regular price when promotion is disabled", () => expect(effectiveEventItemPrice({ price: "25.00", promotion_enabled: false, promotion_price: "10.00" })).toBe(25));
