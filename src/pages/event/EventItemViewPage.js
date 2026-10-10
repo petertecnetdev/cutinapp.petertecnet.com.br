@@ -9,6 +9,7 @@ import ItemDiscoveryRail from "../../components/event/ItemDiscoveryRail";
 import commerceService from "../../services/CommerceService";
 import { storageUrl } from "../../config";
 import { trackTelemetry } from "../../utils/telemetry";
+import { effectiveEventItemPrice, hasEventItemDiscount, isEventItemPromotionEnabled } from "../../utils/eventItemPricing";
 import "./EventItemViewPage.css";
 
 const resolveLocale = (...sources) => sources.find((value) => typeof value === "string" && value.trim()) || undefined;
@@ -32,12 +33,6 @@ const mediaUrl = (value) => {
   if (/^https?:\/\//i.test(image)) return image;
   return `${storageUrl}${image.replace(/^\/?storage\//, "").replace(/^\/+/, "")}`;
 };
-
-const effectivePrice = (item) => (
-  item?.promotion_enabled && Number(item?.promotion_price) >= 0
-    ? Number(item.promotion_price)
-    : Number(item?.price || 0)
-);
 
 export default function EventItemViewPage() {
   const { slug, itemId } = useParams();
@@ -78,7 +73,7 @@ export default function EventItemViewPage() {
   const event = payload?.event || null;
   const production = payload?.production || event?.production || null;
   const image = useMemo(() => mediaUrl(item?.image_url || item?.image), [item]);
-  const price = effectivePrice(item);
+  const price = effectiveEventItemPrice(item);
   const currency = resolveCurrency(item?.currency, event?.currency, production?.currency, payload?.currency);
   const locale = resolveLocale(item?.locale, event?.locale, production?.locale, payload?.locale);
   const remaining = Number(item?.remaining ?? item?.quantity ?? 0);
@@ -168,7 +163,7 @@ export default function EventItemViewPage() {
                 <div className="cut-item-view__badges">
                   <span>Item do evento</span>
                   {(item.category || item.type) && <span>{item.category || item.type}</span>}
-                  {item.promotion_enabled && Number(item.promotion_price) >= 0 && <span className="is-highlight">Oferta</span>}
+                  {isEventItemPromotionEnabled(item) && <span className="is-highlight">Oferta</span>}
                 </div>
 
                 <h1>{item.name}</h1>
@@ -177,7 +172,7 @@ export default function EventItemViewPage() {
                 )}
 
                 <div className="cut-item-view__priceBlock">
-                  {item.promotion_enabled && Number(item.promotion_price) >= 0 && Number(item.price) > price && (
+                  {hasEventItemDiscount(item) && (
                     <del>{money(item.price, currency, locale)}</del>
                   )}
                   <strong>{money(price, currency, locale)}</strong>
