@@ -15,5 +15,7 @@ export const eventImageUrl = (image) => {
   if (!value) return "";
   if (/^(?:https?:\/\/|data:image\/|blob:)/i.test(value)) return value;
 
-  return `${storageUrl}${value.replace(/^\/+/, "")}`;
+  // API paths may already include the storage prefix present in storageUrl.
+  const relativePath = value.replace(/^\/+/, "").replace(/^storage\/+/i, "");
+  return `${storageUrl}${relativePath}`;
 };
