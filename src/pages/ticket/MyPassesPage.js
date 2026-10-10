@@ -6,6 +6,7 @@ import NavlogComponent from "../../components/NavlogComponent";
 import CollapsibleFilterPanel from "../../components/CollapsibleFilterPanel";
 import walletService from "../../services/WalletService";
 import commerceService from "../../services/CommerceService";
+import { eventImageUrl } from "../../utils/eventMedia";
 import {
   PASS_FILTERS,
   countdownLabel,
@@ -81,13 +82,16 @@ const eventPropType = PropTypes.shape({
   }),
 });
 
-const EventArtwork = ({ event, large = false }) => (
-  <div className={large ? "cut-wallet-next__art" : "cut-wallet-event-art"} aria-hidden="true">
-    {event?.image
-      ? <img src={event.image} alt="" loading="lazy" />
-      : <span>{initials(event?.title)}</span>}
-  </div>
-);
+const EventArtwork = ({ event, large = false }) => {
+  const imageUrl = eventImageUrl(event?.image);
+  return (
+    <div className={large ? "cut-wallet-next__art" : "cut-wallet-event-art"} aria-hidden="true">
+      {imageUrl
+        ? <img src={imageUrl} alt="" loading="lazy" decoding="async" />
+        : <span>{initials(event?.title)}</span>}
+    </div>
+  );
+};
 
 EventArtwork.propTypes = {
   event: eventPropType,
@@ -298,6 +302,7 @@ export default function MyPassesPage() {
     const count = passEntries.length;
     const purchase = first.purchase;
     const lifecycle = countdownLabel(event, nowMs);
+    const artworkUrl = eventImageUrl(event?.image);
     const cardStateClass = ["cancelled", "refunded"].includes(state.key)
       ? "is-cancelled"
       : ["past", "used"].includes(state.key)
@@ -306,9 +311,9 @@ export default function MyPassesPage() {
 
     return <Card key={group.key} className={`cut-wallet-card cut-wallet-ticket-card ${cardStateClass}`}>
       <div className="cut-wallet-card__accent" />
-      <div className={`cut-wallet-card__ticket-cover ${event?.image ? "has-artwork" : ""}`}>
-        {event?.image
-          ? <img className="cut-wallet-card__ticket-art" src={event.image} alt="" loading="lazy" />
+      <div className={`cut-wallet-card__ticket-cover ${artworkUrl ? "has-artwork" : ""}`}>
+        {artworkUrl
+          ? <img className="cut-wallet-card__ticket-art" src={artworkUrl} alt="" loading="lazy" decoding="async" />
           : <div className="cut-wallet-card__ticket-fallback" aria-hidden="true">{initials(event?.title)}</div>}
         <div className="cut-wallet-card__ticket-shade" aria-hidden="true" />
         <div className="cut-wallet-card__badges">
