@@ -10,6 +10,7 @@ import { checkoutQuantityLimit, resolveCheckoutQuantity } from "../../utils/chec
 import { readEventCart, writeEventCart } from "../../utils/eventCartStorage";
 import { safeRemoveSessionItem } from "../../utils/safeStorage";
 import { trackTelemetry } from "../../utils/telemetry";
+import { effectiveEventItemPrice, hasEventItemDiscount } from "../../utils/eventItemPricing";
 import "./EventItemCatalogPage.css";
 
 const money = (value) => new Intl.NumberFormat("pt-BR", {
@@ -82,7 +83,7 @@ export default function EventItemCatalogPage() {
     .filter((entry) => entry.quantity > 0), [items, quantities]);
 
   const total = useMemo(() => selected.reduce(
-    (sum, entry) => sum + (Number(entry.item.price || 0) * entry.quantity),
+    (sum, entry) => sum + (effectiveEventItemPrice(entry.item) * entry.quantity),
     0,
   ), [selected]);
 
@@ -204,7 +205,7 @@ export default function EventItemCatalogPage() {
             return <article className={`cut-event-catalog-card${quantity > 0 ? " is-selected" : ""}${soldOut ? " is-sold-out" : ""}`} key={item.id}>
               <Link to={detailHref} className="cut-event-catalog-card__media" aria-label={`Ver detalhes de ${item.name}`}>{image ? <img src={image} alt={item.name || "Item do evento"} loading="lazy" decoding="async" /> : <i className="fa-solid fa-box-open" aria-hidden="true" />}</Link>
               <div className="cut-event-catalog-card__body">
-                <div className="cut-event-catalog-card__copy"><strong><Link to={detailHref}>{item.name}</Link></strong>{item.description && <p>{item.description}</p>}<span>{money(item.price)}</span><small>{soldOut ? "Esgotado" : `${max} disponível${max === 1 ? "" : "is"} para este pedido`}</small><Link to={detailHref} className="cut-event-catalog-card__detail">Ver detalhes <i className="fa-solid fa-arrow-right" /></Link></div>
+                <div className="cut-event-catalog-card__copy"><strong><Link to={detailHref}>{item.name}</Link></strong>{item.description && <p>{item.description}</p>}{hasEventItemDiscount(item) && <del>{money(item.price)}</del>}<span>{money(effectiveEventItemPrice(item))}</span><small>{soldOut ? "Esgotado" : `${max} disponível${max === 1 ? "" : "is"} para este pedido`}</small><Link to={detailHref} className="cut-event-catalog-card__detail">Ver detalhes <i className="fa-solid fa-arrow-right" /></Link></div>
                 <div className="cut-event-catalog-stepper" role="group" aria-label={`Quantidade de ${item.name}`}>
                   <button type="button" onClick={() => setQuantity(item, quantity - 1)} disabled={quantity <= 0} aria-label={`Remover uma unidade de ${item.name}`}><i className="fa-solid fa-minus" /></button>
                   <output aria-live="polite">{quantity}</output>
