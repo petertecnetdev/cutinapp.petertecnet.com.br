@@ -39,6 +39,14 @@ jobs:
             # Explicitly discarded: source says monetization by transaction fees
             # and removes campaign attribution; contrary to chosen SaaS/trial 30d.
             ["fix/producer-landing-monetization-truth"]="2a973b85bd0de3180d9ff243b4e3dd394e5f8ded"
+
+            # PR711 closed as superseded: resolver + tests already in shared.
+            ["aux-01/w1-wallet-image-path"]="84ffad4c5b23b6c8afc5d49e178cb155d7567726"
+            # Old mobile code patches were incorporated into main; its remaining
+            # landing CSS is purple legacy, superseded by red shared CTA.
+            ["cycle/mobile-nav-reliability-20261007"]="8596ae017c3f4606a53a4eee3a1b093635b3ffb5"
+            # All nine community feature paths are byte-identical to main.
+            ["feat/community-meetups-20261007"]="25d87c4fd72f75fbc9bfc82a46d9257c10a61b72"
           )
           # The W1 event-ticket-price branch is deliberately protected:
           # active WORKING claim, despite identical HEAD. The PR710 growth
