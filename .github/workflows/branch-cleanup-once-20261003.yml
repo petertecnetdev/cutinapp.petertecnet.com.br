@@ -1,4 +1,4 @@
-name: Branch cleanup once 2026-10-03
+name: Branch cleanup audited 2026-10-12
 
 on:
   push:
@@ -10,143 +10,56 @@ permissions:
   contents: write
 
 jobs:
-  delete-exact-merged-heads:
+  delete-safe-legacy-branches:
+    if: github.repository == 'petertecnetdev/cutinapp.petertecnet.com.br'
     runs-on: ubuntu-latest
     steps:
-      - name: Delete exact merged heads
+      - name: Delete only audited refs at exact reviewed SHA
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
         shell: bash
         run: |
-          set -u
+          set -euo pipefail
           declare -A expected=(
-            ["activation/direct-first-ticket-publication"]="34012ef8cb14ace1cb2e922bd4c200a87f2d09c0"
-            ["automation/acquisition-idempotency-20260907"]="b302b0e730961e2c22551f32ba3959103429107f"
-            ["automation/activation-attributed-sharing-20260907"]="b469675a024f923e2ea57376d03f9b94557929ee"
-            ["automation/activation-auto-event-select-v2-20260907"]="71ae5a1ddcfb886faf7573429246f90773679388"
-            ["automation/activation-auto-production-select-20260907"]="7d7349faf454256eabbf4f316252f07d47781e27"
-            ["automation/activation-direct-event-20260907-run3"]="efb6c4e1bc56bc521a1ccdf6fb62f23ec0629729"
-            ["automation/activation-direct-publish-20260906-2231"]="ce3072f00bc2b5fe77fe3f87a571d73b6fafb782"
-            ["automation/activation-essential-event-form-20260907"]="8fe3c02e5a7b4540403252160926a577b5842c1a"
-            ["automation/activation-fast-publish-run6"]="960c07ded88c7487200595aa180fd96c33801176"
-            ["automation/activation-first-sale-resume-20260907"]="68cafe47ca8fffa2ee65353ff088dd92cd55546c"
-            ["automation/activation-first-share-20260907"]="ed8d026ad59887bdc3f6dd3cbb976b5e1192aa51"
-            ["automation/activation-first-ticket-publish-20260907"]="7b320f7f32c3e54c5c166ad14ce5415400189c0c"
-            ["automation/activation-resume-dashboard-run4"]="457a4279dc823b49d2cb5c303aa361b6ce766a5a"
-            ["automation/activation-run4-20260907-gh"]="5a9bdb28521446fb5e7e6552809b1b6b0ad3ef2e"
-            ["automation/activation-run5-20260907-gh"]="b14fa197a000a28d1b0a3ec25159a26936e587af"
-            ["automation/activation-run6-20260907"]="8d1caca1baa23a1c7934af48df27f07313496a24"
-            ["automation/activation-single-production-prefill"]="52872cbb0197bb88decf7219dd910c8c44338137"
-            ["automation/activation-ticket-draft-20260907-1148"]="de6406dd53e9083b5cfec92983ebc708ad3fdcc5"
-            ["automation/agenda-generation-idempotency"]="5a6f3bc6925bd0e799daebe761d1cb687bd729fc"
-            ["automation/artist-idempotency"]="55197a175a02a157bc3650ebaaedec86fd20325b"
-            ["automation/build-unblock-revenue-20260907"]="ad40a2ecd0450fa230e2f15f2e45c633ff2d7bab"
-            ["automation/bundle-checkin-jsqr-20260909"]="dc5bbbe7d0e80afe92b33894ffb265ab0d1107ae"
-            ["automation/channel-economics-guardrail-20260908"]="71df3f29905da0370cd131b948f495c1459a4b43"
-            ["automation/channel-net-revenue-20260908"]="239956419dc6d24cd9e414c94cce357b2da4e8de"
-            ["automation/checkin-fallback-failure"]="3a026657441df9e1e7f3c80b307c4a34ef46c3a4"
-            ["automation/checkin-telemetry-round12"]="5190a2ef28a7050bb00d3e66d3419bbd094464dc"
-            ["automation/checkout-3ds-failure-recovery-20260909"]="1459af4f8da8681f47a872734da1e24ee237352e"
-            ["automation/checkout-3ds-issuer-recovery-20260908"]="e274cf3537268f58f68eec9610261d7ebdfb5dd9"
-            ["automation/checkout-422-classification-20260907"]="3d20f4f3dbf8ed6b9954bc602257c6b9474d6a2e"
-            ["automation/checkout-422-guidance-20260907"]="04493ac492a5623a6f6e77c87d30d0086ed64d21"
-            ["automation/checkout-authoritative-reconcile-20260907"]="e6c8fd96ad693f93d365f84c8e3f27288d39dfbf"
-            ["automation/checkout-auto-retry-uncertain-20260907-v2"]="5d90588535d6345f46a5c855d76d84931dd289db"
-            ["automation/checkout-available-addons-20260907"]="a1df67db3f29727349a0dcd93f2b0e3f40f6e41c"
-            ["automation/checkout-canceled-terminal-20260909b"]="48c09ac99b4a4e4b79c4e37dbaa81dfc66bec5b6"
-            ["automation/checkout-canceled-terminal-20260909"]="3fd2eda4058d5127a3d5ecf158bb634619aa48bf"
-            ["automation/checkout-card-canceled-recovery-20260909"]="0802b5c343e1af967e3e50c0967c193d3e5b5c40"
-            ["automation/checkout-card-connectivity-recovery-20260907"]="046f716b8c3f67122c26d3b62d77f9e562a2fb5a"
-            ["automation/checkout-card-disabled-recovery-20260909"]="d599656d4da878425443b5ddc339905642d76527"
-            ["automation/checkout-card-type-recovery-run6"]="359e52646b7af2bf81340ebf6829646204d42139"
-            ["automation/checkout-confirmation-speed-run5"]="68075b8168214d68b88a1e43f08a4e8b04f2e0d5"
-            ["automation/checkout-connectivity-guard"]="a695bc955830662e9fcac0980347270581d070c6"
-            ["automation/checkout-connectivity-recovery-20260908"]="a2555c641e6e753e14a85b89bf06bbb995a6d781"
-            ["automation/checkout-coupon-revalidate-run11-gh"]="32540a8a5948d9fa835a3215930901b57bcaab06"
-            ["automation/checkout-duplicate-payment-guard-20260908"]="f6a65bbded3472fcfd8b63bc93f02f47093ff5cd"
-            ["automation/checkout-duplicate-payment-guidance-20260908"]="bc076d1747d320834d94c2cc49a2737c116be885"
-            ["automation/checkout-fresh-selection-run6"]="1b8bafde55debd5b8a70c3fd69f636749a1246d5"
-            ["automation/checkout-issuer-authorization-retry-20260909"]="c00a9236fcc8e373c8249a212e10bb984774ea09"
-            ["automation/checkout-network-retry-20260907"]="758ba215de245ab65fca940a038129e012a4ebca"
-            ["automation/checkout-online-retry-20260907"]="8214f44239f21474b0bc6f80f46a8c2439dc241f"
-            ["automation/checkout-payment-sync-online-20260908"]="313af30fd476a981d52a1950adb4449775e9ef93"
-            ["automation/checkout-pix-copy-fallback-20260906"]="9ce0c5ba2ab0bd9fb3fba11935a33d97e1286eed"
-            ["automation/checkout-pix-mobile-20260907"]="1ae6f6f48a37b2b56d7aabfbd5e27020dcac2548"
-            ["automation/checkout-preserve-coupon-conflict-20260908"]="8decf2faa97fdece265b18c820fac82fda6e89b9"
-            ["automation/checkout-processing-error-recovery-20260909"]="180e4ab62bf026ea167423ed58a5368bc5e2d49a"
-            ["automation/checkout-quantity-policy-20260908"]="a0801699bbe327ad55afab78dc9c61ebbb7b8f62"
-            ["automation/checkout-reconcile-20260907b"]="30f103f47d76c7913920b18f5188c15d6e398dbf"
-            ["automation/checkout-recover-coupon-20260908"]="7e4617a50d2b00aa060d0f18248e764b3e4e5e31"
-            ["automation/checkout-recovery-action-20260909"]="9db9352f1cd6251a916a51b44661fcc802ce5dcc"
-            ["automation/checkout-recovery-actions-20260909"]="d669281734788519605959b3dea2f94b96a62845"
-            ["automation/checkout-recovery-card-disabled-20260907"]="509669edb347dc31cbcc583d55b1b6d13c14963b"
-            ["automation/checkout-recovery-cta"]="fffe53fa34abbf6d717a7f3dbbe761459a5be46d"
-            ["automation/checkout-recovery-window-20260907"]="d32a4c36719ca2e77640ab4d6d809246cc444c20"
-            ["automation/checkout-rejection-guidance-run6-clean-gh"]="11105647adc95574c4d164b37fcc13f9282b310a"
-            ["automation/checkout-retry-backoff-20260907"]="f06f73b20ea903bfd0f4a9173fc68af3af79324c"
-            ["automation/checkout-revalidate-conflict-run11"]="3a2437068b6a57d99af87058b9d0ce4a25575dd2"
-            ["automation/checkout-review-resolution-20260909"]="dc0e702bab3197931b2c6c7f4ffb0713bbc4e755"
-            ["automation/checkout-run7-20260907"]="355342843343b278e0362fd73510ec172cc57041"
-            ["automation/checkout-safe-retry-policy-11b"]="084b7c2d1fa98d281d380e210edec737f5840041"
-            ["automation/checkout-selection-recovery-20260907"]="a38d0a71d3d869f827d4262e28a3a4a4665deb54"
-            ["automation/checkout-stock-cap-run5b"]="18007594adede6233dfdac8ffb19c8e93c2c181f"
-            ["automation/checkout-submission-lock-20260908-v2"]="48c8264706d169d37258dc1d6b2a5fae4e10298f"
-            ["automation/checkout-unmanaged-stock-run7"]="cbb549ac31a3cf0037346f046c5d8555e3d603c9"
-            ["automation/claim-courtesy-idempotency"]="8fe4ee00ecd600b845a781aa3d4b22bd03b39924"
-            ["automation/commerce-line-subtotals-20260907-2317"]="0ac1e45b75a7a1c521dcfa9bb7ff821c0d52aad1"
-            ["automation/coupon-idempotency-20260908"]="888aea4b893ed8d4e85bb28a1a77235e1571447e"
-            ["automation/creative-idempotency-20260907"]="b3bae9f3df1516b59d0ad5ab88a80b19d56dd64d"
-            ["automation/cutinapp-payment-recovery-idempotency"]="57b6953d2c2eaa79a194a38414a6a1d78980a746"
-            ["automation/event-derived-idempotency-20260907"]="98590e55bde5fc77551f2fe0691eae22c8865e8a"
-            ["automation/event-publish-idempotency"]="02315f38c449556e92bee5a90e4ccf5c4b7df604"
-            ["automation/event-series-idempotency-20260907"]="afd85a676e606d3499ab0651dbc3b57c910a4a84"
-            ["automation/evo11-event-item-idempotency"]="8b2d1b889af8a97c43677f872964f204518d2283"
-            ["automation/evo11-media-idempotency"]="97bf33a8ec672002190b5cde19be4239a9271f98"
-            ["automation/finance-payout-idempotency-20260907"]="5edb8b5e3af54031a4fb96f07eb6d3420bfa3b86"
-            ["automation/idempotent-helper-r3"]="887e14358bcbd01a8a587a6fb91977de4bc9b210"
-            ["automation/messaging-lifecycle-idempotency"]="0bc9bc6d09c016cb6d90f8f1b44fadd9d0957ff7"
-            ["automation/monetizacao-eficiencia-attach"]="fbf8895efa5bfa1925ed760a06878e8621c294aa"
-            ["automation/monetization-addon-experiment-roi"]="e9cd5465c39b5f76e79a6096db4911eec94ee53f"
-            ["automation/monetization-addon-experiment-run11"]="c67c278f1cd1b0887845e141244c8f7389c4cb6b"
-            ["automation/monetization-addon-margin-density-run11"]="6230bece52a0d4b5e7a866235a65e47448f1ea05"
-            ["automation/monetization-buyer-efficiency"]="f3d0df85619527f35e3d395f24e5e2748aae9bec"
-            ["automation/monetization-channel-allocation-20260909"]="699e381ce73f6cd8e9f6d3f2fc52ae8eea2a685b"
-            ["automation/monetization-channel-cost-simulator-20260908"]="1a114faddad4240fe39f54db38a79547618f5770"
-            ["automation/monetization-cost-ceiling-20260909"]="e9fcba027f392d376523971290306a36d8f4e95b"
-            ["automation/monetization-event-channel-history-20260909"]="4cd4cf7ac8c46dab67f2572d274df9fd89fd31bb"
-            ["automation/monetization-evidence-bound-budget-20260909"]="270924fb85c77dd5c3ce5a0e8243608a234790c0"
-            ["automation/monetization-evidence-scaled-budget-20260909"]="a641a9645d458bd8118c22adc1fdac6f50980efa"
-            ["automation/monetization-margin-quality-20260908"]="06ffa4d98002331e0bfedb5417275b60b5e99ca5"
-            ["automation/monetization-margin-weighted-ranking-20260908"]="7d5048b5ae0db34941604b0fdcc8b6a8f09179de"
-            ["automation/monetization-marginal-budget-20260909"]="9e3d4ebd3a3481a34da44767bf98f9a227c3a608"
-            ["automation/monetization-materiality-run11-v2"]="f8620ef79186e8063a187919e96599df32b5ef41"
+            ["aux03/2026-10-10-producer-pain-point-post"]="337c9ba22a4b97f9bd8d48f09b695105a954f43f"
+            ["aux-01/w3-recurring-event-producer-campaign"]="337c9ba22a4b97f9bd8d48f09b695105a954f43f"
+            ["develop/cutinapp-shared"]="337c9ba22a4b97f9bd8d48f09b695105a954f43f"
+            ["aux-01/growth-high-intent-event-guide"]="0cef076c207dfde909dc4824aee4ec46eab1d994"
+            ["fix/cutinapp-official-logo-20261007"]="2447d7c82b2970aee4ca183132a5a3d780ecd978"
+            ["aux-01/w2-event-ticket-price-label-guard-20261012"]="337c9ba22a4b97f9bd8d48f09b695105a954f43f"
+            ["aux-01/w3-community-meetups-launch"]="ce61d7a3c47afc4639ed0012bc78fdc4cad26d4c"
           )
+          # The W1 event-ticket-price branch is deliberately protected:
+          # active WORKING claim, despite identical HEAD. The PR710 growth
+          # docs were independently SHA-compared and preserved in shared.
           failures=0
           deleted=0
           absent=0
           changed=0
           for branch in "${!expected[@]}"; do
-            if current="$(gh api "repos/$REPO/git/ref/heads/$branch" --jq '.object.sha' 2>/dev/null)"; then
-              :
-            else
+            if [[ "$branch" == "main" || "$branch" == "cycle/mobile-nav-runtime-validation-20261007" ]]; then
+              echo "Protected branch in deletion allowlist; aborting."
+              exit 1
+            fi
+            if ! current=$(gh api "repos/$REPO/git/ref/heads/$branch" --jq '.object.sha' 2>/dev/null); then
               echo "Already absent: $branch"
               absent=$((absent + 1))
               continue
             fi
-            if [ "$current" != "${expected[$branch]}" ]; then
-              echo "HEAD CHANGED; refusing deletion: $branch expected=${expected[$branch]} current=$current"
+            if [[ "$current" != "${expected[$branch]}" ]]; then
+              echo "Changed HEAD, SKIP $branch expected=${expected[$branch]} current=$current"
               changed=$((changed + 1))
               failures=$((failures + 1))
               continue
             fi
             if gh api --method DELETE "repos/$REPO/git/refs/heads/$branch" >/dev/null; then
-              echo "Deleted $branch"
+              echo "Deleted exact-head branch: $branch"
               deleted=$((deleted + 1))
             else
-              echo "FAILED to delete $branch"
+              echo "Deletion failed: $branch"
               failures=$((failures + 1))
             fi
           done
-          echo "SUMMARY deleted=$deleted absent=$absent changed=$changed failures=$failures"
-          if [ "$failures" -ne 0 ]; then exit 1; fi
+          echo "SUMMARY deleted=$deleted absent=$absent changed=$changed failures=$failures" | tee -a "$GITHUB_STEP_SUMMARY"
+          [[ "$failures" -eq 0 ]]
