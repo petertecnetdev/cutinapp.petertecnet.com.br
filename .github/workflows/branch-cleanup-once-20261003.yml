@@ -29,6 +29,16 @@ jobs:
             ["fix/cutinapp-official-logo-20261007"]="2447d7c82b2970aee4ca183132a5a3d780ecd978"
             ["aux-01/w2-event-ticket-price-label-guard-20261012"]="337c9ba22a4b97f9bd8d48f09b695105a954f43f"
             ["aux-01/w3-community-meetups-launch"]="ce61d7a3c47afc4639ed0012bc78fdc4cad26d4c"
+
+            # Blog page + test preserved exactly in shared: commits 8b7a7ea and ba7c1d7.
+            ["feat/blog-internal-links-seo"]="563575cd4b360de770ab2199d80e3d8435a26e7a"
+            # Red palette content superseded by current main and shared.
+            ["fix/cutinapp-official-red-palette-20261008"]="1923bb6fa5dc2f488f1f6c436cf4ba26a9565858"
+            # Global brand CSS is identical to main except main adds new registration rules.
+            ["fix/cutinapp-global-brand-css-20261008"]="b0bda21a5d0293367023585d950d87dfdc4db8b7"
+            # Explicitly discarded: source says monetization by transaction fees
+            # and removes campaign attribution; contrary to chosen SaaS/trial 30d.
+            ["fix/producer-landing-monetization-truth"]="2a973b85bd0de3180d9ff243b4e3dd394e5f8ded"
           )
           # The W1 event-ticket-price branch is deliberately protected:
           # active WORKING claim, despite identical HEAD. The PR710 growth
