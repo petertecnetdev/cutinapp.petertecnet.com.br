@@ -3,27 +3,47 @@ import PropTypes from "prop-types";
 import { Alert, Button, Container, Spinner } from "react-bootstrap";
 import { Navigate, useLocation } from "react-router-dom";
 import appApiClient from "../services/AppApiClient";
+import authService from "../services/AuthService";
 
 let cachedContext = null;
+let cachedToken = null;
 let pendingContext = null;
 
 export const clearApplicationAdminContextCache = () => {
   cachedContext = null;
+  cachedToken = null;
   pendingContext = null;
 };
 
 export const loadApplicationAdminContext = async ({ force = false } = {}) => {
-  if (!force && cachedContext?.authorized) return cachedContext;
+  const currentToken = authService.getToken();
+  if (!currentToken) {
+    clearApplicationAdminContextCache();
+    return null;
+  }
+
+  // Privileges belong to the authenticated identity, never to the browser tab.
+  if (cachedToken !== currentToken) {
+    cachedContext = null;
+    pendingContext = null;
+    cachedToken = currentToken;
+  }
+
+  if (!force && cachedContext) return cachedContext;
   if (!force && pendingContext) return pendingContext;
 
-  pendingContext = appApiClient.get("/admin/context")
+  const request = appApiClient.get("/admin/context")
     .then((response) => {
-      cachedContext = response.data?.data || null;
-      return cachedContext;
+      const context = response.data?.data || null;
+      if (cachedToken === currentToken) cachedContext = context;
+      return context;
     })
-    .finally(() => { pendingContext = null; });
+    .finally(() => {
+      if (pendingContext === request) pendingContext = null;
+    });
 
-  return pendingContext;
+  pendingContext = request;
+  return request;
 };
 
 export default function ApplicationAdminGate({ children, permission = null }) {
