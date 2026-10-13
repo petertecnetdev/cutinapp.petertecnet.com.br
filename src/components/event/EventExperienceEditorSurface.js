@@ -28,7 +28,6 @@ export default function EventExperienceEditorSurface({
   productionControl = null,
   cityControl = null,
   errors = {},
-  imageHelp = "",
   secondaryActions = null,
   children = null,
 }) {
@@ -128,10 +127,10 @@ export default function EventExperienceEditorSurface({
               data-pt-image-enhancer="off"
               data-media-library="off"
               onChange={onImageChange}
+              aria-label="Escolher imagem de capa do evento. JPG, PNG ou WebP de até 5 MB."
               hidden
             />
           </div>
-          {imageHelp && <small className="cut-event-inline-editor__imageHelp">{imageHelp}</small>}
         </Container>
       </section>
 
@@ -184,9 +183,6 @@ export default function EventExperienceEditorSurface({
               </Button>
               <Button type="button" variant="outline-light" className="cut-event-inline-editor__summaryAction" onClick={() => document.getElementById("event-editor-location")?.scrollIntoView({ behavior: "smooth", block: "start" })}>
                 <i className="fa-solid fa-location-dot me-2" />Localização
-              </Button>
-              <Button type="button" className="cut-event-inline-editor__primaryAction cut-event-inline-editor__summaryAction" onClick={handleSave} disabled={saving}>
-                <i className="fa-solid fa-floppy-disk me-2" />{saving ? "Salvando..." : primaryLabel}
               </Button>
             </div>
           </div>
@@ -346,7 +342,6 @@ EventExperienceEditorSurface.propTypes = {
   productionControl: PropTypes.node,
   cityControl: PropTypes.node,
   errors: PropTypes.objectOf(PropTypes.oneOfType([PropTypes.string, PropTypes.arrayOf(PropTypes.string)])),
-  imageHelp: PropTypes.string,
   secondaryActions: PropTypes.node,
   children: PropTypes.node,
 };
