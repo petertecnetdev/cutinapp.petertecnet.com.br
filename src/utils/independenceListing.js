@@ -19,7 +19,8 @@ export const isVerifiedListing = (entity) => {
   }
   // Compatibility with the older frontend field; do not treat arbitrary
   // verification_status strings as proof of ownership.
-  return review === 'verified';
+  return review === 'verified' && entity.is_institutional_listing !== true
+    && (!source || source === 'legacy_organizer');
 };
 
 export const isUnverifiedListing = (entity) => {
