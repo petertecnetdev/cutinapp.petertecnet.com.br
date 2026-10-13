@@ -36,6 +36,26 @@ describe("capability based navigation", () => {
     expect(actorMenusFor(capabilities).map((area) => area.id)).toEqual(expect.arrayContaining(["producer", "artist", "promoter", "admin"]));
   });
 
+  test("delegated administrator shows only Cutinapp administration, never owner-only tools", () => {
+    const user = { id: 7, email: "delegate@example.com", applications: [app("participant")] };
+    const before = resolveNavigationCapabilities(user);
+    expect(before.admin).toBe(false);
+    expect(adminActionsFor(before)).toEqual([]);
+
+    const after = resolveNavigationCapabilities(user, { hasApplicationAdmin: true });
+    expect(after.admin).toBe(true);
+    expect(after.root).toBe(false);
+    const links = adminActionsFor(after).map((entry) => entry.to);
+    expect(links).toContain("/admin");
+    expect(links).toContain("/admin/users");
+    expect(links).toContain("/admin/events");
+    expect(links).not.toContain("/admin/blog");
+    expect(links).not.toContain("/admin/search");
+    expect(quickActionsFor(after).every((entry) => !entry.to.startsWith("/admin"))).toBe(true);
+
+    expect(resolveNavigationCapabilities(user, { hasApplicationAdmin: false }).admin).toBe(false);
+  });
+
   test("producer menu exposes management revenue tickets and checkin", () => {
     const capabilities = resolveNavigationCapabilities({}, { hasProductions: true });
     const producer = actorMenusFor(capabilities).find((area) => area.id === "producer");
