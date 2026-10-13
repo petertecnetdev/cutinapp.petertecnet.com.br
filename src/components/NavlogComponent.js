@@ -11,6 +11,7 @@ import { safeNavigationTarget } from "../utils/safeUrl";
 import { notificationTelemetryAttrs } from "../utils/notificationTelemetry";
 import { trackTelemetry } from "../utils/telemetry";
 import { resolveNavigationCapabilities } from "../navigation/capabilityResolver";
+import { loadApplicationAdminContext } from "./ApplicationAdminGate";
 import {
   NAV_USAGE_STORAGE_KEY,
   PRODUCTION_STORAGE_KEY,
@@ -129,6 +130,39 @@ export default function NavlogComponent() {
     if (Array.isArray(cached.notificationPreview)) setNotificationPreview(cached.notificationPreview);
     if (cached.unreadNotifications !== undefined) setUnreadNotifications(Number(cached.unreadNotifications || 0));
     if (cached.pendingArtistInvitations !== undefined) setPendingArtistInvitations(Number(cached.pendingArtistInvitations || 0));
+  }, [userId]);
+
+  // The API owns delegated administration. A local role/email is not evidence of access.
+  useEffect(() => {
+    if (!userId) {
+      setCapabilityEvidence((current) => ({ ...current, hasApplicationAdmin: false }));
+      return undefined;
+    }
+
+    let active = true;
+    const refreshAdminAccess = async () => {
+      try {
+        const context = await loadApplicationAdminContext({ force: true });
+        if (active) {
+          setCapabilityEvidence((current) => ({
+            ...current,
+            hasApplicationAdmin: Boolean(context?.authorized),
+          }));
+        }
+      } catch {
+        // Fail closed when the authority endpoint is unavailable or returns 403.
+        if (active) {
+          setCapabilityEvidence((current) => ({ ...current, hasApplicationAdmin: false }));
+        }
+      }
+    };
+
+    void refreshAdminAccess();
+    window.addEventListener("focus", refreshAdminAccess);
+    return () => {
+      active = false;
+      window.removeEventListener("focus", refreshAdminAccess);
+    };
   }, [userId]);
 
   useEffect(() => { closeMenu(); }, [location.pathname, location.search, location.hash]);
