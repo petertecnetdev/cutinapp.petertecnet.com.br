@@ -18,6 +18,8 @@ import cutinappService from "../../services/CutinappService";
 import commerceService from "../../services/CommerceService";
 import { storageUrl } from "../../config";
 import { isPeterTecnetRoot } from "../../utils/applicationRoles";
+import UnverifiedListingPanel from "../../components/independence/UnverifiedListingPanel";
+import { canShowListingCommerce } from "../../utils/independenceListing";
 import { buildEventShareUrl } from "../../utils/eventShareUrl";
 import { safeExternalHref } from "../../utils/safeUrl";
 import { trackTelemetry } from "../../utils/telemetry";
@@ -225,7 +227,7 @@ export default function EventViewPage() {
   const isPastEvent = temporalState === "past";
   const hasTickets = Number(event?.tickets_count || 0) > 0 || tickets.length > 0;
   const ticketAvailabilityStatus = event?.ticket_availability_status || null;
-  const hasSellableTickets = !isCommunityMeetup && (ticketAvailabilityStatus
+  const hasSellableTickets = !isCommunityMeetup && canShowListingCommerce(event) && (!event?.production || canShowListingCommerce(event.production)) && (ticketAvailabilityStatus
     ? ["free_available", "available"].includes(ticketAvailabilityStatus)
     : hasTickets);
   const ticketAvailabilityLabel = ({
@@ -548,6 +550,7 @@ export default function EventViewPage() {
       </section>
 
       <Container className="cut-page-container py-4 py-lg-5">
+        <UnverifiedListingPanel entity={event} entityType="event" user={user} onLogin={() => navigate("/login", { state: { from: location.pathname + location.search } })} />
         <Alert variant={temporal.alertVariant} className="d-flex align-items-start gap-3 mb-4" role="status"><i className={`${temporal.icon} fs-4 mt-1`} aria-hidden="true" /><div><strong className="d-block mb-1">{temporal.title}</strong><span>{temporal.description}{temporalState === "ongoing" && event.end_date ? ` Término previsto para ${formatDate(event.end_date)}.` : ""}</span></div></Alert>
         {error && <Alert variant="danger">{error}</Alert>}{success && <Alert variant="success">{success}</Alert>}
 
