@@ -50,6 +50,7 @@ const AdminBlogPage = lazy(() => import("./pages/admin/AdminBlogPage"));
 const AdminSearchAnalyticsPage = lazy(() => import("./pages/admin/AdminSearchAnalyticsPage"));
 const ArtistIdentityClaimsAdminPage = lazy(() => import("./pages/admin/ArtistIdentityClaimsAdminPage"));
 const ApplicationAdminEventsPage = lazy(() => import("./pages/admin/ApplicationAdminEventsPage"));
+const IndependenceClaimsAdminPage = lazy(() => import("./pages/admin/IndependenceClaimsAdminPage"));
 const ApplicationAdminTicketsPage = lazy(() => import("./pages/admin/ApplicationAdminTicketsPage"));
 const ApplicationAdminUsersPage = lazy(() => import("./pages/admin/ApplicationAdminUsersPage"));
 const ApplicationAdminProductionsPage = lazy(() => import("./pages/admin/ApplicationAdminProductionsPage"));
@@ -208,6 +209,7 @@ function AppRoutes() {
           <Route path="/admin/productions" element={adminRoute(<ApplicationAdminProductionsPage />, "establishments.view")} />
           <Route path="/admin/onboarding" element={adminRoute(<AssistedProducerOnboardingPage />, "establishments.view")} />
           <Route path="/admin/events" element={adminRoute(<ApplicationAdminEventsPage />, "events.view")} />
+          <Route path="/admin/independence/claims" element={adminRoute(<IndependenceClaimsAdminPage />, "moderation.view")} />
           <Route path="/admin/tickets" element={adminRoute(<ApplicationAdminTicketsPage />, "tickets.view")} />
           <Route path="/admin/orders" element={adminRoute(<ApplicationAdminOrdersPage />, "finance.view")} />
           <Route path="/admin/finance" element={adminRoute(<ApplicationAdminFinancePage />, "finance.view")} />

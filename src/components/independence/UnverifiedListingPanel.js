@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import PropTypes from "prop-types";
 import independenceClaimService from "../../services/IndependenceClaimService";
 import { safeListingSourceUrl } from "../../utils/independenceListing";
 import "./unverified-listing.css";
@@ -94,3 +95,21 @@ export default function UnverifiedListingPanel({ entity, entityType, user, onLog
     </aside>
   );
 }
+
+UnverifiedListingPanel.propTypes = {
+  entity: PropTypes.shape({
+    id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    ownership_status: PropTypes.string,
+    source_url: PropTypes.string,
+    last_verified_at: PropTypes.string,
+  }),
+  entityType: PropTypes.oneOf(["event", "production", "artist"]).isRequired,
+  user: PropTypes.shape({
+    id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    first_name: PropTypes.string,
+    last_name: PropTypes.string,
+    name: PropTypes.string,
+    email: PropTypes.string,
+  }),
+  onLogin: PropTypes.func,
+};
