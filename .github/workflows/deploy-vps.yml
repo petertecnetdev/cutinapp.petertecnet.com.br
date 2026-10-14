@@ -50,6 +50,10 @@ jobs:
             if [[ -z "$sha" ]]; then
               sha="$(git ls-remote "https://github.com/${REPOSITORY}.git" refs/heads/main | awk '{print $1}')"
             fi
+            if [[ ! "$sha" =~ ^[0-9a-fA-F]{40}$ ]]; then
+              echo "::error::Invalid manual deployment SHA; expected 40 hexadecimal characters." >&2
+              exit 1
+            fi
             echo "deploy=true" >> "$GITHUB_OUTPUT"
             echo "sha=$sha" >> "$GITHUB_OUTPUT"
             exit 0

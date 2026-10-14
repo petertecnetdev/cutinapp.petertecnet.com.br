@@ -1,8 +1,10 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef } from "react";
 import PropTypes from "prop-types";
 import { Button, Card, Col, Container, Form, Row } from "react-bootstrap";
 import EventArtwork from "./EventArtwork";
 import { FormattedTextEditor } from "../editor/FormattedText";
+import { showImportantAlert } from "../../utils/sweetAlert";
+import { buildEventValidationAlert } from "../../utils/eventEditorValidationAlert";
 import "./EventExperienceEditorSurface.css";
 
 const buildMapEmbedUrl = (form) => {
@@ -28,11 +30,10 @@ export default function EventExperienceEditorSurface({
   productionControl = null,
   cityControl = null,
   errors = {},
-  imageHelp = "",
   secondaryActions = null,
   children = null,
 }) {
-  const [validationRequested, setValidationRequested] = useState(false);
+  const validationAlertOpen = useRef(false);
   const mapEmbedUrl = useMemo(() => buildMapEmbedUrl(form), [form]);
   const title = form?.title?.trim() || "Nome do evento";
   const modeLabel = mode === "create" ? "Criando evento" : "Editando evento";
@@ -77,23 +78,17 @@ export default function EventExperienceEditorSurface({
   const incompleteRows = readinessRows.filter((row) => !row.ok);
   const handleSave = () => {
     if (mode === "create" && incompleteRows.length > 0) {
-      setValidationRequested(true);
-      window.setTimeout(() => {
-        document.getElementById("event-editor-validation")?.scrollIntoView({ behavior: "smooth", block: "center" });
-      }, 0);
+      // The public event hero uses display:contents on desktop. Validation
+      // belongs in the shared modal, never as an unpositioned grid element.
+      if (!validationAlertOpen.current) {
+        validationAlertOpen.current = true;
+        void showImportantAlert(buildEventValidationAlert(incompleteRows.map((row) => row.issueLabel)))
+          .finally(() => { validationAlertOpen.current = false; });
+      }
       return;
     }
     onSave();
   };
-
-  const validationSummary = validationRequested && mode === "create" && incompleteRows.length > 0 ? (
-    <div id="event-editor-validation" className="cut-form-message cut-form-message--error mt-3" role="alert" aria-live="assertive">
-      <strong>Falta revisar {incompleteRows.length === 1 ? "1 campo" : `${incompleteRows.length} campos`}:</strong>
-      <ul className="mb-0 mt-2 ps-3">
-        {incompleteRows.map((row) => <li key={row.key}>{row.issueLabel}</li>)}
-      </ul>
-    </div>
-  ) : null;
 
   return (
     <div className="cut-event-inline-editor cut-event-view-page">
@@ -112,8 +107,6 @@ export default function EventExperienceEditorSurface({
               </Button>
             </div>
           </div>
-          {validationSummary}
-
           <div className={imagePreview ? "cut-event-banner-frame cut-event-inline-editor__artwork" : "cut-event-banner-placeholder cut-event-inline-editor__artwork"}>
             <EventArtwork image={imagePreview} title={title} alt={`Prévia da imagem de ${title}`} fallbackClassName="cut-event-banner-initials" />
             <label className="cut-event-inline-editor__imageAction btn" htmlFor={`event-${mode}-image`}>
@@ -128,10 +121,10 @@ export default function EventExperienceEditorSurface({
               data-pt-image-enhancer="off"
               data-media-library="off"
               onChange={onImageChange}
+              aria-label="Escolher imagem de capa do evento. JPG, PNG ou WebP de até 5 MB."
               hidden
             />
           </div>
-          {imageHelp && <small className="cut-event-inline-editor__imageHelp">{imageHelp}</small>}
         </Container>
       </section>
 
@@ -184,9 +177,6 @@ export default function EventExperienceEditorSurface({
               </Button>
               <Button type="button" variant="outline-light" className="cut-event-inline-editor__summaryAction" onClick={() => document.getElementById("event-editor-location")?.scrollIntoView({ behavior: "smooth", block: "start" })}>
                 <i className="fa-solid fa-location-dot me-2" />Localização
-              </Button>
-              <Button type="button" className="cut-event-inline-editor__primaryAction cut-event-inline-editor__summaryAction" onClick={handleSave} disabled={saving}>
-                <i className="fa-solid fa-floppy-disk me-2" />{saving ? "Salvando..." : primaryLabel}
               </Button>
             </div>
           </div>
@@ -293,12 +283,6 @@ export default function EventExperienceEditorSurface({
                   <Button type="button" variant="outline-light" onClick={() => document.getElementById("event-editor-location")?.scrollIntoView({ behavior: "smooth", block: "start" })}>Editar localização</Button>
                 </div>
 
-                {mode === "create" && incompleteRows.length > 0 && (
-                  <div className="cut-form-message cut-form-message--error mt-4" aria-live="polite">
-                    <strong>Antes de publicar, revise:</strong>
-                    <div className="mt-1">{incompleteRows.map((row) => row.issueLabel).join(" · ")}</div>
-                  </div>
-                )}
                 {mode === "create" && incompleteRows.length === 0 && (
                   <div className="cut-form-message cut-form-message--success mt-4"><strong>Campos obrigatórios completos.</strong></div>
                 )}
@@ -346,7 +330,6 @@ EventExperienceEditorSurface.propTypes = {
   productionControl: PropTypes.node,
   cityControl: PropTypes.node,
   errors: PropTypes.objectOf(PropTypes.oneOfType([PropTypes.string, PropTypes.arrayOf(PropTypes.string)])),
-  imageHelp: PropTypes.string,
   secondaryActions: PropTypes.node,
   children: PropTypes.node,
 };

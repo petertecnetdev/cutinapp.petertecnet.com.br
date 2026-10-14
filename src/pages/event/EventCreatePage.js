@@ -11,7 +11,7 @@ import cutinappService from "../../services/CutinappService";
 import creativeService from "../../services/CreativeService";
 import { storageUrl } from "../../config";
 import { showImportantAlert, showProducerAgreementRequired } from "../../utils/sweetAlert";
-import { EVENT_POSTER_HINT, normalizeEventPosterFile, validateEventPosterFile } from "../../utils/eventPoster";
+import { normalizeEventPosterFile, validateEventPosterFile } from "../../utils/eventPoster";
 
 const pad = (value) => String(value).padStart(2, "0");
 const toLocalInput = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
@@ -830,22 +830,27 @@ export default function EventCreatePage() {
 
       {!loadingProductions && productions.length === 0 ? (
         <Container className="cut-page-container py-4 py-lg-5">
-          <Card className="cut-panel mx-auto" style={{ maxWidth: 720 }}>
+          <Card className="cut-panel mx-auto cut-event-quick-production">
             <Card.Body className="p-4 p-lg-5">
-              <span className="cut-eyebrow">Ativação rápida</span>
-              <h1 className="cut-section-title mt-2">Crie sua produção sem sair do evento</h1>
-              <p className="text-secondary">Informe somente o nome agora. Assim que a produção for criada, você continua neste cadastro do evento e segue para o primeiro lote.</p>
-              <Form onSubmit={createQuickProduction} className="mt-4">
-                <Form.Group>
-                  <Form.Label>Nome da produção *</Form.Label>
-                  <Form.Control value={quickProductionName} onChange={(event) => setQuickProductionName(event.target.value)} placeholder="Ex.: Peter Eventos" autoComplete="organization" autoFocus minLength={2} disabled={creatingQuickProduction} />
+              <span className="cut-eyebrow">Primeiro passo para publicar</span>
+              <h1 className="cut-section-title mt-2">Qual é a sua produção?</h1>
+              <p className="cut-event-quick-production__lead">A produção organiza seus eventos e identifica a equipe responsável. Cadastre o nome agora e continue criando o evento.</p>
+              <ol className="cut-event-quick-production__steps" aria-label="Etapas para publicar o evento">
+                <li aria-current="step"><span>1</span><strong>Produção</strong></li>
+                <li><span>2</span><strong>Evento</strong></li>
+                <li><span>3</span><strong>Ingressos</strong></li>
+              </ol>
+              <Form onSubmit={createQuickProduction} className="cut-event-quick-production__form">
+                <Form.Group controlId="event-quick-production-name">
+                  <Form.Label>Nome da produção <span aria-hidden="true">*</span></Form.Label>
+                  <Form.Control value={quickProductionName} onChange={(event) => setQuickProductionName(event.target.value)} placeholder="Ex.: Peter Eventos" autoComplete="organization" autoFocus minLength={2} required disabled={creatingQuickProduction} />
+                  <Form.Text>Você pode completar os dados da produção mais tarde.</Form.Text>
                 </Form.Group>
-                <div className="d-flex flex-column flex-sm-row gap-2 mt-3">
-                  <Button type="submit" disabled={quickProductionName.trim().length < 2 || creatingQuickProduction}>{creatingQuickProduction ? "Criando produção..." : "Criar e continuar neste evento"}</Button>
-                  <Button type="button" variant="outline-light" onClick={() => navigate("/production/create")}>Completar cadastro da produção</Button>
+                <div className="cut-event-quick-production__actions">
+                  <Button type="submit" disabled={quickProductionName.trim().length < 2 || creatingQuickProduction}>{creatingQuickProduction ? "Criando produção..." : "Continuar para o evento"} <i className="fa-solid fa-arrow-right ms-2" aria-hidden="true" /></Button>
+                  <Button type="button" variant="outline-light" disabled={creatingQuickProduction} onClick={() => navigate("/production/create")}>Cadastro completo da produção</Button>
                 </div>
               </Form>
-              <div className="cut-info-box mt-4"><strong>Sem cobrança para começar</strong><span>A criação da produção não ativa plano ou taxa. A monetização continua vinculada às vendas e serviços do evento.</span></div>
             </Card.Body>
           </Card>
         </Container>
@@ -877,7 +882,6 @@ export default function EventCreatePage() {
             </div>
           }
           errors={surfaceErrors}
-          imageHelp={EVENT_POSTER_HINT + " JPG, PNG ou WebP, até 5 MB."}
           secondaryActions={<Button type="button" variant="outline-light" disabled={loading} onClick={() => navigate("/event/manage")}><i className="fa-solid fa-xmark me-2" />Cancelar</Button>}
         >
           <Card className="cut-panel mt-4 cut-event-reuse-card">
