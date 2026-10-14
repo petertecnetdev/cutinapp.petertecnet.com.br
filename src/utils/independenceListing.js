@@ -32,9 +32,33 @@ export const isUnverifiedListing = (entity) => {
   return Boolean(ownership || UNVERIFIED_STATES.has(review) || review || source || entity.is_institutional_listing === true);
 };
 
-// Presentation-only safeguard. W01's ListingCommercePolicy must independently
-// validate the event, its production, their app ownership and sale permissions.
-export const canShowListingCommerce = (entity) => Boolean(entity) && !isUnverifiedListing(entity);
+// Compare positive decimal app IDs without lossy Number conversion. This is
+// only a UI safeguard: the Laravel API must validate tenant scope itself.
+const canonicalAppId = (value) => {
+  if (typeof value === 'number') return Number.isSafeInteger(value) && value > 0 ? String(value) : '';
+  if (typeof value !== 'string' || !/^\\d+$/.test(value)) return '';
+  return value.replace(/^0+/, '');
+};
+
+// Presentation-only safeguard. The API is authoritative for sales and must
+// validate ownership, linked production, app scope, and checkout permissions.
+export const canShowListingCommerce = (entity) => {
+  if (!entity || typeof entity !== 'object' || isUnverifiedListing(entity)) return false;
+  // An explicit server veto wins; a positive flag never overrides ownership.
+  if (entity.can_sell != null && entity.can_sell !== true) return false;
+  const production = entity.production;
+  if (production != null) {
+    if (typeof production !== 'object' || Array.isArray(production) || isUnverifiedListing(production)) return false;
+    // When the linked production is included, a missing or mismatched app ID
+    // cannot be treated as evidence that the two records share an application.
+    if (entity.app_id != null || production.app_id != null) {
+      const eventApp = canonicalAppId(entity.app_id);
+      const productionApp = canonicalAppId(production.app_id);
+      if (!eventApp || eventApp !== productionApp) return false;
+    }
+  }
+  return true;
+};
 
 export const safeListingSourceUrl = (value) => {
   if (typeof value !== 'string') return '';
