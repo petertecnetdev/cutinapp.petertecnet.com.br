@@ -3,7 +3,6 @@ import { Alert, Badge, Button, Card, Col, Container, Form, Row } from "react-boo
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
-import CommerceTrustRail from "../../components/CommerceTrustRail";
 import WhatsAppFloatingButton from "../../components/WhatsAppFloatingButton";
 import EventCommunitySection from "../../components/event/EventCommunitySection";
 import CommunityAttendanceSection from "../../components/event/CommunityAttendanceSection";
@@ -543,12 +542,10 @@ export default function EventViewPage() {
               {canManageEvent && <Button variant="light" className="cut-event-manage-action" onClick={() => navigate(isCommunityMeetup ? `/encontro/${event.id}/editar` : `/event/edit/${event.id}`)} aria-label={`Editar ${event.title}`} title={isCommunityMeetup ? "Editar encontro" : "Editar evento"}><i className="fa-solid fa-pen-to-square" />{isCommunityMeetup ? "Editar encontro" : "Editar evento"}</Button>}
             </div>
           </div>
-          {!isCommunityMeetup && <CommerceTrustRail context="event" />}
         </Container>
       </section>
 
       <Container className="cut-page-container py-4 py-lg-5">
-        <Alert variant={temporal.alertVariant} className="d-flex align-items-start gap-3 mb-4" role="status"><i className={`${temporal.icon} fs-4 mt-1`} aria-hidden="true" /><div><strong className="d-block mb-1">{temporal.title}</strong><span>{temporal.description}{temporalState === "ongoing" && event.end_date ? ` Término previsto para ${formatDate(event.end_date)}.` : ""}</span></div></Alert>
         {error && <Alert variant="danger">{error}</Alert>}{success && <Alert variant="success">{success}</Alert>}
 
         {isPastEvent && <Card className="cut-panel mb-4"><Card.Body className="p-4 p-lg-5"><span className="cut-eyebrow">Memória do evento</span><h2 className="cut-section-title mt-2">O que ficou desta edição</h2><p className="text-secondary">Realizado de {formatDate(event.start_date)} até {formatDate(event.end_date)}. A página permanece como registro da experiência, do line-up e da comunidade.</p><div className="cut-event-details mt-4"><div><i className="fa-solid fa-users" /><span><strong>Participantes</strong>{Number(history?.participants || 0)}</span></div><div><i className="fa-solid fa-qrcode" /><span><strong>Check-ins</strong>{Number(history?.checkins || 0)}</span></div><div><i className="fa-solid fa-music" /><span><strong>Artistas</strong>{Number(history?.artists ?? artists.length)}</span></div><div><i className="fa-regular fa-comments" /><span><strong>Publicações</strong>{Number(history?.community_posts || 0)}</span></div><div><i className="fa-solid fa-star" /><span><strong>Avaliações</strong>{Number(history?.rating_total || 0) > 0 ? `${Number(history?.rating_average || 0).toFixed(1)} / 5 · ${history.rating_total}` : "Ainda sem avaliações"}</span></div></div></Card.Body></Card>}
@@ -564,9 +561,7 @@ export default function EventViewPage() {
 
         {showPersistentBuyCta && <section id="ingressos" className="cut-ticket-shop-section mb-5" style={{ scrollMarginTop: "calc(var(--cut-navbar-height) + 18px)" }}>
           <div className="cut-ticket-shop-section__heading">
-            <span className="cut-eyebrow">Carrinho do evento</span>
             <h2 className="cut-section-title mt-2 mb-1">Ingressos e itens</h2>
-            <p className="text-secondary mb-0">Escolha quantos ingressos quiser, combine lotes diferentes e adicione os itens disponibilizados para este evento. A compra é fechada uma única vez.</p>
           </div>
 
           <EventCommercePanel slug={slug} eventId={event.id} user={user} onLoginRequired={(returnTo = `${location.pathname}${location.search}`) => navigate("/login", { state: { from: returnTo } })} />
