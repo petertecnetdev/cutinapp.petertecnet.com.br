@@ -1,10 +1,9 @@
-import React, { useContext, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Alert, Badge, Card, Col, Container, Row, Spinner } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
-import { AuthContext } from "../../context/AuthContext";
 import appApiClient from "../../services/AppApiClient";
-import { isPeterTecnetRoot } from "../../utils/applicationRoles";
+import { loadApplicationAdminContext } from "../../components/ApplicationAdminGate";
 
 const scalar = (value) => {
   if (typeof value === "number") return value;
@@ -22,35 +21,30 @@ const statDefinitions = [
 ];
 
 export default function AdminCenterPage() {
-  const { user } = useContext(AuthContext);
   const [context, setContext] = useState(null);
   const [overview, setOverview] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const root = isPeterTecnetRoot(user);
 
   useEffect(() => {
     let active = true;
-    if (!root) {
-      setLoading(false);
-      return undefined;
-    }
-
-    Promise.all([
-      appApiClient.get("/admin/context"),
-      appApiClient.get("/admin/overview"),
-    ]).then(([contextResponse, overviewResponse]) => {
-      if (!active) return;
-      setContext(contextResponse.data?.data || null);
-      setOverview(overviewResponse.data?.data || null);
-    }).catch((err) => {
-      if (!active) return;
-      setError(err?.response?.data?.message || err?.message || "Não foi possível carregar o Admin Center.");
-    }).finally(() => active && setLoading(false));
-
+    loadApplicationAdminContext()
+      .then(async (adminContext) => {
+        if (!adminContext?.authorized) {
+          throw new Error("Acesso administrativo não autorizado para esta aplicação.");
+        }
+        if (!active) return;
+        setContext(adminContext);
+        const response = await appApiClient.get("/admin/overview");
+        if (active) setOverview(response.data?.data || null);
+      })
+      .catch((err) => {
+        if (active) setError(err?.response?.data?.message || err?.message || "Não foi possível carregar o Admin Center.");
+      })
+      .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [root]);
+  }, []);
 
   const stats = useMemo(() => {
     if (!overview || typeof overview !== "object") return [];
@@ -69,26 +63,23 @@ export default function AdminCenterPage() {
       .filter(({ value }) => value !== undefined && value !== null);
   }, [overview]);
 
-  if (!root) {
-    return <div className="cut-app-page"><NavlogComponent /><Container className="cut-page-container py-5"><Alert variant="danger"><strong>Acesso restrito.</strong> O Admin Center da Cutinapp é exclusivo do Owner Peter Tecnet.</Alert></Container></div>;
-  }
 
   return <div className="cut-app-page">
     <NavlogComponent />
     <Container className="cut-page-container py-4 py-lg-5">
       <div className="cut-page-heading align-items-start">
         <div>
-          <span className="cut-eyebrow">Peter Tecnet · Cutinapp · autoridade máxima</span>
-          <h1>Owner Admin Center</h1>
-          <p>Escolha uma área abaixo para abrir diretamente a administração global da Cutinapp.</p>
+          <span className="cut-eyebrow">Cutinapp · Administração da aplicação</span>
+          <h1>{context?.is_owner ? "Owner Admin Center" : "Administração Cutinapp"}</h1>
+          <p>Gerencie as áreas da Cutinapp permitidas ao seu perfil administrativo.</p>
         </div>
-        <div className="d-flex flex-wrap gap-2 justify-content-end"><Badge bg="danger">OWNER</Badge><Badge bg="dark">{context?.profile?.name || "Cutinapp Owner"}</Badge></div>
+        <div className="d-flex flex-wrap gap-2 justify-content-end"><Badge bg={context?.is_owner ? "danger" : "dark"}>{context?.is_owner ? "OWNER" : "ADMINISTRADOR"}</Badge><Badge bg="dark">{context?.profile?.name || "Cutinapp"}</Badge></div>
       </div>
 
-      <Alert variant="info"><strong>Escopo global ativo.</strong> Os indicadores abaixo também funcionam como atalhos para administração.</Alert>
+      <Alert variant="info"><strong>Acesso limitado à Cutinapp.</strong> As permissões são verificadas pela API em cada operação.</Alert>
       {error && <Alert variant="danger">{error}</Alert>}
 
-      <Row className="g-3 mb-4">
+      {context?.is_owner && <Row className="g-3 mb-4">
         <Col xs={12} md={6} lg={4}>
           <Card as={Link} to="/admin/blog" className="cut-panel h-100 text-decoration-none text-reset" style={{ cursor: "pointer" }} aria-label="Gerenciar blog da Cutinapp">
             <Card.Body className="d-flex align-items-center justify-content-between gap-3">
@@ -113,7 +104,7 @@ export default function AdminCenterPage() {
             </Card.Body>
           </Card>
         </Col>
-      </Row>
+      </Row>}
 
       {loading ? <div className="text-center py-5"><Spinner /><p className="mt-2">Carregando administração global da Cutinapp...</p></div> : <>
         {stats.length > 0 && <Row className="g-3 mb-4">
