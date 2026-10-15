@@ -170,7 +170,7 @@ export default function EventPage() {
           </button>
           {cityPickerOpen && <div id="cut-city-picker"><CityPicker selectedCity={filters.city} selectedUf={filters.uf} onSelect={chooseCity} /></div>}
         </div>
-        {error && <Alert variant="danger">{error}</Alert>
+        {error && <Alert variant="danger">{error}</Alert>}
 
         <div className="d-flex flex-wrap gap-2 mb-4" aria-label="Filtrar tipo de experiência">
           <Button size="sm" variant={!filters.kind ? "light" : "outline-light"} onClick={() => update({ kind: "" })}>Todos</Button>

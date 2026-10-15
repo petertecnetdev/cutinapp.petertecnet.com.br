@@ -490,8 +490,7 @@ export default function HomePage() {
                           {event.production?.name && <span>{event.production.name}</span>}
                         </div>
                       </Link>
-                      );
-                    })}
+                    ))}
                   </div>
                 )
                 : <div className="cut-home-discovery__empty">Nenhum evento público disponível agora.</div>}
