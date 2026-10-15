@@ -1,11 +1,77 @@
 import { safeWhatsappHref } from "./whatsappUrl";
 
-const API = 'https://api.petertecnet.com.br';
-const CNPJ = '42595409000148';
-const ID = 'pt-whatsapp-fallback';
-const normalize = (value) => safeWhatsappHref(value) || null;
-const fromContact = (contact) => normalize(contact?.whatsapp_url || contact?.whatsappUrl || contact?.whatsapp || contact?.whatsapp_phone || contact?.phone || contact?.mobile || contact?.cellphone);
-async function getPeterWhatsapp() { try { const response = await fetch(`${API}/api/ecosystem/site`, { headers: { Accept: 'application/json' } }); if (response.ok) { const payload = await response.json(); const link = fromContact(payload?.site?.contact || payload?.contact); if (link) return link; } } catch (_) { /* segue para o catálogo público como fallback */ } try { const response = await fetch(`${API}/api/nexus/public/catalog-by-cnpj/${CNPJ}`, { headers: { Accept: 'application/json' } }); if (!response.ok) return null; const payload = await response.json(); return fromContact(payload?.establishment); } catch { return null; } }
-const pageLabel = () => { const h1 = document.querySelector('main h1, [role="main"] h1, h1')?.textContent?.replace(/\s+/g, ' ').trim(); if (h1 && h1.length < 180) return h1; return String(document.title || 'esta página').split(/[|·]/)[0].trim(); };
-const hasSpecificButton = () => Array.from(document.querySelectorAll(`a[href*="wa.me"]:not(#${ID}),a[href*="whatsapp.com"]:not(#${ID})`)).some((element) => getComputedStyle(element).position === 'fixed' && getComputedStyle(element).display !== 'none');
-export async function installPeterWhatsappFallback() { if (document.getElementById(ID)) return; const base = await getPeterWhatsapp(); if (!base || document.getElementById(ID)) return; const button = document.createElement('a'); button.id = ID; button.target = '_blank'; button.rel = 'noopener noreferrer'; button.textContent = 'WA'; button.title = 'Falar com a Peter Tecnet no WhatsApp'; button.setAttribute('aria-label', button.title); Object.assign(button.style, { position: 'fixed', right: '20px', bottom: '22px', width: '58px', height: '58px', borderRadius: '50%', background: '#25D366', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '14px', textDecoration: 'none', boxShadow: '0 12px 32px rgba(0,0,0,.32)', zIndex: '2147483000' }); const sync = () => { button.style.display = hasSpecificButton() ? 'none' : 'flex'; const separator = base.includes('?') ? '&' : '?'; const message = `Olá! Gostaria de saber mais informações sobre "${pageLabel()}". Você poderia me ajudar?`; button.href = `${base}${separator}text=${encodeURIComponent(message)}`; }; document.body.appendChild(button); sync(); new MutationObserver(sync).observe(document.body, { childList: true, subtree: true }); window.addEventListener('popstate', sync); }
+const API = "https://api.petertecnet.com.br";
+const PETER_TECNET_CNPJ = "42595409000148";
+
+const fromContact = (contact) => {
+  if (!contact) return "";
+  if (typeof contact === "string") return safeWhatsappHref(contact);
+  return safeWhatsappHref(
+    contact.whatsapp_url || contact.whatsappUrl || contact.whatsapp
+    || contact.whatsapp_phone || contact.phone || contact.mobile || contact.cellphone
+  );
+};
+
+const readJson = async (url) => {
+  const response = await fetch(url, { headers: { Accept: "application/json" } });
+  if (!response.ok) return null;
+  return response.json();
+};
+
+let whatsappLookup = null;
+
+// A fonte do telefone e a mesma configurada para atendimento do ecossistema.
+export const getPeterWhatsapp = () => {
+  if (whatsappLookup) return whatsappLookup;
+  whatsappLookup = (async () => {
+    try {
+      const payload = await readJson(`${API}/api/ecosystem/site`);
+      const phone = fromContact(payload?.site?.contact || payload?.contact)
+        || fromContact(payload?.site?.whatsapp || payload?.whatsapp);
+      if (phone) return phone;
+    } catch (_) { /* tenta a segunda fonte publica */ }
+
+    try {
+      const payload = await readJson(`${API}/api/nexus/public/catalog-by-cnpj/${PETER_TECNET_CNPJ}`);
+      return fromContact(payload?.establishment);
+    } catch (_) {
+      return "";
+    }
+  })().then((href) => {
+    // Falhas transitórias não ficam memorizadas indefinidamente.
+    if (!href) whatsappLookup = null;
+    return href;
+  });
+  return whatsappLookup;
+};
+
+// Apenas caminhos públicos entram no WhatsApp. Nunca encaminhar querystring,
+// hash, URLs de checkout, tokens, IDs de pedidos ou dados pessoais.
+const publicSourcePath = (pathname) => {
+  const path = String(pathname || "").split(/[?#]/)[0];
+  return [
+    /^\/$/,
+    /^\/event$/,
+    /^\/event\/[a-zA-Z0-9._-]+$/,
+    /^\/production\/[a-zA-Z0-9._-]+\/public$/,
+    /^\/artist\/[a-zA-Z0-9._-]+$/,
+    /^\/productions$/,
+    /^\/artists$/,
+    /^\/eventos(?:\/[a-zA-Z0-9._-]+)*$/,
+    /^\/blog(?:\/[a-zA-Z0-9._-]+)?$/,
+  ].some((pattern) => pattern.test(path)) ? path : "";
+};
+
+export const buildCutinappSupportMessage = (pathname = "", origin = "") => {
+  const path = publicSourcePath(pathname);
+  const trustedOrigin = /^https:\/\/[a-z0-9.-]+(?::\d+)?$/i.test(String(origin))
+    ? origin : "";
+  const source = path && trustedOrigin ? `\nPágina pública: ${trustedOrigin}${path}` : "";
+  return `Olá, equipe Peter Tecnet! Estou entrando em contato pelo aplicativo Cutinapp.\nGostaria de receber atendimento e tirar uma dúvida.${source}\nVocês podem me ajudar?`;
+};
+
+export const buildCutinappWhatsappHref = (destination, pathname = "", origin = "") => {
+  const base = safeWhatsappHref(destination);
+  if (!base) return "";
+  return `${base}?text=${encodeURIComponent(buildCutinappSupportMessage(pathname, origin))}`;
+};
