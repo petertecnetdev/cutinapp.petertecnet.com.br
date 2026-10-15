@@ -6,6 +6,7 @@ import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorCo
 import { AuthContext } from "../../context/AuthContext";
 import supportService from "../../services/SupportService";
 import { trackTelemetry } from "../../utils/telemetry";
+import { buildCutinappWhatsappHref, getPeterWhatsapp } from "../../utils/peterWhatsappFallback";
 import "./SupportCenterPage.css";
 
 const STATUS_LABELS = {
@@ -50,6 +51,20 @@ export default function SupportCenterPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(null);
+
+  const [whatsappDestination, setWhatsappDestination] = useState("");
+  useEffect(() => {
+    let active = true;
+    getPeterWhatsapp().then((value) => { if (active) setWhatsappDestination(value || ""); })
+      .catch(() => { if (active) setWhatsappDestination(""); });
+    return () => { active = false; };
+  }, []);
+  const whatsappSupportHref = buildCutinappWhatsappHref(
+    whatsappDestination,
+    "/help",
+    typeof window !== "undefined" ? window.location.origin : ""
+  );
+
 
   useEffect(() => {
     if (!user) {
@@ -120,6 +135,21 @@ export default function SupportCenterPage() {
           <p>Compra, pagamento, ingresso, conta ou problema técnico. Abra um chamado com o contexto da tela para a equipe conseguir agir mais rápido.</p>
         </div>
         <div className="cut-support-hero__links">
+          {whatsappSupportHref && (
+            <Button
+              as="a"
+              href={whatsappSupportHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              variant="success"
+              onClick={() => trackTelemetry("support_whatsapp_open", {
+                label: "WhatsApp na Central de ajuda",
+                metadata: { app: "cutinapp", channel: "whatsapp", path: "/help" },
+              })}
+            >
+              <i className="fa-brands fa-whatsapp me-2" />Falar pelo WhatsApp
+            </Button>
+          )}
           <Button as={Link} to="/purchases" variant="outline-light"><i className="fa-solid fa-receipt me-2" />Minhas compras</Button>
           <Button as={Link} to="/passes" variant="outline-light"><i className="fa-solid fa-ticket me-2" />Meus ingressos</Button>
         </div>
