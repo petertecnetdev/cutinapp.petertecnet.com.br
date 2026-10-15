@@ -1,0 +1,61 @@
+/* Suporte institucional da Cutinapp: faixa esquerda, separada do WhatsApp das produções. */
+.cut-ecosystem-whatsapp {
+  position: fixed;
+  z-index: var(--cut-layer-floating);
+  left: max(var(--cut-overlay-edge, 20px), env(safe-area-inset-left, 0px));
+  bottom: var(--cut-floating-floor, 20px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 52px;
+  max-width: calc(100vw - 32px);
+  padding: 0 16px;
+  border: 1px solid rgba(0, 0, 0, .08);
+  border-radius: 999px;
+  background: #25d366;
+  color: #061c0e;
+  font-size: .84rem;
+  font-weight: 850;
+  text-decoration: none;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .26);
+  transition: transform .15s ease, filter .15s ease;
+}
+
+.cut-ecosystem-whatsapp i { font-size: 1.35rem; }
+.cut-ecosystem-whatsapp:hover,
+.cut-ecosystem-whatsapp:focus-visible {
+  color: #061c0e;
+  filter: brightness(1.06);
+  transform: translateY(-2px);
+}
+.cut-ecosystem-whatsapp:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 3px;
+}
+
+@media (max-width: 767.98px) {
+  .cut-ecosystem-whatsapp {
+    width: 52px;
+    height: 52px;
+    min-height: 52px;
+    padding: 0;
+    border-radius: 50%;
+  }
+  .cut-ecosystem-whatsapp i { font-size: 1.65rem; }
+  .cut-ecosystem-whatsapp span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cut-ecosystem-whatsapp { transition: none; }
+}
