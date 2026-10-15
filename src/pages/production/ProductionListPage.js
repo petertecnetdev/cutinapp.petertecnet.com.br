@@ -5,6 +5,7 @@ import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import { AuthContext } from "../../context/AuthContext";
 import cutinappService from "../../services/CutinappService";
+import AvailableCityFilter from "../../components/location/AvailableCityFilter";
 import { storageUrl } from "../../config";
 import "./production-experience.css";
 
@@ -50,17 +51,20 @@ export default function ProductionListPage() {
   const [pagination, setPagination] = useState({ current: 1, last: 1, total: 0 });
   const [search, setSearch] = useState(params.get("q") || "");
   const [city, setCity] = useState(params.get("city") || "");
-  const [filtersOpen, setFiltersOpen] = useState(Boolean(params.get("q") || params.get("city")));
+  const [uf, setUf] = useState(params.get("uf") || "");
+  const [filtersOpen, setFiltersOpen] = useState(Boolean(params.get("q") || params.get("city") || params.get("uf")));
 
   const q = params.get("q") || "";
   const cityFilter = params.get("city") || "";
+  const ufFilter = params.get("uf") || "";
   const page = Math.max(1, Number(params.get("page") || 1));
 
   useEffect(() => {
     setSearch(q);
     setCity(cityFilter);
-    if (q || cityFilter) setFiltersOpen(true);
-  }, [q, cityFilter]);
+    setUf(ufFilter);
+    if (q || cityFilter || ufFilter) setFiltersOpen(true);
+  }, [q, cityFilter, ufFilter]);
 
   useEffect(() => {
     let active = true;
@@ -70,6 +74,7 @@ export default function ProductionListPage() {
     cutinappService.publicProductions({
       q: q || undefined,
       city: cityFilter || undefined,
+      uf: ufFilter || undefined,
       page,
       per_page: 24,
     })
@@ -92,19 +97,23 @@ export default function ProductionListPage() {
       .finally(() => active && setLoading(false));
 
     return () => { active = false; };
-  }, [q, cityFilter, page]);
+  }, [q, cityFilter, ufFilter, page]);
 
   const submitFilters = (event) => {
     event.preventDefault();
     const next = new URLSearchParams();
     if (search.trim()) next.set("q", search.trim());
-    if (city.trim()) next.set("city", city.trim());
+    if (city.trim()) {
+      next.set("city", city.trim());
+      if (uf.trim()) next.set("uf", uf.trim());
+    }
     setParams(next);
   };
 
   const clearFilters = () => {
     setSearch("");
     setCity("");
+    setUf("");
     setParams(new URLSearchParams());
   };
 
@@ -149,7 +158,7 @@ export default function ProductionListPage() {
           >
             <i className="fa-solid fa-sliders me-2" />
             Pesquisar e filtrar
-            {(q || cityFilter) && <span className="cut-production-filter-dot" aria-label="Filtros ativos" />}
+            {(q || cityFilter || ufFilter) && <span className="cut-production-filter-dot" aria-label="Filtros ativos" />}
             <i className={`fa-solid fa-chevron-${filtersOpen ? "up" : "down"} ms-2`} />
           </Button>
         </div>
@@ -171,18 +180,22 @@ export default function ProductionListPage() {
                     </Col>
                     <Col md={4}>
                       <Form.Label>Cidade</Form.Label>
-                      <Form.Control
-                        value={city}
-                        onChange={(event) => setCity(event.target.value)}
-                        placeholder="Ex.: Belo Horizonte"
-                        aria-label="Filtrar produções por cidade"
+                      <AvailableCityFilter
+                        type="productions"
+                        city={city}
+                        uf={uf}
+                        onSelect={({ city: nextCity, uf: nextUf }) => {
+                          setCity(nextCity);
+                          setUf(nextUf);
+                        }}
+                        ariaLabel="Filtrar produções por cidade"
                       />
                     </Col>
                     <Col md={2} className="d-grid gap-2">
                       <Button type="submit"><i className="fa-solid fa-magnifying-glass me-2" />Buscar</Button>
                     </Col>
                   </Row>
-                  {(q || cityFilter) && (
+                  {(q || cityFilter || ufFilter) && (
                     <div className="d-flex align-items-center justify-content-between gap-3 flex-wrap mt-3">
                       <small className="text-muted">{pagination.total} produção(ões) encontrada(s)</small>
                       <Button type="button" variant="outline-light" size="sm" onClick={clearFilters}>Limpar filtros</Button>

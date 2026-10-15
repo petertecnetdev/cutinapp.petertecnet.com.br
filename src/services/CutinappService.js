@@ -742,6 +742,7 @@ const cutinappService = {
   discoveryFacets: async () => cachedPublicGet(appApiClient, "/events/facets", { ttlMs: 60000, staleMs: 600000 }),
   locationStates: async () => (await appApiClient.get("/locations/states")).data.states || [],
   locationCities: async (uf, q = "") => (await appApiClient.get("/locations/cities", { params: { uf, q } })).data.cities || [],
+  availableCities: async (type, q = "") => (await cachedPublicGet(appApiClient, "/locations/available-cities", { params: { type, ...(q ? { q } : {}) }, ttlMs: 15000, staleMs: 30000 })).cities || [],
   lookupCep: async (cep) => (await appApiClient.get(`/locations/cep/${String(cep).replace(/\D/g, "")}`)).data.address,
 
   globalSearch: async (params = {}, signal = undefined) => (await appApiClient.get("/global-search", { params, signal, headers: searchSessionHeaders() })).data,
