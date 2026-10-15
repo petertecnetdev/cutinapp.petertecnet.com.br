@@ -79,6 +79,11 @@ export default function AdminCenterPage() {
       <Alert variant="info"><strong>Acesso limitado à Cutinapp.</strong> As permissões são verificadas pela API em cada operação.</Alert>
       {error && <Alert variant="danger">{error}</Alert>}
 
+      <div className="d-flex flex-wrap gap-2 mb-4">
+        {(context?.is_owner || context?.permissions?.includes("establishments.manage")) && <Link to="/production/create" className="btn btn-danger">Cadastrar produção</Link>}
+        {(context?.is_owner || context?.permissions?.includes("events.manage")) && <Link to="/event/create" className="btn btn-outline-light">Cadastrar evento</Link>}
+        {(context?.is_owner || context?.permissions?.includes("artists.manage")) && <><Link to="/artist/manage" className="btn btn-outline-light">Cadastrar artista</Link><Link to="/admin/artist-claims" className="btn btn-outline-light">Reivindicações artísticas</Link></>}
+      </div>
       {context?.is_owner && <Row className="g-3 mb-4">
         <Col xs={12} md={6} lg={4}>
           <Card as={Link} to="/admin/blog" className="cut-panel h-100 text-decoration-none text-reset" style={{ cursor: "pointer" }} aria-label="Gerenciar blog da Cutinapp">
