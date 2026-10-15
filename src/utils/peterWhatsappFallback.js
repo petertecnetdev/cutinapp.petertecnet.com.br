@@ -6,10 +6,11 @@ const PETER_TECNET_CNPJ = "42595409000148";
 const fromContact = (contact) => {
   if (!contact) return "";
   if (typeof contact === "string") return safeWhatsappHref(contact);
-  return safeWhatsappHref(
-    contact.whatsapp_url || contact.whatsappUrl || contact.whatsapp
-    || contact.whatsapp_phone || contact.phone || contact.mobile || contact.cellphone
-  );
+  const values = [
+    contact.whatsapp_url, contact.whatsappUrl, contact.whatsapp,
+    contact.whatsapp_phone, contact.phone, contact.mobile, contact.cellphone,
+  ];
+  return values.map(safeWhatsappHref).find(Boolean) || "";
 };
 
 const readJson = async (url) => {
