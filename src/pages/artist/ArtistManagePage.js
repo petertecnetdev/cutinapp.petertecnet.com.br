@@ -6,6 +6,7 @@ import EntityEditorShell, { EditorSection } from "../../components/editor/Entity
 import cutinappService from "../../services/CutinappService";
 import artistService from "../../services/ArtistService";
 import { storageUrl } from "../../config";
+import { loadApplicationAdminContext } from "../../components/ApplicationAdminGate";
 
 const ARTIST_TYPES = [
   ["solo", "Artista solo"],
@@ -33,6 +34,16 @@ export default function ArtistManagePage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [canCurate, setCanCurate] = useState(false);
+  useEffect(() => {
+    let active = true;
+    loadApplicationAdminContext()
+      .then((context) => {
+        if (active) setCanCurate(Boolean(context?.is_owner || context?.permissions?.includes("artists.manage")));
+      })
+      .catch(() => { if (active) setCanCurate(false); });
+    return () => { active = false; };
+  }, []);
 
   const load = async () => setArtists(await cutinappService.myArtists());
   useEffect(() => {
@@ -89,7 +100,7 @@ export default function ArtistManagePage() {
     try {
       const response = editing
         ? await cutinappService.updateArtist(editing, payload)
-        : form.artist_type === "solo"
+        : form.artist_type === "solo" && !canCurate
           ? await artistService.activateArtist({
             stage_name: payload.stage_name,
             genres: payload.genres,
@@ -218,7 +229,7 @@ export default function ArtistManagePage() {
           <Row className="g-3">
             <Col md={5}><Form.Group><Form.Label>Tipo *</Form.Label><Form.Select value={form.artist_type || "solo"} onChange={(e) => setForm({ ...form, artist_type: e.target.value })}>{ARTIST_TYPES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Form.Select></Form.Group></Col>
             <Col md={7}><Form.Group><Form.Label>Nome artístico *</Form.Label><Form.Control value={form.stage_name} onChange={(e) => setForm({ ...form, stage_name: e.target.value })} required /></Form.Group></Col>
-            {!editing && form.artist_type === "solo" && <Col xs={12}><div className="cut-info-box p-3"><strong>Este perfil será seu.</strong><small className="d-block text-secondary mt-1">Artista solo é vinculado diretamente à sua conta verificada. Produções não precisam criar nem administrar seu perfil para você ser artista.</small></div></Col>}
+            {!editing && form.artist_type === "solo" && <Col xs={12}><div className="cut-info-box p-3"><strong>{canCurate ? "Perfil criado pela curadoria" : "Este perfil será seu."}</strong><small className="d-block text-secondary mt-1">{canCurate ? "O perfil ficará sem proprietário verificado. O artista poderá reivindicá-lo e receberá acesso somente após análise." : "Artista solo é vinculado diretamente à sua conta verificada. Produções não precisam criar nem administrar seu perfil para você ser artista."}</small></div></Col>}
             {!editing && form.artist_type !== "solo" && <Col xs={12}><div className="cut-info-box p-3"><Form.Check type="switch" id="artist-is-me" label="Eu represento esta formação" checked={Boolean(form.claim_myself)} onChange={(e) => setForm({ ...form, claim_myself: e.target.checked })} /><small className="text-secondary">Para bandas, duos e grupos, você pode criar a formação e depois vincular integrantes e gestores autorizados.</small></div></Col>}
             {editing && form.origin_type === "organization" && form.origin_label && <Col xs={12}><div className="cut-info-box p-3"><div className="d-flex justify-content-between align-items-start gap-3 flex-wrap"><div><strong>Produção de referência: {form.origin_label}</strong><small className="d-block text-secondary mt-1">Essa referência registra quem apresentou o artista à Cutinapp. Ela não concede permissão para editar este perfil.</small></div><Form.Check type="switch" id="artist-reference-visible-manage" label="Exibir no perfil" checked={Boolean(form.reference_visible)} onChange={async (e) => { const visible = e.target.checked; setForm((current) => ({ ...current, reference_visible: visible })); try { await artistService.updateReferenceVisibility(editing, visible); setSuccess(visible ? "Produção de referência exibida publicamente." : "Produção de referência ocultada do perfil público."); } catch (err) { setForm((current) => ({ ...current, reference_visible: !visible })); setError(err?.response?.data?.message || "Não foi possível atualizar a referência."); } }} /></div></div></Col>}
             <Col md={8}><Form.Group><Form.Label>Cidade</Form.Label><Form.Control value={form.city || ""} onChange={(e) => setForm({ ...form, city: e.target.value })} /></Form.Group></Col>
