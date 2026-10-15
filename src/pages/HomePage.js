@@ -153,19 +153,7 @@ export default function HomePage() {
       localProductions = uniqueById([...eventProductions, ...localProductions]);
       localArtists = uniqueById([...eventArtists, ...localArtists]);
 
-      if (Object.keys(params).length > 0 && localEvents.length === 0) {
-        const fallback = await Promise.allSettled([
-          eventService.search({ per_page: 12, sort: "soonest" }),
-          cutinappService.publicProductions({ per_page: 10 }),
-          cutinappService.artists({ per_page: 12 }),
-        ]);
-        localEvents = fallback[0].status === "fulfilled" ? fallback[0].value.events?.data || [] : [];
-        const fallbackProductions = fallback[1].status === "fulfilled" ? fallback[1].value.productions?.data || [] : [];
-        const fallbackArtists = fallback[2].status === "fulfilled" ? fallback[2].value.artists?.data || [] : [];
-        localProductions = uniqueById([...localEvents.map((event) => event.production).filter(Boolean), ...fallbackProductions]);
-        localArtists = uniqueById([...localEvents.flatMap((event) => event.artists || []), ...fallbackArtists]);
-        setUsingFallback(true);
-      }
+      // Nunca substituir silenciosamente eventos da cidade escolhida por eventos de outras cidades.
 
       setEvents(localEvents.slice(0, 12));
       setProductions(localProductions.slice(0, 10));
@@ -446,6 +434,7 @@ export default function HomePage() {
                   <i className="fa-solid fa-location-crosshairs me-2" />Usar minha localização
                 </Button>
                 {locationBusy && <ProcessingIndicatorComponent fullscreen={false} label="Obtendo localização" />}
+                <button type="button" onClick={() => navigate(browseLink)}>Alterar cidade ou explorar outras cidades</button>
                 {location && <button type="button" onClick={clearLocation}>Remover localização</button>}
               </div>
             </div>

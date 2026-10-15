@@ -7,7 +7,8 @@ import EventPosterThumbnail from "../../components/event/EventPosterThumbnail";
 import EventDateCarousel from "../../components/event/EventDateCarousel";
 import eventService from "../../services/EventService";
 import cutinappService from "../../services/CutinappService";
-import { readDiscoveryPreference } from "../../utils/discoveryFilters";
+import { readDiscoveryPreference, saveDiscoveryPreference } from "../../utils/discoveryFilters";
+import CityPicker from "../../components/event/CityPicker";
 import "./EventPage.css";
 
 const formatDate = (value) => value
@@ -64,6 +65,7 @@ export default function EventPage() {
   const [pagination, setPagination] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [cityPickerOpen, setCityPickerOpen] = useState(false);
 
   const filters = useMemo(() => ({
     city: searchParams.get("city") || "",
@@ -136,6 +138,11 @@ export default function EventPage() {
     setSearchParams(next);
   };
 
+  const chooseCity = (selection) => {
+    saveDiscoveryPreference({ city: selection?.city || "", uf: selection?.uf || "" });
+    update({ city: selection?.city || "", uf: selection?.uf || "", date: "", page: "" });
+    setCityPickerOpen(false);
+  };
   const handleDateSelect = (date) => update({ date });
   const resultTotal = Number(pagination?.total ?? events.length);
 
@@ -155,7 +162,15 @@ export default function EventPage() {
           </Button>
         </div>
 
-        {error && <Alert variant="danger">{error}</Alert>}
+        <div className="cut-city-switcher">
+          <button type="button" className="cut-city-switcher__trigger" onClick={() => setCityPickerOpen((open) => !open)} aria-expanded={cityPickerOpen} aria-controls="cut-city-picker">
+            <i className="fa-solid fa-location-dot" aria-hidden="true" />
+            <span><small>Explorando eventos em</small><strong>{filters.city ? `${filters.city}${filters.uf ? ` - ${filters.uf}` : ""}` : "Todas as cidades"}</strong></span>
+            <span className="cut-city-switcher__change">Alterar cidade <i className="fa-solid fa-chevron-down" /></span>
+          </button>
+          {cityPickerOpen && <div id="cut-city-picker"><CityPicker selectedCity={filters.city} selectedUf={filters.uf} onSelect={chooseCity} /></div>}
+        </div>
+        {error && <Alert variant="danger">{error}</Alert>
 
         <div className="d-flex flex-wrap gap-2 mb-4" aria-label="Filtrar tipo de experiência">
           <Button size="sm" variant={!filters.kind ? "light" : "outline-light"} onClick={() => update({ kind: "" })}>Todos</Button>
