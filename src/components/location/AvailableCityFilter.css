@@ -1,0 +1,16 @@
+.cut-available-city-filter {
+  min-height: 44px;
+  background-color: #101014;
+  color: #fff;
+  border-color: #45454c;
+}
+
+.cut-available-city-filter option {
+  background-color: #fff;
+  color: #111;
+}
+
+.cut-available-city-filter:focus {
+  border-color: #e52229;
+  box-shadow: 0 0 0 0.18rem rgba(229, 34, 41, 0.18);
+}

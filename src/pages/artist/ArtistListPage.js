@@ -5,6 +5,7 @@ import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import CollapsibleFilterPanel from "../../components/CollapsibleFilterPanel";
 import cutinappService from "../../services/CutinappService";
+import AvailableCityFilter from "../../components/location/AvailableCityFilter";
 import { activateOnKeyboard } from "../../utils/keyboardActivation";
 
 const TYPE_LABELS = { solo: "Artista solo", band: "Banda", duo: "Duo", group: "Grupo", collective: "Coletivo", orchestra: "Orquestra" };
@@ -17,21 +18,35 @@ export default function ArtistListPage() {
   const [error, setError] = useState("");
   const q = params.get("q") || "";
   const city = params.get("city") || "";
-  const activeFilterCount = Number(Boolean(q)) + Number(Boolean(city));
+  const uf = params.get("uf") || "";
+  const activeFilterCount = Number(Boolean(q)) + Number(Boolean(city || uf));
 
   useEffect(() => {
     let active = true;
     setLoading(true);
-    cutinappService.artists({ q: q || undefined, city: city || undefined, per_page: 48 })
+    cutinappService.artists({ q: q || undefined, city: city || undefined, uf: uf || undefined, per_page: 48 })
       .then((response) => active && setArtists(response.artists?.data || []))
       .catch((err) => active && setError(err?.message || "Não foi possível carregar os artistas."))
       .finally(() => active && setLoading(false));
     return () => { active = false; };
-  }, [q, city]);
+  }, [q, city, uf]);
 
   const update = (key, value) => {
     const next = new URLSearchParams(params);
     value ? next.set(key, value) : next.delete(key);
+    setParams(next);
+  };
+
+  const updateCity = ({ city: nextCity, uf: nextUf }) => {
+    const next = new URLSearchParams(params);
+    if (nextCity) {
+      next.set("city", nextCity);
+      if (nextUf) next.set("uf", nextUf);
+      else next.delete("uf");
+    } else {
+      next.delete("city");
+      next.delete("uf");
+    }
     setParams(next);
   };
 
@@ -47,7 +62,7 @@ export default function ArtistListPage() {
         <CollapsibleFilterPanel title="Pesquisar e filtrar artistas" activeCount={activeFilterCount} defaultOpen={activeFilterCount > 0}>
           <div className="cut-discovery-primary">
             <Form.Control placeholder="Buscar artista ou banda" value={q} onChange={(e) => update("q", e.target.value)} aria-label="Buscar artista ou banda" />
-            <Form.Control placeholder="Cidade" value={city} onChange={(e) => update("city", e.target.value)} aria-label="Filtrar artistas por cidade" />
+            <AvailableCityFilter type="artists" city={city} uf={uf} onSelect={updateCity} ariaLabel="Filtrar artistas por cidade" />
             {activeFilterCount > 0 && <Button type="button" variant="outline-light" onClick={clearFilters}>Limpar filtros</Button>}
           </div>
         </CollapsibleFilterPanel>
