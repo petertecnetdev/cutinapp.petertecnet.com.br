@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import PropTypes from "prop-types";
 import cutinappService from "../../services/CutinappService";
 import { readRecentCities } from "../../utils/discoveryFilters";
 
@@ -40,3 +41,9 @@ export default function CityPicker({ selectedCity, selectedUf, onSelect }) {
     {!loading && !error && options.length === 0 && <p>Nenhuma cidade encontrada.</p>}
   </div>;
 }
+
+CityPicker.propTypes = {
+  selectedCity: PropTypes.string,
+  selectedUf: PropTypes.string,
+  onSelect: PropTypes.func.isRequired,
+};
