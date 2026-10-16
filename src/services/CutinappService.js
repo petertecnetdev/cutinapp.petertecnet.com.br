@@ -740,6 +740,11 @@ const cutinappService = {
   },
   publicEvents: async (params = {}) => cachedPublicGet(appApiClient, "/events", { params, ttlMs: 15000, staleMs: 120000 }),
   discoveryFacets: async () => cachedPublicGet(appApiClient, "/events/facets", { ttlMs: 60000, staleMs: 600000 }),
+  availableCities: async (entity = "events", scope = "upcoming") => cachedPublicGet(
+    appApiClient, "/locations/available-cities", {
+      params: { entity, scope }, ttlMs: 45000, staleMs: 60000,
+    },
+  ),
   locationStates: async () => (await appApiClient.get("/locations/states")).data.states || [],
   locationCities: async (uf, q = "") => (await appApiClient.get("/locations/cities", { params: { uf, q } })).data.cities || [],
   lookupCep: async (cep) => (await appApiClient.get(`/locations/cep/${String(cep).replace(/\D/g, "")}`)).data.address,

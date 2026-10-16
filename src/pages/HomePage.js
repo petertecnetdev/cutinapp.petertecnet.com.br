@@ -123,12 +123,12 @@ export default function HomePage() {
     const precise = readHomeLocation();
     if (precise?.lat && precise?.lng) return precise;
     const saved = readDiscoveryPreference();
-    return saved?.city ? { city: saved.city, uf: saved.uf || "", mode: "city" } : null;
+    return saved?.city ? { city: saved.city, city_id: saved.city_id || null, uf: saved.uf || "", mode: "city" } : null;
   });
 
   const discoveryParams = useMemo(() => {
     if (location?.lat && location?.lng) return { lat: location.lat, lng: location.lng, radius_km: 80 };
-    if (location?.city) return { city: location.city, ...(location.uf ? { uf: location.uf } : {}) };
+    if (location?.city) return { city: location.city, ...(location.uf ? { uf: location.uf } : {}), ...(location.city_id ? { city_id: location.city_id } : {}) };
     return {};
   }, [location]);
 
@@ -136,11 +136,12 @@ export default function HomePage() {
     setLoading(true);
     setUsingFallback(false);
     try {
+      const { city_id: _eventCityId, ...sharedParams } = params;
       const [eventResult, productionResult, artistResult, facetResult] = await Promise.allSettled([
         eventService.search({ ...params, per_page: 12, sort: "soonest" }),
-        cutinappService.publicProductions({ ...params, per_page: 10 }),
+        cutinappService.publicProductions({ ...sharedParams, per_page: 10 }),
         cutinappService.artists({ ...(params.city ? { city: params.city, ...(params.uf ? { uf: params.uf } : {}) } : {}), per_page: 12 }),
-        cutinappService.discoveryFacets(),
+        cutinappService.availableCities("events"),
       ]);
 
       let localEvents = eventResult.status === "fulfilled" ? eventResult.value.events?.data || [] : [];
@@ -195,9 +196,9 @@ export default function HomePage() {
   };
 
   const chooseCity = (city) => {
-    const next = { city: city.city, uf: city.uf || "", mode: "city" };
+    const next = { city: city.city, city_id: city.city_id || null, uf: city.uf || "", mode: "city" };
     saveHomeLocation(next);
-    saveDiscoveryPreference({ city: city.city, uf: city.uf || "" });
+    saveDiscoveryPreference({ city: city.city, city_id: city.city_id || null, uf: city.uf || "" });
     setLocation(next);
     window.scrollTo({ top: document.getElementById("descobrir")?.offsetTop || 0, behavior: "smooth" });
   };
@@ -216,7 +217,7 @@ export default function HomePage() {
       : "na Cutinapp";
 
   const browseLink = location?.city
-    ? `/event?city=${encodeURIComponent(location.city)}${location.uf ? `&uf=${encodeURIComponent(location.uf)}` : ""}`
+    ? `/event?city=${encodeURIComponent(location.city)}${location.uf ? `&uf=${encodeURIComponent(location.uf)}` : ""}${location.city_id ? `&city_id=${location.city_id}` : ""}`
     : location?.lat
       ? `/event?lat=${location.lat}&lng=${location.lng}&radius_km=80`
       : "/event";

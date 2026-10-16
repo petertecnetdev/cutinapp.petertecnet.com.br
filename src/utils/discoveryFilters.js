@@ -23,7 +23,7 @@ export const saveDiscoveryPreference = (value) => {
   const storedRecent = safeGetLocalJson("cutinapp.recentCities", []);
   const recent = Array.isArray(storedRecent) ? storedRecent : [];
   if (value?.city) {
-    const selected = { city: String(value.city).trim(), uf: String(value.uf || "").trim().toLocaleUpperCase("pt-BR") };
+    const selected = { city: String(value.city).trim(), city_id: value.city_id || null, uf: String(value.uf || "").trim().toLocaleUpperCase("pt-BR") };
     const selectedKey = cityKey(selected);
     const next = [selected, ...recent.filter((item) => cityKey(item) !== selectedKey)].slice(0, 5);
     safeSetLocalJson("cutinapp.recentCities", next);
@@ -34,7 +34,7 @@ export const readRecentCities = () => safeGetLocalJson("cutinapp.recentCities", 
 
 export const paramsFromSearch = (searchParams) => {
   const keys = [
-    "q", "type", "city", "uf", "category", "genre", "format", "period", "date", "from", "to",
+    "q", "type", "city", "city_id", "uf", "category", "genre", "format", "period", "date", "from", "to",
     "sort", "artist_id", "production_id", "free", "available", "max_price", "lat", "lng", "radius_km", "page",
   ];
   const result = {};
