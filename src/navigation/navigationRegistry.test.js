@@ -1,5 +1,5 @@
 import { resolveNavigationCapabilities } from "./capabilityResolver";
-import { accountNavigation, actorMenusFor, commonNavigation, primaryNavigation, exploreNavigation, desktopPrimaryNavigation, desktopMoreNavigation, publicMoreNavigation, creationActionsFor, adminActionsFor, contextualNavigation, quickActionsFor, rankQuickActions } from "./navigationRegistry";
+import { accountNavigation, actorMenusFor, commonNavigation, primaryNavigation, mobileBottomNavigationFor, exploreNavigation, desktopPrimaryNavigation, desktopMoreNavigation, publicMoreNavigation, creationActionsFor, adminActionsFor, contextualNavigation, quickActionsFor, rankQuickActions } from "./navigationRegistry";
 
 const app = (role, roles = []) => ({ slug: "cutinapp", pivot: { status: "active", role, metadata: JSON.stringify({ roles }) } });
 
@@ -7,6 +7,16 @@ describe("capability based navigation", () => {
   test("participant account items stay out of the desktop common navigation", () => {
     expect(commonNavigation.map((entry) => entry.id)).toEqual(["search", "events", "cities", "feed", "messages", "productions", "artists", "blog"]);
     expect(accountNavigation.map((entry) => entry.id)).toEqual(expect.arrayContaining(["profile", "passes", "purchases", "notifications", "account-settings"]));
+  });
+
+  test("Cidades aparece na barra inferior mobile para visitantes e usuários", () => {
+    const guest = mobileBottomNavigationFor(false);
+    const logged = mobileBottomNavigationFor(true);
+    expect(guest.map((entry) => entry.id)).toEqual(["home", "search", "events", "cities", "login"]);
+    expect(logged.map((entry) => entry.id)).toEqual(["feed", "search", "events", "cities", "profile"]);
+    expect(guest.find((entry) => entry.id === "cities")).toMatchObject({ to: "/cidades", label: "Cidades" });
+    expect(logged.find((entry) => entry.id === "cities")).toMatchObject({ to: "/cidades", label: "Cidades" });
+    expect(primaryNavigation.some((entry) => entry.id === "messages")).toBe(true);
   });
 
   test("global search remains a primary generic destination", () => {
