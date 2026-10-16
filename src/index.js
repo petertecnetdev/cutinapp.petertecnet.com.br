@@ -9,6 +9,7 @@ import "./components/event/EventPosterThumbnail.css";
 import "./styles/event-ticket-purchase.css";
 import "./styles/ticket-purchase-brand-mobile.css";
 import "./components/WhatsAppFloatingButton.css";
+import "./components/EcosystemWhatsappSupport.css";
 import "./components/event/EventDiscoveryRail.css";
 import "./styles/mobile-bottom-nav-fix.css";
 import "./styles/checkout-mobile-hardening.css";
@@ -137,20 +138,17 @@ const installDeferredEnhancers = async () => {
       { installInstagramMobileShell },
       { installClipboardFallback },
       { installPasswordFieldEnhancer },
-      { installPeterWhatsappFallback },
       { installEventFlyerBackground },
     ] = await Promise.all([
       import("./utils/instagramMobileShell"),
       import("./utils/clipboard"),
       import("./utils/passwordFieldEnhancer"),
-      import("./utils/peterWhatsappFallback"),
       import("./utils/eventFlyerBackground"),
     ]);
 
     installInstagramMobileShell();
     installClipboardFallback();
     installPasswordFieldEnhancer();
-    installPeterWhatsappFallback();
     installEventFlyerBackground();
   }
 };

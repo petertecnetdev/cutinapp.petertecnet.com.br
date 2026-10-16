@@ -11,6 +11,7 @@ import AppErrorBoundary from "./components/AppErrorBoundary";
 import ApplicationAdminGate from "./components/ApplicationAdminGate";
 import ConnectionStatus from "./components/ConnectionStatus";
 import PeterTecnetSignature from "./components/PeterTecnetSignature";
+import EcosystemWhatsappSupport from "./components/EcosystemWhatsappSupport";
 import ProcessingIndicatorComponent from "./components/ProcessingIndicatorComponent";
 import MessagingNotificationBridge from "./components/MessagingNotificationBridge";
 import SeoManager from "./components/SeoManager";
@@ -178,6 +179,7 @@ function AppRoutes() {
 
   return <>
     <ConnectionStatus />
+    <EcosystemWhatsappSupport />
     {user && <MessagingNotificationBridge />}
     {needsFormEnhancers && (
       <Suspense fallback={null}>

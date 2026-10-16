@@ -6,6 +6,7 @@ import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorCo
 import { AuthContext } from "../../context/AuthContext";
 import supportService from "../../services/SupportService";
 import { trackTelemetry } from "../../utils/telemetry";
+import { buildCutinappWhatsappHref, getPeterWhatsapp } from "../../utils/peterWhatsappFallback";
 import "./SupportCenterPage.css";
 
 const STATUS_LABELS = {
@@ -50,6 +51,20 @@ export default function SupportCenterPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(null);
+
+  const [whatsappDestination, setWhatsappDestination] = useState("");
+  useEffect(() => {
+    let active = true;
+    getPeterWhatsapp().then((value) => { if (active) setWhatsappDestination(value || ""); })
+      .catch(() => { if (active) setWhatsappDestination(""); });
+    return () => { active = false; };
+  }, []);
+  const whatsappSupportHref = buildCutinappWhatsappHref(
+    whatsappDestination,
+    "/help",
+    typeof window !== "undefined" ? window.location.origin : ""
+  );
+
 
   useEffect(() => {
     if (!user) {
@@ -117,7 +132,7 @@ export default function SupportCenterPage() {
         <div>
           <span className="cut-eyebrow">Central de ajuda</span>
           <h1>Ajuda sem sair da Cutinapp</h1>
-          <p>Compra, pagamento, ingresso, conta ou problema técnico. Abra um chamado com o contexto da tela para a equipe conseguir agir mais rápido.</p>
+          <p>Compra, pagamento, ingresso, conta ou problema técnico. Descreva seu problema e acompanhe o chamado, ou fale diretamente pelo WhatsApp oficial.</p>
         </div>
         <div className="cut-support-hero__links">
           <Button as={Link} to="/purchases" variant="outline-light"><i className="fa-solid fa-receipt me-2" />Minhas compras</Button>
@@ -125,11 +140,31 @@ export default function SupportCenterPage() {
         </div>
       </header>
 
+      <div className="cut-support-choices" aria-label="Escolha como entrar em contato">
+        <a href="#abrir-chamado" className="cut-support-choice">
+          <i className="fa-regular fa-pen-to-square" aria-hidden="true" />
+          <span><strong>Descrever meu problema</strong><small>Abra um chamado e acompanhe o atendimento por aqui.</small></span>
+          <i className="fa-solid fa-arrow-right cut-support-choice__arrow" aria-hidden="true" />
+        </a>
+        {whatsappSupportHref ? (
+          <a href={whatsappSupportHref} target="_blank" rel="noopener noreferrer" className="cut-support-choice cut-support-choice--whatsapp" onClick={() => trackTelemetry("support_whatsapp_open", { label: "WhatsApp na Central de ajuda", metadata: { app: "cutinapp", channel: "whatsapp", path: "/help" } })}>
+            <i className="fa-brands fa-whatsapp" aria-hidden="true" />
+            <span><strong>Falar diretamente no WhatsApp</strong><small>Envie uma mensagem à equipe oficial da Peter Tecnet.</small></span>
+            <i className="fa-solid fa-arrow-up-right-from-square cut-support-choice__arrow" aria-hidden="true" />
+          </a>
+        ) : (
+          <div className="cut-support-choice cut-support-choice--unavailable">
+            <i className="fa-brands fa-whatsapp" aria-hidden="true" />
+            <span><strong>WhatsApp temporariamente indisponível</strong><small>Você pode abrir um chamado no formulário abaixo.</small></span>
+          </div>
+        )}
+      </div>
+
       {error && <Alert variant="danger">{error}</Alert>}
       {success && <Alert variant="success" role="status"><strong>Chamado aberto.</strong> Protocolo {String(success.public_id || "").slice(0, 8).toUpperCase()}. Acompanhe por esta página quando estiver conectado à sua conta.</Alert>}
 
       <div className="cut-support-layout">
-        <Card className="cut-panel cut-support-form-card">
+        <Card id="abrir-chamado" className="cut-panel cut-support-form-card">
           <Card.Body className="p-4 p-lg-5">
             <span className="cut-eyebrow">{topic === "refund" ? "Compra e reembolso" : "Novo chamado"}</span>
             <h2 className="cut-section-title mt-2">{topic === "refund" ? "Solicitar análise de reembolso" : "Como podemos ajudar?"}</h2>

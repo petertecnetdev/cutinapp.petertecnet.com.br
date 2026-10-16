@@ -25,3 +25,21 @@
 .cut-support-form .cut-processing,.cut-support-side .cut-processing{min-height:120px;padding:10px}
 @media(max-width:900px){.cut-support-hero{align-items:flex-start;flex-direction:column}.cut-support-layout{grid-template-columns:1fr}.cut-support-side{grid-template-columns:1fr 1fr}}
 @media(max-width:620px){.cut-support-form__grid,.cut-support-side{grid-template-columns:1fr}.cut-support-hero__links{width:100%}.cut-support-hero__links .btn{flex:1}}
+
+/* Dois canais claros de atendimento, sem competir com o formulário. */
+.cut-support-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0 0 24px}
+.cut-support-choice{display:flex;align-items:center;gap:14px;min-height:86px;padding:16px 18px;border:1px solid rgba(225,75,75,.25);border-radius:16px;background:rgba(220,38,38,.06);color:var(--cut-text-primary,#fff);text-decoration:none;transition:border-color .15s ease,background .15s ease}
+.cut-support-choice:hover,.cut-support-choice:focus-visible{color:var(--cut-text-primary,#fff);background:rgba(220,38,38,.11);border-color:rgba(225,75,75,.65)}
+.cut-support-choice:focus-visible{outline:2px solid #fa7777;outline-offset:3px}
+.cut-support-choice>i:first-child{font-size:1.45rem;color:#f87171;width:28px;text-align:center}
+.cut-support-choice>span{display:grid;gap:3px;min-width:0;flex:1}
+.cut-support-choice strong{font-size:.93rem;font-weight:750}
+.cut-support-choice small{color:var(--cut-text-muted,#a3a3a3);line-height:1.45}
+.cut-support-choice .cut-support-choice__arrow{font-size:.82rem;color:#d7d7d7}
+.cut-support-choice--whatsapp{background:rgba(37,211,102,.07);border-color:rgba(37,211,102,.25)}
+.cut-support-choice--whatsapp>i:first-child{color:#25d366}
+.cut-support-choice--whatsapp:hover,.cut-support-choice--whatsapp:focus-visible{background:rgba(37,211,102,.12);border-color:#25d366}
+.cut-support-choice--unavailable{opacity:.7;cursor:default}
+#abrir-chamado{scroll-margin-top:110px}
+@media(max-width:700px){.cut-support-choices{grid-template-columns:1fr}.cut-support-choice{min-height:75px}}
+@media(prefers-reduced-motion:reduce){.cut-support-choice{transition:none}}

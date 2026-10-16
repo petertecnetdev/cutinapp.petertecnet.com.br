@@ -8,6 +8,7 @@ const OVERLAYS = [
   { name: "event-actions", selector: ".cev2-mobile-actions", zone: "bottom", priority: 40 },
   { name: "cart", selector: ".cut-persistent-cart__bar", zone: "bottom", priority: 60 },
   { name: "whatsapp", selector: ".cut-whatsapp-fab", zone: "bottom-right", priority: 30 },
+  { name: "ecosystem-whatsapp", selector: ".cut-ecosystem-whatsapp", zone: "bottom-left", priority: 30 },
   { name: "share", selector: "button[title='Compartilhar este evento']", zone: "bottom-right", priority: 35 },
   { name: "flyer", selector: ".cut-floating-flyer-button", zone: "bottom-right", priority: 38 },
   { name: "buy", selector: ".cut-event-buy-cta-fixed", zone: "bottom", priority: 50 },
