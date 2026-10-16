@@ -46,6 +46,21 @@ describe('Identificadores de aplicação no frontend Independence', () => {
     expect(sameAppId(right, left)).toBe(false);
   });
 
+  test('mantém IDs decimais longos exatos e nega colisões por último dígito', () => {
+    const hugeId = '9'.repeat(512);
+    const withZeros = '0'.repeat(256) + hugeId;
+    expect(canonicalAppId(hugeId)).toBe(hugeId);
+    expect(canonicalAppId(withZeros)).toBe(hugeId);
+    expect(sameAppId(hugeId, withZeros)).toBe(true);
+    expect(sameAppId(hugeId, '9'.repeat(511) + '8')).toBe(false);
+  });
+
+  test('rejeita identificadores formados apenas por zeros, mesmo longos', () => {
+    const allZeros = '0'.repeat(1024);
+    expect(canonicalAppId(allZeros)).toBe('');
+    expect(sameAppId(allZeros, '0')).toBe(false);
+  });
+
   test('não executa conversão implícita de objetos externos', () => {
     const toString = jest.fn(() => '7');
     const input = { toString };
