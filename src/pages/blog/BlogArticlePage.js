@@ -104,10 +104,21 @@ function parseArticle(content) {
   return blocks;
 }
 
-function InlineText({ text }) {
-  const parts = String(text || "").split(/(\*\*[^*]+\*\*)/g);
+export function InlineText({ text }) {
+  // Render supported Markdown tokens as React elements without injecting HTML.
+  const parts = String(text || "").split(/(\*\*[^*]+\*\*|\[[^\]\n]+\]\([^)\n]+\))/g);
   return <>{parts.map((part, index) => {
     if (/^\*\*[^*]+\*\*$/.test(part)) return <strong key={index}>{part.slice(2, -2)}</strong>;
+    const link = part.match(/^\[([^\]\n]+)\]\(([^)\n]+)\)$/);
+    if (link) {
+      const [, label, href] = link;
+      if (href.startsWith("/") && !href.startsWith("//")) {
+        return <Link key={index} to={href}>{label}</Link>;
+      }
+      if (/^https?:\/\/[^\s<>]+$/i.test(href)) {
+        return <a key={index} href={href} target="_blank" rel="noopener noreferrer">{label}</a>;
+      }
+    }
     return <React.Fragment key={index}>{part}</React.Fragment>;
   })}</>;
 }
