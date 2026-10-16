@@ -18,6 +18,7 @@ import {
   accountNavigation,
   actorMenusFor,
   primaryNavigation,
+  mobileBottomNavigationFor,
   exploreNavigation,
   desktopPrimaryNavigation,
   desktopMoreNavigation,
@@ -174,9 +175,9 @@ export default function NavlogComponent() {
 
   useEffect(() => {
     if (typeof document === "undefined") return undefined;
-    document.body.classList.toggle("cut-has-mobile-bottom-nav", Boolean(user));
+    document.body.classList.add("cut-has-mobile-bottom-nav");
     return () => document.body.classList.remove("cut-has-mobile-bottom-nav");
-  }, [user]);
+  }, []);
 
   useEffect(() => {
     if (!open || typeof document === "undefined") return undefined;
@@ -385,6 +386,21 @@ export default function NavlogComponent() {
     </Link>
   );
 
+  const mobileBottomNav = (
+    <nav className="cut-mobile-bottom-nav" aria-label="Navegação principal mobile">
+      {mobileBottomNavigationFor(Boolean(user)).map((entry) => (
+        <Link key={entry.id} to={entry.to}
+          className={`${active(entry.to) ? "active" : ""} ${entry.id === "cities" ? "cut-mobile-bottom-nav__cities" : ""}`}
+          aria-label={entry.label}
+          aria-current={active(entry.to) ? "page" : undefined}
+          onClick={() => { recordUsage(entry, "mobile-bottom"); closeMenu(); }}>
+          <i className={entry.icon} aria-hidden="true" />
+          <span>{entry.label}</span>
+        </Link>
+      ))}
+    </nav>
+  );
+
   const mobileDrawer = open && typeof document !== "undefined" ? createPortal(
     <div id="cut-mobile-drawer" className="cut-mobile-drawer" role="dialog" aria-modal="true" aria-label="Menu principal" style={{ position: "fixed", inset: 0, width: "100vw", height: "100dvh", zIndex: 2147483647, display: "flex", flexDirection: "column", overflow: "hidden", background: "#081622", color: "#fff" }}>
       <div className="cut-mobile-drawer__header">
@@ -450,6 +466,7 @@ export default function NavlogComponent() {
         </Container>
       </Navbar>
       {mobileDrawer}
+      {mobileBottomNav}
       </>
     );
   }
@@ -509,13 +526,7 @@ export default function NavlogComponent() {
       </Navbar>
       {mobileDrawer}
 
-      <nav className="cut-mobile-bottom-nav" aria-label="Navegação principal mobile">
-        <Link to="/feed" className={active("/feed") ? "active" : ""} aria-current={active("/feed") ? "page" : undefined}><i className="fa-solid fa-bolt" /><span>Feed</span></Link>
-        <Link to="/search" className={active("/search") ? "active" : ""} aria-current={active("/search") ? "page" : undefined}><i className="fa-solid fa-magnifying-glass" /><span>Buscar</span></Link>
-        <Link to="/event" className={active("/event") ? "active" : ""} aria-current={active("/event") ? "page" : undefined}><i className="fa-regular fa-calendar-days" /><span>Eventos</span></Link>
-        <Link to="/messages" className={active("/messages") ? "active" : ""} aria-current={active("/messages") ? "page" : undefined} aria-label="Mensagens"><i className="fa-regular fa-paper-plane" /><span>Mensagens</span></Link>
-        <Link to="/profile" className={active("/profile") ? "active" : ""} aria-current={active("/profile") ? "page" : undefined}><i className="fa-regular fa-user" /><span>Perfil</span></Link>
-      </nav>
+      {mobileBottomNav}
     </>
   );
 }
