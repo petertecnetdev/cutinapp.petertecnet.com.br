@@ -146,3 +146,17 @@
     animation-iteration-count: 1 !important;
   }
 }
+
+
+/* O rótulo Cidades precisa permanecer visível em telas de 320–390px. */
+@media (max-width: 390px) {
+  html[data-cut-instagram-shell="active"] .cut-mobile-bottom-nav > a.cut-mobile-bottom-nav__cities > span {
+    position: static !important;
+    display: block !important;
+    width: auto !important;
+    height: auto !important;
+    clip: auto !important;
+    overflow: visible !important;
+    opacity: 1 !important;
+  }
+}
