@@ -2,6 +2,12 @@ import { canNavigate } from "./capabilityResolver";
 export const PRODUCTION_STORAGE_KEY="cutinapp:navigation-production"; export const NAV_USAGE_STORAGE_KEY="cutinapp:navigation-usage";
 const item=(id,label,icon,to,extras={})=>({id,label,icon,to,...extras});
 export const primaryNavigation=[item("home","Início","fa-solid fa-house","/"),item("search","Buscar","fa-solid fa-magnifying-glass","/search"),item("events","Eventos","fa-regular fa-calendar-days","/event"),item("cities","Cidades","fa-solid fa-location-dot","/cidades"),item("feed","Feed","fa-solid fa-bolt","/feed"),item("messages","Mensagens","fa-regular fa-paper-plane","/messages"),item("productions","Produções","fa-solid fa-building","/productions")];
+// Atalhos móveis visíveis, inclusive para visitantes. Mensagens continua no menu completo.
+export const mobileBottomNavigationFor = (authenticated = false) => (
+  authenticated
+    ? [item("feed", "Feed", "fa-solid fa-bolt", "/feed"), item("search", "Buscar", "fa-solid fa-magnifying-glass", "/search"), item("events", "Eventos", "fa-regular fa-calendar-days", "/event"), item("cities", "Cidades", "fa-solid fa-location-dot", "/cidades"), item("profile", "Perfil", "fa-regular fa-user", "/profile")]
+    : [item("home", "Início", "fa-solid fa-house", "/"), item("search", "Buscar", "fa-solid fa-magnifying-glass", "/search"), item("events", "Eventos", "fa-regular fa-calendar-days", "/event"), item("cities", "Cidades", "fa-solid fa-location-dot", "/cidades"), item("login", "Entrar", "fa-solid fa-arrow-right-to-bracket", "/login")]
+);
 export const exploreNavigation=[item("artists","Artistas","fa-solid fa-music","/artists"),item("blog","Blog","fa-regular fa-newspaper","/blog")];
 // A barra desktop prioriza descoberta e deixa rotas secundárias no menu Mais.
 // A navegação completa continua disponível no drawer/mobile.
