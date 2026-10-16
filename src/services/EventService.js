@@ -15,6 +15,8 @@ const resolveWhatsappPhone = (...sources) => {
     const value = source.whatsapp_phone
       || source.whatsapp_number
       || source.whatsapp
+      || source.whatsapp_url
+      || source.whatsappUrl
       || source.contact_whatsapp
       || source.phone
       || source.phone_number
@@ -31,10 +33,7 @@ const normalizePublicEventResponse = (response) => {
 
   const production = event.production || event.establishment || event.organization || null;
   const whatsappPhone = resolveWhatsappPhone(
-    production,
-    event.establishment,
-    event.organization,
-    event
+    production
   );
 
   if (!production || !whatsappPhone) return response;

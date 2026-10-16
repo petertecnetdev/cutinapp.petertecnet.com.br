@@ -6,11 +6,13 @@ import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import ProductionTicketCartModal from "../../components/event/ProductionTicketCartModal";
 import EventDiscoveryRail from "../../components/event/EventDiscoveryRail";
+import WhatsAppFloatingButton from "../../components/WhatsAppFloatingButton";
 import ProductionNextEventHero from "../../components/production/ProductionNextEventHero";
 import { FormattedText } from "../../components/editor/FormattedText";
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
 import { safeExternalHref } from "../../utils/safeUrl";
+import { buildContactWhatsappHref, buildProductionContactMessage, resolveProductionWhatsappPhone } from "../../utils/productionWhatsappContact";
 import { subscribeGalleryUpdates } from "../../utils/gallerySync";
 import "./production-experience.css";
 import "./production-view-evolution.css";
@@ -320,8 +322,6 @@ export default function ProductionPublicPage() {
   const mapEmbedUrl = mapQuery ? `https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed` : "";
   const mapsHref = mapQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}` : "";
   const productionUrl = `${window.location.origin}/production/${encodeURIComponent(slug)}/public`;
-  const whatsappShareMessage = `Olha esta produção na Cutinapp: ${production.name}\n${productionUrl}`;
-  const whatsappShareHref = `https://wa.me/?text=${encodeURIComponent(whatsappShareMessage)}`;
   const rawPhone = String(production.phone || "").trim();
   const phoneDigits = rawPhone.replace(/\D/g, "");
   const explicitInternationalPhone = /^\+\s*\d/.test(rawPhone) || /^00\d/.test(rawPhone);
@@ -330,7 +330,9 @@ export default function ProductionPublicPage() {
     ? (rawPhone.startsWith("00") ? phoneDigits.slice(2) : phoneDigits)
     : countryDialCode && phoneDigits ? `${countryDialCode}${phoneDigits}` : "";
   const phoneHref = phoneDigits ? `tel:${internationalDigits ? `+${internationalDigits}` : phoneDigits}` : "";
-  const whatsappContactHref = internationalDigits ? `https://wa.me/${internationalDigits}` : "";
+  const productionWhatsappPhone = resolveProductionWhatsappPhone(production);
+  const productionWhatsappMessage = buildProductionContactMessage(production.name);
+  const whatsappContactHref = buildContactWhatsappHref(productionWhatsappPhone, productionWhatsappMessage, { normalizedPhone: true });
   const nextEvent = upcoming[0] || null;
 
   const goToTab = (key) => {
@@ -588,7 +590,12 @@ export default function ProductionPublicPage() {
         {!secondaryLoading && <React.Suspense fallback={<div className="cut-production-section cut-production-async-indicator"><ProcessingIndicatorComponent fullscreen={false} label="Preparando publicações" /></div>}><ProductionCommunitySection production={production} isOwner={isOwner} /></React.Suspense>}
       </Container>
 
-      <a className="cut-whatsapp-fab cut-production-share-fab" href={whatsappShareHref} target="_blank" rel="noopener noreferrer" aria-label="Compartilhar produção no WhatsApp" title="Compartilhar produção no WhatsApp"><i className="fa-brands fa-whatsapp" aria-hidden="true" /><span>Compartilhar</span></a>
+      <WhatsAppFloatingButton
+        phone={productionWhatsappPhone}
+        phoneNormalized
+        label="Falar com a produção"
+        message={productionWhatsappMessage}
+      />
 
       <ProductionTicketCartModal show={ticketCartOpen} onHide={() => setTicketCartOpen(false)} productionSlug={slug} />
 

@@ -4,6 +4,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import WhatsAppFloatingButton from "../../components/WhatsAppFloatingButton";
+import { buildEventContactMessage } from "../../utils/productionWhatsappContact";
 import EventCommunitySection from "../../components/event/EventCommunitySection";
 import CommunityAttendanceSection from "../../components/event/CommunityAttendanceSection";
 import EventDiscoveryRail from "../../components/event/EventDiscoveryRail";
@@ -599,9 +600,10 @@ export default function EventViewPage() {
       </a>}
 
       <WhatsAppFloatingButton
-        phone={event.production?.phone || event.phone}
+        phone={event.production?.phone}
+        countryCode={event.production?.phone_country_code || event.production?.dialing_code}
         label="Falar sobre o evento"
-        message={`Olá! Vi o evento ${event.title} na Cutinapp e gostaria de mais informações.`}
+        message={buildEventContactMessage(event.title)}
       />
 
       <EventFlyerModal show={flyerOpen} onHide={() => setFlyerOpen(false)} event={event} flyerUrl={flyerUrl} />
