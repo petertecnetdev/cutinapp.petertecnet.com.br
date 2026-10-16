@@ -113,10 +113,10 @@ export function InlineText({ text }) {
     if (link) {
       const [, label, href] = link;
       if (href.startsWith("/") && !href.startsWith("//")) {
-        return <Link key={index} to={href}>{label}</Link>;
+        return <Link key={`${href}-${index}`} to={href}>{label}</Link>;
       }
       if (/^https?:\/\/[^\s<>]+$/i.test(href)) {
-        return <a key={index} href={href} target="_blank" rel="noopener noreferrer">{label}</a>;
+        return <a key={`${href}-${index}`} href={href} target="_blank" rel="noopener noreferrer">{label}</a>;
       }
     }
     return <React.Fragment key={index}>{part}</React.Fragment>;
