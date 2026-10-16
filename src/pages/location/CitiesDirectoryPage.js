@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import PropTypes from "prop-types";
 import { Link } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import SeoHead, { SITE_URL } from "../../components/SeoHead";
@@ -17,6 +18,16 @@ const CityLink = ({ city, featured = false }) => (
     <i className="fa-solid fa-arrow-right cut-cities__city-arrow" aria-hidden="true" />
   </Link>
 );
+
+CityLink.propTypes = {
+  city: PropTypes.shape({
+    city: PropTypes.string.isRequired,
+    uf: PropTypes.string.isRequired,
+    slug: PropTypes.string.isRequired,
+    total: PropTypes.number.isRequired,
+  }).isRequired,
+  featured: PropTypes.bool,
+};
 
 export default function CitiesDirectoryPage() {
   const [cities, setCities] = useState([]);
