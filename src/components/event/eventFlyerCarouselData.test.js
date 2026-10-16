@@ -37,4 +37,16 @@ describe("vitrine dos próximos flyers", () => {
     expect(selected.map((item) => item.id)).toEqual([2, 3]);
     expect(data.map((item) => item.id)).toEqual([1, 2, 3]);
   });
+  test("com Aracaju - SE selecionada, nunca apresenta flyers de Salvador ou Porto Alegre", () => {
+    const mixed = [
+      { ...event(1, "2026-10-20"), city: "Aracaju", uf: "SE" },
+      { ...event(2, "2026-10-20"), city: "Salvador", uf: "BA" },
+      { ...event(3, "2026-10-20"), city: "Porto Alegre", uf: "RS" },
+      { ...event(4, "2026-10-20"), city: "Aracaju", uf: "AL" },
+      event(5, "2026-10-20"),
+    ];
+    expect(selectUpcomingFlyers(mixed, now, 9, { city: "Aracaju", uf: "SE" }).map(({ id }) => id))
+      .toEqual([1]);
+    expect(selectUpcomingFlyers(mixed, now)).toHaveLength(5);
+  });
 });

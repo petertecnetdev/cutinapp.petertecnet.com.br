@@ -139,10 +139,16 @@ export default function HomeHubPage() {
         cutinappService.publicProductions(withSelectedCity({ per_page: 12 }, selectedCity)),
       ]);
       if (!active) return;
-      const eventList = eventResult.status === "fulfilled" ? (eventResult.value?.events?.data || []) : [];
-      const productionList = productionResult.status === "fulfilled" ? (productionResult.value?.productions?.data || productionResult.value?.productions || []) : [];
+      // A API recebe cidade + UF, mas a home nunca confia no resultado sem validar
+      // a localidade de cada registro. Isso protege também contra caches antigos.
+      const eventList = (eventResult.status === "fulfilled" ? (eventResult.value?.events?.data || []) : [])
+        .filter((event) => matchesSelectedCity(event, selectedCity));
+      const productionList = (productionResult.status === "fulfilled"
+        ? (productionResult.value?.productions?.data || productionResult.value?.productions || []) : []);
       const eventProductions = eventList.map((event) => event?.production).filter(Boolean);
-      const mergedProductions = uniqueBy([...eventProductions, ...(Array.isArray(productionList) ? productionList : [])], (production) => String(production?.id || production?.slug || "")).slice(0, 12);
+      const mergedProductions = uniqueBy([...eventProductions, ...(Array.isArray(productionList) ? productionList : [])]
+        .filter((production) => matchesSelectedCity(production, selectedCity)),
+        (production) => String(production?.id || production?.slug || "")).slice(0, 12);
       setEvents(eventList.slice(0, 12));
       setProductions(mergedProductions);
       setLoading(false);
@@ -169,7 +175,9 @@ export default function HomeHubPage() {
           const production = sourceEvent?.production || catalogEvent?.production || null;
           return (Array.isArray(catalog.items) ? catalog.items : []).filter((item) => item?.available !== false && item?.is_active !== false).map((item) => ({ ...item, __event: catalogEvent, __production: production }));
         });
-        discoveredItems = uniqueBy([...discoveredItems, ...batchItems], (item) => item.__kind === "catalog" ? `catalog:${item.id}` : `event:${item?.__event?.id || item?.__event?.slug}:${item?.id || item?.name}`).slice(0, 12);
+        discoveredItems = uniqueBy([...discoveredItems, ...batchItems].filter((item) =>
+          matchesSelectedCity(item.__event || item.__production || item, selectedCity)),
+          (item) => item.__kind === "catalog" ? `catalog:${item.id}` : `event:${item?.__event?.id || item?.__event?.slug}:${item?.id || item?.name}`).slice(0, 12);
       }
       if (!active) return;
       setItems(discoveredItems);
@@ -179,9 +187,14 @@ export default function HomeHubPage() {
     return () => { active = false; };
   }, [city, uf]);
 
-  const todayEvents = useMemo(() => events.filter(isTodayEvent), [events]);
-  const upcomingEvents = useMemo(() => events.filter(isUpcomingEvent), [events]);
-  const productionCountLabel = useMemo(() => productions.length === 1 ? "1 produção em destaque" : `${productions.length} produções em destaque`, [productions.length]);
+  // Filtro também no render: ao trocar de cidade, não exibir nem por um frame
+  // os cards ainda presentes no estado da cidade anterior.
+  const visibleEvents = useMemo(() => events.filter((event) => matchesSelectedCity(event, selectedCity)), [events, city, uf]);
+  const visibleProductions = useMemo(() => productions.filter((production) => matchesSelectedCity(production, selectedCity)), [productions, city, uf]);
+  const visibleItems = useMemo(() => items.filter((item) => matchesSelectedCity(item.__event || item.__production || item, selectedCity)), [items, city, uf]);
+  const todayEvents = useMemo(() => visibleEvents.filter(isTodayEvent), [visibleEvents]);
+  const upcomingEvents = useMemo(() => visibleEvents.filter(isUpcomingEvent), [visibleEvents]);
+  const productionCountLabel = useMemo(() => visibleProductions.length === 1 ? "1 produção em destaque" : `${visibleProductions.length} produções em destaque`, [visibleProductions.length]);
   const empty = (icon, title, text) => <div className="cut-home-hub__empty"><i className={icon} /><strong>{title}</strong><p>{text}</p></div>;
 
   return (
@@ -193,7 +206,7 @@ export default function HomeHubPage() {
           <Link to="/search" className="cut-home-hub__search"><i className="fa-solid fa-magnifying-glass" /><span><small>Busca rápida</small><strong>Pesquisar na Cutinapp</strong></span><i className="fa-solid fa-arrow-right" /></Link>
         </header>
 
-        {!loading && <UpcomingFlyerCarousel events={events} />}
+        {!loading && <UpcomingFlyerCarousel events={visibleEvents} city={city} uf={uf} />}
 
         {loading ? <LoadingRail /> : todayEvents.length > 0 && (
           <EventDiscoveryRail events={todayEvents} eyebrow="Hoje" title="Acontecendo hoje" description="Eventos de hoje primeiro, para decidir rápido o que fazer agora." allTo="/event" allLabel="Ver agenda" emptyTitle="Nada para hoje" emptyText="Os próximos eventos aparecem logo abaixo." className="cut-home-hub__eventsRail" />
@@ -205,7 +218,7 @@ export default function HomeHubPage() {
 
         {loading ? <LoadingRail /> : (
           <DiscoveryRail eyebrow={productionCountLabel} title="Produções para acompanhar" description="Conheça quem organiza experiências e entre direto na página da produção." to="/productions" toLabel="Todas as produções" empty={empty("fa-solid fa-users-gear", "Nenhuma produção disponível", "As produções públicas vão aparecer aqui assim que forem publicadas.")} railClassName="cut-home-hub__rail--productions">
-            {productions.map((production) => {
+            {visibleProductions.map((production) => {
               const cover = mediaUrl(production.background || production.cover || production.banner);
               const logo = mediaUrl(production.logo || production.photo || production.image);
               return <Link to={publicProductionRoute(production.slug)} className="cut-home-hub__productionCard" key={production.id || production.slug}><div className="cut-home-hub__productionCover">{cover ? <img src={cover} alt="" loading="lazy" decoding="async" /> : <span />}</div><div className="cut-home-hub__productionBody"><div className="cut-home-hub__productionAvatar">{logo ? <img src={logo} alt={production.name || "Produção"} loading="lazy" decoding="async" /> : initials(production.name)}</div><div><h3>{production.name || "Produção Cutinapp"}</h3><p>{production.city ? `${production.city}${production.uf ? ` - ${production.uf}` : ""}` : "Produção Cutinapp"}</p><small>{Number(production.upcoming_events_count || 0)} próximo(s) evento(s)</small></div></div></Link>;
@@ -215,7 +228,7 @@ export default function HomeHubPage() {
 
         {itemsLoading ? <LoadingRail /> : (
           <DiscoveryRail eyebrow="Itens das produções" title="Itens para conhecer" description="Conheça produtos dos catálogos públicos das produções e adicionais dos próximos eventos." empty={empty("fa-solid fa-bag-shopping", "Nenhum item publicado no momento", "Itens públicos das produções e dos eventos aparecerão nesta faixa.")} railClassName="cut-home-hub__rail--items">
-            {items.map((item) => {
+            {visibleItems.map((item) => {
               const event = item.__event || {};
               const production = item.__production || {};
               const fileImage = Array.isArray(item.files) ? item.files.find((file) => file?.public_url || file?.url || file?.path) : null;

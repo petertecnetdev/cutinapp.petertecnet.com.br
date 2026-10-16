@@ -10,6 +10,7 @@ import eventService from "../../services/EventService";
 import cutinappService from "../../services/CutinappService";
 import { readDiscoveryPreference, saveDiscoveryPreference } from "../../utils/discoveryFilters";
 import CityPicker from "../../components/event/CityPicker";
+import { matchesSelectedCity } from "../../utils/discoveryCities";
 import "./EventPage.css";
 
 const formatDate = (value) => value
@@ -116,7 +117,7 @@ export default function EventPage() {
     })
       .then((response) => {
         if (!active) return;
-        setEvents(response.events?.data || []);
+        setEvents((response.events?.data || []).filter((event) => matchesSelectedCity(event, filters)));
         setPagination(response.events || null);
       })
       .catch((err) => {

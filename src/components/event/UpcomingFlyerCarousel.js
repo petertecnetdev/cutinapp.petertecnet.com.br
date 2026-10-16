@@ -20,8 +20,8 @@ const circularOffset = (index, selected, count) => {
   return distance > count / 2 ? distance - count : distance;
 };
 
-export default function UpcomingFlyerCarousel({ events = [], className = "" }) {
-  const posters = useMemo(() => selectUpcomingFlyers(events), [events]);
+export default function UpcomingFlyerCarousel({ events = [], className = "", city = "", uf = "" }) {
+  const posters = useMemo(() => selectUpcomingFlyers(events, new Date(), 9, { city, uf }), [events, city, uf]);
   const [selected, setSelected] = useState(0);
   const gesture = useRef(null);
   const swipeClickUntil = useRef(0);
@@ -144,4 +144,6 @@ export default function UpcomingFlyerCarousel({ events = [], className = "" }) {
 UpcomingFlyerCarousel.propTypes = {
   events: PropTypes.arrayOf(PropTypes.object),
   className: PropTypes.string,
+  city: PropTypes.string,
+  uf: PropTypes.string,
 };

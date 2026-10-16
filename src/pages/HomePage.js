@@ -12,6 +12,7 @@ import EventPosterThumbnail from "../components/event/EventPosterThumbnail";
 import { storageUrl } from "../config";
 import { readDiscoveryPreference, saveDiscoveryPreference } from "../utils/discoveryFilters";
 import { publicArtistRoute, publicEventRoute, publicProductionRoute } from "../utils/entityRoutes";
+import { matchesSelectedCity } from "../utils/discoveryCities";
 import { DISCOVERY_CITY_CHANGE_EVENT } from "../utils/discoveryFilters";
 import { clearHomeLocation, readHomeLocation, saveHomeLocation } from "../utils/homeLocationStorage";
 import "./HomePage.css";
@@ -139,16 +140,21 @@ export default function HomePage() {
         cutinappService.availableCities("events"),
       ]);
 
-      let localEvents = eventResult.status === "fulfilled" ? eventResult.value.events?.data || [] : [];
-      let localProductions = productionResult.status === "fulfilled" ? productionResult.value.productions?.data || [] : [];
-      let localArtists = artistResult.status === "fulfilled" ? artistResult.value.artists?.data || [] : [];
+      let localEvents = (eventResult.status === "fulfilled" ? eventResult.value.events?.data || [] : [])
+        .filter((event) => matchesSelectedCity(event, params));
+      let localProductions = (productionResult.status === "fulfilled" ? productionResult.value.productions?.data || [] : [])
+        .filter((production) => matchesSelectedCity(production, params));
+      let localArtists = (artistResult.status === "fulfilled" ? artistResult.value.artists?.data || [] : [])
+        .filter((artist) => matchesSelectedCity(artist, params));
       const facetCities = facetResult.status === "fulfilled" ? facetResult.value.cities || [] : [];
 
       if (request !== latestDiscoveryRequest.current) return;
       const eventProductions = localEvents.map((event) => event.production).filter(Boolean);
       const eventArtists = localEvents.flatMap((event) => event.artists || []);
-      localProductions = uniqueById([...eventProductions, ...localProductions]);
-      localArtists = uniqueById([...eventArtists, ...localArtists]);
+      localProductions = uniqueById([...eventProductions, ...localProductions]
+        .filter((production) => matchesSelectedCity(production, params)));
+      localArtists = uniqueById([...eventArtists, ...localArtists]
+        .filter((artist) => matchesSelectedCity(artist, params)));
 
       // Nunca substituir silenciosamente eventos da cidade escolhida por eventos de outras cidades.
 
@@ -238,9 +244,12 @@ export default function HomePage() {
     navigate(query ? `/search?q=${encodeURIComponent(query)}` : browseLink);
   };
 
-  const featuredEvent = events[0] || null;
-  const featuredProduction = productions[0] || null;
-  const featuredArtists = artists.slice(0, 4);
+  const visibleEvents = events.filter((event) => matchesSelectedCity(event, discoveryParams));
+  const visibleProductions = productions.filter((production) => matchesSelectedCity(production, discoveryParams));
+  const visibleArtists = artists.filter((artist) => matchesSelectedCity(artist, discoveryParams));
+  const featuredEvent = visibleEvents[0] || null;
+  const featuredProduction = visibleProductions[0] || null;
+  const featuredArtists = visibleArtists.slice(0, 4);
 
   return (
     <div className="cut-home cut-home-discovery">
@@ -483,10 +492,10 @@ export default function HomePage() {
             </div>
             {loading
               ? <ProcessingIndicatorComponent fullscreen={false} label="Buscando eventos" />
-              : events.length
+              : visibleEvents.length
                 ? (
                   <div className="cut-home-discovery__events">
-                    {events.map((event) => (
+                    {visibleEvents.map((event) => (
                       <Link key={event.id} to={publicEventRoute(event.slug)} className="cut-home-discovery__eventCard">
                         <div className="cut-home-discovery__eventImage">
                           <EventPosterThumbnail image={event.image} title={event.title} alt={event.title} className="cut-home-discovery__eventPoster" loading="lazy" />
@@ -553,16 +562,16 @@ export default function HomePage() {
             <div className="cut-home-discovery__sectionHead">
               <div><span>Quem movimenta a cena</span><h2>Produções para acompanhar</h2></div>
               <div className="cut-home-discovery__sectionActions">
-                {productions.length > 1 && <div className="cut-home-discovery__railControls" role="group" aria-label="Navegar pelas produções"><button type="button" onClick={() => scrollProductionRail(-1)} aria-label="Ver produções anteriores"><i className="fa-solid fa-chevron-left" /></button><button type="button" onClick={() => scrollProductionRail(1)} aria-label="Ver próximas produções"><i className="fa-solid fa-chevron-right" /></button></div>}
+                {visibleProductions.length > 1 && <div className="cut-home-discovery__railControls" role="group" aria-label="Navegar pelas produções"><button type="button" onClick={() => scrollProductionRail(-1)} aria-label="Ver produções anteriores"><i className="fa-solid fa-chevron-left" /></button><button type="button" onClick={() => scrollProductionRail(1)} aria-label="Ver próximas produções"><i className="fa-solid fa-chevron-right" /></button></div>}
                 <Link to="/productions">Ver produções <i className="fa-solid fa-arrow-right" /></Link>
               </div>
             </div>
             {loading
               ? <ProcessingIndicatorComponent fullscreen={false} label="Buscando produções" />
-              : productions.length
+              : visibleProductions.length
                 ? (
                   <div className="cut-home-discovery__profiles" ref={productionRailRef} role="list" aria-label="Produções para acompanhar">
-                    {productions.map((production) => {
+                    {visibleProductions.map((production) => {
                       const productionArtwork = mediaUrl(production.background || production.logo);
                       return (
                       <Link key={production.id} to={publicProductionRoute(production.slug)} className="cut-home-discovery__profileCard" role="listitem" style={productionArtwork ? { "--cut-production-card-cover": `url(${JSON.stringify(productionArtwork)})` } : undefined}>

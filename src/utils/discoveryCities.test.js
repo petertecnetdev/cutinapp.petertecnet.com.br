@@ -25,3 +25,16 @@ describe("seleção de cidades com eventos", () => {
       .toEqual({ q: "rock", per_page: 12, city: "Goiânia", uf: "GO" });
   });
 });
+
+test("a home não permite vazamento de eventos de outra cidade ou sem metadados", () => {
+  const payload = [
+    { id: 1, city: "Aracaju", uf: "SE" },
+    { id: 2, city: "Salvador", uf: "BA" },
+    { id: 3, city: "Porto Alegre", uf: "RS" },
+    { id: 4, city: "Aracaju", uf: "AL" },
+    { id: 5, city: "", uf: "SE" },
+  ];
+  expect(payload.filter((event) => matchesSelectedCity(event, { city: "Aracaju", uf: "SE" })).map((event) => event.id))
+    .toEqual([1]);
+  expect(payload.filter((event) => matchesSelectedCity(event, {}))).toHaveLength(5);
+});
