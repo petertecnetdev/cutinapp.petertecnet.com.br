@@ -6,6 +6,7 @@ import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorCo
 import { AuthContext } from "../../context/AuthContext";
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
+import useDiscoveryCity from "../../hooks/useDiscoveryCity";
 import "./production-experience.css";
 
 const mediaUrl = (value) => {
@@ -42,6 +43,7 @@ const ratingValue = (production) => {
 };
 
 export default function ProductionListPage() {
+  const selectedCity = useDiscoveryCity();
   const { user } = useContext(AuthContext);
   const [params, setParams] = useSearchParams();
   const [productions, setProductions] = useState([]);
@@ -53,7 +55,8 @@ export default function ProductionListPage() {
   const [filtersOpen, setFiltersOpen] = useState(Boolean(params.get("q") || params.get("city")));
 
   const q = params.get("q") || "";
-  const cityFilter = params.get("city") || "";
+  const cityFilter = params.get("city") ?? selectedCity.city ?? "";
+  const ufFilter = params.get("uf") ?? (cityFilter === selectedCity.city ? selectedCity.uf : "") ?? "";
   const page = Math.max(1, Number(params.get("page") || 1));
 
   useEffect(() => {
@@ -70,6 +73,7 @@ export default function ProductionListPage() {
     cutinappService.publicProductions({
       q: q || undefined,
       city: cityFilter || undefined,
+      uf: ufFilter || undefined,
       page,
       per_page: 24,
     })
@@ -92,13 +96,16 @@ export default function ProductionListPage() {
       .finally(() => active && setLoading(false));
 
     return () => { active = false; };
-  }, [q, cityFilter, page]);
+  }, [q, cityFilter, ufFilter, page]);
 
   const submitFilters = (event) => {
     event.preventDefault();
     const next = new URLSearchParams();
     if (search.trim()) next.set("q", search.trim());
-    if (city.trim()) next.set("city", city.trim());
+    if (city.trim()) {
+      next.set("city", city.trim());
+      if (city.trim() === selectedCity.city && selectedCity.uf) next.set("uf", selectedCity.uf);
+    }
     setParams(next);
   };
 

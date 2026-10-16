@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import PropTypes from "prop-types";
 import cutinappService from "../../services/CutinappService";
-import { readRecentCities } from "../../utils/discoveryFilters";
+import { availableEventCities } from "../../utils/discoveryCities";
 
 const key = (value) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
@@ -12,13 +12,13 @@ export default function CityPicker({ selectedCity, selectedUf, onSelect }) {
   const [error, setError] = useState(false);
   useEffect(() => {
     let active = true;
-    cutinappService.discoveryFacets().then((data) => {
-      if (active) setCities(Array.isArray(data?.cities) ? data.cities : []);
+    cutinappService.availableCities("events").then((data) => {
+      if (active) setCities(availableEventCities(data?.cities));
     }).catch(() => { if (active) setError(true); }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, []);
   const options = useMemo(() => {
-    const all = [...readRecentCities(), ...cities];
+    const all = cities;
     const unique = new Map();
     all.forEach((item) => {
       if (!item?.city) return;

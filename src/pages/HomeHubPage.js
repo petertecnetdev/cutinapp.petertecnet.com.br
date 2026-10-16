@@ -13,6 +13,8 @@ import { homeCatalogItemRoute, selectHomeCatalogItems } from "../utils/homeCatal
 import { storageUrl } from "../config";
 import { chronologicalBucketFor, parsePortableEventDate } from "../utils/chronologicalDiscovery";
 import { publicEventItemRoute, publicProductionRoute } from "../utils/entityRoutes";
+import useDiscoveryCity from "../hooks/useDiscoveryCity";
+import { matchesSelectedCity, withSelectedCity } from "../utils/discoveryCities";
 import "./HomeHubPage.css";
 
 const formatMoney = (value, currency) => {
@@ -114,6 +116,9 @@ function LoadingRail() {
 }
 
 export default function HomeHubPage() {
+  const selectedCity = useDiscoveryCity();
+  const city = selectedCity.city || "";
+  const uf = selectedCity.uf || "";
   const [events, setEvents] = useState([]);
   const [productions, setProductions] = useState([]);
   const [items, setItems] = useState([]);
@@ -130,8 +135,8 @@ export default function HomeHubPage() {
         publicCatalogService.establishments(),
       ]);
       const [eventResult, productionResult] = await Promise.allSettled([
-        eventService.search({ per_page: 12, sort: "soonest" }),
-        cutinappService.publicProductions({ per_page: 12 }),
+        eventService.search(withSelectedCity({ per_page: 12, sort: "soonest" }, selectedCity)),
+        cutinappService.publicProductions(withSelectedCity({ per_page: 12 }, selectedCity)),
       ]);
       if (!active) return;
       const eventList = eventResult.status === "fulfilled" ? (eventResult.value?.events?.data || []) : [];
@@ -148,7 +153,8 @@ export default function HomeHubPage() {
       if (!active) return;
       const catalogItems = itemResult.status === "fulfilled" ? itemResult.value : [];
       const establishments = establishmentResult.status === "fulfilled" ? establishmentResult.value : [];
-      let discoveredItems = selectHomeCatalogItems(catalogItems, establishments, 12);
+      let discoveredItems = selectHomeCatalogItems(catalogItems, establishments, city ? 100 : 12)
+        .filter((item) => matchesSelectedCity(item.__production || item, selectedCity)).slice(0, 12);
       const catalogEvents = eventList.filter((event) => event?.slug && (isTodayEvent(event) || isUpcomingEvent(event))).slice(0, 12);
       const catalogBatchSize = 4;
       for (let offset = 0; offset < catalogEvents.length && discoveredItems.length < 12; offset += catalogBatchSize) {
@@ -171,7 +177,7 @@ export default function HomeHubPage() {
     };
     load().catch(() => { if (!active) return; setEvents([]); setProductions([]); setItems([]); setLoading(false); setItemsLoading(false); });
     return () => { active = false; };
-  }, []);
+  }, [city, uf]);
 
   const todayEvents = useMemo(() => events.filter(isTodayEvent), [events]);
   const upcomingEvents = useMemo(() => events.filter(isUpcomingEvent), [events]);

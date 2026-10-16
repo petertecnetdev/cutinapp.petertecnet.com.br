@@ -14,6 +14,8 @@ export const PERIOD_OPTIONS = [
 
 export const periodLabel = (value) => PERIOD_OPTIONS.find(([key]) => key === value)?.[1] || "";
 
+export const DISCOVERY_CITY_CHANGE_EVENT = "cutinapp:discovery-city-change";
+
 export const readDiscoveryPreference = () => safeGetLocalJson("cutinapp.discovery", {});
 
 const cityKey = (value) => `${String(value?.city || "").trim().toLocaleLowerCase("pt-BR")}|${String(value?.uf || "").trim().toLocaleUpperCase("pt-BR")}`;
@@ -28,6 +30,8 @@ export const saveDiscoveryPreference = (value) => {
     const next = [selected, ...recent.filter((item) => cityKey(item) !== selectedKey)].slice(0, 5);
     safeSetLocalJson("cutinapp.recentCities", next);
   }
+  // storage não notifica a própria aba. Os catálogos devem reagir imediatamente.
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(DISCOVERY_CITY_CHANGE_EVENT));
 };
 
 export const readRecentCities = () => safeGetLocalJson("cutinapp.recentCities", []);

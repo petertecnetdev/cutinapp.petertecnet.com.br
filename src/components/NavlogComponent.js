@@ -25,6 +25,7 @@ import {
   readNavigationUsage,
 } from "../navigation/navigationRegistry";
 import NotificationPermissionControl from "./NotificationPermissionControl";
+import CityNavSelect from "./location/CityNavSelect";
 
 const CAPABILITY_CACHE_TTL = 5 * 60 * 1000;
 const NAV_RUNTIME_CACHE_TTL = 45 * 1000;
@@ -411,7 +412,8 @@ export default function NavlogComponent() {
         <Container className="cut-navbar__inner">
           <Navbar.Brand as={Link} to="/" className="cut-navbar__brand"><img src="/images/logo.png" alt="Cutinapp" /><div><strong>Cutinapp</strong><small>Rede social de eventos</small></div></Navbar.Brand>
           <button type="button" className="navbar-toggler cut-mobile-menu-toggle d-lg-none" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, minWidth: 44, opacity: 1, visibility: "visible", position: "relative", zIndex: 2147483647 }} aria-expanded={open} aria-controls="cut-mobile-drawer" aria-label={open ? "Fechar menu" : "Abrir menu"} onClick={() => setOpen((value) => !value)}><span className="navbar-toggler-icon" /></button>
-          <Navbar.Collapse id="cut-navbar-public"><Nav className="ms-auto cut-navbar__links"><Nav.Link as={Link} to="/search" onClick={closeMenu}><i className="fa-solid fa-magnifying-glass me-2" />Buscar</Nav.Link><Nav.Link as={Link} to="/event">Eventos</Nav.Link><Nav.Link as={Link} to="/productions">Produções</Nav.Link><Nav.Link as={Link} to="/artists">Artistas</Nav.Link><Nav.Link as={Link} to="/login">Entrar</Nav.Link></Nav></Navbar.Collapse>
+          <CityNavSelect variant="mobile" />
+          <Navbar.Collapse id="cut-navbar-public"><Nav className="ms-auto cut-navbar__links"><CityNavSelect /><Nav.Link as={Link} to="/search" onClick={closeMenu}><i className="fa-solid fa-magnifying-glass me-2" />Buscar</Nav.Link><Nav.Link as={Link} to="/event">Eventos</Nav.Link><Nav.Link as={Link} to="/productions">Produções</Nav.Link><Nav.Link as={Link} to="/artists">Artistas</Nav.Link><Nav.Link as={Link} to="/login">Entrar</Nav.Link></Nav></Navbar.Collapse>
         </Container>
       </Navbar>
       {mobileDrawer}
@@ -429,6 +431,7 @@ export default function NavlogComponent() {
         <Container className="cut-navbar__inner">
           <Navbar.Brand as={Link} to="/" className="cut-navbar__brand" onClick={closeMenu}><img src="/images/logo.png" alt="Cutinapp" /><div><strong>Cutinapp</strong><small>Rede social de eventos</small></div></Navbar.Brand>
           <button type="button" className="navbar-toggler cut-mobile-menu-toggle d-lg-none" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, minWidth: 44, opacity: 1, visibility: "visible", position: "relative", zIndex: 2147483647 }} aria-expanded={open} aria-controls="cut-mobile-drawer" aria-label={open ? "Fechar menu" : "Abrir menu"} onClick={() => setOpen((value) => !value)}><span className="navbar-toggler-icon" /></button>
+          <CityNavSelect variant="mobile" />
           <Navbar.Collapse id="cut-navbar">
             <Link to="/profile" className="cut-navbar__mobile-account" onClick={closeMenu} aria-label="Abrir meu perfil">
               <span className="cut-navbar__avatar">{userAvatar ? <img src={userAvatar} alt="" /> : userFallbackInitials}</span>
@@ -446,6 +449,7 @@ export default function NavlogComponent() {
               </NavDropdown>
             </Nav>
             <div className="cut-navbar__tools">
+              <CityNavSelect />
               {creationActionsFor(capabilities).length > 0 && <NavDropdown {...dropdown("create")} align="end" title={<span><i className="fa-solid fa-plus" aria-hidden="true" /><span>Criar</span></span>} id="cut-quick-menu" className="cut-navbar__quick-toggle" aria-label="Criar"><div className="cut-navbar__quick-menu"><div className="cut-quick-heading">Criar</div>{creationActionsFor(capabilities).map((entry) => <NavDropdown.Item key={entry.id} as="button" onClick={() => go(entry, "creation")}><i className={`${entry.icon} me-2`} />{entry.label}</NavDropdown.Item>)}</div></NavDropdown>}
               <NavDropdown {...dropdown("notifications")} align="end" title={<span className="cut-nav-notification-toggle" aria-label={unreadNotifications ? `${unreadNotifications} notificações não lidas` : "Notificações"}><i className={unreadNotifications > 0 ? "fa-solid fa-bell" : "fa-regular fa-bell"} />{unreadNotifications > 0 && <span className="cut-nav-notification__badge">{unreadNotifications > 99 ? "99+" : unreadNotifications}</span>}</span>} id="cut-notifications-menu" className="cut-nav-notification-menu">
                 <div className="cut-notification-popover"><div className="cut-notification-popover__head"><strong>Notificações</strong>{unreadNotifications > 0 && <span>{unreadNotifications} nova{unreadNotifications === 1 ? "" : "s"}</span>}</div><NotificationPermissionControl compact /><div className="cut-notification-popover__list">{notificationPreview.length === 0 ? <div className="cut-notification-popover__empty"><i className="fa-regular fa-bell" /><span>Nenhuma novidade por aqui.</span></div> : notificationPreview.map((entry) => <button type="button" key={entry.id} {...notificationTelemetryAttrs(entry, "navbar_popover")} className={`cut-notification-popover__item ${entry.read_at ? "" : "is-unread"}`} onClick={() => { setActiveDropdown(null); openNotification(entry); }}><span className="cut-notification-popover__icon"><i className={notificationIcon(entry.type)} /></span><span className="cut-notification-popover__copy"><strong>{entry.title || "Nova atividade"}</strong><small>{entry.message || "Há uma novidade para você na Cutinapp."}</small><time>{notificationTime(entry.created_at)}</time></span>{!entry.read_at && <span className="cut-notification-popover__dot" />}</button>)}</div><button type="button" className="cut-notification-popover__footer" onClick={() => { setActiveDropdown(null); navigate("/notifications"); }}>Ver todas</button></div>

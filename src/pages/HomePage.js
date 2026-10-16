@@ -12,6 +12,8 @@ import EventPosterThumbnail from "../components/event/EventPosterThumbnail";
 import { storageUrl } from "../config";
 import { readDiscoveryPreference, saveDiscoveryPreference } from "../utils/discoveryFilters";
 import { publicArtistRoute, publicEventRoute, publicProductionRoute } from "../utils/entityRoutes";
+import { DISCOVERY_CITY_CHANGE_EVENT } from "../utils/discoveryFilters";
+import { clearHomeLocation, readHomeLocation, saveHomeLocation } from "../utils/homeLocationStorage";
 import "./HomePage.css";
 import "./HomeDiscovery.css";
 
@@ -34,16 +36,6 @@ const uniqueById = (items) => {
     seen.add(item.id);
     return true;
   });
-};
-
-const readHomeLocation = () => {
-  try { return JSON.parse(window.localStorage.getItem("cutinapp.homeLocation") || "null"); }
-  catch (_) { return null; }
-};
-
-const saveHomeLocation = (value) => {
-  try { window.localStorage.setItem("cutinapp.homeLocation", JSON.stringify(value)); }
-  catch (_) { /* localização local é apenas conveniência */ }
 };
 
 const audiences = [
@@ -105,6 +97,7 @@ const journey = [
 export default function HomePage() {
   const navigate = useNavigate();
   const productionRailRef = useRef(null);
+  const latestDiscoveryRequest = useRef(0);
   const scrollProductionRail = (direction) => {
     const node = productionRailRef.current;
     if (!node) return;
@@ -123,7 +116,8 @@ export default function HomePage() {
     const precise = readHomeLocation();
     if (precise?.lat && precise?.lng) return precise;
     const saved = readDiscoveryPreference();
-    return saved?.city ? { city: saved.city, city_id: saved.city_id || null, uf: saved.uf || "", mode: "city" } : null;
+    return saved?.city ? { city: saved.city, city_id: saved.city_id || null, uf: saved.uf || "", mode: "city" }
+      : saved?.mode === "all" ? { mode: "all" } : null;
   });
 
   const discoveryParams = useMemo(() => {
@@ -133,6 +127,7 @@ export default function HomePage() {
   }, [location]);
 
   const loadDiscovery = useCallback(async (params = {}) => {
+    const request = ++latestDiscoveryRequest.current;
     setLoading(true);
     setUsingFallback(false);
     try {
@@ -149,6 +144,7 @@ export default function HomePage() {
       let localArtists = artistResult.status === "fulfilled" ? artistResult.value.artists?.data || [] : [];
       const facetCities = facetResult.status === "fulfilled" ? facetResult.value.cities || [] : [];
 
+      if (request !== latestDiscoveryRequest.current) return;
       const eventProductions = localEvents.map((event) => event.production).filter(Boolean);
       const eventArtists = localEvents.flatMap((event) => event.artists || []);
       localProductions = uniqueById([...eventProductions, ...localProductions]);
@@ -161,19 +157,31 @@ export default function HomePage() {
       setArtists(localArtists.slice(0, 12));
       setCities(facetCities.slice(0, 16));
     } catch (_) {
-      setEvents([]);
-      setProductions([]);
-      setArtists([]);
-      setCities([]);
+      if (request === latestDiscoveryRequest.current) {
+        setEvents([]);
+        setProductions([]);
+        setArtists([]);
+        setCities([]);
+      }
     } finally {
-      setLoading(false);
+      if (request === latestDiscoveryRequest.current) setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    const sync = () => {
+      const preference = readDiscoveryPreference();
+      if (preference?.city) setLocation({ city: preference.city, uf: preference.uf || "", city_id: preference.city_id || null, mode: "city" });
+      else setLocation({ mode: "all" });
+    };
+    window.addEventListener(DISCOVERY_CITY_CHANGE_EVENT, sync);
+    return () => window.removeEventListener(DISCOVERY_CITY_CHANGE_EVENT, sync);
   }, []);
 
   useEffect(() => { loadDiscovery(discoveryParams); }, [discoveryParams, loadDiscovery]);
 
   useEffect(() => {
-    if (location || !navigator.permissions || !navigator.geolocation) return;
+    if (location || readDiscoveryPreference()?.mode === "all" || !navigator.permissions || !navigator.geolocation) return;
     navigator.permissions.query({ name: "geolocation" }).then((permission) => {
       if (permission.state !== "granted") return;
       navigator.geolocation.getCurrentPosition(({ coords }) => {
@@ -204,10 +212,9 @@ export default function HomePage() {
   };
 
   const clearLocation = () => {
-    try { window.localStorage.removeItem("cutinapp.homeLocation"); }
-    catch (_) { /* sem persistência a descoberta continua funcionando */ }
-    setLocation(null);
-    saveDiscoveryPreference({ city: "", uf: "" });
+    clearHomeLocation();
+    setLocation({ mode: "all" });
+    saveDiscoveryPreference({ city: "", uf: "", mode: "all" });
   };
 
   const locationLabel = location?.city

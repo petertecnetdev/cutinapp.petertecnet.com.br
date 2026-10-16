@@ -7,6 +7,7 @@ import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
 import { trackTelemetry } from "../../utils/telemetry";
 import { safeInternalRoute } from "../../utils/entityRoutes";
+import { DISCOVERY_CITY_CHANGE_EVENT, readDiscoveryPreference } from "../../utils/discoveryFilters";
 import "./GlobalSearchPage.css";
 
 const RECENT_KEY = "cutinapp:global-search:recent:v2";
@@ -101,8 +102,8 @@ const formatRecentTime = (value) => {
 };
 
 const normalizedFilters = (params) => ({
-  city: params.get("city") || "",
-  uf: params.get("uf") || "",
+  city: params.get("city") ?? readDiscoveryPreference().city ?? "",
+  uf: params.get("uf") ?? readDiscoveryPreference().uf ?? "",
   period: params.get("period") || "",
   free: params.get("free") === "1",
   available: params.get("available") === "1",
@@ -219,6 +220,17 @@ export default function GlobalSearchPage() {
   const discoverAbortRef = useRef(null);
   const loadMoreRef = useRef(null);
   const prefetchRef = useRef(new Set());
+
+  useEffect(() => {
+    const sync = () => {
+      const preference = readDiscoveryPreference();
+      setFilters((current) => ({
+        ...current, city: preference.city || "", uf: preference.uf || "", lat: "", lng: "",
+      }));
+    };
+    window.addEventListener(DISCOVERY_CITY_CHANGE_EVENT, sync);
+    return () => window.removeEventListener(DISCOVERY_CITY_CHANGE_EVENT, sync);
+  }, []);
 
   const searchParamsPayload = useCallback((page = 1) => {
     const payload = {
