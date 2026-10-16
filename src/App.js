@@ -90,6 +90,7 @@ const EventArtistClaimsPage = lazy(() => import("./pages/event/EventArtistClaims
 const EventViewPage = lazy(() => import("./pages/event/EventViewPage"));
 const EventItemCatalogPage = lazy(() => import("./pages/event/EventItemCatalogPage"));
 const EventItemViewPage = lazy(() => import("./pages/event/EventItemViewPage"));
+const PublicCatalogItemPage = lazy(() => import("./pages/catalog/PublicCatalogItemPage"));
 const CheckoutPage = lazy(() => import("./pages/checkout/CheckoutPage"));
 const PurchasesPage = lazy(() => import("./pages/commerce/PurchasesPage"));
 const PurchaseDetailPage = lazy(() => import("./pages/commerce/PurchaseDetailPage"));
@@ -265,6 +266,7 @@ function AppRoutes() {
           <Route path="/event/:eventId/artist-claims" element={protectedRoute(<EventArtistClaimsPage />)} />
           <Route path="/event/:eventId/courtesies" element={protectedRoute(<CourtesyManagePage />)} />
           <Route path="/event/:eventId/participants" element={protectedRoute(<ParticipantsPage />)} />
+          <Route path="/catalogo/item/:itemId" element={<PublicCatalogItemPage />} />
           <Route path="/event/:slug/catalogo" element={<EventItemCatalogPage />} />
           <Route path="/event/:slug/item/:itemId" element={<EventItemViewPage />} />
           <Route path="/event/:slug" element={<EventViewPage />} />

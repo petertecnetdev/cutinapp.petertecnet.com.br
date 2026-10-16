@@ -7,6 +7,8 @@ import EventDiscoveryRail from "../components/event/EventDiscoveryRail";
 import eventService from "../services/EventService";
 import cutinappService from "../services/CutinappService";
 import commerceService from "../services/CommerceService";
+import publicCatalogService from "../services/PublicCatalogService";
+import { homeCatalogItemRoute, selectHomeCatalogItems } from "../utils/homeCatalogItems";
 import { storageUrl } from "../config";
 import { chronologicalBucketFor, parsePortableEventDate } from "../utils/chronologicalDiscovery";
 import { publicEventItemRoute, publicProductionRoute } from "../utils/entityRoutes";
@@ -122,6 +124,10 @@ export default function HomeHubPage() {
     const load = async () => {
       setLoading(true);
       setItemsLoading(true);
+      const catalogPromise = Promise.allSettled([
+        publicCatalogService.items(),
+        publicCatalogService.establishments(),
+      ]);
       const [eventResult, productionResult] = await Promise.allSettled([
         eventService.search({ per_page: 12, sort: "soonest" }),
         cutinappService.publicProductions({ per_page: 12 }),
@@ -135,9 +141,14 @@ export default function HomeHubPage() {
       setProductions(mergedProductions);
       setLoading(false);
 
+      // Os itens cadastrados nas produções não dependem de eventos futuros.
+      // Carregá-los primeiro evita a vitrine vazia quando o calendário é curto.
+      const [itemResult, establishmentResult] = await catalogPromise;
+      if (!active) return;
+      const catalogItems = itemResult.status === "fulfilled" ? itemResult.value : [];
+      const establishments = establishmentResult.status === "fulfilled" ? establishmentResult.value : [];
+      let discoveredItems = selectHomeCatalogItems(catalogItems, establishments, 12);
       const catalogEvents = eventList.filter((event) => event?.slug && (isTodayEvent(event) || isUpcomingEvent(event))).slice(0, 12);
-      if (!catalogEvents.length) { setItems([]); setItemsLoading(false); return; }
-      let discoveredItems = [];
       const catalogBatchSize = 4;
       for (let offset = 0; offset < catalogEvents.length && discoveredItems.length < 12; offset += catalogBatchSize) {
         const batchEvents = catalogEvents.slice(offset, offset + catalogBatchSize);
@@ -151,7 +162,7 @@ export default function HomeHubPage() {
           const production = sourceEvent?.production || catalogEvent?.production || null;
           return (Array.isArray(catalog.items) ? catalog.items : []).filter((item) => item?.available !== false && item?.is_active !== false).map((item) => ({ ...item, __event: catalogEvent, __production: production }));
         });
-        discoveredItems = uniqueBy([...discoveredItems, ...batchItems], (item) => `${item?.__event?.id || item?.__event?.slug || "event"}:${item?.id || item?.name || ""}`).slice(0, 12);
+        discoveredItems = uniqueBy([...discoveredItems, ...batchItems], (item) => item.__kind === "catalog" ? `catalog:${item.id}` : `event:${item?.__event?.id || item?.__event?.slug}:${item?.id || item?.name}`).slice(0, 12);
       }
       if (!active) return;
       setItems(discoveredItems);
@@ -194,13 +205,16 @@ export default function HomeHubPage() {
         )}
 
         {itemsLoading ? <LoadingRail /> : (
-          <DiscoveryRail eyebrow="Itens das produções" title="Alguns itens disponíveis" description="Produtos e adicionais liberados pelas produções nos próximos eventos." empty={empty("fa-solid fa-bag-shopping", "Nenhum item disponível agora", "Quando as produções liberarem itens nos eventos, alguns deles aparecerão nesta faixa.")} railClassName="cut-home-hub__rail--items">
+          <DiscoveryRail eyebrow="Itens das produções" title="Itens para conhecer" description="Conheça produtos dos catálogos públicos das produções e adicionais dos próximos eventos." empty={empty("fa-solid fa-bag-shopping", "Nenhum item publicado no momento", "Itens públicos das produções e dos eventos aparecerão nesta faixa.")} railClassName="cut-home-hub__rail--items">
             {items.map((item) => {
               const event = item.__event || {};
               const production = item.__production || {};
-              const image = mediaUrl(item.image || item.image_url || item.photo || item.cover);
+              const fileImage = Array.isArray(item.files) ? item.files.find((file) => file?.public_url || file?.url || file?.path) : null;
+              const image = mediaUrl(item.image_url || item.image || item.photo || item.cover || fileImage?.public_url || fileImage?.url || fileImage?.path);
               const currency = item.currency || item.currency_code || event.currency || event.currency_code || production.currency || production.currency_code;
-              return <Link to={publicEventItemRoute(event.slug, item.id)} className="cut-home-hub__itemCard" key={`${event.id || event.slug}-${item.id}`}><div className="cut-home-hub__itemMedia">{image ? <img src={image} alt={item.name || "Item"} loading="lazy" decoding="async" /> : <span className="cut-home-hub__itemInitials" aria-hidden="true">{initials(item.name || "Item")}</span>}<strong>{formatMoney(item.price, currency)}</strong></div><div className="cut-home-hub__itemBody"><h3>{item.name || "Item da produção"}</h3>{production.name && <p>{production.name}</p>}<small>{event.title || "Disponível em evento Cutinapp"}</small></div></Link>;
+              const catalogItem = item.__kind === "catalog";
+              const route = catalogItem ? homeCatalogItemRoute(item.id) : publicEventItemRoute(event.slug, item.id);
+              return <Link to={route} className="cut-home-hub__itemCard" key={`${catalogItem ? "catalog" : event.id || event.slug}-${item.id}`}><div className="cut-home-hub__itemMedia">{image ? <img src={image} alt={item.name || "Item"} loading="lazy" decoding="async" /> : <span className="cut-home-hub__itemInitials" aria-hidden="true">{initials(item.name || "Item")}</span>}{item.price != null && <strong>{formatMoney(item.price, currency)}</strong>}</div><div className="cut-home-hub__itemBody"><h3>{item.name || "Item da produção"}</h3>{(production.name || production.fantasy) && <p>{production.fantasy || production.name}</p>}<small>{catalogItem ? "Catálogo da produção" : event.title || "Item do evento"}</small></div></Link>;
             })}
           </DiscoveryRail>
         )}
