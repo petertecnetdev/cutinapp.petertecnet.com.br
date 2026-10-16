@@ -64,8 +64,8 @@ export default function UnverifiedListingPanel({ entity, entityType, user, onLog
       {!result && (
         <>
           {!user
-            ? <button className="cut-unverified__action" type="button" onClick={onLogin}>Sou responsável por este cadastro — entrar</button>
-            : <button className="cut-unverified__action" type="button" aria-expanded={expanded} onClick={() => setExpanded((value) => !value)}>Sou responsável por este cadastro</button>}
+            ? <button className="cut-unverified__action" type="button" onClick={onLogin}>Reivindicar esta página — criar conta</button>
+            : <button className="cut-unverified__action" type="button" aria-expanded={expanded} onClick={() => setExpanded((value) => !value)}>Reivindicar esta página</button>}
           {expanded && user && (
             <form className="cut-unverified__form" onSubmit={submit}>
               <p>Solicite a análise de titularidade. A equipe verificará a identidade antes de liberar qualquer acesso; enviar esta solicitação não transfere o cadastro.</p>

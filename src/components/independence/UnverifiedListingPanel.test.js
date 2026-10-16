@@ -25,8 +25,34 @@ describe("Unverified listing public claim UI", () => {
     );
     expect(html).toContain("responsável não verificado");
     expect(html).toContain("Consultar publicação original");
-    expect(html).toContain("Sou responsável por este cadastro");
+    expect(html).toContain("Reivindicar esta página — criar conta");
     expect(html).not.toContain("Comprar ingresso");
+  });
+
+  test("artist with no linked owner may request page ownership after creating an account", () => {
+    const html = renderToStaticMarkup(
+      <UnverifiedListingPanel
+        entity={{ id: 30, ownership_status: "unclaimed" }}
+        entityType="artist"
+        user={null}
+        onLogin={() => {}}
+      />
+    );
+    expect(html).toContain("Reivindicar esta página — criar conta");
+    expect(html).not.toContain("Enviar solicitação de acesso");
+  });
+
+  test("signed-in artist sees claim action, without automatic ownership", () => {
+    const html = renderToStaticMarkup(
+      <UnverifiedListingPanel
+        entity={{ id: 30, ownership_status: "unclaimed" }}
+        entityType="artist"
+        user={{ id: 7, email: "artist@example.org" }}
+      />
+    );
+    expect(html).toContain("Reivindicar esta página");
+    expect(html).not.toContain("— criar conta");
+    expect(html).not.toContain("Enviar solicitação de acesso");
   });
 
   test("claimed and verified listings never present a claim form", () => {

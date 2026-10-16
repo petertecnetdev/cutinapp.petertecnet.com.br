@@ -447,7 +447,7 @@ export default function ProductionPublicPage() {
       </nav>
 
       <Container className="cut-page-container py-4 py-lg-5" ref={contentTopRef}>
-        <UnverifiedListingPanel entity={production} entityType="production" user={user} onLogin={() => navigate("/login", { state: { from: "/production/" + slug + "/public" } })} />
+        <UnverifiedListingPanel entity={production} entityType="production" user={user} onLogin={() => navigate("/register", { state: { from: "/production/" + slug + "/public" } })} />
         {error && <Alert variant="danger" dismissible onClose={() => setError("")}>{error}</Alert>}
 
         <ProductionNextEventHero

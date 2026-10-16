@@ -550,7 +550,7 @@ export default function EventViewPage() {
       </section>
 
       <Container className="cut-page-container py-4 py-lg-5">
-        <UnverifiedListingPanel entity={event} entityType="event" user={user} onLogin={() => navigate("/login", { state: { from: location.pathname + location.search } })} />
+        <UnverifiedListingPanel entity={event} entityType="event" user={user} onLogin={() => navigate("/register", { state: { from: location.pathname + location.search } })} />
         <Alert variant={temporal.alertVariant} className="d-flex align-items-start gap-3 mb-4" role="status"><i className={`${temporal.icon} fs-4 mt-1`} aria-hidden="true" /><div><strong className="d-block mb-1">{temporal.title}</strong><span>{temporal.description}{temporalState === "ongoing" && event.end_date ? ` Término previsto para ${formatDate(event.end_date)}.` : ""}</span></div></Alert>
         {error && <Alert variant="danger">{error}</Alert>}{success && <Alert variant="success">{success}</Alert>}
 
