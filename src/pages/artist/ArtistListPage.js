@@ -7,27 +7,31 @@ import CollapsibleFilterPanel from "../../components/CollapsibleFilterPanel";
 import cutinappService from "../../services/CutinappService";
 import { activateOnKeyboard } from "../../utils/keyboardActivation";
 
+import useDiscoveryCity from "../../hooks/useDiscoveryCity";
+
 const TYPE_LABELS = { solo: "Artista solo", band: "Banda", duo: "Duo", group: "Grupo", collective: "Coletivo", orchestra: "Orquestra" };
 
 export default function ArtistListPage() {
+  const selectedCity = useDiscoveryCity();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const [artists, setArtists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const q = params.get("q") || "";
-  const city = params.get("city") || "";
+  const city = params.get("city") ?? selectedCity.city ?? "";
+  const uf = params.get("uf") ?? (city === selectedCity.city ? selectedCity.uf : "") ?? "";
   const activeFilterCount = Number(Boolean(q)) + Number(Boolean(city));
 
   useEffect(() => {
     let active = true;
     setLoading(true);
-    cutinappService.artists({ q: q || undefined, city: city || undefined, per_page: 48 })
+    cutinappService.artists({ q: q || undefined, city: city || undefined, uf: uf || undefined, per_page: 48 })
       .then((response) => active && setArtists(response.artists?.data || []))
       .catch((err) => active && setError(err?.message || "Não foi possível carregar os artistas."))
       .finally(() => active && setLoading(false));
     return () => { active = false; };
-  }, [q, city]);
+  }, [q, city, uf]);
 
   const update = (key, value) => {
     const next = new URLSearchParams(params);

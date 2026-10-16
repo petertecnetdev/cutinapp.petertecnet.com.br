@@ -301,9 +301,9 @@ const search = async (params = {}, options = {}) => {
 
   const localEvents = response?.events?.data || [];
 
-  // A HomePage já trata ausência por localização buscando o catálogo global.
-  // Mantemos esse comportamento para não misturar outra cidade sob um título local.
-  if (hasLocationFilter(params) && localEvents.length === 0) {
+  // Filtro explícito de cidade ou coordenadas nunca pode incorporar eventos
+  // globais (nem da agenda de hoje) ou reutilizar cache de outra localização.
+  if (hasLocationFilter(params)) {
     if (primaryError) throw primaryError;
     return response;
   }

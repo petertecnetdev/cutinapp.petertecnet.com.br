@@ -1,0 +1,285 @@
+.cut-next-flyers {
+  --flyer-red: #f83c4f;
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  margin: 30px 0 42px;
+  padding: 24px 22px 12px;
+  overflow: hidden;
+  isolation: isolate;
+  color: #f8f8fa;
+  border: 1px solid rgba(248, 60, 79, .28);
+  border-radius: 22px;
+  background:
+    radial-gradient(ellipse 56% 78% at 50% 64%, rgba(164, 16, 39, .29), transparent 74%),
+    radial-gradient(ellipse 37% 55% at 100% 0%, rgba(165, 24, 35, .18), transparent 76%),
+    linear-gradient(145deg, #08090d 0%, #141117 49%, #08090d 100%);
+  box-shadow: inset 0 1px rgba(255, 255, 255, .075), 0 18px 46px rgba(0, 0, 0, .2);
+}
+
+.cut-next-flyers::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: .24;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, .055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, .055) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: linear-gradient(to bottom, transparent 0%, black 75%);
+}
+
+.cut-next-flyers__heading,
+.cut-next-flyers__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  position: relative;
+  z-index: 8;
+}
+
+.cut-next-flyers__headingCopy { min-width: 0; }
+.cut-next-flyers__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #ff7983;
+  font-size: .7rem;
+  font-weight: 800;
+  letter-spacing: .21em;
+}
+.cut-next-flyers__eyebrow span {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--flyer-red);
+  box-shadow: 0 0 13px var(--flyer-red);
+}
+.cut-next-flyers__heading h2 {
+  color: #fff;
+  font-weight: 900;
+  font-size: clamp(1.45rem, 3vw, 2.25rem);
+  line-height: 1.16;
+  letter-spacing: -.035em;
+  margin: 7px 0 5px;
+}
+.cut-next-flyers__heading h2 em {
+  color: #ff5c6c;
+  font-style: normal;
+}
+.cut-next-flyers__heading p {
+  color: #b9b4bb;
+  font-size: .9rem;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.cut-next-flyers__controls { display: flex; gap: 10px; flex-shrink: 0; }
+.cut-next-flyers__controls button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  color: #fff;
+  background: #201a21;
+  border: 1px solid rgba(255, 255, 255, .24);
+  border-radius: 12px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background .2s, border-color .2s, transform .2s;
+}
+.cut-next-flyers__controls button:not(:disabled):hover {
+  background: #9b152e;
+  border-color: #ff5666;
+  transform: translateY(-2px);
+}
+.cut-next-flyers__controls button:disabled { opacity: .4; cursor: default; }
+
+.cut-next-flyers__stage {
+  position: relative;
+  height: clamp(370px, 43vw, 540px);
+  min-width: 0;
+  margin: 5px -10px 0;
+  outline-offset: -4px;
+  perspective: 1200px;
+  perspective-origin: 50% 49%;
+  transform-style: preserve-3d;
+  touch-action: pan-y pinch-zoom;
+}
+.cut-next-flyers__stage:focus-visible,
+.cut-next-flyers__controls button:focus-visible,
+.cut-next-flyers__poster:focus-visible,
+.cut-next-flyers__all:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 3px;
+}
+.cut-next-flyers__horizon {
+  position: absolute;
+  left: 16%;
+  right: 16%;
+  bottom: 0;
+  height: 25%;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(ellipse, rgba(230, 24, 54, .25), transparent 70%);
+  filter: blur(17px);
+}
+
+.cut-next-flyers__poster {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: clamp(240px, 29vw, 368px);
+  height: calc(100% - 30px);
+  border-radius: 15px;
+  background: #19151b;
+  border: 1px solid rgba(255, 255, 255, .23);
+  box-shadow: 0 14px 35px rgba(0, 0, 0, .65);
+  overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform-origin: 50% 50%;
+  transform: translate3d(-50%, -50%, -360px) scale(.65);
+  transition:
+    transform .58s cubic-bezier(.2, .76, .21, 1),
+    opacity .42s ease,
+    visibility .42s,
+    border-color .3s,
+    box-shadow .3s;
+  -webkit-tap-highlight-color: transparent;
+  backface-visibility: hidden;
+}
+.cut-next-flyers__poster.is-active {
+  z-index: 5;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translate3d(-50%, -50%, 60px);
+  border-color: rgba(255, 91, 104, .88);
+  box-shadow: 0 0 0 1px rgba(236, 36, 64, .34), 0 26px 55px rgba(0, 0, 0, .75), 0 0 38px rgba(229, 27, 55, .2);
+}
+.cut-next-flyers__poster.is-left-1,
+.cut-next-flyers__poster.is-right-1,
+.cut-next-flyers__poster.is-left-2,
+.cut-next-flyers__poster.is-right-2 { visibility: visible; opacity: 1; pointer-events: auto; }
+.cut-next-flyers__poster.is-left-1 {
+  z-index: 4;
+  transform: translate3d(-142%, -50%, -120px) rotateY(30deg) scale(.85);
+}
+.cut-next-flyers__poster.is-right-1 {
+  z-index: 4;
+  transform: translate3d(42%, -50%, -120px) rotateY(-30deg) scale(.85);
+}
+.cut-next-flyers__poster.is-left-2 {
+  z-index: 3;
+  opacity: .55;
+  transform: translate3d(-225%, -50%, -245px) rotateY(48deg) scale(.71);
+}
+.cut-next-flyers__poster.is-right-2 {
+  z-index: 3;
+  opacity: .55;
+  transform: translate3d(125%, -50%, -245px) rotateY(-48deg) scale(.71);
+}
+.cut-next-flyers__poster.is-hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+
+.cut-next-flyers__artwork,
+.cut-next-flyers__artwork.cut-optimized-image,
+.cut-next-flyers__artwork > img {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.cut-next-flyers__artwork > img { object-fit: cover; object-position: center; }
+.cut-next-flyers__artwork.cut-optimized-image--fallback {
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: radial-gradient(ellipse at 50% 0, #7b1b2c, #0e0f12 70%);
+  font-size: 4rem;
+  font-weight: 900;
+}
+.cut-next-flyers__posterCopy {
+  position: absolute;
+  inset: auto 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 50px 20px 20px;
+  color: #fff;
+  background: linear-gradient(to bottom, transparent, rgba(5, 5, 9, .77) 27%, rgba(5, 5, 9, .96));
+  text-shadow: 0 1px 3px #000;
+}
+.cut-next-flyers__posterCopy time {
+  color: #ffb1b8;
+  font-size: .75rem;
+  letter-spacing: .08em;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.cut-next-flyers__posterCopy strong {
+  color: #fff;
+  font-size: clamp(.96rem, 1.8vw, 1.3rem);
+  line-height: 1.2;
+  font-weight: 900;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.cut-next-flyers__posterCopy > span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #e8e1e4;
+  font-size: .77rem;
+}
+.cut-next-flyers__posterCopy i { color: #ff6978; }
+
+.cut-next-flyers__footer {
+  padding: 5px 3px 4px;
+  min-height: 39px;
+  font-size: .79rem;
+}
+.cut-next-flyers__counter {
+  font-variant-numeric: tabular-nums;
+  color: #88818a;
+  white-space: nowrap;
+}
+.cut-next-flyers__counter b { font-size: 1.05rem; color: #fff; }
+.cut-next-flyers__instruction { color: #98919a; }
+.cut-next-flyers__all {
+  color: #ff929b;
+  font-weight: 800;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.cut-next-flyers__all:hover { color: #fff; text-decoration: underline; }
+.cut-next-flyers__all i { margin-left: 4px; }
+
+@media (max-width: 767px) {
+  .cut-next-flyers { padding: 20px 12px 13px; margin: 22px 0 30px; border-radius: 17px; }
+  .cut-next-flyers__heading { padding: 0 5px; }
+  .cut-next-flyers__heading p { font-size: .77rem; }
+  .cut-next-flyers__controls { gap: 7px; }
+  .cut-next-flyers__controls button { width: 40px; height: 40px; border-radius: 10px; }
+  .cut-next-flyers__stage { height: clamp(335px, 105vw, 450px); margin: 4px -10px 0; }
+  .cut-next-flyers__poster { width: clamp(194px, 61vw, 282px); height: calc(100% - 34px); }
+  .cut-next-flyers__poster.is-left-1 { transform: translate3d(-118%, -50%, -170px) rotateY(34deg) scale(.84); }
+  .cut-next-flyers__poster.is-right-1 { transform: translate3d(18%, -50%, -170px) rotateY(-34deg) scale(.84); }
+  .cut-next-flyers__poster.is-left-2 { transform: translate3d(-200%, -50%, -290px) rotateY(48deg) scale(.7); opacity: .25; }
+  .cut-next-flyers__poster.is-right-2 { transform: translate3d(100%, -50%, -290px) rotateY(-48deg) scale(.7); opacity: .25; }
+  .cut-next-flyers__posterCopy { padding: 42px 14px 14px; }
+  .cut-next-flyers__posterCopy strong { font-size: 1rem; }
+  .cut-next-flyers__instruction { display: none; }
+  .cut-next-flyers__footer { gap: 8px; padding: 2px 5px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cut-next-flyers__poster, .cut-next-flyers__controls button { transition: none; }
+}

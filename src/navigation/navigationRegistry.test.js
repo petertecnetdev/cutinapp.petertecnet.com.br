@@ -5,7 +5,7 @@ const app = (role, roles = []) => ({ slug: "cutinapp", pivot: { status: "active"
 
 describe("capability based navigation", () => {
   test("participant account items stay out of the desktop common navigation", () => {
-    expect(commonNavigation.map((entry) => entry.id)).toEqual(["search", "events", "feed", "messages", "productions", "artists", "blog"]);
+    expect(commonNavigation.map((entry) => entry.id)).toEqual(["search", "events", "cities", "feed", "messages", "productions", "artists", "blog"]);
     expect(accountNavigation.map((entry) => entry.id)).toEqual(expect.arrayContaining(["profile", "passes", "purchases", "notifications", "account-settings"]));
   });
 
@@ -14,7 +14,7 @@ describe("capability based navigation", () => {
   });
 
   test("desktop primary navigation stays compact and destinations are unique across primary and More", () => {
-    expect(primaryNavigation.map((entry) => entry.id)).toEqual(["home", "search", "events", "feed", "messages", "productions"]);
+    expect(primaryNavigation.map((entry) => entry.id)).toEqual(["home", "search", "events", "cities", "feed", "messages", "productions"]);
     expect(exploreNavigation.map((entry) => entry.id)).toEqual(["artists", "blog"]);
     const ids = [...primaryNavigation, ...exploreNavigation].map((entry) => entry.id);
     expect(new Set(ids).size).toBe(ids.length);
@@ -75,7 +75,7 @@ describe("capability based navigation", () => {
     expect(actions.some((entry) => entry.id === "quick-create-event")).toBe(true);
     expect(actions.some((entry) => entry.id === "quick-artist")).toBe(true);
     expect(rankQuickActions(actions, { "quick-artist": 8 })[0].id).toBe("quick-artist");
-    expect(primaryNavigation.map((entry) => entry.id)).toEqual(["home", "search", "events", "feed", "messages", "productions"]);
+    expect(primaryNavigation.map((entry) => entry.id)).toEqual(["home", "search", "events", "cities", "feed", "messages", "productions"]);
     expect(exploreNavigation.map((entry) => entry.id)).toEqual(["artists", "blog"]);
     expect(creationActionsFor(capabilities).some((entry) => entry.to === "/production/create")).toBe(true);
     expect(adminActionsFor(capabilities)).toEqual([]);

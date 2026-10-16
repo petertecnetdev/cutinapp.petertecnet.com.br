@@ -14,6 +14,8 @@ export const PERIOD_OPTIONS = [
 
 export const periodLabel = (value) => PERIOD_OPTIONS.find(([key]) => key === value)?.[1] || "";
 
+export const DISCOVERY_CITY_CHANGE_EVENT = "cutinapp:discovery-city-change";
+
 export const readDiscoveryPreference = () => safeGetLocalJson("cutinapp.discovery", {});
 
 const cityKey = (value) => `${String(value?.city || "").trim().toLocaleLowerCase("pt-BR")}|${String(value?.uf || "").trim().toLocaleUpperCase("pt-BR")}`;
@@ -23,18 +25,20 @@ export const saveDiscoveryPreference = (value) => {
   const storedRecent = safeGetLocalJson("cutinapp.recentCities", []);
   const recent = Array.isArray(storedRecent) ? storedRecent : [];
   if (value?.city) {
-    const selected = { city: String(value.city).trim(), uf: String(value.uf || "").trim().toLocaleUpperCase("pt-BR") };
+    const selected = { city: String(value.city).trim(), city_id: value.city_id || null, uf: String(value.uf || "").trim().toLocaleUpperCase("pt-BR") };
     const selectedKey = cityKey(selected);
     const next = [selected, ...recent.filter((item) => cityKey(item) !== selectedKey)].slice(0, 5);
     safeSetLocalJson("cutinapp.recentCities", next);
   }
+  // storage não notifica a própria aba. Os catálogos devem reagir imediatamente.
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(DISCOVERY_CITY_CHANGE_EVENT));
 };
 
 export const readRecentCities = () => safeGetLocalJson("cutinapp.recentCities", []);
 
 export const paramsFromSearch = (searchParams) => {
   const keys = [
-    "q", "type", "city", "uf", "category", "genre", "format", "period", "date", "from", "to",
+    "q", "type", "city", "city_id", "uf", "category", "genre", "format", "period", "date", "from", "to",
     "sort", "artist_id", "production_id", "free", "available", "max_price", "lat", "lng", "radius_km", "page",
   ];
   const result = {};
