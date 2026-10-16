@@ -18,3 +18,14 @@
  .cut-city-nav--mobile select{max-width:115px;padding-left:6px;font-size:.68rem}
  .cut-navbar__inner .cut-navbar__brand small{display:none}
 }
+
+/* Mantenha o novo atalho Cidades visível no desktop sem comprimir o menu público. */
+@media (min-width: 992px) and (max-width: 1199.98px) {
+  .cut-advanced-nav:not(.cut-capability-nav) .cut-navbar__links { gap: 2px; }
+  .cut-advanced-nav:not(.cut-capability-nav) .cut-navbar__links > .nav-link {
+    padding-inline: 6px;
+    font-size: .85rem;
+  }
+  .cut-advanced-nav:not(.cut-capability-nav) .cut-city-nav--desktop label span { display: none; }
+  .cut-advanced-nav:not(.cut-capability-nav) .cut-city-nav--desktop select { max-width: 126px; }
+}
