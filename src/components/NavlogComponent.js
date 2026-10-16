@@ -382,6 +382,7 @@ export default function NavlogComponent() {
           <>
             <Link to="/search" onClick={closeMenu}><i className="fa-solid fa-magnifying-glass" />Buscar</Link>
             <Link to="/event" onClick={closeMenu}><i className="fa-regular fa-calendar-days" />Eventos</Link>
+            <Link to="/cidades" onClick={closeMenu}><i className="fa-solid fa-location-dot" />Cidades</Link>
             <Link to="/productions" onClick={closeMenu}><i className="fa-solid fa-people-group" />Produções</Link>
             <Link to="/artists" onClick={closeMenu}><i className="fa-solid fa-music" />Artistas</Link>
             <Link to="/login" onClick={closeMenu}><i className="fa-solid fa-arrow-right-to-bracket" />Entrar</Link>
@@ -413,7 +414,7 @@ export default function NavlogComponent() {
           <Navbar.Brand as={Link} to="/" className="cut-navbar__brand"><img src="/images/logo.png" alt="Cutinapp" /><div><strong>Cutinapp</strong><small>Rede social de eventos</small></div></Navbar.Brand>
           <button type="button" className="navbar-toggler cut-mobile-menu-toggle d-lg-none" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, minWidth: 44, opacity: 1, visibility: "visible", position: "relative", zIndex: 2147483647 }} aria-expanded={open} aria-controls="cut-mobile-drawer" aria-label={open ? "Fechar menu" : "Abrir menu"} onClick={() => setOpen((value) => !value)}><span className="navbar-toggler-icon" /></button>
           <CityNavSelect variant="mobile" />
-          <Navbar.Collapse id="cut-navbar-public"><Nav className="ms-auto cut-navbar__links"><CityNavSelect /><Nav.Link as={Link} to="/search" onClick={closeMenu}><i className="fa-solid fa-magnifying-glass me-2" />Buscar</Nav.Link><Nav.Link as={Link} to="/event">Eventos</Nav.Link><Nav.Link as={Link} to="/productions">Produções</Nav.Link><Nav.Link as={Link} to="/artists">Artistas</Nav.Link><Nav.Link as={Link} to="/login">Entrar</Nav.Link></Nav></Navbar.Collapse>
+          <Navbar.Collapse id="cut-navbar-public"><Nav className="ms-auto cut-navbar__links"><CityNavSelect /><Nav.Link as={Link} to="/search" onClick={closeMenu}><i className="fa-solid fa-magnifying-glass me-2" />Buscar</Nav.Link><Nav.Link as={Link} to="/event">Eventos</Nav.Link><Nav.Link as={Link} to="/cidades" className={active("/cidades") ? "active" : ""}>Cidades</Nav.Link><Nav.Link as={Link} to="/productions">Produções</Nav.Link><Nav.Link as={Link} to="/artists">Artistas</Nav.Link><Nav.Link as={Link} to="/login">Entrar</Nav.Link></Nav></Navbar.Collapse>
         </Container>
       </Navbar>
       {mobileDrawer}

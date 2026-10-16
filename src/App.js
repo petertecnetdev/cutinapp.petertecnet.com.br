@@ -81,6 +81,7 @@ const ArtistInvitationsPage = lazy(() => import("./pages/artist/ArtistInvitation
 const ArtistInvitationPage = lazy(() => import("./pages/artist/ArtistInvitationPage"));
 const EventPage = lazyWithPreload(() => import("./pages/event/EventPage"));
 const EventDiscoverySeoPage = lazyWithPreload(() => import("./pages/event/EventDiscoverySeoPage"));
+const CitiesDirectoryPage = lazy(() => import("./pages/location/CitiesDirectoryPage"));
 const EventCreatePage = lazy(() => import("./pages/event/EventCreatePage"));
 const CommunityMeetupEditorPage = lazy(() => import("./pages/event/CommunityMeetupEditorPage"));
 const EventManagePage = lazy(() => import("./pages/event/EventManagePage"));
@@ -252,6 +253,7 @@ function AppRoutes() {
           <Route path="/production/:slug/public" element={<ProductionPublicPage />} />
           <Route path="/production/:id" element={protectedRoute(<ProductionViewPage />)} />
           <Route path="/production/edit/:id" element={protectedRoute(<ProductionUpdatePage />)} />
+          <Route path="/cidades" element={<CitiesDirectoryPage />} />
           <Route path="/eventos" element={<EventDiscoverySeoPage />} />
           <Route path="/eventos/:citySlug" element={<EventDiscoverySeoPage />} />
           <Route path="/eventos/:citySlug/categoria/:categorySlug" element={<EventDiscoverySeoPage />} />
