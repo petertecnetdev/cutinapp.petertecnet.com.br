@@ -170,9 +170,10 @@
   box-shadow: 0 18px 48px rgba(0, 0, 0, .26);
 }
 
-.cut-event-discovery-page .cut-event-card:focus-visible {
+.cut-event-discovery-page .cut-event-card__main-link:focus-visible {
   outline: 2px solid var(--cut-primary);
-  outline-offset: 3px;
+  outline-offset: -3px;
+  border-radius: inherit;
 }
 
 .cut-event-discovery-page .cut-event-card__media {
@@ -741,3 +742,18 @@
 .cut-city-picker__list button:hover,.cut-city-picker__list button[aria-pressed="true"] { background:#482020; }
 .cut-city-picker__list small { color:#c6aaaa; }
 @media(max-width:540px) { .cut-city-switcher__trigger { flex-wrap:wrap; } .cut-city-switcher__change { width:100%; padding-left:28px; } }
+
+/* Links independentes para abrir o evento e visitar a produção. */
+.cut-event-discovery-page .cut-event-card__main-link {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  color: inherit;
+  text-decoration: none;
+}
+.cut-event-discovery-page .cut-event-card__main-link:hover { color: inherit; }
+.cut-event-discovery-page .cut-event-card__main-link > .card-body { flex: 1; }
+.cut-event-discovery-page .cut-event-card > .cut-event-production {
+  margin: 0 10px 10px;
+}
