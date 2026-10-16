@@ -26,7 +26,6 @@ import {
 } from "../navigation/navigationRegistry";
 import NotificationPermissionControl from "./NotificationPermissionControl";
 import CityNavSelect from "./location/CityNavSelect";
-import { buildCutinappWhatsappHref, getPeterWhatsapp } from "../utils/peterWhatsappFallback";
 
 const CAPABILITY_CACHE_TTL = 5 * 60 * 1000;
 const NAV_RUNTIME_CACHE_TTL = 45 * 1000;
@@ -110,17 +109,11 @@ export default function NavlogComponent() {
   const [unreadNotifications, setUnreadNotifications] = useState(() => Number(initialRuntimeCache.unreadNotifications || 0));
   const [notificationPreview, setNotificationPreview] = useState(() => initialRuntimeCache.notificationPreview || []);
   const [pendingArtistInvitations, setPendingArtistInvitations] = useState(() => Number(initialRuntimeCache.pendingArtistInvitations || 0));
-  const [supportWhatsappDestination, setSupportWhatsappDestination] = useState("");
 
   const capabilities = useMemo(() => resolveNavigationCapabilities(user, capabilityEvidence), [user, capabilityEvidence]);
   const actorMenus = useMemo(() => actorMenusFor(capabilities), [capabilities]);
   const contextual = useMemo(() => contextualNavigation(location.pathname, capabilities), [location.pathname, capabilities]);
   const active = (to) => to === "/" ? location.pathname === "/" : location.pathname === to || location.pathname.startsWith(`${to}/`);
-  const supportWhatsappHref = buildCutinappWhatsappHref(
-    supportWhatsappDestination,
-    location.pathname,
-    typeof window !== "undefined" ? window.location.origin : ""
-  );
   const closeMenu = () => { setOpen(false); setActiveDropdown(null); };
   const dropdown = (id) => ({ show: activeDropdown === id, onToggle: (next) => setActiveDropdown(next ? id : null) });
 
@@ -172,14 +165,6 @@ export default function NavlogComponent() {
       window.removeEventListener("focus", refreshAdminAccess);
     };
   }, [userId]);
-
-  useEffect(() => {
-    let mounted = true;
-    getPeterWhatsapp()
-      .then((href) => { if (mounted) setSupportWhatsappDestination(href || ""); })
-      .catch(() => { if (mounted) setSupportWhatsappDestination(""); });
-    return () => { mounted = false; };
-  }, []);
 
   useEffect(() => { closeMenu(); }, [location.pathname, location.search, location.hash]);
   useEffect(() => { const onKeyDown = (event) => { if (event.key === "Escape") { setActiveDropdown(null); setOpen(false); } }; window.addEventListener("keydown", onKeyDown); return () => window.removeEventListener("keydown", onKeyDown); }, []);
@@ -381,31 +366,20 @@ export default function NavlogComponent() {
     navigate("/notifications");
   };
 
-  const trackSupportWhatsapp = (source) => trackTelemetry("support_whatsapp_open", {
-    label: "WhatsApp oficial Cutinapp",
-    metadata: { app: "cutinapp", channel: "whatsapp", source, path: location.pathname },
-  });
-
-  const helpDesktopMenu = (
-    <NavDropdown {...dropdown("help")} title={<span><i className="fa-regular fa-circle-question" aria-hidden="true" /><span>Ajuda</span></span>} id="cut-help-menu" className="cut-navbar__more-menu cut-navbar__help-menu">
-      <NavDropdown.Item as={Link} to="/help" onClick={closeMenu}>
-        <i className="fa-regular fa-life-ring me-2" aria-hidden="true" />Central de ajuda e chamados
-      </NavDropdown.Item>
-      {supportWhatsappHref ? (
-        <NavDropdown.Item as="a" href={supportWhatsappHref} target="_blank" rel="noopener noreferrer" onClick={() => { setActiveDropdown(null); trackSupportWhatsapp("navbar"); }}>
-          <i className="fa-brands fa-whatsapp me-2" aria-hidden="true" />Falar no WhatsApp
-        </NavDropdown.Item>
-      ) : (
-        <NavDropdown.Item disabled title="WhatsApp temporariamente indisponível">WhatsApp indisponível</NavDropdown.Item>
-      )}
-    </NavDropdown>
+  // Entrada única de suporte: o contato e a abertura de chamados ficam em /help.
+  const helpDesktopLink = (
+    <Nav.Link as={Link} to="/help" onClick={closeMenu}
+      aria-current={active("/help") ? "page" : undefined}
+      className={`cut-navbar__help-link ${active("/help") ? "active" : ""}`}>
+      <i className="fa-regular fa-circle-question" aria-hidden="true" />
+      <span>Ajuda</span>
+    </Nav.Link>
   );
 
-  const helpMobileLinks = (
-    <>
-      <Link to="/help" onClick={closeMenu}><i className="fa-regular fa-life-ring" aria-hidden="true" />Ajuda e suporte</Link>
-      {supportWhatsappHref && <a href={supportWhatsappHref} target="_blank" rel="noopener noreferrer" onClick={() => { closeMenu(); trackSupportWhatsapp("mobile-drawer"); }}><i className="fa-brands fa-whatsapp" aria-hidden="true" />Falar no WhatsApp</a>}
-    </>
+  const helpMobileLink = (
+    <Link to="/help" onClick={closeMenu} aria-current={active("/help") ? "page" : undefined}>
+      <i className="fa-regular fa-circle-question" aria-hidden="true" />Ajuda e suporte
+    </Link>
   );
 
   const mobileDrawer = open && typeof document !== "undefined" ? createPortal(
@@ -427,7 +401,7 @@ export default function NavlogComponent() {
             <Link to="/cidades" onClick={closeMenu}><i className="fa-solid fa-location-dot" />Cidades</Link>
             <Link to="/productions" onClick={closeMenu}><i className="fa-solid fa-people-group" />Produções</Link>
             <Link to="/artists" onClick={closeMenu}><i className="fa-solid fa-music" />Artistas</Link>
-            {helpMobileLinks}
+            {helpMobileLink}
             <Link to="/login" onClick={closeMenu}><i className="fa-solid fa-arrow-right-to-bracket" />Entrar</Link>
           </>
         ) : (
@@ -438,7 +412,7 @@ export default function NavlogComponent() {
             </Link>
             {primaryNavigation.map((entry) => <Link key={entry.id} to={entry.to} onClick={() => { recordUsage(entry, "mobile-drawer"); closeMenu(); }}><i className={entry.icon} />{entry.label}</Link>)}
             {exploreNavigation.map((entry) => <Link key={entry.id} to={entry.to} onClick={() => { recordUsage(entry, "mobile-drawer"); closeMenu(); }}><i className={entry.icon} />{entry.label}</Link>)}
-            {helpMobileLinks}
+            {helpMobileLink}
             {creationActionsFor(capabilities).length > 0 && <div className="cut-mobile-drawer__section"><strong>Criar</strong>{creationActionsFor(capabilities).map((entry) => <button type="button" key={entry.id} onClick={() => go(entry, "mobile-drawer")}><i className={entry.icon} />{entry.label}</button>)}</div>}
             {actorMenus.length > 0 && <div className="cut-mobile-drawer__section"><strong>Minhas áreas</strong>{actorMenus.flatMap((area) => area.items).filter((entry, index, list) => list.findIndex((item) => item.to === entry.to) === index).map((entry) => <Link key={entry.id} to={entry.to} onClick={closeMenu}><i className={entry.icon} />{entry.label}</Link>)}</div>}
             {accountNavigation.map((entry) => <Link key={entry.id} to={entry.to} onClick={closeMenu}><i className={entry.icon} />{entry.label}</Link>)}
@@ -458,7 +432,7 @@ export default function NavlogComponent() {
           <Navbar.Brand as={Link} to="/" className="cut-navbar__brand"><img src="/images/logo.png" alt="Cutinapp" /><div><strong>Cutinapp</strong><small>Rede social de eventos</small></div></Navbar.Brand>
           <button type="button" className="navbar-toggler cut-mobile-menu-toggle d-lg-none" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, minWidth: 44, opacity: 1, visibility: "visible", position: "relative", zIndex: 2147483647 }} aria-expanded={open} aria-controls="cut-mobile-drawer" aria-label={open ? "Fechar menu" : "Abrir menu"} onClick={() => setOpen((value) => !value)}><span className="navbar-toggler-icon" /></button>
           <CityNavSelect variant="mobile" />
-          <Navbar.Collapse id="cut-navbar-public"><Nav className="ms-auto cut-navbar__links"><CityNavSelect /><Nav.Link as={Link} to="/search" onClick={closeMenu}><i className="fa-solid fa-magnifying-glass me-2" />Buscar</Nav.Link><Nav.Link as={Link} to="/event">Eventos</Nav.Link><Nav.Link as={Link} to="/cidades" className={active("/cidades") ? "active" : ""}>Cidades</Nav.Link><Nav.Link as={Link} to="/productions">Produções</Nav.Link><Nav.Link as={Link} to="/artists">Artistas</Nav.Link>{helpDesktopMenu}<Nav.Link as={Link} to="/login">Entrar</Nav.Link></Nav></Navbar.Collapse>
+          <Navbar.Collapse id="cut-navbar-public"><Nav className="ms-auto cut-navbar__links"><CityNavSelect /><Nav.Link as={Link} to="/search" onClick={closeMenu}><i className="fa-solid fa-magnifying-glass me-2" />Buscar</Nav.Link><Nav.Link as={Link} to="/event">Eventos</Nav.Link><Nav.Link as={Link} to="/cidades" className={active("/cidades") ? "active" : ""}>Cidades</Nav.Link><Nav.Link as={Link} to="/productions">Produções</Nav.Link><Nav.Link as={Link} to="/artists">Artistas</Nav.Link>{helpDesktopLink}<Nav.Link as={Link} to="/login">Entrar</Nav.Link></Nav></Navbar.Collapse>
         </Container>
       </Navbar>
       {mobileDrawer}
@@ -492,7 +466,7 @@ export default function NavlogComponent() {
                 {exploreNavigation.map((entry) => <NavDropdown.Item key={entry.id} as={Link} to={entry.to} onClick={() => recordUsage(entry, "explore")}><i className={`${entry.icon} me-2`} aria-hidden="true" />{entry.label}</NavDropdown.Item>)}
                 {pendingArtistInvitations > 0 && <NavDropdown.Item as={Link} to="/artist/invitations">Convites <span className="cut-account-inline-badge">{pendingArtistInvitations > 99 ? "99+" : pendingArtistInvitations}</span></NavDropdown.Item>}
               </NavDropdown>
-              {helpDesktopMenu}
+              {helpDesktopLink}
             </Nav>
             <div className="cut-navbar__tools">
               <CityNavSelect />
