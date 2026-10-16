@@ -4,6 +4,7 @@ import { Container } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import NavlogComponent from "../components/NavlogComponent";
 import EventDiscoveryRail from "../components/event/EventDiscoveryRail";
+import UpcomingFlyerCarousel from "../components/event/UpcomingFlyerCarousel";
 import eventService from "../services/EventService";
 import cutinappService from "../services/CutinappService";
 import commerceService from "../services/CommerceService";
@@ -185,6 +186,8 @@ export default function HomeHubPage() {
           <div><span className="cut-home-hub__eyebrow"><i className="fa-solid fa-bolt" /> Sua Cutinapp</span><h1>Descubra o que está acontecendo.</h1><p>Eventos, produções e itens disponíveis reunidos em uma home rápida para você encontrar o que procura sem abrir várias telas.</p></div>
           <Link to="/search" className="cut-home-hub__search"><i className="fa-solid fa-magnifying-glass" /><span><small>Busca rápida</small><strong>Pesquisar na Cutinapp</strong></span><i className="fa-solid fa-arrow-right" /></Link>
         </header>
+
+        {!loading && <UpcomingFlyerCarousel events={events} />}
 
         {loading ? <LoadingRail /> : todayEvents.length > 0 && (
           <EventDiscoveryRail events={todayEvents} eyebrow="Hoje" title="Acontecendo hoje" description="Eventos de hoje primeiro, para decidir rápido o que fazer agora." allTo="/event" allLabel="Ver agenda" emptyTitle="Nada para hoje" emptyText="Os próximos eventos aparecem logo abaixo." className="cut-home-hub__eventsRail" />
