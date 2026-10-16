@@ -49,6 +49,17 @@ describe("acesso ao suporte no menu principal", () => {
     expect(container.querySelector('a.cut-navbar__help-link[href="/help"]')).not.toBeNull();
   });
 
+  test("usuário logado vê links secundários apenas no menu Mais", async () => {
+    await renderNavigation({ id: 8, name: "Teste", email: "teste@example.test" });
+    const primary = container.querySelector(".cut-capability-nav .cut-navbar__links");
+    expect([...primary.querySelectorAll(":scope > a")].map((link) => link.textContent)).toEqual(["Início", "Buscar", "Eventos", "Feed", "Ajuda"]);
+    await act(async () => primary.querySelector(".cut-navbar__more-menu .dropdown-toggle").dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    const more = container.querySelector(".cut-navbar__more-menu .dropdown-menu");
+    expect(more).not.toBeNull();
+    expect([...more.querySelectorAll("a")].map((link) => link.textContent)).toEqual(["Cidades", "Mensagens", "Produções", "Artistas", "Blog"]);
+    expect(more.querySelector('a[href="/messages"]')).not.toBeNull();
+  });
+
   test("menu mobile mostra Ajuda para visitante", async () => {
     await renderNavigation();
     await act(async () => container.querySelector('[aria-label="Abrir menu"]').dispatchEvent(new MouseEvent("click", { bubbles: true })));

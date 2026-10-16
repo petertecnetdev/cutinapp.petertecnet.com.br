@@ -3,6 +3,11 @@ export const PRODUCTION_STORAGE_KEY="cutinapp:navigation-production"; export con
 const item=(id,label,icon,to,extras={})=>({id,label,icon,to,...extras});
 export const primaryNavigation=[item("home","Início","fa-solid fa-house","/"),item("search","Buscar","fa-solid fa-magnifying-glass","/search"),item("events","Eventos","fa-regular fa-calendar-days","/event"),item("cities","Cidades","fa-solid fa-location-dot","/cidades"),item("feed","Feed","fa-solid fa-bolt","/feed"),item("messages","Mensagens","fa-regular fa-paper-plane","/messages"),item("productions","Produções","fa-solid fa-building","/productions")];
 export const exploreNavigation=[item("artists","Artistas","fa-solid fa-music","/artists"),item("blog","Blog","fa-regular fa-newspaper","/blog")];
+// A barra desktop prioriza descoberta e deixa rotas secundárias no menu Mais.
+// A navegação completa continua disponível no drawer/mobile.
+export const desktopPrimaryNavigation=primaryNavigation.filter((entry)=>["home","search","events","feed"].includes(entry.id));
+export const desktopMoreNavigation=[...primaryNavigation.filter((entry)=>!desktopPrimaryNavigation.some((main)=>main.id===entry.id)),...exploreNavigation];
+export const publicMoreNavigation=desktopMoreNavigation.filter((entry)=>["cities","productions","artists","blog"].includes(entry.id));
 export const commonNavigation=[...primaryNavigation.filter((entry)=>entry.id!=="home"),...exploreNavigation];
 export const creationActionsFor=(capabilities)=>[item("quick-create-meetup","Criar encontro","fa-solid fa-people-group","/encontro/criar"),...quickActionsFor(capabilities).filter((entry)=>/create|criar|publicar/i.test(`${entry.id} ${entry.label}`)),...(canNavigate(capabilities,"production.manage")?[item("quick-create-production","Criar produção","fa-solid fa-building-circle-check","/production/create")]:[])];
 export const adminActionsFor=(capabilities)=>actorMenusFor(capabilities).find((area)=>area.id==="admin")?.items||[];

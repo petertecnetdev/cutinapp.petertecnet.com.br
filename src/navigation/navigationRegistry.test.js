@@ -1,5 +1,5 @@
 import { resolveNavigationCapabilities } from "./capabilityResolver";
-import { accountNavigation, actorMenusFor, commonNavigation, primaryNavigation, exploreNavigation, creationActionsFor, adminActionsFor, contextualNavigation, quickActionsFor, rankQuickActions } from "./navigationRegistry";
+import { accountNavigation, actorMenusFor, commonNavigation, primaryNavigation, exploreNavigation, desktopPrimaryNavigation, desktopMoreNavigation, publicMoreNavigation, creationActionsFor, adminActionsFor, contextualNavigation, quickActionsFor, rankQuickActions } from "./navigationRegistry";
 
 const app = (role, roles = []) => ({ slug: "cutinapp", pivot: { status: "active", role, metadata: JSON.stringify({ roles }) } });
 
@@ -18,6 +18,15 @@ describe("capability based navigation", () => {
     expect(exploreNavigation.map((entry) => entry.id)).toEqual(["artists", "blog"]);
     const ids = [...primaryNavigation, ...exploreNavigation].map((entry) => entry.id);
     expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  test("desktop mantém acesso único a todas as rotas sem comprimir a navbar", () => {
+    expect(desktopPrimaryNavigation.map((entry) => entry.id)).toEqual(["home", "search", "events", "feed"]);
+    expect(desktopMoreNavigation.map((entry) => entry.id)).toEqual(["cities", "messages", "productions", "artists", "blog"]);
+    expect(publicMoreNavigation.map((entry) => entry.id)).toEqual(["cities", "productions", "artists", "blog"]);
+    const desktopIds = [...desktopPrimaryNavigation, ...desktopMoreNavigation].map((entry) => entry.id);
+    expect(new Set(desktopIds).size).toBe(desktopIds.length);
+    expect([...desktopIds].sort()).toEqual([...primaryNavigation, ...exploreNavigation].map((entry) => entry.id).sort());
   });
 
   test("roles are cumulative instead of exclusive", () => {

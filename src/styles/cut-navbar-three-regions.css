@@ -157,8 +157,6 @@
 @media (min-width: 992px) and (max-width: 1279px) {
   .cut-capability-nav .cut-navbar__brand { width: 140px; flex-basis: 140px; }
   .cut-capability-nav .cut-navbar__brand > div { display: none; }
-  .cut-capability-nav .cut-navbar__destination-messages,
-  .cut-capability-nav .cut-navbar__destination-productions { display: none !important; }
   .cut-capability-nav .cut-navbar__user > span:last-child { display: none !important; }
 }
 
@@ -187,10 +185,6 @@
     outline: 2px solid var(--cut-border-focus) !important;
     outline-offset: -2px;
   }
-}
-
-@media (min-width: 1280px) {
-  .cut-navbar__compact-destination { display: none !important; }
 }
 
 @media (prefers-reduced-motion: reduce) {
