@@ -82,6 +82,29 @@ export default function IndependenceClaimsAdminPage() {
     }
   };
 
+  const revoke = async (claim) => {
+    const note = String(notes[claim.id] || "").trim();
+    if (!claim.grant_id || note.length < 10) {
+      setError("Informe uma justificativa de pelo menos dez caracteres para revogar.");
+      return;
+    }
+    setBusyId(claim.id);
+    setError("");
+    setSuccess("");
+    try {
+      await appApiClient.delete("/admin/independence/grants/" + claim.grant_id, {
+        data: { review_note: note },
+      });
+      setSuccess("Acesso à página revogado. O histórico da decisão foi preservado.");
+      setNotes((current) => ({ ...current, [claim.id]: "" }));
+      await load();
+    } catch (err) {
+      setError(err?.response?.data?.message || "Não foi possível revogar a concessão.");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   return (
     <div className="cut-app-page">
       <NavlogComponent />
@@ -129,6 +152,15 @@ export default function IndependenceClaimsAdminPage() {
                 <span className="badge text-bg-secondary">{statuses[claim.status] || claim.status}</span>
               </div>
               {claim.message && <p className="mt-3 mb-0">{claim.message}</p>}
+              {canReview && claim.status === "approved" && claim.grant_id && (
+                <div className="mt-3 pt-3 border-top">
+                  <Form.Group>
+                    <Form.Label>Justificativa da revogação</Form.Label>
+                    <Form.Control as="textarea" rows={2} maxLength={2000} value={notes[claim.id] || ""} onChange={(event) => setNotes((current) => ({ ...current, [claim.id]: event.target.value }))} />
+                  </Form.Group>
+                  <Button className="mt-3" variant="outline-danger" disabled={busyId === claim.id} onClick={() => revoke(claim)}>Revogar acesso à página</Button>
+                </div>
+              )}
               <p className="text-secondary small mt-3 mb-0">Solicitado em {claim.created_at ? new Date(claim.created_at).toLocaleString() : "data não informada"}</p>
               {canReview && ["pending", "needs_info"].includes(claim.status) && (
                 <div className="mt-3 pt-3 border-top">
