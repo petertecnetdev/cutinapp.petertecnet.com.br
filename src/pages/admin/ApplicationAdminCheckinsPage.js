@@ -81,7 +81,10 @@ export default function ApplicationAdminCheckinsPage() {
     <Container className="cut-page-container py-4 py-lg-5">
       <div className="cut-page-heading align-items-start">
         <div><span className="cut-eyebrow">Cutinapp Owner · escopo global</span><h1>Check-ins e acessos</h1><p>Visualize ingressos emitidos e validações de todos os eventos e produções, sem depender de vínculo operacional.</p></div>
-        <Badge bg="danger">GLOBAL</Badge>
+        <div className="d-flex flex-wrap align-items-center gap-2">
+          <Button as={Link} to="/checkin" variant="danger"><i className="fa-solid fa-qrcode me-2" aria-hidden="true" />Abrir portaria</Button>
+          <Badge bg="danger">GLOBAL</Badge>
+        </div>
       </div>
       {error && <Alert variant="danger" dismissible onClose={() => setError("")}>{error}</Alert>}
       {success && <Alert variant="success" dismissible onClose={() => setSuccess("")}>{success}</Alert>}

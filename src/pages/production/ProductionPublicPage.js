@@ -14,6 +14,8 @@ import { storageUrl } from "../../config";
 import { safeExternalHref } from "../../utils/safeUrl";
 import { buildContactWhatsappHref, buildProductionContactMessage, resolveProductionWhatsappPhone } from "../../utils/productionWhatsappContact";
 import { subscribeGalleryUpdates } from "../../utils/gallerySync";
+import UnverifiedListingPanel from "../../components/independence/UnverifiedListingPanel";
+import { canShowListingCommerce } from "../../utils/independenceListing";
 import "./production-experience.css";
 import "./production-view-evolution.css";
 import "./production-public-profile.css";
@@ -423,7 +425,7 @@ export default function ProductionPublicPage() {
             </div>
 
             <div className="cut-production-public-profile__actions">
-                {sellableUpcoming.length > 0 ? (
+                {canShowListingCommerce(production) && sellableUpcoming.some(canShowListingCommerce) ? (
                   <Button className="cut-production-public-profile__action cut-production-public-profile__action--primary" onClick={() => setTicketCartOpen(true)}><i className="fa-solid fa-ticket" />Ingressos</Button>
                 ) : (
                   <Button className="cut-production-public-profile__action cut-production-public-profile__action--primary" onClick={() => goToTab("eventos")}><i className="fa-regular fa-calendar" />Ver agenda</Button>
@@ -485,6 +487,7 @@ export default function ProductionPublicPage() {
       </nav>
 
       <Container className="cut-page-container py-4 py-lg-5" ref={contentTopRef}>
+        <UnverifiedListingPanel entity={production} entityType="production" user={user} onLogin={() => navigate("/register", { state: { from: "/production/" + slug + "/public" } })} />
         {error && <Alert variant="danger" dismissible onClose={() => setError("")}>{error}</Alert>}
 
         <ProductionNextEventHero

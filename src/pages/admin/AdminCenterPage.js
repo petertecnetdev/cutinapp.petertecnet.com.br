@@ -78,6 +78,14 @@ export default function AdminCenterPage() {
 
       <Alert variant="info"><strong>Acesso limitado à Cutinapp.</strong> As permissões são verificadas pela API em cada operação.</Alert>
       {error && <Alert variant="danger">{error}</Alert>}
+      {(context?.is_owner || context?.permissions?.includes("moderation.view")) && (
+        <div className="mb-4">
+          <Link className="btn btn-outline-light" to="/admin/independence/claims">
+            <i className="fa-solid fa-user-check me-2" aria-hidden="true" />Analisar reivindicações de titularidade
+          </Link>
+        </div>
+      )}
+
 
       <div className="d-flex flex-wrap gap-2 mb-4">
         {(context?.is_owner || context?.permissions?.includes("establishments.manage")) && <Link to="/production/create" className="btn btn-danger">Cadastrar produção</Link>}

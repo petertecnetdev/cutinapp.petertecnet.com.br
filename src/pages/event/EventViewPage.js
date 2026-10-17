@@ -18,6 +18,8 @@ import cutinappService from "../../services/CutinappService";
 import commerceService from "../../services/CommerceService";
 import { storageUrl } from "../../config";
 import { isPeterTecnetRoot } from "../../utils/applicationRoles";
+import UnverifiedListingPanel from "../../components/independence/UnverifiedListingPanel";
+import { canShowListingCommerce } from "../../utils/independenceListing";
 import { buildEventShareUrl } from "../../utils/eventShareUrl";
 import { safeExternalHref } from "../../utils/safeUrl";
 import { trackTelemetry } from "../../utils/telemetry";
@@ -225,7 +227,7 @@ export default function EventViewPage() {
   const isPastEvent = temporalState === "past";
   const hasTickets = Number(event?.tickets_count || 0) > 0 || tickets.length > 0;
   const ticketAvailabilityStatus = event?.ticket_availability_status || null;
-  const hasSellableTickets = !isCommunityMeetup && (ticketAvailabilityStatus
+  const hasSellableTickets = !isCommunityMeetup && canShowListingCommerce(event) && (!event?.production || canShowListingCommerce(event.production)) && (ticketAvailabilityStatus
     ? ["free_available", "available"].includes(ticketAvailabilityStatus)
     : hasTickets);
   const ticketAvailabilityLabel = ({
@@ -547,6 +549,7 @@ export default function EventViewPage() {
       </section>
 
       <Container className="cut-page-container py-4 py-lg-5">
+        <UnverifiedListingPanel entity={event} entityType="event" user={user} onLogin={() => navigate("/register", { state: { from: location.pathname + location.search } })} />
         {error && <Alert variant="danger">{error}</Alert>}{success && <Alert variant="success">{success}</Alert>}
 
         {isPastEvent && <Card className="cut-panel mb-4"><Card.Body className="p-4 p-lg-5"><span className="cut-eyebrow">Memória do evento</span><h2 className="cut-section-title mt-2">O que ficou desta edição</h2><p className="text-secondary">Realizado de {formatDate(event.start_date)} até {formatDate(event.end_date)}. A página permanece como registro da experiência, do line-up e da comunidade.</p><div className="cut-event-details mt-4"><div><i className="fa-solid fa-users" /><span><strong>Participantes</strong>{Number(history?.participants || 0)}</span></div><div><i className="fa-solid fa-qrcode" /><span><strong>Check-ins</strong>{Number(history?.checkins || 0)}</span></div><div><i className="fa-solid fa-music" /><span><strong>Artistas</strong>{Number(history?.artists ?? artists.length)}</span></div><div><i className="fa-regular fa-comments" /><span><strong>Publicações</strong>{Number(history?.community_posts || 0)}</span></div><div><i className="fa-solid fa-star" /><span><strong>Avaliações</strong>{Number(history?.rating_total || 0) > 0 ? `${Number(history?.rating_average || 0).toFixed(1)} / 5 · ${history.rating_total}` : "Ainda sem avaliações"}</span></div></div></Card.Body></Card>}

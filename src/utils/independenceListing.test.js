@@ -50,7 +50,8 @@ describe('Independence public listing presentation guard', () => {
     };
     expect(isVerifiedListing(approved)).toBe(true);
     expect(isVerifiedListing(legacy)).toBe(true);
-    expect(canShowListingCommerce(approved)).toBe(true);
+    expect(canShowListingCommerce(approved)).toBe(false); // approval alone does not authorize sales
+    expect(canShowListingCommerce({ ...approved, can_sell: true })).toBe(true);
     expect(canShowListingCommerce(legacy)).toBe(true);
     expect(isVerifiedListing({ verification_status: 'verified' })).toBe(true);
   });
@@ -84,5 +85,44 @@ describe('Independence public listing presentation guard', () => {
     expect(claimStatusMessage('pending')).toMatch(/em análise/);
     expect(claimStatusMessage('approved')).toMatch(/aprovada após verificação/);
     expect(claimStatusMessage('rejected')).toMatch(/não aprovada/);
+  });
+});
+
+describe('Independence CTA: produção vinculada e veto comercial da API', () => {
+  const verified = {
+    ownership_status: 'verified',
+    verification_status: 'manual_approved',
+    ownership_verified_at: '2026-10-12T12:00:00Z',
+  };
+  const legacy = {
+    ownership_status: 'verified',
+    verification_status: 'legacy_owner_record',
+    listing_source: 'legacy_organizer',
+  };
+
+  test.each([
+    ['produção não reivindicada', { ...verified, app_id: 7, production: { ownership_status: 'unclaimed', app_id: 7 } }],
+    ['produção pendente', { ...verified, app_id: 7, production: { ownership_status: 'pending_claim', app_id: 7 } }],
+    ['produção rejeitada', { ...verified, app_id: 7, production: { ownership_status: 'rejected', app_id: 7 } }],
+    ['produção de outro app', { ...verified, app_id: 7, production: { ...verified, app_id: 8 } }],
+    ['legado de outro app', { ...legacy, app_id: 7, production: { ...legacy, app_id: 8 } }],
+    ['produção sem app_id', { ...verified, app_id: 7, production: { ...verified } }],
+    ['app_id hexadecimal inválido', { ...verified, app_id: '0x7', production: { ...verified, app_id: 7 } }],
+    ['veto da API', { ...verified, can_sell: false }],
+    ['aprovação não habilita venda', { ...verified, production: { ...verified, app_id: 7 }, app_id: 7 }],
+    ['evento liberado mas produção ainda não', { ...verified, can_sell: true, production: { ...verified, app_id: 7 }, app_id: 7 }],
+    ['flag comercial inválida', { ...verified, can_sell: 'true' }],
+    ['flag positiva não ignora titularidade', { ownership_status: 'unclaimed', can_sell: true }],
+  ])('não apresenta compra quando %s', (_, entity) => {
+    expect(canShowListingCommerce(entity)).toBe(false);
+  });
+
+  test.each([
+    ['legado sem campos Independence', { id: 1 }],
+    ['legado vinculado no mesmo app', { ...legacy, app_id: 7, production: { ...legacy, app_id: 7 } }],
+    ['verificado com produção do mesmo app', { ...verified, can_sell: true, app_id: 7, production: { ...verified, can_sell: true, app_id: '007' } }],
+    ['app_id de 64 bits preservado', { ...verified, can_sell: true, app_id: '9223372036854775807', production: { ...verified, can_sell: true, app_id: '9223372036854775807' } }],
+  ])('preserva apresentação de %s', (_, entity) => {
+    expect(canShowListingCommerce(entity)).toBe(true);
   });
 });
