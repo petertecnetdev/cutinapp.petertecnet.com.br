@@ -492,3 +492,47 @@ describe("EventService agenda generation idempotency", () => {
     expect(idempotencyKeyAt(0)).not.toBe(idempotencyKeyAt(1));
   });
 });
+
+describe("EventService contato público no WhatsApp", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test("usa o telefone da produção no evento mesmo com contato de evento divergente", async () => {
+    appApiClient.get.mockResolvedValueOnce({ data: {
+      event: {
+        id: 91001,
+        title: "Festival",
+        phone: "(11) 90000-0000",
+        production: { id: 101, phone: "(61) 99999-1234" },
+      },
+    } });
+    const response = await eventService.view("festival-producer-contact-91001");
+    expect(response.event.production.phone).toBe("(61) 99999-1234");
+  });
+
+  test("não atribui o telefone do evento à produção sem contato", async () => {
+    appApiClient.get.mockResolvedValueOnce({ data: {
+      event: {
+        id: 91002,
+        title: "Festival",
+        phone: "(11) 90000-0000",
+        production: { id: 102, name: "Sem telefone" },
+      },
+    } });
+    const response = await eventService.view("festival-no-producer-contact-91002");
+    expect(response.event.production.phone).toBeUndefined();
+  });
+
+  test("prioriza número de WhatsApp próprio da produção sobre telefone comercial", async () => {
+    appApiClient.get.mockResolvedValueOnce({ data: {
+      event: {
+        id: 91003,
+        title: "Festival",
+        production: { id: 103, phone: "6133330000", whatsapp_phone: "61999991234" },
+      },
+    } });
+    const response = await eventService.view("festival-with-whatsapp-91003");
+    expect(response.event.production.phone).toBe("61999991234");
+  });
+});

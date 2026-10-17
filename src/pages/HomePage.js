@@ -12,6 +12,9 @@ import EventPosterThumbnail from "../components/event/EventPosterThumbnail";
 import { storageUrl } from "../config";
 import { readDiscoveryPreference, saveDiscoveryPreference } from "../utils/discoveryFilters";
 import { publicArtistRoute, publicEventRoute, publicProductionRoute } from "../utils/entityRoutes";
+import { matchesSelectedCity } from "../utils/discoveryCities";
+import { DISCOVERY_CITY_CHANGE_EVENT } from "../utils/discoveryFilters";
+import { clearHomeLocation, readHomeLocation, saveHomeLocation } from "../utils/homeLocationStorage";
 import "./HomePage.css";
 import "./HomeDiscovery.css";
 
@@ -34,16 +37,6 @@ const uniqueById = (items) => {
     seen.add(item.id);
     return true;
   });
-};
-
-const readHomeLocation = () => {
-  try { return JSON.parse(window.localStorage.getItem("cutinapp.homeLocation") || "null"); }
-  catch (_) { return null; }
-};
-
-const saveHomeLocation = (value) => {
-  try { window.localStorage.setItem("cutinapp.homeLocation", JSON.stringify(value)); }
-  catch (_) { /* localização local é apenas conveniência */ }
 };
 
 const audiences = [
@@ -105,6 +98,7 @@ const journey = [
 export default function HomePage() {
   const navigate = useNavigate();
   const productionRailRef = useRef(null);
+  const latestDiscoveryRequest = useRef(0);
   const scrollProductionRail = (direction) => {
     const node = productionRailRef.current;
     if (!node) return;
@@ -123,68 +117,77 @@ export default function HomePage() {
     const precise = readHomeLocation();
     if (precise?.lat && precise?.lng) return precise;
     const saved = readDiscoveryPreference();
-    return saved?.city ? { city: saved.city, uf: saved.uf || "", mode: "city" } : null;
+    return saved?.city ? { city: saved.city, city_id: saved.city_id || null, uf: saved.uf || "", mode: "city" }
+      : saved?.mode === "all" ? { mode: "all" } : null;
   });
 
   const discoveryParams = useMemo(() => {
     if (location?.lat && location?.lng) return { lat: location.lat, lng: location.lng, radius_km: 80 };
-    if (location?.city) return { city: location.city, ...(location.uf ? { uf: location.uf } : {}) };
+    if (location?.city) return { city: location.city, ...(location.uf ? { uf: location.uf } : {}), ...(location.city_id ? { city_id: location.city_id } : {}) };
     return {};
   }, [location]);
 
   const loadDiscovery = useCallback(async (params = {}) => {
+    const request = ++latestDiscoveryRequest.current;
     setLoading(true);
     setUsingFallback(false);
     try {
+      const { city_id: _eventCityId, ...sharedParams } = params;
       const [eventResult, productionResult, artistResult, facetResult] = await Promise.allSettled([
         eventService.search({ ...params, per_page: 12, sort: "soonest" }),
-        cutinappService.publicProductions({ ...params, per_page: 10 }),
+        cutinappService.publicProductions({ ...sharedParams, per_page: 10 }),
         cutinappService.artists({ ...(params.city ? { city: params.city, ...(params.uf ? { uf: params.uf } : {}) } : {}), per_page: 12 }),
-        cutinappService.discoveryFacets(),
+        cutinappService.availableCities("events"),
       ]);
 
-      let localEvents = eventResult.status === "fulfilled" ? eventResult.value.events?.data || [] : [];
-      let localProductions = productionResult.status === "fulfilled" ? productionResult.value.productions?.data || [] : [];
-      let localArtists = artistResult.status === "fulfilled" ? artistResult.value.artists?.data || [] : [];
+      let localEvents = (eventResult.status === "fulfilled" ? eventResult.value.events?.data || [] : [])
+        .filter((event) => matchesSelectedCity(event, params));
+      let localProductions = (productionResult.status === "fulfilled" ? productionResult.value.productions?.data || [] : [])
+        .filter((production) => matchesSelectedCity(production, params));
+      let localArtists = (artistResult.status === "fulfilled" ? artistResult.value.artists?.data || [] : [])
+        .filter((artist) => matchesSelectedCity(artist, params));
       const facetCities = facetResult.status === "fulfilled" ? facetResult.value.cities || [] : [];
 
+      if (request !== latestDiscoveryRequest.current) return;
       const eventProductions = localEvents.map((event) => event.production).filter(Boolean);
       const eventArtists = localEvents.flatMap((event) => event.artists || []);
-      localProductions = uniqueById([...eventProductions, ...localProductions]);
-      localArtists = uniqueById([...eventArtists, ...localArtists]);
+      localProductions = uniqueById([...eventProductions, ...localProductions]
+        .filter((production) => matchesSelectedCity(production, params)));
+      localArtists = uniqueById([...eventArtists, ...localArtists]
+        .filter((artist) => matchesSelectedCity(artist, params)));
 
-      if (Object.keys(params).length > 0 && localEvents.length === 0) {
-        const fallback = await Promise.allSettled([
-          eventService.search({ per_page: 12, sort: "soonest" }),
-          cutinappService.publicProductions({ per_page: 10 }),
-          cutinappService.artists({ per_page: 12 }),
-        ]);
-        localEvents = fallback[0].status === "fulfilled" ? fallback[0].value.events?.data || [] : [];
-        const fallbackProductions = fallback[1].status === "fulfilled" ? fallback[1].value.productions?.data || [] : [];
-        const fallbackArtists = fallback[2].status === "fulfilled" ? fallback[2].value.artists?.data || [] : [];
-        localProductions = uniqueById([...localEvents.map((event) => event.production).filter(Boolean), ...fallbackProductions]);
-        localArtists = uniqueById([...localEvents.flatMap((event) => event.artists || []), ...fallbackArtists]);
-        setUsingFallback(true);
-      }
+      // Nunca substituir silenciosamente eventos da cidade escolhida por eventos de outras cidades.
 
       setEvents(localEvents.slice(0, 12));
       setProductions(localProductions.slice(0, 10));
       setArtists(localArtists.slice(0, 12));
       setCities(facetCities.slice(0, 16));
     } catch (_) {
-      setEvents([]);
-      setProductions([]);
-      setArtists([]);
-      setCities([]);
+      if (request === latestDiscoveryRequest.current) {
+        setEvents([]);
+        setProductions([]);
+        setArtists([]);
+        setCities([]);
+      }
     } finally {
-      setLoading(false);
+      if (request === latestDiscoveryRequest.current) setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    const sync = () => {
+      const preference = readDiscoveryPreference();
+      if (preference?.city) setLocation({ city: preference.city, uf: preference.uf || "", city_id: preference.city_id || null, mode: "city" });
+      else setLocation({ mode: "all" });
+    };
+    window.addEventListener(DISCOVERY_CITY_CHANGE_EVENT, sync);
+    return () => window.removeEventListener(DISCOVERY_CITY_CHANGE_EVENT, sync);
   }, []);
 
   useEffect(() => { loadDiscovery(discoveryParams); }, [discoveryParams, loadDiscovery]);
 
   useEffect(() => {
-    if (location || !navigator.permissions || !navigator.geolocation) return;
+    if (location || readDiscoveryPreference()?.mode === "all" || !navigator.permissions || !navigator.geolocation) return;
     navigator.permissions.query({ name: "geolocation" }).then((permission) => {
       if (permission.state !== "granted") return;
       navigator.geolocation.getCurrentPosition(({ coords }) => {
@@ -207,18 +210,17 @@ export default function HomePage() {
   };
 
   const chooseCity = (city) => {
-    const next = { city: city.city, uf: city.uf || "", mode: "city" };
+    const next = { city: city.city, city_id: city.city_id || null, uf: city.uf || "", mode: "city" };
     saveHomeLocation(next);
-    saveDiscoveryPreference({ city: city.city, uf: city.uf || "" });
+    saveDiscoveryPreference({ city: city.city, city_id: city.city_id || null, uf: city.uf || "" });
     setLocation(next);
     window.scrollTo({ top: document.getElementById("descobrir")?.offsetTop || 0, behavior: "smooth" });
   };
 
   const clearLocation = () => {
-    try { window.localStorage.removeItem("cutinapp.homeLocation"); }
-    catch (_) { /* sem persistência a descoberta continua funcionando */ }
-    setLocation(null);
-    saveDiscoveryPreference({ city: "", uf: "" });
+    clearHomeLocation();
+    setLocation({ mode: "all" });
+    saveDiscoveryPreference({ city: "", uf: "", mode: "all" });
   };
 
   const locationLabel = location?.city
@@ -228,7 +230,7 @@ export default function HomePage() {
       : "na Cutinapp";
 
   const browseLink = location?.city
-    ? `/event?city=${encodeURIComponent(location.city)}${location.uf ? `&uf=${encodeURIComponent(location.uf)}` : ""}`
+    ? `/event?city=${encodeURIComponent(location.city)}${location.uf ? `&uf=${encodeURIComponent(location.uf)}` : ""}${location.city_id ? `&city_id=${location.city_id}` : ""}`
     : location?.lat
       ? `/event?lat=${location.lat}&lng=${location.lng}&radius_km=80`
       : "/event";
@@ -242,9 +244,12 @@ export default function HomePage() {
     navigate(query ? `/search?q=${encodeURIComponent(query)}` : browseLink);
   };
 
-  const featuredEvent = events[0] || null;
-  const featuredProduction = productions[0] || null;
-  const featuredArtists = artists.slice(0, 4);
+  const visibleEvents = events.filter((event) => matchesSelectedCity(event, discoveryParams));
+  const visibleProductions = productions.filter((production) => matchesSelectedCity(production, discoveryParams));
+  const visibleArtists = artists.filter((artist) => matchesSelectedCity(artist, discoveryParams));
+  const featuredEvent = visibleEvents[0] || null;
+  const featuredProduction = visibleProductions[0] || null;
+  const featuredArtists = visibleArtists.slice(0, 4);
 
   return (
     <div className="cut-home cut-home-discovery">
@@ -446,6 +451,7 @@ export default function HomePage() {
                   <i className="fa-solid fa-location-crosshairs me-2" />Usar minha localização
                 </Button>
                 {locationBusy && <ProcessingIndicatorComponent fullscreen={false} label="Obtendo localização" />}
+                <button type="button" onClick={() => navigate(browseLink)}>Alterar cidade ou explorar outras cidades</button>
                 {location && <button type="button" onClick={clearLocation}>Remover localização</button>}
               </div>
             </div>
@@ -486,10 +492,10 @@ export default function HomePage() {
             </div>
             {loading
               ? <ProcessingIndicatorComponent fullscreen={false} label="Buscando eventos" />
-              : events.length
+              : visibleEvents.length
                 ? (
                   <div className="cut-home-discovery__events">
-                    {events.map((event) => (
+                    {visibleEvents.map((event) => (
                       <Link key={event.id} to={publicEventRoute(event.slug)} className="cut-home-discovery__eventCard">
                         <div className="cut-home-discovery__eventImage">
                           <EventPosterThumbnail image={event.image} title={event.title} alt={event.title} className="cut-home-discovery__eventPoster" loading="lazy" />
@@ -501,8 +507,7 @@ export default function HomePage() {
                           {event.production?.name && <span>{event.production.name}</span>}
                         </div>
                       </Link>
-                      );
-                    })}
+                    ))}
                   </div>
                 )
                 : <div className="cut-home-discovery__empty">Nenhum evento público disponível agora.</div>}
@@ -557,16 +562,16 @@ export default function HomePage() {
             <div className="cut-home-discovery__sectionHead">
               <div><span>Quem movimenta a cena</span><h2>Produções para acompanhar</h2></div>
               <div className="cut-home-discovery__sectionActions">
-                {productions.length > 1 && <div className="cut-home-discovery__railControls" role="group" aria-label="Navegar pelas produções"><button type="button" onClick={() => scrollProductionRail(-1)} aria-label="Ver produções anteriores"><i className="fa-solid fa-chevron-left" /></button><button type="button" onClick={() => scrollProductionRail(1)} aria-label="Ver próximas produções"><i className="fa-solid fa-chevron-right" /></button></div>}
+                {visibleProductions.length > 1 && <div className="cut-home-discovery__railControls" role="group" aria-label="Navegar pelas produções"><button type="button" onClick={() => scrollProductionRail(-1)} aria-label="Ver produções anteriores"><i className="fa-solid fa-chevron-left" /></button><button type="button" onClick={() => scrollProductionRail(1)} aria-label="Ver próximas produções"><i className="fa-solid fa-chevron-right" /></button></div>}
                 <Link to="/productions">Ver produções <i className="fa-solid fa-arrow-right" /></Link>
               </div>
             </div>
             {loading
               ? <ProcessingIndicatorComponent fullscreen={false} label="Buscando produções" />
-              : productions.length
+              : visibleProductions.length
                 ? (
                   <div className="cut-home-discovery__profiles" ref={productionRailRef} role="list" aria-label="Produções para acompanhar">
-                    {productions.map((production) => {
+                    {visibleProductions.map((production) => {
                       const productionArtwork = mediaUrl(production.background || production.logo);
                       return (
                       <Link key={production.id} to={publicProductionRoute(production.slug)} className="cut-home-discovery__profileCard" role="listitem" style={productionArtwork ? { "--cut-production-card-cover": `url(${JSON.stringify(productionArtwork)})` } : undefined}>

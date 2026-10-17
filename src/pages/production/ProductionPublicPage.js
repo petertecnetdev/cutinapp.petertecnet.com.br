@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
+import React, { useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Alert, Button, Card, Container, Dropdown, Modal } from "react-bootstrap";
 import { useNavigate, useParams } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
@@ -6,11 +6,13 @@ import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import ProductionTicketCartModal from "../../components/event/ProductionTicketCartModal";
 import EventDiscoveryRail from "../../components/event/EventDiscoveryRail";
+import WhatsAppFloatingButton from "../../components/WhatsAppFloatingButton";
 import ProductionNextEventHero from "../../components/production/ProductionNextEventHero";
 import { FormattedText } from "../../components/editor/FormattedText";
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
 import { safeExternalHref } from "../../utils/safeUrl";
+import { buildContactWhatsappHref, buildProductionContactMessage, resolveProductionWhatsappPhone } from "../../utils/productionWhatsappContact";
 import { subscribeGalleryUpdates } from "../../utils/gallerySync";
 import UnverifiedListingPanel from "../../components/independence/UnverifiedListingPanel";
 import { canShowListingCommerce } from "../../utils/independenceListing";
@@ -54,6 +56,7 @@ export default function ProductionPublicPage() {
   const [ticketCartOpen, setTicketCartOpen] = useState(false);
   const [sellableUpcoming, setSellableUpcoming] = useState([]);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+  const [descriptionHasOverflow, setDescriptionHasOverflow] = useState(false);
   const [showMap, setShowMap] = useState(false);
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState("inicio");
@@ -64,6 +67,7 @@ export default function ProductionPublicPage() {
   const eventsSectionRef = useRef(null);
   const photosSectionRef = useRef(null);
   const aboutSectionRef = useRef(null);
+  const descriptionRef = useRef(null);
   const postsSectionRef = useRef(null);
 
   useEffect(() => {
@@ -128,6 +132,44 @@ export default function ProductionPublicPage() {
   }, [slug]);
 
   const production = data?.production;
+
+  // A descrição pode ocupar mais linhas em telas estreitas, mesmo com poucos caracteres.
+  // Só mostramos o gradiente e o botão quando o conteúdo realmente ultrapassa o limite visual.
+  useLayoutEffect(() => {
+    const element = descriptionRef.current;
+    if (!element) return undefined;
+
+    let disposed = false;
+    let measuredWidth = element.parentElement?.clientWidth;
+
+    const measureOverflow = () => {
+      if (disposed) return;
+      const wasExpanded = element.classList.contains("is-expanded");
+      if (wasExpanded) element.classList.remove("is-expanded");
+      const overflows = element.scrollHeight > element.clientHeight + 2;
+      if (wasExpanded) element.classList.add("is-expanded");
+      setDescriptionHasOverflow(overflows);
+    };
+
+    measureOverflow();
+    const observer = typeof ResizeObserver === "function"
+      ? new ResizeObserver(() => {
+          const width = element.parentElement?.clientWidth;
+          if (width === measuredWidth) return;
+          measuredWidth = width;
+          measureOverflow();
+        })
+      : null;
+    if (observer && element.parentElement) observer.observe(element.parentElement);
+    window.addEventListener("resize", measureOverflow);
+    document.fonts?.ready?.then(measureOverflow).catch(() => {});
+
+    return () => {
+      disposed = true;
+      observer?.disconnect();
+      window.removeEventListener("resize", measureOverflow);
+    };
+  }, [production?.description, slug]);
 
   useEffect(() => {
     const productionId = Number(production?.id || 0);
@@ -282,10 +324,6 @@ export default function ProductionPublicPage() {
   const mapEmbedUrl = mapQuery ? `https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed` : "";
   const mapsHref = mapQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}` : "";
   const productionUrl = `${window.location.origin}/production/${encodeURIComponent(slug)}/public`;
-  const whatsappShareMessage = `Olha esta produção na Cutinapp: ${production.name}\n${productionUrl}`;
-  const whatsappShareHref = `https://wa.me/?text=${encodeURIComponent(whatsappShareMessage)}`;
-  const descriptionText = String(production.description || "");
-  const longDescription = descriptionText.replace(/<[^>]*>/g, "").length > 420;
   const rawPhone = String(production.phone || "").trim();
   const phoneDigits = rawPhone.replace(/\D/g, "");
   const explicitInternationalPhone = /^\+\s*\d/.test(rawPhone) || /^00\d/.test(rawPhone);
@@ -294,7 +332,9 @@ export default function ProductionPublicPage() {
     ? (rawPhone.startsWith("00") ? phoneDigits.slice(2) : phoneDigits)
     : countryDialCode && phoneDigits ? `${countryDialCode}${phoneDigits}` : "";
   const phoneHref = phoneDigits ? `tel:${internationalDigits ? `+${internationalDigits}` : phoneDigits}` : "";
-  const whatsappContactHref = internationalDigits ? `https://wa.me/${internationalDigits}` : "";
+  const productionWhatsappPhone = resolveProductionWhatsappPhone(production);
+  const productionWhatsappMessage = buildProductionContactMessage(production.name);
+  const whatsappContactHref = buildContactWhatsappHref(productionWhatsappPhone, productionWhatsappMessage, { normalizedPhone: true });
   const nextEvent = upcoming[0] || null;
 
   const goToTab = (key) => {
@@ -479,10 +519,24 @@ export default function ProductionPublicPage() {
             <Card.Body className="p-4 p-lg-5">
               <span className="cut-eyebrow">Sobre</span>
               <h2 className="cut-section-title mt-2">{production.fantasy || production.name}</h2>
-              <div className={`cut-production-description ${descriptionExpanded ? "is-expanded" : ""}`}>
+              <div
+                id="cut-production-description-content"
+                ref={descriptionRef}
+                className={`cut-production-description ${descriptionExpanded || !descriptionHasOverflow ? "is-expanded" : ""}`}
+              >
                 <FormattedText className="cut-body-copy" value={production.description} emptyText="Esta produção ainda não adicionou uma apresentação pública." />
               </div>
-              {longDescription && <Button variant="link" className="cut-production-description-toggle" onClick={() => setDescriptionExpanded((value) => !value)}>{descriptionExpanded ? "Mostrar menos" : "Ver mais"}</Button>}
+              {descriptionHasOverflow && (
+                <Button
+                  variant="link"
+                  className="cut-production-description-toggle"
+                  aria-controls="cut-production-description-content"
+                  aria-expanded={descriptionExpanded}
+                  onClick={() => setDescriptionExpanded((value) => !value)}
+                >
+                  {descriptionExpanded ? "Ver menos" : "Ver mais"}
+                </Button>
+              )}
               <div className="cut-production-public-social">
                 {phoneHref && <Button as="a" href={phoneHref} variant="outline-light"><i className="fa-solid fa-phone me-2" />Ligar</Button>}
                 {whatsappContactHref && <Button as="a" href={whatsappContactHref} target="_blank" rel="noopener noreferrer" variant="outline-light"><i className="fa-brands fa-whatsapp me-2" />WhatsApp</Button>}
@@ -539,7 +593,12 @@ export default function ProductionPublicPage() {
         {!secondaryLoading && <React.Suspense fallback={<div className="cut-production-section cut-production-async-indicator"><ProcessingIndicatorComponent fullscreen={false} label="Preparando publicações" /></div>}><ProductionCommunitySection production={production} isOwner={isOwner} /></React.Suspense>}
       </Container>
 
-      <a className="cut-whatsapp-fab cut-production-share-fab" href={whatsappShareHref} target="_blank" rel="noopener noreferrer" aria-label="Compartilhar produção no WhatsApp" title="Compartilhar produção no WhatsApp"><i className="fa-brands fa-whatsapp" aria-hidden="true" /><span>Compartilhar</span></a>
+      <WhatsAppFloatingButton
+        phone={productionWhatsappPhone}
+        phoneNormalized
+        label="Falar com a produção"
+        message={productionWhatsappMessage}
+      />
 
       <ProductionTicketCartModal show={ticketCartOpen} onHide={() => setTicketCartOpen(false)} productionSlug={slug} />
 

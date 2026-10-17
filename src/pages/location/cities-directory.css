@@ -1,0 +1,54 @@
+.cut-cities-page { background: #09090b; min-height: 100vh; color: #f7f7f8; }
+.cut-cities { padding-bottom: clamp(55px, 8vw, 110px); }
+.cut-cities__container { width: min(1180px, calc(100% - 36px)); margin: 0 auto; }
+.cut-cities__hero { padding: clamp(30px, 5vw, 70px) 0 52px; background: radial-gradient(ellipse at 96% 0, #40111b 0, transparent 48%), linear-gradient(120deg, #151519, #0a0a0c); border-bottom: 1px solid #302a2d; }
+.cut-cities__breadcrumb { display: flex; align-items: center; gap: 12px; margin-bottom: 43px; font-size: 13px; color: #aaa6af; }
+.cut-cities__breadcrumb a { color: #e0dfe3; text-decoration: none; }
+.cut-cities__breadcrumb i { font-size: 10px; }
+.cut-cities__hero-layout { display: flex; justify-content: space-between; align-items: flex-end; gap: 28px; margin-bottom: 30px; }
+.cut-cities__eyebrow { display: flex; align-items: center; gap: 10px; color: #f16b78; letter-spacing: .16em; font-size: 11px; font-weight: 800; margin-bottom: 13px; }
+.cut-cities__pulse { width: 9px; height: 9px; border-radius: 100%; background: #f0394e; box-shadow: 0 0 0 4px #f0394e22; }
+.cut-cities__hero h1 { max-width: 820px; font-size: clamp(34px, 5vw, 62px); font-weight: 850; letter-spacing: -.045em; line-height: 1.09; margin: 0 0 17px; color: #fff; }
+.cut-cities__hero h1 em { font-style: normal; color: #f25867; }
+.cut-cities__hero p { max-width: 660px; color: #b0acb4; font-size: clamp(15px, 1.8vw, 18px); line-height: 1.65; margin: 0; }
+.cut-cities__summary { border: 1px solid #493740; border-radius: 18px; background: #22181ed9; padding: 17px 22px; min-width: 172px; flex-shrink: 0; display: flex; flex-direction: column; }
+.cut-cities__summary strong { color: #fff; font-size: 44px; line-height: 1.1; letter-spacing: -.05em; }
+.cut-cities__summary span { color: #f3eef0; font-size: 12px; font-weight: 700; }
+.cut-cities__summary small { color: #ada2aa; font-size: 11px; margin-top: 5px; }
+.cut-cities__search-label { display: block; font-size: 13px; font-weight: 700; color: #e9e4e6; margin-bottom: 10px; }
+.cut-cities__search { display: flex; gap: 14px; align-items: center; width: min(670px, 100%); min-height: 56px; padding: 0 17px; border: 1px solid #514049; border-radius: 12px; background: #1b1a1f; }
+.cut-cities__search:focus-within { border-color: #f25867; box-shadow: 0 0 0 3px #f2586722; }
+.cut-cities__search > i { color: #ed5665; font-size: 18px; }
+.cut-cities__search input { color: #fff; background: transparent; outline: 0; border: 0; min-width: 0; flex: 1; font-size: 16px; }
+.cut-cities__search input::placeholder { color: #9c929c; }
+.cut-cities__search button { background: none; color: #e1dade; border: 0; padding: 8px; }
+.cut-cities__content { padding-top: 45px; }
+.cut-cities__popular { margin-bottom: 52px; }
+.cut-cities__section-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+.cut-cities__section-heading span { display: block; color: #f27480; font-size: 11px; font-weight: 800; letter-spacing: .15em; margin-bottom: 8px; }
+.cut-cities__section-heading h2 { color: #fff; font-size: clamp(22px, 3vw, 29px); font-weight: 760; letter-spacing: -.03em; margin: 0; }
+.cut-cities__section-heading p { color: #aaa3aa; font-size: 13px; margin: 0; }
+.cut-cities__featured-grid, .cut-cities__state-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 15px; }
+.cut-cities__featured-city { background: linear-gradient(145deg, #252226, #171619); border: 1px solid #393036; border-radius: 16px; padding: 18px; min-height: 112px; display: flex; align-items: center; gap: 13px; text-decoration: none; color: #fff; transition: border-color .2s, transform .2s; }
+.cut-cities__featured-city:hover { color: #fff; border-color: #e85e6d; transform: translateY(-2px); }
+.cut-cities__featured-icon { background: #3b2028; color: #fc7580; display: grid; place-items: center; width: 45px; height: 45px; flex: 0 0 45px; border-radius: 12px; }
+.cut-cities__city-copy { display: flex; flex: 1; flex-direction: column; gap: 4px; min-width: 0; }
+.cut-cities__city-copy strong { color: #fff; font-weight: 730; font-size: 16px; line-height: 1.25; }
+.cut-cities__city-copy small { color: #b6acb2; font-size: 12px; }
+.cut-cities__city-arrow { color: #a89da4; font-size: 13px; }
+.cut-cities__featured-city:hover .cut-cities__city-arrow, .cut-cities__city-link:hover .cut-cities__city-arrow { color: #ff8590; }
+.cut-cities__state-grid { align-items: start; }
+.cut-cities__state { border: 1px solid #323035; border-radius: 15px; background: #161518; overflow: hidden; }
+.cut-cities__state header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #302b30; color: #a79fa5; padding: 16px 19px; font-size: 12px; }
+.cut-cities__state-uf { color: #fff; font-size: 18px; letter-spacing: .03em; }
+.cut-cities__city-link { padding: 15px 19px; border-bottom: 1px solid #282429; display: flex; align-items: center; gap: 10px; text-decoration: none; color: #fff; }
+.cut-cities__city-link:last-child { border-bottom: 0; }
+.cut-cities__city-link:hover { color: #fff; background: #2c1d23; }
+.cut-cities__feedback { background: #1a161a; border: 1px solid #47363d; color: #ded6db; text-align: center; padding: 35px 24px; margin: 20px 0; border-radius: 15px; }
+.cut-cities__feedback strong { display: block; font-size: 17px; color: #fff; margin-bottom: 9px; }
+.cut-cities__feedback p { color: #b9afb5; margin-bottom: 14px; }
+.cut-cities__feedback button, .cut-cities__feedback a { display: inline-block; padding: 10px 18px; border-radius: 9px; border: 1px solid #d84655; background: #a82a3b; color: #fff; text-decoration: none; font-weight: 700; }
+.cut-cities__featured-city:focus-visible, .cut-cities__city-link:focus-visible, .cut-cities__feedback button:focus-visible { outline: 2px solid #ff7985; outline-offset: 3px; }
+@media (max-width: 950px) { .cut-cities__featured-grid, .cut-cities__state-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 575px) { .cut-cities__container { width: calc(100% - 32px); } .cut-cities__hero-layout { flex-direction: column; align-items: stretch; } .cut-cities__summary { max-width: 245px; padding: 14px 18px; } .cut-cities__summary strong { font-size: 32px; } .cut-cities__featured-grid, .cut-cities__state-grid { grid-template-columns: 1fr; } .cut-cities__section-heading { flex-direction: column; align-items: flex-start; gap: 8px; } .cut-cities__featured-city { min-height: 90px; } }
+@media (prefers-reduced-motion: reduce) { .cut-cities__featured-city { transition: none; } }

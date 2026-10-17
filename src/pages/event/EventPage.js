@@ -1,13 +1,16 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Alert, Badge, Button, Card, Col, Container, Row } from "react-bootstrap";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import EventPosterThumbnail from "../../components/event/EventPosterThumbnail";
+import EventProductionLink from "../../components/event/EventProductionLink";
 import EventDateCarousel from "../../components/event/EventDateCarousel";
 import eventService from "../../services/EventService";
 import cutinappService from "../../services/CutinappService";
-import { readDiscoveryPreference } from "../../utils/discoveryFilters";
+import { readDiscoveryPreference, saveDiscoveryPreference } from "../../utils/discoveryFilters";
+import CityPicker from "../../components/event/CityPicker";
+import { matchesSelectedCity } from "../../utils/discoveryCities";
 import "./EventPage.css";
 
 const formatDate = (value) => value
@@ -64,6 +67,7 @@ export default function EventPage() {
   const [pagination, setPagination] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [cityPickerOpen, setCityPickerOpen] = useState(false);
 
   const filters = useMemo(() => ({
     city: searchParams.get("city") || "",
@@ -113,7 +117,7 @@ export default function EventPage() {
     })
       .then((response) => {
         if (!active) return;
-        setEvents(response.events?.data || []);
+        setEvents((response.events?.data || []).filter((event) => matchesSelectedCity(event, filters)));
         setPagination(response.events || null);
       })
       .catch((err) => {
@@ -136,6 +140,11 @@ export default function EventPage() {
     setSearchParams(next);
   };
 
+  const chooseCity = (selection) => {
+    saveDiscoveryPreference({ city: selection?.city || "", uf: selection?.uf || "" });
+    update({ city: selection?.city || "", uf: selection?.uf || "", date: "", page: "" });
+    setCityPickerOpen(false);
+  };
   const handleDateSelect = (date) => update({ date });
   const resultTotal = Number(pagination?.total ?? events.length);
 
@@ -155,6 +164,14 @@ export default function EventPage() {
           </Button>
         </div>
 
+        <div className="cut-city-switcher">
+          <button type="button" className="cut-city-switcher__trigger" onClick={() => setCityPickerOpen((open) => !open)} aria-expanded={cityPickerOpen} aria-controls="cut-city-picker">
+            <i className="fa-solid fa-location-dot" aria-hidden="true" />
+            <span><small>Explorando eventos em</small><strong>{filters.city ? `${filters.city}${filters.uf ? ` - ${filters.uf}` : ""}` : "Todas as cidades"}</strong></span>
+            <span className="cut-city-switcher__change">Alterar cidade <i className="fa-solid fa-chevron-down" /></span>
+          </button>
+          {cityPickerOpen && <div id="cut-city-picker"><CityPicker selectedCity={filters.city} selectedUf={filters.uf} onSelect={chooseCity} /></div>}
+        </div>
         {error && <Alert variant="danger">{error}</Alert>}
 
         <div className="d-flex flex-wrap gap-2 mb-4" aria-label="Filtrar tipo de experiência">
@@ -208,36 +225,31 @@ export default function EventPage() {
                 const availabilityBadge = ticketAvailabilityBadge(event);
                 return (
                   <Col xs={12} sm={6} md={4} lg={3} xxl={2} key={event.id}>
-                    <Card
-                      className="cut-event-card h-100"
-                      role="button"
-                      tabIndex={0}
-                      aria-label={`Abrir evento ${event.title}`}
-                      onMouseEnter={() => eventService.view(event.slug).catch(() => {})}
-                      onFocus={() => eventService.view(event.slug).catch(() => {})}
-                      onClick={() => navigate(`/event/${event.slug}`)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          navigate(`/event/${event.slug}`);
-                        }
-                      }}
-                    >
-                      <div className="cut-event-card__media">
-                        <EventPosterThumbnail image={event.image} title={event.title} alt={event.title} className="cut-event-card__poster" loading="lazy" />
-                      </div>
-                      <Card.Body>
-                        <div className="cut-event-card__badges">{event.category && <Badge bg="dark">{event.category}</Badge>}<Badge bg={availabilityBadge.bg} text={availabilityBadge.text}>{availabilityBadge.label}</Badge></div>
-                        <span className="cut-eyebrow">{event.kind === "community" ? "Encontro comunitário" : event.production?.name || "Cutinapp"}</span>
-                        <h2>{event.title}</h2>
-                        <div className="cut-event-card__meta">
-                          <span><i className="fa-regular fa-calendar" />{formatDate(event.start_date)}</span>
-                          <span><i className="fa-solid fa-location-dot" />{formatEventLocation(event)}</span>
-                          {event.artists?.length > 0 && <span><i className="fa-solid fa-music" />{event.artists.slice(0, 3).map((a) => a.stage_name).join(" · ")}</span>}
-                          {event.distance_km != null && <span><i className="fa-solid fa-route" />{Number(event.distance_km).toFixed(1)} km de você</span>}
-                          {ticketPriceLabel(event) && <span><i className="fa-solid fa-ticket" />{ticketPriceLabel(event)}</span>}
+                    <Card className="cut-event-card h-100">
+                      <Link
+                        to={"/event/" + encodeURIComponent(event.slug)}
+                        className="cut-event-card__main-link"
+                        aria-label={"Abrir evento " + event.title}
+                        onMouseEnter={() => eventService.view(event.slug).catch(() => {})}
+                        onFocus={() => eventService.view(event.slug).catch(() => {})}
+                      >
+                        <div className="cut-event-card__media">
+                          <EventPosterThumbnail image={event.image} title={event.title} alt={event.title} className="cut-event-card__poster" loading="lazy" />
                         </div>
-                      </Card.Body>
+                        <Card.Body>
+                          <div className="cut-event-card__badges">{event.category && <Badge bg="dark">{event.category}</Badge>}<Badge bg={availabilityBadge.bg} text={availabilityBadge.text}>{availabilityBadge.label}</Badge></div>
+                          {event.kind === "community" && <span className="cut-eyebrow">Encontro comunitário</span>}
+                          <h2>{event.title}</h2>
+                          <div className="cut-event-card__meta">
+                            <span><i className="fa-regular fa-calendar" />{formatDate(event.start_date)}</span>
+                            <span><i className="fa-solid fa-location-dot" />{formatEventLocation(event)}</span>
+                            {event.artists?.length > 0 && <span><i className="fa-solid fa-music" />{event.artists.slice(0, 3).map((a) => a.stage_name).join(" · ")}</span>}
+                            {event.distance_km != null && <span><i className="fa-solid fa-route" />{Number(event.distance_km).toFixed(1)} km de você</span>}
+                            {ticketPriceLabel(event) && <span><i className="fa-solid fa-ticket" />{ticketPriceLabel(event)}</span>}
+                          </div>
+                        </Card.Body>
+                      </Link>
+                      <EventProductionLink production={event.production} />
                     </Card>
                   </Col>
                 );

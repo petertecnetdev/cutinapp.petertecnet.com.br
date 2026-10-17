@@ -137,20 +137,17 @@ const installDeferredEnhancers = async () => {
       { installInstagramMobileShell },
       { installClipboardFallback },
       { installPasswordFieldEnhancer },
-      { installPeterWhatsappFallback },
       { installEventFlyerBackground },
     ] = await Promise.all([
       import("./utils/instagramMobileShell"),
       import("./utils/clipboard"),
       import("./utils/passwordFieldEnhancer"),
-      import("./utils/peterWhatsappFallback"),
       import("./utils/eventFlyerBackground"),
     ]);
 
     installInstagramMobileShell();
     installClipboardFallback();
     installPasswordFieldEnhancer();
-    installPeterWhatsappFallback();
     installEventFlyerBackground();
   }
 };

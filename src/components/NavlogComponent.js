@@ -18,13 +18,18 @@ import {
   accountNavigation,
   actorMenusFor,
   primaryNavigation,
+  mobileBottomNavigationFor,
   exploreNavigation,
+  desktopPrimaryNavigation,
+  desktopMoreNavigation,
+  publicMoreNavigation,
   creationActionsFor,
   adminActionsFor,
   contextualNavigation,
   readNavigationUsage,
 } from "../navigation/navigationRegistry";
 import NotificationPermissionControl from "./NotificationPermissionControl";
+import CityNavSelect from "./location/CityNavSelect";
 
 const CAPABILITY_CACHE_TTL = 5 * 60 * 1000;
 const NAV_RUNTIME_CACHE_TTL = 45 * 1000;
@@ -170,9 +175,9 @@ export default function NavlogComponent() {
 
   useEffect(() => {
     if (typeof document === "undefined") return undefined;
-    document.body.classList.toggle("cut-has-mobile-bottom-nav", Boolean(user));
+    document.body.classList.add("cut-has-mobile-bottom-nav");
     return () => document.body.classList.remove("cut-has-mobile-bottom-nav");
-  }, [user]);
+  }, []);
 
   useEffect(() => {
     if (!open || typeof document === "undefined") return undefined;
@@ -365,6 +370,37 @@ export default function NavlogComponent() {
     navigate("/notifications");
   };
 
+  // Entrada única de suporte: o contato e a abertura de chamados ficam em /help.
+  const helpDesktopLink = (
+    <Nav.Link as={Link} to="/help" onClick={closeMenu}
+      aria-current={active("/help") ? "page" : undefined}
+      className={`cut-navbar__help-link ${active("/help") ? "active" : ""}`}>
+      <i className="fa-regular fa-circle-question" aria-hidden="true" />
+      <span>Ajuda</span>
+    </Nav.Link>
+  );
+
+  const helpMobileLink = (
+    <Link to="/help" onClick={closeMenu} aria-current={active("/help") ? "page" : undefined}>
+      <i className="fa-regular fa-circle-question" aria-hidden="true" />Ajuda e suporte
+    </Link>
+  );
+
+  const mobileBottomNav = (
+    <nav className="cut-mobile-bottom-nav" aria-label="Navegação principal mobile">
+      {mobileBottomNavigationFor(Boolean(user)).map((entry) => (
+        <Link key={entry.id} to={entry.to}
+          className={`${active(entry.to) ? "active" : ""} ${entry.id === "cities" ? "cut-mobile-bottom-nav__cities" : ""}`}
+          aria-label={entry.label}
+          aria-current={active(entry.to) ? "page" : undefined}
+          onClick={() => { recordUsage(entry, "mobile-bottom"); closeMenu(); }}>
+          <i className={entry.icon} aria-hidden="true" />
+          <span>{entry.label}</span>
+        </Link>
+      ))}
+    </nav>
+  );
+
   const mobileDrawer = open && typeof document !== "undefined" ? createPortal(
     <div id="cut-mobile-drawer" className="cut-mobile-drawer" role="dialog" aria-modal="true" aria-label="Menu principal" style={{ position: "fixed", inset: 0, width: "100vw", height: "100dvh", zIndex: 2147483647, display: "flex", flexDirection: "column", overflow: "hidden", background: "#081622", color: "#fff" }}>
       <div className="cut-mobile-drawer__header">
@@ -381,8 +417,10 @@ export default function NavlogComponent() {
           <>
             <Link to="/search" onClick={closeMenu}><i className="fa-solid fa-magnifying-glass" />Buscar</Link>
             <Link to="/event" onClick={closeMenu}><i className="fa-regular fa-calendar-days" />Eventos</Link>
+            <Link to="/cidades" onClick={closeMenu}><i className="fa-solid fa-location-dot" />Cidades</Link>
             <Link to="/productions" onClick={closeMenu}><i className="fa-solid fa-people-group" />Produções</Link>
             <Link to="/artists" onClick={closeMenu}><i className="fa-solid fa-music" />Artistas</Link>
+            {helpMobileLink}
             <Link to="/login" onClick={closeMenu}><i className="fa-solid fa-arrow-right-to-bracket" />Entrar</Link>
           </>
         ) : (
@@ -393,6 +431,7 @@ export default function NavlogComponent() {
             </Link>
             {primaryNavigation.map((entry) => <Link key={entry.id} to={entry.to} onClick={() => { recordUsage(entry, "mobile-drawer"); closeMenu(); }}><i className={entry.icon} />{entry.label}</Link>)}
             {exploreNavigation.map((entry) => <Link key={entry.id} to={entry.to} onClick={() => { recordUsage(entry, "mobile-drawer"); closeMenu(); }}><i className={entry.icon} />{entry.label}</Link>)}
+            {helpMobileLink}
             {creationActionsFor(capabilities).length > 0 && <div className="cut-mobile-drawer__section"><strong>Criar</strong>{creationActionsFor(capabilities).map((entry) => <button type="button" key={entry.id} onClick={() => go(entry, "mobile-drawer")}><i className={entry.icon} />{entry.label}</button>)}</div>}
             {actorMenus.length > 0 && <div className="cut-mobile-drawer__section"><strong>Minhas áreas</strong>{actorMenus.flatMap((area) => area.items).filter((entry, index, list) => list.findIndex((item) => item.to === entry.to) === index).map((entry) => <Link key={entry.id} to={entry.to} onClick={closeMenu}><i className={entry.icon} />{entry.label}</Link>)}</div>}
             {accountNavigation.map((entry) => <Link key={entry.id} to={entry.to} onClick={closeMenu}><i className={entry.icon} />{entry.label}</Link>)}
@@ -411,10 +450,23 @@ export default function NavlogComponent() {
         <Container className="cut-navbar__inner">
           <Navbar.Brand as={Link} to="/" className="cut-navbar__brand"><img src="/images/logo.png" alt="Cutinapp" /><div><strong>Cutinapp</strong><small>Rede social de eventos</small></div></Navbar.Brand>
           <button type="button" className="navbar-toggler cut-mobile-menu-toggle d-lg-none" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, minWidth: 44, opacity: 1, visibility: "visible", position: "relative", zIndex: 2147483647 }} aria-expanded={open} aria-controls="cut-mobile-drawer" aria-label={open ? "Fechar menu" : "Abrir menu"} onClick={() => setOpen((value) => !value)}><span className="navbar-toggler-icon" /></button>
-          <Navbar.Collapse id="cut-navbar-public"><Nav className="ms-auto cut-navbar__links"><Nav.Link as={Link} to="/search" onClick={closeMenu}><i className="fa-solid fa-magnifying-glass me-2" />Buscar</Nav.Link><Nav.Link as={Link} to="/event">Eventos</Nav.Link><Nav.Link as={Link} to="/productions">Produções</Nav.Link><Nav.Link as={Link} to="/artists">Artistas</Nav.Link><Nav.Link as={Link} to="/login">Entrar</Nav.Link></Nav></Navbar.Collapse>
+          <CityNavSelect variant="mobile" />
+          <Navbar.Collapse id="cut-navbar-public">
+            <Nav className="ms-auto cut-navbar__links" aria-label="Navegação pública">
+              <CityNavSelect />
+              <Nav.Link as={Link} to="/search" onClick={closeMenu}><i className="fa-solid fa-magnifying-glass me-2" />Buscar</Nav.Link>
+              <Nav.Link as={Link} to="/event" onClick={closeMenu}>Eventos</Nav.Link>
+              <NavDropdown {...dropdown("explore")} title="Mais" id="cut-explore-menu-public" className="cut-navbar__more-menu">
+                {publicMoreNavigation.map((entry) => <NavDropdown.Item key={entry.id} as={Link} to={entry.to} active={active(entry.to)} onClick={closeMenu}><i className={`${entry.icon} me-2`} aria-hidden="true" />{entry.label}</NavDropdown.Item>)}
+              </NavDropdown>
+              {helpDesktopLink}
+              <Nav.Link as={Link} to="/login" onClick={closeMenu}>Entrar</Nav.Link>
+            </Nav>
+          </Navbar.Collapse>
         </Container>
       </Navbar>
       {mobileDrawer}
+      {mobileBottomNav}
       </>
     );
   }
@@ -429,6 +481,7 @@ export default function NavlogComponent() {
         <Container className="cut-navbar__inner">
           <Navbar.Brand as={Link} to="/" className="cut-navbar__brand" onClick={closeMenu}><img src="/images/logo.png" alt="Cutinapp" /><div><strong>Cutinapp</strong><small>Rede social de eventos</small></div></Navbar.Brand>
           <button type="button" className="navbar-toggler cut-mobile-menu-toggle d-lg-none" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, minWidth: 44, opacity: 1, visibility: "visible", position: "relative", zIndex: 2147483647 }} aria-expanded={open} aria-controls="cut-mobile-drawer" aria-label={open ? "Fechar menu" : "Abrir menu"} onClick={() => setOpen((value) => !value)}><span className="navbar-toggler-icon" /></button>
+          <CityNavSelect variant="mobile" />
           <Navbar.Collapse id="cut-navbar">
             <Link to="/profile" className="cut-navbar__mobile-account" onClick={closeMenu} aria-label="Abrir meu perfil">
               <span className="cut-navbar__avatar">{userAvatar ? <img src={userAvatar} alt="" /> : userFallbackInitials}</span>
@@ -438,14 +491,15 @@ export default function NavlogComponent() {
             <div className="cut-navbar__drawer-heading"><strong>Navegação</strong><small>{actorMenus.length ? `${actorMenus.length} área${actorMenus.length > 1 ? "s" : ""} de trabalho disponível${actorMenus.length > 1 ? "is" : ""}` : "Sua experiência Cutinapp"}</small></div>
 
             <Nav className="cut-navbar__links mx-auto" aria-label="Navegação principal">
-              {primaryNavigation.map((entry) => <Nav.Link key={entry.id} as={Link} to={entry.to} aria-label={entry.label} aria-current={active(entry.to) ? "page" : undefined} onClick={() => { recordUsage(entry, "primary"); closeMenu(); }} className={`cut-navbar__primary-link cut-navbar__destination-${entry.id} ${active(entry.to) ? "active" : ""}`}><i className={entry.icon} aria-hidden="true" /><span>{entry.label}</span></Nav.Link>)}
-              <NavDropdown {...dropdown("explore")} title={<span><i className="fa-solid fa-compass" aria-hidden="true" /><span>Mais</span></span>} id="cut-explore-menu" className="cut-navbar__more-menu">
-                {primaryNavigation.filter((entry) => ["messages", "productions"].includes(entry.id)).map((entry) => <NavDropdown.Item key={entry.id} className="cut-navbar__compact-destination" as={Link} to={entry.to} onClick={closeMenu}><i className={`${entry.icon} me-2`} />{entry.label}</NavDropdown.Item>)}
-                {exploreNavigation.map((entry) => <NavDropdown.Item key={entry.id} as={Link} to={entry.to} onClick={() => recordUsage(entry, "explore")}><i className={`${entry.icon} me-2`} aria-hidden="true" />{entry.label}</NavDropdown.Item>)}
-                {pendingArtistInvitations > 0 && <NavDropdown.Item as={Link} to="/artist/invitations">Convites <span className="cut-account-inline-badge">{pendingArtistInvitations > 99 ? "99+" : pendingArtistInvitations}</span></NavDropdown.Item>}
+              {desktopPrimaryNavigation.map((entry) => <Nav.Link key={entry.id} as={Link} to={entry.to} aria-label={entry.label} aria-current={active(entry.to) ? "page" : undefined} onClick={() => { recordUsage(entry, "primary"); closeMenu(); }} className={`cut-navbar__primary-link cut-navbar__destination-${entry.id} ${active(entry.to) ? "active" : ""}`}><i className={entry.icon} aria-hidden="true" /><span>{entry.label}</span></Nav.Link>)}
+              <NavDropdown {...dropdown("explore")} title={<span><i className="fa-solid fa-compass" aria-hidden="true" /><span>Mais</span></span>} id="cut-explore-menu" className={`cut-navbar__more-menu ${desktopMoreNavigation.some((entry) => active(entry.to)) ? "cut-navbar__more-menu--active" : ""}`}>
+                {desktopMoreNavigation.map((entry) => <NavDropdown.Item key={entry.id} as={Link} to={entry.to} active={active(entry.to)} aria-current={active(entry.to) ? "page" : undefined} onClick={() => { recordUsage(entry, "more"); closeMenu(); }}><i className={`${entry.icon} me-2`} aria-hidden="true" />{entry.label}</NavDropdown.Item>)}
+                {pendingArtistInvitations > 0 && <NavDropdown.Item as={Link} to="/artist/invitations" onClick={closeMenu}>Convites <span className="cut-account-inline-badge">{pendingArtistInvitations > 99 ? "99+" : pendingArtistInvitations}</span></NavDropdown.Item>}
               </NavDropdown>
+              {helpDesktopLink}
             </Nav>
             <div className="cut-navbar__tools">
+              <CityNavSelect />
               {creationActionsFor(capabilities).length > 0 && <NavDropdown {...dropdown("create")} align="end" title={<span><i className="fa-solid fa-plus" aria-hidden="true" /><span>Criar</span></span>} id="cut-quick-menu" className="cut-navbar__quick-toggle" aria-label="Criar"><div className="cut-navbar__quick-menu"><div className="cut-quick-heading">Criar</div>{creationActionsFor(capabilities).map((entry) => <NavDropdown.Item key={entry.id} as="button" onClick={() => go(entry, "creation")}><i className={`${entry.icon} me-2`} />{entry.label}</NavDropdown.Item>)}</div></NavDropdown>}
               <NavDropdown {...dropdown("notifications")} align="end" title={<span className="cut-nav-notification-toggle" aria-label={unreadNotifications ? `${unreadNotifications} notificações não lidas` : "Notificações"}><i className={unreadNotifications > 0 ? "fa-solid fa-bell" : "fa-regular fa-bell"} />{unreadNotifications > 0 && <span className="cut-nav-notification__badge">{unreadNotifications > 99 ? "99+" : unreadNotifications}</span>}</span>} id="cut-notifications-menu" className="cut-nav-notification-menu">
                 <div className="cut-notification-popover"><div className="cut-notification-popover__head"><strong>Notificações</strong>{unreadNotifications > 0 && <span>{unreadNotifications} nova{unreadNotifications === 1 ? "" : "s"}</span>}</div><NotificationPermissionControl compact /><div className="cut-notification-popover__list">{notificationPreview.length === 0 ? <div className="cut-notification-popover__empty"><i className="fa-regular fa-bell" /><span>Nenhuma novidade por aqui.</span></div> : notificationPreview.map((entry) => <button type="button" key={entry.id} {...notificationTelemetryAttrs(entry, "navbar_popover")} className={`cut-notification-popover__item ${entry.read_at ? "" : "is-unread"}`} onClick={() => { setActiveDropdown(null); openNotification(entry); }}><span className="cut-notification-popover__icon"><i className={notificationIcon(entry.type)} /></span><span className="cut-notification-popover__copy"><strong>{entry.title || "Nova atividade"}</strong><small>{entry.message || "Há uma novidade para você na Cutinapp."}</small><time>{notificationTime(entry.created_at)}</time></span>{!entry.read_at && <span className="cut-notification-popover__dot" />}</button>)}</div><button type="button" className="cut-notification-popover__footer" onClick={() => { setActiveDropdown(null); navigate("/notifications"); }}>Ver todas</button></div>
@@ -472,13 +526,7 @@ export default function NavlogComponent() {
       </Navbar>
       {mobileDrawer}
 
-      <nav className="cut-mobile-bottom-nav" aria-label="Navegação principal mobile">
-        <Link to="/feed" className={active("/feed") ? "active" : ""} aria-current={active("/feed") ? "page" : undefined}><i className="fa-solid fa-bolt" /><span>Feed</span></Link>
-        <Link to="/search" className={active("/search") ? "active" : ""} aria-current={active("/search") ? "page" : undefined}><i className="fa-solid fa-magnifying-glass" /><span>Buscar</span></Link>
-        <Link to="/event" className={active("/event") ? "active" : ""} aria-current={active("/event") ? "page" : undefined}><i className="fa-regular fa-calendar-days" /><span>Eventos</span></Link>
-        <Link to="/messages" className={active("/messages") ? "active" : ""} aria-current={active("/messages") ? "page" : undefined} aria-label="Mensagens"><i className="fa-regular fa-paper-plane" /><span>Mensagens</span></Link>
-        <Link to="/profile" className={active("/profile") ? "active" : ""} aria-current={active("/profile") ? "page" : undefined}><i className="fa-regular fa-user" /><span>Perfil</span></Link>
-      </nav>
+      {mobileBottomNav}
     </>
   );
 }

@@ -93,14 +93,15 @@ export default function EventDiscoverySeoPage() {
   const [facetsLoaded, setFacetsLoaded] = useState(false);
 
   const period = PERIODS[periodSlug] || null;
-  const resolvedCity = useMemo(() => {
-    if (!citySlug) return "";
-    return facets.cities.find((item) => slugify(item.city) === citySlug)?.city || "";
+  const matchedCity = useMemo(() => {
+    if (!citySlug) return null;
+    return facets.cities.find((item) => item.slug === citySlug
+      || slugify(item.city + "-" + item.uf) === citySlug
+      || slugify(item.city) === citySlug) || null;
   }, [citySlug, facets.cities]);
-  const resolvedUf = useMemo(() => {
-    if (!resolvedCity) return "";
-    return facets.cities.find((item) => item.city === resolvedCity)?.uf || "";
-  }, [resolvedCity, facets.cities]);
+  const resolvedCity = matchedCity?.city || "";
+  const resolvedUf = matchedCity?.uf || "";
+  const resolvedCityId = matchedCity?.city_id || null;
   const resolvedCategory = useMemo(() => {
     if (!categorySlug) return "";
     return facets.categories.find((item) => slugify(item.category) === categorySlug)?.category || "";
@@ -142,8 +143,7 @@ export default function EventDiscoverySeoPage() {
     const params = {
       per_page: 30,
       sort: "soonest",
-      ...(resolvedCity ? { city: resolvedCity } : {}),
-      ...(resolvedUf ? { uf: resolvedUf } : {}),
+      ...(resolvedCityId ? { city_id: resolvedCityId } : (resolvedCity ? { city: resolvedCity, uf: resolvedUf } : {})),
       ...(period?.api ? { period: period.api } : {}),
       ...(resolvedCategory ? { category: resolvedCategory } : {}),
     };
@@ -163,7 +163,7 @@ export default function EventDiscoverySeoPage() {
       });
 
     return () => { active = false; };
-  }, [facetsLoaded, citySlug, categorySlug, resolvedCity, resolvedUf, resolvedCategory, period?.api]);
+  }, [facetsLoaded, citySlug, categorySlug, resolvedCity, resolvedUf, resolvedCityId, resolvedCategory, period?.api]);
 
   const canonicalPath = categorySlug
     ? `/eventos/${citySlug}/categoria/${categorySlug}`
@@ -280,7 +280,7 @@ export default function EventDiscoverySeoPage() {
 
       {topCities.length > 0 && <section className="mb-5" aria-labelledby="cities-heading">
         <div className="cut-section-heading"><div><span className="cut-eyebrow">Cidades</span><h2 id="cities-heading">Explore eventos por cidade</h2></div></div>
-        <div className="d-flex flex-wrap gap-2">{topCities.map((item) => <Button key={`${item.city}-${item.uf}`} as={Link} variant={resolvedCity === item.city ? "light" : "outline-light"} to={`/eventos/${slugify(item.city)}`}>{item.city}{item.uf ? ` - ${item.uf}` : ""} <Badge bg="secondary" className="ms-1">{item.total}</Badge></Button>)}</div>
+        <div className="d-flex flex-wrap gap-2">{topCities.map((item) => <Button key={`${item.city}-${item.uf}`} as={Link} variant={resolvedCity === item.city ? "light" : "outline-light"} to={`/eventos/${item.slug || slugify(item.city)}`}>{item.city}{item.uf ? ` - ${item.uf}` : ""} <Badge bg="secondary" className="ms-1">{item.total}</Badge></Button>)}</div>
       </section>}
 
       {resolvedCity && topCategories.length > 0 && <section className="mb-4" aria-labelledby="categories-heading">

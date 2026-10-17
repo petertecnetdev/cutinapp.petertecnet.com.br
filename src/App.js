@@ -82,6 +82,7 @@ const ArtistInvitationsPage = lazy(() => import("./pages/artist/ArtistInvitation
 const ArtistInvitationPage = lazy(() => import("./pages/artist/ArtistInvitationPage"));
 const EventPage = lazyWithPreload(() => import("./pages/event/EventPage"));
 const EventDiscoverySeoPage = lazyWithPreload(() => import("./pages/event/EventDiscoverySeoPage"));
+const CitiesDirectoryPage = lazy(() => import("./pages/location/CitiesDirectoryPage"));
 const EventCreatePage = lazy(() => import("./pages/event/EventCreatePage"));
 const CommunityMeetupEditorPage = lazy(() => import("./pages/event/CommunityMeetupEditorPage"));
 const EventManagePage = lazy(() => import("./pages/event/EventManagePage"));
@@ -91,6 +92,7 @@ const EventArtistClaimsPage = lazy(() => import("./pages/event/EventArtistClaims
 const EventViewPage = lazy(() => import("./pages/event/EventViewPage"));
 const EventItemCatalogPage = lazy(() => import("./pages/event/EventItemCatalogPage"));
 const EventItemViewPage = lazy(() => import("./pages/event/EventItemViewPage"));
+const PublicCatalogItemPage = lazy(() => import("./pages/catalog/PublicCatalogItemPage"));
 const CheckoutPage = lazy(() => import("./pages/checkout/CheckoutPage"));
 const PurchasesPage = lazy(() => import("./pages/commerce/PurchasesPage"));
 const PurchaseDetailPage = lazy(() => import("./pages/commerce/PurchaseDetailPage"));
@@ -253,6 +255,7 @@ function AppRoutes() {
           <Route path="/production/:slug/public" element={<ProductionPublicPage />} />
           <Route path="/production/:id" element={protectedRoute(<ProductionViewPage />)} />
           <Route path="/production/edit/:id" element={protectedRoute(<ProductionUpdatePage />)} />
+          <Route path="/cidades" element={<CitiesDirectoryPage />} />
           <Route path="/eventos" element={<EventDiscoverySeoPage />} />
           <Route path="/eventos/:citySlug" element={<EventDiscoverySeoPage />} />
           <Route path="/eventos/:citySlug/categoria/:categorySlug" element={<EventDiscoverySeoPage />} />
@@ -267,6 +270,7 @@ function AppRoutes() {
           <Route path="/event/:eventId/artist-claims" element={protectedRoute(<EventArtistClaimsPage />)} />
           <Route path="/event/:eventId/courtesies" element={protectedRoute(<CourtesyManagePage />)} />
           <Route path="/event/:eventId/participants" element={protectedRoute(<ParticipantsPage />)} />
+          <Route path="/catalogo/item/:itemId" element={<PublicCatalogItemPage />} />
           <Route path="/event/:slug/catalogo" element={<EventItemCatalogPage />} />
           <Route path="/event/:slug/item/:itemId" element={<EventItemViewPage />} />
           <Route path="/event/:slug" element={<EventViewPage />} />

@@ -267,13 +267,6 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
   if (!(catalog.tickets || []).length && !(catalog.items || []).length && availableDates.length <= 1) return null;
 
   return <div className="cut-commerce-panel mt-4">
-    <div className="cut-ticket-shop__heading">
-      <div>
-        <span className="cut-eyebrow">Compra única</span>
-        <h3 className="mt-2">Monte seu carrinho</h3>
-        <p>Você pode selecionar vários ingressos, misturar lotes diferentes e incluir itens do evento no mesmo pedido. Ingressos gratuitos seguem exatamente o mesmo carrinho.</p>
-      </div>
-    </div>
 
     {error && <Alert variant="danger" className="mb-0" data-pt-swal-ignore="true">{error}</Alert>}
     {requiresPayment && !paymentConnected && <Alert variant="warning" className="mb-0">Pagamentos temporariamente indisponíveis para esta data.</Alert>}

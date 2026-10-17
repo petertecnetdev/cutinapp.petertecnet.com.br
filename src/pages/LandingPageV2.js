@@ -7,6 +7,7 @@ import ProcessingIndicatorComponent from "../components/ProcessingIndicatorCompo
 import CommerceTrustRail from "../components/CommerceTrustRail";
 import cutinappService from "../services/CutinappService";
 import eventService from "../services/EventService";
+import UpcomingFlyerCarousel from "../components/event/UpcomingFlyerCarousel";
 import { storageUrl } from "../config";
 import { readDiscoveryPreference, saveDiscoveryPreference } from "../utils/discoveryFilters";
 import { clearHomeLocation, readHomeLocation, saveHomeLocation } from "../utils/homeLocationStorage";
@@ -586,6 +587,8 @@ export default function LandingPageV2() {
             <Link to={makeEventLink({ available: 1 })}><i className="fa-solid fa-ticket" /><span><small>GARANTA</small>Com ingressos disponíveis</span><b>→</b></Link>
           </Container>
         </section>
+
+        {!loading && <Container className="cut-landing__flyerCarousel"><UpcomingFlyerCarousel events={events} /></Container>}
 
         <section id="descobrir" className="cut-landing__section cut-landing__discovery">
           <Container>

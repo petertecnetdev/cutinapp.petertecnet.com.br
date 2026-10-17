@@ -15,6 +15,8 @@ const resolveWhatsappPhone = (...sources) => {
     const value = source.whatsapp_phone
       || source.whatsapp_number
       || source.whatsapp
+      || source.whatsapp_url
+      || source.whatsappUrl
       || source.contact_whatsapp
       || source.phone
       || source.phone_number
@@ -31,10 +33,7 @@ const normalizePublicEventResponse = (response) => {
 
   const production = event.production || event.establishment || event.organization || null;
   const whatsappPhone = resolveWhatsappPhone(
-    production,
-    event.establishment,
-    event.organization,
-    event
+    production
   );
 
   if (!production || !whatsappPhone) return response;
@@ -301,9 +300,9 @@ const search = async (params = {}, options = {}) => {
 
   const localEvents = response?.events?.data || [];
 
-  // A HomePage já trata ausência por localização buscando o catálogo global.
-  // Mantemos esse comportamento para não misturar outra cidade sob um título local.
-  if (hasLocationFilter(params) && localEvents.length === 0) {
+  // Filtro explícito de cidade ou coordenadas nunca pode incorporar eventos
+  // globais (nem da agenda de hoje) ou reutilizar cache de outra localização.
+  if (hasLocationFilter(params)) {
     if (primaryError) throw primaryError;
     return response;
   }
