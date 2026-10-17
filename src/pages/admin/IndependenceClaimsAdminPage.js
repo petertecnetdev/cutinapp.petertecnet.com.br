@@ -6,7 +6,7 @@ import { loadApplicationAdminContext } from "../../components/ApplicationAdminGa
 import appApiClient from "../../services/AppApiClient";
 
 const labels = { event: "Evento", production: "Produção", artist: "Artista" };
-const statuses = { pending: "Aguardando análise", needs_info: "Informações adicionais", rejected: "Rejeitada" };
+const statuses = { pending: "Aguardando análise", needs_info: "Informações adicionais", rejected: "Rejeitada", approved: "Aprovada" };
 
 export default function IndependenceClaimsAdminPage() {
   const [status, setStatus] = useState("pending");
@@ -15,6 +15,9 @@ export default function IndependenceClaimsAdminPage() {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState(null);
   const [notes, setNotes] = useState({});
+  const [methods, setMethods] = useState({});
+  const [evidence, setEvidence] = useState({});
+  const [attestations, setAttestations] = useState({});
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [canReview, setCanReview] = useState(false);
@@ -50,13 +53,27 @@ export default function IndependenceClaimsAdminPage() {
       setError("Informe uma justificativa de pelo menos cinco caracteres.");
       return;
     }
+    if (decision === "approved" && (!methods[claim.id] || String(evidence[claim.id] || "").trim().length < 8 || !attestations[claim.id])) {
+      setError("Para aprovar, selecione o método, informe a referência da evidência e confirme a verificação humana.");
+      return;
+    }
     setBusyId(claim.id);
     setError("");
     setSuccess("");
     try {
-      await appApiClient.patch("/admin/independence/claims/" + claim.id, { decision, review_note: note });
+      await appApiClient.patch("/admin/independence/claims/" + claim.id, {
+        decision,
+        review_note: note,
+        ...(decision === "approved" ? {
+          verification_method: methods[claim.id],
+          evidence_reference: String(evidence[claim.id] || "").trim(),
+          verification_attested: true,
+        } : {}),
+      });
       setNotes((current) => ({ ...current, [claim.id]: "" }));
-      setSuccess("Solicitação atualizada. Nenhuma titularidade foi transferida.");
+      setEvidence((current) => ({ ...current, [claim.id]: "" }));
+      setAttestations((current) => ({ ...current, [claim.id]: false }));
+      setSuccess(decision === "approved" ? "Titularidade verificada. O acesso está limitado à página aprovada e vendas continuam sujeitas a autorização separada." : "Solicitação atualizada. Nenhuma titularidade foi transferida.");
       await load();
     } catch (err) {
       setError(err?.response?.data?.message || "Não foi possível concluir a análise.");
@@ -77,7 +94,7 @@ export default function IndependenceClaimsAdminPage() {
           </div>
           <Button as={Link} to="/admin" variant="outline-light">Voltar à administração</Button>
         </div>
-        <Alert variant="info">Aprovação e transferência de titularidade exigem verificação humana, trilha de auditoria e liberação específica por entidade. Esta etapa permite consultar e solicitar informações ou rejeitar pedidos.</Alert>
+        <Alert variant="info">A aprovação exige evidência conferida por uma pessoa autorizada e concede apenas acesso à página reivindicada. Não transfere outros eventos, ingressos ou permissão de venda.</Alert>
         {error && <Alert variant="danger" role="alert" dismissible onClose={() => setError("")}>{error}</Alert>}
         {success && <Alert variant="success" role="status" dismissible onClose={() => setSuccess("")}>{success}</Alert>}
 
@@ -88,6 +105,7 @@ export default function IndependenceClaimsAdminPage() {
               <option value="pending">Aguardando análise</option>
               <option value="needs_info">Informações adicionais</option>
               <option value="rejected">Rejeitadas</option>
+              <option value="approved">Aprovadas</option>
             </Form.Select>
           </Form.Group>
           <div className="d-flex align-items-center gap-3">
@@ -118,9 +136,24 @@ export default function IndependenceClaimsAdminPage() {
                     <Form.Label>Justificativa da análise</Form.Label>
                     <Form.Control as="textarea" rows={2} maxLength={2000} value={notes[claim.id] || ""} onChange={(event) => setNotes((current) => ({ ...current, [claim.id]: event.target.value }))} placeholder="Registre as verificações pendentes ou o motivo da rejeição." />
                   </Form.Group>
+                  <Form.Group className="mt-3">
+                    <Form.Label>Método de comprovação de titularidade</Form.Label>
+                    <Form.Select value={methods[claim.id] || ""} onChange={(event) => setMethods((current) => ({ ...current, [claim.id]: event.target.value }))}>
+                      <option value="">Selecione o método</option>
+                      <option value="official_channel">Contato pelo canal oficial da produção/artista</option>
+                      <option value="corporate_domain">Confirmação pelo domínio corporativo</option>
+                      <option value="documentation">Documentação analisada pela equipe</option>
+                    </Form.Select>
+                  </Form.Group>
+                  <Form.Group className="mt-3">
+                    <Form.Label>Referência interna da evidência (não insira senhas ou documentos pessoais)</Form.Label>
+                    <Form.Control as="textarea" rows={2} maxLength={2000} value={evidence[claim.id] || ""} onChange={(event) => setEvidence((current) => ({ ...current, [claim.id]: event.target.value }))} placeholder="Ex.: protocolo interno da verificação feita pelo contato oficial" />
+                  </Form.Group>
+                  <Form.Check className="mt-3" type="checkbox" checked={Boolean(attestations[claim.id])} onChange={(event) => setAttestations((current) => ({ ...current, [claim.id]: event.target.checked }))} label="Confirmo que validei pessoalmente o vínculo e a identidade do solicitante." />
                   <div className="d-flex flex-wrap gap-2 mt-3">
                     <Button variant="outline-light" disabled={busyId === claim.id} onClick={() => review(claim, "needs_info")}>Solicitar informações</Button>
                     <Button variant="outline-danger" disabled={busyId === claim.id} onClick={() => review(claim, "rejected")}>Rejeitar solicitação</Button>
+                    <Button variant="success" disabled={busyId === claim.id || !attestations[claim.id]} onClick={() => review(claim, "approved")}>Aprovar após verificação</Button>
                   </div>
                 </div>
               )}
