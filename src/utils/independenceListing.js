@@ -36,7 +36,7 @@ export const isUnverifiedListing = (entity) => {
 // only a UI safeguard: the Laravel API must validate tenant scope itself.
 const canonicalAppId = (value) => {
   if (typeof value === 'number') return Number.isSafeInteger(value) && value > 0 ? String(value) : '';
-  if (typeof value !== 'string' || !/^\\d+$/.test(value)) return '';
+  if (typeof value !== 'string' || !/^\d+$/.test(value)) return '';
   return value.replace(/^0+/, '');
 };
 
@@ -46,9 +46,13 @@ export const canShowListingCommerce = (entity) => {
   if (!entity || typeof entity !== 'object' || isUnverifiedListing(entity)) return false;
   // An explicit server veto wins; a positive flag never overrides ownership.
   if (entity.can_sell != null && entity.can_sell !== true) return false;
+  // A human-approved page is not automatically a merchant. Only an explicit
+  // positive server response authorizes the CTA after separate onboarding.
+  if (entity.verification_status === 'manual_approved' && entity.can_sell !== true) return false;
   const production = entity.production;
   if (production != null) {
     if (typeof production !== 'object' || Array.isArray(production) || isUnverifiedListing(production)) return false;
+    if (production.verification_status === 'manual_approved' && production.can_sell !== true) return false;
     // When the linked production is included, a missing or mismatched app ID
     // cannot be treated as evidence that the two records share an application.
     if (entity.app_id != null || production.app_id != null) {
