@@ -263,7 +263,31 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
       </Button>
     </div>
   </Alert>;
-  if (salesClosed) return <Alert variant="secondary" className="mt-4 mb-0"><strong>Vendas encerradas.</strong><span className="d-block mt-1">Ingressos e itens antecipados não podem mais ser adquiridos para esta edição.</span></Alert>;
+  const curatorialTickets = (catalog.tickets || []).filter((ticket) => ticket.curatorial_information_only === true);
+  if (salesClosed) {
+    if (curatorialTickets.length || ["unclaimed", "pending_claim"].includes(catalog?.event?.ownership_status)) {
+      return <section className="mt-4" aria-label="Ingressos informativos">
+        <Alert variant="secondary" className="mb-3">
+          <strong>Ingressos informativos — vendas indisponíveis</strong>
+          <span className="d-block mt-1">Estes valores foram divulgados publicamente. A produção ainda não habilitou vendas pela plataforma. Não é possível comprar, reservar ou emitir QR Code por aqui.</span>
+        </Alert>
+        {curatorialTickets.length > 0
+          ? <div className="cut-ticket-shop__list">
+            {curatorialTickets.map((ticket) => <div className="cut-ticket-shop__option" key={ticket.id}>
+              <div className="cut-ticket-shop__option-copy">
+                <span className="cut-ticket-kicker">Valor divulgado · sem venda</span>
+                <strong>{ticket.name}</strong>
+                <span>{money(ticket.price)}{Number(ticket.curatorial_bundle_size || 1) > 1 ? ` · pacote de ${ticket.curatorial_bundle_size} ingressos` : ""}</span>
+                {ticket.curatorial_price_observed_at && <small>Valor observado em {String(ticket.curatorial_price_observed_at).slice(0, 10).split("-").reverse().join("/")}; sujeito a alteração.</small>}
+              </div>
+              <span className="cut-ticket-shop__sold-badge">Indisponível para compra</span>
+            </div>)}
+          </div>
+          : <p className="text-secondary small">Tipos e preços ainda não foram confirmados pela curadoria.</p>}
+      </section>;
+    }
+    return <Alert variant="secondary" className="mt-4 mb-0"><strong>Vendas encerradas.</strong><span className="d-block mt-1">Ingressos e itens antecipados não podem mais ser adquiridos para esta edição.</span></Alert>;
+  }
   if (!(catalog.tickets || []).length && !(catalog.items || []).length && availableDates.length <= 1) return null;
 
   return <div className="cut-commerce-panel mt-4">
