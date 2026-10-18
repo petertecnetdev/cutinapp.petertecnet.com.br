@@ -30,7 +30,7 @@ jest.mock("../../services/IndependenceClaimService", () => ({
   default: { submit: jest.fn(), mine: jest.fn() },
 }));
 jest.mock("../../utils/gallerySync", () => ({
-  subscribeGalleryUpdates: jest.fn(() => () => {}),
+  subscribeGalleryUpdates: () => () => {},
 }));
 jest.mock("../../components/NavlogComponent", () => () => null);
 jest.mock("../../components/ProcessingIndicatorComponent", () => () => null);
