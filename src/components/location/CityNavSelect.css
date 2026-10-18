@@ -29,3 +29,15 @@
   .cut-advanced-nav:not(.cut-capability-nav) .cut-city-nav--desktop label span { display: none; }
   .cut-advanced-nav:not(.cut-capability-nav) .cut-city-nav--desktop select { max-width: 126px; }
 }
+
+/* O seletor de cidade permanece visível na barra superior mobile, antes do menu. */
+@media (max-width:991.98px) {
+ .cut-advanced-nav .cut-navbar__inner > .cut-city-nav--mobile {display:flex!important;flex:0 1 170px;min-width:95px;max-width:170px;margin-left:auto;margin-right:8px;order:1;position:relative;z-index:20}
+ .cut-advanced-nav .cut-navbar__inner > .cut-mobile-menu-toggle {order:2;flex-shrink:0}
+ .cut-advanced-nav .cut-navbar__inner > .cut-city-nav--mobile select {display:block!important;max-width:100%;width:100%;font-size:12px}
+ .cut-advanced-nav .cut-navbar__inner > .cut-city-nav--mobile label span {display:none}
+}
+@media (max-width:390px) {
+ .cut-advanced-nav .cut-navbar__inner > .cut-city-nav--mobile {flex-basis:115px;min-width:85px;margin-right:4px}
+ .cut-advanced-nav .cut-navbar__inner > .cut-city-nav--mobile label {display:none}
+}
