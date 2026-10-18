@@ -1,7 +1,7 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
-import { InlineText } from "./BlogArticlePage";
+import { InlineText } from "./BlogInlineText";
 
 const renderInline = (value) => renderToStaticMarkup(
   <MemoryRouter><InlineText text={value} /></MemoryRouter>
