@@ -161,6 +161,33 @@ describe("Independence: retorno e reivindicação de produção pública", () =>
     expect(primaryAction().textContent).not.toContain("Ingressos");
   });
 
+  test("API 409 preserva a reivindicação pendente sem acesso ou reenvio automático", async () => {
+    cutinappService.publicProduction.mockResolvedValue({
+      production: production("pending_claim"), upcoming: [], past: [], artists: [],
+    });
+    independenceClaimService.submit.mockRejectedValue({
+      response: { status: 409, data: { message: "Já existe uma solicitação em análise." } },
+    });
+    await renderProduction(user);
+    await act(async () => { claimButton().click(); });
+    await act(async () => { container.querySelector(".cut-unverified__consent input").click(); });
+    await act(async () => {
+      container.querySelector(".cut-unverified__form")
+        .dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    });
+
+    expect(independenceClaimService.submit).toHaveBeenCalledTimes(1);
+    expect(container.querySelector('[role="alert"]').textContent)
+      .toContain("Já existe uma solicitação em análise.");
+    expect(container.querySelector(".cut-unverified__form")).not.toBeNull();
+    expect(container.querySelector(".cut-unverified__submit").disabled).toBe(false);
+    expect(container.querySelector(".cut-unverified__result")).toBeNull();
+    expect(primaryAction().textContent).toContain("Ver agenda");
+    expect(primaryAction().textContent).not.toContain("Ingressos");
+    expect(container.textContent).not.toMatch(/acesso concedido|editar produção/i);
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
   test("solicitação recebida permanece pendente sem ativar checkout", async () => {
     cutinappService.publicProduction.mockResolvedValue({
       production: production("pending_claim"), upcoming: [], past: [], artists: [],
