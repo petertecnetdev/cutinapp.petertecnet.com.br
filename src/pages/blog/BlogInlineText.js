@@ -6,7 +6,7 @@ export function InlineText({ text }) {
   // Render supported Markdown tokens as React elements without injecting HTML.
   const parts = String(text || "").split(/(\*\*[^*]+\*\*|\[[^\]\n]+\]\([^)\n]+\))/g);
   return <>{parts.map((part, index) => {
-    if (/^\*\*[^*]+\*\*$/.test(part)) return <strong key={index}>{part.slice(2, -2)}</strong>;
+    if (/^\*\*[^*]+\*\*$/.test(part)) return <strong key={`bold-${part}-${index}`}>{part.slice(2, -2)}</strong>;
     const link = part.match(/^\[([^\]\n]+)\]\(([^)\n]+)\)$/);
     if (link) {
       const [, label, href] = link;
@@ -17,7 +17,7 @@ export function InlineText({ text }) {
         return <a key={`${href}-${index}`} href={href} target="_blank" rel="noopener noreferrer">{label}</a>;
       }
     }
-    return <React.Fragment key={index}>{part}</React.Fragment>;
+    return <React.Fragment key={`text-${part}-${index}`}>{part}</React.Fragment>;
   })}</>;
 }
 
