@@ -5,6 +5,7 @@ import {
   EVENT_POSTER_SOURCE_MAX_DIMENSION,
   EVENT_POSTER_SOURCE_MAX_PIXELS,
   EVENT_POSTER_WIDTH,
+  normalizeEventPosterFile,
   validateEventPosterFile,
 } from "./eventPoster";
 
@@ -35,5 +36,50 @@ describe("event poster media safety contract", () => {
   it("keeps decoded-image limits bounded for browser canvas safety", () => {
     expect(EVENT_POSTER_SOURCE_MAX_DIMENSION).toBeLessThanOrEqual(12000);
     expect(EVENT_POSTER_SOURCE_MAX_PIXELS).toBeLessThanOrEqual(60 * 1000 * 1000);
+  });
+});
+
+describe("automatic event and meetup cover adaptation", () => {
+  it("normalizes a landscape JPG into an uploadable 1024x1536 JPEG without requiring a replacement", async () => {
+    const originalImage = global.Image;
+    const originalCreate = URL.createObjectURL;
+    const originalRevoke = URL.revokeObjectURL;
+    const getContext = jest.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(() => ({
+      save: jest.fn(),
+      restore: jest.fn(),
+      fillRect: jest.fn(),
+      translate: jest.fn(),
+      rotate: jest.fn(),
+      scale: jest.fn(),
+      drawImage: jest.fn(),
+    }));
+    const toBlob = jest.spyOn(HTMLCanvasElement.prototype, "toBlob")
+      .mockImplementation((callback) => callback(new Blob(["converted"], { type: "image/jpeg" })));
+    URL.createObjectURL = jest.fn(() => "blob:preview");
+    URL.revokeObjectURL = jest.fn();
+    global.Image = class {
+      naturalWidth = 1600;
+      naturalHeight = 900;
+      set src(value) { if (value && this.onload) this.onload(); }
+    };
+
+    try {
+      const result = await normalizeEventPosterFile(
+        new File(["original"], "banner-paisagem.jpg", { type: "image/jpeg" }),
+        { mode: "fit" },
+      );
+      expect(result).toBeInstanceOf(File);
+      expect(result.name).toBe("banner-paisagem-1024x1536.jpg");
+      expect(result.type).toBe("image/jpeg");
+      expect(getContext).toHaveBeenCalled();
+      expect(toBlob).toHaveBeenCalled();
+      expect(URL.revokeObjectURL).toHaveBeenCalledTimes(2);
+    } finally {
+      global.Image = originalImage;
+      URL.createObjectURL = originalCreate;
+      URL.revokeObjectURL = originalRevoke;
+      getContext.mockRestore();
+      toBlob.mockRestore();
+    }
   });
 });

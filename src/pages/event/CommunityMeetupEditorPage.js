@@ -4,9 +4,11 @@ import { useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import CityAutocompleteControl from "../../components/location/CityAutocompleteControl";
+import EventPosterEditor from "../../components/event/EventPosterEditor";
 import communityMeetupService from "../../services/CommunityMeetupService";
 import eventService from "../../services/EventService";
 import { storageUrl } from "../../config";
+import { validateEventPosterFile } from "../../utils/eventPoster";
 import "./CommunityMeetupEditorPage.css";
 
 const pad = (value) => String(value).padStart(2, "0");
@@ -60,6 +62,8 @@ export default function CommunityMeetupEditorPage() {
   const [form, setForm] = useState(initialForm);
   const [existingImage, setExistingImage] = useState("");
   const [preview, setPreview] = useState("");
+  const [posterEditorFile, setPosterEditorFile] = useState(null);
+  const [posterSourceFile, setPosterSourceFile] = useState(null);
   const [loading, setLoading] = useState(editing);
   const [saving, setSaving] = useState(false);
   const [locating, setLocating] = useState(false);
@@ -110,11 +114,30 @@ export default function CommunityMeetupEditorPage() {
     setFieldErrors((current) => ({ ...current, [name]: undefined }));
   };
 
-  const chooseImage = (event) => {
+  const chooseImage = async (event) => {
     const file = event.target.files?.[0] || null;
-    if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
-    setForm((current) => ({ ...current, image: file }));
-    setPreview(file ? URL.createObjectURL(file) : "");
+    // Permite selecionar novamente o mesmo arquivo depois de cancelar a edição.
+    event.target.value = "";
+    if (!file) return;
+
+    const validation = await validateEventPosterFile(file);
+    if (!validation.ok) {
+      setFieldErrors((current) => ({ ...current, image: [validation.message] }));
+      return;
+    }
+
+    setFieldErrors((current) => ({ ...current, image: undefined }));
+    setPosterSourceFile(file);
+    setPosterEditorFile(file);
+  };
+
+  const applyPosterImage = async (normalized) => {
+    // O editor entrega exclusivamente uma imagem já convertida para o contrato da API.
+    if (!(normalized instanceof File)) return;
+    setForm((current) => ({ ...current, image: normalized }));
+    setPreview(URL.createObjectURL(normalized));
+    setFieldErrors((current) => ({ ...current, image: undefined }));
+    setPosterEditorFile(null);
   };
 
   const useCurrentLocation = () => {
@@ -199,6 +222,12 @@ export default function CommunityMeetupEditorPage() {
     <div className="cut-app-page">
       <NavlogComponent />
       {(loading || saving) && <ProcessingIndicatorComponent label={loading ? "Carregando encontro" : "Salvando encontro"} />}
+      <EventPosterEditor
+        show={Boolean(posterEditorFile)}
+        file={posterEditorFile}
+        onCancel={() => setPosterEditorFile(null)}
+        onApply={applyPosterImage}
+      />
       <Container className="cut-page-container py-4 py-lg-5">
         <div className="cut-meetup-editor__header">
           <div>
@@ -261,7 +290,32 @@ export default function CommunityMeetupEditorPage() {
                 <h2 className="h5 mt-2">Dê uma cara ao encontro</h2>
                 <p className="text-secondary small">A imagem também será usada na prévia do link compartilhado.</p>
                 <div className="cut-meetup-cover">{cover ? <img src={cover} alt="" /> : <div><i className="fa-regular fa-image" /><span>Adicione uma imagem</span></div>}</div>
-                <Form.Control className="mt-3" type="file" accept="image/jpeg,image/png,image/webp" onChange={chooseImage} />
+                <Form.Control
+                  className="mt-3"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={chooseImage}
+                  isInvalid={Boolean(fieldError("image"))}
+                  disabled={saving}
+                  aria-label="Escolher imagem do encontro"
+                />
+                <Form.Control.Feedback type="invalid">{fieldError("image")}</Form.Control.Feedback>
+                <Form.Text className="d-block mt-2">
+                  Escolha JPG, PNG ou WebP. Ajuste o recorte, zoom e posição antes de publicar.
+                  A Cutinapp adapta automaticamente para o formato do encontro.
+                </Form.Text>
+                {posterSourceFile && (
+                  <Button
+                    type="button"
+                    variant="outline-light"
+                    className="mt-3 w-100"
+                    disabled={saving}
+                    onClick={() => setPosterEditorFile(posterSourceFile)}
+                  >
+                    <i className="fa-solid fa-crop-simple me-2" />
+                    Editar enquadramento
+                  </Button>
+                )}
               </Card.Body></Card>
 
               <Card className="cut-panel mt-4"><Card.Body className="p-4">
