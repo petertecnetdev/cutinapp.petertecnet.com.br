@@ -48,7 +48,7 @@ describe("W4: monitor de curadoria sem elevação ou checkout", () => {
         expect(html).toContain('class="table-responsive"');
         expect(html).toContain('text-break');
         expect(html).toContain('scope="col"');
-        expect(html).not.toMatch(/<a\\b|<button\\b|<form\\b|href=|checkout_url|SECRET/i);
+        expect(html).not.toMatch(/<a\b|<button\b|<form\b|href=|checkout_url|SECRET/i);
         expect(render(context({ permissions: [] }))).not.toContain("Últimas execuções");
       } finally {
         Object.defineProperty(window, "innerWidth", { configurable: true, value: previous });
