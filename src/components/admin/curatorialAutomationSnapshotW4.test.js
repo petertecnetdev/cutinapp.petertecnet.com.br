@@ -53,4 +53,45 @@ describe("W4: contrato real de leitura de automações", () => {
     expect(describeWorkerW4(true, false)).toBe("Desabilitado");
     expect(describeWorkerW4(null, true)).toMatch(/não informado/);
   });
+  test("falha recente fora dos primeiros 30 registros prevalece sobre sucesso antigo", () => {
+    const previous = Array.from({ length: 30 }, (_, i) => ({
+      id: i + 1, worker_key: "discovery_health", status: "succeeded",
+      result: { sources: 12, stale: 0, errors: 0 },
+    }));
+    const snapshot = read(response([...previous,
+      { id: 99, worker_key: "discovery_health", status: "failed", error_type: "RuntimeException" },
+    ]));
+    expect(snapshot.complete).toBe(false);
+    expect(snapshot.runs).toHaveLength(30);
+    expect(snapshot.runs[0].id).toBe(99);
+    expect(snapshot.workers[0].latest.status).toBe("failed");
+    expect(snapshot.workers[0].metrics.every((metric) => metric.value === null)).toBe(true);
+  });
+  test("histórico inválido não permite publicar métricas antigas como atuais", () => {
+    const snapshot = read(response([
+      { id: 3, worker_key: "discovery_health", status: "succeeded",
+        result: { sources: 20, stale: 0, errors: 0 } },
+      { id: 100, worker_key: "discovery_health", status: "processing",
+        result: { sources: 999, checkout_url: "https://example.invalid" } },
+    ]));
+    expect(snapshot.complete).toBe(false);
+    expect(snapshot.workers[0].metrics.every((metric) => metric.value === null)).toBe(true);
+    expect(JSON.stringify(snapshot)).not.toMatch(/999|checkout_url|example\\.invalid/);
+  });
+  test("exit 0 de comando desconhecido não é prova de varredura", () => {
+    const snapshot = read(response([
+      { id: 50, worker_key: "events:discover", status: "succeeded", command_exit_code: 0,
+        result: { sources: 1000 } },
+    ]));
+    expect(snapshot.complete).toBe(false);
+    expect(snapshot.runs).toHaveLength(0);
+    expect(snapshot.workers[0].metrics.every((metric) => metric.value === null)).toBe(true);
+  });
+  test("rejeita histórico excessivo em vez de selecionar subconjunto enganoso", () => {
+    const runs = Array.from({ length: 301 }, (_, i) => ({
+      id: i + 1, worker_key: "discovery_health", status: "queued",
+    }));
+    expect(read(response(runs)).valid).toBe(false);
+  });
+
 });

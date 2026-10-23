@@ -29,22 +29,43 @@ export function buildAutomationSnapshotW4(response) {
     workers.set(raw.key, { key: raw.key, enabled: typeof raw.enabled === "boolean" ? raw.enabled : null,
       latest: null, metrics: metrics(raw.key, null) });
   }
-  const runs = [], seen = new Set();
-  for (const raw of data.recent_runs.slice(0, 30)) {
+  // A API costuma devolver até 30 registros, mas a ordem não deve ser
+  // presumida: uma falha nova pode chegar depois dos primeiros 30 itens.
+  if (data.recent_runs.length > 300) {
+    return { valid: false, globalEnabled: null, workers: [], runs: [], complete: false };
+  }
+  const runs = [], seen = new Set(), results = new Map();
+  let malformedHistory = false;
+  for (const raw of data.recent_runs) {
     if (!obj(raw) || !workers.has(raw.worker_key) || !own(LABELS, raw.status) ||
-        !Number.isSafeInteger(raw.id) || raw.id <= 0 || seen.has(raw.id)) { complete = false; continue; }
+        !Number.isSafeInteger(raw.id) || raw.id <= 0 || seen.has(raw.id)) {
+      complete = false;
+      malformedHistory = true;
+      continue;
+    }
     seen.add(raw.id);
     const run = { id: raw.id, key: raw.worker_key, status: raw.status, label: LABELS[raw.status],
       errorType: raw.status === "failed" ? safeError(raw.error_type) : null };
     runs.push(run);
-    const worker = workers.get(raw.worker_key);
-    if (!worker.latest || run.id > worker.latest.id) {
-      worker.latest = run;
-      // Uma execução mais nova na fila ou com falha invalida números antigos.
-      worker.metrics = metrics(raw.worker_key, raw.status === "succeeded" ? raw.result : null);
-    }
+    // O payload bruto nunca entra no snapshot retornado à interface.
+    if (raw.status === "succeeded") results.set(raw.id, raw.result);
   }
   runs.sort((a, b) => b.id - a.id);
+  if (runs.length > 30) complete = false;
+  const visibleRuns = runs.slice(0, 30);
+  for (const run of visibleRuns) {
+    const worker = workers.get(run.key);
+    if (!worker.latest) {
+      worker.latest = run;
+      worker.metrics = metrics(run.key, run.status === "succeeded" ? results.get(run.id) : null);
+    }
+  }
+  // Histórico inválido pode ocultar uma falha mais recente: não reutilizar
+  // números de sucesso se a integridade da lista não estiver confirmada.
+  if (malformedHistory) {
+    for (const worker of workers.values()) worker.metrics = metrics(worker.key, null);
+  }
+
   return { valid: true, globalEnabled: typeof data.global_enabled === "boolean" ? data.global_enabled : null,
-    workers: [...workers.values()], runs, complete };
+    workers: [...workers.values()], runs: visibleRuns, complete };
 }
