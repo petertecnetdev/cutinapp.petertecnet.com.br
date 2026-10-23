@@ -21,6 +21,11 @@ export function buildAutomationSnapshotW4(response) {
   if (response?.success !== true || !obj(data) || !Array.isArray(data.workers) || !Array.isArray(data.recent_runs)) {
     return { valid: false, globalEnabled: null, workers: [], runs: [], complete: false };
   }
+  // O contrato atual tem quatro workers conhecidos. Recusar listas anormais
+  // evita processamento excessivo de payloads não confiáveis.
+  if (data.workers.length > 100) {
+    return { valid: false, globalEnabled: null, workers: [], runs: [], complete: false };
+  }
   const workers = new Map();
   let complete = data.recent_runs.length <= 30;
   let malformedWorkers = false;
@@ -38,7 +43,13 @@ export function buildAutomationSnapshotW4(response) {
       workers.get(raw.key).enabled = null;
       continue;
     }
-    workers.set(raw.key, { key: raw.key, enabled: typeof raw.enabled === "boolean" ? raw.enabled : null,
+    const enabledValid = typeof raw.enabled === "boolean";
+    if (!enabledValid) {
+      // Configuração malformada não pode manter contagens de sucesso confiáveis.
+      complete = false;
+      malformedWorkers = true;
+    }
+    workers.set(raw.key, { key: raw.key, enabled: enabledValid ? raw.enabled : null,
       latest: null, metrics: metrics(raw.key, null) });
   }
   // A API costuma devolver até 30 registros, mas a ordem não deve ser
