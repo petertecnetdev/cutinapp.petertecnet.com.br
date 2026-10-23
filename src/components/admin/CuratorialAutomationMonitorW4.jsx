@@ -17,12 +17,12 @@ export default function CuratorialAutomationMonitorW4({ context, applicationId, 
     {!snapshot.complete && <p role="alert">Histórico incompleto ou inválido; os dados exibidos podem ser parciais.</p>}
     <div className="row g-3">{snapshot.workers.map((worker) =>
       <div className="col-12 col-lg-6" key={worker.key}><section className="border rounded p-3 h-100" aria-label={"Worker " + worker.key}>
-        <h3 className="h6">{worker.key}</h3>
+        <h3 className="h6 text-break">{worker.key}</h3>
         <p>{describeWorkerW4(snapshot.globalEnabled, worker.enabled)} · {worker.latest?.label || "Sem execução registrada"}</p>
-        {worker.latest?.errorType && <p role="alert">Tipo de falha: {worker.latest.errorType}</p>}
+        {worker.latest?.errorType && <p role="alert" className="text-break">Tipo de falha: {worker.latest.errorType}</p>}
         <dl className="row mb-0">{worker.metrics.map((metric) =>
           <React.Fragment key={metric.key}>
-            <dt className="col-9 small fw-normal">{metric.label}</dt>
+            <dt className="col-9 small fw-normal text-break">{metric.label}</dt>
             <dd className="col-3 text-end">{metric.value === null ? "—" : metric.value}</dd>
           </React.Fragment>)}</dl>
       </section></div>)}</div>

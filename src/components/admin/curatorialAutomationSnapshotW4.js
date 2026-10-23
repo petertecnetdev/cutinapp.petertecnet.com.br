@@ -23,9 +23,21 @@ export function buildAutomationSnapshotW4(response) {
   }
   const workers = new Map();
   let complete = data.recent_runs.length <= 30;
+  let malformedWorkers = false;
   for (const raw of data.workers) {
-    if (!obj(raw) || typeof raw.key !== "string" || !own(METRICS_W4, raw.key)) continue;
-    if (workers.has(raw.key)) { complete = false; continue; }
+    if (!obj(raw) || typeof raw.key !== "string") {
+      complete = false;
+      malformedWorkers = true;
+      continue;
+    }
+    if (!own(METRICS_W4, raw.key)) continue;
+    if (workers.has(raw.key)) {
+      // Duplicidade pode esconder configurações contraditórias; não confiar no primeiro valor.
+      complete = false;
+      malformedWorkers = true;
+      workers.get(raw.key).enabled = null;
+      continue;
+    }
     workers.set(raw.key, { key: raw.key, enabled: typeof raw.enabled === "boolean" ? raw.enabled : null,
       latest: null, metrics: metrics(raw.key, null) });
   }
@@ -62,7 +74,7 @@ export function buildAutomationSnapshotW4(response) {
   }
   // Histórico inválido pode ocultar uma falha mais recente: não reutilizar
   // números de sucesso se a integridade da lista não estiver confirmada.
-  if (malformedHistory) {
+  if (malformedHistory || malformedWorkers) {
     for (const worker of workers.values()) worker.metrics = metrics(worker.key, null);
   }
 

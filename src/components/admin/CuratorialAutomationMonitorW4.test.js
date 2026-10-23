@@ -38,4 +38,20 @@ describe("W4: monitor de curadoria sem elevação ou checkout", () => {
       recent_runs: [{ ...apiResponse.data.recent_runs[0], last_error: "<script>roubar()</script>", token: "SECRET" }] } });
     expect(html).not.toMatch(/<script|roubar\(\)|SECRET/);
   });
+  test.each([320, 360, 390, 430])(
+    "estrutura responsiva segura para largura-alvo %ipx (smoke estrutural, sem navegador)", (width) => {
+      const previous = window.innerWidth;
+      Object.defineProperty(window, "innerWidth", { configurable: true, value: width });
+      try {
+        const html = render();
+        expect(html).toContain('class="col-12 col-lg-6"');
+        expect(html).toContain('class="table-responsive"');
+        expect(html).toContain('text-break');
+        expect(html).toContain('scope="col"');
+        expect(html).not.toMatch(/<a\\b|<button\\b|<form\\b|href=|checkout_url|SECRET/i);
+        expect(render(context({ permissions: [] }))).not.toContain("Últimas execuções");
+      } finally {
+        Object.defineProperty(window, "innerWidth", { configurable: true, value: previous });
+      }
+    });
 });

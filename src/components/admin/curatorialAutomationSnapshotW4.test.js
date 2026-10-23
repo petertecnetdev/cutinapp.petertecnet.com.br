@@ -94,4 +94,26 @@ describe("W4: contrato real de leitura de automações", () => {
     expect(read(response(runs)).valid).toBe(false);
   });
 
+  test("configuração duplicada e contraditória não exibe estado nem métricas confiáveis", () => {
+    const snapshot = read(response(undefined, { workers: [
+      { key: "discovery_health", enabled: true },
+      { key: "discovery_health", enabled: false },
+    ] }));
+    expect(snapshot.valid).toBe(true);
+    expect(snapshot.complete).toBe(false);
+    expect(snapshot.workers[0].enabled).toBeNull();
+    expect(snapshot.workers[0].metrics.every((metric) => metric.value === null)).toBe(true);
+  });
+  test("item de configuração malformado invalida métricas, sem tratar worker desconhecido como curadoria", () => {
+    const malformed = read(response(undefined, { workers: [
+      { key: "discovery_health", enabled: true }, null,
+    ] }));
+    expect(malformed.complete).toBe(false);
+    expect(malformed.workers[0].metrics.every((metric) => metric.value === null)).toBe(true);
+    const other = read(response(undefined, { workers: [
+      { key: "discovery_health", enabled: true }, { key: "other_service", enabled: true },
+    ] }));
+    expect(other.workers).toHaveLength(1);
+    expect(other.workers[0].metrics[0].value).toBe(4);
+  });
 });
