@@ -132,4 +132,26 @@ describe("W4: contrato real de leitura de automações", () => {
     expect(other.workers).toHaveLength(1);
     expect(other.workers[0].metrics[0].value).toBe(4);
   });
+  test("enabled malformado invalida estado e contagens da última execução", () => {
+    const snapshot = read(response(undefined, { workers: [
+      { key: "discovery_health", enabled: "false" },
+    ] }));
+    expect(snapshot.valid).toBe(true);
+    expect(snapshot.complete).toBe(false);
+    expect(snapshot.historyReliable).toBe(false);
+    expect(snapshot.workers[0].enabled).toBeNull();
+    expect(snapshot.workers[0].latest).toBeNull();
+    expect(snapshot.workers[0].metrics.every((metric) => metric.value === null)).toBe(true);
+  });
+
+  test("lista excessiva de workers é rejeitada antes de expor resultados", () => {
+    const workers = Array.from({ length: 101 }, (_, i) => ({
+      key: "unknown_" + i, enabled: true,
+    }));
+    const snapshot = read(response(undefined, { workers }));
+    expect(snapshot.valid).toBe(false);
+    expect(snapshot.workers).toHaveLength(0);
+    expect(snapshot.runs).toHaveLength(0);
+  });
+
 });
