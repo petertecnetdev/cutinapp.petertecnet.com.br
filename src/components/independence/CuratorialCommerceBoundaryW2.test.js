@@ -101,3 +101,38 @@ describe("W2 — fichas curatoriais não concedem checkout pela interface", () =
     expect(render(entity)).toBe("");
   });
 });
+
+
+describe("W2 — isolamento de aplicação com identificadores decimais", () => {
+  const aprovado = {
+    ownership_status: "verified",
+    verification_status: "manual_approved",
+    ownership_verified_at: "2026-10-20T00:00:00Z",
+    can_sell: true,
+  };
+
+  const eventoComProducao = (appEvento, appProducao) => ({
+    ...aprovado,
+    app_id: appEvento,
+    production: { ...aprovado, app_id: appProducao },
+  });
+
+  test.each([
+    ["IDs de 64 bits distintos por uma unidade", "9223372036854775807", "9223372036854775806"],
+    ["número JavaScript acima do limite seguro", 9007199254740992, "9007199254740992"],
+    ["identificador zero", 0, "0"],
+    ["identificador negativo", -7, "-7"],
+    ["outra aplicação mesmo com zeros à esquerda", "0007", "8"],
+    ["identificador com espaço", "7 ", "7"],
+    ["identificador em notação científica", "7e0", "7"],
+  ])("nega comércio entre evento e produção quando %s", (_, appEvento, appProducao) => {
+    const entity = eventoComProducao(appEvento, appProducao);
+    expect(isUnverifiedListing(entity)).toBe(false);
+    expect(canShowListingCommerce(entity)).toBe(false);
+  });
+
+  test("IDs decimais positivos equivalentes preservam comércio autorizado", () => {
+    const entity = eventoComProducao("0009223372036854775807", "9223372036854775807");
+    expect(canShowListingCommerce(entity)).toBe(true);
+  });
+});
