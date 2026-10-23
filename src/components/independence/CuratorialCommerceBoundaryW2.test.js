@@ -181,3 +181,54 @@ describe("W2 — vínculos e proveniência não podem liberar compra indevida", 
     expect(html).not.toMatch(/Comprar ingresso|Finalizar compra|Adicionar ao carrinho/i);
   });
 });
+
+
+describe("W2 — metadados curatoriais incompletos não concedem venda", () => {
+  test.each([
+    ["origem de curadoria sem titularidade", { listing_source: "curated" }],
+    ["verificação pendente sem titularidade", { verification_status: "pending_claim" }],
+    ["marcador institucional sem titularidade", { is_institutional_listing: true }],
+    ["reivindicação rejeitada", { ownership_status: "rejected" }],
+    ["aprovação manual sem comprovação temporal", {
+      ownership_status: "verified",
+      verification_status: "manual_approved",
+      ownership_verified_at: null,
+    }],
+    ["titularidade declarada sem método de verificação", {
+      ownership_status: "verified",
+      ownership_verified_at: "2026-10-20T00:00:00Z",
+    }],
+  ])("%s mantém o checkout bloqueado mesmo com can_sell=true", (_, metadata) => {
+    const entity = { id: 91, can_sell: true, ...metadata };
+    expect(isUnverifiedListing(entity)).toBe(true);
+    expect(canShowListingCommerce(entity)).toBe(false);
+  });
+
+  const approved = {
+    ownership_status: "verified",
+    verification_status: "manual_approved",
+    ownership_verified_at: "2026-10-20T00:00:00Z",
+    can_sell: true,
+    app_id: "7",
+  };
+
+  test.each([
+    ["produção sem app_id", { ...approved, app_id: undefined }],
+    ["produção com origem curatorial não reivindicada", {
+      app_id: "7", listing_source: "curated", can_sell: true,
+    }],
+    ["produção sem comprovação de titularidade", {
+      ...approved, ownership_verified_at: null,
+    }],
+  ])("%s não herda permissão comercial do evento", (_, production) => {
+    expect(canShowListingCommerce({ ...approved, production })).toBe(false);
+  });
+
+  test("evento sem app_id não herda permissão comercial da produção", () => {
+    expect(canShowListingCommerce({
+      ...approved,
+      app_id: undefined,
+      production: { ...approved },
+    })).toBe(false);
+  });
+});
