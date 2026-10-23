@@ -154,4 +154,16 @@ describe("W4: contrato real de leitura de automações", () => {
     expect(snapshot.runs).toHaveLength(0);
   });
 
+  test.each(["false", null, undefined])(
+    "estado global inválido invalida métricas e histórico (%s)", (global_enabled) => {
+      const snapshot = read(response(undefined, { global_enabled }));
+      expect(snapshot.valid).toBe(true);
+      expect(snapshot.globalEnabled).toBeNull();
+      expect(snapshot.complete).toBe(false);
+      expect(snapshot.historyReliable).toBe(false);
+      expect(snapshot.workers[0].latest).toBeNull();
+      expect(snapshot.workers[0].metrics.every((metric) => metric.value === null)).toBe(true);
+    }
+  );
+
 });
