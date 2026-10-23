@@ -27,7 +27,9 @@ export function buildAutomationSnapshotW4(response) {
     return { valid: false, globalEnabled: null, workers: [], runs: [], complete: false };
   }
   const workers = new Map();
-  let complete = data.recent_runs.length <= 30;
+  // Sem um estado global booleano, não é seguro apresentar execuções como confiáveis.
+  const globalStateReliable = typeof data.global_enabled === "boolean";
+  let complete = data.recent_runs.length <= 30 && globalStateReliable;
   let malformedWorkers = false;
   for (const raw of data.workers) {
     if (!obj(raw) || typeof raw.key !== "string") {
@@ -85,7 +87,7 @@ export function buildAutomationSnapshotW4(response) {
   }
   // Histórico inválido pode ocultar uma falha mais recente: não reutilizar
   // números de sucesso se a integridade da lista não estiver confirmada.
-  if (malformedHistory || malformedWorkers) {
+  if (!globalStateReliable || malformedHistory || malformedWorkers) {
     for (const worker of workers.values()) {
       worker.metrics = metrics(worker.key, null);
       // Uma linha inválida pode ser mais recente que o último sucesso visível.
@@ -94,7 +96,7 @@ export function buildAutomationSnapshotW4(response) {
     }
   }
 
-  return { valid: true, historyReliable: !(malformedHistory || malformedWorkers),
+  return { valid: true, historyReliable: globalStateReliable && !(malformedHistory || malformedWorkers),
     globalEnabled: typeof data.global_enabled === "boolean" ? data.global_enabled : null,
     workers: [...workers.values()], runs: visibleRuns, complete };
 }
