@@ -136,3 +136,48 @@ describe("W2 — isolamento de aplicação com identificadores decimais", () => 
     expect(canShowListingCommerce(entity)).toBe(true);
   });
 });
+
+describe("W2 — vínculos e proveniência não podem liberar compra indevida", () => {
+  const aprovado = {
+    id: 91,
+    ownership_status: "verified",
+    verification_status: "manual_approved",
+    ownership_verified_at: "2026-10-20T00:00:00Z",
+    can_sell: true,
+    app_id: "7",
+  };
+
+  test.each([
+    ["produção com veto comercial explícito", { production: { ...aprovado, can_sell: false } }],
+    ["produção com can_sell textual", { production: { ...aprovado, can_sell: "true" } }],
+    ["produção com reivindicação pendente", { production: { ...aprovado, ownership_status: "pending_claim" } }],
+    ["produção vinculada com payload em array", { production: [] }],
+    ["evento sem comprovação temporal de titularidade", { ownership_verified_at: null }],
+  ])("%s mantém o comércio bloqueado mesmo com evento can_sell=true", (_, override) => {
+    const entity = { ...aprovado, production: { ...aprovado }, ...override };
+    expect(canShowListingCommerce(entity)).toBe(false);
+  });
+
+  test.each([
+    ["URL HTTPS com credenciais", "https://usuario:segredo@example.org/agenda"],
+    ["endereço IPv6 local", "https://[::1]/agenda"],
+  ])("%s não expõe link e data inválida não causa falha de renderização", (_, source_url) => {
+    const html = render(curated({ source_url, last_verified_at: "data-invalida" }), "artist");
+    expect(html).toContain("Referência não disponível");
+    expect(html).toContain("Não informada");
+    expect(html).not.toContain('href="');
+    expect(html).not.toMatch(/Comprar ingresso|Finalizar compra|Adicionar ao carrinho/i);
+  });
+
+  test("fonte HTTPS pública conserva link externo com proteções e sem CTA comercial", () => {
+    const html = render(curated({
+      source_url: "https://example.org/agenda",
+      last_verified_at: "2026-10-20T12:00:00Z",
+    }), "event");
+    expect(html).toContain('href="https://example.org/agenda"');
+    expect(html).toContain('target="_blank"');
+    expect(html).toContain('rel="noopener noreferrer"');
+    expect(html).not.toContain("Não informada");
+    expect(html).not.toMatch(/Comprar ingresso|Finalizar compra|Adicionar ao carrinho/i);
+  });
+});
