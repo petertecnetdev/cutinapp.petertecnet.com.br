@@ -410,6 +410,12 @@ const eventService = {
     return updateJsonEvent(eventId, payload);
   },
   show: async (eventId) => (await appApiClient.get(`/events/${eventId}/manage`)).data.event,
+  checkinEvents: async (params = {}) => {
+    const response = await appApiClient.get("/checkin/events", {
+      params: { per_page: 100, ...params },
+    });
+    return response.data?.events || { data: [], current_page: 1, last_page: 1 };
+  },
   myEvents: fetchAllMyEvents,
   myEventsPage: fetchMyEventsPage,
   destroy: async (eventId) => (await appApiClient.delete(`/events/${Number(eventId)}`)).data,

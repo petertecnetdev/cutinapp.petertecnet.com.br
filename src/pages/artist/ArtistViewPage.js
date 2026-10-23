@@ -6,6 +6,7 @@ import { AuthContext } from "../../context/AuthContext";
 import NavlogComponent from "../../components/NavlogComponent";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import EventArtwork from "../../components/event/EventArtwork";
+import UnverifiedListingPanel from "../../components/independence/UnverifiedListingPanel";
 import cutinappService from "../../services/CutinappService";
 import { storageUrl } from "../../config";
 import { safeExternalHref } from "../../utils/safeUrl";
@@ -232,6 +233,7 @@ export default function ArtistViewPage() {
     </section>
 
     <Container className="cut-page-container py-5">
+      <UnverifiedListingPanel entity={artist} entityType="artist" user={user} onLogin={() => navigate("/register", { state: { from: `/artist/${slug}` } })} />
       {error && <Alert variant="danger">{error}</Alert>}
 
       {pending.length > 0 && (

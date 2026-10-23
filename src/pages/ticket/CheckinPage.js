@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Badge, Button, Card, Col, Container, Form, Row } from "react-bootstrap";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import Webcam from "react-webcam";
 import jsQR from "jsqr";
 import NavlogComponent from "../../components/NavlogComponent";
@@ -38,10 +38,15 @@ export default function CheckinPage() {
   const decodingRef = useRef(false);
   const statsRequestRef = useRef(0);
   const location = useLocation();
-  const navigate = useNavigate();
   const requestedEventId = new URLSearchParams(location.search).get("eventId") || "";
+  const selectedEventRef = useRef(requestedEventId);
 
   const [events, setEvents] = useState([]);
+  const [eventSearch, setEventSearch] = useState("");
+  const [debouncedEventSearch, setDebouncedEventSearch] = useState("");
+  const [eventPage, setEventPage] = useState(1);
+  const [eventLastPage, setEventLastPage] = useState(1);
+  const [loadingMoreEvents, setLoadingMoreEvents] = useState(false);
   const [eventId, setEventId] = useState(requestedEventId);
   const [token, setToken] = useState("");
   const [loading, setLoading] = useState(true);
@@ -93,22 +98,51 @@ export default function CheckinPage() {
   }, []);
 
   useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedEventSearch(eventSearch.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [eventSearch]);
+
+  useEffect(() => {
     let active = true;
     setLoading(true);
-    eventService.myEvents()
-      .then((items) => {
+    eventService.checkinEvents({ q: debouncedEventSearch || undefined })
+
+      .then((page) => {
         if (!active) return;
-        const available = items.filter((item) => item.is_published && !item.is_cancelled);
+        const available = Array.isArray(page?.data) ? page.data : [];
         setEvents(available);
+        setEventPage(Math.max(1, Number(page?.current_page) || 1));
+        setEventLastPage(Math.max(1, Number(page?.last_page) || 1));
         const validRequested = available.some((item) => String(item.id) === String(requestedEventId));
-        const initial = validRequested ? String(requestedEventId) : (available.length === 1 ? String(available[0].id) : "");
+        const previous = selectedEventRef.current;
+        const initial = previous || (validRequested ? String(requestedEventId) : (available.length === 1 ? String(available[0].id) : ""));
+        selectedEventRef.current = initial;
         setEventId(initial);
         return refreshStats(initial);
       })
-      .catch((err) => active && setError(err?.message || "Não foi possível carregar seus eventos publicados."))
+      .catch((err) => active && setError(err?.response?.data?.message || err?.message || "Não foi possível carregar os eventos disponíveis para sua portaria."))
       .finally(() => active && setLoading(false));
     return () => { active = false; statsRequestRef.current += 1; };
-  }, [refreshStats, requestedEventId]);
+  }, [refreshStats, requestedEventId, debouncedEventSearch]);
+
+  const loadMoreEvents = async () => {
+    if (loadingMoreEvents || eventPage >= eventLastPage) return;
+    setLoadingMoreEvents(true);
+    try {
+      const page = await eventService.checkinEvents({
+        q: debouncedEventSearch || undefined,
+        page: eventPage + 1,
+      });
+      const incoming = Array.isArray(page?.data) ? page.data : [];
+      setEvents((current) => [...current, ...incoming.filter((event) => !current.some((item) => item.id === event.id))]);
+      setEventPage(Math.max(1, Number(page?.current_page) || eventPage + 1));
+      setEventLastPage(Math.max(1, Number(page?.last_page) || 1));
+    } catch (err) {
+      setError(err?.response?.data?.message || err?.message || "Não foi possível carregar mais eventos.");
+    } finally {
+      setLoadingMoreEvents(false);
+    }
+  };
 
   useEffect(() => {
     if (readerMode !== "fallback" || fallbackReady) return;
@@ -232,6 +266,7 @@ export default function CheckinPage() {
   }, [cameraEnabled, eventId, fallbackReady, readerMode, validate]);
 
   const selectEvent = async (value) => {
+    selectedEventRef.current = value;
     setEventId(value);
     disableCamera();
     setCameraNotice("");
@@ -259,17 +294,32 @@ export default function CheckinPage() {
         {error && <Alert variant="danger" role="alert">{error}</Alert>}
         {networkStatus === "offline" && <Alert variant="warning" role="alert">Operação sem internet. Novas validações estão bloqueadas até a conexão voltar.</Alert>}
         {cameraNotice && <Alert variant="info" role="status" aria-live="polite">{cameraNotice}</Alert>}
-        {events.length === 0 && !loading ? (
-          <Card className="cut-empty-state"><Card.Body><h2>Nenhum evento publicado para operar</h2><p>Publique um evento antes de abrir a operação.</p><Button onClick={() => navigate("/event/manage")}>Gerenciar eventos</Button></Card.Body></Card>
-        ) : <>
-          <Card className="cut-panel mb-4"><Card.Body className="p-4"><Row className="g-3 align-items-end"><Col lg={7}><Form.Group><Form.Label>Evento da operação *</Form.Label><Form.Select value={eventId} onChange={(event) => selectEvent(event.target.value)}><option value="">Selecione o evento</option>{events.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</Form.Select></Form.Group></Col><Col lg={5}><div className="cut-checkin-stats" role="status" aria-live="polite"><span><strong>{stats?.issued ?? 0}</strong> emitidos</span><span><strong>{stats?.checked_in ?? 0}</strong> entradas</span><span><strong>{Math.max(0, Number(stats?.issued || 0) - Number(stats?.checked_in || 0))}</strong> aguardando</span></div></Col></Row></Card.Body></Card>
+        <>
+          <Card className="cut-panel mb-4"><Card.Body className="p-4"><Row className="g-3 align-items-end"><Col lg={7}><Form.Group>
+                <Form.Label>Buscar evento ou produção</Form.Label>
+                <Form.Control
+                  type="search"
+                  value={eventSearch}
+                  onChange={(event) => setEventSearch(event.target.value)}
+                  placeholder="Nome do evento ou da produção"
+                  aria-label="Buscar eventos da portaria"
+                />
+                <Form.Label className="mt-3">Evento da operação *</Form.Label>
+                <Form.Select value={eventId} onChange={(event) => selectEvent(event.target.value)}>
+                  <option value="">Selecione o evento</option>
+                  {eventId && !events.some((item) => String(item.id) === String(eventId)) && <option value={eventId}>{stats?.event?.title || `Evento #${eventId}`} (selecionado)</option>}
+                  {events.map((item) => <option key={item.id} value={item.id}>{item.title} · {item.production?.name || "Produção"} · {item.start_date ? new Date(item.start_date).toLocaleDateString("pt-BR") : "Sem data"}</option>)}
+                </Form.Select>
+                {events.length === 0 && !loading && <small className="d-block mt-2 text-secondary">Nenhum evento encontrado. Tente outro nome.</small>}
+                {eventPage < eventLastPage && <Button size="sm" variant="outline-light" className="mt-2" onClick={loadMoreEvents} disabled={loadingMoreEvents}>{loadingMoreEvents ? "Carregando..." : "Carregar mais eventos"}</Button>}
+              </Form.Group></Col><Col lg={5}><div className="cut-checkin-stats" role="status" aria-live="polite"><span><strong>{stats?.issued ?? 0}</strong> emitidos</span><span><strong>{stats?.checked_in ?? 0}</strong> entradas</span><span><strong>{Math.max(0, Number(stats?.issued || 0) - Number(stats?.checked_in || 0))}</strong> aguardando</span></div></Col></Row></Card.Body></Card>
           <Row className="g-4 justify-content-center">
             <Col lg={7}><Card className="cut-panel cut-scanner-card"><Card.Body className="p-3 p-md-4">
               {!eventId ? <div className="cut-empty-state-inline"><h2>Selecione o evento</h2><p>A câmera só é liberada depois de escolher qual evento está sendo operado.</p></div> : result ? <div className={`cut-checkin-result cut-checkin-result--${result.type}`} role={result.type === "danger" ? "alert" : "status"} aria-live={result.type === "danger" ? "assertive" : "polite"}><i className={result.type === "success" ? "fa-solid fa-circle-check" : "fa-solid fa-triangle-exclamation"} aria-hidden="true" /><h2>{result.message}</h2>{result.pass && <div className="cut-checkin-person"><strong>{result.pass.holder_name || result.pass.holder_email || "Participante"}</strong><span>{result.pass.event?.title || "Evento"}</span><span>{result.pass.ticket?.name || "Ingresso"}</span></div>}{result.kind === "item" && Array.isArray(result.items) && <div className="cut-checkin-person"><strong>Entregue os itens abaixo</strong>{result.items.map((item) => <span key={item.id || item.event_item_id}>{item.quantity} × {item.name}</span>)}</div>}<Button size="lg" onClick={nextParticipant}>Próxima leitura</Button></div> : cameraEnabled ? <div className="cut-scanner"><Webcam ref={webcamRef} audio={false} className="cut-scanner__video" screenshotFormat="image/jpeg" videoConstraints={{ facingMode: { ideal: "environment" } }} onUserMediaError={(mediaError) => { setError(mediaError?.message || "Não foi possível acessar a câmera. Verifique a permissão do navegador."); disableCamera(); }} /><canvas ref={canvasRef} hidden /><div className="cut-scanner__frame" aria-hidden="true" /><span className="cut-scanner__hint" role="status" aria-live="polite">{readerMode === "native" ? "Leitor nativo ativo" : fallbackReady ? "Leitor compatível ativo" : "Preparando leitor QR..."} · posicione o QR no quadro</span></div> : <div className="cut-empty-state-inline"><i className="fa-solid fa-camera" aria-hidden="true" /><h2>Câmera pronta para iniciar</h2><p>Toque no botão para validar ingresso ou retirada de produtos.</p><Button size="lg" onClick={enableCamera} disabled={networkStatus === "offline" || (readerMode === "fallback" && fallbackFailed)}>Ativar câmera</Button></div>}
             </Card.Body></Card></Col>
             <Col lg={5}><Card className="cut-panel h-100"><Card.Body className="p-4"><h2 className="cut-section-title">Validação manual</h2><p className="text-secondary">Use o código abaixo do QR apenas se a câmera estiver indisponível.</p><Form onSubmit={(event) => { event.preventDefault(); validate(token); }}><Form.Group><Form.Label>Código do QR</Form.Label><Form.Control value={token} onChange={(event) => setToken(event.target.value)} placeholder="CUT-..., PASS-... ou ITEM-..." autoComplete="off" /></Form.Group><Button className="w-100 mt-3" type="submit" disabled={!eventId || !token.trim() || loading || networkStatus === "offline"}>Validar QR Code</Button></Form><div className="cut-info-box mt-4"><strong>Proteção contra uso indevido</strong><span>O servidor confirma evento, operador, pagamento, validade do QR e utilização anterior antes de registrar entrada ou retirada.</span></div></Card.Body></Card></Col>
           </Row>
-        </>}
+        </>
       </Container>
     </div>
   );
