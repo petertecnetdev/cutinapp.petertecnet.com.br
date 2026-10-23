@@ -41,7 +41,7 @@ describe("W4: monitor de curadoria sem elevação ou checkout", () => {
     } });
     expect(html).toContain("Última execução indeterminada");
     expect(html).toContain("Execuções ocultadas");
-    expect(html).not.toMatch(/<table\\b|Concluída|999|<a\\b|<button\\b|<form\\b/i);
+    expect(html).not.toMatch(/<table\b|Concluída|999|<a\b|<button\b|<form\b/i);
 
     const duplicated = render(context(), { success: true, data: {
       ...apiResponse.data, workers: [
