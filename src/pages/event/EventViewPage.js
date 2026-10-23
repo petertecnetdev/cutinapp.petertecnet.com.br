@@ -206,7 +206,7 @@ export default function EventViewPage() {
 
   const event = data?.event || null;
   const history = data?.history || null;
-  const tickets = useMemo(() => (data?.tickets || []).filter((ticket) => Number(ticket.price) === 0), [data]);
+  const tickets = useMemo(() => (data?.tickets || []).filter((ticket) => !ticket.informational_only && ticket.price !== null && Number(ticket.price) === 0), [data]);
   const claimableArtists = useMemo(() => artists.filter((artist) => !artist.claimed_at), [artists]);
   const isCommunityMeetup = event?.kind === "community";
   const isOwner = Boolean(isCommunityMeetup
@@ -224,8 +224,9 @@ export default function EventViewPage() {
   const temporal = temporalMeta[temporalState];
   const isPastEvent = temporalState === "past";
   const hasTickets = Number(event?.tickets_count || 0) > 0 || tickets.length > 0;
+  const isCuratorial = event?.extra_info?.curation?.sale_mode === "information_only" && event?.extra_info?.curation?.ticket_checkout_enabled === false;
   const ticketAvailabilityStatus = event?.ticket_availability_status || null;
-  const hasSellableTickets = !isCommunityMeetup && (ticketAvailabilityStatus
+  const hasSellableTickets = !isCommunityMeetup && !isCuratorial && (ticketAvailabilityStatus
     ? ["free_available", "available"].includes(ticketAvailabilityStatus)
     : hasTickets);
   const ticketAvailabilityLabel = ({
@@ -238,6 +239,7 @@ export default function EventViewPage() {
   })[ticketAvailabilityStatus] || (hasTickets ? "Ingressos disponíveis" : "Ingressos em breve");
   const canMarkInterested = !isCommunityMeetup && (event?.allowed_actions?.mark_interested ?? !isPastEvent);
   const showPersistentBuyCta = !isCommunityMeetup && !isPastEvent && hasSellableTickets;
+  const showTicketCatalog = !isCommunityMeetup && !isPastEvent && (hasSellableTickets || isCuratorial);
   const eventDescription = String(event?.description || "").trim();
   const hasStructuredDescription = /\{\{|\*\*|^#{2,3}\s|^[-*>]\s/m.test(eventDescription);
   const hasLongDescription = eventDescription.length > EVENT_DESCRIPTION_PREVIEW_LENGTH && !hasStructuredDescription;
@@ -560,9 +562,9 @@ export default function EventViewPage() {
           {claimableArtists.length > 0 && <Card className="cut-panel mt-4"><Card.Body className="p-4"><span className="cut-eyebrow">Artista do evento?</span><h3 className="cut-section-title">Reivindique seu vínculo</h3><p className="text-secondary">Se o produtor cadastrou você antes da criação da sua conta, escolha seu perfil abaixo. O produtor receberá a solicitação e confirmará que você realmente faz parte deste line-up.</p><div className="d-flex flex-wrap gap-2">{claimableArtists.map((artist) => <Button key={artist.id} variant="outline-light" onClick={() => claimArtist(artist)} disabled={artistClaimingId === artist.id}><i className="fa-solid fa-user-check me-2" />Sou {artist.stage_name}</Button>)}</div>{!user && <small className="d-block text-secondary mt-3">Você será direcionado ao cadastro e voltará para este evento após confirmar o e-mail.</small>}</Card.Body></Card>}
         </section>}
 
-        {showPersistentBuyCta && <section id="ingressos" className="cut-ticket-shop-section mb-5" style={{ scrollMarginTop: "calc(var(--cut-navbar-height) + 18px)" }}>
+        {showTicketCatalog && <section id="ingressos" className="cut-ticket-shop-section mb-5" style={{ scrollMarginTop: "calc(var(--cut-navbar-height) + 18px)" }}>
           <div className="cut-ticket-shop-section__heading">
-            <h2 className="cut-section-title mt-2 mb-1">Ingressos e itens</h2>
+            <h2 className="cut-section-title mt-2 mb-1">{isCuratorial ? "Ingressos informativos" : "Ingressos e itens"}</h2>
           </div>
 
           <EventCommercePanel slug={slug} eventId={event.id} user={user} onLoginRequired={(returnTo = `${location.pathname}${location.search}`) => navigate("/login", { state: { from: returnTo } })} />

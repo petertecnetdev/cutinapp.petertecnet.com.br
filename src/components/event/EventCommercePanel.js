@@ -9,6 +9,7 @@ import { clearEventCart, readEventCart, writeEventCart } from "../../utils/event
 import { safeRemoveSessionItem } from "../../utils/safeStorage";
 
 const money = (value) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
+const ticketPriceLabel = (ticket) => ticket.informational_only && ticket.price_known === false ? "Valor a confirmar" : money(ticket.price);
 const dateLabel = (value) => {
   if (!value) return "Data do evento";
   const date = new Date(`${String(value).slice(0, 10)}T12:00:00`);
@@ -24,6 +25,7 @@ const trackCommerce = (type, details = {}) => {
 };
 
 const stockLabel = (item, soldOut, limit) => {
+  if (item?.informational_only) return "Ficha informativa — vendas e emissão desabilitadas";
   if (item?.expired) return "Venda encerrada";
   if (soldOut) return "Esgotado";
   const rawStock = item?.remaining ?? item?.quantity;
@@ -263,6 +265,16 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
       </Button>
     </div>
   </Alert>;
+  const informationalTickets = (catalog.tickets || []).filter((ticket) => ticket.informational_only);
+  if (informationalTickets.length > 0 && informationalTickets.length === (catalog.tickets || []).length) return <div className="cut-commerce-panel mt-4">
+    <div className="cut-ticket-shop__heading"><h3 className="mt-2">Ingressos divulgados</h3><p>Valores apenas para consulta. Nenhum ingresso deste evento pode ser comprado ou retirado pela Cutinapp antes da verificação do titular.</p></div>
+    <div className="cut-ticket-shop__list">
+      {informationalTickets.map((ticket) => <div className="cut-ticket-shop__option" key={ticket.id}>
+        <div className="cut-ticket-shop__option-copy"><strong>{ticket.name}</strong><span>{ticketPriceLabel(ticket)}</span><small>Disponibilidade ainda não confirmada</small></div>
+        <span className="cut-ticket-shop__sold-badge">Somente consulta</span>
+      </div>)}
+    </div>
+  </div>;
   if (salesClosed) return <Alert variant="secondary" className="mt-4 mb-0"><strong>Vendas encerradas.</strong><span className="d-block mt-1">Ingressos e itens antecipados não podem mais ser adquiridos para esta edição.</span></Alert>;
   if (!(catalog.tickets || []).length && !(catalog.items || []).length && availableDates.length <= 1) return null;
 
@@ -295,18 +307,18 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
           <div className="cut-ticket-shop__list">
             {(catalog.tickets || []).map((ticket) => {
               const maxQuantity = resolveCheckoutQuantity(ticket, checkoutQuantityLimit("ticket"), checkoutQuantityLimit("ticket"));
-              const soldOut = maxQuantity <= 0;
+              const soldOut = ticket.informational_only || maxQuantity <= 0;
               const quantity = Number(quantities[`ticket:${ticket.id}`] || 0);
               const subtotal = Number(ticket.price || 0) * quantity;
               return <div className={`cut-ticket-shop__option ${soldOut ? "cut-ticket-shop__option--sold-out" : ""}`} key={`paid-ticket-${ticket.id}`} aria-disabled={soldOut}>
                 <div className="cut-ticket-shop__option-copy">
                   <span className="cut-ticket-kicker">Ingresso · {dateLabel(catalog?.event?.start_date)}</span>
                   <strong>{ticket.name}</strong>
-                  <span>{quantity > 0 ? `${quantity} × ${money(ticket.price)} · ${money(subtotal)}` : money(ticket.price)}</span>
+                  <span>{quantity > 0 ? `${quantity} × ${money(ticket.price)} · ${money(subtotal)}` : ticketPriceLabel(ticket)}</span>
                   <small>{stockLabel(ticket, soldOut, checkoutQuantityLimit("ticket"))}</small>
                 </div>
                 {soldOut
-                  ? <span className="cut-ticket-shop__sold-badge">{ticket.expired ? "Encerrado" : "Esgotado"}</span>
+                  ? <span className="cut-ticket-shop__sold-badge">{ticket.informational_only ? "Somente consulta" : ticket.expired ? "Encerrado" : "Esgotado"}</span>
                   : <QuantityStepper kind="ticket" id={ticket.id} value={quantity} max={maxQuantity} label={ticket.name} />}
               </div>;
             })}
