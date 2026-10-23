@@ -33,6 +33,26 @@ describe("W4: monitor de curadoria sem elevação ou checkout", () => {
     expect(html).toContain("Nenhuma contagem foi presumida");
     expect(html).not.toContain("Últimas execuções");
   });
+  test("oculta tabela e último sucesso quando histórico ou configuração estão inconsistentes", () => {
+    const invalidRun = { ...apiResponse.data.recent_runs[0], id: 100,
+      status: "processing", result: { sources: 999 } };
+    const html = render(context(), { success: true, data: {
+      ...apiResponse.data, recent_runs: [apiResponse.data.recent_runs[0], invalidRun],
+    } });
+    expect(html).toContain("Última execução indeterminada");
+    expect(html).toContain("Execuções ocultadas");
+    expect(html).not.toMatch(/<table\\b|Concluída|999|<a\\b|<button\\b|<form\\b/i);
+
+    const duplicated = render(context(), { success: true, data: {
+      ...apiResponse.data, workers: [
+        { key: "discovery_health", enabled: true },
+        { key: "discovery_health", enabled: false },
+      ],
+    } });
+    expect(duplicated).toContain("Última execução indeterminada");
+    expect(duplicated).not.toContain("<table");
+  });
+
   test("não interpola erros brutos ou dados privados", () => {
     const html = render(context(), { success: true, data: { ...apiResponse.data,
       recent_runs: [{ ...apiResponse.data.recent_runs[0], last_error: "<script>roubar()</script>", token: "SECRET" }] } });

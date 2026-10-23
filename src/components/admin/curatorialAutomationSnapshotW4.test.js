@@ -94,6 +94,20 @@ describe("W4: contrato real de leitura de automações", () => {
     expect(read(response(runs)).valid).toBe(false);
   });
 
+  test("histórico inválido não anuncia sucesso antigo como última execução", () => {
+    const snapshot = read(response([
+      { id: 3, worker_key: "discovery_health", status: "succeeded",
+        result: { sources: 12, stale: 0, errors: 0 } },
+      { id: 100, worker_key: "discovery_health", status: "processing",
+        result: { sources: 999 } },
+    ]));
+    expect(snapshot.valid).toBe(true);
+    expect(snapshot.historyReliable).toBe(false);
+    expect(snapshot.complete).toBe(false);
+    expect(snapshot.workers[0].latest).toBeNull();
+    expect(snapshot.workers[0].metrics.every((metric) => metric.value === null)).toBe(true);
+  });
+
   test("configuração duplicada e contraditória não exibe estado nem métricas confiáveis", () => {
     const snapshot = read(response(undefined, { workers: [
       { key: "discovery_health", enabled: true },
@@ -102,6 +116,8 @@ describe("W4: contrato real de leitura de automações", () => {
     expect(snapshot.valid).toBe(true);
     expect(snapshot.complete).toBe(false);
     expect(snapshot.workers[0].enabled).toBeNull();
+    expect(snapshot.historyReliable).toBe(false);
+    expect(snapshot.workers[0].latest).toBeNull();
     expect(snapshot.workers[0].metrics.every((metric) => metric.value === null)).toBe(true);
   });
   test("item de configuração malformado invalida métricas, sem tratar worker desconhecido como curadoria", () => {

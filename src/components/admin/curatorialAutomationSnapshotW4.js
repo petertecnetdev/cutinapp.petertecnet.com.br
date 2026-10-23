@@ -75,9 +75,15 @@ export function buildAutomationSnapshotW4(response) {
   // Histórico inválido pode ocultar uma falha mais recente: não reutilizar
   // números de sucesso se a integridade da lista não estiver confirmada.
   if (malformedHistory || malformedWorkers) {
-    for (const worker of workers.values()) worker.metrics = metrics(worker.key, null);
+    for (const worker of workers.values()) {
+      worker.metrics = metrics(worker.key, null);
+      // Uma linha inválida pode ser mais recente que o último sucesso visível.
+      // Não apresentar esse sucesso como a última execução confirmada.
+      worker.latest = null;
+    }
   }
 
-  return { valid: true, globalEnabled: typeof data.global_enabled === "boolean" ? data.global_enabled : null,
+  return { valid: true, historyReliable: !(malformedHistory || malformedWorkers),
+    globalEnabled: typeof data.global_enabled === "boolean" ? data.global_enabled : null,
     workers: [...workers.values()], runs: visibleRuns, complete };
 }
