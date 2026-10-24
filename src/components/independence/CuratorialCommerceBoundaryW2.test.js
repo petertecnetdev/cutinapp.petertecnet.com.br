@@ -352,3 +352,47 @@ describe("W2 — regressões de tipos de escopo e autorização comercial", () =
     })).toBe(true);
   });
 });
+
+
+describe("W2 — links externos curatoriais não permitem destinos internos ou injeção", () => {
+  test.each([
+    ["IPv4 abreviado de loopback", "https://127.1/agenda"],
+    ["IPv4 decimal inteiro de loopback", "https://2130706433/agenda"],
+    ["IPv4 hexadecimal de loopback", "https://0x7f000001/agenda"],
+    ["IPv6 com IPv4 mapeado", "https://[::ffff:127.0.0.1]/agenda"],
+    ["subdomínio local com ponto final", "https://agenda.localhost./evento"],
+    ["credenciais disfarçando o host", "https://example.org@localhost/agenda"],
+    ["URL protocol-relative", "//example.org/agenda"],
+    ["esquema data", "data:text/html,<script>alert(1)</script>"],
+  ])("%s nunca vira link clicável na ficha pública", (_, source_url) => {
+    const html = render(curated({ source_url }), "event");
+    expect(html).toContain("Referência não disponível");
+    expect(html).not.toContain('href="');
+    expect(html).not.toMatch(/<script|<svg|onerror=|onload=/i);
+    expect(canShowListingCommerce(curated({ source_url }))).toBe(false);
+  });
+
+  test("URL HTTPS pública com tentativa de injeção no atributo é escapada", () => {
+    const html = render(curated({
+      source_url: 'https://example.org/agenda?q="><script>alert(1)</script>',
+    }), "production");
+    expect(html).toContain("Consultar publicação original");
+    expect(html).toContain('target="_blank"');
+    expect(html).toContain('rel="noopener noreferrer"');
+    expect(html).not.toContain("<script>");
+    expect(html).not.toContain('href="https://example.org/agenda?q=">');
+    expect(html).not.toMatch(/onerror=|onload=/i);
+    expect(canShowListingCommerce(curated())).toBe(false);
+  });
+
+  test("fonte HTTPS legítima mantém consulta sem habilitar pagamento", () => {
+    const html = render(curated({
+      source_url: "HTTPS://Example.org/agenda",
+      last_verified_at: "2026-10-20T12:00:00Z",
+    }), "artist");
+    expect(html).toContain('href="https://example.org/agenda"');
+    expect(html).toContain('rel="noopener noreferrer"');
+    expect(html).toContain("responsável não verificado");
+    expect(html).not.toMatch(/Comprar ingresso|Finalizar compra|Adicionar ao carrinho/i);
+  });
+});
