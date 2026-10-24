@@ -4,12 +4,12 @@ import CuratorialAutomationMonitorW4 from "./CuratorialAutomationMonitorW4";
 const context = (extra = {}) => ({
   authorized: true, application_id: 7, permissions: ["operations.view"], is_owner: true, is_root: true, ...extra,
 });
-const apiResponse = { success: true, data: { global_enabled: false,
+const apiResponse = { success: true, data: { application_id: 7, global_enabled: false,
   workers: [{ key: "discovery_health", enabled: true }],
   recent_runs: [{ id: 3, worker_key: "discovery_health", status: "succeeded",
     result: { sources: 3, stale: 0, errors: 1 }, checkout_url: "https://example.invalid", token: "SECRET" }] } };
-const render = (ctx = context(), payload = apiResponse) => renderToStaticMarkup(
-  <CuratorialAutomationMonitorW4 context={ctx} applicationId={7} apiResponse={payload} />);
+const render = (ctx = context(), payload = apiResponse, appId = 7) => renderToStaticMarkup(
+  <CuratorialAutomationMonitorW4 context={ctx} applicationId={appId} apiResponse={payload} />);
 describe("W4: monitor de curadoria sem elevação ou checkout", () => {
   test.each([
     ["outra aplicação", context({ application_id: 8 })],
@@ -19,6 +19,28 @@ describe("W4: monitor de curadoria sem elevação ou checkout", () => {
     const html = render(ctx);
     expect(html).toContain("Acesso ao monitoramento indisponível");
     expect(html).not.toContain("Últimas execuções");
+  });
+  test.each([
+    ["outra aplicação", 8],
+    ["sem identificador", undefined],
+    ["identificador textual não canônico", "07"],
+    ["identificador não escalar", { id: 7 }],
+  ])("nega resposta %s mesmo com autorização local válida", (_name, application_id) => {
+    const payload = { ...apiResponse, data: { ...apiResponse.data, application_id } };
+    const html = render(context(), payload);
+    expect(html).toContain("aplicação da resposta não confirmada");
+    expect(html).not.toMatch(/Fontes com erro|Últimas execuções|Concluída|<table\\b|<button\\b|<form\\b/);
+  });
+  test("troca A→B→A não reaproveita métricas da aplicação anterior", () => {
+    const responseB = { ...apiResponse, data: { ...apiResponse.data, application_id: 8 } };
+    expect(render(context({ application_id: 8 }), apiResponse, 8))
+      .toContain("aplicação da resposta não confirmada");
+    expect(render(context({ application_id: 8 }), responseB, 8))
+      .toContain("Fontes com erro");
+    expect(render(context({ application_id: 7 }), responseB, 7))
+      .toContain("aplicação da resposta não confirmada");
+    expect(render(context(), apiResponse)).toContain("Fontes com erro");
+    expect(render(context({ permissions: [] }), apiResponse)).not.toContain("Últimas execuções");
   });
   test("mostra estados reais e métricas sem operações comerciais", () => {
     const html = render();
