@@ -396,3 +396,53 @@ describe("W2 — links externos curatoriais não permitem destinos internos ou i
     expect(html).not.toMatch(/Comprar ingresso|Finalizar compra|Adicionar ao carrinho/i);
   });
 });
+
+
+describe("W2 — payloads mistos de ingressos não concedem checkout", () => {
+  const ingressoComercial = {
+    id: 501,
+    name: "Inteira",
+    price: 75,
+    informational_only: false,
+    curatorial_information_only: false,
+    sales_enabled: true,
+    can_sell: true,
+    checkout_url: "https://example.org/checkout",
+  };
+
+  test.each([
+    ["marcador informativo antigo", { informational_only: true, sales_enabled: false }],
+    ["marcador informativo novo", { curatorial_information_only: true, sales_enabled: false }],
+    ["ingresso sem marcadores curatoriais", { informational_only: undefined, curatorial_information_only: undefined }],
+    ["flag textual de venda", { can_sell: "true" }],
+    ["ingresso explicitamente comercial", { informational_only: false, curatorial_information_only: false }],
+    ["catálogo misto", { informational_only: true, curatorial_information_only: false }],
+  ])("%s não transforma ficha não reivindicada em checkout", (_, override) => {
+    const entity = curated({
+      tickets: [{ ...ingressoComercial, ...override }, { ...ingressoComercial, id: 502 }],
+    });
+    expect(isUnverifiedListing(entity)).toBe(true);
+    expect(canShowListingCommerce(entity)).toBe(false);
+    const html = render(entity);
+    expect(html).toContain("responsável não verificado");
+    expect(html).not.toMatch(/Comprar ingresso|Finalizar compra|Pagar agora|Adicionar ao carrinho|Emitir QR/i);
+    expect(html).not.toContain("https://example.org/checkout");
+  });
+
+  test("aprovação de evento não herda venda de produção com reivindicação pendente e catálogo misto", () => {
+    const aprovado = {
+      id: 91,
+      app_id: "7",
+      ownership_status: "verified",
+      verification_status: "manual_approved",
+      ownership_verified_at: "2026-10-20T00:00:00Z",
+      can_sell: true,
+    };
+    const entity = {
+      ...aprovado,
+      production: { ...aprovado, ownership_status: "pending_claim" },
+      tickets: [{ ...ingressoComercial }, { ...ingressoComercial, informational_only: true }],
+    };
+    expect(canShowListingCommerce(entity)).toBe(false);
+  });
+});
