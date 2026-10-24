@@ -1,7 +1,7 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import UnverifiedListingPanel from "./UnverifiedListingPanel";
-import { canShowListingCommerce, claimStatusMessage, isUnverifiedListing } from "../../utils/independenceListing";
+import { canShowListingCommerce, claimStatusMessage, isUnverifiedListing, safeListingSourceUrl } from "../../utils/independenceListing";
 
 // O serviço não é chamado durante SSR; mock evita importar Axios ESM no Jest legado.
 jest.mock("../../services/IndependenceClaimService", () => ({
@@ -620,5 +620,85 @@ describe("W2 — limites de exposição pública no fluxo de reivindicação", (
     expect(html).toContain("Não informada");
     expect(html).not.toContain("Invalid Date");
     expect(canShowListingCommerce(curated({ last_verified_at: "nao-e-uma-data" }))).toBe(false);
+  });
+});
+
+
+describe("W2 — contratos de reivindicação nas três entidades", () => {
+  const claimService = jest.requireActual("../../services/IndependenceClaimService").default;
+  const appApiClient = require("../../services/AppApiClient").default;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    appApiClient.post.mockResolvedValue({ data: { status: "pending_claim" } });
+  });
+
+  test.each(["event", "production", "artist"])(
+    "%s envia somente identificador canônico e campos de solicitação, nunca autoridade",
+    async (entityType) => {
+      await claimService.submit({
+        entityType,
+        entityId: "0009007199254740993",
+        name: " Pessoa Responsável ",
+        email: " contato@example.org ",
+        phone: " +55 62 90000-0000 ",
+        message: " ",
+        consent: false,
+        app_id: "999",
+        user_id: 77,
+        verification_status: "manual_approved",
+        can_sell: true,
+      });
+
+      expect(appApiClient.post).toHaveBeenCalledTimes(1);
+      expect(appApiClient.post).toHaveBeenCalledWith("/independence/claims", {
+        entity_type: entityType,
+        entity_id: "9007199254740993",
+        name: "Pessoa Responsável",
+        email: "contato@example.org",
+        phone: "+55 62 90000-0000",
+        message: null,
+        consent: false,
+      });
+    }
+  );
+
+  test("erro 403 ao consultar reivindicações não é convertido em lista vazia ou aprovação", async () => {
+    const denied = Object.assign(new Error("Acesso revogado"), {
+      response: { status: 403 },
+    });
+    appApiClient.get.mockRejectedValueOnce(denied);
+
+    await expect(claimService.mine()).rejects.toBe(denied);
+    expect(appApiClient.get).toHaveBeenCalledTimes(1);
+    expect(appApiClient.get).toHaveBeenCalledWith("/independence/claims/mine");
+    expect(appApiClient.post).not.toHaveBeenCalled();
+  });
+});
+
+describe("W2 — URLs de proveniência não sofrem coerção implícita", () => {
+  test.each([
+    ["objeto URL", new URL("https://example.org/agenda")],
+    ["array", ["https://example.org/agenda"]],
+    ["número", 12345],
+    ["booleano", true],
+    ["objeto simples", { href: "https://example.org/agenda" }],
+  ])("%s não vira link externo sem string explícita", (_, source_url) => {
+    expect(safeListingSourceUrl(source_url)).toBe("");
+  });
+
+  test("objeto hostil não tem toString executado durante a validação da fonte", () => {
+    const toString = jest.fn(() => { throw new Error("coerção inesperada"); });
+    expect(safeListingSourceUrl({ toString })).toBe("");
+    expect(toString).not.toHaveBeenCalled();
+  });
+
+  test("URL HTTPS com parâmetros preserva destino e escapa ampersand no HTML", () => {
+    const html = render(curated({
+      source_url: "https://example.org/agenda?evento=91&origem=curadoria",
+    }));
+    expect(html).toContain("https://example.org/agenda?evento=91&amp;origem=curadoria");
+    expect(html).toContain('rel="noopener noreferrer"');
+    expect(html).not.toMatch(/Comprar ingresso|Finalizar compra|Adicionar ao carrinho/i);
   });
 });
