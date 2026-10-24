@@ -9,6 +9,12 @@ jest.mock("../../services/IndependenceClaimService", () => ({
   default: { submit: jest.fn(), mine: jest.fn() },
 }));
 
+// Testa o contrato HTTP real do serviço, sem carregar Axios ESM no Jest legado.
+jest.mock("../../services/AppApiClient", () => ({
+  __esModule: true,
+  default: { post: jest.fn(), get: jest.fn() },
+}));
+
 const render = (entity, entityType = "event") => renderToStaticMarkup(
   React.createElement(UnverifiedListingPanel, {
     entity,
@@ -481,5 +487,86 @@ describe("W2 — fontes locais e estados de reivindicação não transferem titu
     expect(approved).toContain("aprovada após verificação");
     expect(pending).toContain("não transfere acesso ou propriedade");
     expect(approved).not.toMatch(/venda habilitada|checkout liberado/i);
+  });
+});
+
+
+describe("W2 — reivindicação não forja identidade, tenant ou autorização", () => {
+  const claimService = jest.requireActual("../../services/IndependenceClaimService").default;
+  const appApiClient = require("../../services/AppApiClient").default;
+  const validClaim = {
+    entityType: "event",
+    entityId: "0009223372036854775807",
+    name: "  Produtora Exemplo  ",
+    email: "  contato@example.org  ",
+    phone: "  ",
+    message: "  Documento disponível  ",
+    consent: true,
+    app_id: "999",
+    user_id: 1001,
+    ownership_status: "verified",
+    can_sell: true,
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    appApiClient.post.mockResolvedValue({ data: { status: "pending_claim" } });
+  });
+
+  test.each([
+    ["ID zero", "000"],
+    ["ID negativo", -1],
+    ["ID fracionário", "1.0"],
+    ["notação científica", "1e3"],
+    ["espaço em ID", " 7"],
+    ["número acima do limite seguro", Number.MAX_SAFE_INTEGER + 1],
+    ["array", [7]],
+    ["objeto", { id: 7 }],
+    ["ID ausente", undefined],
+  ])("%s impede POST de reivindicação", async (_, entityId) => {
+    await expect(claimService.submit({ ...validClaim, entityId }))
+      .rejects.toThrow("Identificador da entidade inválido.");
+    expect(appApiClient.post).not.toHaveBeenCalled();
+  });
+
+  test("preserva ID decimal de 64 bits sem perda e omite campos de autoridade forjados", async () => {
+    await expect(claimService.submit(validClaim)).resolves.toEqual({ status: "pending_claim" });
+    expect(appApiClient.post).toHaveBeenCalledTimes(1);
+    expect(appApiClient.post).toHaveBeenCalledWith("/independence/claims", {
+      entity_type: "event",
+      entity_id: "9223372036854775807",
+      name: "Produtora Exemplo",
+      email: "contato@example.org",
+      phone: null,
+      message: "Documento disponível",
+      consent: true,
+    });
+    const [, payload] = appApiClient.post.mock.calls[0];
+    expect(payload).not.toHaveProperty("app_id");
+    expect(payload).not.toHaveProperty("user_id");
+    expect(payload).not.toHaveProperty("ownership_status");
+    expect(payload).not.toHaveProperty("can_sell");
+  });
+
+  test("não transforma consentimento textual em autorização booleana", async () => {
+    await claimService.submit({ ...validClaim, entityId: 7, consent: "true" });
+    expect(appApiClient.post).toHaveBeenCalledWith(
+      "/independence/claims",
+      expect.objectContaining({ entity_id: "7", consent: false })
+    );
+  });
+
+  test("erro HTTP é propagado sem simular aprovação de titularidade", async () => {
+    const failure = new Error("API indisponível");
+    appApiClient.post.mockRejectedValueOnce(failure);
+    await expect(claimService.submit(validClaim)).rejects.toBe(failure);
+    expect(appApiClient.post).toHaveBeenCalledTimes(1);
+  });
+
+  test("consulta de solicitações usa endpoint da conta sem aceitar tenant arbitrário", async () => {
+    appApiClient.get.mockResolvedValueOnce({ data: { data: [{ id: 8, status: "pending" }] } });
+    await expect(claimService.mine()).resolves.toEqual([{ id: 8, status: "pending" }]);
+    expect(appApiClient.get).toHaveBeenCalledWith("/independence/claims/mine");
+    expect(appApiClient.post).not.toHaveBeenCalled();
   });
 });
