@@ -814,3 +814,87 @@ describe("W2 — falhas e concorrência HTTP não aprovam reivindicações", () 
     expect(claimStatusMessage(response.status)).not.toMatch(/acesso liberado|titularidade transferida/i);
   });
 });
+
+describe("W2 — concorrência de reivindicações não mistura entidades nem estados", () => {
+  const claimService = jest.requireActual("../../services/IndependenceClaimService").default;
+  const appApiClient = require("../../services/AppApiClient").default;
+  const request = (entityType, entityId) => ({
+    entityType,
+    entityId,
+    name: "Responsável pela ficha",
+    email: "contato@example.org",
+    consent: true,
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test("respostas fora de ordem preservam o status e o identificador de cada solicitação", async () => {
+    let resolveEvent;
+    let resolveProduction;
+    appApiClient.post
+      .mockImplementationOnce(() => new Promise((resolve) => { resolveEvent = resolve; }))
+      .mockImplementationOnce(() => new Promise((resolve) => { resolveProduction = resolve; }));
+
+    const eventPromise = claimService.submit(request("event", "9007199254740993"));
+    const productionPromise = claimService.submit(request("production", "9007199254740994"));
+    expect(appApiClient.post).toHaveBeenCalledTimes(2);
+    expect(appApiClient.post.mock.calls.map(([, payload]) => [
+      payload.entity_type, payload.entity_id,
+    ])).toEqual([
+      ["event", "9007199254740993"],
+      ["production", "9007199254740994"],
+    ]);
+
+    const productionResponse = { status: "duplicate", entity_id: "9007199254740994" };
+    resolveProduction({ data: productionResponse });
+    await expect(productionPromise).resolves.toBe(productionResponse);
+
+    const eventResponse = { status: "pending_claim", entity_id: "9007199254740993" };
+    resolveEvent({ data: eventResponse });
+    await expect(eventPromise).resolves.toBe(eventResponse);
+    expect(claimStatusMessage(productionResponse.status)).not.toMatch(/propriedade transferida|venda habilitada/i);
+    expect(claimStatusMessage(eventResponse.status)).not.toMatch(/propriedade transferida|venda habilitada/i);
+  });
+
+  test("falha de uma reivindicação concorrente não aprova nem altera a outra", async () => {
+    let rejectArtist;
+    let resolveEvent;
+    appApiClient.post
+      .mockImplementationOnce(() => new Promise((_, reject) => { rejectArtist = reject; }))
+      .mockImplementationOnce(() => new Promise((resolve) => { resolveEvent = resolve; }));
+
+    const artistPromise = claimService.submit(request("artist", "101"));
+    const eventPromise = claimService.submit(request("event", "102"));
+    const artistError = Object.assign(new Error("Sessão revogada"), { response: { status: 401 } });
+    rejectArtist(artistError);
+    await expect(artistPromise).rejects.toBe(artistError);
+
+    const eventResponse = { status: "pending_claim", entity_id: "102" };
+    resolveEvent({ data: eventResponse });
+    await expect(eventPromise).resolves.toBe(eventResponse);
+    expect(appApiClient.post).toHaveBeenCalledTimes(2);
+    expect(appApiClient.post.mock.calls[0][1].entity_id).toBe("101");
+    expect(appApiClient.post.mock.calls[1][1].entity_id).toBe("102");
+  });
+
+  test("consulta de reivindicações não herda resposta de envio simultâneo", async () => {
+    let resolveSubmit;
+    let resolveMine;
+    appApiClient.post.mockImplementationOnce(() => new Promise((resolve) => { resolveSubmit = resolve; }));
+    appApiClient.get.mockImplementationOnce(() => new Promise((resolve) => { resolveMine = resolve; }));
+
+    const submitted = claimService.submit(request("event", "91"));
+    const mine = claimService.mine();
+    const currentClaims = [{ id: 3, status: "rejected" }];
+    resolveMine({ data: { data: currentClaims } });
+    await expect(mine).resolves.toBe(currentClaims);
+
+    const submitResponse = { status: "pending_claim" };
+    resolveSubmit({ data: submitResponse });
+    await expect(submitted).resolves.toBe(submitResponse);
+    expect(appApiClient.get).toHaveBeenCalledWith("/independence/claims/mine");
+    expect(appApiClient.post).toHaveBeenCalledTimes(1);
+  });
+});
