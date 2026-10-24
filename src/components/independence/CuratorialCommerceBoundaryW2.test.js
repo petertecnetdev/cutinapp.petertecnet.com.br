@@ -969,3 +969,67 @@ describe("W2 — resposta de claim não concede comércio sem atualização da f
     expect(canShowListingCommerce(entity)).toBe(false);
   });
 });
+
+describe("W2 — payloads hostis não atravessam a fronteira entre aplicações", () => {
+  const aprovado = {
+    id: "91",
+    app_id: "7",
+    ownership_status: "verified",
+    verification_status: "manual_approved",
+    ownership_verified_at: "2026-10-20T00:00:00Z",
+    can_sell: true,
+  };
+
+  test.each([
+    ["BigInt", 7n],
+    ["Symbol", Symbol("7")],
+    ["algarismo árabe-indic", "٧"],
+    ["separador numérico", "7_0"],
+    ["quebra de linha", "7\n"],
+    ["sinal positivo", "+7"],
+  ])("nega CTA quando app_id da produção é %s", (_, appId) => {
+    const entity = { ...aprovado, production: { ...aprovado, app_id: appId } };
+    expect(canShowListingCommerce(entity)).toBe(false);
+  });
+
+  test.each(["event", "production"])(
+    "não executa coerção de objeto hostil no app_id de %s",
+    (target) => {
+      const toString = jest.fn(() => { throw new Error("coerção proibida"); });
+      const hostile = { toString, valueOf: toString };
+      const entity = {
+        ...aprovado,
+        app_id: target === "event" ? hostile : "7",
+        production: { ...aprovado, app_id: target === "production" ? hostile : "7" },
+      };
+      expect(canShowListingCommerce(entity)).toBe(false);
+      expect(toString).not.toHaveBeenCalled();
+    }
+  );
+
+  test("ficha curatorial e ingressos congelados continuam informativos, sem mutação", () => {
+    const ticket = Object.freeze({
+      id: "10", informational_only: true, curatorial_information_only: true,
+      sales_enabled: false, price: 49.9,
+    });
+    const entity = Object.freeze({
+      ...curated({ app_id: "7", tickets: Object.freeze([ticket]) }),
+      production: Object.freeze({ ...aprovado }),
+    });
+    expect(canShowListingCommerce(entity)).toBe(false);
+    expect(render(entity)).toContain("responsável não verificado");
+    expect(render(entity)).not.toMatch(/Comprar ingresso|Finalizar compra|Adicionar ao carrinho/i);
+    expect(entity.tickets[0]).toBe(ticket);
+    expect(entity.production.app_id).toBe("7");
+  });
+
+  test("ficha verificada e produção congeladas preservam o controle positivo", () => {
+    const entity = Object.freeze({
+      ...aprovado,
+      production: Object.freeze({ ...aprovado, app_id: "0007" }),
+    });
+    expect(isUnverifiedListing(entity)).toBe(false);
+    expect(canShowListingCommerce(entity)).toBe(true);
+    expect(entity.production.app_id).toBe("0007");
+  });
+});
