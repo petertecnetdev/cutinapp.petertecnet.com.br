@@ -232,3 +232,75 @@ describe("W2 — metadados curatoriais incompletos não concedem venda", () => {
     })).toBe(false);
   });
 });
+
+describe("W2 — compatibilidade legada sem abrir comércio curatorial", () => {
+  const legado = {
+    id: 20,
+    app_id: "7",
+    ownership_status: "verified",
+    verification_status: "legacy_owner_record",
+    listing_source: "legacy_organizer",
+    can_sell: true,
+  };
+  const eventoAprovado = {
+    id: 91,
+    app_id: "7",
+    ownership_status: "verified",
+    verification_status: "manual_approved",
+    ownership_verified_at: "2026-10-20T00:00:00Z",
+    can_sell: true,
+  };
+
+  test("registro legado legítimo conserva a apresentação comercial anterior", () => {
+    expect(isUnverifiedListing(legado)).toBe(false);
+    expect(canShowListingCommerce(legado)).toBe(true);
+  });
+
+  test.each([
+    ["origem de curadoria", { listing_source: "curated" }],
+    ["origem institucional não comprovada", { listing_source: "institutional" }],
+    ["revisão pendente", { verification_status: "pending_claim" }],
+    ["reivindicação pendente", { ownership_status: "pending_claim" }],
+  ])("%s não pode se passar por titularidade legada verificada", (_, alteracao) => {
+    const entity = { ...legado, ...alteracao };
+    expect(isUnverifiedListing(entity)).toBe(true);
+    expect(canShowListingCommerce(entity)).toBe(false);
+  });
+
+  test("produção com marcador legado e origem curatorial bloqueia o evento aprovado", () => {
+    const entity = {
+      ...eventoAprovado,
+      production: { ...legado, listing_source: "curated" },
+    };
+    expect(canShowListingCommerce(entity)).toBe(false);
+  });
+
+  test("produção legada legítima no mesmo app preserva compatibilidade", () => {
+    expect(canShowListingCommerce({
+      ...eventoAprovado,
+      production: { ...legado },
+    })).toBe(true);
+  });
+
+  test("verificação antiga sem ownership não autoriza ficha com origem curatorial", () => {
+    const entity = {
+      id: 91,
+      verification_status: "verified",
+      listing_source: "curated",
+      can_sell: true,
+    };
+    expect(isUnverifiedListing(entity)).toBe(true);
+    expect(canShowListingCommerce(entity)).toBe(false);
+  });
+
+  test("verificação antiga com origem legítima preserva apresentação legada", () => {
+    const entity = {
+      id: 91,
+      verification_status: "verified",
+      listing_source: "legacy_organizer",
+      can_sell: true,
+    };
+    expect(isUnverifiedListing(entity)).toBe(false);
+    expect(canShowListingCommerce(entity)).toBe(true);
+  });
+});
