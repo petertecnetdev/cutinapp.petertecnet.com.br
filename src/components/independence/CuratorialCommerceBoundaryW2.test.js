@@ -1,7 +1,7 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import UnverifiedListingPanel from "./UnverifiedListingPanel";
-import { canShowListingCommerce, isUnverifiedListing } from "../../utils/independenceListing";
+import { canShowListingCommerce, claimStatusMessage, isUnverifiedListing } from "../../utils/independenceListing";
 
 // O serviço não é chamado durante SSR; mock evita importar Axios ESM no Jest legado.
 jest.mock("../../services/IndependenceClaimService", () => ({
@@ -444,5 +444,42 @@ describe("W2 — payloads mistos de ingressos não concedem checkout", () => {
       tickets: [{ ...ingressoComercial }, { ...ingressoComercial, informational_only: true }],
     };
     expect(canShowListingCommerce(entity)).toBe(false);
+  });
+});
+
+
+describe("W2 — fontes locais e estados de reivindicação não transferem titularidade", () => {
+  test.each([
+    ["host de rede interna", "https://agenda.internal/evento"],
+    ["domínio .local", "https://eventos.local/agenda"],
+    ["IPv4 privado", "https://192.168.1.10/agenda"],
+    ["IP de metadados cloud", "https://169.254.169.254/latest/meta-data/"],
+    ["IPv6 link-local", "https://[fe80::1]/agenda"],
+    ["protocolo file", "file:///etc/passwd"],
+    ["protocolo blob", "blob:https://example.org/agenda"],
+  ])("%s não vira link público nem libera CTA comercial", (_, source_url) => {
+    const entity = curated({ source_url, can_sell: true });
+    const html = render(entity, "event");
+    expect(html).toContain("Referência não disponível");
+    expect(html).not.toContain('href="');
+    expect(html).not.toMatch(/Comprar ingresso|Finalizar compra|Pagar agora|Emitir QR/i);
+    expect(canShowListingCommerce(entity)).toBe(false);
+  });
+
+  test.each(["pending", "pending_claim", "duplicate", "rejected", "unexpected"])(
+    "estado %s não afirma transferência ou acesso automático",
+    (status) => {
+      const message = claimStatusMessage(status);
+      expect(message).toBeTruthy();
+      expect(message).not.toMatch(/acesso liberado|propriedade transferida|venda habilitada/i);
+    }
+  );
+
+  test("aprovação é diferenciada de solicitação pendente, sem afirmar venda automática", () => {
+    const approved = claimStatusMessage("approved");
+    const pending = claimStatusMessage("pending_claim");
+    expect(approved).toContain("aprovada após verificação");
+    expect(pending).toContain("não transfere acesso ou propriedade");
+    expect(approved).not.toMatch(/venda habilitada|checkout liberado/i);
   });
 });
