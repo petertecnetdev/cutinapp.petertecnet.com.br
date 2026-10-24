@@ -4,6 +4,7 @@ import { Alert, Container, Spinner } from "react-bootstrap";
 import { Link, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
 import BlogDiscoveryCarousels from "../../components/blog/BlogDiscoveryCarousels";
+import { InlineText } from "./BlogInlineText";
 import blogService from "../../services/BlogService";
 import { storageUrl } from "../../config";
 import "../../styles/blog.css";
@@ -103,18 +104,6 @@ function parseArticle(content) {
   flushList();
   return blocks;
 }
-
-function InlineText({ text }) {
-  const parts = String(text || "").split(/(\*\*[^*]+\*\*)/g);
-  return <>{parts.map((part, index) => {
-    if (/^\*\*[^*]+\*\*$/.test(part)) return <strong key={index}>{part.slice(2, -2)}</strong>;
-    return <React.Fragment key={index}>{part}</React.Fragment>;
-  })}</>;
-}
-
-InlineText.propTypes = {
-  text: PropTypes.string,
-};
 
 function ArticleBody({ content }) {
   const blocks = useMemo(() => parseArticle(content), [content]);
