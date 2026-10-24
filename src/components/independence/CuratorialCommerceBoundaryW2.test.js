@@ -570,3 +570,55 @@ describe("W2 — reivindicação não forja identidade, tenant ou autorização"
     expect(appApiClient.post).not.toHaveBeenCalled();
   });
 });
+
+
+describe("W2 — limites de exposição pública no fluxo de reivindicação", () => {
+  test.each(["event", "production", "artist"])(
+    "%s não expõe formulário nem dados de contato sem autenticação",
+    (entityType) => {
+      const html = render(curated({
+        contact_email: "privado@example.org",
+        phone: "+55 62 99999-9999",
+      }), entityType);
+      expect(html).toContain("Reivindicar esta página — criar conta");
+      expect(html).not.toContain("<form");
+      expect(html).not.toContain("type=\"email\"");
+      expect(html).not.toContain("type=\"tel\"");
+      expect(html).not.toContain("privado@example.org");
+      expect(html).not.toContain("+55 62 99999-9999");
+    }
+  );
+
+  test.each(["verified", "rejected"])(
+    "status de titularidade %s não oferece reivindicação direta no painel",
+    (ownership_status) => {
+      const entity = curated({ ownership_status });
+      expect(render(entity)).toBe("");
+      if (ownership_status === "rejected") {
+        expect(canShowListingCommerce(entity)).toBe(false);
+      }
+    }
+  );
+
+  test("usuário autenticado vê entrada para reivindicar, sem formulário antes de consentir", () => {
+    const html = renderToStaticMarkup(React.createElement(UnverifiedListingPanel, {
+      entity: curated(),
+      entityType: "event",
+      user: { id: 17, email: "usuario@example.org", name: "Pessoa Autenticada" },
+      onLogin: () => {},
+    }));
+    expect(html).toContain("Reivindicar esta página");
+    expect(html).not.toContain("Reivindicar esta página — criar conta");
+    expect(html).not.toContain("<form");
+    expect(html).not.toContain("usuario@example.org");
+    expect(html).not.toMatch(/Comprar ingresso|Finalizar compra|Adicionar ao carrinho/i);
+  });
+
+  test("data de conferência inválida não inventa uma data pública", () => {
+    const html = render(curated({ last_verified_at: "nao-e-uma-data" }));
+    expect(html).toContain("Última conferência");
+    expect(html).toContain("Não informada");
+    expect(html).not.toContain("Invalid Date");
+    expect(canShowListingCommerce(curated({ last_verified_at: "nao-e-uma-data" }))).toBe(false);
+  });
+});
