@@ -7,6 +7,16 @@ import { buildAutomationSnapshotW4, describeWorkerW4 } from "./curatorialAutomat
 export default function CuratorialAutomationMonitorW4({ context, applicationId, apiResponse }) {
   const scope = resolveCuratorialReadScopeW4(context, applicationId);
   if (!scope.canView) return <p role="status">Acesso ao monitoramento indisponível.</p>;
+  // Exigir application_id canônico devolvido pela API, não uma etiqueta
+  // adicionada pelo cliente. Resposta sem origem ou de outro app é negada.
+  // O backend ainda precisa assegurar a origem antes de ativar a rota.
+  const responseApplicationId = apiResponse?.data?.application_id;
+  const validResponseId = (typeof responseApplicationId === "number" &&
+    Number.isSafeInteger(responseApplicationId) && responseApplicationId > 0) ||
+    (typeof responseApplicationId === "string" && /^[1-9]\\d*$/.test(responseApplicationId));
+  if (!validResponseId || String(responseApplicationId) !== String(applicationId)) {
+    return <p role="status">Dados de automações indisponíveis: aplicação da resposta não confirmada.</p>;
+  }
   const snapshot = buildAutomationSnapshotW4(apiResponse);
   if (!snapshot.valid) return <p role="status">Dados de automações indisponíveis. Nenhuma contagem foi presumida.</p>;
   return <section aria-label="Monitoramento da curadoria" className="container-fluid px-0">
