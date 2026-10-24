@@ -304,3 +304,51 @@ describe("W2 — compatibilidade legada sem abrir comércio curatorial", () => {
     expect(canShowListingCommerce(entity)).toBe(true);
   });
 });
+
+
+describe("W2 — regressões de tipos de escopo e autorização comercial", () => {
+  const aprovado = {
+    ownership_status: "verified",
+    verification_status: "manual_approved",
+    ownership_verified_at: "2026-10-20T00:00:00Z",
+    can_sell: true,
+    app_id: "7",
+  };
+
+  test.each([
+    ["booleano", true],
+    ["array", [7]],
+    ["objeto", { id: 7 }],
+    ["dígitos Unicode", "７"],
+    ["espaço à esquerda", " 7"],
+    ["número fracionário textual", "7.0"],
+    ["zero", "0"],
+    ["inteiro JavaScript impreciso", Number.MAX_SAFE_INTEGER + 1],
+    ["notação exponencial", "7e0"],
+    ["identificador ausente", undefined],
+  ])("nega comércio quando app_id da produção tem formato %s", (_, appId) => {
+    const entity = {
+      ...aprovado,
+      production: { ...aprovado, app_id: appId },
+    };
+    expect(canShowListingCommerce(entity)).toBe(false);
+  });
+
+  test.each([1, "true", "1", {}, [], false, 0])(
+    "nega comércio quando a API devolve can_sell não booleano estrito (%j)",
+    (flag) => {
+      expect(canShowListingCommerce({ ...aprovado, can_sell: flag })).toBe(false);
+      expect(canShowListingCommerce({
+        ...aprovado,
+        production: { ...aprovado, can_sell: flag },
+      })).toBe(false);
+    }
+  );
+
+  test("preserva a venda legítima com app_id canônico e flags booleanas verdadeiras", () => {
+    expect(canShowListingCommerce({
+      ...aprovado,
+      production: { ...aprovado, app_id: "0007", can_sell: true },
+    })).toBe(true);
+  });
+});
