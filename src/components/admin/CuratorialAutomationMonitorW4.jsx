@@ -13,7 +13,7 @@ export default function CuratorialAutomationMonitorW4({ context, applicationId, 
   const responseApplicationId = apiResponse?.data?.application_id;
   const validResponseId = (typeof responseApplicationId === "number" &&
     Number.isSafeInteger(responseApplicationId) && responseApplicationId > 0) ||
-    (typeof responseApplicationId === "string" && /^[1-9]\\d*$/.test(responseApplicationId));
+    (typeof responseApplicationId === "string" && /^[1-9]\d*$/.test(responseApplicationId));
   if (!validResponseId || String(responseApplicationId) !== String(applicationId)) {
     return <p role="status">Dados de automações indisponíveis: aplicação da resposta não confirmada.</p>;
   }
