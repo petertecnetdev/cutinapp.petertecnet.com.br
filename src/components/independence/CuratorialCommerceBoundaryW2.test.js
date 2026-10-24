@@ -764,3 +764,53 @@ describe("W2 — requisições de reivindicação rejeitam coerção e consentim
     expect(appApiClient.post).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("W2 — falhas e concorrência HTTP não aprovam reivindicações", () => {
+  const claimService = jest.requireActual("../../services/IndependenceClaimService").default;
+  const appApiClient = require("../../services/AppApiClient").default;
+  const request = {
+    entityType: "event",
+    entityId: "9007199254740993",
+    name: "Produtora Responsável",
+    email: "responsavel@example.org",
+    consent: true,
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test.each([409, 422, 429, 503])(
+    "POST com HTTP %i rejeita sem retry nem aprovação local",
+    async (status) => {
+      const failure = Object.assign(new Error("Solicitação não concluída"), {
+        response: { status, data: { message: "Solicitação não concluída" } },
+      });
+      appApiClient.post.mockRejectedValueOnce(failure);
+      await expect(claimService.submit(request)).rejects.toBe(failure);
+      expect(appApiClient.post).toHaveBeenCalledTimes(1);
+      expect(appApiClient.get).not.toHaveBeenCalled();
+    }
+  );
+
+  test.each([401, 429])(
+    "GET mine com HTTP %i não transforma falha em lista ou status aprovado",
+    async (status) => {
+      const failure = Object.assign(new Error("Consulta indisponível"), {
+        response: { status },
+      });
+      appApiClient.get.mockRejectedValueOnce(failure);
+      await expect(claimService.mine()).rejects.toBe(failure);
+      expect(appApiClient.get).toHaveBeenCalledTimes(1);
+      expect(appApiClient.post).not.toHaveBeenCalled();
+    }
+  );
+
+  test("resposta duplicada preserva status pendente sem inventar transferência", async () => {
+    const response = { status: "duplicate", message: "Já existe uma solicitação" };
+    appApiClient.post.mockResolvedValueOnce({ data: response });
+    await expect(claimService.submit(request)).resolves.toBe(response);
+    expect(appApiClient.post).toHaveBeenCalledTimes(1);
+    expect(claimStatusMessage(response.status)).not.toMatch(/acesso liberado|titularidade transferida/i);
+  });
+});
