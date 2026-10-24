@@ -898,3 +898,74 @@ describe("W2 — concorrência de reivindicações não mistura entidades nem es
     expect(appApiClient.post).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("W2 — resposta de claim não concede comércio sem atualização da ficha", () => {
+  const claimService = jest.requireActual("../../services/IndependenceClaimService").default;
+  const appApiClient = require("../../services/AppApiClient").default;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test.each([
+    ["event", "approved"],
+    ["production", "approved"],
+    ["artist", "approved"],
+    ["event", "duplicate"],
+    ["production", "pending_claim"],
+    ["artist", "rejected"],
+  ])("%s com resposta %s mantém ficha curatorial sem CTA", async (entityType, status) => {
+    const entity = curated({ id: "9007199254740993", app_id: "6" });
+    const original = { ...entity };
+    const response = {
+      status,
+      entity_type: entityType,
+      entity_id: entity.id,
+      can_sell: true,
+    };
+    appApiClient.post.mockResolvedValueOnce({ data: response });
+
+    await expect(claimService.submit({
+      entityType,
+      entityId: entity.id,
+      name: "Responsável",
+      email: "responsavel@example.org",
+      consent: true,
+    })).resolves.toBe(response);
+
+    // O resultado do pedido não é uma autorização de comércio nem uma
+    // atualização de ownership do registro público.
+    expect(entity).toEqual(original);
+    expect(isUnverifiedListing(entity)).toBe(true);
+    expect(canShowListingCommerce(entity)).toBe(false);
+    const html = render(entity, entityType);
+    expect(html).toContain("responsável não verificado");
+    expect(html).not.toMatch(/Comprar ingresso|Finalizar compra|Adicionar ao carrinho|Pagar agora/i);
+    expect(appApiClient.post).toHaveBeenCalledTimes(1);
+    expect(appApiClient.get).not.toHaveBeenCalled();
+  });
+
+  test("listagem de reivindicações aprovadas não altera permissão de venda da ficha", async () => {
+    const entity = curated({ ownership_status: "pending_claim", can_sell: true });
+    const claims = [{ id: 7, entity_type: "event", entity_id: entity.id, status: "approved" }];
+    appApiClient.get.mockResolvedValueOnce({ data: { data: claims } });
+
+    await expect(claimService.mine()).resolves.toBe(claims);
+    expect(canShowListingCommerce(entity)).toBe(false);
+    expect(render(entity)).toContain("responsável não verificado");
+    expect(appApiClient.get).toHaveBeenCalledTimes(1);
+    expect(appApiClient.post).not.toHaveBeenCalled();
+  });
+
+  test("titularidade aprovada sem can_sell explícito permanece sem comércio", () => {
+    const entity = {
+      id: "9007199254740993",
+      ownership_status: "verified",
+      verification_status: "manual_approved",
+      ownership_verified_at: "2026-10-24T00:00:00Z",
+      can_sell: false,
+    };
+    expect(isUnverifiedListing(entity)).toBe(false);
+    expect(canShowListingCommerce(entity)).toBe(false);
+  });
+});
