@@ -1033,3 +1033,59 @@ describe("W2 — payloads hostis não atravessam a fronteira entre aplicações"
     expect(entity.production.app_id).toBe("0007");
   });
 });
+
+
+describe("W2 — falhas de transporte e estados legados não liberam comércio", () => {
+  const claimService = jest.requireActual("../../services/IndependenceClaimService").default;
+  const appApiClient = require("../../services/AppApiClient").default;
+  const request = {
+    entityType: "event",
+    entityId: "91",
+    name: "Responsável",
+    email: "contato@example.org",
+    consent: true,
+  };
+
+  beforeEach(() => { jest.clearAllMocks(); });
+
+  test.each(["ECONNABORTED", "ERR_NETWORK", "ERR_CANCELED", "ETIMEDOUT"])(
+    "falha de transporte %s no POST não é repetida nem convertida em aprovação",
+    async (code) => {
+      const failure = Object.assign(new Error("Conexão interrompida"), { code });
+      appApiClient.post.mockRejectedValueOnce(failure);
+      await expect(claimService.submit(request)).rejects.toBe(failure);
+      expect(appApiClient.post).toHaveBeenCalledTimes(1);
+      expect(appApiClient.get).not.toHaveBeenCalled();
+      expect(canShowListingCommerce(curated())).toBe(false);
+    }
+  );
+
+  test("falha de rede ao consultar pedidos não cria status de titularidade", async () => {
+    const failure = Object.assign(new Error("Sem conexão"), { code: "ERR_NETWORK" });
+    appApiClient.get.mockRejectedValueOnce(failure);
+    await expect(claimService.mine()).rejects.toBe(failure);
+    expect(appApiClient.get).toHaveBeenCalledTimes(1);
+    expect(appApiClient.post).not.toHaveBeenCalled();
+    expect(canShowListingCommerce(curated({ ownership_status: "pending_claim" }))).toBe(false);
+  });
+
+  test("consulta com envelope vazio não é interpretada como reivindicação aprovada", async () => {
+    appApiClient.get.mockResolvedValueOnce({ data: {} });
+    await expect(claimService.mine()).resolves.toBeUndefined();
+    expect(appApiClient.get).toHaveBeenCalledTimes(1);
+    expect(appApiClient.post).not.toHaveBeenCalled();
+    expect(canShowListingCommerce(curated())).toBe(false);
+  });
+
+  test.each(["UNCLAIMED", "PENDING_CLAIM"])(
+    "ownership_status %s em caixa alta continua exibindo aviso e bloqueando venda",
+    (ownership_status) => {
+      const entity = curated({ ownership_status, can_sell: true });
+      expect(isUnverifiedListing(entity)).toBe(true);
+      expect(canShowListingCommerce(entity)).toBe(false);
+      const html = render(entity);
+      expect(html).toContain("responsável não verificado");
+      expect(html).not.toMatch(/Comprar ingresso|Finalizar compra|Adicionar ao carrinho/i);
+    }
+  );
+});
