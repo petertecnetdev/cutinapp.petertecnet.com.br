@@ -29,7 +29,11 @@ describe("W4: monitor de curadoria sem elevação ou checkout", () => {
     const payload = { ...apiResponse, data: { ...apiResponse.data, application_id } };
     const html = render(context(), payload);
     expect(html).toContain("aplicação da resposta não confirmada");
-    expect(html).not.toMatch(/Fontes com erro|Últimas execuções|Concluída|<table\\b|<button\\b|<form\\b/);
+    expect(html).not.toMatch(/Fontes com erro|Últimas execuções|Concluída|<table\b|<button\b|<form\b/);
+  });
+  test("aceita identificador canônico textual da aplicação", () => {
+    const payload = { ...apiResponse, data: { ...apiResponse.data, application_id: "7" } };
+    expect(render(context({ application_id: "7" }), payload, "7")).toContain("Fontes com erro");
   });
   test("troca A→B→A não reaproveita métricas da aplicação anterior", () => {
     const responseB = { ...apiResponse, data: { ...apiResponse.data, application_id: 8 } };
