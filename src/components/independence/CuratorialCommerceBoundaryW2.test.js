@@ -702,3 +702,65 @@ describe("W2 — URLs de proveniência não sofrem coerção implícita", () => 
     expect(html).not.toMatch(/Comprar ingresso|Finalizar compra|Adicionar ao carrinho/i);
   });
 });
+
+
+describe("W2 — requisições de reivindicação rejeitam coerção e consentimento implícito", () => {
+  const claimService = jest.requireActual("../../services/IndependenceClaimService").default;
+  const appApiClient = require("../../services/AppApiClient").default;
+  const base = {
+    entityType: "event",
+    entityId: "91",
+    name: "Pessoa Responsável",
+    email: "contato@example.org",
+    consent: true,
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    appApiClient.post.mockResolvedValue({ data: { status: "pending_claim" } });
+  });
+
+  test.each([
+    ["booleano", true],
+    ["BigInt", BigInt("9007199254740993")],
+    ["objeto Number", new Number(91)],
+    ["data", new Date("2026-10-24T00:00:00Z")],
+    ["número NaN", Number.NaN],
+    ["número infinito", Infinity],
+    ["sinal positivo", "+91"],
+    ["prefixo hexadecimal", "0x5b"],
+    ["quebra de linha", "91\n"],
+    ["ID nulo", null],
+  ])("%s não é convertido em ID e não produz POST", async (_, entityId) => {
+    await expect(claimService.submit({ ...base, entityId }))
+      .rejects.toThrow("Identificador da entidade inválido.");
+    expect(appApiClient.post).not.toHaveBeenCalled();
+  });
+
+  test("objeto hostil não tem toString executado para produzir identificador", async () => {
+    const toString = jest.fn(() => { throw new Error("coerção indevida"); });
+    await expect(claimService.submit({ ...base, entityId: { toString } }))
+      .rejects.toThrow("Identificador da entidade inválido.");
+    expect(toString).not.toHaveBeenCalled();
+    expect(appApiClient.post).not.toHaveBeenCalled();
+  });
+
+  test.each(["on", 1, [], {}, null, undefined, false])(
+    "consentimento não booleano/negado %p nunca vira true no payload",
+    async (consent) => {
+      await claimService.submit({ ...base, consent });
+      expect(appApiClient.post).toHaveBeenCalledTimes(1);
+      expect(appApiClient.post).toHaveBeenCalledWith(
+        "/independence/claims",
+        expect.objectContaining({ consent: false })
+      );
+    }
+  );
+
+  test("erro 401 na solicitação é propagado sem aprovação implícita", async () => {
+    const denied = Object.assign(new Error("Sessão expirada"), { response: { status: 401 } });
+    appApiClient.post.mockRejectedValueOnce(denied);
+    await expect(claimService.submit(base)).rejects.toBe(denied);
+    expect(appApiClient.post).toHaveBeenCalledTimes(1);
+  });
+});
