@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import UnverifiedListingPanel from "./UnverifiedListingPanel";
 import { canShowListingCommerce, claimStatusMessage, isUnverifiedListing, safeListingSourceUrl } from "../../utils/independenceListing";
 import { reconcileStoredSelection } from "../../utils/checkoutSelectionRecovery";
-import { checkoutQuantityLimit, resolveCheckoutQuantity } from "../../utils/checkoutAddOns";
+import { checkoutQuantityLimit, rankCheckoutAddOns, resolveCheckoutQuantity } from "../../utils/checkoutAddOns";
 
 // O serviço não é chamado durante SSR; mock evita importar Axios ESM no Jest legado.
 jest.mock("../../services/IndependenceClaimService", () => ({
@@ -1703,5 +1703,70 @@ describe("W2 — contratos pendentes e controles de recuperação comercial", ()
     ]);
     expect(reconcileStoredSelection(current, stored("9007199254740994", [202])))
       .toEqual({});
+  });
+});
+
+
+// Regressões do funil de ofertas adicionais: o catálogo vigente determina
+// disponibilidade, limite e ordenação. A oferta informativa curatorial ainda
+// depende de correção do helper e da autorização definitiva na API.
+describe("W2 — ofertas adicionais respeitam catálogo e exclusões comerciais", () => {
+  const addOn = (id, price, extra = {}) => ({ id, price, available: true, remaining: 5, ...extra });
+
+  test.each([
+    ["indisponível", { available: false }],
+    ["expirado", { expired: true }],
+    ["sem estoque", { remaining: 0 }],
+    ["limite individual esgotado", { remaining_per_user: 0 }],
+  ])("%s não aparece na recomendação de itens", (_, restriction) => {
+    const blocked = addOn(301, 40, restriction);
+    const allowed = addOn(302, 20);
+    expect(rankCheckoutAddOns([blocked, allowed], new Set(), 3).map((item) => item.id))
+      .toEqual([302]);
+  });
+
+  test("item já selecionado não é recomendado novamente", () => {
+    expect(rankCheckoutAddOns([addOn(301, 20), addOn(302, 30)], new Set([301]), 3)
+      .map((item) => item.id)).toEqual([302]);
+  });
+
+  test("prioridades explícitas precedem a escada de preços", () => {
+    const items = [
+      addOn(301, 30, { checkout_priority: 2 }),
+      addOn(302, 10),
+      addOn(303, 40, { checkout_priority: 1 }),
+    ];
+    expect(rankCheckoutAddOns(items, new Set(), 3).map((item) => item.id))
+      .toEqual([303, 301, 302]);
+  });
+
+  test("escada de preços apresenta extremos sem duplicar oferta", () => {
+    const items = [addOn(301, 30), addOn(302, 10), addOn(303, 40), addOn(304, 20)];
+    expect(rankCheckoutAddOns(items, new Set(), 2).map((item) => item.id))
+      .toEqual([302, 303]);
+  });
+
+  test("limite zero, preço não positivo e ID ausente não geram oferta", () => {
+    const items = [addOn(301, 20), addOn(302, 0), addOn(303, -10), addOn(null, 30)];
+    expect(rankCheckoutAddOns(items, new Set(), 0)).toEqual([]);
+    expect(rankCheckoutAddOns(items.slice(1), new Set(), 3)).toEqual([]);
+  });
+
+  test("recomendar itens não modifica catálogo imutável", () => {
+    const items = Object.freeze([
+      Object.freeze(addOn(301, 30)),
+      Object.freeze(addOn(302, 10)),
+    ]);
+    expect(rankCheckoutAddOns(items, new Set(), 1).map((item) => item.id)).toEqual([302]);
+    expect(items.map((item) => item.id)).toEqual([301, 302]);
+  });
+
+  test.skip("P0 pendente: item curatorial informativo não pode ser recomendado como compra", () => {
+    const items = [
+      addOn(301, 50, { curatorial_information_only: true, sales_enabled: false }),
+      addOn(302, 20, { sales_enabled: true }),
+    ];
+    expect(rankCheckoutAddOns(items, new Set(), 3).map((item) => item.id))
+      .toEqual([302]);
   });
 });
