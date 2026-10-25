@@ -1842,3 +1842,61 @@ describe("W2 — métricas de ofertas comerciais preservam precisão e catálogo
       .toEqual([301]);
   });
 });
+
+// Regressões do catálogo de adicionais: o ranqueamento usa limites atuais,
+// respeita exclusões e preserva a ordem determinística de ofertas legítimas.
+// O veto curatorial P0 continua pendente e NÃO é coberto por estes controles.
+describe("W2 — catálogo de adicionais preserva limites e prioridade determinística", () => {
+  const item = (id, price, extra = {}) => ({
+    id, price, available: true, remaining: 5, ...extra,
+  });
+
+  test("prioridade zero explícita prevalece sobre priority e sort_order", () => {
+    const items = [
+      item(301, 15, { checkout_priority: 0, priority: 99, sort_order: 99 }),
+      item(302, 10, { priority: 1, sort_order: 98 }),
+      item(303, 20, { sort_order: "2" }),
+      item(304, 5),
+    ];
+    expect(rankCheckoutAddOns(items, new Set(), 3).map(({ id }) => id))
+      .toEqual([301, 302, 303]);
+  });
+
+  test("escada de preços distribui três recomendações entre sete ofertas", () => {
+    const items = [70, 10, 50, 30, 60, 20, 40]
+      .map((price, index) => item(301 + index, price));
+    expect(rankCheckoutAddOns(items, new Set(), 3).map(({ price }) => price))
+      .toEqual([10, 40, 70]);
+  });
+
+  test("estoque quantity substitui remaining ausente e bloqueia quantidade zero", () => {
+    const items = [
+      item(301, 10, { remaining: null, quantity: 0 }),
+      item(302, 20, { remaining: null, quantity: 2 }),
+    ];
+    expect(rankCheckoutAddOns(items, new Set(), 3).map(({ id }) => id))
+      .toEqual([302]);
+  });
+
+  test("remaining explícito zerado não é reaberto por quantity antigo", () => {
+    const items = [
+      item(301, 10, { remaining: "0", quantity: 500 }),
+      item(302, 20, { remaining: 3, quantity: 0 }),
+    ];
+    expect(rankCheckoutAddOns(items, new Set(), 3).map(({ id }) => id))
+      .toEqual([302]);
+  });
+
+  test("identificadores de itens já selecionados são excluídos mesmo se textuais", () => {
+    const items = [item("301", 10), item("302", 20), item("303", 30)];
+    expect(rankCheckoutAddOns(items, new Set([301, 303]), 3).map(({ id }) => id))
+      .toEqual(["302"]);
+  });
+
+  test.each([0, -2, NaN, "inválido"])(
+    "limite %p não cria recomendação adicional",
+    (limit) => {
+      expect(rankCheckoutAddOns([item(301, 10)], new Set(), limit)).toEqual([]);
+    }
+  );
+});
