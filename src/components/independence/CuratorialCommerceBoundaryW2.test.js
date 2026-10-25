@@ -2331,4 +2331,51 @@ describe("W2 — formulário autenticado preserva consentimento e veto comercial
     expect(container.querySelector('[role="status"]')?.textContent).toContain("Solicitação registrada");
     expect(container.textContent).not.toMatch(/Comprar ingresso|Finalizar compra|Pagar agora/i);
   });
+
+  // Identificadores decimais de 64 bits precisam chegar à API sem Number().
+  // A submissão não representa aprovação nem concede acesso comercial.
+  test.each(["production", "artist"])(
+    "%s envia tipo e ID decimal exatos sem liberar comércio", async (entityType) => {
+      claimService.submit.mockResolvedValueOnce({ status: "pending_claim" });
+      await show(entityType);
+      await click(container.querySelector(".cut-unverified__action"));
+      const form = container.querySelector("form");
+      await act(async () => { form.querySelector('input[type="checkbox"]').click(); });
+      await act(async () => {
+        form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+      });
+      expect(claimService.submit).toHaveBeenCalledTimes(1);
+      expect(claimService.submit).toHaveBeenCalledWith(expect.objectContaining({
+        entityType,
+        entityId: "9007199254740993",
+        consent: true,
+        email: "contato@example.org",
+      }));
+      expect(container.querySelector('[role="status"]')?.textContent).toContain("Solicitação registrada");
+      expect(container.textContent).not.toMatch(/Comprar ingresso|Finalizar compra|Pagar agora|Emitir QR/i);
+    }
+  );
+
+  test.each([
+    ["rede indisponível", new Error("Network Error"), "Não foi possível enviar"],
+    ["serviço indisponível", { response: { status: 503 } }, "Não foi possível enviar"],
+    ["mensagem hostil da API", { response: { status: 500, data: { message: '<img src=x onerror="alert(1)">' } } }, '<img src=x onerror="alert(1)">'],
+  ])("%s não fabrica sucesso de reivindicação nem executa HTML", async (_, failure, expected) => {
+    claimService.submit.mockRejectedValueOnce(failure);
+    await show("event");
+    await click(container.querySelector(".cut-unverified__action"));
+    const form = container.querySelector("form");
+    await act(async () => { form.querySelector('input[type="checkbox"]').click(); });
+    await act(async () => {
+      form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    });
+    expect(claimService.submit).toHaveBeenCalledTimes(1);
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain(expected);
+    expect(container.querySelector('[role="status"]')).toBeNull();
+    expect(container.querySelector("form")).not.toBeNull();
+    expect(container.querySelector('button[type="submit"]').disabled).toBe(false);
+    expect(container.querySelector("img")).toBeNull();
+    expect(container.textContent).not.toMatch(/Solicitação registrada|Comprar ingresso|Finalizar compra|Pagar agora/i);
+  });
+
 });
