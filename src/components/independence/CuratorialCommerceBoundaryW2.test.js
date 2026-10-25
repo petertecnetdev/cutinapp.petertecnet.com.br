@@ -2278,4 +2278,57 @@ describe("W2 — formulário autenticado preserva consentimento e veto comercial
     expect(container.querySelector('[role="status"]')).toBeNull();
     expect(container.textContent).not.toMatch(/Solicitação registrada|Comprar ingresso|Finalizar compra/i);
   });
+
+  test("envio pendente bloqueia repetição e mantém a ficha sem comércio", async () => {
+    let concluir;
+    claimService.submit.mockImplementationOnce(() => new Promise((resolve) => {
+      concluir = resolve;
+    }));
+    await show("event");
+    await click(container.querySelector(".cut-unverified__action"));
+    const form = container.querySelector("form");
+    await act(async () => { form.querySelector('input[type="checkbox"]').click(); });
+    await act(async () => {
+      form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    });
+    expect(claimService.submit).toHaveBeenCalledTimes(1);
+    expect(form.querySelector('button[type="submit"]').disabled).toBe(true);
+    expect(form.textContent).toContain("Enviando...");
+    await act(async () => {
+      form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    });
+    expect(claimService.submit).toHaveBeenCalledTimes(1);
+    expect(container.textContent).not.toMatch(/Comprar ingresso|Finalizar compra|Pagar agora/i);
+    await act(async () => { concluir({ status: "pending_claim" }); });
+    expect(container.querySelector('[role="status"]')?.textContent).toContain("Solicitação registrada");
+    expect(container.querySelector("form")).toBeNull();
+  });
+
+  test("falha temporária permite nova tentativa sem aprovação presumida", async () => {
+    claimService.submit
+      .mockRejectedValueOnce({ response: { status: 429, data: { message: "Aguarde antes de tentar novamente" } } })
+      .mockResolvedValueOnce({ status: "pending_claim" });
+    await show("artist");
+    await click(container.querySelector(".cut-unverified__action"));
+    const form = container.querySelector("form");
+    await act(async () => { form.querySelector('input[type="checkbox"]').click(); });
+    await act(async () => {
+      form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    });
+    expect(claimService.submit).toHaveBeenCalledTimes(1);
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain("Aguarde antes");
+    expect(container.querySelector('[role="status"]')).toBeNull();
+    expect(form.querySelector('button[type="submit"]').disabled).toBe(false);
+    expect(form.querySelector('input[type="checkbox"]').checked).toBe(true);
+    await act(async () => {
+      form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    });
+    expect(claimService.submit).toHaveBeenCalledTimes(2);
+    expect(claimService.submit).toHaveBeenLastCalledWith(expect.objectContaining({
+      entityType: "artist", consent: true,
+    }));
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+    expect(container.querySelector('[role="status"]')?.textContent).toContain("Solicitação registrada");
+    expect(container.textContent).not.toMatch(/Comprar ingresso|Finalizar compra|Pagar agora/i);
+  });
 });
