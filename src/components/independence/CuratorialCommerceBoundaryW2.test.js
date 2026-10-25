@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import UnverifiedListingPanel from "./UnverifiedListingPanel";
 import { canShowListingCommerce, claimStatusMessage, isUnverifiedListing, safeListingSourceUrl } from "../../utils/independenceListing";
 import { reconcileStoredSelection } from "../../utils/checkoutSelectionRecovery";
-import { checkoutQuantityLimit, rankCheckoutAddOns, resolveCheckoutQuantity } from "../../utils/checkoutAddOns";
+import { checkoutQuantityLimit, rankCheckoutAddOns, resolveCheckoutQuantity, summarizeCheckoutAddOnOffer } from "../../utils/checkoutAddOns";
 
 // O serviço não é chamado durante SSR; mock evita importar Axios ESM no Jest legado.
 jest.mock("../../services/IndependenceClaimService", () => ({
@@ -1768,5 +1768,77 @@ describe("W2 — ofertas adicionais respeitam catálogo e exclusões comerciais"
     ];
     expect(rankCheckoutAddOns(items, new Set(), 3).map((item) => item.id))
       .toEqual([302]);
+  });
+});
+
+
+// Telemetria de ofertas adicionais: valores legítimos devem permanecer
+// consistentes para análise de conversão, sem alterar os itens do catálogo.
+// A autorização de compra e o veto curatorial continuam exclusivos da API.
+describe("W2 — métricas de ofertas comerciais preservam precisão e catálogo", () => {
+  test("catálogo vazio produz métricas zeradas sem IDs residuais", () => {
+    expect(summarizeCheckoutAddOnOffer([])).toEqual({
+      offered_items: 0,
+      offered_item_ids: "",
+      offered_item_prices: "",
+      offered_value: 0,
+      min_addon_price: 0,
+    });
+  });
+
+  test("somente ofertas com ID e preço positivo entram na métrica", () => {
+    const items = [
+      { id: 301, price: "10.25" },
+      { id: 302, price: 20.75 },
+      { id: 303, price: 0 },
+      { id: 304, price: -9 },
+      { id: null, price: 90 },
+    ];
+    expect(summarizeCheckoutAddOnOffer(items)).toEqual({
+      offered_items: 2,
+      offered_item_ids: "301,302",
+      offered_item_prices: "10.25,20.75",
+      offered_value: 31,
+      min_addon_price: 10.25,
+    });
+  });
+
+  test("centavos em preços legítimos não geram resíduo binário na soma", () => {
+    const metrics = summarizeCheckoutAddOnOffer([
+      { id: 301, price: 0.1 },
+      { id: 302, price: 0.2 },
+    ]);
+    expect(metrics.offered_item_prices).toBe("0.10,0.20");
+    expect(metrics.offered_value).toBe(0.3);
+    expect(metrics.min_addon_price).toBe(0.1);
+  });
+
+  test("cálculo de métricas não modifica o catálogo congelado", () => {
+    const items = Object.freeze([
+      Object.freeze({ id: 301, price: 12.5 }),
+      Object.freeze({ id: 302, price: 17.5 }),
+    ]);
+    expect(summarizeCheckoutAddOnOffer(items).offered_value).toBe(30);
+    expect(items.map((item) => item.price)).toEqual([12.5, 17.5]);
+  });
+
+  test("empate de prioridade mantém a ordem estável do catálogo", () => {
+    const items = [
+      { id: 301, price: 50, available: true, checkout_priority: 1 },
+      { id: 302, price: 10, available: true, checkout_priority: 1 },
+      { id: 303, price: 20, available: true, checkout_priority: 2 },
+    ];
+    expect(rankCheckoutAddOns(items, new Set(), 2).map((item) => item.id))
+      .toEqual([301, 302]);
+  });
+
+  test("limite menor que as prioridades nunca amplia a quantidade recomendada", () => {
+    const items = [
+      { id: 301, price: 10, available: true, checkout_priority: 1 },
+      { id: 302, price: 20, available: true, checkout_priority: 2 },
+      { id: 303, price: 30, available: true, checkout_priority: 3 },
+    ];
+    expect(rankCheckoutAddOns(items, new Set(), 1).map((item) => item.id))
+      .toEqual([301]);
   });
 });
