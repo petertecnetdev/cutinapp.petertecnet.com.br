@@ -17,6 +17,7 @@ import SeoManager from "./components/SeoManager";
 import authService from "./services/AuthService";
 import { hasContextRole } from "./utils/applicationRoles";
 import lazyWithPreload from "./utils/lazyWithPreload";
+import { producerRegistrationRedirect } from "./utils/producerRegistrationRedirect";
 
 const EventFlyerAssistant = lazy(() => import("./components/EventFlyerAssistant"));
 const EventSeriesLauncher = lazy(() => import("./components/EventSeriesLauncher"));
@@ -159,7 +160,16 @@ function AppRoutes() {
     return !user.email_verified_at ? element : <Navigate to="/dashboard" replace />;
   };
 
-  const guestRoute = (element) => user ? <Navigate to="/dashboard" replace /> : element;
+  const guestRoute = (element) => {
+    if (!user) return element;
+    const destination = producerRegistrationRedirect(
+      location,
+      Boolean(user.email_verified_at) || canUseDeferredVerificationSession()
+    );
+    return destination
+      ? <Navigate to={destination.to} state={destination.state} replace />
+      : <Navigate to="/dashboard" replace />;
+  };
   const shellOwnsSignature = location.pathname === "/" || ["/login", "/register", "/password-email", "/email-verify", "/agent/activate"].includes(location.pathname);
   const needsEventFlyerAssistant = location.pathname === "/event/create" || /^\/event\/edit\/[^/]+$/.test(location.pathname);
   const needsEventSeriesLauncher = location.pathname === "/event/manage";
