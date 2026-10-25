@@ -2184,3 +2184,98 @@ describe("W2 — estados de reivindicação com capitalização variável", () =
     }
   );
 });
+
+
+// W2 — regressão interativa da reivindicação: o painel público não deve
+// submeter dados sem consentimento nem confundir protocolo com autorização.
+describe("W2 — formulário autenticado preserva consentimento e veto comercial", () => {
+  const { act } = require("react-dom/test-utils");
+  const { createRoot } = require("react-dom/client");
+  const claimService = require("../../services/IndependenceClaimService").default;
+  let container;
+  let root;
+
+  const show = async (entityType = "event") => {
+    await act(async () => {
+      root.render(React.createElement(UnverifiedListingPanel, {
+        entity: curated({ id: "9007199254740993", can_sell: true }),
+        entityType,
+        user: { id: 77, first_name: "Pessoa", last_name: "Responsável", email: "contato@example.org" },
+        onLogin: jest.fn(),
+      }));
+    });
+  };
+
+  const click = async (element) => {
+    await act(async () => { element.dispatchEvent(new MouseEvent("click", { bubbles: true })); });
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+  });
+
+  afterEach(async () => {
+    await act(async () => { root.unmount(); });
+    container.remove();
+  });
+
+  test.each(["event", "production", "artist"])(
+    "%s só abre formulário autenticado após ação explícita", async (entityType) => {
+      await show(entityType);
+      expect(container.querySelector("form")).toBeNull();
+      expect(container.textContent).not.toContain("contato@example.org");
+      const action = container.querySelector(".cut-unverified__action");
+      expect(action?.textContent).toBe("Reivindicar esta página");
+      await click(action);
+      const form = container.querySelector("form");
+      expect(form).not.toBeNull();
+      expect(form.querySelector('input[type="email"]').readOnly).toBe(true);
+      expect(form.querySelector('input[type="email"]').value).toBe("contato@example.org");
+      expect(form.querySelector('input[type="checkbox"]').checked).toBe(false);
+      expect(form.querySelector('button[type="submit"]').disabled).toBe(true);
+      expect(claimService.submit).not.toHaveBeenCalled();
+      expect(container.textContent).not.toMatch(/Comprar ingresso|Finalizar compra|Adicionar ao carrinho/i);
+    }
+  );
+
+  test("consentimento explícito permite somente solicitação pendente, nunca checkout", async () => {
+    claimService.submit.mockResolvedValueOnce({ status: "pending_claim" });
+    await show();
+    await click(container.querySelector(".cut-unverified__action"));
+    const form = container.querySelector("form");
+    await act(async () => { form.querySelector('input[type="checkbox"]').click(); });
+    expect(form.querySelector('button[type="submit"]').disabled).toBe(false);
+    await act(async () => {
+      form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    });
+    expect(claimService.submit).toHaveBeenCalledTimes(1);
+    expect(claimService.submit).toHaveBeenCalledWith(expect.objectContaining({
+      entityType: "event",
+      entityId: "9007199254740993",
+      name: "Pessoa Responsável",
+      email: "contato@example.org",
+      consent: true,
+    }));
+    expect(container.textContent).toContain("Solicitação registrada para revisão.");
+    expect(container.querySelector("form")).toBeNull();
+    expect(container.textContent).not.toMatch(/Comprar ingresso|Finalizar compra|Adicionar ao carrinho/i);
+  });
+
+  test("erro HTTP 403 não simula reivindicação aceita ou libera comércio", async () => {
+    claimService.submit.mockRejectedValueOnce({ response: { status: 403, data: { message: "Acesso negado" } } });
+    await show("production");
+    await click(container.querySelector(".cut-unverified__action"));
+    const form = container.querySelector("form");
+    await act(async () => { form.querySelector('input[type="checkbox"]').click(); });
+    await act(async () => {
+      form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    });
+    expect(claimService.submit).toHaveBeenCalledTimes(1);
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain("Acesso negado");
+    expect(container.querySelector('[role="status"]')).toBeNull();
+    expect(container.textContent).not.toMatch(/Solicitação registrada|Comprar ingresso|Finalizar compra/i);
+  });
+});
