@@ -1089,3 +1089,78 @@ describe("W2 — falhas de transporte e estados legados não liberam comércio",
     }
   );
 });
+
+
+describe("W2 — contrato de privacidade e seleção persistida de curadoria", () => {
+  const claimService = jest.requireActual("../../services/IndependenceClaimService").default;
+  const appApiClient = require("../../services/AppApiClient").default;
+
+  beforeEach(() => { jest.clearAllMocks(); });
+
+  test("normaliza dados de contato sem encaminhar identidade, tenant ou privilégios forjados", async () => {
+    appApiClient.post.mockResolvedValueOnce({ data: { status: "pending_claim" } });
+    const response = await claimService.submit({
+      entityType: "production", entityId: "00091",
+      name: "  Produtora Exemplo  ", email: "  contato@example.org  ",
+      phone: "  +55 62 99999-9999  ", message: "  Sou responsável  ",
+      consent: true, app_id: "999", user_id: "1", ownership_status: "verified",
+      can_sell: true, is_root: true,
+    });
+    expect(response).toEqual({ status: "pending_claim" });
+    expect(appApiClient.post).toHaveBeenCalledWith("/independence/claims", {
+      entity_type: "production", entity_id: "91", name: "Produtora Exemplo",
+      email: "contato@example.org", phone: "+55 62 99999-9999",
+      message: "Sou responsável", consent: true,
+    });
+    expect(appApiClient.post).toHaveBeenCalledTimes(1);
+  });
+
+  test("campos opcionais vazios não carregam dados residuais de outra reivindicação", async () => {
+    appApiClient.post.mockResolvedValueOnce({ data: { status: "pending" } });
+    await claimService.submit({
+      entityType: "artist", entityId: 15, name: "Artista", email: "artista@example.org",
+      phone: "   ", message: "   ", consent: false,
+    });
+    expect(appApiClient.post).toHaveBeenCalledWith("/independence/claims", {
+      entity_type: "artist", entity_id: "15", name: "Artista",
+      email: "artista@example.org", phone: null, message: null, consent: false,
+    });
+    expect(appApiClient.post).toHaveBeenCalledTimes(1);
+  });
+
+  test("erro de validação do servidor conserva detalhes sem repetir solicitação", async () => {
+    const failure = Object.assign(new Error("Dados inválidos"), {
+      response: { status: 422, data: { errors: { email: ["E-mail inválido"] } } },
+    });
+    appApiClient.post.mockRejectedValueOnce(failure);
+    await expect(claimService.submit({
+      entityType: "event", entityId: 91, name: "Pessoa", email: "inválido", consent: true,
+    })).rejects.toBe(failure);
+    expect(appApiClient.post).toHaveBeenCalledTimes(1);
+  });
+
+  test.each(["event", "production", "artist"])(
+    "%s permanece sem CTA com seleção de ingresso restaurada de armazenamento local",
+    (entityType) => {
+      const entity = curated({
+        can_sell: true, checkout_url: "/checkout/91", cart_id: "carrinho-antigo",
+        selected_tickets: [{ ticket_id: 77, quantity: 2, checkout_url: "/checkout/91" }],
+        tickets: [{ id: 77, price: 70, informational_only: true,
+          curatorial_information_only: true, sales_enabled: false }],
+      });
+      expect(canShowListingCommerce(entity)).toBe(false);
+      const html = render(entity, entityType);
+      expect(html).toContain("responsável não verificado");
+      expect(html).not.toMatch(/Comprar ingresso|Finalizar compra|Adicionar ao carrinho|Pagar agora/i);
+      expect(html).not.toContain("/checkout/91");
+      expect(html).not.toContain("carrinho-antigo");
+    }
+  );
+
+  test.each(["unknown", "ticket"])(
+    "tipo de entidade %s não cria formulário público de reivindicação",
+    (entityType) => {
+      expect(render(curated(), entityType)).toBe("");
+    }
+  );
+});
