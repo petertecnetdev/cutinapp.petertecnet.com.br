@@ -2379,3 +2379,64 @@ describe("W2 — formulário autenticado preserva consentimento e veto comercial
   });
 
 });
+
+// A entrada pública de reivindicação exige autenticação antes de coletar dados
+// pessoais; a transição de sessão não pode enviar a solicitação automaticamente.
+describe("W2 — login explícito antes da reivindicação pública", () => {
+  const { act } = require("react-dom/test-utils");
+  const { createRoot } = require("react-dom/client");
+  const claimService = require("../../services/IndependenceClaimService").default;
+  let container;
+  let root;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+  });
+
+  afterEach(async () => {
+    await act(async () => { root.unmount(); });
+    container.remove();
+  });
+
+  test.each(["event", "production", "artist"])(
+    "%s exige login e nova ação consciente antes de exibir formulário",
+    async (entityType) => {
+      const onLogin = jest.fn();
+      const entity = curated({ id: "9007199254740993", can_sell: true });
+      const panel = (user) => React.createElement(UnverifiedListingPanel, {
+        entity, entityType, user, onLogin,
+      });
+
+      await act(async () => { root.render(panel(null)); });
+      expect(container.querySelector("form")).toBeNull();
+      const loginButton = container.querySelector(".cut-unverified__action");
+      expect(loginButton?.textContent).toContain("criar conta");
+      await act(async () => { loginButton.click(); });
+      expect(onLogin).toHaveBeenCalledTimes(1);
+      expect(claimService.submit).not.toHaveBeenCalled();
+      expect(container.querySelector("form")).toBeNull();
+
+      await act(async () => {
+        root.render(panel({ id: 77, name: "Pessoa Responsável", email: "contato@example.org" }));
+      });
+      expect(container.querySelector("form")).toBeNull();
+      expect(container.textContent).not.toContain("contato@example.org");
+      expect(claimService.submit).not.toHaveBeenCalled();
+
+      const claimButton = container.querySelector(".cut-unverified__action");
+      expect(claimButton?.textContent).toBe("Reivindicar esta página");
+      await act(async () => { claimButton.click(); });
+      const form = container.querySelector("form");
+      expect(form).not.toBeNull();
+      expect(form.querySelector('input[type="email"]').value).toBe("contato@example.org");
+      expect(form.querySelector('input[type="email"]').readOnly).toBe(true);
+      expect(form.querySelector('input[type="checkbox"]').checked).toBe(false);
+      expect(form.querySelector('button[type="submit"]').disabled).toBe(true);
+      expect(claimService.submit).not.toHaveBeenCalled();
+      expect(container.textContent).not.toMatch(/Comprar ingresso|Finalizar compra|Pagar agora|Emitir QR/i);
+    }
+  );
+});
