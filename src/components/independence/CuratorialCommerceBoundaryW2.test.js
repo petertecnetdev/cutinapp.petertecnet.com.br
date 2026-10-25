@@ -1481,3 +1481,56 @@ describe("W2 — recuperação comercial respeita evento atual e tipo de seleç�
     expect(reconcileStoredSelection(catalog, stored)).toEqual({ "ticket:201": 1 });
   });
 });
+
+// O catálogo vigente é a única fonte dos limites; valores malformados não
+// podem ressuscitar uma seleção comercial salva antes da atualização.
+describe("W2 — limites de catálogo bloqueiam restauração obsoleta", () => {
+  const stored = {
+    eventId: 91,
+    tickets: [{ id: 201, quantity: 4, remaining: 999, remaining_per_user: 999 }],
+    items: [],
+  };
+
+  test.each([
+    ["estoque textual zerado", { remaining: "0" }],
+    ["limite pessoal textual zerado", { remaining_per_user: "0" }],
+    ["estoque fracionário abaixo de uma unidade", { remaining: 0.8 }],
+    ["limite pessoal fracionário abaixo de uma unidade", { remaining_per_user: 0.5 }],
+    ["estoque inválido", { remaining: "quantidade desconhecida" }],
+    ["limite pessoal inválido", { remaining_per_user: "sem limite?" }],
+    ["ingresso expirado apesar de estoque positivo", { expired: true, remaining: 9 }],
+    ["ingresso explicitamente indisponível", { available: false, remaining: 9 }],
+  ])("descarta ingresso com %s mesmo quando o storage declara disponibilidade", (_, restriction) => {
+    const catalog = {
+      event: { id: 91 },
+      tickets: [{ id: 201, available: true, remaining: 9, ...restriction }],
+      items: [],
+    };
+    expect(reconcileStoredSelection(catalog, stored)).toEqual({});
+  });
+
+  test("preserva quantidade comercial válida respeitando limites textuais atuais", () => {
+    const catalog = {
+      event: { id: 91 },
+      tickets: [{ id: 201, available: true, remaining: "8", remaining_per_user: "2" }],
+      items: [],
+    };
+    expect(reconcileStoredSelection(catalog, stored)).toEqual({ "ticket:201": 2 });
+  });
+
+  test("mantém apenas o ingresso válido quando o mesmo storage contém outro esgotado", () => {
+    const catalog = {
+      event: { id: 91 },
+      tickets: [
+        { id: 201, available: true, remaining: 3 },
+        { id: 202, available: true, remaining: 0 },
+      ],
+      items: [],
+    };
+    expect(reconcileStoredSelection(catalog, {
+      eventId: 91,
+      tickets: [{ id: 201, quantity: 2 }, { id: 202, quantity: 2 }],
+      items: [],
+    })).toEqual({ "ticket:201": 2 });
+  });
+});
