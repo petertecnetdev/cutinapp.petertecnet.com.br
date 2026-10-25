@@ -1581,3 +1581,71 @@ describe("W2 — restauração de carrinho com IDs decimais grandes e armazename
 
   test.todo("P0: IDs de evento adjacentes acima de MAX_SAFE_INTEGER não podem colidir por conversão Number na recuperação do carrinho");
 });
+
+
+// IDs de tickets e itens podem ser decimais de 64 bits. A recuperacao usa
+// correspondencia textual exata por tipo; nao deve arredondar identificadores.
+describe("W2 — restauracao de ingressos e itens com IDs decimais de 64 bits", () => {
+  const bigId = "9223372036854775807";
+  const adjacentId = "9223372036854775806";
+  const catalog = (tickets = [], items = []) => ({
+    event: { id: 91 },
+    tickets,
+    items,
+  });
+  const saved = (tickets = [], items = []) => ({
+    eventId: 91,
+    tickets,
+    items,
+  });
+
+  test("restaura somente o ingresso de ID exato, sem colidir com o adjacente", () => {
+    const current = catalog([{ id: bigId, available: true, remaining: 3 }]);
+    expect(reconcileStoredSelection(current, saved([
+      { id: adjacentId, quantity: 2 },
+      { id: bigId, quantity: 2 },
+    ]))).toEqual({ [`ticket:${bigId}`]: 2 });
+  });
+
+  test("nao restaura ingresso adjacente ausente do catalogo", () => {
+    const current = catalog([{ id: bigId, available: true, remaining: 3 }]);
+    expect(reconcileStoredSelection(current, saved([
+      { id: adjacentId, quantity: 2 },
+    ]))).toEqual({});
+  });
+
+  test("restaura item com ID decimal grande sem confundir com ingresso homonimo", () => {
+    const current = catalog(
+      [{ id: bigId, available: true, remaining: 2 }],
+      [{ id: bigId, available: true, remaining: 4 }],
+    );
+    expect(reconcileStoredSelection(current, saved([], [
+      { id: bigId, quantity: 3 },
+    ]))).toEqual({ [`item:${bigId}`]: 3 });
+  });
+
+  test("mantem selecoes de ticket e item separadas quando ambos usam o mesmo ID", () => {
+    const current = catalog(
+      [{ id: bigId, available: true, remaining: 2 }],
+      [{ id: bigId, available: true, remaining: 4 }],
+    );
+    expect(reconcileStoredSelection(current, saved(
+      [{ id: bigId, quantity: 1 }],
+      [{ id: bigId, quantity: 3 }],
+    ))).toEqual({ [`ticket:${bigId}`]: 1, [`item:${bigId}`]: 3 });
+  });
+
+  test("ID numerico legado seguro continua compativel com string no storage", () => {
+    const current = catalog([{ id: 201, available: true, remaining: 2 }]);
+    expect(reconcileStoredSelection(current, saved([
+      { id: "201", quantity: 1 },
+    ]))).toEqual({ "ticket:201": 1 });
+  });
+
+  test("nao aceita numero impreciso como substituto de ID decimal de 64 bits", () => {
+    const current = catalog([{ id: bigId, available: true, remaining: 2 }]);
+    expect(reconcileStoredSelection(current, saved([
+      { id: Number(bigId), quantity: 1 },
+    ]))).toEqual({});
+  });
+});
