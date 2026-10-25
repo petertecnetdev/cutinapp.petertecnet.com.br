@@ -1649,3 +1649,59 @@ describe("W2 — restauracao de ingressos e itens com IDs decimais de 64 bits", 
     ]))).toEqual({});
   });
 });
+
+// Contratos P0 prontos para ativação após o handoff do checkout.
+// Os cenários vulneráveis ficam SKIP (nunca PASS) até a correção de runtime.
+// Controles legítimos permanecem ativos para evitar regressão de vendas.
+describe("W2 — contratos pendentes e controles de recuperação comercial", () => {
+  const catalog = (eventId, tickets) => ({
+    event: { id: eventId },
+    tickets,
+    items: [],
+  });
+  const stored = (eventId, ids) => ({
+    eventId,
+    tickets: ids.map((id) => ({ id, quantity: 1 })),
+    items: [],
+  });
+
+  test.skip.each([
+    ["curatorial_information_only", { curatorial_information_only: true }],
+    ["informational_only", { informational_only: true }],
+    ["sales_enabled false", { sales_enabled: false }],
+  ])("P0 pendente: %s não deve restaurar ingresso informativo", (_, flags) => {
+    const current = catalog(91, [
+      { id: 201, available: true, remaining: 2, ...flags },
+      { id: 202, available: true, remaining: 2, sales_enabled: true },
+    ]);
+    const observed = reconcileStoredSelection(current, stored(91, [201, 202]));
+    expect(observed).toEqual({ "ticket:202": 1 });
+    expect(canShowListingCommerce(curated({ tickets: current.tickets }))).toBe(false);
+  });
+
+  test.skip.each([
+    ["9007199254740992", "9007199254740993"],
+    ["9223372036854775806", "9223372036854775807"],
+  ])("P0 pendente: evento %s não pode restaurar storage de %s", (currentId, savedId) => {
+    const current = catalog(currentId, [{ id: 201, available: true, remaining: 2 }]);
+    const observed = reconcileStoredSelection(current, stored(savedId, [201]));
+    expect(currentId).not.toBe(savedId);
+    expect(observed).toEqual({});
+  });
+
+  test("controle: ingresso comercial válido do mesmo evento continua recuperável", () => {
+    const current = catalog("9007199254740992", [
+      { id: 202, available: true, remaining: 2, sales_enabled: true },
+    ]);
+    expect(reconcileStoredSelection(current, stored("9007199254740992", [202])))
+      .toEqual({ "ticket:202": 1 });
+  });
+
+  test("controle: IDs decimais distintos sem colisão numérica não cruzam evento", () => {
+    const current = catalog("9007199254740992", [
+      { id: 202, available: true, remaining: 2, sales_enabled: true },
+    ]);
+    expect(reconcileStoredSelection(current, stored("9007199254740994", [202])))
+      .toEqual({});
+  });
+});
