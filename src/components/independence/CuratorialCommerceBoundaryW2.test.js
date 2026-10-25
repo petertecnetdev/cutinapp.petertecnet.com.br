@@ -2147,3 +2147,40 @@ describe("W2 — semântica acessível do aviso de titularidade não verificada"
     }
   );
 });
+
+// A API pode devolver estados com capitalização diferente; o aviso público e
+// o bloqueio visual precisam concordar para as três entidades curatoriais.
+describe("W2 — estados de reivindicação com capitalização variável", () => {
+  test.each([
+    ["UNCLAIMED", "event"],
+    ["UnClaimed", "production"],
+    ["unclaimed", "artist"],
+    ["PENDING_CLAIM", "event"],
+    ["Pending_Claim", "production"],
+    ["pending_claim", "artist"],
+  ])("%s em %s mantém aviso público e não cria checkout", (ownership_status, entityType) => {
+    const entity = curated({
+      ownership_status,
+      can_sell: true,
+      checkout_url: "/checkout/91",
+      tickets: [{ id: 91, price: 49.9, sales_enabled: true }],
+    });
+    expect(isUnverifiedListing(entity)).toBe(true);
+    expect(canShowListingCommerce(entity)).toBe(false);
+    const html = render(entity, entityType);
+    expect(html).toContain("Informações públicas — responsável não verificado");
+    expect(html).toContain("Reivindicar esta página");
+    expect(html).not.toContain("/checkout/91");
+    expect(html).not.toMatch(/Comprar ingresso|Finalizar compra|Adicionar ao carrinho|Pagar agora|Emitir QR/i);
+  });
+
+  test.each(["revoked", "under_review", "suspended", "APPROVED"])(
+    "estado não reconhecido %s não concede CTA comercial nem reivindicação presumida",
+    (ownership_status) => {
+      const entity = curated({ ownership_status, can_sell: true });
+      expect(isUnverifiedListing(entity)).toBe(true);
+      expect(canShowListingCommerce(entity)).toBe(false);
+      expect(render(entity, "event")).toBe("");
+    }
+  );
+});
