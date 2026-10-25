@@ -1412,3 +1412,72 @@ describe("W2 — seleção persistida não substitui disponibilidade do catálog
     expect(storedTicket.quantity).toBe(1);
   });
 });
+
+
+describe("W2 — recuperação comercial respeita evento atual e tipo de seleção", () => {
+  const ticket = { id: 201, available: true, remaining: 150000 };
+  const item = { id: 201, available: true, remaining: 80 };
+
+  test("usa ID de evento explícito antes de fallback obsoleto", () => {
+    const catalog = { event: { id: 91 }, tickets: [ticket], items: [] };
+    expect(reconcileStoredSelection(catalog, {
+      eventId: 92, tickets: [{ id: 201, quantity: 2 }],
+    }, 92)).toEqual({});
+    expect(reconcileStoredSelection(catalog, {
+      eventId: 91, tickets: [{ id: 201, quantity: 2 }],
+    }, 92)).toEqual({ "ticket:201": 2 });
+  });
+
+  test("fallback conhecido não restaura carrinho de outro evento quando catálogo omite evento", () => {
+    const catalog = { tickets: [ticket], items: [] };
+    expect(reconcileStoredSelection(catalog, {
+      eventId: 92, tickets: [{ id: 201, quantity: 2 }],
+    }, 91)).toEqual({});
+    expect(reconcileStoredSelection(catalog, {
+      eventId: "91", tickets: [{ id: 201, quantity: 2 }],
+    }, 91)).toEqual({ "ticket:201": 2 });
+  });
+
+  test.each([
+    ["item indisponível", false, true, { "ticket:201": 2 }],
+    ["ingresso indisponível", true, false, { "item:201": 2 }],
+  ])("%s não contamina outro tipo com o mesmo identificador", (_, itemAvailable, ticketAvailable, expected) => {
+    const catalog = {
+      event: { id: 91 },
+      tickets: [{ ...ticket, available: ticketAvailable }],
+      items: [{ ...item, available: itemAvailable }],
+    };
+    const stored = {
+      eventId: 91,
+      tickets: [{ id: 201, quantity: 2 }],
+      items: [{ id: 201, quantity: 2 }],
+    };
+    expect(reconcileStoredSelection(catalog, stored)).toEqual(expected);
+  });
+
+  test("limites de quantidade de ingresso e item são aplicados independentemente", () => {
+    const catalog = { event: { id: 91 }, tickets: [ticket], items: [item] };
+    const restored = reconcileStoredSelection(catalog, {
+      eventId: 91,
+      tickets: [{ id: 201, quantity: 200000 }],
+      items: [{ id: 201, quantity: 200000 }],
+    });
+    expect(restored).toEqual({ "ticket:201": 100000, "item:201": 50 });
+    expect(checkoutQuantityLimit("ticket")).toBe(100000);
+    expect(checkoutQuantityLimit("item")).toBe(50);
+  });
+
+  test("atualização de catálogo reduz ingresso e descarta item expirado sem reaproveitar estoque salvo", () => {
+    const catalog = {
+      event: { id: 91 },
+      tickets: [{ id: 201, available: true, remaining: 3, remaining_per_user: 1 }],
+      items: [{ id: 301, available: true, remaining: 40, expired: true }],
+    };
+    const stored = {
+      eventId: 91,
+      tickets: [{ id: 201, quantity: 3, remaining: 999 }],
+      items: [{ id: 301, quantity: 4, expired: false }],
+    };
+    expect(reconcileStoredSelection(catalog, stored)).toEqual({ "ticket:201": 1 });
+  });
+});
