@@ -1250,3 +1250,37 @@ describe("W2 — isolamento de dados e payloads de reivindicação adversariais"
     }
   );
 });
+
+describe("W2 — aliases de hosts locais não viram fonte pública", () => {
+  test.each([
+    ["IPv4 abreviado de três partes", "https://127.0.1/agenda"],
+    ["IPv4 octal", "https://0177.0.0.1/agenda"],
+    ["IPv4 hexadecimal misto", "https://0x7f.1/agenda"],
+    ["localhost com porta HTTPS padrão", "https://localhost:443/agenda"],
+    ["subdomínio internal com ponto final", "https://sub.agenda.internal./evento"],
+    ["IPv6 mapeado com IPv4 hexadecimal", "https://[::ffff:7f00:1]/agenda"],
+    ["IPv4 octal com zeros à esquerda", "https://0000177.000.000.001/agenda"],
+  ])("%s não expõe link nem libera CTA", (_, source_url) => {
+    const entity = curated({ source_url, can_sell: true });
+    expect(safeListingSourceUrl(source_url)).toBe("");
+    expect(canShowListingCommerce(entity)).toBe(false);
+    const html = render(entity);
+    expect(html).toContain("Referência não disponível");
+    expect(html).not.toContain('href="');
+    expect(html).not.toMatch(/Comprar ingresso|Finalizar compra|Adicionar ao carrinho|Pagar agora/i);
+  });
+
+  test.each([
+    ["porta HTTPS padrão", "https://agenda.example.org:443/agenda", "https://agenda.example.org/agenda"],
+    ["porta HTTPS alternativa", "https://agenda.example.org:8443/agenda", "https://agenda.example.org:8443/agenda"],
+    ["subdomínio público", "https://eventos.example.org/agenda", "https://eventos.example.org/agenda"],
+  ])("%s mantém link externo seguro sem habilitar venda", (_, source_url, normalized) => {
+    const entity = curated({ source_url });
+    expect(safeListingSourceUrl(source_url)).toBe(normalized);
+    const html = render(entity, "production");
+    expect(html).toContain('href="' + normalized + '"');
+    expect(html).toContain('rel="noopener noreferrer"');
+    expect(canShowListingCommerce(entity)).toBe(false);
+    expect(html).not.toMatch(/Comprar ingresso|Finalizar compra|Adicionar ao carrinho/i);
+  });
+});
