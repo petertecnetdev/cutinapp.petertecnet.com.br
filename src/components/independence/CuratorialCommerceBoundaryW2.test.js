@@ -1948,3 +1948,36 @@ describe("W2 — quantidades comerciais respeitam limites inteiros", () => {
     expect(item.remaining_per_user).toBe(2);
   });
 });
+
+
+// W2 — respostas HTTP incompletas não concedem titularidade ou comércio.
+// O status devolvido pelo endpoint é informativo: somente o estado atual
+// da ficha e a autorização da API podem liberar operações comerciais.
+describe("W2 — resposta parcial de reivindicação permanece não autorizativa", () => {
+  const claimService = jest.requireActual("../../services/IndependenceClaimService").default;
+  const appApiClient = require("../../services/AppApiClient").default;
+  const request = {
+    entityType: "event", entityId: "91",
+    name: "Responsável", email: "contato@example.org", consent: true,
+  };
+
+  beforeEach(() => { jest.clearAllMocks(); });
+
+  test.each([
+    ["HTTP 204 sem corpo", undefined],
+    ["resposta nula", null],
+    ["objeto vazio", {}],
+    ["somente mensagem", { message: "Solicitação recebida" }],
+    ["status desconhecido", { status: "queued_external_review" }],
+  ])("%s não produz aprovação presumida ou CTA comercial", async (_, data) => {
+    appApiClient.post.mockResolvedValueOnce({ data });
+    await expect(claimService.submit(request)).resolves.toBe(data);
+    expect(appApiClient.post).toHaveBeenCalledTimes(1);
+    expect(appApiClient.get).not.toHaveBeenCalled();
+    expect(claimStatusMessage(data?.status)).toContain("verificará sua identidade");
+    const listing = curated({ ownership_status: "pending_claim", can_sell: true });
+    expect(isUnverifiedListing(listing)).toBe(true);
+    expect(canShowListingCommerce(listing)).toBe(false);
+    expect(render(listing)).not.toMatch(/Comprar ingresso|Finalizar compra|Pagar agora/i);
+  });
+});
