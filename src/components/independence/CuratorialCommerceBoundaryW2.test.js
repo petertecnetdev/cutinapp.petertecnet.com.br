@@ -2024,3 +2024,35 @@ describe("W2 — respostas HTTP sem contrato de titularidade não liberam CTA", 
     expect(html).not.toContain("/checkout/91");
   });
 });
+
+
+// W2 — regressão de escaping de URLs de proveniência fornecidas por terceiros.
+// A curadoria publica links externos não confiáveis: a UI não pode criar
+// elementos HTML a partir de parâmetros/fragmentos nem expor CTA comercial.
+describe("W2 — URLs externas hostis permanecem atributos HTML inertes", () => {
+  test.each([
+    ["query com tentativa de script", "https://example.org/agenda?busca=\"><script>alert(1)</script>"],
+    ["fragmento com tentativa de imagem", "https://example.org/agenda#\"><img src=x onerror=alert(1)>"],
+  ])("%s não injeta marcação em evento ou produção", (_, source_url) => {
+    const normalized = safeListingSourceUrl(source_url);
+    expect(normalized).toMatch(/^https:\/\/example\.org\/agenda/);
+    for (const entityType of ["event", "production"]) {
+      const entity = curated({ source_url, can_sell: true });
+      const html = render(entity, entityType);
+      expect(html).toContain('rel="noopener noreferrer"');
+      expect(html).toContain('href="https://example.org/agenda');
+      expect(html).not.toMatch(/<script\b|<img\b|\sonerror=|\sonclick=/i);
+      expect(html).toContain("responsável não verificado");
+      expect(canShowListingCommerce(entity)).toBe(false);
+      expect(html).not.toMatch(/Comprar ingresso|Finalizar compra|Adicionar ao carrinho|Pagar agora/i);
+    }
+  });
+
+  test("query com múltiplos parâmetros mantém escaping e destino HTTPS", () => {
+    const entity = curated({ source_url: "https://example.org/agenda?evento=91&origem=curadoria&modo=publico" });
+    const html = render(entity, "artist");
+    expect(html).toContain("?evento=91&amp;origem=curadoria&amp;modo=publico");
+    expect(html).toContain('rel="noopener noreferrer"');
+    expect(html).not.toMatch(/Comprar ingresso|Finalizar compra|Adicionar ao carrinho/i);
+  });
+});
