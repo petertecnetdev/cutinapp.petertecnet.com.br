@@ -1534,3 +1534,50 @@ describe("W2 — limites de catálogo bloqueiam restauração obsoleta", () => {
     })).toEqual({ "ticket:201": 2 });
   });
 });
+
+
+// IDs de eventos são dados de escopo: o carrinho persistido nunca pode
+// atravessar um evento diferente. O bug de precisão entre IDs adjacentes
+// acima de MAX_SAFE_INTEGER permanece explicitamente pendente no helper.
+describe("W2 — restauração de carrinho com IDs decimais grandes e armazenamento legado", () => {
+  const ticket = { id: "201", available: true, remaining: 2, remaining_per_user: 2 };
+  const catalog = (eventId) => ({ event: { id: eventId }, tickets: [ticket], items: [] });
+  const saved = (eventId, tickets = [{ id: "201", quantity: 2 }]) => ({
+    eventId, tickets, items: [],
+  });
+
+  test("restaura a seleção legítima quando o ID decimal de 64 bits é idêntico", () => {
+    const id = "9223372036854775807";
+    expect(reconcileStoredSelection(catalog(id), saved(id))).toEqual({ "ticket:201": 2 });
+  });
+
+  test.each([
+    ["9007199254740992", "9007199254740994"],
+    ["9007199254740994", "9007199254740996"],
+  ])("não restaura evento %s a partir do carrinho de %s", (currentId, storedId) => {
+    expect(reconcileStoredSelection(catalog(currentId), saved(storedId))).toEqual({});
+  });
+
+  test.each([null, undefined, "", "Infinity", "NaN", "evento-inexistente"])(
+    "ID de evento salvo inválido %p não ressuscita compra do evento 91",
+    (storedId) => {
+      expect(reconcileStoredSelection(catalog(91), saved(storedId))).toEqual({});
+    }
+  );
+
+  test("linhas nulas ou sem ID no storage não impedem recuperar ingresso atual válido", () => {
+    const restored = reconcileStoredSelection(catalog(91), saved(91, [
+      null, {}, { id: "999", quantity: 3 }, { id: "201", quantity: 1 },
+    ]));
+    expect(restored).toEqual({ "ticket:201": 1 });
+  });
+
+  test("linhas duplicadas não somam quantidades para superar estoque atual", () => {
+    const restored = reconcileStoredSelection(catalog(91), saved(91, [
+      { id: "201", quantity: 2 }, { id: "201", quantity: 999 },
+    ]));
+    expect(restored).toEqual({ "ticket:201": 2 });
+  });
+
+  test.todo("P0: IDs de evento adjacentes acima de MAX_SAFE_INTEGER não podem colidir por conversão Number na recuperação do carrinho");
+});
