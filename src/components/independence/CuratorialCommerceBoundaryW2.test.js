@@ -1900,3 +1900,51 @@ describe("W2 — catálogo de adicionais preserva limites e prioridade determin�
     }
   );
 });
+
+
+// O checkout não pode transformar quantidades inválidas em unidades vendáveis.
+// Estes contratos testam o helper atual, sem autorizar vendas curatoriais na API.
+describe("W2 — quantidades comerciais respeitam limites inteiros", () => {
+  const ingresso = { id: 201, available: true, remaining: 8, remaining_per_user: 4 };
+
+  test.each([NaN, Infinity, -Infinity, -2, 0, null, undefined, "invalido"])(
+    "pedido %p não produz quantidade positiva", (requested) => {
+      expect(resolveCheckoutQuantity(ingresso, requested, 10)).toBe(0);
+    }
+  );
+
+  test.each(["NaN", "Infinity", -1, 0, "0.9"])(
+    "estoque inválido ou insuficiente %p bloqueia seleção", (remaining) => {
+      expect(resolveCheckoutQuantity({ ...ingresso, remaining }, 2, 10)).toBe(0);
+    }
+  );
+
+  test.each(["NaN", "Infinity", -1, 0, "0.9"])(
+    "limite individual inválido ou insuficiente %p bloqueia seleção", (remaining_per_user) => {
+      expect(resolveCheckoutQuantity({ ...ingresso, remaining_per_user }, 2, 10)).toBe(0);
+    }
+  );
+
+  test("pedido, estoque e limite fracionários são truncados antes da escolha", () => {
+    const item = { available: true, remaining: "3.9", remaining_per_user: "2.9" };
+    expect(resolveCheckoutQuantity(item, "8.8", 5.9)).toBe(2);
+    expect(resolveCheckoutQuantity(item, "1.9", 5.9)).toBe(1);
+  });
+
+  test("limite comercial vigente prevalece sobre estoque e pedido elevados", () => {
+    expect(resolveCheckoutQuantity({ available: true, remaining: 1000 }, 999, 3)).toBe(3);
+    expect(resolveCheckoutQuantity({ available: true, remaining: 1000 }, 999, 0)).toBe(0);
+  });
+
+  test("estoque zero explícito não é reaberto por quantity legado", () => {
+    expect(resolveCheckoutQuantity({ available: true, remaining: "0", quantity: 200 }, 3, 10))
+      .toBe(0);
+  });
+
+  test("helper não modifica objeto de catálogo congelado", () => {
+    const item = Object.freeze({ available: true, remaining: 3, remaining_per_user: 2 });
+    expect(resolveCheckoutQuantity(item, 10, 10)).toBe(2);
+    expect(item.remaining).toBe(3);
+    expect(item.remaining_per_user).toBe(2);
+  });
+});
