@@ -2,6 +2,8 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import UnverifiedListingPanel from "./UnverifiedListingPanel";
 import { canShowListingCommerce, claimStatusMessage, isUnverifiedListing, safeListingSourceUrl } from "../../utils/independenceListing";
+import { reconcileStoredSelection } from "../../utils/checkoutSelectionRecovery";
+import { checkoutQuantityLimit, resolveCheckoutQuantity } from "../../utils/checkoutAddOns";
 
 // O serviço não é chamado durante SSR; mock evita importar Axios ESM no Jest legado.
 jest.mock("../../services/IndependenceClaimService", () => ({
@@ -1283,4 +1285,62 @@ describe("W2 — aliases de hosts locais não viram fonte pública", () => {
     expect(canShowListingCommerce(entity)).toBe(false);
     expect(html).not.toMatch(/Comprar ingresso|Finalizar compra|Adicionar ao carrinho/i);
   });
+});
+
+// Cobertura do percurso real de restauração, não apenas do HTML da ficha.
+// P0 pendente: o helper ainda não veta sozinho tickets curatoriais informativos.
+describe("W2 — recuperação de seleção persistida no catálogo comercial", () => {
+  const catalog = {
+    event: { id: 91 },
+    tickets: [
+      { id: 201, available: true, remaining: 2, remaining_per_user: 2 },
+      { id: 202, available: false, remaining: 10 },
+      { id: 203, expired: true, remaining: 10 },
+      { id: 204, remaining: 0 },
+    ],
+    items: [{ id: 301, remaining: 1 }],
+  };
+
+  test("restaura apenas IDs atuais e disponíveis, limitando estoque e quantidade por pessoa", () => {
+    const restored = reconcileStoredSelection(catalog, {
+      eventId: 91,
+      tickets: [
+        { id: 201, quantity: 1000 },
+        { id: 202, quantity: 1 },
+        { id: 203, quantity: 1 },
+        { id: 204, quantity: 1 },
+        { id: 999, quantity: 1 },
+      ],
+      items: [{ id: 301, quantity: 50 }, { id: 999, quantity: 1 }],
+    });
+    expect(restored).toEqual({ "ticket:201": 2, "item:301": 1 });
+    expect(resolveCheckoutQuantity(catalog.tickets[0], 1000, checkoutQuantityLimit("ticket"))).toBe(2);
+  });
+
+  test("não restaura carrinho de outro evento mesmo com os mesmos IDs de ingresso", () => {
+    expect(reconcileStoredSelection(catalog, {
+      eventId: 92,
+      tickets: [{ id: 201, quantity: 2 }],
+      items: [{ id: 301, quantity: 1 }],
+    })).toEqual({});
+  });
+
+  test.each([
+    ["sem catálogo comercial", { event: { id: 91 }, tickets: [], items: [] }],
+    ["catálogo sem ingressos", { event: { id: 91 }, tickets: [], items: [{ id: 301, available: false }] }],
+    ["ingressos indisponíveis", { event: { id: 91 }, tickets: [{ id: 201, available: false }], items: [] }],
+  ])("%s descarta a seleção persistida em vez de recriar uma venda", (_, currentCatalog) => {
+    expect(reconcileStoredSelection(currentCatalog, {
+      eventId: 91, tickets: [{ id: 201, quantity: 3 }], items: [],
+    })).toEqual({});
+  });
+
+  test("o veto da ficha curatorial permanece independente da recuperação do carrinho", () => {
+    const listing = curated({ tickets: [{ id: 201, curatorial_information_only: true, price: 49.9 }] });
+    expect(isUnverifiedListing(listing)).toBe(true);
+    expect(canShowListingCommerce(listing)).toBe(false);
+    expect(render(listing)).not.toMatch(/Comprar ingresso|Finalizar compra|Adicionar ao carrinho/i);
+  });
+
+  test.todo("P0: reconcileStoredSelection deve rejeitar ticket curatorial informativo mesmo presente no catálogo, sem depender só da UI ou API");
 });
