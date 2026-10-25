@@ -1981,3 +1981,46 @@ describe("W2 — resposta parcial de reivindicação permanece não autorizativa
     expect(render(listing)).not.toMatch(/Comprar ingresso|Finalizar compra|Pagar agora/i);
   });
 });
+
+
+// Respostas inesperadas ou malformadas da API não constituem comprovação de
+// titularidade. O estado público da ficha continua sendo a única fonte da UI;
+// o servidor é a autoridade para qualquer operação comercial.
+describe("W2 — respostas HTTP sem contrato de titularidade não liberam CTA", () => {
+  const claimService = jest.requireActual("../../services/IndependenceClaimService").default;
+  const appApiClient = require("../../services/AppApiClient").default;
+  const request = {
+    entityType: "event", entityId: "9007199254740993",
+    name: "Responsável", email: "responsavel@example.org", consent: true,
+  };
+
+  beforeEach(() => { jest.clearAllMocks(); });
+
+  test.each([
+    ["texto de aprovação", "approved"],
+    ["booleano de sucesso", true],
+    ["código numérico", 200],
+    ["array com aprovação", [{ status: "approved", can_sell: true }]],
+    ["array vazio", []],
+    ["resposta com flags comerciais", {
+      status: "approved", can_sell: true, ownership_status: "verified",
+      checkout_url: "/checkout/91", app_id: "999",
+    }],
+  ])("%s não modifica a ficha nem expõe compra", async (_, data) => {
+    const entity = Object.freeze(curated({
+      id: "9007199254740993", ownership_status: "pending_claim",
+      verification_status: "pending_claim", can_sell: true,
+    }));
+    appApiClient.post.mockResolvedValueOnce({ data });
+
+    await expect(claimService.submit(request)).resolves.toBe(data);
+    expect(appApiClient.post).toHaveBeenCalledTimes(1);
+    expect(appApiClient.get).not.toHaveBeenCalled();
+    expect(isUnverifiedListing(entity)).toBe(true);
+    expect(canShowListingCommerce(entity)).toBe(false);
+    const html = render(entity);
+    expect(html).toContain("responsável não verificado");
+    expect(html).not.toMatch(/Comprar ingresso|Finalizar compra|Pagar agora|Adicionar ao carrinho/i);
+    expect(html).not.toContain("/checkout/91");
+  });
+});
