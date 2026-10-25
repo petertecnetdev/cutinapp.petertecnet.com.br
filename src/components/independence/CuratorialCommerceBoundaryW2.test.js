@@ -1344,3 +1344,71 @@ describe("W2 — recuperação de seleção persistida no catálogo comercial", 
 
   test.todo("P0: reconcileStoredSelection deve rejeitar ticket curatorial informativo mesmo presente no catálogo, sem depender só da UI ou API");
 });
+
+// Regressões da fronteira de recuperação: metadados persistidos são entrada não confiável.
+// O catálogo atual determina disponibilidade e limites; o veto curatorial P0 permanece TODO.
+describe("W2 — seleção persistida não substitui disponibilidade do catálogo atual", () => {
+  const saved = (quantity = 8) => ({
+    eventId: 91,
+    tickets: [{
+      id: 201,
+      quantity,
+      available: true,
+      expired: false,
+      remaining: 999,
+      remaining_per_user: 999,
+      can_sell: true,
+      sales_enabled: true,
+      price: 0,
+    }],
+    items: [],
+  });
+
+  test.each([
+    ["indisponível", { available: false }],
+    ["expirado", { expired: true }],
+    ["estoque esgotado", { remaining: 0 }],
+    ["limite por participante esgotado", { remaining_per_user: 0 }],
+  ])("não reativa ingresso %s por flags comerciais forjadas no armazenamento", (_, restriction) => {
+    const current = { event: { id: 91 }, tickets: [{ id: 201, ...restriction }], items: [] };
+    expect(reconcileStoredSelection(current, saved())).toEqual({});
+  });
+
+  test("preço e estoque forjados no storage não ampliam limite vigente por participante", () => {
+    const current = {
+      event: { id: 91 },
+      tickets: [{ id: 201, available: true, remaining: 3, remaining_per_user: 1, price: 49.9 }],
+      items: [],
+    };
+    expect(reconcileStoredSelection(current, saved(999))).toEqual({ "ticket:201": 1 });
+  });
+
+  test.each([
+    ["negativa", -3],
+    ["zero", 0],
+    ["não numérica", "quantidade livre"],
+    ["nula", null],
+    ["NaN", NaN],
+  ])("descarta quantidade persistida %s sem criar item comercial", (_, quantity) => {
+    const current = { event: { id: 91 }, tickets: [{ id: 201, available: true, remaining: 5 }], items: [] };
+    expect(reconcileStoredSelection(current, saved(quantity))).toEqual({});
+  });
+
+  test("não altera catálogo nem armazenamento durante a reconciliação", () => {
+    const ticket = Object.freeze({ id: 201, available: true, remaining: 2 });
+    const current = Object.freeze({
+      event: Object.freeze({ id: 91 }),
+      tickets: Object.freeze([ticket]),
+      items: Object.freeze([]),
+    });
+    const storedTicket = Object.freeze({ id: 201, quantity: 1 });
+    const stored = Object.freeze({
+      eventId: 91,
+      tickets: Object.freeze([storedTicket]),
+      items: Object.freeze([]),
+    });
+    expect(reconcileStoredSelection(current, stored)).toEqual({ "ticket:201": 1 });
+    expect(ticket.remaining).toBe(2);
+    expect(storedTicket.quantity).toBe(1);
+  });
+});
