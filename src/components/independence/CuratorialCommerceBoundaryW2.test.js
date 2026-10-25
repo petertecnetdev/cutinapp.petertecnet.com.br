@@ -2085,3 +2085,41 @@ describe("W2 — proveniência rejeita credenciais e protocolos não web", () =>
     }
   });
 });
+
+
+// Datas fornecidas pela curadoria são metadados de confiança, não prova de
+// titularidade. Valores impossíveis ou hostis não devem simular conferência
+// recente, quebrar SSR ou expor ações comerciais em páginas públicas.
+describe("W2 — conferência de fonte inválida não fabrica credibilidade", () => {
+  test.each([
+    ["data textual arbitrária", "conferido hoje"],
+    ["mês inexistente", "2026-13-01T12:00:00Z"],
+    ["dia inexistente", "2026-10-32T12:00:00Z"],
+    ["hora inexistente", "2026-10-20T25:00:00Z"],
+    ["minuto inexistente", "2026-10-20T12:61:00Z"],
+    ["fuso inexistente", "2026-10-20T12:00:00+99:00"],
+    ["HTML hostil", '<img src=x onerror="alert(1)">'],
+    ["script hostil", '<script>alert("aprovado")</script>'],
+  ])("%s mantém a data como não informada em todas as fichas", (_, last_verified_at) => {
+    for (const entityType of ["event", "production", "artist"]) {
+      const entity = curated({ last_verified_at, can_sell: true });
+      const html = render(entity, entityType);
+      expect(html).toContain("Última conferência");
+      expect(html).toContain("Não informada");
+      expect(html).not.toMatch(/Invalid Date|<script\\b|<img\\b|\\sonerror=/i);
+      expect(html).toContain("responsável não verificado");
+      expect(canShowListingCommerce(entity)).toBe(false);
+      expect(html).not.toMatch(/Comprar ingresso|Finalizar compra|Adicionar ao carrinho|Pagar agora/i);
+    }
+  });
+
+  test("timestamp ISO legítimo continua visível, mas não concede venda", () => {
+    const entity = curated({ last_verified_at: "2026-10-20T12:00:00Z", can_sell: true });
+    const html = render(entity, "event");
+    expect(html).toContain("Última conferência");
+    expect(html).not.toContain("Não informada");
+    expect(html).toContain("Consultar publicação original");
+    expect(canShowListingCommerce(entity)).toBe(false);
+    expect(html).not.toMatch(/Comprar ingresso|Finalizar compra|Adicionar ao carrinho|Pagar agora/i);
+  });
+});
