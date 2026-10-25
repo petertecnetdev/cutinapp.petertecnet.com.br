@@ -2123,3 +2123,27 @@ describe("W2 — conferência de fonte inválida não fabrica credibilidade", ()
     expect(html).not.toMatch(/Comprar ingresso|Finalizar compra|Adicionar ao carrinho|Pagar agora/i);
   });
 });
+
+
+// O aviso curatorial precisa ser perceptível por tecnologias assistivas.
+// A reivindicação exige uma ação explícita; não é navegação comercial.
+describe("W2 — semântica acessível do aviso de titularidade não verificada", () => {
+  test.each(["event", "production", "artist"])(
+    "%s expõe região identificada, origem e ação de reivindicação sem checkout",
+    (entityType) => {
+      const html = render(curated({
+        source_url: "https://example.org/agenda?evento=91&origem=publica",
+        last_verified_at: "2026-10-20T12:00:00Z",
+      }), entityType);
+      expect(html).toContain('<aside class="cut-unverified" aria-label="Informações sobre a titularidade deste cadastro">');
+      expect(html).toContain("Informações públicas — responsável não verificado");
+      expect(html).toContain("<dl");
+      expect(html).toContain("<dt>Fonte</dt>");
+      expect(html).toContain("<dt>Última conferência</dt>");
+      expect(html).toContain('target="_blank" rel="noopener noreferrer"');
+      expect(html).toContain('type="button">Reivindicar esta página — criar conta</button>');
+      expect(html).not.toContain("<form");
+      expect(html).not.toMatch(/Comprar ingresso|Finalizar compra|Adicionar ao carrinho|Pagar agora|Emitir QR/i);
+    }
+  );
+});
