@@ -2056,3 +2056,32 @@ describe("W2 — URLs externas hostis permanecem atributos HTML inertes", () => 
     expect(html).not.toMatch(/Comprar ingresso|Finalizar compra|Adicionar ao carrinho/i);
   });
 });
+
+
+// URLs de fonte são dados externos, não endereços confiáveis do aplicativo.
+// Credenciais embutidas e esquemas não HTTPS nunca podem virar link público,
+// independentemente de a ficha conter flags comerciais indevidas.
+describe("W2 — proveniência rejeita credenciais e protocolos não web", () => {
+  test.each([
+    ["URL com usuário e senha", "https://usuario:senha@example.org/agenda"],
+    ["URL com usuário", "https://usuario@example.org/agenda"],
+    ["credenciais apontando para localhost", "https://example.org@localhost/agenda"],
+    ["protocolo data", "data:text/html,<svg/onload=alert(1)>"],
+    ["protocolo blob", "blob:https://example.org/arquivo"],
+    ["protocolo file", "file:///etc/passwd"],
+    ["protocolo ftp", "ftp://example.org/agenda"],
+    ["URL relativa ao protocolo", "//example.org/agenda"],
+    ["loopback IPv6", "https://[::1]/agenda"],
+  ])("%s não cria link público nem autoriza comércio", (_, source_url) => {
+    expect(safeListingSourceUrl(source_url)).toBe("");
+    for (const entityType of ["event", "production", "artist"]) {
+      const entity = curated({ source_url, can_sell: true });
+      const html = render(entity, entityType);
+      expect(html).toContain("Referência não disponível");
+      expect(html).not.toContain('href="');
+      expect(html).not.toContain(source_url);
+      expect(canShowListingCommerce(entity)).toBe(false);
+      expect(html).not.toMatch(/Comprar ingresso|Finalizar compra|Adicionar ao carrinho|Pagar agora/i);
+    }
+  });
+});
