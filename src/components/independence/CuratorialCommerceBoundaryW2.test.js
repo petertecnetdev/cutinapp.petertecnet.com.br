@@ -1164,3 +1164,89 @@ describe("W2 — contrato de privacidade e seleção persistida de curadoria", (
     }
   );
 });
+
+
+describe("W2 — isolamento de dados e payloads de reivindicação adversariais", () => {
+  const claimService = jest.requireActual("../../services/IndependenceClaimService").default;
+  const appApiClient = require("../../services/AppApiClient").default;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    appApiClient.post.mockResolvedValue({ data: { status: "pending_claim" } });
+  });
+
+  test("campos injetados via JSON não contaminam protótipos nem o POST", async () => {
+    const injection = JSON.parse('{"__proto__":{"is_root":true,"can_sell":true},"constructor":{"prototype":{"admin":true}},"permissions":["*"],"app_id":"999"}');
+    const request = {
+      ...injection,
+      entityType: "event",
+      entityId: "00091",
+      name: "Responsável",
+      email: "contato@example.org",
+      consent: true,
+    };
+    await expect(claimService.submit(request)).resolves.toEqual({ status: "pending_claim" });
+    expect(appApiClient.post).toHaveBeenCalledTimes(1);
+    const [, payload] = appApiClient.post.mock.calls[0];
+    expect(Object.keys(payload).sort()).toEqual([
+      "consent", "email", "entity_id", "entity_type", "message", "name", "phone",
+    ]);
+    expect(payload.entity_id).toBe("91");
+    expect(payload).not.toHaveProperty("__proto__.is_root");
+    expect(payload).not.toHaveProperty("constructor.prototype.admin");
+    expect(payload).not.toHaveProperty("permissions");
+    expect(payload).not.toHaveProperty("app_id");
+    expect({}.is_root).toBeUndefined();
+    expect({}.admin).toBeUndefined();
+  });
+
+  test("requisições sequenciais de contas diferentes não reaproveitam dados privados", async () => {
+    const base = { entityType: "production", entityId: "41", consent: true };
+    await claimService.submit({
+      ...base, name: "Primeira Pessoa", email: "primeira@example.org",
+      phone: "62999999999", message: "Documento particular",
+    });
+    await claimService.submit({
+      ...base, entityType: "artist", entityId: "42",
+      name: "Segunda Pessoa", email: "segunda@example.org",
+      phone: "", message: "", consent: false,
+    });
+
+    expect(appApiClient.post).toHaveBeenCalledTimes(2);
+    const [first, second] = appApiClient.post.mock.calls.map(([, payload]) => payload);
+    expect(first).toEqual({
+      entity_type: "production", entity_id: "41", name: "Primeira Pessoa",
+      email: "primeira@example.org", phone: "62999999999",
+      message: "Documento particular", consent: true,
+    });
+    expect(second).toEqual({
+      entity_type: "artist", entity_id: "42", name: "Segunda Pessoa",
+      email: "segunda@example.org", phone: null, message: null, consent: false,
+    });
+    expect(JSON.stringify(second)).not.toMatch(/primeira@example.org|Documento particular|62999999999/);
+  });
+
+  test.each(["event", "production", "artist"])(
+    "%s não expõe metadados internos nem dados financeiros de ficha não reivindicada",
+    (entityType) => {
+      const entity = curated({
+        internal_notes: "ANOTACAO_INTERNA_SIGILOSA",
+        access_token: "TOKEN_INTERNO_SIGILOSO",
+        payment_intent: "PAGAMENTO_INTERNO_SIGILOSO",
+        bank_account: "CONTA_INTERNA_SIGILOSA",
+        tickets: [{
+          id: 77, price: 90, sales_enabled: true, can_sell: true,
+          checkout_url: "/checkout/interno/77",
+          curatorial_information_only: true,
+        }],
+      });
+      const html = render(entity, entityType);
+      expect(isUnverifiedListing(entity)).toBe(true);
+      expect(canShowListingCommerce(entity)).toBe(false);
+      expect(html).toContain("responsável não verificado");
+      expect(html).not.toMatch(/ANOTACAO_INTERNA_SIGILOSA|TOKEN_INTERNO_SIGILOSO|PAGAMENTO_INTERNO_SIGILOSO|CONTA_INTERNA_SIGILOSA/);
+      expect(html).not.toContain("/checkout/interno/77");
+      expect(html).not.toMatch(/Comprar ingresso|Finalizar compra|Pagar agora|Adicionar ao carrinho/i);
+    }
+  );
+});
