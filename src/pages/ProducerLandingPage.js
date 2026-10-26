@@ -34,6 +34,11 @@ const producerSignupState = (acquisitionSource) => ({
   acquisitionSource,
 });
 
+// Login currently navigates to location.state.from, so carry the acquisition source in the safe internal destination.
+const producerLoginState = (acquisitionSource) => ({
+  from: `/production/create?acquisitionSource=${encodeURIComponent(acquisitionSource)}`,
+});
+
 export default function ProducerLandingPage() {
   return <div className="cut-producer-landing">
     <header className="cut-producer-landing__nav">
@@ -42,7 +47,7 @@ export default function ProducerLandingPage() {
         <nav>
           <Link to="/event">Ver eventos</Link>
           <Link to="/help">Ajuda</Link>
-          <Link to="/login">Entrar</Link>
+          <Link to="/login" state={producerLoginState("producer_landing_login_nav")}>Entrar</Link>
           <Button as={Link} to="/register" state={producerSignupState("producer_landing_nav")}>Cadastrar minha produção</Button>
         </nav>
       </Container>
@@ -57,7 +62,7 @@ export default function ProducerLandingPage() {
             <p>Crie sua conta, cadastre sua produção e prepare seu primeiro evento. A Cutinapp conecta divulgação, ingressos e operação sem exigir assinatura obrigatória do produtor.</p>
             <div className="cut-producer-landing__actions">
               <Button as={Link} to="/register" state={producerSignupState("producer_landing_hero")} size="lg">Cadastrar minha produção <i className="fa-solid fa-arrow-right ms-2" /></Button>
-              <Link to="/login">Já tenho conta</Link>
+              <Link to="/login" state={producerLoginState("producer_landing_login_hero")}>Já tenho conta</Link>
             </div>
             <p><small>Não há assinatura obrigatória para começar. Taxas de transação e do meio de pagamento podem ser aplicadas às vendas; confira as condições antes de vender.</small></p>
             <CommerceTrustRail context="event" />
