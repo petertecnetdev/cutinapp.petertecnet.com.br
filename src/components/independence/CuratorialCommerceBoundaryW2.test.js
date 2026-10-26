@@ -2440,3 +2440,55 @@ describe("W2 — login explícito antes da reivindicação pública", () => {
     }
   );
 });
+
+// A rejeição do servidor não deve converter um pedido de reivindicação em
+// titularidade, nem eliminar o consentimento necessário para nova tentativa.
+describe("W2 — erros HTTP de reivindicação preservam formulário sem conceder comércio", () => {
+  const { act } = require("react-dom/test-utils");
+  const { createRoot } = require("react-dom/client");
+  const claimService = require("../../services/IndependenceClaimService").default;
+  let container;
+  let root;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+  });
+
+  afterEach(async () => {
+    await act(async () => { root.unmount(); });
+    container.remove();
+  });
+
+  test.each([
+    [401, "Sessão expirada"],
+    [400, "Solicitação inválida"],
+    [409, "Reivindicação já existente"],
+    [422, "Dados não aceitos"],
+  ])("HTTP %i mantém pedido não aprovado e permite correção consciente", async (status, message) => {
+    claimService.submit.mockRejectedValueOnce({ response: { status, data: { message } } });
+    await act(async () => {
+      root.render(React.createElement(UnverifiedListingPanel, {
+        entity: curated({ id: "9007199254740993", can_sell: true }),
+        entityType: "event",
+        user: { id: 77, name: "Responsável", email: "contato@example.org" },
+        onLogin: jest.fn(),
+      }));
+    });
+    await act(async () => { container.querySelector(".cut-unverified__action").click(); });
+    const form = container.querySelector("form");
+    await act(async () => { form.querySelector('input[type="checkbox"]').click(); });
+    await act(async () => {
+      form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    });
+    expect(claimService.submit).toHaveBeenCalledTimes(1);
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain(message);
+    expect(container.querySelector('[role="status"]')).toBeNull();
+    expect(container.querySelector("form")).not.toBeNull();
+    expect(form.querySelector('button[type="submit"]').disabled).toBe(false);
+    expect(form.querySelector('input[type="checkbox"]').checked).toBe(true);
+    expect(container.textContent).not.toMatch(/Solicitação registrada|Comprar ingresso|Finalizar compra|Pagar agora|Emitir QR/i);
+  });
+});
