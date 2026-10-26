@@ -94,6 +94,21 @@ describe("W4: contrato real de leitura de automações", () => {
     expect(read(response(runs)).valid).toBe(false);
   });
 
+  test("janela de 30 execuções não prova ausência de histórico de outro worker", () => {
+    const runs = Array.from({ length: 30 }, (_, i) => ({
+      id: i + 1, worker_key: "discovery_quality", status: "queued",
+    }));
+    const snapshot = read(response(runs, { workers: [
+      { key: "discovery_health", enabled: true },
+      { key: "discovery_quality", enabled: true },
+    ] }));
+    expect(snapshot.valid).toBe(true);
+    expect(snapshot.historyReliable).toBe(true);
+    expect(snapshot.complete).toBe(false);
+    expect(snapshot.workers.find((worker) => worker.key === "discovery_health").latest).toBeNull();
+    expect(snapshot.runs).toHaveLength(30);
+  });
+
   test("histórico inválido não anuncia sucesso antigo como última execução", () => {
     const snapshot = read(response([
       { id: 3, worker_key: "discovery_health", status: "succeeded",

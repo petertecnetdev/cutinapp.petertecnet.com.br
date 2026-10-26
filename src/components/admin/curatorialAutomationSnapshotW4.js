@@ -29,7 +29,8 @@ export function buildAutomationSnapshotW4(response) {
   const workers = new Map();
   // Sem um estado global booleano, não é seguro apresentar execuções como confiáveis.
   const globalStateReliable = typeof data.global_enabled === "boolean";
-  let complete = data.recent_runs.length <= 30 && globalStateReliable;
+  // O backend limita o histórico a 30 registros: exatamente 30 não prova que a página seja completa.
+  let complete = data.recent_runs.length < 30 && globalStateReliable;
   let malformedWorkers = false;
   for (const raw of data.workers) {
     if (!obj(raw) || typeof raw.key !== "string") {

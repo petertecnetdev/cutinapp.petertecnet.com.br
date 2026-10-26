@@ -79,6 +79,24 @@ describe("W4: monitor de curadoria sem elevação ou checkout", () => {
     expect(duplicated).not.toContain("<table");
   });
 
+  test("janela cheia não afirma ausência de execução de outro worker", () => {
+    const runs = Array.from({ length: 30 }, (_, i) => ({
+      id: i + 1, worker_key: "discovery_quality", status: "queued",
+    }));
+    const html = render(context(), { success: true, data: {
+      ...apiResponse.data,
+      workers: [
+        { key: "discovery_health", enabled: true },
+        { key: "discovery_quality", enabled: true },
+      ],
+      recent_runs: runs,
+    } });
+    expect(html).toContain("Histórico incompleto");
+    expect(html).toContain("Sem execução na janela retornada");
+    expect(html).not.toContain("Sem execução registrada");
+    expect(html).not.toMatch(/<button\\b|<form\\b|checkout_url/i);
+  });
+
   test("não interpola erros brutos ou dados privados", () => {
     const html = render(context(), { success: true, data: { ...apiResponse.data,
       recent_runs: [{ ...apiResponse.data.recent_runs[0], last_error: "<script>roubar()</script>", token: "SECRET" }] } });

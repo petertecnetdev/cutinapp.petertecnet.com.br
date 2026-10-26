@@ -28,7 +28,7 @@ export default function CuratorialAutomationMonitorW4({ context, applicationId, 
     <div className="row g-3">{snapshot.workers.map((worker) =>
       <div className="col-12 col-lg-6" key={worker.key}><section className="border rounded p-3 h-100" aria-label={"Worker " + worker.key}>
         <h3 className="h6 text-break">{worker.key}</h3>
-        <p>{describeWorkerW4(snapshot.globalEnabled, worker.enabled)} · {snapshot.historyReliable ? (worker.latest?.label || "Sem execução registrada") : "Última execução indeterminada"}</p>
+        <p>{describeWorkerW4(snapshot.globalEnabled, worker.enabled)} · {snapshot.historyReliable ? (worker.latest?.label || (snapshot.complete ? "Sem execução registrada" : "Sem execução na janela retornada")) : "Última execução indeterminada"}</p>
         {worker.latest?.errorType && <p role="alert" className="text-break">Tipo de falha: {worker.latest.errorType}</p>}
         <dl className="row mb-0">{worker.metrics.map((metric) =>
           <React.Fragment key={metric.key}>
