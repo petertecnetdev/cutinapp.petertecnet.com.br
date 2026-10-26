@@ -2492,3 +2492,81 @@ describe("W2 — erros HTTP de reivindicação preservam formulário sem concede
     expect(container.textContent).not.toMatch(/Solicitação registrada|Comprar ingresso|Finalizar compra|Pagar agora|Emitir QR/i);
   });
 });
+
+// A permissão de contato deve ser explícita e revogável antes do envio.
+// Estes testes não autorizam comércio: o veto financeiro pertence à API.
+describe("W2 — consentimento revogável e mensagens seguras na reivindicação", () => {
+  const { act } = require("react-dom/test-utils");
+  const { createRoot } = require("react-dom/client");
+  const claimService = require("../../services/IndependenceClaimService").default;
+  let container;
+  let root;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+  });
+
+  afterEach(async () => {
+    await act(async () => { root.unmount(); });
+    container.remove();
+  });
+
+  const openForm = async (entityType = "event", name = "Responsável") => {
+    await act(async () => {
+      root.render(React.createElement(UnverifiedListingPanel, {
+        entity: curated({ id: "9007199254740993", can_sell: true }),
+        entityType,
+        user: { id: 77, name, email: "contato@example.org" },
+        onLogin: jest.fn(),
+      }));
+    });
+    await act(async () => { container.querySelector(".cut-unverified__action").click(); });
+    return container.querySelector("form");
+  };
+
+  test("revogar consentimento antes do POST bloqueia até submissão programática", async () => {
+    const form = await openForm();
+    const checkbox = form.querySelector('input[type="checkbox"]');
+    await act(async () => { checkbox.click(); });
+    expect(form.querySelector('button[type="submit"]').disabled).toBe(false);
+    await act(async () => { checkbox.click(); });
+    expect(checkbox.checked).toBe(false);
+    expect(form.querySelector('button[type="submit"]').disabled).toBe(true);
+    await act(async () => {
+      form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    });
+    expect(claimService.submit).not.toHaveBeenCalled();
+    expect(container.querySelector('[role="status"]')).toBeNull();
+    expect(container.textContent).not.toMatch(/Comprar ingresso|Finalizar compra|Pagar agora/i);
+  });
+
+  test.each(["event", "production", "artist"])(
+    "%s não permite iniciar solicitação com nome composto apenas por espaços",
+    async (entityType) => {
+      const form = await openForm(entityType, "   ");
+      await act(async () => { form.querySelector('input[type="checkbox"]').click(); });
+      expect(form.querySelector('input[autocomplete="name"]').value).toBe("   ");
+      expect(form.querySelector('button[type="submit"]').disabled).toBe(true);
+      expect(claimService.submit).not.toHaveBeenCalled();
+      expect(container.textContent).not.toMatch(/Comprar ingresso|Finalizar compra|Pagar agora/i);
+    }
+  );
+
+  test("mensagem HTML devolvida no sucesso é exibida como texto, nunca como elemento ativo", async () => {
+    const hostile = '<img src=x onerror="alert(1)"> Solicitação recebida';
+    claimService.submit.mockResolvedValueOnce({ status: "pending_claim", message: hostile });
+    const form = await openForm("artist");
+    await act(async () => { form.querySelector('input[type="checkbox"]').click(); });
+    await act(async () => {
+      form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    });
+    expect(claimService.submit).toHaveBeenCalledTimes(1);
+    expect(container.querySelector('[role="status"]')?.textContent).toBe(hostile);
+    expect(container.querySelector("img")).toBeNull();
+    expect(container.querySelector("form")).toBeNull();
+    expect(container.textContent).not.toMatch(/Comprar ingresso|Finalizar compra|Pagar agora|Emitir QR/i);
+  });
+});
