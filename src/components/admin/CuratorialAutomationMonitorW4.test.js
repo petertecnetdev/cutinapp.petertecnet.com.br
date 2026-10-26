@@ -94,7 +94,7 @@ describe("W4: monitor de curadoria sem elevação ou checkout", () => {
     expect(html).toContain("Histórico incompleto");
     expect(html).toContain("Sem execução na janela retornada");
     expect(html).not.toContain("Sem execução registrada");
-    expect(html).not.toMatch(/<button\\b|<form\\b|checkout_url/i);
+    expect(html).not.toMatch(/<button\b|<form\b|checkout_url/i);
   });
 
   test("não interpola erros brutos ou dados privados", () => {
