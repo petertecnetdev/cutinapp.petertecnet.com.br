@@ -1,10 +1,22 @@
 import React, { useEffect, useRef, useState } from "react";
 import PropTypes from "prop-types";
 import independenceClaimService from "../../services/IndependenceClaimService";
-import { safeListingSourceUrl } from "../../utils/independenceListing";
+import { isUnverifiedListing, safeListingSourceUrl } from "../../utils/independenceListing";
 import "./unverified-listing.css";
 
-const claimable = (entity) => ["unclaimed", "pending_claim"].includes(String(entity?.ownership_status || "").toLowerCase());
+// Showing a public transparency notice and accepting a claim are separate decisions.
+// Incomplete curated records still need the notice even without ownership_status;
+// verified/rejected or ambiguous ownership must not silently open a claim form.
+const claimable = (entity) => {
+  const ownership = String(entity?.ownership_status || "").trim().toLowerCase();
+  const review = String(entity?.verification_status || "").trim().toLowerCase();
+  const source = String(entity?.listing_source || "").trim().toLowerCase();
+  if (ownership) return ["unclaimed", "pending_claim"].includes(ownership);
+  if (["verified", "manual_approved", "legacy_owner_record", "rejected"].includes(review)) return false;
+  return ["unclaimed", "pending_claim"].includes(review)
+    || ["curated", "curatorial", "institutional"].includes(source)
+    || entity?.is_institutional_listing === true;
+};
 const personName = (user) => [user?.first_name, user?.last_name].filter(Boolean).join(" ").trim() || String(user?.name || "");
 
 // Remount the private claim form whenever its security context changes. A pending
@@ -13,7 +25,9 @@ const personName = (user) => [user?.first_name, user?.last_name].filter(Boolean)
 export default function UnverifiedListingPanel({ entity, entityType, user, onLogin }) {
   const contextKey = JSON.stringify([
     entityType, entity?.id ?? null, entity?.app_id ?? entity?.application_id ?? null,
-    entity?.ownership_status ?? null, user?.id ?? null, user?.email ?? null,
+    entity?.ownership_status ?? null, entity?.verification_status ?? null,
+    entity?.listing_source ?? null, entity?.is_institutional_listing ?? null,
+    entity?.ownership_verified_at ?? null, user?.id ?? null, user?.email ?? null,
     user?.first_name ?? null, user?.last_name ?? null, user?.name ?? null,
   ]);
   return (
@@ -48,7 +62,12 @@ function UnverifiedListingPanelContent({ entity, entityType, user, onLogin }) {
     };
   }, []);
 
-  if (!claimable(entity) || !["event", "production", "artist"].includes(entityType)) return null;
+  // Preserve the established contract: explicit non-claimable ownership states
+  // never render the claim panel, even if other metadata is contradictory.
+  const ownership = String(entity?.ownership_status || "").trim().toLowerCase();
+  if (ownership && !["unclaimed", "pending_claim"].includes(ownership)) return null;
+  if (!isUnverifiedListing(entity) || !["event", "production", "artist"].includes(entityType)) return null;
+  const canRequestClaim = claimable(entity);
 
   const sourceUrl = safeListingSourceUrl(entity?.source_url);
   const timestamp = entity?.last_verified_at ? new Date(entity.last_verified_at) : null;
@@ -100,7 +119,7 @@ function UnverifiedListingPanelContent({ entity, entityType, user, onLogin }) {
       <p className="cut-unverified__disclaimer">Encontrou informações incorretas? Use a Central de Ajuda para solicitar a revisão desta ficha.</p>
       {result && <p className="cut-unverified__result" role="status">{result}</p>}
       {error && <p className="cut-unverified__error" role="alert">{error}</p>}
-      {!result && (
+      {canRequestClaim && !result && (
         <>
           {!user
             ? <button className="cut-unverified__action" type="button" onClick={onLogin}>Reivindicar esta página — criar conta</button>
@@ -141,6 +160,10 @@ UnverifiedListingPanel.propTypes = {
     app_id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
     application_id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
     ownership_status: PropTypes.string,
+    ownership_verified_at: PropTypes.string,
+    verification_status: PropTypes.string,
+    listing_source: PropTypes.string,
+    is_institutional_listing: PropTypes.bool,
     source_url: PropTypes.string,
     last_verified_at: PropTypes.string,
   }),

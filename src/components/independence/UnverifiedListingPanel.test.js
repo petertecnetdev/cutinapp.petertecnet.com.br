@@ -58,10 +58,87 @@ describe("Unverified listing public claim UI", () => {
     expect(html).not.toContain("Enviar solicitação de acesso");
   });
 
+  test.each(["event", "production", "artist"])(
+    "%s curatorial sem ownership_status mantém aviso e reivindicação, nunca checkout",
+    (entityType) => {
+      const html = renderToStaticMarkup(
+        <UnverifiedListingPanel
+          entity={{ id: 33, listing_source: "curated", can_sell: true }}
+          entityType={entityType}
+          user={null}
+          onLogin={() => {}}
+        />
+      );
+      expect(html).toContain("Informações públicas — responsável não verificado");
+      expect(html).toContain("Reivindicar esta página — criar conta");
+      expect(html).not.toMatch(/Comprar ingresso|Finalizar compra|Adicionar ao carrinho/);
+    }
+  );
+
+  test("revisão pending_claim sem ownership_status mantém aviso e reivindicação autenticada", () => {
+    const html = renderToStaticMarkup(
+      <UnverifiedListingPanel
+        entity={{ id: 44, verification_status: "pending_claim" }}
+        entityType="event"
+        user={{ id: 7, email: "user@example.org" }}
+      />
+    );
+    expect(html).toContain("responsável não verificado");
+    expect(html).toContain("Reivindicar esta página");
+    expect(html).not.toContain("— criar conta");
+    expect(html).not.toContain("Comprar ingresso");
+  });
+
+  test.each([
+    { verification_status: "rejected", listing_source: "curated" },
+    { verification_status: "manual_approved", listing_source: "curated" },
+    { listing_source: "legacy_organizer" },
+  ])("ficha com titularidade não reivindicável exibe aviso sem formulário (%p)", (fields) => {
+    const html = renderToStaticMarkup(
+      <UnverifiedListingPanel
+        entity={{ id: 55, ...fields }}
+        entityType="production"
+        user={{ id: 7, email: "user@example.org" }}
+      />
+    );
+    expect(html).toContain("responsável não verificado");
+    expect(html).not.toContain("Reivindicar esta página");
+    expect(html).not.toContain("Enviar solicitação de acesso");
+    expect(html).not.toContain("Comprar ingresso");
+  });
+
+  test.each(["verified", "rejected", "revoked", "suspended"])(
+    "ownership_status %s não exibe painel de reivindicação mesmo com origem curatorial",
+    (ownership_status) => {
+      const html = renderToStaticMarkup(
+        <UnverifiedListingPanel
+          entity={{ id: 57, ownership_status, listing_source: "curated" }}
+          entityType="event"
+          user={null}
+          onLogin={() => {}}
+        />
+      );
+      expect(html).toBe("");
+    }
+  );
+
+  test("ficha institucional explícita sem status exibe aviso e permite reivindicação", () => {
+    const html = renderToStaticMarkup(
+      <UnverifiedListingPanel
+        entity={{ id: 56, is_institutional_listing: true }}
+        entityType="artist"
+        user={null}
+        onLogin={() => {}}
+      />
+    );
+    expect(html).toContain("responsável não verificado");
+    expect(html).toContain("Reivindicar esta página — criar conta");
+  });
+
   test("claimed and verified listings never present a claim form", () => {
     const html = renderToStaticMarkup(
       <UnverifiedListingPanel
-        entity={{ id: 9, ownership_status: "verified" }}
+        entity={{ id: 9, ownership_status: "verified", verification_status: "manual_approved", ownership_verified_at: "2026-10-27T00:00:00Z" }}
         entityType="event"
         user={{ id: 7, email: "test@example.org" }}
       />
@@ -141,6 +218,23 @@ describe("W2 — isolamento de contexto e respostas assíncronas de reivindicaç
     expect(container.textContent).not.toContain("Enviando...");
     expand();
     expect(container.querySelector('input[type="checkbox"]').checked).toBe(false);
+    expect(independenceClaimService.submit).toHaveBeenCalledTimes(1);
+  });
+
+  test("revisão de ficha curatorial durante POST invalida retorno e fecha reivindicação", async () => {
+    const pending = deferred();
+    independenceClaimService.submit.mockReturnValueOnce(pending.promise);
+    show({ entity: { id: 11, listing_source: "curated" }, user: ana });
+    expand();
+    allow();
+    submit();
+    expect(independenceClaimService.submit).toHaveBeenCalledTimes(1);
+    show({ entity: { id: 11, listing_source: "curated", verification_status: "rejected" }, user: ana });
+    expect(container.textContent).toContain("responsável não verificado");
+    expect(container.textContent).not.toContain("Reivindicar esta página");
+    await act(async () => { pending.resolve({ message: "Acesso liberado indevidamente" }); await pending.promise; });
+    expect(container.textContent).not.toContain("Acesso liberado indevidamente");
+    expect(container.querySelector("form")).toBeNull();
     expect(independenceClaimService.submit).toHaveBeenCalledTimes(1);
   });
 
