@@ -2570,3 +2570,62 @@ describe("W2 — consentimento revogável e mensagens seguras na reivindicação
     expect(container.textContent).not.toMatch(/Comprar ingresso|Finalizar compra|Pagar agora|Emitir QR/i);
   });
 });
+
+// A resposta de POST registra uma solicitação, não altera a titularidade da ficha.
+// Mesmo um payload indevido de aprovação não pode transformar o painel em checkout.
+describe("W2 — resposta de reivindicação não eleva a ficha a comerciante", () => {
+  const { act } = require("react-dom/test-utils");
+  const { createRoot } = require("react-dom/client");
+  const claimService = require("../../services/IndependenceClaimService").default;
+  let container;
+  let root;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+  });
+
+  afterEach(async () => {
+    await act(async () => { root.unmount(); });
+    container.remove();
+  });
+
+  test.each([
+    ["event", { status: "approved", can_sell: true, checkout_url: "/checkout/91" }],
+    ["production", { status: "verified", ownership_status: "verified", can_sell: true }],
+    ["artist", { status: "pending_claim", merchant_enabled: true, tickets: [{ id: 9 }] }],
+  ])("%s mantém ficha informativa após resposta de POST com flags comerciais", async (entityType, response) => {
+    const entity = Object.freeze(curated({
+      id: "9007199254740993",
+      checkout_url: "/checkout/91",
+      can_sell: true,
+    }));
+    claimService.submit.mockResolvedValueOnce(response);
+    await act(async () => {
+      root.render(React.createElement(UnverifiedListingPanel, {
+        entity, entityType,
+        user: { id: 77, name: "Responsável", email: "contato@example.org" },
+        onLogin: jest.fn(),
+      }));
+    });
+    await act(async () => { container.querySelector(".cut-unverified__action").click(); });
+    const form = container.querySelector("form");
+    await act(async () => { form.querySelector('input[type="checkbox"]').click(); });
+    await act(async () => {
+      form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    });
+
+    expect(claimService.submit).toHaveBeenCalledTimes(1);
+    expect(claimService.submit).toHaveBeenCalledWith(expect.objectContaining({
+      entityType, entityId: "9007199254740993", consent: true,
+    }));
+    expect(container.querySelector('[role="status"]')?.textContent).toContain("Solicitação registrada");
+    expect(container.querySelector("form")).toBeNull();
+    expect(isUnverifiedListing(entity)).toBe(true);
+    expect(canShowListingCommerce(entity)).toBe(false);
+    expect(container.textContent).toContain("responsável não verificado");
+    expect(container.innerHTML).not.toMatch(/Comprar ingresso|Finalizar compra|Pagar agora|Adicionar ao carrinho|Emitir QR|\/checkout\/91/i);
+  });
+});
