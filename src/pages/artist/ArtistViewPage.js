@@ -4,6 +4,7 @@ import { Alert, Badge, Button, Card, Col, Container, Row } from "react-bootstrap
 import { useNavigate, useParams } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import NavlogComponent from "../../components/NavlogComponent";
+import ProfileSectionNav from "../../components/profile/ProfileSectionNav";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import EventArtwork from "../../components/event/EventArtwork";
 import cutinappService from "../../services/CutinappService";
@@ -183,7 +184,7 @@ export default function ArtistViewPage() {
   const bio = artist.bio || artist.short_bio || "Este perfil artístico ainda não adicionou uma biografia.";
 
   return <div className="cut-app-page artist-profile-page"><NavlogComponent />
-    <section className="cut-profile-hero artist-profile-hero" style={artist.cover ? { backgroundImage: `linear-gradient(180deg,rgba(2,8,13,.15),rgba(2,8,13,.94)),url(${mediaUrl(artist.cover)})` } : undefined}>
+    <section id="cut-artist-start" className="cut-profile-hero artist-profile-hero" style={artist.cover ? { backgroundImage: `linear-gradient(180deg,rgba(2,8,13,.15),rgba(2,8,13,.94)),url(${mediaUrl(artist.cover)})` } : undefined}>
       <Container className="cut-page-container">
         <div className="cut-profile-hero__content artist-profile-hero__content">
           <div className="cut-profile-avatar artist-profile-avatar">
@@ -231,6 +232,13 @@ export default function ArtistViewPage() {
       </Container>
     </section>
 
+    <ProfileSectionNav label="Seções do artista" items={[
+      { key: "inicio", label: "Início", targetId: "cut-artist-start" },
+      { key: "sobre", label: "Sobre", targetId: "cut-artist-about" },
+      { key: "agenda", label: "Agenda", targetId: "cut-artist-agenda" },
+      { key: "historico", label: "Histórico", targetId: "cut-artist-history" },
+    ]} />
+
     <Container className="cut-page-container py-5">
       {error && <Alert variant="danger">{error}</Alert>}
 
@@ -254,6 +262,7 @@ export default function ArtistViewPage() {
 
       <Row className="g-4">
         <Col lg={8}>
+          <div id="cut-artist-about" className="cut-profile-nav-anchor" />
           <Card className="cut-panel mb-4 artist-profile-about">
             <Card.Body className="p-4">
               <span className="cut-eyebrow">Sobre</span>
@@ -267,6 +276,7 @@ export default function ArtistViewPage() {
 
           {(social.member_of || []).length > 0 && <Card className="cut-panel mb-4"><Card.Body className="p-4"><span className="cut-eyebrow">Também faz parte de</span><div className="d-flex flex-wrap gap-2 mt-2">{social.member_of.map((membership) => <Button key={membership.id} variant="outline-light" onClick={() => navigate(`/artist/${membership.artist.slug}`)}>{membership.artist.stage_name}{membership.role ? ` · ${membership.role}` : ""}</Button>)}</div></Card.Body></Card>}
 
+          <div id="cut-artist-agenda" className="cut-profile-nav-anchor" />
           <div className="artist-profile-section-heading">
             <div><span className="cut-eyebrow">Agenda</span><h2 className="cut-section-title mb-0">Próximos eventos</h2></div>
             {summary.upcoming > 0 && <span className="artist-profile-count">{summary.upcoming} confirmado{summary.upcoming === 1 ? "" : "s"}</span>}
@@ -318,6 +328,7 @@ export default function ArtistViewPage() {
             </Card>
           )}
 
+          <div id="cut-artist-history" className="cut-profile-nav-anchor" />
           <Card className="cut-panel artist-profile-history">
             <Card.Body className="p-4">
               <span className="cut-eyebrow">Histórico</span>

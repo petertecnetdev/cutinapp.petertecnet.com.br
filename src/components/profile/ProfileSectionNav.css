@@ -1,0 +1,44 @@
+.cut-profile-section-nav {
+  position: sticky;
+  top: var(--cut-nav-height, var(--cut-navbar-height, 64px));
+  z-index: 20;
+  width: 100%;
+  border-bottom: 1px solid #29292e;
+  background: #0b0b0d;
+}
+.cut-profile-section-nav__list {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  padding: 8px 16px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.cut-profile-section-nav__list::-webkit-scrollbar { display: none; }
+.cut-profile-section-nav button {
+  flex: 0 0 auto;
+  min-width: 92px;
+  min-height: 44px;
+  padding: 9px 13px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: #c7c7ce;
+  font-size: .86rem;
+  font-weight: 800;
+}
+.cut-profile-section-nav button:hover,
+.cut-profile-section-nav button:focus-visible { border-color: #56565e; color: #fff; }
+.cut-profile-section-nav button:focus-visible { outline: 2px solid #f04456; outline-offset: -2px; }
+.cut-profile-section-nav button.is-active {
+  border-color: #6b1521;
+  background: #2b0d12;
+  color: #fff;
+  box-shadow: inset 0 -3px 0 #ec182d;
+}
+.cut-profile-nav-anchor { height: 0; scroll-margin-top: 150px; }
+@media (max-width: 767.98px) {
+  .cut-profile-section-nav__list { justify-content: flex-start; padding-inline: 12px; }
+  .cut-profile-section-nav button { min-width: auto; padding-inline: 15px; }
+}
