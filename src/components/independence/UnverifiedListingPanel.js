@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import PropTypes from "prop-types";
 import independenceClaimService from "../../services/IndependenceClaimService";
 import { isUnverifiedListing, safeListingSourceUrl } from "../../utils/independenceListing";
+import { canonicalAppId } from "../../utils/independenceAppId";
 import "./unverified-listing.css";
 
 // Showing a public transparency notice and accepting a claim are separate decisions.
@@ -19,12 +20,48 @@ const claimable = (entity) => {
 };
 const personName = (user) => [user?.first_name, user?.last_name].filter(Boolean).join(" ").trim() || String(user?.name || "");
 
+// A missing app identifier cannot distinguish two listings with the same entity
+// ID. This reference token is only a React remount guard, NOT tenant identity.
+// The backend must still derive and authorize the application on every POST.
+const anonymousEntityTokens = new WeakMap();
+let nextAnonymousEntityToken = 0;
+const anonymousEntityToken = (entity) => {
+  if (!entity || typeof entity !== "object") return "no-entity";
+  if (!anonymousEntityTokens.has(entity)) {
+    nextAnonymousEntityToken += 1;
+    anonymousEntityTokens.set(entity, nextAnonymousEntityToken);
+  }
+  return anonymousEntityTokens.get(entity);
+};
+const hasUnambiguousAppHint = (entity) => {
+  const app = canonicalAppId(entity?.app_id);
+  const application = canonicalAppId(entity?.application_id);
+  // Conflicting or malformed hints are not evidence of tenant identity.
+  if (entity?.app_id != null && !app) return false;
+  if (entity?.application_id != null && !application) return false;
+  return Boolean((app || application) && (!app || !application || app === application));
+};
+
 // Remount the private claim form whenever its security context changes. A pending
 // response from a previous user, listing or application must never be rendered
 // in the next context, even when the same panel instance is reused by a page.
 export default function UnverifiedListingPanel({ entity, entityType, user, onLogin }) {
+  const hasAppHint = hasUnambiguousAppHint(entity);
+  // Legacy pages omit app identity. Preserve their first-context claim flow,
+  // but once the listing reference changes, do not guess whether it belongs
+  // to the same app: block further POSTs until a scoped app hint is supplied.
+  // This is NOT a substitute for a canonical application prop from the page.
+  const anonymousTransitionRef = useRef({ seen: false, entity: null, ambiguous: false });
+  if (anonymousTransitionRef.current.entity !== entity) {
+    if (anonymousTransitionRef.current.seen) anonymousTransitionRef.current.ambiguous = true;
+    anonymousTransitionRef.current.seen = true;
+    anonymousTransitionRef.current.entity = entity;
+  }
+  const canSubmitClaim = hasAppHint || !anonymousTransitionRef.current.ambiguous;
   const contextKey = JSON.stringify([
     entityType, entity?.id ?? null, entity?.app_id ?? entity?.application_id ?? null,
+    // Even identical data in distinct unscoped records must remount the form.
+    hasAppHint ? null : anonymousEntityToken(entity),
     entity?.ownership_status ?? null, entity?.verification_status ?? null,
     entity?.listing_source ?? null, entity?.is_institutional_listing ?? null,
     entity?.ownership_verified_at ?? null, user?.id ?? null, user?.email ?? null,
@@ -37,11 +74,12 @@ export default function UnverifiedListingPanel({ entity, entityType, user, onLog
       entityType={entityType}
       user={user}
       onLogin={onLogin}
+      canSubmitClaim={canSubmitClaim}
     />
   );
 }
 
-function UnverifiedListingPanelContent({ entity, entityType, user, onLogin }) {
+function UnverifiedListingPanelContent({ entity, entityType, user, onLogin, canSubmitClaim }) {
   const [expanded, setExpanded] = useState(false);
   const [name, setName] = useState(() => personName(user));
   const [phone, setPhone] = useState("");
@@ -76,7 +114,7 @@ function UnverifiedListingPanelContent({ entity, entityType, user, onLogin }) {
 
   const submit = async (event) => {
     event.preventDefault();
-    if (submittingRef.current || !consent || !name.trim() || !user?.id || !user?.email) return;
+    if (submittingRef.current || !canSubmitClaim || !consent || !name.trim() || !user?.id || !user?.email) return;
     submittingRef.current = true;
     const requestVersion = ++requestVersionRef.current;
     setError("");
@@ -143,7 +181,10 @@ function UnverifiedListingPanelContent({ entity, entityType, user, onLogin }) {
                 <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} required />
                 Autorizo a Cutinapp a utilizar os dados informados para avaliar e responder a esta solicitação.
               </label>
-              <button className="cut-unverified__submit" disabled={busy || !consent || !name.trim()} type="submit">
+              {!canSubmitClaim && (
+                <p role="note">Esta ficha ainda não possui identificação da aplicação. Solicite a correção na Central de Ajuda antes de enviar uma reivindicação.</p>
+              )}
+              <button className="cut-unverified__submit" disabled={busy || !canSubmitClaim || !consent || !name.trim()} type="submit">
                 {busy ? "Enviando..." : "Enviar solicitação de acesso"}
               </button>
             </form>
@@ -178,4 +219,7 @@ UnverifiedListingPanel.propTypes = {
   onLogin: PropTypes.func,
 };
 
-UnverifiedListingPanelContent.propTypes = UnverifiedListingPanel.propTypes;
+UnverifiedListingPanelContent.propTypes = {
+  ...UnverifiedListingPanel.propTypes,
+  canSubmitClaim: PropTypes.bool.isRequired,
+};

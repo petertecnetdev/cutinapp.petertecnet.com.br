@@ -257,4 +257,55 @@ describe("W2 — isolamento de contexto e respostas assíncronas de reivindicaç
     expect(container.querySelector('input[type="checkbox"]').checked).toBe(false);
     expect(independenceClaimService.submit).toHaveBeenCalledTimes(1);
   });
+
+  test("A→B→A sem identificador de aplicação reinicia formulário e não envia POST ambíguo", () => {
+    const fichaA = { id: 11, listing_source: "curated" };
+    const fichaB = { id: 11, listing_source: "curated" };
+    show({ entity: fichaA, user: ana });
+    expect(container.textContent).toContain("responsável não verificado");
+    expand();
+    allow();
+    expect(container.querySelector('input[type="checkbox"]').checked).toBe(true);
+
+    show({ entity: fichaB, user: ana });
+    expect(container.querySelector("form")).toBeNull();
+    expand();
+    expect(container.querySelector('input[type="checkbox"]').checked).toBe(false);
+    allow();
+
+    show({ entity: fichaA, user: ana });
+    expect(container.querySelector("form")).toBeNull();
+    expand();
+    expect(container.querySelector('input[type="checkbox"]').checked).toBe(false);
+    allow();
+    submit(); // Even programmatic submit must be refused without app scope.
+    expect(independenceClaimService.submit).not.toHaveBeenCalled();
+    expect(independenceClaimService.mine).not.toHaveBeenCalled();
+    expect(container.textContent).not.toMatch(/Comprar ingresso|Finalizar compra|Acesso aprovado/);
+  });
+
+  test("POST de A sem app não reaparece após A→B→A com mesmo ID e usuário", async () => {
+    const pending = deferred();
+    independenceClaimService.submit.mockReturnValueOnce(pending.promise);
+    const fichaA = { id: 11, listing_source: "curated" };
+    const fichaB = { id: 11, listing_source: "curated" };
+    show({ entity: fichaA, user: ana });
+    expand();
+    allow();
+    submit(); // Legacy first context can POST; page must supply app scope to close this gap.
+    expect(independenceClaimService.submit).toHaveBeenCalledTimes(1);
+
+    show({ entity: fichaB, user: ana });
+    show({ entity: fichaB, user: ana });
+    show({ entity: fichaA, user: ana });
+    await act(async () => { pending.resolve({ message: "Acesso aprovado no app anterior" }); await pending.promise; });
+    expect(container.textContent).toContain("responsável não verificado");
+    expect(container.textContent).not.toContain("Acesso aprovado no app anterior");
+    expand();
+    expect(container.querySelector('input[type="checkbox"]').checked).toBe(false);
+    allow();
+    submit();
+    expect(independenceClaimService.submit).toHaveBeenCalledTimes(1);
+    expect(independenceClaimService.mine).not.toHaveBeenCalled();
+  });
 });
