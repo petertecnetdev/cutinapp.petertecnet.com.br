@@ -2843,3 +2843,63 @@ describe("W2 — erros de reivindicação não injetam HTML no painel curatorial
     expect(container.textContent).not.toMatch(/Comprar ingresso|Finalizar compra|Pagar agora|Emitir QR/i);
   });
 });
+// Respostas de segurança da API não podem ser confundidas com aprovação:
+// 401 (sessão), 409 (duplicidade) e 413 (limite de payload) exigem
+// intervenção explícita da pessoa; o React não reenvia nem libera vendas.
+describe("W2 — recusas HTTP preservam titularidade pendente sem reenvio implícito", () => {
+  const { act } = require("react-dom/test-utils");
+  const { createRoot } = require("react-dom/client");
+  const claimService = require("../../services/IndependenceClaimService").default;
+  let container;
+  let root;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+  });
+
+  afterEach(async () => {
+    await act(async () => { root.unmount(); });
+    container.remove();
+  });
+
+  test.each([
+    ["event", 401, "Sessão expirada: autentique-se novamente."],
+    ["production", 409, "Já existe uma solicitação em análise."],
+    ["artist", 413, "Mensagem muito longa: reduza os detalhes."],
+  ])("%s mantém a reivindicação sem aprovação após HTTP %i", async (entityType, status, message) => {
+    const entity = Object.freeze(curated({ id: "9223372036854775807", can_sell: true }));
+    const props = {
+      entity, entityType,
+      user: { id: 81, name: "Responsável", email: "contato@example.org" },
+      onLogin: jest.fn(),
+    };
+    claimService.submit.mockRejectedValueOnce({ response: { status, data: { message } } });
+
+    await act(async () => { root.render(React.createElement(UnverifiedListingPanel, props)); });
+    await act(async () => { container.querySelector(".cut-unverified__action").click(); });
+    const form = container.querySelector("form");
+    await act(async () => { form.querySelector('input[type="checkbox"]').click(); });
+    await act(async () => {
+      form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    });
+
+    expect(claimService.submit).toHaveBeenCalledTimes(1);
+    expect(claimService.submit).toHaveBeenCalledWith(expect.objectContaining({
+      entityType, entityId: "9223372036854775807", consent: true,
+    }));
+    expect(container.querySelector('[role="alert"]')?.textContent).toBe(message);
+    expect(container.querySelector('[role="status"]')).toBeNull();
+    expect(container.querySelector("form")).toBe(form);
+    expect(form.querySelector('input[type="checkbox"]').checked).toBe(true);
+    expect(form.querySelector('button[type="submit"]').disabled).toBe(false);
+
+    await act(async () => { root.render(React.createElement(UnverifiedListingPanel, props)); });
+    expect(claimService.submit).toHaveBeenCalledTimes(1);
+    expect(isUnverifiedListing(entity)).toBe(true);
+    expect(canShowListingCommerce(entity)).toBe(false);
+    expect(container.textContent).not.toMatch(/Comprar ingresso|Finalizar compra|Pagar agora|Emitir QR/i);
+  });
+});
