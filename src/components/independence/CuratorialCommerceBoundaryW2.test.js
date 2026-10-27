@@ -2776,3 +2776,70 @@ describe("W2 — logout durante envio pendente oculta dados sem duplicar reivind
     }
   );
 });
+
+// A mensagem de erro da API é dado não confiável, mesmo quando a ficha
+// permanece aberta para correção. Não executar HTML nem liberar comércio.
+describe("W2 — erros de reivindicação não injetam HTML no painel curatorial", () => {
+  const { act } = require("react-dom/test-utils");
+  const { createRoot } = require("react-dom/client");
+  const claimService = require("../../services/IndependenceClaimService").default;
+  let container;
+  let root;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+  });
+
+  afterEach(async () => {
+    await act(async () => { root.unmount(); });
+    container.remove();
+  });
+
+  test.each([
+    ["event", 403, '<img src=x onerror="alert(1)"> Acesso negado'],
+    ["production", 422, '<svg onload="alert(1)"></svg> Dados inválidos'],
+    ["artist", 500, '<a href="javascript:alert(1)">Tentar novamente</a>'],
+  ])("%s apresenta erro HTTP %i como texto inerte e mantém veto comercial", async (entityType, status, hostile) => {
+    const entity = Object.freeze(curated({ id: "9223372036854775807", can_sell: true }));
+    claimService.submit.mockRejectedValueOnce({
+      response: { status, data: { message: hostile } },
+    });
+    const props = {
+      entity,
+      entityType,
+      user: { id: 77, name: "Responsável", email: "contato@example.org" },
+      onLogin: jest.fn(),
+    };
+
+    await act(async () => {
+      root.render(React.createElement(UnverifiedListingPanel, props));
+    });
+    await act(async () => { container.querySelector(".cut-unverified__action").click(); });
+    const form = container.querySelector("form");
+    await act(async () => { form.querySelector('input[type="checkbox"]').click(); });
+    await act(async () => {
+      form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    });
+
+    expect(claimService.submit).toHaveBeenCalledTimes(1);
+    expect(claimService.submit).toHaveBeenCalledWith(expect.objectContaining({
+      entityType, entityId: "9223372036854775807", consent: true,
+    }));
+    expect(container.querySelector('[role="alert"]')?.textContent).toBe(hostile);
+    expect(container.querySelector("img, svg, a[href^='javascript:']")).toBeNull();
+    expect(container.querySelector('[role="status"]')).toBeNull();
+    expect(container.querySelector("form")).not.toBeNull();
+    expect(form.querySelector('input[type="checkbox"]').checked).toBe(true);
+    expect(isUnverifiedListing(entity)).toBe(true);
+    expect(canShowListingCommerce(entity)).toBe(false);
+
+    await act(async () => {
+      root.render(React.createElement(UnverifiedListingPanel, props));
+    });
+    expect(claimService.submit).toHaveBeenCalledTimes(1);
+    expect(container.textContent).not.toMatch(/Comprar ingresso|Finalizar compra|Pagar agora|Emitir QR/i);
+  });
+});
