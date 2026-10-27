@@ -2629,3 +2629,80 @@ describe("W2 — resposta de reivindicação não eleva a ficha a comerciante", 
     expect(container.innerHTML).not.toMatch(/Comprar ingresso|Finalizar compra|Pagar agora|Adicionar ao carrinho|Emitir QR|\/checkout\/91/i);
   });
 });
+
+// Cobertura de privacidade para o estado anônimo após sair da conta.
+// O reset integral do estado interno e respostas assíncronas obsoletas
+// continua sob ownership W03; aqui verificamos apenas o limite visível.
+describe("W2 — logout oculta dados de reivindicação e exige autenticação novamente", () => {
+  const { act } = require("react-dom/test-utils");
+  const { createRoot } = require("react-dom/client");
+  const claimService = require("../../services/IndependenceClaimService").default;
+  let container;
+  let root;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+  });
+
+  afterEach(async () => {
+    await act(async () => { root.unmount(); });
+    container.remove();
+  });
+
+  test.each(["event", "production", "artist"])(
+    "%s esconde formulário, e-mail e consentimento após logout sem enviar POST",
+    async (entityType) => {
+      const entity = Object.freeze(curated({
+        id: "9223372036854775807",
+        can_sell: true,
+      }));
+      const onLogin = jest.fn();
+      const panel = (user) => React.createElement(UnverifiedListingPanel, {
+        entity, entityType, user, onLogin,
+      });
+
+      await act(async () => {
+        root.render(panel({
+          id: 77,
+          name: "Pessoa Responsável",
+          email: "contato-privado@example.org",
+        }));
+      });
+      await act(async () => {
+        container.querySelector(".cut-unverified__action").click();
+      });
+      const form = container.querySelector("form");
+      expect(form).not.toBeNull();
+      await act(async () => {
+        form.querySelector('input[type="checkbox"]').click();
+      });
+      expect(form.querySelector('input[type="checkbox"]').checked).toBe(true);
+      expect(form.querySelector('input[type="email"]').value)
+        .toBe("contato-privado@example.org");
+
+      await act(async () => { root.render(panel(null)); });
+      expect(container.querySelector("form")).toBeNull();
+      expect(container.querySelector('input[type="checkbox"]')).toBeNull();
+      expect(container.querySelector('input[type="email"]')).toBeNull();
+      expect(container.textContent).not.toContain("contato-privado@example.org");
+      expect(container.textContent).not.toContain("Pessoa Responsável");
+      expect(container.querySelector('[role="status"]')).toBeNull();
+      expect(container.querySelector(".cut-unverified__action")?.textContent)
+        .toContain("criar conta");
+      expect(claimService.submit).not.toHaveBeenCalled();
+
+      await act(async () => {
+        container.querySelector(".cut-unverified__action").click();
+      });
+      expect(onLogin).toHaveBeenCalledTimes(1);
+      expect(claimService.submit).not.toHaveBeenCalled();
+      expect(isUnverifiedListing(entity)).toBe(true);
+      expect(canShowListingCommerce(entity)).toBe(false);
+      expect(container.textContent)
+        .not.toMatch(/Comprar ingresso|Finalizar compra|Pagar agora|Emitir QR/i);
+    }
+  );
+});
