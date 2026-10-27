@@ -2706,3 +2706,73 @@ describe("W2 — logout oculta dados de reivindicação e exige autenticação n
     }
   );
 });
+
+
+// Limite visível enquanto o POST está pendente: logout deve retirar
+// imediatamente os dados da conta e impedir uma segunda solicitação.
+// A resposta tardia continua exigindo correção separada no painel W03.
+describe("W2 — logout durante envio pendente oculta dados sem duplicar reivindicação", () => {
+  const { act } = require("react-dom/test-utils");
+  const { createRoot } = require("react-dom/client");
+  const claimService = require("../../services/IndependenceClaimService").default;
+  let container;
+  let root;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+  });
+
+  afterEach(async () => {
+    await act(async () => { root.unmount(); });
+    container.remove();
+  });
+
+  test.each(["event", "production", "artist"])(
+    "%s retira contato e formulário imediatamente ao sair durante POST pendente",
+    async (entityType) => {
+      claimService.submit.mockImplementationOnce(() => new Promise(() => {}));
+      const entity = Object.freeze(curated({ id: "9223372036854775807" }));
+      const onLogin = jest.fn();
+      const panel = (user) => React.createElement(UnverifiedListingPanel, {
+        entity, entityType, user, onLogin,
+      });
+
+      await act(async () => {
+        root.render(panel({
+          id: 77, name: "Responsável Privado",
+          email: "privado-pendente@example.org",
+        }));
+      });
+      await act(async () => { container.querySelector(".cut-unverified__action").click(); });
+      const form = container.querySelector("form");
+      await act(async () => { form.querySelector('input[type="checkbox"]').click(); });
+      await act(async () => {
+        form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+      });
+
+      expect(claimService.submit).toHaveBeenCalledTimes(1);
+      expect(claimService.submit).toHaveBeenCalledWith(expect.objectContaining({
+        entityType, entityId: "9223372036854775807", consent: true,
+      }));
+      expect(container.textContent).toContain("Enviando...");
+
+      await act(async () => { root.render(panel(null)); });
+      expect(container.querySelector("form")).toBeNull();
+      expect(container.querySelector('input[type="email"]')).toBeNull();
+      expect(container.querySelector('input[type="checkbox"]')).toBeNull();
+      expect(container.textContent).not.toContain("privado-pendente@example.org");
+      expect(container.textContent).not.toContain("Responsável Privado");
+      expect(container.querySelector(".cut-unverified__action")?.textContent)
+        .toContain("criar conta");
+      expect(container.querySelector('[role="status"]')).toBeNull();
+      expect(container.querySelector('[role="alert"]')).toBeNull();
+      expect(claimService.submit).toHaveBeenCalledTimes(1);
+      expect(isUnverifiedListing(entity)).toBe(true);
+      expect(canShowListingCommerce(entity)).toBe(false);
+      expect(container.innerHTML).not.toMatch(/Comprar ingresso|Finalizar compra|Pagar agora|Adicionar ao carrinho|Emitir QR/i);
+    }
+  );
+});
