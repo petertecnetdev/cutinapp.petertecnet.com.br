@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import PropTypes from "prop-types";
 import independenceClaimService from "../../services/IndependenceClaimService";
 import { safeListingSourceUrl } from "../../utils/independenceListing";
@@ -7,17 +7,46 @@ import "./unverified-listing.css";
 const claimable = (entity) => ["unclaimed", "pending_claim"].includes(String(entity?.ownership_status || "").toLowerCase());
 const personName = (user) => [user?.first_name, user?.last_name].filter(Boolean).join(" ").trim() || String(user?.name || "");
 
+// Remount the private claim form whenever its security context changes. A pending
+// response from a previous user, listing or application must never be rendered
+// in the next context, even when the same panel instance is reused by a page.
 export default function UnverifiedListingPanel({ entity, entityType, user, onLogin }) {
+  const contextKey = JSON.stringify([
+    entityType, entity?.id ?? null, entity?.app_id ?? entity?.application_id ?? null,
+    entity?.ownership_status ?? null, user?.id ?? null, user?.email ?? null,
+    user?.first_name ?? null, user?.last_name ?? null, user?.name ?? null,
+  ]);
+  return (
+    <UnverifiedListingPanelContent
+      key={contextKey}
+      entity={entity}
+      entityType={entityType}
+      user={user}
+      onLogin={onLogin}
+    />
+  );
+}
+
+function UnverifiedListingPanelContent({ entity, entityType, user, onLogin }) {
   const [expanded, setExpanded] = useState(false);
-  const [name, setName] = useState("");
+  const [name, setName] = useState(() => personName(user));
   const [phone, setPhone] = useState("");
   const [message, setMessage] = useState("");
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState("");
   const [error, setError] = useState("");
+  const mountedRef = useRef(true);
+  const submittingRef = useRef(false);
+  const requestVersionRef = useRef(0);
 
-  useEffect(() => { setName(personName(user)); }, [user?.id, user?.first_name, user?.last_name, user?.name]);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      requestVersionRef.current += 1;
+    };
+  }, []);
 
   if (!claimable(entity) || !["event", "production", "artist"].includes(entityType)) return null;
 
@@ -28,7 +57,9 @@ export default function UnverifiedListingPanel({ entity, entityType, user, onLog
 
   const submit = async (event) => {
     event.preventDefault();
-    if (busy || !consent) return;
+    if (submittingRef.current || !consent || !name.trim() || !user?.id || !user?.email) return;
+    submittingRef.current = true;
+    const requestVersion = ++requestVersionRef.current;
     setError("");
     setResult("");
     setBusy(true);
@@ -36,12 +67,20 @@ export default function UnverifiedListingPanel({ entity, entityType, user, onLog
       const response = await independenceClaimService.submit({
         entityType, entityId: entity.id, name, email: user?.email, phone, message, consent,
       });
+      if (!mountedRef.current || requestVersion !== requestVersionRef.current) return;
       setResult(response?.message || "Solicitação registrada para revisão.");
       setExpanded(false);
+      setConsent(false);
+      setPhone("");
+      setMessage("");
     } catch (err) {
+      if (!mountedRef.current || requestVersion !== requestVersionRef.current) return;
       setError(err?.response?.data?.message || "Não foi possível enviar a solicitação. Confira seus dados e tente novamente.");
     } finally {
-      setBusy(false);
+      if (mountedRef.current && requestVersion === requestVersionRef.current) {
+        submittingRef.current = false;
+        setBusy(false);
+      }
     }
   };
 
@@ -99,6 +138,8 @@ export default function UnverifiedListingPanel({ entity, entityType, user, onLog
 UnverifiedListingPanel.propTypes = {
   entity: PropTypes.shape({
     id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    app_id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    application_id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
     ownership_status: PropTypes.string,
     source_url: PropTypes.string,
     last_verified_at: PropTypes.string,
@@ -113,3 +154,5 @@ UnverifiedListingPanel.propTypes = {
   }),
   onLogin: PropTypes.func,
 };
+
+UnverifiedListingPanelContent.propTypes = UnverifiedListingPanel.propTypes;
