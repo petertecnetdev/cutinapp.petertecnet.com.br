@@ -59,8 +59,8 @@ export default function ProducerOnboardingPage() {
       <div className="cut-page-heading">
         <div>
           <span className="cut-eyebrow">Configuração da produção</span>
-          <h1>Coloque sua produção pronta para vender</h1>
-          <p>A configuração inicial já foi adiantada. Conclua as etapas abaixo e depois administre seus próprios eventos diretamente pela Cutinapp.</p>
+          <h1>Do primeiro evento à primeira venda</h1>
+          <p>Comece criando ou revisando seu evento. As etapas de contrato e recebimentos continuam disponíveis abaixo, sem esconder o próximo passo.</p>
         </div>
         {onboarding && <Badge bg={onboarding.sales_ready ? "success" : "warning"}>
           {statusLabel[onboarding.status] || onboarding.status}
@@ -88,9 +88,26 @@ export default function ProducerOnboardingPage() {
       </Card.Body></Card>}
 
       {onboarding && <>
+        <Card className="cut-panel mb-4" aria-label="Próximo passo do produtor">
+          <Card.Body className="p-4">
+            <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+              <div>
+                <span className="cut-eyebrow">Prioridade: primeiro evento</span>
+                <h2 className="cut-section-title mt-2 mb-2">{onboarding.initial_event?.id ? "Continue seu primeiro evento" : "Comece pelo seu primeiro evento"}</h2>
+                <p className="mb-0">Prepare os dados do evento agora. Para publicar, é necessário assinar o termo vigente; para vender ingressos pagos, configure também os recebimentos.</p>
+              </div>
+              <div className="d-grid gap-2 flex-shrink-0">
+                <Button onClick={() => navigate(onboarding.initial_event?.id ? `/event/edit/${onboarding.initial_event.id}` : `/event/create?productionId=${onboarding.organization.id}`)}>
+                  {onboarding.initial_event?.id ? "Revisar primeiro evento" : "Criar primeiro evento"}
+                </Button>
+                {!onboarding.steps?.agreement && <Button variant="outline-light" onClick={() => navigate(`/producer/contracts?productionId=${onboarding.organization.id}`)}>Assinar termo para publicar</Button>}
+              </div>
+            </div>
+          </Card.Body>
+        </Card>
         <Card className="cut-panel mb-4"><Card.Body className="p-4">
           <div className="d-flex flex-wrap justify-content-between gap-3 align-items-end mb-3">
-            <div><span className="cut-eyebrow">{onboarding.organization.name}</span><h2 className="cut-section-title mt-2 mb-0">Seu progresso</h2></div>
+            <div><span className="cut-eyebrow">{onboarding.organization.name}</span><h2 className="cut-section-title mt-2 mb-0">Configuração da produção</h2></div>
             <strong>{onboarding.completed_steps}/{onboarding.total_steps} etapas</strong>
           </div>
           <ProgressBar now={onboarding.progress} label={`${onboarding.progress}%`} />
