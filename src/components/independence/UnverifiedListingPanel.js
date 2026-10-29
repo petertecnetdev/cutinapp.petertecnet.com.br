@@ -125,7 +125,9 @@ function UnverifiedListingPanelContent({ entity, entityType, user, onLogin, canS
     setBusy(true);
     try {
       const response = await independenceClaimService.submit({
-        entityType, entityId: entity.id, name, email: user?.email, phone, message, consent,
+        entityType, entityId: entity.id,
+        applicationId: canonicalAppId(entity?.app_id ?? entity?.application_id),
+        userId: user?.id, name, email: user?.email, phone, message, consent,
       });
       if (!mountedRef.current || requestVersion !== requestVersionRef.current) return;
       setResult(response?.message || "Solicitação registrada para revisão.");
