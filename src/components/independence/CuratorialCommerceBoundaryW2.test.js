@@ -27,6 +27,7 @@ const claimHttpClient = require("../../services/AppApiClient").default;
 const claimServiceForFixtures = {
   ...actualClaimService,
   submit: (input) => {
+    require("../../utils/authTokenStorage").getAuthToken.mockReturnValue("token-A");
     const expectedEmail = typeof input?.email === "string" ? input.email.trim() : "";
     claimHttpClient.get.mockImplementation((url) => {
       if (url === "/me") {
