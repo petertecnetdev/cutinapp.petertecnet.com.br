@@ -2,6 +2,7 @@ import React, { useContext, useEffect, useMemo, useState } from "react";
 import { Alert, Badge, Button, Card, Col, Container, Form, Row } from "react-bootstrap";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
+import ProfileSectionNav from "../../components/profile/ProfileSectionNav";
 import ProcessingIndicatorComponent from "../../components/ProcessingIndicatorComponent";
 import WhatsAppFloatingButton from "../../components/WhatsAppFloatingButton";
 import { buildEventContactMessage } from "../../utils/productionWhatsappContact";
@@ -208,7 +209,7 @@ export default function EventViewPage() {
 
   const event = data?.event || null;
   const history = data?.history || null;
-  const tickets = useMemo(() => (data?.tickets || []).filter((ticket) => Number(ticket.price) === 0), [data]);
+  const tickets = useMemo(() => (data?.tickets || []).filter((ticket) => !ticket.informational_only && ticket.price !== null && Number(ticket.price) === 0), [data]);
   const claimableArtists = useMemo(() => artists.filter((artist) => !artist.claimed_at), [artists]);
   const isCommunityMeetup = event?.kind === "community";
   const isOwner = Boolean(isCommunityMeetup
@@ -510,7 +511,7 @@ export default function EventViewPage() {
 
   return <div className={`cut-app-page cut-event-view-page ${showPersistentBuyCta ? "cut-event-view-page--buyable" : ""} ${flyerUrl ? "cut-event-view-page--flyer-background" : ""}`} style={eventPageStyle}><NavlogComponent />{(loading || artistClaimingId || duplicating) && <ProcessingIndicatorComponent label={artistClaimingId ? "Enviando reivindicação" : duplicating ? "Criando próxima edição" : "Carregando evento"} />}
     {!loading && event && <>
-      <section className="cut-event-banner-stage" aria-label={`Imagem do evento ${event.title}`}>
+      <section id="cut-event-start" className="cut-event-banner-stage" aria-label={`Imagem do evento ${event.title}`}>
         <Container className="cut-page-container">
           <div className={flyerUrl ? "cut-event-banner-frame" : "cut-event-banner-placeholder"}>
             <EventArtwork image={event.image} title={event.title} alt={`Banner do evento ${event.title}`} fallbackClassName="cut-event-banner-initials" />
@@ -549,6 +550,14 @@ export default function EventViewPage() {
         </Container>
       </section>
 
+      <ProfileSectionNav label={isCommunityMeetup ? "Seções do encontro" : "Seções do evento"} items={[
+        { key: "inicio", label: "Início", targetId: "cut-event-start" },
+        ...(showPersistentBuyCta ? [{ key: "ingressos", label: "Ingressos", targetId: "ingressos" }] : []),
+        ...(!isCommunityMeetup && artists.length ? [{ key: "lineup", label: "Line-up", targetId: "cut-event-lineup" }] : []),
+        { key: "sobre", label: "Informações", targetId: "cut-event-information" },
+        { key: "comunidade", label: "Comunidade", targetId: "cut-event-community-navigation" },
+      ]} />
+
       <Container className="cut-page-container py-4 py-lg-5">
         <UnverifiedListingPanel entity={event} entityType="event" user={user} onLogin={() => navigate("/register", { state: { from: location.pathname + location.search } })} />
         {error && <Alert variant="danger">{error}</Alert>}{success && <Alert variant="success">{success}</Alert>}
@@ -560,7 +569,7 @@ export default function EventViewPage() {
         {isCommunityMeetup && <CommunityAttendanceSection event={event} isOwner={isOwner} />}
 
         {location.state?.artistClaim && !isCommunityMeetup && <Alert variant="info">Sua conta foi criada. Agora selecione abaixo o artista que representa você e envie a reivindicação ao produtor deste evento.</Alert>}
-        {!isCommunityMeetup && artists.length > 0 && <section className="mb-5"><div className="cut-section-heading"><div><span className="cut-eyebrow">Line-up</span><h2>Quem faz este evento acontecer</h2></div></div><div className="cut-lineup-grid">{artists.map((artist) => <button key={artist.id} className={`cut-lineup-card ${artist.pivot?.is_headliner ? "cut-lineup-card--headliner" : ""}`} onClick={() => navigate(`/artist/${artist.slug}`)}><div className="cut-lineup-card__avatar">{artist.photo ? <img src={/^https?:/.test(artist.photo) ? artist.photo : `${storageUrl}${String(artist.photo).replace(/^\//, "")}`} alt={artist.stage_name} /> : <span>{artist.stage_name?.slice(0,2).toUpperCase()}</span>}</div><div><span>{artist.pivot?.is_headliner ? "Atração principal" : artist.pivot?.participation_type || "Artista"}</span><strong>{artist.stage_name}</strong>{artist.pivot?.scheduled_at && <small>{formatDate(artist.pivot.scheduled_at)}</small>}{artist.pivot?.stage && <small>{artist.pivot.stage}</small>}</div><i className="fa-solid fa-chevron-right" /></button>)}</div>
+        {!isCommunityMeetup && artists.length > 0 && <section id="cut-event-lineup" className="mb-5"><div className="cut-section-heading"><div><span className="cut-eyebrow">Line-up</span><h2>Quem faz este evento acontecer</h2></div></div><div className="cut-lineup-grid">{artists.map((artist) => <button key={artist.id} className={`cut-lineup-card ${artist.pivot?.is_headliner ? "cut-lineup-card--headliner" : ""}`} onClick={() => navigate(`/artist/${artist.slug}`)}><div className="cut-lineup-card__avatar">{artist.photo ? <img src={/^https?:/.test(artist.photo) ? artist.photo : `${storageUrl}${String(artist.photo).replace(/^\//, "")}`} alt={artist.stage_name} /> : <span>{artist.stage_name?.slice(0,2).toUpperCase()}</span>}</div><div><span>{artist.pivot?.is_headliner ? "Atração principal" : artist.pivot?.participation_type || "Artista"}</span><strong>{artist.stage_name}</strong>{artist.pivot?.scheduled_at && <small>{formatDate(artist.pivot.scheduled_at)}</small>}{artist.pivot?.stage && <small>{artist.pivot.stage}</small>}</div><i className="fa-solid fa-chevron-right" /></button>)}</div>
           {claimableArtists.length > 0 && <Card className="cut-panel mt-4"><Card.Body className="p-4"><span className="cut-eyebrow">Artista do evento?</span><h3 className="cut-section-title">Reivindique seu vínculo</h3><p className="text-secondary">Se o produtor cadastrou você antes da criação da sua conta, escolha seu perfil abaixo. O produtor receberá a solicitação e confirmará que você realmente faz parte deste line-up.</p><div className="d-flex flex-wrap gap-2">{claimableArtists.map((artist) => <Button key={artist.id} variant="outline-light" onClick={() => claimArtist(artist)} disabled={artistClaimingId === artist.id}><i className="fa-solid fa-user-check me-2" />Sou {artist.stage_name}</Button>)}</div>{!user && <small className="d-block text-secondary mt-3">Você será direcionado ao cadastro e voltará para este evento após confirmar o e-mail.</small>}</Card.Body></Card>}
         </section>}
 
@@ -573,6 +582,7 @@ export default function EventViewPage() {
 
         </section>}
 
+        <div id="cut-event-information" className="cut-profile-nav-anchor" />
         <Row className="g-4"><Col lg={isOwner && !isCommunityMeetup ? 8 : 12}>
           <Card className="cut-panel mb-4"><Card.Body className="p-4 p-lg-5"><span className="cut-eyebrow">{isCommunityMeetup ? "Sobre o encontro" : "Sobre o evento"}</span><h2 className="cut-section-title mt-2">Informações</h2>{eventDescription && <div className="mb-4"><FormattedText className="cut-body-copy mb-2" value={visibleDescription} />{hasLongDescription && <Button variant="link" className="p-0 text-decoration-none" onClick={() => setDescriptionExpanded((current) => !current)} aria-expanded={descriptionExpanded}><i className={`fa-solid ${descriptionExpanded ? "fa-chevron-up" : "fa-chevron-down"} me-2`} aria-hidden="true" />{descriptionExpanded ? "Recolher descrição" : "Ver descrição completa"}</Button>}</div>}<div className="cut-event-details"><div><i className="fa-regular fa-calendar" /><span><strong>Início</strong>{formatDate(event.start_date)}</span></div><div><i className="fa-regular fa-clock" /><span><strong>Término</strong>{formatDate(event.end_date)}</span></div><div><i className="fa-solid fa-location-dot" /><span><strong>Local</strong>{event.venue || event.address}</span></div>{event.city && <div><i className="fa-solid fa-map" /><span><strong>Cidade</strong>{event.city}{event.uf ? ` - ${event.uf}` : ""}</span></div>}</div></Card.Body></Card>
           <Card className="cut-panel mb-4"><Card.Body className="p-4 p-lg-5"><span className="cut-eyebrow">Dúvidas rápidas</span><h2 className="cut-section-title mt-2">Antes de participar</h2>{isCommunityMeetup ? <div className="cut-event-faq mt-4"><details><summary>Preciso comprar ingresso?</summary><p>Não. Este é um encontro comunitário gratuito. Marque “Eu vou” para confirmar sua intenção de participar.</p></details><details><summary>Como confirmo que realmente fui?</summary><p>Durante o encontro, use “Estou no local” para validar pela localização configurada pelo organizador. O organizador também pode confirmar sua presença manualmente.</p></details><details><summary>Onde acontece?</summary><p>{[event.venue, event.address, event.city && `${event.city}${event.uf ? ` - ${event.uf}` : ""}`].filter(Boolean).join(" · ") || "O ponto de encontro ainda está sendo confirmado."}</p></details><details><summary>Posso conversar com a galera antes?</summary><p>Sim. Use a comunidade desta página para combinar detalhes e tirar dúvidas.</p></details></div> : <div className="cut-event-faq mt-4"><details><summary>{showCuratorialTicketPrices ? "Posso comprar ingressos aqui?" : "Como comprar ingresso?"}</summary><p>{showCuratorialTicketPrices ? "Ainda não. Esta é uma ficha informativa e a produção precisa reivindicar o evento e habilitar a comercialização. Os preços exibidos são apenas referências divulgadas." : "Use a área “Ingressos e itens” desta página. Você escolhe as quantidades e revisa o total antes de seguir para o pagamento."}</p></details><details><summary>Quando o ingresso fica disponível?</summary><p>{showCuratorialTicketPrices ? "Após a verificação do organizador e a liberação de vendas pela Cutinapp. Até lá, não há emissão de ingressos nesta página." : "Quando o pedido é confirmado e a emissão termina, o ingresso aparece na sua carteira da Cutinapp. Se a confirmação demorar, o mesmo pedido pode ser retomado com segurança."}</p></details><details><summary>Onde acontece?</summary><p>{[event.venue, event.address, event.city && `${event.city}${event.uf ? ` - ${event.uf}` : ""}`].filter(Boolean).join(" · ") || "O local ainda está sendo confirmado pela produção."}</p></details><details><summary>Preciso de ajuda com compra ou ingresso?</summary><p>Abra a Central de Ajuda para registrar o problema com o contexto da sua navegação.</p><Button size="sm" variant="outline-light" onClick={() => navigate("/help")}>Abrir Central de Ajuda</Button></details></div>}</Card.Body></Card>
@@ -583,6 +593,7 @@ export default function EventViewPage() {
 
         {!isOwner && <Card className="cut-panel mt-4 mb-4"><Card.Body className="p-4 p-lg-5"><div className="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4"><div><span className="cut-eyebrow">Você também produz eventos?</span><h2 className="cut-section-title mt-2 mb-2">Crie seu primeiro evento na Cutinapp</h2><p className="text-secondary mb-0">Comece pelo evento. Se ainda não tiver uma produção, você cria o nome dela no mesmo fluxo e segue direto para o primeiro lote e a publicação.</p></div><Button size="lg" onClick={startProducerActivation} className="flex-shrink-0"><i className="fa-solid fa-bolt me-2" />{user ? "Criar meu evento" : "Começar como produtor"}</Button></div></Card.Body></Card>}
 
+        <div id="cut-event-community-navigation" className="cut-profile-nav-anchor" />
         <EventCommunitySection event={event} isOwner={isOwner} />
 
         {relatedEvents.length > 0 && <EventDiscoveryRail

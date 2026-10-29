@@ -40,6 +40,7 @@ const trackCommerce = (type, details = {}) => {
 };
 
 const stockLabel = (item, soldOut, limit) => {
+  if (item?.informational_only) return "Ficha informativa — vendas e emissão desabilitadas";
   if (item?.expired) return "Venda encerrada";
   if (soldOut) return "Esgotado";
   const rawStock = item?.remaining ?? item?.quantity;

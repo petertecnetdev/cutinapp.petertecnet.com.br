@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 import { Alert, Button, Container, Dropdown, Form, Modal, Spinner } from "react-bootstrap";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import NavlogComponent from "../../components/NavlogComponent";
+import ProfileSectionNav from "../../components/profile/ProfileSectionNav";
 import EventDiscoveryRail from "../../components/event/EventDiscoveryRail";
 import QrCodeComponent from "../../components/QrCodeComponent";
 import { ProfileActorBadges, ProfileActorLinks, actorThemeClass } from "../../components/user/ProfileActorIdentity";
@@ -166,10 +167,16 @@ export default function UserProfilePage() {
 
       <div className="cut-profile-v2__summary"><Container className="cut-page-container"><div className="cut-profile-v2__summaryInner"><button className="cut-profile-v2__stat" type="button" onClick={() => setTab("posts")}><strong>{number(stats.posts)}</strong><span>publicações</span></button><button className="cut-profile-v2__stat" type="button" onClick={() => setPeopleModal("followers")}><strong>{number(stats.followers)}</strong><span>seguidores</span></button><button className="cut-profile-v2__stat" type="button" onClick={() => setPeopleModal("following")}><strong>{number(stats.following_participants)}</strong><span>seguindo</span></button><button className="cut-profile-v2__stat" type="button" onClick={() => setTab("events")}><strong>{number(upcomingEvents.length || stats.interested || stats.upcoming_with_ticket)}</strong><span>eventos</span></button></div></Container></div>
 
+      <ProfileSectionNav label="Seções do participante" mode="tabs" activeKey={tab} onSelect={setTab} items={[
+        { key: "posts", label: "Publicações" },
+        { key: "events", label: "Eventos" },
+        { key: "media", label: "Mídia" },
+        { key: "about", label: "Sobre" },
+      ]} />
+
       <Container className="cut-page-container py-4">
         {(mutualCount > 0 || commonEventsCount > 0) && <div className="cut-profile-v2__common">{mutualCount > 0 && <button type="button" className="border-0 bg-transparent p-0" onClick={() => setPeopleModal("mutuals")}><span><i className="fa-solid fa-user-group me-2" />{mutualCount} conexões em comum</span></button>}{commonEventsCount > 0 && <span><i className="fa-regular fa-calendar-check me-2" />{commonEventsCount} eventos em comum</span>}</div>}
         <ProfileActorLinks identity={actorIdentity} />
-        <div className="cut-profile-v2__tabs" role="tablist" aria-label="Conteúdo do perfil">{[["posts","Publicações","fa-regular fa-message"],["events","Eventos","fa-regular fa-calendar"],["media","Mídia","fa-regular fa-image"],["about","Sobre","fa-regular fa-circle-user"]].map(([key,label,icon]) => <button key={key} type="button" role="tab" aria-selected={tab === key} className={tab === key ? "active" : ""} onClick={() => setTab(key)}><i className={`${icon} me-2`} />{label}</button>)}</div>
 
         {tab === "posts" && <section className="cut-profile-v2__section"><div className="cut-profile-v2__heading"><div><h2>Publicações</h2><p>Conteúdo compartilhado por {isOwnProfile ? "você" : profile.first_name || profileName}.</p></div>{isOwnProfile && <Button size="sm" onClick={() => navigate("/feed")}><i className="fa-solid fa-plus me-2" />Publicar</Button>}</div>{secondaryLoading ? <div className="cut-profile-v2__skeleton" /> : posts.length === 0 ? <EmptyState icon="fa-regular fa-message" title="Nenhuma publicação por aqui" text={isOwnProfile ? "Compartilhe algo no feed para sua publicação aparecer no perfil." : "Este usuário ainda não possui publicações públicas."} action={isOwnProfile ? () => navigate("/feed") : null} actionLabel="Criar publicação" /> : <div className="cut-profile-v2__postGrid">{posts.map((post) => <article className="cut-profile-v2__post" key={post.id}><div className="cut-profile-v2__postHeader"><div className="cut-profile-v2__miniAvatar">{avatar ? <img src={avatar} alt="" /> : profileInitials}</div><div><strong>{profileName}</strong><small>{fmt(post.created_at)}</small></div></div><div className="cut-profile-v2__postBody">{post.body}</div><div className="cut-profile-v2__postActions"><button type="button" className={post.is_liked ? "active" : ""} onClick={() => navigate(`/feed?post=${post.id}`)}><i className={`${post.is_liked ? "fa-solid" : "fa-regular"} fa-heart`} /> {number(post.likes_count)}</button><button type="button" onClick={() => navigate(`/feed?post=${post.id}`)}><i className="fa-regular fa-comment" /> {number(post.comments_count || post.replies?.length)}</button><button type="button" onClick={() => navigate(`/feed?post=${post.id}`)}><i className="fa-solid fa-share-nodes" /></button></div></article>)}</div>}</section>}
 
