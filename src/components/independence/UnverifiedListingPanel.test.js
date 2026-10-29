@@ -269,12 +269,12 @@ describe("W2 — isolamento de contexto e respostas assíncronas de reivindicaç
   test("revisão de ficha curatorial durante POST invalida retorno e fecha reivindicação", async () => {
     const pending = deferred();
     independenceClaimService.submit.mockReturnValueOnce(pending.promise);
-    show({ entity: { id: 11, listing_source: "curated" }, user: ana });
+    show({ entity: { id: 11, app_id: "10", listing_source: "curated" }, user: ana });
     expand();
     allow();
     submit();
     expect(independenceClaimService.submit).toHaveBeenCalledTimes(1);
-    show({ entity: { id: 11, listing_source: "curated", verification_status: "rejected" }, user: ana });
+    show({ entity: { id: 11, app_id: "10", listing_source: "curated", verification_status: "rejected" }, user: ana });
     expect(container.textContent).toContain("responsável não verificado");
     expect(container.textContent).not.toContain("Reivindicar esta página");
     await act(async () => { pending.resolve({ message: "Acesso liberado indevidamente" }); await pending.promise; });
@@ -348,28 +348,85 @@ describe("W2 — isolamento de contexto e respostas assíncronas de reivindicaç
     expect(container.textContent).not.toMatch(/Comprar ingresso|Finalizar compra|Acesso aprovado/);
   });
 
-  test("POST de A sem app não reaparece após A→B→A com mesmo ID e usuário", async () => {
-    const pending = deferred();
-    independenceClaimService.submit.mockReturnValueOnce(pending.promise);
+  test.each([
+    ["ausente", {}],
+    ["null", { app_id: null, application_id: null }],
+    ["zero", { app_id: "0" }],
+    ["inválido", { app_id: "app-10" }],
+    ["conflitante", { app_id: "10", application_id: "20" }],
+    ["segundo identificador inválido", { app_id: "10", application_id: "desconhecido" }],
+  ])("ficha com app %s mantém aviso mas nunca envia POST", (_case, fields) => {
+    show({ entity: { id: 11, listing_source: "curated", ...fields }, user: ana });
+    expect(container.textContent).toContain("responsável não verificado");
+    expand();
+    allow();
+    expect(container.querySelector(".cut-unverified__submit").disabled).toBe(true);
+    expect(container.textContent).toContain("Não foi possível confirmar a aplicação");
+    submit(); // Mesmo um submit programático deve ser recusado.
+    expect(independenceClaimService.submit).not.toHaveBeenCalled();
+    expect(independenceClaimService.mine).not.toHaveBeenCalled();
+  });
+
+  test("primeiro contexto sem app e A→B→A com mesmo ID nunca enviam POST", () => {
     const fichaA = { id: 11, listing_source: "curated" };
     const fichaB = { id: 11, listing_source: "curated" };
     show({ entity: fichaA, user: ana });
     expand();
     allow();
-    submit(); // Legacy first context can POST; page must supply app scope to close this gap.
-    expect(independenceClaimService.submit).toHaveBeenCalledTimes(1);
+    submit();
+    expect(independenceClaimService.submit).not.toHaveBeenCalled();
 
     show({ entity: fichaB, user: ana });
-    show({ entity: fichaB, user: ana });
     show({ entity: fichaA, user: ana });
-    await act(async () => { pending.resolve({ message: "Acesso aprovado no app anterior" }); await pending.promise; });
-    expect(container.textContent).toContain("responsável não verificado");
-    expect(container.textContent).not.toContain("Acesso aprovado no app anterior");
+    expect(container.querySelector("form")).toBeNull();
     expand();
     expect(container.querySelector('input[type="checkbox"]').checked).toBe(false);
     allow();
     submit();
+    expect(independenceClaimService.submit).not.toHaveBeenCalled();
+    expect(container.textContent).not.toMatch(/Comprar ingresso|Finalizar compra|Acesso aprovado/);
+  });
+
+  test.each([401, 403])("erro HTTP %i no contexto atual limpa PII e oculta mensagem privada da API", async (status) => {
+    independenceClaimService.submit.mockRejectedValueOnce({
+      response: { status, data: { message: "Token privado de outra aplicação e telefone 999999" } },
+    });
+    show({ entity: entity(11, "10"), user: ana });
+    expand();
+    allow();
+    await act(async () => {
+      container.querySelector("form").dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+      await Promise.resolve();
+    });
     expect(independenceClaimService.submit).toHaveBeenCalledTimes(1);
-    expect(independenceClaimService.mine).not.toHaveBeenCalled();
+    expect(container.textContent).not.toContain("Token privado");
+    expect(container.textContent).not.toContain("999999");
+    expect(container.querySelector("form")).toBeNull();
+    expect(container.textContent).toContain(status === 401 ? "Sua sessão expirou" : "não tem autorização");
+    expand();
+    expect(container.querySelector('input[type="checkbox"]').checked).toBe(false);
+    expect(container.querySelector('input[autocomplete="name"]').value).toBe("");
+  });
+
+  test("resposta HTTP 403 tardia de A não contamina B→A com mesmo ID", async () => {
+    const pending = deferred();
+    independenceClaimService.submit.mockReturnValueOnce(pending.promise);
+    show({ entity: entity(11, "10"), user: ana });
+    expand();
+    allow();
+    submit();
+    expect(independenceClaimService.submit).toHaveBeenCalledTimes(1);
+    show({ entity: entity(11, "20"), user: bia });
+    show({ entity: entity(11, "10"), user: ana });
+    await act(async () => {
+      pending.reject({ response: { status: 403, data: { message: "Dados privados de B" } } });
+      try { await pending.promise; } catch (_) { /* expected */ }
+    });
+    expect(container.textContent).not.toContain("Dados privados de B");
+    expect(container.textContent).not.toContain("não tem autorização");
+    expand();
+    expect(container.querySelector('input[type="checkbox"]').checked).toBe(false);
+    expect(container.querySelector('input[autocomplete="name"]').value).toBe("Ana da Silva");
+    expect(independenceClaimService.submit).toHaveBeenCalledTimes(1);
   });
 });

@@ -49,19 +49,12 @@ const hasUnambiguousAppHint = (entity) => {
 // in the next context, even when the same panel instance is reused by a page.
 export default function UnverifiedListingPanel({ entity, entityType, user, onLogin }) {
   const hasAppHint = hasUnambiguousAppHint(entity);
-  // Legacy pages omit app identity. Preserve their first-context claim flow,
-  // but once the listing reference changes, do not guess whether it belongs
-  // to the same app: block further POSTs until a scoped app hint is supplied.
-  // This is NOT a substitute for a canonical application prop from the page.
-  const anonymousTransitionRef = useRef({ seen: false, entity: null, ambiguous: false });
-  if (anonymousTransitionRef.current.entity !== entity) {
-    if (anonymousTransitionRef.current.seen) anonymousTransitionRef.current.ambiguous = true;
-    anonymousTransitionRef.current.seen = true;
-    anonymousTransitionRef.current.entity = entity;
-  }
-  const canSubmitClaim = hasAppHint || !anonymousTransitionRef.current.ambiguous;
+  // A valid application hint is only a UI prerequisite, never proof of
+  // authorization. Missing, malformed or conflicting app IDs block every POST,
+  // including the first render; the API derives and authorizes the real scope.
+  const canSubmitClaim = hasAppHint;
   const contextKey = JSON.stringify([
-    entityType, entity?.id ?? null, entity?.app_id ?? entity?.application_id ?? null,
+    entityType, entity?.id ?? null, entity?.app_id ?? null, entity?.application_id ?? null,
     // Even identical data in distinct unscoped records must remount the form.
     hasAppHint ? null : anonymousEntityToken(entity),
     entity?.ownership_status ?? null, entity?.verification_status ?? null,
@@ -142,7 +135,21 @@ function UnverifiedListingPanelContent({ entity, entityType, user, onLogin, canS
       setMessage("");
     } catch (err) {
       if (!mountedRef.current || requestVersion !== requestVersionRef.current) return;
-      setError(err?.response?.data?.message || "Não foi possível enviar a solicitação. Confira seus dados e tente novamente.");
+      // Never echo server error bodies: they may contain another tenant's PII.
+      // A revoked/forbidden session must also discard the private form state.
+      const status = Number(err?.response?.status);
+      if (status === 401 || status === 403) {
+        setExpanded(false);
+        setName("");
+        setPhone("");
+        setMessage("");
+        setConsent(false);
+        setError(status === 401
+          ? "Sua sessão expirou. Entre novamente para solicitar a análise."
+          : "Você não tem autorização para enviar esta solicitação.");
+      } else {
+        setError("Não foi possível enviar a solicitação. Confira seus dados e tente novamente.");
+      }
     } finally {
       if (mountedRef.current && requestVersion === requestVersionRef.current) {
         submittingRef.current = false;
@@ -192,7 +199,7 @@ function UnverifiedListingPanelContent({ entity, entityType, user, onLogin, canS
                 Autorizo a Cutinapp a utilizar os dados informados para avaliar e responder a esta solicitação.
               </label>
               {!canSubmitClaim && (
-                <p role="note">Esta ficha ainda não possui identificação da aplicação. Solicite a correção na Central de Ajuda antes de enviar uma reivindicação.</p>
+                <p role="note">Não foi possível confirmar a aplicação desta ficha. Solicite a correção na Central de Ajuda antes de enviar uma reivindicação.</p>
               )}
               <button className="cut-unverified__submit" disabled={busy || !canSubmitClaim || !consent || !name.trim()} type="submit">
                 {busy ? "Enviando..." : "Enviar solicitação de acesso"}
