@@ -911,9 +911,10 @@ describe("W2 — concorrência de reivindicações não mistura entidades nem es
     let resolveSubmit;
     let resolveMine;
     appApiClient.post.mockImplementationOnce(() => new Promise((resolve) => { resolveSubmit = resolve; }));
-    appApiClient.get.mockImplementationOnce(() => new Promise((resolve) => { resolveMine = resolve; }));
 
     const submitted = claimService.submit(request("event", "91"));
+    // O GET /me deve consumir a primeira chamada; mine usa seu próprio mock.
+    appApiClient.get.mockImplementationOnce(() => new Promise((resolve) => { resolveMine = resolve; }));
     const mine = claimService.mine();
     await new Promise((resolve) => setTimeout(resolve, 0));
     const currentClaims = [{ id: 3, status: "rejected" }];
@@ -1140,7 +1141,8 @@ describe("W2 — contrato de privacidade e seleção persistida de curadoria", (
       consent: true, app_id: "999", user_id: "1", ownership_status: "verified",
       can_sell: true, is_root: true,
     });
-    expect(response).toEqual({ status: "pending_claim" });
+    expect(response).toMatchObject({ status: "pending_claim" });
+    expect(response.message).not.toMatch(/dados privados|PII/i);
     expect(appApiClient.post).toHaveBeenCalledWith("/independence/claims", {
       entity_type: "production", entity_id: "91", name: "Produtora Exemplo",
       email: "contato@example.org", phone: "+55 62 99999-9999",
