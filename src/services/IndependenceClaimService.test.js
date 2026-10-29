@@ -143,6 +143,39 @@ describe("IndependenceClaimService — preflight fail-closed W2", () => {
     await expect(pending).rejects.toMatchObject({ status: 409 });
   });
 
+  test.each([401, 403])("GET /me HTTP %i obsoleto após A→B não contamina a sessão nova", async (status) => {
+    let rejectMe;
+    appApiClient.get.mockImplementationOnce(() => new Promise((_, reject) => { rejectMe = reject; }));
+    const pending = independenceClaimService.submit(request());
+
+    token = "token-B";
+    rejectMe(denied(status));
+
+    await expect(pending).rejects.toMatchObject({
+      status: 409,
+      message: expect.not.stringContaining("PII"),
+    });
+    expect(getAuthToken()).toBe("token-B");
+    expect(appApiClient.post).not.toHaveBeenCalled();
+  });
+
+  test.each([401, 403])("POST HTTP %i obsoleto após A→B não contamina a sessão nova", async (status) => {
+    let rejectPost;
+    appApiClient.post.mockImplementationOnce(() => new Promise((_, reject) => { rejectPost = reject; }));
+    const pending = independenceClaimService.submit(request());
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(appApiClient.post).toHaveBeenCalledTimes(1);
+
+    token = "token-B";
+    rejectPost(denied(status));
+
+    await expect(pending).rejects.toMatchObject({
+      status: 409,
+      message: expect.not.stringContaining("PII"),
+    });
+    expect(getAuthToken()).toBe("token-B");
+  });
+
   test("401 tardio no POST não ecoa corpo privado", async () => {
     appApiClient.post.mockRejectedValueOnce(denied(401));
     await expect(independenceClaimService.submit(request())).rejects.toMatchObject({
