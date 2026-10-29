@@ -14,11 +14,12 @@ const hasKnownPrice = (value) => {
   if (typeof value === "number") return Number.isFinite(value) && value >= 0;
   return typeof value === "string" && /^\d+(?:\.\d+)?$/.test(value.trim()) && Number.isFinite(Number(value));
 };
-const isTrue = (value) => value === true || String(value).toLowerCase() === "true";
+const isTrue = (value) => value === true || value === 1 || ["true", "1"].includes(String(value).toLowerCase());
+const isPriceUnknown = (ticket) => [false, "false", 0, "0"].includes(ticket?.price_known);
 const isInformationalTicket = (ticket) => isTrue(ticket?.informational_only) || isTrue(ticket?.curatorial_information_only);
 const isSelectableTicket = (ticket) => Boolean(ticket)
   && !isInformationalTicket(ticket)
-  && ![false, "false"].includes(ticket.price_known)
+  && !isPriceUnknown(ticket)
   && hasKnownPrice(ticket.price)
   && ticket.available !== false
   && ticket.expired !== true;
@@ -305,7 +306,7 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
       </Button>
     </div>
   </Alert>;
-  const curatorialTickets = (catalog.tickets || []).filter((ticket) => isInformationalTicket(ticket) || !hasKnownPrice(ticket.price) || [false, "false"].includes(ticket.price_known));
+  const curatorialTickets = (catalog.tickets || []).filter((ticket) => isInformationalTicket(ticket) || !hasKnownPrice(ticket.price) || isPriceUnknown(ticket));
   if (salesClosed) {
     if (curatorialTickets.length || ["unclaimed", "pending_claim"].includes(catalog?.event?.ownership_status)) {
       return <section className="mt-4" aria-label="Ingressos informativos">
@@ -373,7 +374,7 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
                   <small>{stockLabel(ticket, soldOut, checkoutQuantityLimit("ticket"))}</small>
                 </div>
                 {soldOut
-                  ? <span className="cut-ticket-shop__sold-badge">{isInformationalTicket(ticket) ? "Somente consulta" : !hasKnownPrice(ticket.price) || [false, "false"].includes(ticket.price_known) ? "Preço não confirmado" : ticket.expired ? "Encerrado" : "Esgotado"}</span>
+                  ? <span className="cut-ticket-shop__sold-badge">{isInformationalTicket(ticket) ? "Somente consulta" : !hasKnownPrice(ticket.price) || isPriceUnknown(ticket) ? "Preço não confirmado" : ticket.expired ? "Encerrado" : "Esgotado"}</span>
                   : <QuantityStepper kind="ticket" id={ticket.id} value={quantity} max={maxQuantity} label={ticket.name} />}
               </div>;
             })}
