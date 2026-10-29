@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import PropTypes from "prop-types";
 import { Alert, Button, Form } from "react-bootstrap";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -9,6 +9,21 @@ import { clearEventCart, readEventCart, writeEventCart } from "../../utils/event
 import { safeRemoveSessionItem } from "../../utils/safeStorage";
 
 const money = (value) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
+// Um preço ausente não equivale a ingresso gratuito. Zero só vale se explícito.
+const hasKnownPrice = (value) => {
+  if (typeof value === "number") return Number.isFinite(value) && value >= 0;
+  return typeof value === "string" && /^\\d+(?:\\.\\d+)?$/.test(value.trim()) && Number.isFinite(Number(value));
+};
+const isTrue = (value) => value === true || String(value).toLowerCase() === "true";
+const isInformationalTicket = (ticket) => isTrue(ticket?.informational_only) || isTrue(ticket?.curatorial_information_only);
+const isSelectableTicket = (ticket) => Boolean(ticket)
+  && !isInformationalTicket(ticket)
+  && ![false, "false"].includes(ticket.price_known)
+  && hasKnownPrice(ticket.price)
+  && ticket.available !== false
+  && ticket.expired !== true;
+const ticketPriceLabel = (ticket) => hasKnownPrice(ticket?.price) ? money(ticket.price) : "Preço não confirmado";
+
 const dateLabel = (value) => {
   if (!value) return "Data do evento";
   const date = new Date(`${String(value).slice(0, 10)}T12:00:00`);
@@ -40,10 +55,33 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [restoredSelection, setRestoredSelection] = useState(false);
+  const catalogRequestVersion = useRef(0);
 
   const applyCatalog = (response, targetSlug, { announceRestore = true } = {}) => {
     const nextCatalog = response || { tickets: [], items: [], available_dates: [] };
-    const restored = reconcileStoredSelection(nextCatalog, readEventCart(targetSlug), Number(nextCatalog?.event?.id || eventId));
+    const stored = readEventCart(targetSlug);
+    const recovered = reconcileStoredSelection(nextCatalog, stored, Number(nextCatalog?.event?.id || eventId));
+    const allowedTicketIds = new Set((nextCatalog.tickets || []).filter(isSelectableTicket).map((ticket) => String(ticket.id)));
+    const restored = Object.fromEntries(Object.entries(recovered).filter(([key]) =>
+      !key.startsWith("ticket:") || allowedTicketIds.has(key.slice("ticket:".length))
+    ));
+    // Um carrinho persistido pode ter sido criado antes de a ficha virar informativa.
+    // Remover entradas inválidas também do armazenamento, não apenas da UI.
+    if ((stored?.tickets || []).some((entry) => !allowedTicketIds.has(String(entry?.id)))) {
+      const tickets = (nextCatalog.tickets || [])
+        .filter((ticket) => allowedTicketIds.has(String(ticket.id)) && Number(restored[`ticket:${ticket.id}`] || 0) > 0)
+        .map((ticket) => ({ id: ticket.id, quantity: restored[`ticket:${ticket.id}`] }));
+      const items = (nextCatalog.items || [])
+        .filter((item) => Number(restored[`item:${item.id}`] || 0) > 0)
+        .map((item) => ({ id: item.id, quantity: restored[`item:${item.id}`] }));
+      if (tickets.length || items.length) writeEventCart(targetSlug, {
+        eventId: Number(nextCatalog?.event?.id || eventId),
+        eventDate: nextCatalog?.event?.start_date || null,
+        tickets,
+        items,
+      });
+      else clearEventCart(targetSlug);
+    }
     setCatalog(nextCatalog);
     setQuantities(restored);
 
@@ -59,34 +97,36 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
   };
 
   const loadCatalog = async (targetSlug) => {
+    const version = ++catalogRequestVersion.current;
     setLoading(true);
     setError("");
     try {
       const response = await commerceService.catalog(targetSlug);
-      applyCatalog(response, targetSlug);
+      if (version === catalogRequestVersion.current) applyCatalog(response, targetSlug);
     } catch (err) {
-      setError(err?.message || "Não foi possível carregar as opções de compra.");
+      if (version === catalogRequestVersion.current) setError(err?.message || "Não foi possível carregar as opções de compra.");
     } finally {
-      setLoading(false);
+      if (version === catalogRequestVersion.current) setLoading(false);
     }
   };
 
   useEffect(() => {
     let active = true;
+    const version = ++catalogRequestVersion.current;
     setLoading(true);
     setError("");
     commerceService.catalog(slug)
       .then((response) => {
-        if (!active) return;
+        if (!active || version !== catalogRequestVersion.current) return;
         applyCatalog(response, slug);
       })
-      .catch((err) => active && setError(err?.message || "Não foi possível carregar as opções de compra."))
-      .finally(() => active && setLoading(false));
+      .catch((err) => active && version === catalogRequestVersion.current && setError(err?.message || "Não foi possível carregar as opções de compra."))
+      .finally(() => active && version === catalogRequestVersion.current && setLoading(false));
     return () => { active = false; };
   }, [slug]);
 
   const selected = useMemo(() => {
-    const tickets = (catalog.tickets || []).filter((item) => item.available !== false && Number(quantities[`ticket:${item.id}`] || 0) > 0);
+    const tickets = (catalog.tickets || []).filter((item) => isSelectableTicket(item) && Number(quantities[`ticket:${item.id}`] || 0) > 0);
     const items = (catalog.items || []).filter((item) => item.available !== false && Number(quantities[`item:${item.id}`] || 0) > 0);
     return { tickets, items };
   }, [catalog, quantities]);
@@ -115,9 +155,10 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
     let active = true;
     const refresh = async () => {
       if (document.visibilityState === "hidden") return;
+      const version = catalogRequestVersion.current;
       try {
         const response = await commerceService.catalog(activeSlug, { force: true });
-        if (active) applyCatalog(response, activeSlug, { announceRestore: false });
+        if (active && version === catalogRequestVersion.current) applyCatalog(response, activeSlug, { announceRestore: false });
       } catch (_) {
         // Keep the last valid catalog while connectivity is unstable.
       }
@@ -137,7 +178,7 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
   }, [activeSlug, eventId]);
 
   const persistSelection = (nextQuantities) => {
-    const tickets = (catalog.tickets || []).map((item) => ({ id: item.id, quantity: Number(nextQuantities[`ticket:${item.id}`] || 0) })).filter((item) => item.quantity > 0);
+    const tickets = (catalog.tickets || []).filter(isSelectableTicket).map((item) => ({ id: item.id, quantity: Number(nextQuantities[`ticket:${item.id}`] || 0) })).filter((item) => item.quantity > 0);
     const items = (catalog.items || []).map((item) => ({ id: item.id, quantity: Number(nextQuantities[`item:${item.id}`] || 0) })).filter((item) => item.quantity > 0);
 
     if (!tickets.length && !items.length) {
@@ -154,6 +195,7 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
   };
 
   const setQuantity = (kind, id, value, availableMax = null) => {
+    if (kind === "ticket" && !(catalog.tickets || []).some((ticket) => String(ticket.id) === String(id) && isSelectableTicket(ticket))) return;
     const configuredMax = checkoutQuantityLimit(kind);
     const max = availableMax === null ? configuredMax : Math.max(0, Math.min(configuredMax, Number(availableMax || 0)));
     const parsed = Math.max(0, Math.min(max, Number(value || 0)));
@@ -263,7 +305,7 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
       </Button>
     </div>
   </Alert>;
-  const curatorialTickets = (catalog.tickets || []).filter((ticket) => ticket.curatorial_information_only === true);
+  const curatorialTickets = (catalog.tickets || []).filter((ticket) => isInformationalTicket(ticket) || !hasKnownPrice(ticket.price) || [false, "false"].includes(ticket.price_known));
   if (salesClosed) {
     if (curatorialTickets.length || ["unclaimed", "pending_claim"].includes(catalog?.event?.ownership_status)) {
       return <section className="mt-4" aria-label="Ingressos informativos">
@@ -277,7 +319,7 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
               <div className="cut-ticket-shop__option-copy">
                 <span className="cut-ticket-kicker">Valor divulgado · sem venda</span>
                 <strong>{ticket.name}</strong>
-                <span>{money(ticket.price)}{Number(ticket.curatorial_bundle_size || 1) > 1 ? ` · pacote de ${ticket.curatorial_bundle_size} ingressos` : ""}</span>
+                <span>{ticketPriceLabel(ticket)}{Number(ticket.curatorial_bundle_size || 1) > 1 ? ` · pacote de ${ticket.curatorial_bundle_size} ingressos` : ""}</span>
                 {ticket.curatorial_price_observed_at && <small>Valor observado em {String(ticket.curatorial_price_observed_at).slice(0, 10).split("-").reverse().join("/")}; sujeito a alteração.</small>}
               </div>
               <span className="cut-ticket-shop__sold-badge">Indisponível para compra</span>
@@ -319,18 +361,19 @@ export default function EventCommercePanel({ slug, eventId, user, onLoginRequire
           <div className="cut-ticket-shop__list">
             {(catalog.tickets || []).map((ticket) => {
               const maxQuantity = resolveCheckoutQuantity(ticket, checkoutQuantityLimit("ticket"), checkoutQuantityLimit("ticket"));
-              const soldOut = maxQuantity <= 0;
-              const quantity = Number(quantities[`ticket:${ticket.id}`] || 0);
-              const subtotal = Number(ticket.price || 0) * quantity;
+              const blocked = !isSelectableTicket(ticket);
+              const soldOut = blocked || maxQuantity <= 0;
+              const quantity = blocked ? 0 : Number(quantities[`ticket:${ticket.id}`] || 0);
+              const subtotal = hasKnownPrice(ticket.price) ? Number(ticket.price) * quantity : 0;
               return <div className={`cut-ticket-shop__option ${soldOut ? "cut-ticket-shop__option--sold-out" : ""}`} key={`paid-ticket-${ticket.id}`} aria-disabled={soldOut}>
                 <div className="cut-ticket-shop__option-copy">
                   <span className="cut-ticket-kicker">Ingresso · {dateLabel(catalog?.event?.start_date)}</span>
                   <strong>{ticket.name}</strong>
-                  <span>{quantity > 0 ? `${quantity} × ${money(ticket.price)} · ${money(subtotal)}` : money(ticket.price)}</span>
+                  <span>{quantity > 0 ? `${quantity} × ${ticketPriceLabel(ticket)} · ${money(subtotal)}` : ticketPriceLabel(ticket)}</span>
                   <small>{stockLabel(ticket, soldOut, checkoutQuantityLimit("ticket"))}</small>
                 </div>
                 {soldOut
-                  ? <span className="cut-ticket-shop__sold-badge">{ticket.expired ? "Encerrado" : "Esgotado"}</span>
+                  ? <span className="cut-ticket-shop__sold-badge">{isInformationalTicket(ticket) ? "Somente consulta" : !hasKnownPrice(ticket.price) || [false, "false"].includes(ticket.price_known) ? "Preço não confirmado" : ticket.expired ? "Encerrado" : "Esgotado"}</span>
                   : <QuantityStepper kind="ticket" id={ticket.id} value={quantity} max={maxQuantity} label={ticket.name} />}
               </div>;
             })}
