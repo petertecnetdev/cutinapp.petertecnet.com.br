@@ -136,8 +136,7 @@ describe("IndependenceClaimService — preflight fail-closed W2", () => {
     let resolvePost;
     appApiClient.post.mockImplementationOnce(() => new Promise((resolve) => { resolvePost = resolve; }));
     const pending = independenceClaimService.submit(request());
-    await Promise.resolve();
-    await Promise.resolve();
+    await new Promise((resolve) => setTimeout(resolve, 0));
     expect(appApiClient.post).toHaveBeenCalledTimes(1);
     token = "token-B";
     resolvePost({ data: { status: "approved", message: "PII" } });
