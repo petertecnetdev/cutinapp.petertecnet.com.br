@@ -12,8 +12,10 @@ const claimable = (entity) => {
   const ownership = String(entity?.ownership_status || "").trim().toLowerCase();
   const review = String(entity?.verification_status || "").trim().toLowerCase();
   const source = String(entity?.listing_source || "").trim().toLowerCase();
-  if (ownership) return ["unclaimed", "pending_claim"].includes(ownership);
+  // A negative or completed verification decision takes precedence over an
+  // older unclaimed ownership flag. It must never reopen the claim form.
   if (["verified", "manual_approved", "legacy_owner_record", "rejected"].includes(review)) return false;
+  if (ownership) return ["unclaimed", "pending_claim"].includes(ownership);
   return ["unclaimed", "pending_claim"].includes(review)
     || ["curated", "curatorial", "institutional"].includes(source)
     || entity?.is_institutional_listing === true;
@@ -100,10 +102,9 @@ function UnverifiedListingPanelContent({ entity, entityType, user, onLogin, canS
     };
   }, []);
 
-  // Preserve the established contract: explicit non-claimable ownership states
-  // never render the claim panel, even if other metadata is contradictory.
-  const ownership = String(entity?.ownership_status || "").trim().toLowerCase();
-  if (ownership && !["unclaimed", "pending_claim"].includes(ownership)) return null;
+  // Transparency is independent from claim eligibility: rejected, suspended
+  // or contradictory ownership still needs a public warning. Only the claim
+  // controls below are suppressed by claimable(entity).
   if (!isUnverifiedListing(entity) || !["event", "production", "artist"].includes(entityType)) return null;
   const canRequestClaim = claimable(entity);
 

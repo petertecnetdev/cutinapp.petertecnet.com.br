@@ -108,7 +108,7 @@ describe("Unverified listing public claim UI", () => {
   });
 
   test.each(["verified", "rejected", "revoked", "suspended"])(
-    "ownership_status %s não exibe painel de reivindicação mesmo com origem curatorial",
+    "ownership_status %s sem prova de verificação mantém aviso, mas bloqueia reivindicação",
     (ownership_status) => {
       const html = renderToStaticMarkup(
         <UnverifiedListingPanel
@@ -118,9 +118,43 @@ describe("Unverified listing public claim UI", () => {
           onLogin={() => {}}
         />
       );
-      expect(html).toBe("");
+      expect(html).toContain("Informações públicas — responsável não verificado");
+      expect(html).not.toContain("Reivindicar esta página");
+      expect(html).not.toContain("Enviar solicitação de acesso");
     }
   );
+
+  test.each(["pending", "unverified", "rejected"])(
+    "ficha curated sem ownership_status com verificação %s mantém aviso",
+    (verification_status) => {
+      const html = renderToStaticMarkup(
+        <UnverifiedListingPanel
+          entity={{ id: 58, ownership_status: null, listing_source: "curated", verification_status }}
+          entityType="artist"
+          user={null}
+          onLogin={() => {}}
+        />
+      );
+      expect(html).toContain("Informações públicas — responsável não verificado");
+      expect(html).not.toMatch(/Comprar ingresso|Finalizar compra/);
+      if (verification_status === "rejected") {
+        expect(html).not.toContain("Reivindicar esta página");
+      }
+    }
+  );
+
+  test("revisão rejeitada prevalece sobre ownership unclaimed e impede formulário", () => {
+    const html = renderToStaticMarkup(
+      <UnverifiedListingPanel
+        entity={{ id: 59, ownership_status: "unclaimed", listing_source: "curated", verification_status: "rejected" }}
+        entityType="production"
+        user={{ id: 7, email: "user@example.org" }}
+      />
+    );
+    expect(html).toContain("Informações públicas — responsável não verificado");
+    expect(html).not.toContain("Reivindicar esta página");
+    expect(html).not.toContain("Enviar solicitação de acesso");
+  });
 
   test("ficha institucional explícita sem status exibe aviso e permite reivindicação", () => {
     const html = renderToStaticMarkup(
@@ -235,6 +269,25 @@ describe("W2 — isolamento de contexto e respostas assíncronas de reivindicaç
     await act(async () => { pending.resolve({ message: "Acesso liberado indevidamente" }); await pending.promise; });
     expect(container.textContent).not.toContain("Acesso liberado indevidamente");
     expect(container.querySelector("form")).toBeNull();
+    expect(independenceClaimService.submit).toHaveBeenCalledTimes(1);
+  });
+
+  test("ownership rejeitado durante POST mantém aviso e descarta retorno privado", async () => {
+    const pending = deferred();
+    independenceClaimService.submit.mockReturnValueOnce(pending.promise);
+    show({ entity: entity(11), user: ana });
+    expand();
+    allow();
+    submit();
+    expect(independenceClaimService.submit).toHaveBeenCalledTimes(1);
+
+    show({ entity: { ...entity(11), listing_source: "curated", ownership_status: "rejected" }, user: ana });
+    expect(container.textContent).toContain("responsável não verificado");
+    expect(container.textContent).not.toContain("Reivindicar esta página");
+    expect(container.querySelector("form")).toBeNull();
+
+    await act(async () => { pending.resolve({ message: "Retorno privado obsoleto" }); await pending.promise; });
+    expect(container.textContent).not.toContain("Retorno privado obsoleto");
     expect(independenceClaimService.submit).toHaveBeenCalledTimes(1);
   });
 
