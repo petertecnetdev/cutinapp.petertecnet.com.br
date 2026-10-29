@@ -169,6 +169,17 @@ describe("Unverified listing public claim UI", () => {
     expect(html).toContain("Reivindicar esta página — criar conta");
   });
 
+  test("perfil explicitamente verificado sem origem curatorial não exibe aviso", () => {
+    const html = renderToStaticMarkup(
+      <UnverifiedListingPanel
+        entity={{ id: 60, ownership_status: "verified", verification_status: "verified" }}
+        entityType="artist"
+        user={{ id: 7, email: "artist@example.org" }}
+      />
+    );
+    expect(html).toBe("");
+  });
+
   test("claimed and verified listings never present a claim form", () => {
     const html = renderToStaticMarkup(
       <UnverifiedListingPanel

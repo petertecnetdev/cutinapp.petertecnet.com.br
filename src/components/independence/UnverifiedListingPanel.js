@@ -106,6 +106,15 @@ function UnverifiedListingPanelContent({ entity, entityType, user, onLogin, canS
   // or contradictory ownership still needs a public warning. Only the claim
   // controls below are suppressed by claimable(entity).
   if (!isUnverifiedListing(entity) || !["event", "production", "artist"].includes(entityType)) return null;
+  // Preserve the legacy verified-profile presentation when the API explicitly
+  // marks both fields verified and no curatorial origin is present. A curated
+  // record, even with contradictory "verified" ownership, keeps its warning.
+  const ownership = String(entity?.ownership_status || "").trim().toLowerCase();
+  const verification = String(entity?.verification_status || "").trim().toLowerCase();
+  const source = String(entity?.listing_source || "").trim().toLowerCase();
+  if (ownership === "verified" && verification === "verified"
+    && !["curated", "curatorial", "institutional"].includes(source)
+    && entity?.is_institutional_listing !== true) return null;
   const canRequestClaim = claimable(entity);
 
   const sourceUrl = safeListingSourceUrl(entity?.source_url);

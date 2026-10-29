@@ -595,7 +595,10 @@ describe("W2 — limites de exposição pública no fluxo de reivindicação", (
     "status de titularidade %s não oferece reivindicação direta no painel",
     (ownership_status) => {
       const entity = curated({ ownership_status });
-      expect(render(entity)).toBe("");
+      const html = render(entity);
+      expect(html).toContain("Informações públicas — responsável não verificado");
+      expect(html).not.toContain("Reivindicar esta página");
+      expect(html).not.toContain("Enviar solicitação de acesso");
       if (ownership_status === "rejected") {
         expect(canShowListingCommerce(entity)).toBe(false);
       }
@@ -2180,7 +2183,10 @@ describe("W2 — estados de reivindicação com capitalização variável", () =
       const entity = curated({ ownership_status, can_sell: true });
       expect(isUnverifiedListing(entity)).toBe(true);
       expect(canShowListingCommerce(entity)).toBe(false);
-      expect(render(entity, "event")).toBe("");
+      const html = render(entity, "event");
+      expect(html).toContain("Informações públicas — responsável não verificado");
+      expect(html).not.toContain("Reivindicar esta página");
+      expect(html).not.toMatch(/Comprar ingresso|Finalizar compra|Adicionar ao carrinho|Pagar agora|Emitir QR/i);
     }
   );
 });
