@@ -115,10 +115,14 @@ const independenceClaimService = {
       // Uma resposta atrasada de A não deve atualizar a interface de B (ou A
       // restaurada após um evento de troca). Isso não desfaz POST já recebido.
       if (!session.isCurrent()) throw sessionChanged();
-      return {
-        status: typeof response?.data?.status === "string" ? response.data.status : "pending_claim",
-        message: "Solicitação registrada para revisão.",
-      };
+      // A API responde { success: true, data: { status: "pending" } }.
+      // HTTP 2xx sem recibo válido ou "approved" no intake NÃO é aprovação.
+      const receipt = response?.data;
+      const status = receipt?.data?.status ?? receipt?.status;
+      if (receipt?.success === false || !["pending", "pending_claim", "duplicate"].includes(status)) {
+        throw safeError(502, "Não foi possível confirmar o registro da solicitação.");
+      }
+      return { status, message: "Solicitação registrada para revisão." };
     } finally {
       controller?.abort();
       session.dispose();
