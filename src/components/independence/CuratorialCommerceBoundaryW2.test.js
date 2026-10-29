@@ -865,8 +865,7 @@ describe("W2 — concorrência de reivindicações não mistura entidades nem es
 
     const eventPromise = claimService.submit(request("event", "9007199254740993"));
     const productionPromise = claimService.submit(request("production", "9007199254740994"));
-    await Promise.resolve();
-    await Promise.resolve();
+    await new Promise((resolve) => setTimeout(resolve, 0));
     expect(appApiClient.post).toHaveBeenCalledTimes(2);
     expect(appApiClient.post.mock.calls.map(([, payload]) => [
       payload.entity_type, payload.entity_id,
@@ -895,8 +894,7 @@ describe("W2 — concorrência de reivindicações não mistura entidades nem es
 
     const artistPromise = claimService.submit(request("artist", "101"));
     const eventPromise = claimService.submit(request("event", "102"));
-    await Promise.resolve();
-    await Promise.resolve();
+    await new Promise((resolve) => setTimeout(resolve, 0));
     const artistError = Object.assign(new Error("Sessão revogada"), { response: { status: 401 } });
     rejectArtist(artistError);
     await expect(artistPromise).rejects.toMatchObject({ status: 401 });
@@ -917,8 +915,7 @@ describe("W2 — concorrência de reivindicações não mistura entidades nem es
 
     const submitted = claimService.submit(request("event", "91"));
     const mine = claimService.mine();
-    await Promise.resolve();
-    await Promise.resolve();
+    await new Promise((resolve) => setTimeout(resolve, 0));
     const currentClaims = [{ id: 3, status: "rejected" }];
     resolveMine({ data: { data: currentClaims } });
     await expect(mine).resolves.toBe(currentClaims);
