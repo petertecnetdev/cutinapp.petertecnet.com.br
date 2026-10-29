@@ -17,6 +17,31 @@ jest.mock("../../services/AppApiClient", () => ({
   default: { post: jest.fn(), get: jest.fn() },
 }));
 
+jest.mock("../../utils/authTokenStorage", () => ({
+  getAuthToken: jest.fn(() => "token-A"),
+}));
+// Os cenários legados de payload usam contexto autenticado explícito; os
+// cenários de rejeição do preflight ficam no teste novo do serviço.
+const actualClaimService = jest.requireActual("../../services/IndependenceClaimService").default;
+const claimHttpClient = require("../../services/AppApiClient").default;
+const claimServiceForFixtures = {
+  ...actualClaimService,
+  submit: (input) => {
+    const expectedEmail = typeof input?.email === "string" ? input.email.trim() : "";
+    claimHttpClient.get.mockImplementation((url) => {
+      if (url === "/me") {
+        return Promise.resolve({ data: { data: {
+          application: { id: 10, slug: "cutinapp" },
+          user: { id: 7, email: expectedEmail },
+        } } });
+      }
+      return Promise.resolve({ data: { data: [] } });
+    });
+    return actualClaimService.submit({ applicationId: "10", userId: "7", ...input });
+  },
+};
+
+
 const render = (entity, entityType = "event") => renderToStaticMarkup(
   React.createElement(UnverifiedListingPanel, {
     entity,
@@ -494,7 +519,7 @@ describe("W2 — fontes locais e estados de reivindicação não transferem titu
 
 
 describe("W2 — reivindicação não forja identidade, tenant ou autorização", () => {
-  const claimService = jest.requireActual("../../services/IndependenceClaimService").default;
+  const claimService = claimServiceForFixtures;
   const appApiClient = require("../../services/AppApiClient").default;
   const validClaim = {
     entityType: "event",
@@ -630,7 +655,7 @@ describe("W2 — limites de exposição pública no fluxo de reivindicação", (
 
 
 describe("W2 — contratos de reivindicação nas três entidades", () => {
-  const claimService = jest.requireActual("../../services/IndependenceClaimService").default;
+  const claimService = claimServiceForFixtures;
   const appApiClient = require("../../services/AppApiClient").default;
 
   beforeEach(() => {
@@ -710,7 +735,7 @@ describe("W2 — URLs de proveniência não sofrem coerção implícita", () => 
 
 
 describe("W2 — requisições de reivindicação rejeitam coerção e consentimento implícito", () => {
-  const claimService = jest.requireActual("../../services/IndependenceClaimService").default;
+  const claimService = claimServiceForFixtures;
   const appApiClient = require("../../services/AppApiClient").default;
   const base = {
     entityType: "event",
@@ -771,7 +796,7 @@ describe("W2 — requisições de reivindicação rejeitam coerção e consentim
 });
 
 describe("W2 — falhas e concorrência HTTP não aprovam reivindicações", () => {
-  const claimService = jest.requireActual("../../services/IndependenceClaimService").default;
+  const claimService = claimServiceForFixtures;
   const appApiClient = require("../../services/AppApiClient").default;
   const request = {
     entityType: "event",
@@ -821,7 +846,7 @@ describe("W2 — falhas e concorrência HTTP não aprovam reivindicações", () 
 });
 
 describe("W2 — concorrência de reivindicações não mistura entidades nem estados", () => {
-  const claimService = jest.requireActual("../../services/IndependenceClaimService").default;
+  const claimService = claimServiceForFixtures;
   const appApiClient = require("../../services/AppApiClient").default;
   const request = (entityType, entityId) => ({
     entityType,
@@ -905,7 +930,7 @@ describe("W2 — concorrência de reivindicações não mistura entidades nem es
 });
 
 describe("W2 — resposta de claim não concede comércio sem atualização da ficha", () => {
-  const claimService = jest.requireActual("../../services/IndependenceClaimService").default;
+  const claimService = claimServiceForFixtures;
   const appApiClient = require("../../services/AppApiClient").default;
 
   beforeEach(() => {
@@ -1041,7 +1066,7 @@ describe("W2 — payloads hostis não atravessam a fronteira entre aplicações"
 
 
 describe("W2 — falhas de transporte e estados legados não liberam comércio", () => {
-  const claimService = jest.requireActual("../../services/IndependenceClaimService").default;
+  const claimService = claimServiceForFixtures;
   const appApiClient = require("../../services/AppApiClient").default;
   const request = {
     entityType: "event",
@@ -1097,7 +1122,7 @@ describe("W2 — falhas de transporte e estados legados não liberam comércio",
 
 
 describe("W2 — contrato de privacidade e seleção persistida de curadoria", () => {
-  const claimService = jest.requireActual("../../services/IndependenceClaimService").default;
+  const claimService = claimServiceForFixtures;
   const appApiClient = require("../../services/AppApiClient").default;
 
   beforeEach(() => { jest.clearAllMocks(); });
@@ -1172,7 +1197,7 @@ describe("W2 — contrato de privacidade e seleção persistida de curadoria", (
 
 
 describe("W2 — isolamento de dados e payloads de reivindicação adversariais", () => {
-  const claimService = jest.requireActual("../../services/IndependenceClaimService").default;
+  const claimService = claimServiceForFixtures;
   const appApiClient = require("../../services/AppApiClient").default;
 
   beforeEach(() => {
@@ -1957,7 +1982,7 @@ describe("W2 — quantidades comerciais respeitam limites inteiros", () => {
 // O status devolvido pelo endpoint é informativo: somente o estado atual
 // da ficha e a autorização da API podem liberar operações comerciais.
 describe("W2 — resposta parcial de reivindicação permanece não autorizativa", () => {
-  const claimService = jest.requireActual("../../services/IndependenceClaimService").default;
+  const claimService = claimServiceForFixtures;
   const appApiClient = require("../../services/AppApiClient").default;
   const request = {
     entityType: "event", entityId: "91",
@@ -1990,7 +2015,7 @@ describe("W2 — resposta parcial de reivindicação permanece não autorizativa
 // titularidade. O estado público da ficha continua sendo a única fonte da UI;
 // o servidor é a autoridade para qualquer operação comercial.
 describe("W2 — respostas HTTP sem contrato de titularidade não liberam CTA", () => {
-  const claimService = jest.requireActual("../../services/IndependenceClaimService").default;
+  const claimService = claimServiceForFixtures;
   const appApiClient = require("../../services/AppApiClient").default;
   const request = {
     entityType: "event", entityId: "9007199254740993",
