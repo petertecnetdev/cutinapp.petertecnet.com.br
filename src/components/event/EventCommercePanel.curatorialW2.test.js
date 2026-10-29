@@ -32,6 +32,9 @@ const buttonWithLabel = (container, label) =>
   [...container.querySelectorAll("button")].find((button) => button.getAttribute("aria-label") === label);
 
 describe("EventCommercePanel — veto comercial por ingresso [agent:W2]", () => {
+  const previousActEnvironment = globalThis.IS_REACT_ACT_ENVIRONMENT;
+  beforeAll(() => { globalThis.IS_REACT_ACT_ENVIRONMENT = true; });
+  afterAll(() => { globalThis.IS_REACT_ACT_ENVIRONMENT = previousActEnvironment; });
   let container;
   let root;
 
@@ -63,11 +66,13 @@ describe("EventCommercePanel — veto comercial por ingresso [agent:W2]", () => 
       { id: 3, name: "Sem preço", price: null },
       { id: 4, name: "Preço não conhecido", price: 40, price_known: false },
       { id: 5, name: "Preço inválido", price: "indefinido" },
+      { id: 8, name: "Flag informativa numérica", informational_only: 1, price: 12 },
+      { id: 9, name: "Flag de preço desconhecido", price_known: 0, price: 0 },
       { id: 6, name: "Gratuito legítimo", price: 0, available: true },
       { id: 7, name: "Pago legítimo", price: "25.00", available: true },
     ]);
 
-    for (const name of ["Informativo", "Curatorial", "Sem preço", "Preço não conhecido", "Preço inválido"]) {
+    for (const name of ["Informativo", "Curatorial", "Sem preço", "Preço não conhecido", "Preço inválido", "Flag informativa numérica", "Flag de preço desconhecido"]) {
       expect(buttonWithLabel(container, `Adicionar uma unidade de ${name}`)).toBeUndefined();
     }
     expect(container.textContent).toContain("Somente consulta");
