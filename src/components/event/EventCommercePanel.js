@@ -12,7 +12,7 @@ const money = (value) => new Intl.NumberFormat("pt-BR", { style: "currency", cur
 // Um preço ausente não equivale a ingresso gratuito. Zero só vale se explícito.
 const hasKnownPrice = (value) => {
   if (typeof value === "number") return Number.isFinite(value) && value >= 0;
-  return typeof value === "string" && /^\\d+(?:\\.\\d+)?$/.test(value.trim()) && Number.isFinite(Number(value));
+  return typeof value === "string" && /^\d+(?:\.\d+)?$/.test(value.trim()) && Number.isFinite(Number(value));
 };
 const isTrue = (value) => value === true || String(value).toLowerCase() === "true";
 const isInformationalTicket = (ticket) => isTrue(ticket?.informational_only) || isTrue(ticket?.curatorial_information_only);
