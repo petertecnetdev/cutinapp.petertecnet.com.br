@@ -121,7 +121,7 @@ describe("EventCommercePanel — veto comercial por ingresso [agent:W2]", () => 
     ]);
 
     expect(container.textContent).toContain("Compra em andamento recuperada");
-    expect(container.textContent).toContain("1 selecionado");
+    expect(container.textContent).toContain("3 selecionados");
     expect(writeEventCart).toHaveBeenCalledWith("festa", expect.objectContaining({
       tickets: [{ id: 3, quantity: 3 }],
     }));
