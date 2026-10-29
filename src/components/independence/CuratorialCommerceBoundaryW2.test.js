@@ -954,13 +954,18 @@ describe("W2 — resposta de claim não concede comércio sem atualização da f
     };
     appApiClient.post.mockResolvedValueOnce({ data: response });
 
-    await expect(claimService.submit({
+    const submitResult = claimService.submit({
       entityType,
       entityId: entity.id,
       name: "Responsável",
       email: "responsavel@example.org",
       consent: true,
-    })).resolves.toMatchObject({ status: response.status });
+    });
+    if (["pending_claim", "duplicate"].includes(status)) {
+      await expect(submitResult).resolves.toMatchObject({ status });
+    } else {
+      await expect(submitResult).rejects.toMatchObject({ status: 502 });
+    }
 
     // O resultado do pedido não é uma autorização de comércio nem uma
     // atualização de ownership do registro público.
@@ -1998,7 +2003,7 @@ describe("W2 — resposta parcial de reivindicação permanece não autorizativa
     ["status desconhecido", { status: "queued_external_review" }],
   ])("%s não produz aprovação presumida ou CTA comercial", async (_, data) => {
     appApiClient.post.mockResolvedValueOnce({ data });
-    await expect(claimService.submit(request)).resolves.toMatchObject({ status: typeof data?.status === "string" ? data.status : "pending_claim" });
+    await expect(claimService.submit(request)).rejects.toMatchObject({ status: 502 });
     expect(appApiClient.post).toHaveBeenCalledTimes(1);
     expect(appApiClient.get).toHaveBeenCalledWith("/me", expect.any(Object));
     expect(claimStatusMessage(data?.status)).toContain("verificará sua identidade");
@@ -2040,7 +2045,7 @@ describe("W2 — respostas HTTP sem contrato de titularidade não liberam CTA", 
     }));
     appApiClient.post.mockResolvedValueOnce({ data });
 
-    await expect(claimService.submit(request)).resolves.toMatchObject({ status: typeof data?.status === "string" ? data.status : "pending_claim" });
+    await expect(claimService.submit(request)).rejects.toMatchObject({ status: 502 });
     expect(appApiClient.post).toHaveBeenCalledTimes(1);
     expect(appApiClient.get).toHaveBeenCalledWith("/me", expect.any(Object));
     expect(isUnverifiedListing(entity)).toBe(true);
