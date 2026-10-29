@@ -51,9 +51,10 @@ describe("Independence: retorno e reivindicação de produção pública", () =>
   let navigate;
   const path = "/production/produtora-exemplo/public";
   const user = { id: 23, name: "Responsável", email: "responsavel@example.org" };
-  const production = (ownership_status) => ({
+  const production = (ownership_status, app_id) => ({
     id: 51,
     slug: "produtora-exemplo",
+    ...(app_id ? { app_id } : {}),
     name: "Produtora Exemplo",
     ownership_status,
     can_sell: true,
@@ -140,10 +141,10 @@ describe("Independence: retorno e reivindicação de produção pública", () =>
 
   test("API 403 não concede acesso e mantém bloqueio de ingressos", async () => {
     cutinappService.publicProduction.mockResolvedValue({
-      production: production("unclaimed"), upcoming: [], past: [], artists: [],
+      production: production("unclaimed", "10"), upcoming: [], past: [], artists: [],
     });
     independenceClaimService.submit.mockRejectedValue({
-      response: { status: 403, data: { message: "Solicitação não autorizada" } },
+      response: { status: 403, data: { message: "Dados privados de outra aplicação: token 123" } },
     });
     await renderProduction(user);
     await act(async () => { claimButton().click(); });
@@ -155,7 +156,10 @@ describe("Independence: retorno e reivindicação de produção pública", () =>
     expect(independenceClaimService.submit).toHaveBeenCalledWith(expect.objectContaining({
       entityType: "production", entityId: 51, email: user.email, consent: true,
     }));
-    expect(container.querySelector('[role="alert"]').textContent).toContain("Solicitação não autorizada");
+    expect(container.querySelector('[role="alert"]').textContent).toContain("Você não tem autorização");
+    expect(container.textContent).not.toContain("Dados privados de outra aplicação");
+    expect(container.textContent).not.toContain("token 123");
+    expect(container.querySelector(".cut-unverified__form")).toBeNull();
     expect(container.querySelector(".cut-unverified__result")).toBeNull();
     expect(primaryAction().textContent).toContain("Ver agenda");
     expect(primaryAction().textContent).not.toContain("Ingressos");
@@ -163,10 +167,10 @@ describe("Independence: retorno e reivindicação de produção pública", () =>
 
   test("API 401 de sessão expirada não concede titularidade nem libera ingressos", async () => {
     cutinappService.publicProduction.mockResolvedValue({
-      production: production("unclaimed"), upcoming: [], past: [], artists: [],
+      production: production("unclaimed", "10"), upcoming: [], past: [], artists: [],
     });
     independenceClaimService.submit.mockRejectedValue({
-      response: { status: 401, data: { message: "Sua sessão expirou. Entre novamente." } },
+      response: { status: 401, data: { message: "Credencial privada: sessão de outro usuário" } },
     });
     await renderProduction(user);
     await act(async () => { claimButton().click(); });
@@ -178,9 +182,14 @@ describe("Independence: retorno e reivindicação de produção pública", () =>
 
     expect(independenceClaimService.submit).toHaveBeenCalledTimes(1);
     expect(container.querySelector('[role="alert"]').textContent)
-      .toContain("Sua sessão expirou. Entre novamente.");
+      .toContain("Sua sessão expirou. Entre novamente");
     expect(container.querySelector(".cut-unverified__result")).toBeNull();
-    expect(container.querySelector(".cut-unverified__form")).not.toBeNull();
+    expect(container.querySelector(".cut-unverified__form")).toBeNull();
+    expect(container.textContent).not.toContain("Credencial privada");
+    expect(container.textContent).not.toContain("sessão de outro usuário");
+    await act(async () => { claimButton().click(); });
+    expect(container.querySelector(".cut-unverified__consent input").checked).toBe(false);
+    expect(container.querySelector('input[autocomplete="name"]').value).toBe("");
     expect(primaryAction().textContent).toContain("Ver agenda");
     expect(primaryAction().textContent).not.toContain("Ingressos");
     expect(container.textContent).not.toMatch(/acesso concedido|editar produção|comprar ingresso/i);
@@ -189,7 +198,7 @@ describe("Independence: retorno e reivindicação de produção pública", () =>
 
   test("API 409 preserva a reivindicação pendente sem acesso ou reenvio automático", async () => {
     cutinappService.publicProduction.mockResolvedValue({
-      production: production("pending_claim"), upcoming: [], past: [], artists: [],
+      production: production("pending_claim", "10"), upcoming: [], past: [], artists: [],
     });
     independenceClaimService.submit.mockRejectedValue({
       response: { status: 409, data: { message: "Já existe uma solicitação em análise." } },
@@ -204,7 +213,8 @@ describe("Independence: retorno e reivindicação de produção pública", () =>
 
     expect(independenceClaimService.submit).toHaveBeenCalledTimes(1);
     expect(container.querySelector('[role="alert"]').textContent)
-      .toContain("Já existe uma solicitação em análise.");
+      .toContain("Não foi possível enviar a solicitação.");
+    expect(container.textContent).not.toContain("Já existe uma solicitação em análise.");
     expect(container.querySelector(".cut-unverified__form")).not.toBeNull();
     expect(container.querySelector(".cut-unverified__submit").disabled).toBe(false);
     expect(container.querySelector(".cut-unverified__result")).toBeNull();
@@ -216,7 +226,7 @@ describe("Independence: retorno e reivindicação de produção pública", () =>
 
   test("solicitação recebida permanece pendente sem ativar checkout", async () => {
     cutinappService.publicProduction.mockResolvedValue({
-      production: production("pending_claim"), upcoming: [], past: [], artists: [],
+      production: production("pending_claim", "10"), upcoming: [], past: [], artists: [],
     });
     independenceClaimService.submit.mockResolvedValue({ message: "Solicitação registrada para revisão." });
     await renderProduction(user);
@@ -234,4 +244,27 @@ describe("Independence: retorno e reivindicação de produção pública", () =>
     expect(primaryAction().textContent).not.toContain("Ingressos");
     expect(navigate).not.toHaveBeenCalled();
   });
+
+  test.each([
+    ["app_id ausente", {}],
+    ["app_id conflitante", { app_id: "10", application_id: "20" }],
+    ["app_id inválido", { app_id: "não-identificado" }],
+  ])("%s impede POST mesmo com consentimento e submit programático", async (_case, fields) => {
+    cutinappService.publicProduction.mockResolvedValue({
+      production: { ...production("unclaimed"), ...fields }, upcoming: [], past: [], artists: [],
+    });
+    await renderProduction(user);
+    await act(async () => { claimButton().click(); });
+    await act(async () => { container.querySelector(".cut-unverified__consent input").click(); });
+    expect(container.querySelector(".cut-unverified__submit").disabled).toBe(true);
+    await act(async () => {
+      container.querySelector(".cut-unverified__form")
+        .dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    });
+    expect(independenceClaimService.submit).not.toHaveBeenCalled();
+    expect(container.textContent).toContain("Não foi possível confirmar a aplicação");
+    expect(primaryAction().textContent).toContain("Ver agenda");
+    expect(primaryAction().textContent).not.toContain("Ingressos");
+  });
+
 });
