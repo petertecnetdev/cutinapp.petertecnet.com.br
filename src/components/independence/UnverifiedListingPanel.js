@@ -139,7 +139,7 @@ function UnverifiedListingPanelContent({ entity, entityType, user, onLogin, canS
       if (!mountedRef.current || requestVersion !== requestVersionRef.current) return;
       // Never echo server error bodies: they may contain another tenant's PII.
       // A revoked/forbidden session must also discard the private form state.
-      const status = Number(err?.response?.status);
+      const status = Number(err?.status ?? err?.response?.status);
       if (status === 401 || status === 403) {
         setExpanded(false);
         setName("");

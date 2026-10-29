@@ -408,6 +408,52 @@ describe("W2 — isolamento de contexto e respostas assíncronas de reivindicaç
     expect(container.querySelector('input[autocomplete="name"]').value).toBe("");
   });
 
+  test.each([401, 403])("erro real do serviço Error.status=%i fecha formulário, apaga PII e não ecoa dados", async (status) => {
+    // IndependenceClaimService.safeError produz Error.status, sem response.status.
+    const serviceError = new Error("PII PRIVADA DA API: token-abc e telefone 62999999999");
+    serviceError.status = status;
+    independenceClaimService.submit.mockRejectedValueOnce(serviceError);
+    show({ entity: entity(11, "10"), user: ana });
+    expand();
+
+    // Usar o setter nativo evita que o value tracker do React ignore o evento.
+    const typeInto = (selector, value) => {
+      const field = container.querySelector(selector);
+      const prototype = field.tagName === "TEXTAREA" ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+      act(() => {
+        Object.getOwnPropertyDescriptor(prototype, "value").set.call(field, value);
+        field.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+    };
+    typeInto('input[autocomplete="name"]', "Nome Confidencial");
+    typeInto('input[autocomplete="tel"]', "62999999999");
+    typeInto("textarea", "Mensagem privada da reivindicação");
+    allow();
+    expect(container.querySelector('input[autocomplete="name"]').value).toBe("Nome Confidencial");
+    expect(container.querySelector('input[autocomplete="tel"]').value).toBe("62999999999");
+    expect(container.querySelector("textarea").value).toBe("Mensagem privada da reivindicação");
+    expect(container.querySelector('input[type="checkbox"]').checked).toBe(true);
+
+    await act(async () => {
+      container.querySelector("form").dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+      await Promise.resolve();
+    });
+    expect(independenceClaimService.submit).toHaveBeenCalledTimes(1);
+    expect(independenceClaimService.submit).toHaveBeenCalledWith(expect.objectContaining({
+      name: "Nome Confidencial", phone: "62999999999", message: "Mensagem privada da reivindicação", consent: true,
+    }));
+    expect(container.querySelector("form")).toBeNull();
+    expect(container.textContent).toContain(status === 401 ? "Sua sessão expirou" : "não tem autorização");
+    expect(container.textContent).not.toMatch(/PII PRIVADA DA API|token-abc|62999999999|Nome Confidencial|Mensagem privada da reivindicação/);
+
+    expand();
+    expect(container.querySelector('input[autocomplete="name"]').value).toBe("");
+    expect(container.querySelector('input[autocomplete="tel"]').value).toBe("");
+    expect(container.querySelector("textarea").value).toBe("");
+    expect(container.querySelector('input[type="checkbox"]').checked).toBe(false);
+    expect(independenceClaimService.submit).toHaveBeenCalledTimes(1);
+  });
+
   test("resposta HTTP 403 tardia de A não contamina B→A com mesmo ID", async () => {
     const pending = deferred();
     independenceClaimService.submit.mockReturnValueOnce(pending.promise);
