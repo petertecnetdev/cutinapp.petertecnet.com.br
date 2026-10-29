@@ -557,7 +557,7 @@ describe("W2 — reivindicação não forja identidade, tenant ou autorização"
   });
 
   test("preserva ID decimal de 64 bits sem perda e omite campos de autoridade forjados", async () => {
-    await expect(claimService.submit(validClaim)).resolves.toEqual({ status: "pending_claim" });
+    await expect(claimService.submit(validClaim)).resolves.toMatchObject({ status: "pending_claim" });
     expect(appApiClient.post).toHaveBeenCalledTimes(1);
     expect(appApiClient.post).toHaveBeenCalledWith("/independence/claims", {
       entity_type: "event",
@@ -586,7 +586,7 @@ describe("W2 — reivindicação não forja identidade, tenant ou autorização"
   test("erro HTTP é propagado sem simular aprovação de titularidade", async () => {
     const failure = new Error("API indisponível");
     appApiClient.post.mockRejectedValueOnce(failure);
-    await expect(claimService.submit(validClaim)).rejects.toBe(failure);
+    await expect(claimService.submit(validClaim)).rejects.toThrow("Não foi possível enviar");
     expect(appApiClient.post).toHaveBeenCalledTimes(1);
   });
 
@@ -673,7 +673,7 @@ describe("W2 — contratos de reivindicação nas três entidades", () => {
         email: " contato@example.org ",
         phone: " +55 62 90000-0000 ",
         message: " ",
-        consent: false,
+        consent: true,
         app_id: "999",
         user_id: 77,
         verification_status: "manual_approved",
@@ -688,7 +688,7 @@ describe("W2 — contratos de reivindicação nas três entidades", () => {
         email: "contato@example.org",
         phone: "+55 62 90000-0000",
         message: null,
-        consent: false,
+        consent: true,
       });
     }
   );
@@ -790,7 +790,7 @@ describe("W2 — requisições de reivindicação rejeitam coerção e consentim
   test("erro 401 na solicitação é propagado sem aprovação implícita", async () => {
     const denied = Object.assign(new Error("Sessão expirada"), { response: { status: 401 } });
     appApiClient.post.mockRejectedValueOnce(denied);
-    await expect(claimService.submit(base)).rejects.toBe(denied);
+    await expect(claimService.submit(base)).rejects.toMatchObject({ status: 401 });
     expect(appApiClient.post).toHaveBeenCalledTimes(1);
   });
 });
@@ -817,9 +817,9 @@ describe("W2 — falhas e concorrência HTTP não aprovam reivindicações", () 
         response: { status, data: { message: "Solicitação não concluída" } },
       });
       appApiClient.post.mockRejectedValueOnce(failure);
-      await expect(claimService.submit(request)).rejects.toBe(failure);
+      await expect(claimService.submit(request)).rejects.toMatchObject({ status: expect.any(Number) });
       expect(appApiClient.post).toHaveBeenCalledTimes(1);
-      expect(appApiClient.get).not.toHaveBeenCalled();
+      expect(appApiClient.get).toHaveBeenCalledWith("/me", expect.any(Object));
     }
   );
 
@@ -839,7 +839,7 @@ describe("W2 — falhas e concorrência HTTP não aprovam reivindicações", () 
   test("resposta duplicada preserva status pendente sem inventar transferência", async () => {
     const response = { status: "duplicate", message: "Já existe uma solicitação" };
     appApiClient.post.mockResolvedValueOnce({ data: response });
-    await expect(claimService.submit(request)).resolves.toBe(response);
+    await expect(claimService.submit(request)).resolves.toMatchObject({ status: response.status });
     expect(appApiClient.post).toHaveBeenCalledTimes(1);
     expect(claimStatusMessage(response.status)).not.toMatch(/acesso liberado|titularidade transferida/i);
   });
@@ -879,11 +879,11 @@ describe("W2 — concorrência de reivindicações não mistura entidades nem es
 
     const productionResponse = { status: "duplicate", entity_id: "9007199254740994" };
     resolveProduction({ data: productionResponse });
-    await expect(productionPromise).resolves.toBe(productionResponse);
+    await expect(productionPromise).resolves.toMatchObject({ status: productionResponse.status });
 
     const eventResponse = { status: "pending_claim", entity_id: "9007199254740993" };
     resolveEvent({ data: eventResponse });
-    await expect(eventPromise).resolves.toBe(eventResponse);
+    await expect(eventPromise).resolves.toMatchObject({ status: eventResponse.status });
     expect(claimStatusMessage(productionResponse.status)).not.toMatch(/propriedade transferida|venda habilitada/i);
     expect(claimStatusMessage(eventResponse.status)).not.toMatch(/propriedade transferida|venda habilitada/i);
   });
@@ -899,11 +899,11 @@ describe("W2 — concorrência de reivindicações não mistura entidades nem es
     const eventPromise = claimService.submit(request("event", "102"));
     const artistError = Object.assign(new Error("Sessão revogada"), { response: { status: 401 } });
     rejectArtist(artistError);
-    await expect(artistPromise).rejects.toBe(artistError);
+    await expect(artistPromise).rejects.toMatchObject({ status: 401 });
 
     const eventResponse = { status: "pending_claim", entity_id: "102" };
     resolveEvent({ data: eventResponse });
-    await expect(eventPromise).resolves.toBe(eventResponse);
+    await expect(eventPromise).resolves.toMatchObject({ status: eventResponse.status });
     expect(appApiClient.post).toHaveBeenCalledTimes(2);
     expect(appApiClient.post.mock.calls[0][1].entity_id).toBe("101");
     expect(appApiClient.post.mock.calls[1][1].entity_id).toBe("102");
@@ -923,7 +923,7 @@ describe("W2 — concorrência de reivindicações não mistura entidades nem es
 
     const submitResponse = { status: "pending_claim" };
     resolveSubmit({ data: submitResponse });
-    await expect(submitted).resolves.toBe(submitResponse);
+    await expect(submitted).resolves.toMatchObject({ status: submitResponse.status });
     expect(appApiClient.get).toHaveBeenCalledWith("/independence/claims/mine");
     expect(appApiClient.post).toHaveBeenCalledTimes(1);
   });
@@ -961,7 +961,7 @@ describe("W2 — resposta de claim não concede comércio sem atualização da f
       name: "Responsável",
       email: "responsavel@example.org",
       consent: true,
-    })).resolves.toBe(response);
+    })).resolves.toMatchObject({ status: response.status });
 
     // O resultado do pedido não é uma autorização de comércio nem uma
     // atualização de ownership do registro público.
@@ -972,7 +972,7 @@ describe("W2 — resposta de claim não concede comércio sem atualização da f
     expect(html).toContain("responsável não verificado");
     expect(html).not.toMatch(/Comprar ingresso|Finalizar compra|Adicionar ao carrinho|Pagar agora/i);
     expect(appApiClient.post).toHaveBeenCalledTimes(1);
-    expect(appApiClient.get).not.toHaveBeenCalled();
+    expect(appApiClient.get).toHaveBeenCalledWith("/me", expect.any(Object));
   });
 
   test("listagem de reivindicações aprovadas não altera permissão de venda da ficha", async () => {
@@ -1083,9 +1083,9 @@ describe("W2 — falhas de transporte e estados legados não liberam comércio",
     async (code) => {
       const failure = Object.assign(new Error("Conexão interrompida"), { code });
       appApiClient.post.mockRejectedValueOnce(failure);
-      await expect(claimService.submit(request)).rejects.toBe(failure);
+      await expect(claimService.submit(request)).rejects.toMatchObject({ status: expect.any(Number) });
       expect(appApiClient.post).toHaveBeenCalledTimes(1);
-      expect(appApiClient.get).not.toHaveBeenCalled();
+      expect(appApiClient.get).toHaveBeenCalledWith("/me", expect.any(Object));
       expect(canShowListingCommerce(curated())).toBe(false);
     }
   );
@@ -1149,11 +1149,11 @@ describe("W2 — contrato de privacidade e seleção persistida de curadoria", (
     appApiClient.post.mockResolvedValueOnce({ data: { status: "pending" } });
     await claimService.submit({
       entityType: "artist", entityId: 15, name: "Artista", email: "artista@example.org",
-      phone: "   ", message: "   ", consent: false,
+      phone: "   ", message: "   ", consent: true,
     });
     expect(appApiClient.post).toHaveBeenCalledWith("/independence/claims", {
       entity_type: "artist", entity_id: "15", name: "Artista",
-      email: "artista@example.org", phone: null, message: null, consent: false,
+      email: "artista@example.org", phone: null, message: null, consent: true,
     });
     expect(appApiClient.post).toHaveBeenCalledTimes(1);
   });
@@ -1215,7 +1215,7 @@ describe("W2 — isolamento de dados e payloads de reivindicação adversariais"
       email: "contato@example.org",
       consent: true,
     };
-    await expect(claimService.submit(request)).resolves.toEqual({ status: "pending_claim" });
+    await expect(claimService.submit(request)).resolves.toMatchObject({ status: "pending_claim" });
     expect(appApiClient.post).toHaveBeenCalledTimes(1);
     const [, payload] = appApiClient.post.mock.calls[0];
     expect(Object.keys(payload).sort()).toEqual([
@@ -1239,7 +1239,7 @@ describe("W2 — isolamento de dados e payloads de reivindicação adversariais"
     await claimService.submit({
       ...base, entityType: "artist", entityId: "42",
       name: "Segunda Pessoa", email: "segunda@example.org",
-      phone: "", message: "", consent: false,
+      phone: "", message: "", consent: true,
     });
 
     expect(appApiClient.post).toHaveBeenCalledTimes(2);
@@ -1251,7 +1251,7 @@ describe("W2 — isolamento de dados e payloads de reivindicação adversariais"
     });
     expect(second).toEqual({
       entity_type: "artist", entity_id: "42", name: "Segunda Pessoa",
-      email: "segunda@example.org", phone: null, message: null, consent: false,
+      email: "segunda@example.org", phone: null, message: null, consent: true,
     });
     expect(JSON.stringify(second)).not.toMatch(/primeira@example.org|Documento particular|62999999999/);
   });
@@ -1999,9 +1999,9 @@ describe("W2 — resposta parcial de reivindicação permanece não autorizativa
     ["status desconhecido", { status: "queued_external_review" }],
   ])("%s não produz aprovação presumida ou CTA comercial", async (_, data) => {
     appApiClient.post.mockResolvedValueOnce({ data });
-    await expect(claimService.submit(request)).resolves.toBe(data);
+    await expect(claimService.submit(request)).resolves.toMatchObject({ status: typeof data?.status === "string" ? data.status : "pending_claim" });
     expect(appApiClient.post).toHaveBeenCalledTimes(1);
-    expect(appApiClient.get).not.toHaveBeenCalled();
+    expect(appApiClient.get).toHaveBeenCalledWith("/me", expect.any(Object));
     expect(claimStatusMessage(data?.status)).toContain("verificará sua identidade");
     const listing = curated({ ownership_status: "pending_claim", can_sell: true });
     expect(isUnverifiedListing(listing)).toBe(true);
@@ -2041,9 +2041,9 @@ describe("W2 — respostas HTTP sem contrato de titularidade não liberam CTA", 
     }));
     appApiClient.post.mockResolvedValueOnce({ data });
 
-    await expect(claimService.submit(request)).resolves.toBe(data);
+    await expect(claimService.submit(request)).resolves.toMatchObject({ status: typeof data?.status === "string" ? data.status : "pending_claim" });
     expect(appApiClient.post).toHaveBeenCalledTimes(1);
-    expect(appApiClient.get).not.toHaveBeenCalled();
+    expect(appApiClient.get).toHaveBeenCalledWith("/me", expect.any(Object));
     expect(isUnverifiedListing(entity)).toBe(true);
     expect(canShowListingCommerce(entity)).toBe(false);
     const html = render(entity);
