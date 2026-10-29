@@ -2204,7 +2204,7 @@ describe("W2 — formulário autenticado preserva consentimento e veto comercial
   const show = async (entityType = "event") => {
     await act(async () => {
       root.render(React.createElement(UnverifiedListingPanel, {
-        entity: curated({ id: "9007199254740993", can_sell: true }),
+        entity: curated({ app_id: "10", id: "9007199254740993", can_sell: true }),
         entityType,
         user: { id: 77, first_name: "Pessoa", last_name: "Responsável", email: "contato@example.org" },
         onLogin: jest.fn(),
@@ -2280,7 +2280,7 @@ describe("W2 — formulário autenticado preserva consentimento e veto comercial
       form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
     });
     expect(claimService.submit).toHaveBeenCalledTimes(1);
-    expect(container.querySelector('[role="alert"]')?.textContent).toContain("Acesso negado");
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain("não tem autorização");
     expect(container.querySelector('[role="status"]')).toBeNull();
     expect(container.textContent).not.toMatch(/Solicitação registrada|Comprar ingresso|Finalizar compra/i);
   });
@@ -2322,7 +2322,7 @@ describe("W2 — formulário autenticado preserva consentimento e veto comercial
       form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
     });
     expect(claimService.submit).toHaveBeenCalledTimes(1);
-    expect(container.querySelector('[role="alert"]')?.textContent).toContain("Aguarde antes");
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain("Não foi possível enviar");
     expect(container.querySelector('[role="status"]')).toBeNull();
     expect(form.querySelector('button[type="submit"]').disabled).toBe(false);
     expect(form.querySelector('input[type="checkbox"]').checked).toBe(true);
@@ -2365,7 +2365,7 @@ describe("W2 — formulário autenticado preserva consentimento e veto comercial
   test.each([
     ["rede indisponível", new Error("Network Error"), "Não foi possível enviar"],
     ["serviço indisponível", { response: { status: 503 } }, "Não foi possível enviar"],
-    ["mensagem hostil da API", { response: { status: 500, data: { message: '<img src=x onerror="alert(1)">' } } }, '<img src=x onerror="alert(1)">'],
+    ["mensagem hostil da API", { response: { status: 500, data: { message: '<img src=x onerror="alert(1)">' } } }, "Não foi possível enviar"],
   ])("%s não fabrica sucesso de reivindicação nem executa HTML", async (_, failure, expected) => {
     claimService.submit.mockRejectedValueOnce(failure);
     await show("event");
@@ -2411,7 +2411,7 @@ describe("W2 — login explícito antes da reivindicação pública", () => {
     "%s exige login e nova ação consciente antes de exibir formulário",
     async (entityType) => {
       const onLogin = jest.fn();
-      const entity = curated({ id: "9007199254740993", can_sell: true });
+      const entity = curated({ app_id: "10", id: "9007199254740993", can_sell: true });
       const panel = (user) => React.createElement(UnverifiedListingPanel, {
         entity, entityType, user, onLogin,
       });
@@ -2477,7 +2477,7 @@ describe("W2 — erros HTTP de reivindicação preservam formulário sem concede
     claimService.submit.mockRejectedValueOnce({ response: { status, data: { message } } });
     await act(async () => {
       root.render(React.createElement(UnverifiedListingPanel, {
-        entity: curated({ id: "9007199254740993", can_sell: true }),
+        entity: curated({ app_id: "10", id: "9007199254740993", can_sell: true }),
         entityType: "event",
         user: { id: 77, name: "Responsável", email: "contato@example.org" },
         onLogin: jest.fn(),
@@ -2490,11 +2490,17 @@ describe("W2 — erros HTTP de reivindicação preservam formulário sem concede
       form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
     });
     expect(claimService.submit).toHaveBeenCalledTimes(1);
-    expect(container.querySelector('[role="alert"]')?.textContent).toContain(message);
+    expect(container.querySelector('[role="alert"]')?.textContent)
+      .toContain(status === 401 ? "Sua sessão expirou" : "Não foi possível enviar");
+    expect(container.querySelector('[role="alert"]')?.textContent).not.toContain(message);
     expect(container.querySelector('[role="status"]')).toBeNull();
-    expect(container.querySelector("form")).not.toBeNull();
-    expect(form.querySelector('button[type="submit"]').disabled).toBe(false);
-    expect(form.querySelector('input[type="checkbox"]').checked).toBe(true);
+    if (status === 401) {
+      expect(container.querySelector("form")).toBeNull();
+    } else {
+      expect(container.querySelector("form")).not.toBeNull();
+      expect(form.querySelector('button[type="submit"]').disabled).toBe(false);
+      expect(form.querySelector('input[type="checkbox"]').checked).toBe(true);
+    }
     expect(container.textContent).not.toMatch(/Solicitação registrada|Comprar ingresso|Finalizar compra|Pagar agora|Emitir QR/i);
   });
 });
@@ -2523,7 +2529,7 @@ describe("W2 — consentimento revogável e mensagens seguras na reivindicação
   const openForm = async (entityType = "event", name = "Responsável") => {
     await act(async () => {
       root.render(React.createElement(UnverifiedListingPanel, {
-        entity: curated({ id: "9007199254740993", can_sell: true }),
+        entity: curated({ app_id: "10", id: "9007199254740993", can_sell: true }),
         entityType,
         user: { id: 77, name, email: "contato@example.org" },
         onLogin: jest.fn(),
@@ -2603,7 +2609,7 @@ describe("W2 — resposta de reivindicação não eleva a ficha a comerciante", 
     ["production", { status: "verified", ownership_status: "verified", can_sell: true }],
     ["artist", { status: "pending_claim", merchant_enabled: true, tickets: [{ id: 9 }] }],
   ])("%s mantém ficha informativa após resposta de POST com flags comerciais", async (entityType, response) => {
-    const entity = Object.freeze(curated({
+    const entity = Object.freeze(curated({ app_id: "10",
       id: "9007199254740993",
       checkout_url: "/checkout/91",
       can_sell: true,
@@ -2661,7 +2667,7 @@ describe("W2 — logout oculta dados de reivindicação e exige autenticação n
   test.each(["event", "production", "artist"])(
     "%s esconde formulário, e-mail e consentimento após logout sem enviar POST",
     async (entityType) => {
-      const entity = Object.freeze(curated({
+      const entity = Object.freeze(curated({ app_id: "10",
         id: "9223372036854775807",
         can_sell: true,
       }));
@@ -2740,7 +2746,7 @@ describe("W2 — logout durante envio pendente oculta dados sem duplicar reivind
     "%s retira contato e formulário imediatamente ao sair durante POST pendente",
     async (entityType) => {
       claimService.submit.mockImplementationOnce(() => new Promise(() => {}));
-      const entity = Object.freeze(curated({ id: "9223372036854775807" }));
+      const entity = Object.freeze(curated({ app_id: "10", id: "9223372036854775807" }));
       const onLogin = jest.fn();
       const panel = (user) => React.createElement(UnverifiedListingPanel, {
         entity, entityType, user, onLogin,
@@ -2809,7 +2815,7 @@ describe("W2 — erros de reivindicação não injetam HTML no painel curatorial
     ["production", 422, '<svg onload="alert(1)"></svg> Dados inválidos'],
     ["artist", 500, '<a href="javascript:alert(1)">Tentar novamente</a>'],
   ])("%s apresenta erro HTTP %i como texto inerte e mantém veto comercial", async (entityType, status, hostile) => {
-    const entity = Object.freeze(curated({ id: "9223372036854775807", can_sell: true }));
+    const entity = Object.freeze(curated({ app_id: "10", id: "9223372036854775807", can_sell: true }));
     claimService.submit.mockRejectedValueOnce({
       response: { status, data: { message: hostile } },
     });
@@ -2834,11 +2840,17 @@ describe("W2 — erros de reivindicação não injetam HTML no painel curatorial
     expect(claimService.submit).toHaveBeenCalledWith(expect.objectContaining({
       entityType, entityId: "9223372036854775807", consent: true,
     }));
-    expect(container.querySelector('[role="alert"]')?.textContent).toBe(hostile);
+    expect(container.querySelector('[role="alert"]')?.textContent)
+      .toContain(status === 403 ? "não tem autorização" : "Não foi possível enviar");
+    expect(container.querySelector('[role="alert"]')?.textContent).not.toContain(hostile);
     expect(container.querySelector("img, svg, a[href^='javascript:']")).toBeNull();
     expect(container.querySelector('[role="status"]')).toBeNull();
-    expect(container.querySelector("form")).not.toBeNull();
-    expect(form.querySelector('input[type="checkbox"]').checked).toBe(true);
+    if (status === 403) {
+      expect(container.querySelector("form")).toBeNull();
+    } else {
+      expect(container.querySelector("form")).not.toBeNull();
+      expect(form.querySelector('input[type="checkbox"]').checked).toBe(true);
+    }
     expect(isUnverifiedListing(entity)).toBe(true);
     expect(canShowListingCommerce(entity)).toBe(false);
 
@@ -2876,7 +2888,7 @@ describe("W2 — recusas HTTP preservam titularidade pendente sem reenvio implí
     ["production", 409, "Já existe uma solicitação em análise."],
     ["artist", 413, "Mensagem muito longa: reduza os detalhes."],
   ])("%s mantém a reivindicação sem aprovação após HTTP %i", async (entityType, status, message) => {
-    const entity = Object.freeze(curated({ id: "9223372036854775807", can_sell: true }));
+    const entity = Object.freeze(curated({ app_id: "10", id: "9223372036854775807", can_sell: true }));
     const props = {
       entity, entityType,
       user: { id: 81, name: "Responsável", email: "contato@example.org" },
@@ -2896,11 +2908,17 @@ describe("W2 — recusas HTTP preservam titularidade pendente sem reenvio implí
     expect(claimService.submit).toHaveBeenCalledWith(expect.objectContaining({
       entityType, entityId: "9223372036854775807", consent: true,
     }));
-    expect(container.querySelector('[role="alert"]')?.textContent).toBe(message);
+    expect(container.querySelector('[role="alert"]')?.textContent)
+      .toContain(status === 401 ? "Sua sessão expirou" : "Não foi possível enviar");
+    expect(container.querySelector('[role="alert"]')?.textContent).not.toContain(message);
     expect(container.querySelector('[role="status"]')).toBeNull();
-    expect(container.querySelector("form")).toBe(form);
-    expect(form.querySelector('input[type="checkbox"]').checked).toBe(true);
-    expect(form.querySelector('button[type="submit"]').disabled).toBe(false);
+    if (status === 401) {
+      expect(container.querySelector("form")).toBeNull();
+    } else {
+      expect(container.querySelector("form")).toBe(form);
+      expect(form.querySelector('input[type="checkbox"]').checked).toBe(true);
+      expect(form.querySelector('button[type="submit"]').disabled).toBe(false);
+    }
 
     await act(async () => { root.render(React.createElement(UnverifiedListingPanel, props)); });
     expect(claimService.submit).toHaveBeenCalledTimes(1);
