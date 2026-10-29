@@ -576,11 +576,9 @@ describe("W2 — reivindicação não forja identidade, tenant ou autorização"
   });
 
   test("não transforma consentimento textual em autorização booleana", async () => {
-    await claimService.submit({ ...validClaim, entityId: 7, consent: "true" });
-    expect(appApiClient.post).toHaveBeenCalledWith(
-      "/independence/claims",
-      expect.objectContaining({ entity_id: "7", consent: false })
-    );
+    await expect(claimService.submit({ ...validClaim, entityId: 7, consent: "true" }))
+      .rejects.toMatchObject({ status: 403 });
+    expect(appApiClient.post).not.toHaveBeenCalled();
   });
 
   test("erro HTTP é propagado sem simular aprovação de titularidade", async () => {
@@ -778,12 +776,9 @@ describe("W2 — requisições de reivindicação rejeitam coerção e consentim
   test.each(["on", 1, [], {}, null, undefined, false])(
     "consentimento não booleano/negado %p nunca vira true no payload",
     async (consent) => {
-      await claimService.submit({ ...base, consent });
-      expect(appApiClient.post).toHaveBeenCalledTimes(1);
-      expect(appApiClient.post).toHaveBeenCalledWith(
-        "/independence/claims",
-        expect.objectContaining({ consent: false })
-      );
+      await expect(claimService.submit({ ...base, consent }))
+        .rejects.toMatchObject({ status: 403 });
+      expect(appApiClient.post).not.toHaveBeenCalled();
     }
   );
 
@@ -869,6 +864,8 @@ describe("W2 — concorrência de reivindicações não mistura entidades nem es
 
     const eventPromise = claimService.submit(request("event", "9007199254740993"));
     const productionPromise = claimService.submit(request("production", "9007199254740994"));
+    await Promise.resolve();
+    await Promise.resolve();
     expect(appApiClient.post).toHaveBeenCalledTimes(2);
     expect(appApiClient.post.mock.calls.map(([, payload]) => [
       payload.entity_type, payload.entity_id,
@@ -897,6 +894,8 @@ describe("W2 — concorrência de reivindicações não mistura entidades nem es
 
     const artistPromise = claimService.submit(request("artist", "101"));
     const eventPromise = claimService.submit(request("event", "102"));
+    await Promise.resolve();
+    await Promise.resolve();
     const artistError = Object.assign(new Error("Sessão revogada"), { response: { status: 401 } });
     rejectArtist(artistError);
     await expect(artistPromise).rejects.toMatchObject({ status: 401 });
@@ -917,6 +916,8 @@ describe("W2 — concorrência de reivindicações não mistura entidades nem es
 
     const submitted = claimService.submit(request("event", "91"));
     const mine = claimService.mine();
+    await Promise.resolve();
+    await Promise.resolve();
     const currentClaims = [{ id: 3, status: "rejected" }];
     resolveMine({ data: { data: currentClaims } });
     await expect(mine).resolves.toBe(currentClaims);
@@ -1165,7 +1166,7 @@ describe("W2 — contrato de privacidade e seleção persistida de curadoria", (
     appApiClient.post.mockRejectedValueOnce(failure);
     await expect(claimService.submit({
       entityType: "event", entityId: 91, name: "Pessoa", email: "inválido", consent: true,
-    })).rejects.toBe(failure);
+    })).rejects.toMatchObject({ status: 422 });
     expect(appApiClient.post).toHaveBeenCalledTimes(1);
   });
 
