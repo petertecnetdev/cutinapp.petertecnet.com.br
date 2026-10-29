@@ -156,6 +156,26 @@ describe("IndependenceClaimService — preflight fail-closed W2", () => {
     expect(appApiClient.get).not.toHaveBeenCalled();
   });
 
+  test("recibo real da API usa data.status=pending e não concede acesso", async () => {
+    appApiClient.post.mockResolvedValueOnce({
+      data: { success: true, data: { id: 42, status: "pending" } },
+    });
+    await expect(independenceClaimService.submit(request())).resolves.toMatchObject({
+      status: "pending",
+      message: expect.not.stringContaining("PII"),
+    });
+  });
+
+  test.each([
+    ["HTTP 204", undefined],
+    ["sucesso false", { success: false, data: { status: "pending" } }],
+    ["sem status", { success: true, data: {} }],
+    ["approved não autoriza", { success: true, data: { status: "approved" } }],
+  ])("%s nunca simula reivindicação aceita", async (_, data) => {
+    appApiClient.post.mockResolvedValueOnce({ data });
+    await expect(independenceClaimService.submit(request())).rejects.toMatchObject({ status: 502 });
+  });
+
   test("mine preserva o endpoint próprio sem disparar POST", async () => {
     appApiClient.get.mockResolvedValueOnce({ data: { data: [{ id: 4 }] } });
     await expect(independenceClaimService.mine()).resolves.toEqual([{ id: 4 }]);
