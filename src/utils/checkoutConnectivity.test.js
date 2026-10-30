@@ -117,7 +117,7 @@ describe("checkoutConnectivity", () => {
     expect(clearTimer).toHaveBeenCalledWith(103);
   });
 
-  test("ends the bounded wait when connectivity does not return", async () {
+  test("ends the bounded wait when connectivity does not return", async () => {
     const eventTarget = createEventTarget();
     let timerCallback;
     const setTimer = jest.fn((callback) => {
