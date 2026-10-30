@@ -322,30 +322,23 @@ describe("W2 — isolamento de contexto e respostas assíncronas de reivindicaç
     expect(independenceClaimService.submit).toHaveBeenCalledTimes(1);
   });
 
-  test("A→B→A sem identificador de aplicação reinicia formulário e não envia POST ambíguo", () => {
-    const fichaA = { id: 11, listing_source: "curated" };
-    const fichaB = { id: 11, listing_source: "curated" };
-    show({ entity: fichaA, user: ana });
-    expect(container.textContent).toContain("responsável não verificado");
-    expand();
-    allow();
-    expect(container.querySelector('input[type="checkbox"]').checked).toBe(true);
-
-    show({ entity: fichaB, user: ana });
+  test("A→B→A sem aplicativo válido não expõe formulário ou dados pessoais", () => {
+    const a = { id: 11, listing_source: "curated" };
+    const b = { id: 11, listing_source: "curated" };
+    for (const ficha of [a, b, a]) {
+      show({ entity: ficha, user: ana });
+      expect(container.textContent).toContain("responsável não verificado");
+      const action = container.querySelector(".cut-unverified__action");
+    expect(action.disabled).toBe(true);
     expect(container.querySelector("form")).toBeNull();
-    expand();
-    expect(container.querySelector('input[type="checkbox"]').checked).toBe(false);
-    allow();
-
-    show({ entity: fichaA, user: ana });
+    expect(container.querySelector('input[type="checkbox"]')).toBeNull();
+    expect(container.querySelector('input[autocomplete="tel"]')).toBeNull();
+    expect(container.querySelector("textarea")).toBeNull();
+    act(() => action.click());
     expect(container.querySelector("form")).toBeNull();
-    expand();
-    expect(container.querySelector('input[type="checkbox"]').checked).toBe(false);
-    allow();
-    submit(); // Even programmatic submit must be refused without app scope.
     expect(independenceClaimService.submit).not.toHaveBeenCalled();
     expect(independenceClaimService.mine).not.toHaveBeenCalled();
-    expect(container.textContent).not.toMatch(/Comprar ingresso|Finalizar compra|Acesso aprovado/);
+    }
   });
 
   test.each([
@@ -355,36 +348,71 @@ describe("W2 — isolamento de contexto e respostas assíncronas de reivindicaç
     ["inválido", { app_id: "app-10" }],
     ["conflitante", { app_id: "10", application_id: "20" }],
     ["segundo identificador inválido", { app_id: "10", application_id: "desconhecido" }],
-  ])("ficha com app %s mantém aviso mas nunca envia POST", (_case, fields) => {
+  ])("ficha com app %s mantém aviso mas não renderiza formulário ou PII", (_case, fields) => {
     show({ entity: { id: 11, listing_source: "curated", ...fields }, user: ana });
     expect(container.textContent).toContain("responsável não verificado");
-    expand();
-    allow();
-    expect(container.querySelector(".cut-unverified__submit").disabled).toBe(true);
-    expect(container.textContent).toContain("Não foi possível confirmar a aplicação");
-    submit(); // Mesmo um submit programático deve ser recusado.
+    const action = container.querySelector(".cut-unverified__action");
+    expect(action.disabled).toBe(true);
+    expect(container.querySelector("form")).toBeNull();
+    expect(container.querySelector('input[type="checkbox"]')).toBeNull();
+    expect(container.querySelector('input[autocomplete="tel"]')).toBeNull();
+    expect(container.querySelector("textarea")).toBeNull();
+    act(() => action.click());
+    expect(container.querySelector("form")).toBeNull();
     expect(independenceClaimService.submit).not.toHaveBeenCalled();
     expect(independenceClaimService.mine).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    ["entidade ausente", null, ana],
+    ["entidade zero", "0", ana],
+    ["entidade malformada", "id-11", ana],
+    ["usuário ausente", 11, { email: "ana@example.org" }],
+    ["usuário zero", 11, { id: "0", email: "ana@example.org" }],
+    ["usuário malformado", 11, { id: "id-7", email: "ana@example.org" }],
+    ["e-mail ausente", 11, { id: 7 }],
+    ["e-mail inválido", 11, { id: 7, email: "not-an-email" }],
+  ])("%s não coleta PII antes da confirmação de contexto", (_case, id, user) => {
+    show({ entity: { id, app_id: "10", listing_source: "curated" }, user });
+    expect(container.textContent).toContain("responsável não verificado");
+    const action = container.querySelector(".cut-unverified__action");
+    expect(action.disabled).toBe(true);
+    expect(container.querySelector("form")).toBeNull();
+    expect(container.querySelector('input[type="checkbox"]')).toBeNull();
+    expect(container.querySelector('input[autocomplete="tel"]')).toBeNull();
+    expect(container.querySelector("textarea")).toBeNull();
+    act(() => action.click());
+    expect(container.querySelector("form")).toBeNull();
+    expect(independenceClaimService.submit).not.toHaveBeenCalled();
+    expect(independenceClaimService.mine).not.toHaveBeenCalled();
+  });
+
+  test("escopo completo abre formulário somente após ação explícita", () => {
+    show({ entity: entity(11, "10"), user: ana });
+    expect(container.querySelector(".cut-unverified__action").disabled).toBe(false);
+    expect(container.querySelector("form")).toBeNull();
+    expand();
+    expect(container.querySelector("form")).not.toBeNull();
+    expect(container.querySelector('input[type="checkbox"]').checked).toBe(false);
+    expect(independenceClaimService.submit).not.toHaveBeenCalled();
   });
 
   test("primeiro contexto sem app e A→B→A com mesmo ID nunca enviam POST", () => {
     const fichaA = { id: 11, listing_source: "curated" };
     const fichaB = { id: 11, listing_source: "curated" };
-    show({ entity: fichaA, user: ana });
-    expand();
-    allow();
-    submit();
-    expect(independenceClaimService.submit).not.toHaveBeenCalled();
-
-    show({ entity: fichaB, user: ana });
-    show({ entity: fichaA, user: ana });
+    for (const ficha of [fichaA, fichaB, fichaA]) {
+      show({ entity: ficha, user: ana });
+      const action = container.querySelector(".cut-unverified__action");
+    expect(action.disabled).toBe(true);
     expect(container.querySelector("form")).toBeNull();
-    expand();
-    expect(container.querySelector('input[type="checkbox"]').checked).toBe(false);
-    allow();
-    submit();
+    expect(container.querySelector('input[type="checkbox"]')).toBeNull();
+    expect(container.querySelector('input[autocomplete="tel"]')).toBeNull();
+    expect(container.querySelector("textarea")).toBeNull();
+    act(() => action.click());
+    expect(container.querySelector("form")).toBeNull();
     expect(independenceClaimService.submit).not.toHaveBeenCalled();
-    expect(container.textContent).not.toMatch(/Comprar ingresso|Finalizar compra|Acesso aprovado/);
+    expect(independenceClaimService.mine).not.toHaveBeenCalled();
+    }
   });
 
   test.each([401, 403])("erro HTTP %i no contexto atual limpa PII e oculta mensagem privada da API", async (status) => {
