@@ -1,5 +1,5 @@
 import apiClient from "./ApiClient";
-import { clearAuthToken, getAuthToken, setAuthToken } from "../utils/authTokenStorage";
+import { clearAuthToken, getAuthToken, getAuthSessionSnapshot, isCurrentAuthSession, setAuthToken } from "../utils/authTokenStorage";
 import { clearCachedAuthUser } from "../utils/authUserCache";
 import { invalidateCommerceScopeReadiness, synchronizeCommerceScope } from "../utils/commerceSessionScope";
 import {
@@ -117,10 +117,12 @@ const authService = {
   },
 
   logout: async () => {
+    const initiatingSession = getAuthSessionSnapshot();
     try {
       await apiClient.post(`/${apiServiceUrl}/logout`);
     } finally {
-      authService.clearToken();
+      // Logout A must never revoke a newer login B, including A→B→A.
+      if (isCurrentAuthSession(initiatingSession)) authService.clearToken();
     }
     return true;
   },
