@@ -65,7 +65,7 @@ describe("Independence: retorno ao perfil do artista e reivindicacao segura", ()
 
   test("cadastro preserva URL do artista sem conceder titularidade ao voltar autenticado", async () => {
     cutinappService.publicArtist.mockResolvedValue({
-      artist: { id: "9007199254740993", slug: "artista-exemplo", stage_name: "Artista Exemplo", ownership_status: "unclaimed" },
+      artist: { id: "9007199254740993", slug: "artista-exemplo", stage_name: "Artista Exemplo", app_id: "10", ownership_status: "unclaimed" },
       upcoming_events: [], past_events: [], pending_events: [],
     });
     await renderProfile(null);
@@ -89,7 +89,7 @@ describe("Independence: retorno ao perfil do artista e reivindicacao segura", ()
 
   test("solicitacao pendente exige verificacao humana e nao habilita compra", async () => {
     cutinappService.publicArtist.mockResolvedValue({
-      artist: { id: "9007199254740993", slug: "artista-exemplo", stage_name: "Artista Exemplo", ownership_status: "pending_claim" },
+      artist: { id: "9007199254740993", slug: "artista-exemplo", stage_name: "Artista Exemplo", app_id: "10", ownership_status: "pending_claim" },
       upcoming_events: [], past_events: [], pending_events: [],
     });
     await renderProfile({ id: 23, email: "artista@example.org" });
