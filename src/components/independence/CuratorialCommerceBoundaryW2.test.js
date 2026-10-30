@@ -26,6 +26,12 @@ const actualClaimService = jest.requireActual("../../services/IndependenceClaimS
 const claimHttpClient = require("../../services/AppApiClient").default;
 const claimServiceForFixtures = {
   ...actualClaimService,
+  mine: () => {
+    // Os cenários de lista de reivindicações são autenticados; o contrato
+    // de ausência de token é coberto no teste exclusivo do serviço.
+    require("../../utils/authTokenStorage").getAuthToken.mockReturnValue("token-A");
+    return actualClaimService.mine();
+  },
   submit: (input) => {
     require("../../utils/authTokenStorage").getAuthToken.mockReturnValue("token-A");
     const expectedEmail = typeof input?.email === "string" ? input.email.trim() : "";
@@ -592,7 +598,7 @@ describe("W2 — reivindicação não forja identidade, tenant ou autorização"
   test("consulta de solicitações usa endpoint da conta sem aceitar tenant arbitrário", async () => {
     appApiClient.get.mockResolvedValueOnce({ data: { data: [{ id: 8, status: "pending" }] } });
     await expect(claimService.mine()).resolves.toEqual([{ id: 8, status: "pending" }]);
-    expect(appApiClient.get).toHaveBeenCalledWith("/independence/claims/mine");
+    expect(appApiClient.get).toHaveBeenCalledWith("/independence/claims/mine", expect.any(Object));
     expect(appApiClient.post).not.toHaveBeenCalled();
   });
 });
@@ -698,9 +704,9 @@ describe("W2 — contratos de reivindicação nas três entidades", () => {
     });
     appApiClient.get.mockRejectedValueOnce(denied);
 
-    await expect(claimService.mine()).rejects.toBe(denied);
+    await expect(claimService.mine()).rejects.toMatchObject({ status: 403, message: expect.not.stringContaining("Acesso revogado") });
     expect(appApiClient.get).toHaveBeenCalledTimes(1);
-    expect(appApiClient.get).toHaveBeenCalledWith("/independence/claims/mine");
+    expect(appApiClient.get).toHaveBeenCalledWith("/independence/claims/mine", expect.any(Object));
     expect(appApiClient.post).not.toHaveBeenCalled();
   });
 });
@@ -826,7 +832,7 @@ describe("W2 — falhas e concorrência HTTP não aprovam reivindicações", () 
         response: { status },
       });
       appApiClient.get.mockRejectedValueOnce(failure);
-      await expect(claimService.mine()).rejects.toBe(failure);
+      await expect(claimService.mine()).rejects.toMatchObject({ status: status === 401 ? 401 : 503 });
       expect(appApiClient.get).toHaveBeenCalledTimes(1);
       expect(appApiClient.post).not.toHaveBeenCalled();
     }
@@ -924,7 +930,7 @@ describe("W2 — concorrência de reivindicações não mistura entidades nem es
     const submitResponse = { status: "pending_claim" };
     resolveSubmit({ data: submitResponse });
     await expect(submitted).resolves.toMatchObject({ status: submitResponse.status });
-    expect(appApiClient.get).toHaveBeenCalledWith("/independence/claims/mine");
+    expect(appApiClient.get).toHaveBeenCalledWith("/independence/claims/mine", expect.any(Object));
     expect(appApiClient.post).toHaveBeenCalledTimes(1);
   });
 });
@@ -1098,7 +1104,7 @@ describe("W2 — falhas de transporte e estados legados não liberam comércio",
   test("falha de rede ao consultar pedidos não cria status de titularidade", async () => {
     const failure = Object.assign(new Error("Sem conexão"), { code: "ERR_NETWORK" });
     appApiClient.get.mockRejectedValueOnce(failure);
-    await expect(claimService.mine()).rejects.toBe(failure);
+    await expect(claimService.mine()).rejects.toMatchObject({ status: 503 });
     expect(appApiClient.get).toHaveBeenCalledTimes(1);
     expect(appApiClient.post).not.toHaveBeenCalled();
     expect(canShowListingCommerce(curated({ ownership_status: "pending_claim" }))).toBe(false);
@@ -1106,7 +1112,7 @@ describe("W2 — falhas de transporte e estados legados não liberam comércio",
 
   test("consulta com envelope vazio não é interpretada como reivindicação aprovada", async () => {
     appApiClient.get.mockResolvedValueOnce({ data: {} });
-    await expect(claimService.mine()).resolves.toBeUndefined();
+    await expect(claimService.mine()).rejects.toMatchObject({ status: 502 });
     expect(appApiClient.get).toHaveBeenCalledTimes(1);
     expect(appApiClient.post).not.toHaveBeenCalled();
     expect(canShowListingCommerce(curated())).toBe(false);
