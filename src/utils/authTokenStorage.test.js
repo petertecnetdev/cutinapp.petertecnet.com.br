@@ -1,6 +1,9 @@
 import {
   clearAuthToken,
   getAuthToken,
+  getAuthSessionSnapshot,
+  isCurrentAuthSession,
+  noteExternalAuthTokenChange,
   resetAuthTokenMemoryForTests,
   setAuthToken,
 } from "./authTokenStorage";
@@ -16,6 +19,26 @@ describe("authTokenStorage", () => {
     jest.restoreAllMocks();
     window.localStorage.clear();
     resetAuthTokenMemoryForTests();
+  });
+
+  test("A→B→A na mesma aba invalida promessas da sessão A", () => {
+    setAuthToken("A");
+    const original = getAuthSessionSnapshot();
+    setAuthToken("B");
+    setAuthToken("A");
+    expect(getAuthToken()).toBe("A");
+    expect(isCurrentAuthSession(original)).toBe(false);
+    expect(getAuthSessionSnapshot().epoch).toBeGreaterThan(original.epoch);
+  });
+
+  test("logout e evento de outra aba invalidam o snapshot anterior", () => {
+    setAuthToken("A");
+    const original = getAuthSessionSnapshot();
+    noteExternalAuthTokenChange();
+    expect(isCurrentAuthSession(original)).toBe(false);
+    const newer = getAuthSessionSnapshot();
+    clearAuthToken();
+    expect(isCurrentAuthSession(newer)).toBe(false);
   });
 
   test("persists and reads the authentication token when localStorage is available", () => {
