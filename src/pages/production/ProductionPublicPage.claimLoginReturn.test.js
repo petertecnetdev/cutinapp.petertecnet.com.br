@@ -51,7 +51,7 @@ describe("Independence: retorno e reivindicação de produção pública", () =>
   let navigate;
   const path = "/production/produtora-exemplo/public";
   const user = { id: 23, name: "Responsável", email: "responsavel@example.org" };
-  const production = (ownership_status, app_id) => ({
+  const production = (ownership_status, app_id = "10") => ({
     id: 51,
     slug: "produtora-exemplo",
     ...(app_id ? { app_id } : {}),
@@ -246,21 +246,19 @@ describe("Independence: retorno e reivindicação de produção pública", () =>
   });
 
   test.each([
-    ["app_id ausente", {}],
+    ["app_id ausente", { app_id: undefined }],
     ["app_id conflitante", { app_id: "10", application_id: "20" }],
     ["app_id inválido", { app_id: "não-identificado" }],
-  ])("%s impede POST mesmo com consentimento e submit programático", async (_case, fields) => {
+  ])("%s impede abertura de formulário e coleta de PII", async (_case, fields) => {
     cutinappService.publicProduction.mockResolvedValue({
       production: { ...production("unclaimed"), ...fields }, upcoming: [], past: [], artists: [],
     });
     await renderProduction(user);
+    expect(claimButton().disabled).toBe(true);
     await act(async () => { claimButton().click(); });
-    await act(async () => { container.querySelector(".cut-unverified__consent input").click(); });
-    expect(container.querySelector(".cut-unverified__submit").disabled).toBe(true);
-    await act(async () => {
-      container.querySelector(".cut-unverified__form")
-        .dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
-    });
+    expect(container.querySelector(".cut-unverified__form")).toBeNull();
+    expect(container.querySelector(".cut-unverified__consent input")).toBeNull();
+    expect(container.querySelector("textarea")).toBeNull();
     expect(independenceClaimService.submit).not.toHaveBeenCalled();
     expect(container.textContent).toContain("Não foi possível confirmar a aplicação");
     expect(primaryAction().textContent).toContain("Ver agenda");
