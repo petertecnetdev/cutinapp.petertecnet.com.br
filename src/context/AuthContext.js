@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 import artistService from "../services/ArtistService";
 import authService from "../services/AuthService";
 import { subscribeToAuthTokenChanges } from "../utils/authSessionSync";
+import { getAuthSessionSnapshot, isCurrentAuthSession } from "../utils/authTokenStorage";
 import { cacheAuthUser, readCachedAuthUser } from "../utils/authUserCache";
 import { resetCommerceSessionScope, synchronizeCommerceScope } from "../utils/commerceSessionScope";
 
@@ -29,7 +30,8 @@ export function AuthProvider({ children }) {
   }, []);
 
   const refreshUser = useCallback(async () => {
-    if (!authService.getToken()) {
+    const requestSession = getAuthSessionSnapshot();
+    if (!requestSession.token) {
       synchronizeCommerceScope(null);
       setUser(null);
       return null;
@@ -37,7 +39,7 @@ export function AuthProvider({ children }) {
 
     try {
       const currentUser = await authService.me();
-      synchronizeCommerceScope(currentUser);
+      if (!isCurrentAuthSession(requestSession)) return null;
 
       if (currentUser?.email_verified_at) {
         try {
@@ -49,10 +51,13 @@ export function AuthProvider({ children }) {
         }
       }
 
+      if (!isCurrentAuthSession(requestSession)) return null;
+      synchronizeCommerceScope(currentUser);
       setUser(currentUser);
       cacheAuthUser(currentUser);
       return currentUser;
     } catch (error) {
+      if (!isCurrentAuthSession(requestSession)) return null;
       if (error?.status === 401) {
         authService.clearToken();
         resetCommerceSession();
@@ -87,6 +92,8 @@ export function AuthProvider({ children }) {
     if (typeof window === "undefined") return undefined;
 
     const handleAuthInvalidated = () => {
+      // Ignore a delayed invalidation from a session already replaced.
+      if (authService.getToken()) return;
       authService.clearToken();
       resetCommerceSession();
       setUser(null);
@@ -160,8 +167,11 @@ export function AuthProvider({ children }) {
     try {
       await authService.logout();
     } finally {
-      resetCommerceSession();
-      setUser(null);
+      // A pending logout A cannot erase UI state belonging to a newer B.
+      if (!authService.getToken()) {
+        resetCommerceSession();
+        setUser(null);
+      }
     }
   }, [resetCommerceSession]);
 
