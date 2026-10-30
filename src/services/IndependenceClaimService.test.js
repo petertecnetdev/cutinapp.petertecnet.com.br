@@ -243,7 +243,70 @@ describe("IndependenceClaimService — preflight fail-closed W2", () => {
   test("mine preserva o endpoint próprio sem disparar POST", async () => {
     appApiClient.get.mockResolvedValueOnce({ data: { data: [{ id: 4 }] } });
     await expect(independenceClaimService.mine()).resolves.toEqual([{ id: 4 }]);
-    expect(appApiClient.get).toHaveBeenCalledWith("/independence/claims/mine");
+    expect(appApiClient.get).toHaveBeenCalledWith("/independence/claims/mine", expect.any(Object));
     expect(appApiClient.post).not.toHaveBeenCalled();
   });
+
+  test("mine sem token bloqueia leitura privada antes do GET", async () => {
+    token = "";
+    await expect(independenceClaimService.mine()).rejects.toMatchObject({ status: 401 });
+    expect(appApiClient.get).not.toHaveBeenCalled();
+  });
+
+  test("mine descarta sucesso tardio de A após login B sem divulgar lista de A", async () => {
+    let resolveMine;
+    appApiClient.get.mockImplementationOnce(() => new Promise((resolve) => { resolveMine = resolve; }));
+    const pending = independenceClaimService.mine();
+    token = "token-B";
+    resolveMine({ data: { data: [{ id: 4, email: "privado-A@example.org" }] } });
+    await expect(pending).rejects.toMatchObject({ status: 409 });
+    expect(getAuthToken()).toBe("token-B");
+  });
+
+  test.each([401, 403])("mine descarta HTTP %i tardio de A após login B", async (status) => {
+    let rejectMine;
+    appApiClient.get.mockImplementationOnce(() => new Promise((_, reject) => { rejectMine = reject; }));
+    const pending = independenceClaimService.mine();
+    token = "token-B";
+    rejectMine(denied(status));
+    await expect(pending).rejects.toMatchObject({
+      status: 409, message: expect.not.stringContaining("PII"),
+    });
+    expect(getAuthToken()).toBe("token-B");
+  });
+
+  test("mine descarta A→B→A sinalizado enquanto GET aguarda", async () => {
+    let resolveMine;
+    appApiClient.get.mockImplementationOnce(() => new Promise((resolve) => { resolveMine = resolve; }));
+    const pending = independenceClaimService.mine();
+    token = "token-B";
+    window.dispatchEvent(new StorageEvent("storage", {
+      key: "token", oldValue: "token-A", newValue: "token-B",
+    }));
+    token = "token-A";
+    resolveMine({ data: { data: [{ id: 4 }] } });
+    await expect(pending).rejects.toMatchObject({ status: 409 });
+  });
+
+  test("mine descarta resposta após invalidação explícita da sessão", async () => {
+    let resolveMine;
+    appApiClient.get.mockImplementationOnce(() => new Promise((resolve) => { resolveMine = resolve; }));
+    const pending = independenceClaimService.mine();
+    window.dispatchEvent(new CustomEvent("petertecnet:auth-invalidated"));
+    resolveMine({ data: { data: [{ id: 4 }] } });
+    await expect(pending).rejects.toMatchObject({ status: 409 });
+  });
+
+  test.each([401, 403])("mine sanitiza HTTP %i da sessão atual", async (status) => {
+    appApiClient.get.mockRejectedValueOnce(denied(status));
+    await expect(independenceClaimService.mine()).rejects.toMatchObject({
+      status, message: expect.not.stringContaining("PII"),
+    });
+  });
+
+  test("mine nega resposta 2xx sem lista de solicitações", async () => {
+    appApiClient.get.mockResolvedValueOnce({ data: { success: true } });
+    await expect(independenceClaimService.mine()).rejects.toMatchObject({ status: 502 });
+  });
+
 });

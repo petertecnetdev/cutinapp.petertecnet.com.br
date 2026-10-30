@@ -129,8 +129,34 @@ const independenceClaimService = {
     }
   },
   async mine() {
-    const response = await appApiClient.get("/independence/claims/mine");
-    return response.data?.data;
+    // A lista de solicitações é privada: resposta de uma sessão anterior
+    // nunca deve ser exibida após troca de conta, app ou logout.
+    const token = getAuthToken();
+    if (!token) throw safeError(401, "Entre novamente para consultar suas solicitações.");
+    const session = watchSession(token);
+    const controller = typeof AbortController === "function" ? new AbortController() : null;
+    try {
+      let response;
+      try {
+        response = await appApiClient.get("/independence/claims/mine", controller ? { signal: controller.signal } : {});
+      } catch (error) {
+        if (!session.isCurrent()) throw sessionChanged();
+        const status = Number(error?.status || error?.response?.status || 0);
+        if (status === 401 || status === 403) {
+          throw safeError(status, status === 401
+            ? "Sua sessão expirou. Entre novamente para consultar suas solicitações."
+            : "Você não tem autorização para consultar estas solicitações.");
+        }
+        throw safeError(503, "Não foi possível carregar suas solicitações. Tente novamente.");
+      }
+      if (!session.isCurrent()) throw sessionChanged();
+      const claims = response?.data?.data;
+      if (claims == null) throw safeError(502, "Não foi possível confirmar suas solicitações.");
+      return claims;
+    } finally {
+      controller?.abort();
+      session.dispose();
+    }
   },
 };
 export default independenceClaimService;
