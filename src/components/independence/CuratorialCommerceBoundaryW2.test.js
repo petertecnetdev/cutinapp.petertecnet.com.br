@@ -17,11 +17,16 @@ jest.mock("../../services/AppApiClient", () => ({
   default: { post: jest.fn(), get: jest.fn() },
 }));
 
-jest.mock("../../utils/authTokenStorage", () => ({
-  getAuthToken: jest.fn(() => "token-A"),
-  getAuthSessionSnapshot: jest.fn(() => ({ token: "token-A", epoch: 0 })),
-  isCurrentAuthSession: jest.fn((snapshot) => snapshot?.token === "token-A" && snapshot?.epoch === 0),
-}));
+jest.mock("../../utils/authTokenStorage", () => {
+  const getAuthToken = jest.fn(() => "token-A");
+  return {
+    getAuthToken,
+    // Plain helpers keep their implementation when Jest resets mocked functions.
+    getAuthSessionSnapshot: () => ({ token: getAuthToken(), epoch: 0 }),
+    isCurrentAuthSession: (snapshot) => Boolean(snapshot?.token)
+      && snapshot.token === getAuthToken() && snapshot.epoch === 0,
+  };
+});
 // Os cenários legados de payload usam contexto autenticado explícito; os
 // cenários de rejeição do preflight ficam no teste novo do serviço.
 const actualClaimService = jest.requireActual("../../services/IndependenceClaimService").default;
