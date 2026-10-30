@@ -19,6 +19,8 @@ jest.mock("../../services/AppApiClient", () => ({
 
 jest.mock("../../utils/authTokenStorage", () => ({
   getAuthToken: jest.fn(() => "token-A"),
+  getAuthSessionSnapshot: jest.fn(() => ({ token: "token-A", epoch: 0 })),
+  isCurrentAuthSession: jest.fn((snapshot) => snapshot?.token === "token-A" && snapshot?.epoch === 0),
 }));
 // Os cenários legados de payload usam contexto autenticado explícito; os
 // cenários de rejeição do preflight ficam no teste novo do serviço.
