@@ -5,11 +5,13 @@ jest.mock("./AppApiClient", () => ({
 }));
 jest.mock("../utils/authTokenStorage", () => ({
   getAuthToken: jest.fn(),
+  getAuthSessionSnapshot: jest.fn(),
+  isCurrentAuthSession: jest.fn(),
 }));
 
 import independenceClaimService from "./IndependenceClaimService";
 import appApiClient from "./AppApiClient";
-import { getAuthToken } from "../utils/authTokenStorage";
+import { getAuthToken, getAuthSessionSnapshot, isCurrentAuthSession } from "../utils/authTokenStorage";
 
 const request = (overrides = {}) => ({
   entityType: "event",
@@ -36,11 +38,15 @@ const denied = (status) => Object.assign(new Error("PII PRIVADA NÃO DEVE APAREC
 
 describe("IndependenceClaimService — preflight fail-closed W2", () => {
   let token;
+  let epoch;
 
   beforeEach(() => {
     jest.resetAllMocks();
     token = "token-A";
+    epoch = 0;
     getAuthToken.mockImplementation(() => token);
+    getAuthSessionSnapshot.mockImplementation(() => ({ token, epoch }));
+    isCurrentAuthSession.mockImplementation((snapshot) => Boolean(snapshot?.token) && snapshot.token === token && snapshot.epoch === epoch);
     appApiClient.get.mockResolvedValue(me());
     appApiClient.post.mockResolvedValue({ data: { status: "pending_claim", message: "PII PRIVADA" } });
   });
@@ -108,6 +114,30 @@ describe("IndependenceClaimService — preflight fail-closed W2", () => {
     resolveMe(me());
     await expect(pending).rejects.toMatchObject({ status: 409 });
     expect(appApiClient.post).not.toHaveBeenCalled();
+  });
+
+  test("A→B→A sincrono sem storage invalida GET antigo pelo epoch", async () => {
+    let resolveMe;
+    appApiClient.get.mockImplementationOnce(() => new Promise((resolve) => { resolveMe = resolve; }));
+    const pending = independenceClaimService.submit(request());
+    token = "token-B"; epoch += 1;
+    token = "token-A"; epoch += 1;
+    resolveMe(me());
+    await expect(pending).rejects.toMatchObject({ status: 409 });
+    expect(appApiClient.post).not.toHaveBeenCalled();
+  });
+
+  test("A→B→A sincrono sem storage descarta POST antigo", async () => {
+    let resolvePost;
+    appApiClient.post.mockImplementationOnce(() => new Promise((resolve) => { resolvePost = resolve; }));
+    const pending = independenceClaimService.submit(request());
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(appApiClient.post).toHaveBeenCalledTimes(1);
+    token = "token-B"; epoch += 1;
+    token = "token-A"; epoch += 1;
+    resolvePost({ data: { success: true, data: { status: "pending" } } });
+    await expect(pending).rejects.toMatchObject({ status: 409 });
   });
 
   test("evento de troca A→B→A entre abas invalida preflight mesmo com token original restaurado", async () => {
