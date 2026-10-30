@@ -26,9 +26,13 @@ export const waitForOnline = ({
       resolve({ restored, waited: true });
     };
 
-    const onOnline = () => finish(true);
+    const onOnline = () => {
+      // O evento pode chegar antes de navigator.onLine refletir a reconexão.
+      // Não retomar uma tentativa de pagamento enquanto o navegador indicar offline.
+      if (!isOffline()) finish(true);
+    };
 
-    eventTarget.addEventListener("online", onOnline, { once: true });
+    eventTarget.addEventListener("online", onOnline);
     timerId = setTimer(() => finish(!isOffline()), Math.max(0, Number(timeoutMs) || 0));
 
     if (!isOffline()) finish(true);
