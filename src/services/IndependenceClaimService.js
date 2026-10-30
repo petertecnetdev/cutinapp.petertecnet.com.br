@@ -1,6 +1,6 @@
 import appApiClient from "./AppApiClient";
 import { appSlug } from "../config";
-import { getAuthToken } from "../utils/authTokenStorage";
+import { getAuthSessionSnapshot, isCurrentAuthSession } from "../utils/authTokenStorage";
 import { canonicalAppId, canonicalPositiveDecimalId } from "../utils/independenceAppId";
 
 // A identidade, a aplicação e a autorização são sempre decididas pela API.
@@ -13,11 +13,9 @@ const safeError = (status, message) => {
 const sessionChanged = () => safeError(409, "A sessão mudou. Reabra a solicitação e tente novamente.");
 const normalizedEmail = (value) => typeof value === "string" ? value.trim().toLowerCase() : "";
 
-// Detecta invalidação e trocas de token entre abas, inclusive A→B→A. Trocas
-// síncronas na mesma aba sem evento não podem ser observadas sem o epoch do
-// módulo de autenticação (que possui outro owner); também comparamos o token
-// capturado antes/depois de cada await e antes de enviar qualquer POST.
-const watchSession = (token) => {
+// Rejeita respostas antigas mesmo quando o token retorna de A para A depois
+// de uma troca sincrona de conta: comparar token e epoch, alem dos eventos.
+const watchSession = (snapshot) => {
   let invalidated = false;
   const onStorage = (event) => {
     if (event?.key === "token") invalidated = true;
@@ -28,7 +26,7 @@ const watchSession = (token) => {
     window.addEventListener("petertecnet:auth-invalidated", onInvalidated);
   }
   return {
-    isCurrent: () => !invalidated && Boolean(token) && getAuthToken() === token,
+    isCurrent: () => !invalidated && isCurrentAuthSession(snapshot),
     dispose: () => {
       if (typeof window !== "undefined") {
         window.removeEventListener("storage", onStorage);
@@ -56,10 +54,10 @@ const independenceClaimService = {
     if (!expectedAppId || !expectedUserId || !expectedEmail || consent !== true) {
       throw safeError(403, "Não foi possível confirmar sua sessão e a aplicação desta ficha.");
     }
-    const token = getAuthToken();
-    if (!token) throw safeError(401, "Entre novamente para solicitar a análise.");
+    const snapshot = getAuthSessionSnapshot();
+    if (!snapshot.token) throw safeError(401, "Entre novamente para solicitar a análise.");
 
-    const session = watchSession(token);
+    const session = watchSession(snapshot);
     // A sinalização impede compartilhar um GET /me em voo entre duas contas:
     // ApiClient deduplica GETs sem signal apenas por URL/parâmetros.
     const controller = typeof AbortController === "function" ? new AbortController() : null;
@@ -131,9 +129,9 @@ const independenceClaimService = {
   async mine() {
     // A lista de solicitações é privada: resposta de uma sessão anterior
     // nunca deve ser exibida após troca de conta, app ou logout.
-    const token = getAuthToken();
-    if (!token) throw safeError(401, "Entre novamente para consultar suas solicitações.");
-    const session = watchSession(token);
+    const snapshot = getAuthSessionSnapshot();
+    if (!snapshot.token) throw safeError(401, "Entre novamente para consultar suas solicitações.");
+    const session = watchSession(snapshot);
     const controller = typeof AbortController === "function" ? new AbortController() : null;
     try {
       let response;
