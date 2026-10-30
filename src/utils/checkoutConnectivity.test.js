@@ -47,7 +47,7 @@ describe("checkoutConnectivity", () => {
       isOffline: () => offline,
     });
 
-    expect(eventTarget.addEventListener).toHaveBeenCalledWith("online", expect.any(Function), { once: true });
+    expect(eventTarget.addEventListener).toHaveBeenCalledWith("online", expect.any(Function));
     expect(setTimer).toHaveBeenCalledWith(expect.any(Function), 8000);
 
     offline = false;
@@ -57,6 +57,64 @@ describe("checkoutConnectivity", () => {
     expect(clearTimer).toHaveBeenCalledWith(99);
     expect(eventTarget.removeEventListener).toHaveBeenCalledWith("online", expect.any(Function));
     expect(timerCallback).toEqual(expect.any(Function));
+  });
+
+  test("ignora evento online prematuro e só retoma quando a conexão é confirmada", async () => {
+    const eventTarget = createEventTarget();
+    let timerCallback;
+    const setTimer = jest.fn((callback) => {
+      timerCallback = callback;
+      return 102;
+    });
+    const clearTimer = jest.fn();
+    let offline = true;
+
+    const pending = waitForOnline({
+      timeoutMs: 8000,
+      eventTarget,
+      setTimer,
+      clearTimer,
+      isOffline: () => offline,
+    });
+
+    eventTarget.dispatch("online");
+    expect(eventTarget.removeEventListener).not.toHaveBeenCalled();
+    expect(clearTimer).not.toHaveBeenCalled();
+
+    offline = false;
+    eventTarget.dispatch("online");
+
+    await expect(pending).resolves.toEqual({ restored: true, waited: true });
+    expect(clearTimer).toHaveBeenCalledWith(102);
+    expect(eventTarget.removeEventListener).toHaveBeenCalledWith("online", expect.any(Function));
+    expect(timerCallback).toEqual(expect.any(Function));
+  });
+
+  test("retoma ao voltar à aba após reconexão sem evento online, sem antecipar pagamento offline", async () => {
+    const eventTarget = createEventTarget();
+    let offline = true;
+    const setTimer = jest.fn(() => 103);
+    const clearTimer = jest.fn();
+
+    const pending = waitForOnline({
+      timeoutMs: 8000,
+      eventTarget,
+      setTimer,
+      clearTimer,
+      isOffline: () => offline,
+    });
+
+    eventTarget.dispatch("focus");
+    expect(eventTarget.removeEventListener).not.toHaveBeenCalled();
+    expect(clearTimer).not.toHaveBeenCalled();
+
+    offline = false;
+    eventTarget.dispatch("focus");
+
+    await expect(pending).resolves.toEqual({ restored: true, waited: true });
+    expect(eventTarget.removeEventListener).toHaveBeenCalledWith("online", expect.any(Function));
+    expect(eventTarget.removeEventListener).toHaveBeenCalledWith("focus", expect.any(Function));
+    expect(clearTimer).toHaveBeenCalledWith(103);
   });
 
   test("ends the bounded wait when connectivity does not return", async () => {
@@ -75,9 +133,11 @@ describe("checkoutConnectivity", () => {
       isOffline: () => true,
     });
 
+    eventTarget.dispatch("online"); // Evento espúrio não deve cancelar o timeout.
     timerCallback();
 
     await expect(pending).resolves.toEqual({ restored: false, waited: true });
     expect(eventTarget.removeEventListener).toHaveBeenCalledWith("online", expect.any(Function));
+    expect(eventTarget.removeEventListener).toHaveBeenCalledWith("focus", expect.any(Function));
   });
 });

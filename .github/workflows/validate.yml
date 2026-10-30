@@ -2,7 +2,7 @@ name: Validate Cutinapp
 
 on:
   push:
-    branches: [main, 'refactor/**']
+    branches: [main, Independence, 'refactor/**']
   pull_request:
     branches: [main]
 

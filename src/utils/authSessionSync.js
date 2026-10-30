@@ -1,3 +1,5 @@
+import { noteExternalAuthTokenChange } from "./authTokenStorage";
+
 export const AUTH_TOKEN_STORAGE_KEY = "token";
 
 export const isAuthTokenStorageEvent = (event) => (
@@ -12,6 +14,7 @@ export const subscribeToAuthTokenChanges = (listener) => {
 
   const handleStorage = (event) => {
     if (!isAuthTokenStorageEvent(event)) return;
+    noteExternalAuthTokenChange();
     listener(event.newValue, event.oldValue);
   };
 

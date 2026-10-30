@@ -3,7 +3,7 @@ import { apiBaseUrl, appSlug } from "../config";
 import { humanizeApiErrorMessage } from "../utils/apiErrorMessage";
 import { getRetryDelayMs, shouldRetryRequest } from "../utils/apiRetryPolicy";
 import { createRequestId, getHeaderValue, resolveRequestId } from "../utils/requestCorrelation";
-import { clearAuthToken, getAuthToken } from "../utils/authTokenStorage";
+import { clearAuthToken, getAuthSessionSnapshot, isCurrentAuthSession } from "../utils/authTokenStorage";
 
 const firstValidationMessage = (errors) => {
   if (!errors || typeof errors !== "object") return "";
@@ -64,8 +64,11 @@ export const createApiClient = (baseURL) => {
   const inFlightGets = new Map();
 
   client.interceptors.request.use((config) => {
-    const token = getAuthToken();
-    if (token) config.headers.Authorization = `Bearer ${token}`;
+    const snapshot = getAuthSessionSnapshot();
+    config.__authSessionSnapshot = snapshot;
+    if (snapshot.token) config.headers.Authorization = `Bearer ${snapshot.token}`;
+    else if (typeof config.headers?.delete === "function") config.headers.delete("Authorization");
+    else if (config.headers) delete config.headers.Authorization;
 
     if (!getHeaderValue(config.headers, "x-request-id")) {
       const requestId = createRequestId();
@@ -116,7 +119,8 @@ export const createApiClient = (baseURL) => {
         requestUrl.includes("/auth/instagram") ||
         requestUrl.includes("/auth/change-password");
 
-      if (status === 401 && !keepSessionOn401) {
+      // Never revoke B in response to an unauthorized request started under A.
+      if (status === 401 && !keepSessionOn401 && isCurrentAuthSession(error.config?.__authSessionSnapshot)) {
         clearAuthToken();
         publishAuthInvalidation(requestUrl);
       }

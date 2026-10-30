@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
+import { snapshotContext, discoveryContext, dateKeyForContext, formatDateForContext, eventCountry, organizerIdentity } from "./seo-snapshot-global-context.mjs";
 
 const SITE_URL = "https://cutinapp.petertecnet.com.br";
 const API_BASE = process.env.CUTINAPP_PUBLIC_API || "https://api.petertecnet.com.br/api/v1/apps/cutinapp";
@@ -101,22 +102,12 @@ const eventMatchesPeriod = (event, period, now) => {
   return true;
 };
 
-const formatDate = (value) => value ? new Intl.DateTimeFormat("pt-BR", {
-  timeZone: TIME_ZONE,
-  weekday: "long",
-  day: "2-digit",
-  month: "long",
-  year: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-}).format(new Date(value)) : "Data a confirmar";
+const formatDate = (value, event = {}) => formatDateForContext(value, snapshotContext(event)) || "Data a confirmar";
 
-const longToday = (now) => new Intl.DateTimeFormat("pt-BR", {
-  timeZone: TIME_ZONE,
-  day: "numeric",
-  month: "long",
-  year: "numeric",
-}).format(now);
+const longToday = (now, events = []) => {
+  const { locale, timeZone } = discoveryContext(events);
+  return new Intl.DateTimeFormat(locale, { timeZone, day: "numeric", month: "long", year: "numeric" }).format(now);
+};
 
 const fetchJson = async (url) => {
   const response = await fetch(url, {
@@ -293,6 +284,7 @@ const eventSchema = (event) => {
   const canonical = `${SITE_URL}/event/${encodeURIComponent(event.slug)}`;
   const production = event.production || event.organization || null;
   const artists = Array.isArray(event.artists) ? event.artists : [];
+  const organizer = organizerIdentity(event, SITE_URL);
   return {
     "@context": "https://schema.org",
     "@type": "Event",
@@ -321,17 +313,13 @@ const eventSchema = (event) => {
         addressLocality: event.city || undefined,
         addressRegion: event.uf || event.state || undefined,
         postalCode: event.cep || undefined,
-        addressCountry: event.country || undefined,
+        addressCountry: eventCountry(event),
       },
       ...(event.latitude !== null && event.latitude !== undefined && event.longitude !== null && event.longitude !== undefined ? {
         geo: { "@type": "GeoCoordinates", latitude: Number(event.latitude), longitude: Number(event.longitude) },
       } : {}),
     },
-    organizer: {
-      "@type": "Organization",
-      name: event.organizer_name || production?.name || "Cutinapp",
-      url: production?.slug ? `${SITE_URL}/production/${encodeURIComponent(production.slug)}/public` : SITE_URL,
-    },
+    organizer: { "@type": "Organization", ...organizer },
     performer: artists.filter((artist) => artist?.stage_name || artist?.name).map((artist) => ({
       "@type": "MusicGroup",
       name: artist.stage_name || artist.name,
@@ -348,7 +336,7 @@ const eventBody = (event) => {
     <p><a href="${SITE_URL}/eventos">Eventos na Cutinapp</a>${event.city ? ` · <a href="${SITE_URL}/eventos/${citySlug}">Eventos em ${escapeHtml(event.city)}</a>` : ""}</p>
     <h1>${escapeHtml(event.title || "Evento")}</h1>
     ${event.image ? `<img src="${escapeHtml(absoluteImage(event.image))}" alt="Flyer de ${escapeHtml(event.title || "evento")}" style="max-width:100%;height:auto" />` : ""}
-    <p><strong>Data:</strong> ${escapeHtml(formatDate(event.start_date))}</p>
+    <p><strong>Data:</strong> ${escapeHtml(formatDate(event.start_date, event))}</p>
     <p><strong>Local:</strong> ${escapeHtml([event.venue, event.address, event.city, event.uf].filter(Boolean).join(" · ") || "Local a confirmar")}</p>
     ${production?.name ? `<p><strong>Produção:</strong> ${production.slug ? `<a href="${SITE_URL}/production/${encodeURIComponent(production.slug)}/public">${escapeHtml(production.name)}</a>` : escapeHtml(production.name)}</p>` : ""}
     ${description ? `<p>${escapeHtml(description)}</p>` : ""}
@@ -390,7 +378,7 @@ const productionSchema = (production) => {
     addressLocality: production.city || undefined,
     addressRegion: production.uf || undefined,
     postalCode: production.cep || undefined,
-    addressCountry: production.country || "BR",
+    addressCountry: eventCountry(production),
   };
   return {
     "@context": "https://schema.org",
@@ -561,7 +549,7 @@ const buildItemSnapshot = (baseHtml, event, item) => {
   });
 };
 
-const discoveryCopy = ({ city, period, category, now }) => {
+const discoveryCopy = ({ city, period, category, now, events = [] }) => {
   if (category && city) return {
     title: `${category} em ${city} | Eventos e ingressos | Cutinapp`,
     heading: `${category} em ${city}`,
@@ -569,7 +557,7 @@ const discoveryCopy = ({ city, period, category, now }) => {
   };
   if (period === "hoje" && city) return {
     title: `Eventos hoje em ${city} | Cutinapp`,
-    heading: `Eventos hoje em ${city} — ${longToday(now)}`,
+    heading: `Eventos hoje em ${city} — ${longToday(now, events)}`,
     description: `Veja eventos hoje em ${city}, com programação, locais, atrações e ingressos disponíveis na Cutinapp.`,
   };
   const labels = {
@@ -617,7 +605,7 @@ const discoverySchema = (canonical, heading, events) => ({
           "@type": "PostalAddress",
           addressLocality: event.city || undefined,
           addressRegion: event.uf || undefined,
-          addressCountry: event.country || undefined,
+          addressCountry: eventCountry(event),
         },
       },
     },
@@ -628,13 +616,13 @@ const discoveryBody = ({ heading, description, events, city }) => `<section styl
   <p><a href="${SITE_URL}/">Cutinapp</a> · <a href="${SITE_URL}/eventos">Eventos</a></p>
   <h1>${escapeHtml(heading)}</h1>
   <p>${escapeHtml(description)}</p>
-  <ul>${events.slice(0, 50).map((event) => `<li style="margin:14px 0"><a href="${SITE_URL}/event/${encodeURIComponent(event.slug)}"><strong>${escapeHtml(event.title)}</strong></a> — ${escapeHtml(formatDate(event.start_date))}${event.venue || event.city ? ` · ${escapeHtml(event.venue || event.city)}` : ""}</li>`).join("")}</ul>
+  <ul>${events.slice(0, 50).map((event) => `<li style="margin:14px 0"><a href="${SITE_URL}/event/${encodeURIComponent(event.slug)}"><strong>${escapeHtml(event.title)}</strong></a> — ${escapeHtml(formatDate(event.start_date, event))}${event.venue || event.city ? ` · ${escapeHtml(event.venue || event.city)}` : ""}</li>`).join("")}</ul>
   ${city ? `<p>Veja também: <a href="${SITE_URL}/eventos/${slugify(city)}/hoje">eventos hoje</a>, <a href="${SITE_URL}/eventos/${slugify(city)}/amanha">eventos amanhã</a> e <a href="${SITE_URL}/eventos/${slugify(city)}/fim-de-semana">eventos no fim de semana</a> em ${escapeHtml(city)}.</p>` : ""}
 </section>`;
 
 const buildDiscoverySnapshot = (baseHtml, { route, events, city = "", period = "", category = "", now }) => {
   const canonical = `${SITE_URL}/${route.replace(/^\/+/, "")}`;
-  const copy = discoveryCopy({ city, period, category, now });
+  const copy = discoveryCopy({ city, period, category, now, events });
   const breadcrumbs = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
