@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import PropTypes from "prop-types";
 import independenceClaimService from "../../services/IndependenceClaimService";
 import { isUnverifiedListing, safeListingSourceUrl } from "../../utils/independenceListing";
-import { canonicalAppId } from "../../utils/independenceAppId";
+import { canonicalAppId, canonicalPositiveDecimalId } from "../../utils/independenceAppId";
 import "./unverified-listing.css";
 
 // Showing a public transparency notice and accepting a claim are separate decisions.
@@ -52,7 +52,14 @@ export default function UnverifiedListingPanel({ entity, entityType, user, onLog
   // A valid application hint is only a UI prerequisite, never proof of
   // authorization. Missing, malformed or conflicting app IDs block every POST,
   // including the first render; the API derives and authorizes the real scope.
-  const canSubmitClaim = hasAppHint;
+  const hasCanonicalEntity = Boolean(canonicalPositiveDecimalId(entity?.id));
+  const hasCanonicalUser = Boolean(
+    canonicalPositiveDecimalId(user?.id)
+    && typeof user?.email === "string"
+    && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user.email.trim())
+  );
+  const canOfferClaim = hasAppHint && hasCanonicalEntity;
+  const canSubmitClaim = canOfferClaim && hasCanonicalUser;
   const contextKey = JSON.stringify([
     entityType, entity?.id ?? null, entity?.app_id ?? null, entity?.application_id ?? null,
     // Even identical data in distinct unscoped records must remount the form.
@@ -69,14 +76,15 @@ export default function UnverifiedListingPanel({ entity, entityType, user, onLog
       entityType={entityType}
       user={user}
       onLogin={onLogin}
+      canOfferClaim={canOfferClaim}
       canSubmitClaim={canSubmitClaim}
     />
   );
 }
 
-function UnverifiedListingPanelContent({ entity, entityType, user, onLogin, canSubmitClaim }) {
+function UnverifiedListingPanelContent({ entity, entityType, user, onLogin, canOfferClaim, canSubmitClaim }) {
   const [expanded, setExpanded] = useState(false);
-  const [name, setName] = useState(() => personName(user));
+  const [name, setName] = useState(() => canSubmitClaim ? personName(user) : "");
   const [phone, setPhone] = useState("");
   const [message, setMessage] = useState("");
   const [consent, setConsent] = useState(false);
@@ -179,9 +187,11 @@ function UnverifiedListingPanelContent({ entity, entityType, user, onLogin, canS
       {canRequestClaim && !result && (
         <>
           {!user
-            ? <button className="cut-unverified__action" type="button" onClick={onLogin}>Reivindicar esta página — criar conta</button>
-            : <button className="cut-unverified__action" type="button" aria-expanded={expanded} onClick={() => setExpanded((value) => !value)}>Reivindicar esta página</button>}
-          {expanded && user && (
+            ? <button className="cut-unverified__action" type="button" disabled={!canOfferClaim} onClick={onLogin}>Reivindicar esta página — criar conta</button>
+             : <button className="cut-unverified__action" type="button" disabled={!canSubmitClaim} aria-expanded={expanded} onClick={() => setExpanded((value) => !value)}>Reivindicar esta página</button>}
+          {!canOfferClaim && <p role="note">Não foi possível confirmar a aplicação ou a entidade desta ficha. Solicite a correção na Central de Ajuda.</p>}
+          {canOfferClaim && user && !canSubmitClaim && <p role="note">Não foi possível confirmar sua identidade. Entre novamente antes de reivindicar a página.</p>}
+          {expanded && user && canSubmitClaim && (
             <form className="cut-unverified__form" onSubmit={submit}>
               <p>Solicite a análise de titularidade. A equipe verificará a identidade antes de liberar qualquer acesso; enviar esta solicitação não transfere o cadastro.</p>
               <label>Nome completo
@@ -200,9 +210,6 @@ function UnverifiedListingPanelContent({ entity, entityType, user, onLogin, canS
                 <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} required />
                 Autorizo a Cutinapp a utilizar os dados informados para avaliar e responder a esta solicitação.
               </label>
-              {!canSubmitClaim && (
-                <p role="note">Não foi possível confirmar a aplicação desta ficha. Solicite a correção na Central de Ajuda antes de enviar uma reivindicação.</p>
-              )}
               <button className="cut-unverified__submit" disabled={busy || !canSubmitClaim || !consent || !name.trim()} type="submit">
                 {busy ? "Enviando..." : "Enviar solicitação de acesso"}
               </button>
@@ -240,5 +247,6 @@ UnverifiedListingPanel.propTypes = {
 
 UnverifiedListingPanelContent.propTypes = {
   ...UnverifiedListingPanel.propTypes,
+  canOfferClaim: PropTypes.bool.isRequired,
   canSubmitClaim: PropTypes.bool.isRequired,
 };
