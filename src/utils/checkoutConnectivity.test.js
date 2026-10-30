@@ -90,7 +90,34 @@ describe("checkoutConnectivity", () => {
     expect(timerCallback).toEqual(expect.any(Function));
   });
 
-  test("ends the bounded wait when connectivity does not return", async () => {
+  test("retoma ao voltar à aba após reconexão sem evento online, sem antecipar pagamento offline", async () => {
+    const eventTarget = createEventTarget();
+    let offline = true;
+    const setTimer = jest.fn(() => 103);
+    const clearTimer = jest.fn();
+
+    const pending = waitForOnline({
+      timeoutMs: 8000,
+      eventTarget,
+      setTimer,
+      clearTimer,
+      isOffline: () => offline,
+    });
+
+    eventTarget.dispatch("focus");
+    expect(eventTarget.removeEventListener).not.toHaveBeenCalled();
+    expect(clearTimer).not.toHaveBeenCalled();
+
+    offline = false;
+    eventTarget.dispatch("focus");
+
+    await expect(pending).resolves.toEqual({ restored: true, waited: true });
+    expect(eventTarget.removeEventListener).toHaveBeenCalledWith("online", expect.any(Function));
+    expect(eventTarget.removeEventListener).toHaveBeenCalledWith("focus", expect.any(Function));
+    expect(clearTimer).toHaveBeenCalledWith(103);
+  });
+
+  test("ends the bounded wait when connectivity does not return", async () {
     const eventTarget = createEventTarget();
     let timerCallback;
     const setTimer = jest.fn((callback) => {
@@ -111,5 +138,6 @@ describe("checkoutConnectivity", () => {
 
     await expect(pending).resolves.toEqual({ restored: false, waited: true });
     expect(eventTarget.removeEventListener).toHaveBeenCalledWith("online", expect.any(Function));
+    expect(eventTarget.removeEventListener).toHaveBeenCalledWith("focus", expect.any(Function));
   });
 });
