@@ -2188,7 +2188,8 @@ describe("W2 — semântica acessível do aviso de titularidade não verificada"
       expect(html).toContain("<dt>Fonte</dt>");
       expect(html).toContain("<dt>Última conferência</dt>");
       expect(html).toContain('target="_blank" rel="noopener noreferrer"');
-      expect(html).toContain('type="button">Reivindicar esta página — criar conta</button>');
+      expect(html).toContain('Reivindicar esta página — criar conta</button>');
+      expect(html).toContain('disabled=""');
       expect(html).not.toContain("<form");
       expect(html).not.toMatch(/Comprar ingresso|Finalizar compra|Adicionar ao carrinho|Pagar agora|Emitir QR/i);
     }
