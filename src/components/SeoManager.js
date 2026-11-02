@@ -168,7 +168,7 @@ const discoverySeo = (path) => {
 
 const PRODUCER_SEO = {
   title: "Plataforma para produtores de eventos | Cutinapp",
-  description: "Crie sua produção, publique eventos e organize ingressos e participantes. Comece sem assinatura obrigatória; taxas de transação e do meio de pagamento podem se aplicar.",
+  description: "Crie sua produção, publique eventos e organize ingressos e participantes. Comece sem assinatura obrigatória; taxas por transação podem se aplicar.",
   jsonLd: {
     "@context": "https://schema.org",
     "@type": "WebPage",
